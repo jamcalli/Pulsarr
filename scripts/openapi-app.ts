@@ -2,6 +2,32 @@ import path from 'node:path'
 import fastifyAutoload from '@fastify/autoload'
 import FastifyFormBody from '@fastify/formbody'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
+import fp from 'fastify-plugin'
+
+// Mock service declarations for OpenAPI generation
+declare module 'fastify' {
+  interface FastifyInstance {
+    db: Record<string, unknown>
+    approvalService: Record<string, unknown>
+    quotaService: Record<string, unknown>
+    radarrManager: Record<string, unknown>
+    sonarrManager: Record<string, unknown>
+    discord: Record<string, unknown>
+    contentRouter: Record<string, unknown>
+    plexWatchlist: Record<string, unknown>
+    progress: Record<string, unknown>
+    tautulli: Record<string, unknown>
+    deleteSync: Record<string, unknown>
+    scheduler: Record<string, unknown>
+    plexSessionMonitor: Record<string, unknown>
+    sync: Record<string, unknown>
+    userTags: Record<string, unknown>
+    updateConfig: Record<string, unknown>
+    compare: Record<string, unknown>
+    hash: Record<string, unknown>
+    watchlistWorkflow: Record<string, unknown>
+  }
+}
 
 /**
  * Configures a minimal Fastify application for OpenAPI (Swagger) generation.
@@ -28,6 +54,68 @@ export default async function openapiApp(
     // Only load specific plugins we need for OpenAPI
     ignorePattern: /^(?!.*(?:swagger|env|sensible)\.ts$).*\.ts$/,
   })
+
+  // Register mock services for OpenAPI generation (after env plugin loads)
+  await fastify.register(
+    fp(async (fastify: FastifyInstance) => {
+      // Mock database service
+      fastify.decorate('db', {})
+
+      // Mock approval service
+      fastify.decorate('approvalService', {})
+
+      // Mock quota service
+      fastify.decorate('quotaService', {})
+
+      // Mock manager services
+      fastify.decorate('radarrManager', {})
+      fastify.decorate('sonarrManager', {})
+
+      // Mock other services (only add those that don't already exist)
+      try {
+        fastify.decorate('discord', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('contentRouter', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('plexWatchlist', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('progress', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('tautulli', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('deleteSync', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('scheduler', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('plexSessionMonitor', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('sync', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('userTags', {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('updateConfig', () => {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('compare', () => {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('hash', () => {})
+      } catch {} // May already exist
+      try {
+        fastify.decorate('watchlistWorkflow', {})
+      } catch {} // May already exist
+    }),
+  )
 
   // Load routes (they should work without database if we mock the services)
   fastify.register(fastifyAutoload, {

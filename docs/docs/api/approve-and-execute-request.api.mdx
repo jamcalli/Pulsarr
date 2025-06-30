@@ -1,0 +1,71 @@
+---
+id: approve-and-execute-request
+title: "Approve and execute request"
+description: "Approve an approval request and execute the proposed routing"
+sidebar_label: "Approve and execute request"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVV1r2zAU/SviPnXgzknbMea3bO1DYbCQdnsJfrixbmN1sqVKcj4w/u/jyk6TLlkZbG8NgSjSPed+6qgFY8lhUKa+lZABWuvMiia1vNlQ0QSa0VNDPkACAZcesjlMoglqyBOQ5AunLMMhG05IYC1wMBKuxwuspaCeUoSShHXGGk9SONMEVS8hgcH0s5FbyFooTB2oDrxEa7UqYpTpo2dfLfiipAp5FbaWIAOzeKSCA2VqckGR59PahH4xmPng2F3XJYBSKuZEPT2APKD21HVsYNFhRYEcJ37C5Y4rAcX5WwwlJFBjxYdKDjkpRxKy4Brqct7x1tS+j+liNOKfl2W8pgdsdBCzwRKS/1UL3xQF+cNqLIzRhDWnUJH3uKTTpdrnMX9m2UPyv6jl1ejq7aT66W2kGvlDaVg5rIkqEe9ABulqnO40IB0utk9bJbthm/P35Fa7u9U4DRmUIdgsTcej9xcf4/fDCH5XmalTFbqtuIto6JJXwNnlaHR5xHCtHBVhIBCTmLc4W6tQCmtceHfMqU2BujQ+nCb8ujs+SZYnwC2d7eXtZoOV1XQgTy+k5MHEdqnAJjBttEfnxGR6e+R4Mr0V0hRNRXWIwyMejBM7xLlAMdW0EWsMRamVD0LVgZZub3pnarZkdZ6hROcgAe5JT/9jzAFxZyuMIzlI217o96Lunh+KFyEe6Pi/vg/D/AbahNRqVHG+Y5vaYezmsBpDAjvy/ZvCY51FQd5NX54AN4wxbbtAT9+d7jrefmrIbSGb5wms0ClccBfmLUjleS2H+X8lz7PZcK/eiT+FPWxiveWCo274HyTwk7b909HlXQIloSQXvfcHX3of5/cM3wOP1IMHuEfwQNrwqm1+cIun3+7uIYHF8AZXRjLG4Zpries+SBNzjoIT91rQWC+bKDPQc/LnF0iB5n8=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Approve and execute request"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/approval/requests/{id}/approve"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Approve an approval request and execute the proposed routing
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"notes":{"type":"string"}},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"409":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: get-user-quota-status
+title: "Get user quota status"
+description: "Get current quota status for a user"
+sidebar_label: "Get user quota status"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1r40AM/SuDTltw12lLWfCt0KUUesj2Yy8lLIqtxNOOZ9wZOW0I/u+LJnbjfLTd60IgMJaenqQnaQWuJo+snb0uIIM58UMg/6txjHeM3ARIgHEeIHuE+AqTBAoKude1eEEGV8Qqb7wny+pFTFSInmrmvELVBPKQQI0eK2LyArWCkJdUIWQr4GVNkEFgr+0cEiDbVBKtcgtNkEAo3StM2gS0BHtpyC8hAYuVeOXOMlm+F4wEPL002lMB2QxNoDb5OE6PVyOXGzjhel1sIbFvqJ3IS6idDRQE63Q0kr/tOlzSDBvD6razhKSnJ7ZY10bnsdLpUxCHA+Tc9Ilylmp56QvrdbjQ5DmFMDCcOmcIraRRUQg4p4Mpvgz6+GWUaBwr+UlXCtRG6v9K9GyWf7wzZm1QOculWcZORaQbXWkeQNmmmpIXVp1YHnZobwzoLScqpPqHEvYUiC+RD/KcOV8hQwYFMh2zrqQNtjEGp4a6biYwXdYYwkVde7dAcyhMO9TA46A2W9nt5DJgPqS5F2+SABaFFi2gGQ+aEGW7x3eHS6+GTeu3G/05etsK3vl/IeAvE/861YjPpeuWW1xEXEIG6eIkjVVLZehDulrPfpuGfu0F8ot+XTXeQAYlc52l6cno++mP+Dsfwe42HHtdoV+qu+gNsoM+dM7ORqOzPYRL7SnnDkBdxJzVt1fNpaqd56N9TONyNKULfBjwpv98EGwim3DmYvk1i+hg3JiA3quL8fUe2MX4WhUubyqyHMUQ13zvcaxQjQ29qVfkvDQ6sNKWae43pnfOiiXaQt1igV6Og9R5Df/7RCRRu8AVRol1m1mOjHRo68Lskltt9PqPV6kTHNMbp7VBHQUZa7vqhPIIi5N+wCCJF0LiZu+nIrxPnZRYHFarKQZ68KZt5Xl9skRFhQ4y1sX7oD/Tcu+ILdA0wil2ZoFerzfBIfcPk/92243Nkfooye4R7XIYs6fUZdfKNi8JC/KRwfqjqKjmgdveahDq72N39fMe2vYvdSnmVg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get user quota status"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/quota/users/{userId}/status"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get current quota status for a user
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string","enum":["movie","show"]},"in":"query","name":"contentType","required":false},{"schema":{"type":"string"},"in":"path","name":"userId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"quotaStatus":{"type":"object","properties":{"quotaType":{"type":"string","enum":["daily","weekly_rolling","monthly"]},"quotaLimit":{"type":"number"},"currentUsage":{"type":"number"},"exceeded":{"type":"boolean"},"resetDate":{"type":"string","format":"date-time","nullable":true},"bypassApproval":{"type":"boolean"}},"required":["quotaType","quotaLimit","currentUsage","exceeded","resetDate","bypassApproval"],"additionalProperties":false,"nullable":true}},"required":["success","message","quotaStatus"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

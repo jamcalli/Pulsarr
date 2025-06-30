@@ -1,0 +1,63 @@
+---
+id: get-approval-stats
+title: "Get approval statistics"
+description: "Get statistics about approval requests"
+sidebar_label: "Get approval statistics"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVMGK2zAQ/RUxpxbcOtllKfgW2LIs9BCybS8hh4k8ibWVJUUaZzcY/3uRYidpstv0WjDYaN48zTy/mRasI4+srHksoYA18cQ5b7eonxg5QAaM6wDFHIZzWGRQUpBeuZgGBTwQi8DIKrCSQeDSNiywhwtPm4ZCovIUnDWBAhQt3IxG8fUn1T2tsNEsZj0SMpDWMBmOWHROK5mqzZ9DTGghyIpqjF+8cwQF2OUzSYYMnI+9sdpfFxopKYQT4NJaTWigy6CmEHBNJ8HAXpl1jIWkw1V+R6aMGUegaeol+Uix14LKN4OeIt87QXp1yr8TY8uoZ4O6l4jEvWn2+fNDgSflnFx+vOqceJEBlqWKoqOenvS8Qh3o/JZB5qOmg4LXeCLT3X/hiastX2818XNl+5mLlSFXUEC+HefD6OShH8FAfks+TmELjddQQMXsijwfjz7ffEnP3QjOx3LqVY1+J55SNnTZX5KL29Ho9oLhXnmS3BOISWpTfHhRXAlnPX+85NRWoq5s4LcJvw3hN8kWGSizsklxxTpKPm10QO/FZPp4QTaZPorSyqYmw+n/i5X1Ysj4JFBMNb2KF2RZaRVYKMO09kfokzURiaYUMyzRe8gg6ryn/zmOLnA2cI3JVQZr6rfdYbkd1955ee3RpP++IHujMb1y7jSqZMQkcNsbZA7b8WGEUZ9OV9Q1Atp2iYF+eN118XjTkN9BMV9ksEWvcBmFnS+6DCrCknxy1S/aRUWlJBfNuEXdxEIuhiv+o4NxH75+h677DVOTKzY=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get approval statistics"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/approval/stats"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get statistics about approval requests
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"stats":{"type":"object","properties":{"pending":{"type":"number"},"approved":{"type":"number"},"rejected":{"type":"number"},"expired":{"type":"number"},"totalRequests":{"type":"number"}},"required":["pending","approved","rejected","expired","totalRequests"],"additionalProperties":false}},"required":["success","message","stats"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

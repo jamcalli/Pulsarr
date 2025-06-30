@@ -1,0 +1,71 @@
+---
+id: bulk-reject-requests
+title: "Bulk reject requests"
+description: "Reject multiple approval requests in batch"
+sidebar_label: "Bulk reject requests"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVcFu2zAM/RWBpw1Q56TdMMC3dN0hwIAFabdL4ANjM7Fa2XIlOWlg+N8Hyk7ipkHbAbssMBCDJp8eySeyAVORRa9MOc0ghmWtH+Z0T6mf02NNzjuQ4HHtIF7ApKqs2aCGREJGLrWq4kCIoQsRRa29qjQJ7D2F7VGEKsUSfZqDhN52bbIdxA2kpvRUen7FqtIqDWyie8fIDbg0pwL5ze8qghjMks8CCZVl7l6R46896jRzA1+0FncgQXkqhvayLpZkoZVQqHLafRy3TA37Y3tH560q19C2HW1lKeNKDA5LJGCWKeaMejagtELtqH0e6W1NweAqU7qO+OVoxH/PC3pDK6y1F/PeE+S/qpOr05TcsBhLYzRhGapBzuGazhQgkK61f/cBq1qfLfgKleZSvLtHrQSy1tj39HXQLm88nmNw0skB2wO3w4F7lLd6fBYSjuU8FO9NsbQSPv8Xengz57dTDfg+Nzx3KuMCNfQ5xBBtxtF+hET7ERLxbIos9Vk4shtiUSwaqK2GGHLvqziKxqNPl1/D82UEp4NqZlWBdiduQzS08pXg+Go0unqBcKMsj7oOQExC2uLDVvlcVMb6jy8xtUlR58b584A/9p/PgiUSuKPz48z8/oRFpel05i1GyXF+Da6tKlcm9E95DoJZrR1aKyaz6Qsqk9lUZCatCyp9UJNYGSv2ERcCxUzTk9jyINfKeaFKT2t7dL01JXtimYk5ZmgtSOAudfC/x0yIW11g0GiJBVO6rvWD6Bp7WBin3AZ74u+2Ta9bT08+qjSqoOvQn6aX2wI2Y5CwRzluKCbBoguWILtEAneKY5pmiY5+Wd22bH6sye4gXiQSNmgVLrnYi6SVkBNmZINOH2gHMXzrErm4Y2bsrusw004vMQupi2BhVP5V32RwmWY/b++Yer9gC5NxjMUtJ4JbiAEkmFDYbnWyrQGN5boOtx06TP79AYZe0aA=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Bulk reject requests"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/approval/requests/bulk/reject"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Reject multiple approval requests in batch
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"requestIds":{"type":"array","items":{"type":"number"},"minItems":1},"reason":{"type":"string"}},"required":["requestIds"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"result":{"type":"object","properties":{"successful":{"type":"number"},"failed":{"type":"array","items":{"type":"number"}},"errors":{"type":"array","items":{"type":"string"}},"total":{"type":"number"}},"required":["successful","failed","errors","total"],"additionalProperties":false}},"required":["success","message","result"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

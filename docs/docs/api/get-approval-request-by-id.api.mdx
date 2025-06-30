@@ -1,0 +1,71 @@
+---
+id: get-approval-request-by-id
+title: "Get approval request by ID"
+description: "Retrieve a specific approval request by its ID"
+sidebar_label: "Get approval request by ID"
+hide_title: true
+hide_table_of_contents: true
+api: eJztWN9v2zYQ/lcEPrWANztthwF+c5euMNa1RvrjJQiMs3i2r6VIhTw5EQz/78NRUizLcpy8DBhWwIAFkfx49913Jx63yuXogcnZqVZjtUKe5Ll3GzBXeFtg4LflVKuBYlgFNb5Wzai6GSiNIfWUy2I1VlfInnCDCSQhx5SWlCZQz058BZYsyoQ4JNNLNVA5eMiQ0QvwVoV0jRmo8VZxmaMaq8Ce7ErtBooEPwdeq4GykMkgiVGCSh61GrMvcHcjb0LubMAgOK9GI/k7NPMSl1AYTq7qmWqgUmcZLctcyHNDaeRj+D3Igh7D3OI7piweeGGPqdouFGmKIbQmLpwzCFZcyDAEWGGve3DI+PmdSLfm2CJboBecIqCfnh76GJnr2b/2/0t83x0fKLRFJqHP3IaErrB2d+qmtY7YPAr8F5aPDb8vSLdZA++hVANFjFnoWbir6HAB9ZUrGP0lphSoCtbjxEHKh/OOnPSCuJfWvIlNfFVjit1kC4wkyAKBOB80Gxhsiici1Ayfi4IHDd5LGJyVB7HhtgBDXM68W1IVCrDlp2VMq+5Gx3HYPmDbwsTEln9YCFKVV9FNx386o9H3GddZ0JSL54WUnCcue8kJCD5df7ITrXvSq2f/gBCc/dtZYucPw3Pa6ICeMJwLgIRJg5f6A5YyEYsGMmUPcQOVkaWsyCYbIAMLMocOHmGDta6wKQo42T/IYgYhSs8gBNQx2qGUGdNaL0+huSFSeN7XzOu2JDsCbMXjZqBAa5LEATNrSXoJJmCrfJ1PAR+j0lsL2NNqhR7120cJui0cwxzvU0QdWYr56ue+MGJ0BrYAM18aWO3r+jz1xOgJInsa+Am1PO5zTglV2AfqDvGHKefeGVNNyJzltSgi5qZj+Nqp/Xtlx+EPlBH3Djem95vSmvANTNE/Q6g5UXOgYFd90LEnrUQtj0e+XYZ/1sCfNfD/WgM7kHWZOyxqdeV5HlJ9XjlbgqsqeHUi0/u0+W+V2/3Ztr/090mQgYueDNmblaPV1ZsKvjItHs/iI97nkcG9AR1HTxPT2PvRMfbacLSi2ixM+EmzKbyrjettEyJYbD8+n2VBxLHBxl2yq3lwUXZt9/eAlxRyA+UXvO+xVCRBGX61TObdw5InMZZ6BEbd5780Hrk+OdrNRAld3cO0OpbD/qTTdRz0GJ2O4mSb0MmXbp52JPsgyAMtdZXS1kGbkzYDz8v9pp3c947HneI5RMF8M3rzH+iCzzp/3tWIz2tX32PEGwZeq7Eabi6GDXPD+iYiDLekdyp+8DbNFUThjRqrNXM+Hg4vRr+++j3+fhup7mXHzFMGvkw+x9XxAHFy8fj1aPT6COGSPKZcAyST6G7y4o54neTO88tjTONSMGsXuB/wQzPcC3YjH7eli8xX/bqaFSaA98lkNj0Cm8ymiXZpkaHlqINk6XzSrPglgWRm8D65A07XhgInZBlXfj/1czyZJWB1ctWc1oTnCv7bhaghd4EziOqqb3XeI/feGcX7ogMLt3u9Pv/mqdYe4z0PcwMUtRm53taauVabi1a+1RcCohs1UGPSIkfhWmZutwsI+NWb3U5e3xboSzW+vhmoDXiqauX1VmkK8qxrxT7iz4urOhNeJqeMbQ47VirRpjr7KzVQP+SqRSppPLCuEeJh9XpbD4gycm4tOcp0EcpDFr1/90Xtdv8AT4UILA==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get approval request by ID"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/approval/requests/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve a specific approval request by its ID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"approvalRequest":{"type":"object","properties":{"id":{"type":"number"},"userId":{"type":"number"},"userName":{"type":"string"},"contentType":{"type":"string","enum":["movie","show"]},"contentTitle":{"type":"string"},"contentKey":{"type":"string"},"contentGuids":{"type":"array","items":{"type":"string"}},"proposedRouterDecision":{"type":"object","properties":{"action":{"type":"string","enum":["route","require_approval","reject","continue"]},"routing":{"type":"object","properties":{"instanceId":{"type":"number"},"instanceType":{"type":"string","enum":["radarr","sonarr"]},"qualityProfile":{"anyOf":[{"type":"number"},{"type":"string"},{"enum":["null"],"nullable":true}]},"rootFolder":{"type":"string","nullable":true},"tags":{"type":"array","items":{"type":"string"}},"priority":{"type":"number"},"searchOnAdd":{"type":"boolean","nullable":true},"seasonMonitoring":{"type":"string","nullable":true},"seriesType":{"type":"string","enum":["standard","anime","daily"],"nullable":true},"minimumAvailability":{"type":"string","enum":["announced","inCinemas","released"]},"syncedInstances":{"type":"array","items":{"type":"number"}}},"required":["instanceId","instanceType","priority"],"additionalProperties":false},"approval":{"type":"object","properties":{"reason":{"type":"string"},"triggeredBy":{"type":"string","enum":["quota_exceeded","router_rule","manual_flag","content_criteria"]},"data":{"type":"object","properties":{"quotaType":{"type":"string","enum":["daily","weekly_rolling","monthly"]},"quotaUsage":{"type":"number"},"quotaLimit":{"type":"number"},"criteriaType":{"type":"string"},"criteriaValue":{"type":"string"},"ruleId":{"type":"number"},"autoApprove":{"type":"boolean"}},"additionalProperties":false},"proposedRouting":{"type":"object","properties":{"instanceId":{"type":"number"},"instanceType":{"type":"string","enum":["radarr","sonarr"]},"qualityProfile":{"anyOf":[{"type":"number"},{"type":"string"},{"enum":["null"],"nullable":true}]},"rootFolder":{"type":"string","nullable":true},"tags":{"type":"array","items":{"type":"string"}},"priority":{"type":"number"},"searchOnAdd":{"type":"boolean","nullable":true},"seasonMonitoring":{"type":"string","nullable":true},"seriesType":{"type":"string","enum":["standard","anime","daily"],"nullable":true},"minimumAvailability":{"type":"string","enum":["announced","inCinemas","released"]},"syncedInstances":{"type":"array","items":{"type":"number"}}},"required":["instanceId","instanceType","priority"],"additionalProperties":false}},"required":["reason","triggeredBy","data"],"additionalProperties":false}},"required":["action"],"additionalProperties":false},"routerRuleId":{"type":"number","nullable":true},"triggeredBy":{"type":"string","enum":["quota_exceeded","router_rule","manual_flag","content_criteria"]},"approvalReason":{"type":"string","nullable":true},"status":{"type":"string","enum":["pending","approved","rejected","expired"]},"approvedBy":{"type":"number","nullable":true},"approvalNotes":{"type":"string","nullable":true},"expiresAt":{"type":"string","nullable":true},"isExpired":{"type":"boolean"},"expirationStatus":{"type":"string","enum":["active","expiring_soon","expired"]},"expirationDisplayText":{"type":"string"},"timeUntilExpiration":{"type":"number","nullable":true},"createdAt":{"type":"string"},"updatedAt":{"type":"string"}},"required":["id","userId","userName","contentType","contentTitle","contentKey","contentGuids","proposedRouterDecision","routerRuleId","triggeredBy","approvalReason","status","approvedBy","approvalNotes","expiresAt","createdAt","updatedAt"],"additionalProperties":false}},"required":["success","message","approvalRequest"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
