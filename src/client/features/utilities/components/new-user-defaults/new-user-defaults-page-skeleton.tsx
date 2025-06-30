@@ -2,7 +2,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Skeleton loader for the New User Defaults page showing placeholders for the page layout.
+ * Renders a skeleton loader UI for the New User Defaults page, displaying placeholder elements that mimic the page's layout during loading states.
+ *
+ * Use this component to provide a visual placeholder while the actual New User Defaults page content is being fetched or initialized.
  */
 export function NewUserDefaultsPageSkeleton() {
   return (

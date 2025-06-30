@@ -13,6 +13,11 @@ interface GenreChartData {
   count: number
 }
 
+/**
+ * Renders a vertical bar chart displaying the top 10 music genres by count.
+ *
+ * Fetches genre data, sorts and displays the most frequent genres in a styled chart with a custom tooltip and legend.
+ */
 export function TopGenresChart() {
   const { data: topGenres, isLoading } = useTopGenresData()
 

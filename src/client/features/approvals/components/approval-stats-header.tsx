@@ -14,9 +14,9 @@ interface ApprovalStatsHeaderProps {
 }
 
 /**
- * Displays an overview of approval request statistics in a card-based grid layout.
+ * Renders a responsive grid of cards displaying approval request statistics, including pending, approved, rejected, expired, and total counts.
  *
- * Renders key metrics for pending, approved, rejected, expired, and total requests, each with an icon and color styling. Handles loading and empty data states with appropriate placeholders or messages.
+ * Shows loading skeletons when data is loading, an error message if statistics are unavailable, or the statistics with icons, color coding, and percentage breakdowns when data is present.
  *
  * @param stats - The approval statistics data to display, or null if unavailable.
  * @param loading - Optional flag indicating whether the data is currently loading.

@@ -20,17 +20,15 @@ interface DeleteSyncConfirmationModalProps {
 }
 
 /**
- * Renders a confirmation modal for delete synchronization actions.
+ * Displays a modal dialog prompting the user to confirm enabling or running delete synchronization.
  *
- * The modal dynamically updates its title, description, and confirmation button label based on the provided mode. In "enable" mode, it warns about enabling automatic deletion sync, whereas in "run" mode, it prompts to immediately run the delete sync process.
+ * The modal warns about the potential for irreversible removal of items and recommends performing a dry run before proceeding. The title, description, and confirmation button label adjust based on whether the action is to enable delete sync or run it immediately.
  *
- * A warning message advises that proceeding may result in irreversible removal of items from the library and recommends a dry run to verify the impact. The cancel button closes the modal, while the confirm button triggers the provided onConfirm callback. The confirm button is disabled and displays a "Processing..." label when a submission is in progress.
- *
- * @param open - Controls whether the modal is visible.
+ * @param open - Whether the modal is visible.
  * @param onOpenChange - Callback to update the modal's open state.
- * @param onConfirm - Callback invoked when the user confirms the action; expected to return a Promise.
- * @param mode - Determines the modal context; "enable" for enabling delete sync and "run" for executing it immediately.
- * @param isSubmitting - Optional flag that, when true, disables the confirm button during a submission.
+ * @param onConfirm - Invoked when the user confirms the action.
+ * @param mode - Specifies if the modal is for enabling delete sync ("enable") or running it immediately ("run").
+ * @param isSubmitting - Optional; disables the confirm button and shows a processing state when true.
  */
 export function DeleteSyncConfirmationModal({
   open,

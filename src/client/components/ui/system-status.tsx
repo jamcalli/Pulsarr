@@ -13,11 +13,11 @@ interface SystemStatusProps {
 }
 
 /**
- * Renders a summary of a scheduled job's status, including current state, last run, next run, and a description.
+ * Displays a summary of a scheduled job's status, including its current state, last run, next run, and a descriptive overview.
  *
- * Displays loading placeholders when data is being fetched, and adapts the UI for missing, disabled, or failed job states.
+ * Shows loading placeholders while job data is being fetched, and adapts the display for unknown, disabled, or failed job states.
  *
- * @returns A React element summarizing the job's schedule status and details.
+ * @returns A React element presenting the job's schedule status and related details.
  */
 export function SystemStatus({
   job,

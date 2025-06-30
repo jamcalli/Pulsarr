@@ -2,7 +2,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Skeleton loader for the notifications page showing placeholders for all notification sections.
+ * Renders a skeleton loader for the notifications settings page, displaying placeholder elements for all notification sections while data is loading.
+ *
+ * This component visually represents the structure of the notifications page, including Discord, Apprise, Tautulli, and general notification settings, using skeleton placeholders for headings, inputs, buttons, badges, and informational text.
  */
 export function NotificationsSkeleton() {
   return (

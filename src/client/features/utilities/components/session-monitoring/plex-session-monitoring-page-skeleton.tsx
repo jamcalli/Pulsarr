@@ -2,7 +2,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Skeleton loader for the Plex Session Monitoring page showing placeholders for the page layout.
+ * Displays a skeleton loader that mimics the layout of the Plex Session Monitoring page while data is loading.
+ *
+ * This component provides placeholder elements for all major sections of the page, including headers, configuration inputs, user filtering, auto-reset settings, status displays, informational text, and action buttons.
  */
 export function PlexSessionMonitoringPageSkeleton() {
   return (

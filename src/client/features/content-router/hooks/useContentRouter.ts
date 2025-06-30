@@ -21,12 +21,12 @@ export const ContentRouterContext =
   createContext<ContentRouterContextType | null>(null)
 
 /**
- * React hook for managing content routing rules for a given target type.
+ * React hook for managing content routing rules for a specified target type.
  *
- * Exposes state and functions to fetch, create, update, delete, and toggle routing rules, along with loading and error indicators.
+ * Provides state and functions to fetch, create, update, delete, and toggle routing rules, along with loading and error indicators.
  *
  * @param targetType - The content target type whose routing rules are managed (e.g., "radarr" or "sonarr").
- * @returns An object containing the current routing rules, loading and error states, and functions for rule management.
+ * @returns An object containing the current routing rules, loading and error states, and functions for managing rules.
  */
 export function useContentRouter({ targetType }: UseContentRouterParams) {
   const [isLoading, setIsLoading] = useState(false)

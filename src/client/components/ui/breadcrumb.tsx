@@ -5,10 +5,20 @@ import type * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Renders a navigation container for breadcrumb links with appropriate ARIA labeling.
+ *
+ * Spreads additional props onto the underlying `<nav>` element.
+ */
 function Breadcrumb({ ...props }: React.ComponentProps<"nav">) {
   return <nav data-slot="breadcrumb" aria-label="breadcrumb" {...props} />
 }
 
+/**
+ * Renders an ordered list for breadcrumb items with horizontal layout and styling.
+ *
+ * Additional class names and HTML attributes can be provided via props.
+ */
 function BreadcrumbList({ className, ...props }: React.ComponentProps<"ol">) {
   return (
     <ol
@@ -22,6 +32,11 @@ function BreadcrumbList({ className, ...props }: React.ComponentProps<"ol">) {
   )
 }
 
+/**
+ * Renders a breadcrumb list item with appropriate styling and slot attribute.
+ *
+ * Accepts all standard `<li>` element props and merges additional class names with default styles.
+ */
 function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">) {
   return (
     <li
@@ -32,6 +47,11 @@ function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">) {
   )
 }
 
+/**
+ * Renders a breadcrumb link, optionally using a custom child component.
+ *
+ * If `asChild` is true, renders the child element using the `Slot` component; otherwise, renders an anchor (`<a>`) element.
+ */
 function BreadcrumbLink({
   asChild,
   className,
@@ -46,6 +66,11 @@ function BreadcrumbLink({
   )
 }
 
+/**
+ * Renders the current page indicator in a breadcrumb navigation.
+ *
+ * Displays a <span> element with appropriate ARIA attributes to mark it as the current page.
+ */
 function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
@@ -57,6 +82,11 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
   )
 }
 
+/**
+ * Renders a separator element between breadcrumb items, displaying a chevron icon by default.
+ *
+ * If `children` are provided, they are rendered instead of the default chevron icon.
+ */
 function BreadcrumbSeparator({
   children,
   className,
@@ -75,6 +105,11 @@ function BreadcrumbSeparator({
   )
 }
 
+/**
+ * Renders an ellipsis indicator in the breadcrumb, typically used to represent collapsed or truncated breadcrumb items.
+ *
+ * Displays a horizontal ellipsis icon with a visually hidden "More" label for accessibility.
+ */
 function BreadcrumbEllipsis({
   className,
   ...props

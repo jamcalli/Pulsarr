@@ -15,9 +15,9 @@ import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import type { GetApprovalRequestsQuery } from '@root/schemas/approval/approval.schema'
 
 /**
- * Renders a UI component for filtering approval requests.
+ * Displays filter controls for approval requests, including quick filter buttons and advanced options for status, content type, trigger type, and user ID.
  *
- * Provides quick filter buttons and advanced filter controls (status, content type, trigger type, user ID). Synchronizes local filter state with a global store, applies or clears filters, and displays active filter badges. Disables controls during loading to prevent concurrent actions.
+ * Synchronizes filter state with a global store, applies or clears filters, and shows active filter badges. Disables controls during loading to prevent concurrent actions.
  */
 export default function ApprovalFilters() {
   const { currentQuery, setQuery, fetchApprovalRequests, approvalsLoading } =

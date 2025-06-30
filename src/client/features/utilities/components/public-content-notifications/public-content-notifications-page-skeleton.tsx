@@ -2,7 +2,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Skeleton loader for the Public Content Notifications page showing placeholders for the page layout.
+ * Renders a skeleton placeholder for the Public Content Notifications page layout.
+ *
+ * Displays static skeleton elements that mimic the structure of the page, including headers, action buttons, informational sections, and configuration forms for Discord Webhook and Apprise integrations. Intended to provide a visual loading state while actual content is being fetched.
  */
 export function PublicContentNotificationsPageSkeleton() {
   return (

@@ -1,6 +1,11 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
+/**
+ * Renders a skeleton placeholder UI for the Plex integration interface.
+ *
+ * Displays loading placeholders for the token input, action buttons, watchlist statistics, and RSS feeds, adapting the layout for mobile and desktop views.
+ */
 export function PlexConnectionSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')
 

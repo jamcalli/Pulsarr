@@ -20,6 +20,17 @@ interface SonarrSyncModalProps {
   isManualSync?: boolean
 }
 
+/**
+ * Displays a modal dialog for synchronizing one or more Sonarr instances, managing the synchronization process and progress.
+ *
+ * The modal guides the user through the synchronization of selected Sonarr instances, showing progress for each instance and overall progress when multiple instances are involved. It prevents interruption during active synchronization and provides feedback on completion or errors. The modal can be triggered for manual or automatic sync scenarios.
+ *
+ * @param open - Whether the modal is visible
+ * @param onOpenChange - Callback to handle modal open state changes
+ * @param syncedInstances - Array of Sonarr instance IDs to synchronize
+ * @param isManualSync - If true, synchronization starts automatically when the modal opens; otherwise, user interaction is required
+ * @returns The rendered modal dialog component
+ */
 export function SonarrSyncModal({
   open,
   onOpenChange,

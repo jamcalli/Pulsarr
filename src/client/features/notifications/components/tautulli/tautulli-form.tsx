@@ -126,11 +126,11 @@ async function testTautulliConnection(url: string, apiKey: string) {
 }
 
 /****
- * Displays a form for configuring Tautulli notification integration, enabling users to manage connection settings, test connectivity, save changes, or clear all Tautulli-related configuration.
+ * Renders a form for configuring Tautulli notification integration, allowing users to enable or disable the service, enter connection details, test connectivity, save changes, or clear all Tautulli settings.
  *
- * The form enforces validation and requires a successful connection test before saving new or updated credentials. User feedback is provided for connection tests, saving, and clearing settings. Inputs and actions are dynamically enabled or disabled based on form state and loading status.
+ * The form enforces validation rules and requires a successful connection test before saving new or updated credentials. User feedback is provided for connection testing, saving, and clearing actions. Form fields and actions are dynamically enabled or disabled based on the current state and loading status.
  *
- * @param isInitialized - Whether the configuration is ready for editing.
+ * @param isInitialized - Indicates whether the configuration is ready for editing.
  */
 export function TautulliForm({ isInitialized }: TautulliFormProps) {
   const config = useConfigStore((state) => state.config)

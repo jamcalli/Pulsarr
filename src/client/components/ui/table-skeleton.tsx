@@ -38,12 +38,12 @@ interface TableSkeletonProps {
 }
 
 /**
- * Renders a table skeleton that mimics the structure and size of the final table to prevent layout shifts during data loading.
+ * Renders a table skeleton with configurable rows and columns to simulate the final table layout during data loading.
  *
- * The skeleton displays a configurable number of rows and columns, with each cell styled according to its intended content type (e.g., text, badge, icon, button, checkbox). Optionally includes a header row with skeleton placeholders.
+ * Each skeleton cell adapts its size and style based on the specified column type, and an optional header skeleton can be displayed. Useful for preventing layout shifts while table data is loading.
  *
  * @param rows - Number of skeleton rows to render. Defaults to 10.
- * @param columns - Array describing each column's configuration, including type, width, visibility, and custom class names.
+ * @param columns - Configuration for each column, including type, width, visibility, and custom class names.
  * @param showHeader - Whether to display the table header skeleton. Defaults to true.
  * @param className - Optional CSS class for the table.
  */

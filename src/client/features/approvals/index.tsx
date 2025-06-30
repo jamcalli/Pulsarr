@@ -19,10 +19,11 @@ import type {
 type BulkActionStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * Main Approvals page - displays and manages the approval queue with real-time updates.
+ * Renders the Approvals page, providing a real-time interface for managing approval requests.
  *
- * Provides a comprehensive interface for approval management including filtering, sorting,
- * pagination, individual and bulk actions, and configuration settings.
+ * Displays approval requests with filtering, sorting, pagination, and supports both individual and bulk actions such as approve, reject, and delete. Integrates with real-time updates and handles loading and error states. Includes modals for detailed actions and bulk operations.
+ *
+ * @returns The Approvals page React element.
  */
 export default function ApprovalsPage() {
   const configInitialize = useConfigStore((state) => state.initialize)

@@ -29,9 +29,9 @@ interface ApprovalActionDialogsProps {
 }
 
 /**
- * Renders modal dialogs for approving, rejecting, or deleting an approval request.
+ * Displays modal dialogs for approving, rejecting, or deleting an approval request.
  *
- * Displays the appropriate dialog based on the provided open state props, allowing users to approve with optional notes, reject with an optional reason, or permanently delete an approval request. Handles asynchronous actions with consistent loading and success feedback, and notifies users of errors.
+ * Shows the appropriate dialog based on the provided open state props, allowing users to approve with optional notes, reject with an optional reason, or permanently delete an approval request. Manages asynchronous actions with loading and success feedback, and notifies users of errors.
  *
  * @param selectedRequest - The approval request currently selected for action, or null if none is selected.
  * @param approveDialogOpen - Whether the approve dialog is open.

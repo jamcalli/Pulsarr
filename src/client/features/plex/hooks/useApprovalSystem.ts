@@ -8,9 +8,9 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { toast } from 'sonner'
 
 /**
- * Combines approval configuration form management and scheduling controls into a single hook.
+ * Provides a unified hook for managing approval configuration forms and scheduling controls.
  *
- * Synchronizes the approval schedule interval between the configuration form and the scheduler, ensuring consistency. Handles saving configuration changes, updating the approval maintenance schedule on the server, and notifying users of any issues. Returns an object exposing both form and scheduler state, actions, and status for use in approval system interfaces.
+ * Synchronizes the approval schedule interval between the configuration form and the scheduler, ensuring consistency. Handles saving configuration changes, updating the approval maintenance schedule on the server, and notifying users if schedule updates fail. Returns an object with combined form state, scheduler state, and related actions for use in approval system interfaces.
  *
  * @returns An object containing approval configuration form state and methods, along with scheduling controls and status.
  */

@@ -5,9 +5,9 @@ import { toast } from 'sonner'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 
 /**
- * React hook for managing approval and quota maintenance job schedules.
+ * React hook for managing the scheduling, configuration, and execution of approval and quota maintenance jobs.
  *
- * Handles state and provides utilities for configuring, enabling/disabling, and running approval-maintenance (interval-based) and quota-maintenance (time-based) jobs. Integrates with a backend scheduler to fetch, update, and control job schedules, including parsing and generating cron expressions, formatting run times, and managing loading and error states. Returns all relevant job data, configuration states, formatting helpers, and action handlers for use in scheduling UI components.
+ * Provides state and utilities for configuring interval-based (approval-maintenance) and time-based (quota-maintenance) jobs, including cron expression parsing/generation, schedule updates, status toggling, immediate execution, and formatting of run times. Integrates with a backend scheduler and exposes all relevant job data, configuration states, loading and error indicators, formatting helpers, and action handlers for use in scheduling UI components.
  *
  * @returns An object containing job data, schedule configuration states, loading and error states, formatting utilities, and action handlers for interacting with approval and quota maintenance schedules.
  */

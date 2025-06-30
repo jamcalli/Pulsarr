@@ -5,16 +5,9 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * A customizable slider component built on top of Radix's slider primitive.
+ * Renders a customizable slider with one or more thumbs, built on Radix UI's slider primitive.
  *
- * This component renders a slider track, range indicator, and dynamically generated thumbs whose count
- * is determined by the provided values. It uses the following logic to compute thumb positions:
- * - If a controlled `value` array is provided, its elements determine the positions.
- * - Otherwise, if a `defaultValue` array is provided, its elements are used as initial positions.
- * - If neither is provided, the component defaults to two thumbs placed at the `min` and `max` values.
- *
- * Additional properties are forwarded to the underlying Radix Slider primitive, allowing for extended
- * customization and integration.
+ * The number and initial positions of thumbs are determined by the `value` or `defaultValue` arrays, or default to two thumbs at the minimum and maximum values. All additional props are forwarded to the underlying Radix slider component for further customization.
  */
 function Slider({
   className,
