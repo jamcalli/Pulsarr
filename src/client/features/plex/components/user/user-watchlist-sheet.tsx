@@ -266,7 +266,7 @@ export function UserWatchlistSheet({
     }
 
     return (
-      <div className="w-full font-base text-mtext">
+      <div className="w-full font-base text-main-foreground">
         <div>
           <div className="flex items-center justify-between py-4">
             <Input
@@ -407,12 +407,12 @@ export function UserWatchlistSheet({
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-sm text-text font-medium hidden xs:block">
+            <p className="text-sm text-foreground font-medium hidden xs:block">
               per page
             </p>
           </div>
 
-          <div className="flex items-center justify-center text-sm font-medium text-text">
+          <div className="flex items-center justify-center text-sm font-medium text-foreground">
             Page {table.getState().pagination.pageIndex + 1} of{' '}
             {table.getPageCount()}
           </div>
@@ -448,10 +448,10 @@ export function UserWatchlistSheet({
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent
           side="right"
-          className="!w-[90vw] md:!w-[70vw] lg:!w-[60vw] xl:!w-[50vw] !max-w-[800px] sm:!max-w-[800px] overflow-y-auto flex flex-col p-5"
+          className="w-[90vw]! md:w-[70vw]! lg:w-[60vw]! xl:w-[50vw]! max-w-[800px]! sm:max-w-[800px]! overflow-y-auto flex flex-col p-5"
         >
-          <SheetHeader className="mb-6 flex-shrink-0">
-            <SheetTitle className="text-text text-xl">
+          <SheetHeader className="mb-6 shrink-0">
+            <SheetTitle className="text-foreground text-xl">
               {userName}'s Watchlist
             </SheetTitle>
             <SheetDescription>
@@ -468,7 +468,7 @@ export function UserWatchlistSheet({
           </div>
 
           {/* Empty spacer div to ensure content doesn't get cut off */}
-          <div className="h-2 flex-shrink-0" />
+          <div className="h-2 shrink-0" />
         </SheetContent>
       </Sheet>
     )
@@ -479,7 +479,7 @@ export function UserWatchlistSheet({
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent className="h-[90vh]">
         <DrawerHeader className="mb-6">
-          <DrawerTitle className="text-text text-xl">
+          <DrawerTitle className="text-foreground text-xl">
             {userName}'s Watchlist
           </DrawerTitle>
           <DrawerDescription>

@@ -164,7 +164,7 @@ export function DeleteSyncDryRunModal({
           }}
         >
           <DialogHeader>
-            <DialogTitle className="text-text">
+            <DialogTitle className="text-foreground">
               Delete Sync Analysis
             </DialogTitle>
             <DialogDescription>
@@ -178,17 +178,17 @@ export function DeleteSyncDryRunModal({
           {loading.deleteSyncDryRun && (
             <div className="py-4 space-y-8">
               <div className="flex justify-center items-center py-4">
-                <LoaderCircle className="h-16 w-16 animate-spin text-text" />
+                <LoaderCircle className="h-16 w-16 animate-spin text-foreground" />
               </div>
 
               {/* Self Watchlist Progress */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-text">
+                  <span className="text-sm text-foreground">
                     {selfWatchlistProgress.message ||
                       'Analyzing Your Watchlist'}
                   </span>
-                  <span className="text-sm text-text">
+                  <span className="text-sm text-foreground">
                     {selfWatchlistProgress.progress}%
                   </span>
                 </div>
@@ -198,11 +198,11 @@ export function DeleteSyncDryRunModal({
               {/* Others Watchlist Progress */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-text">
+                  <span className="text-sm text-foreground">
                     {othersWatchlistProgress.message ||
                       "Analyzing Others' Watchlists"}
                   </span>
-                  <span className="text-sm text-text">
+                  <span className="text-sm text-foreground">
                     {othersWatchlistProgress.progress}%
                   </span>
                 </div>
@@ -215,15 +215,17 @@ export function DeleteSyncDryRunModal({
           {!loading.deleteSyncDryRun && !showResults && (
             <div className="py-8 space-y-6">
               <div className="flex justify-center items-center py-4">
-                <LoaderCircle className="h-16 w-16 animate-spin text-text" />
+                <LoaderCircle className="h-16 w-16 animate-spin text-foreground" />
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-text">
+                  <span className="text-sm text-foreground">
                     Calculating Deletion Impact
                   </span>
-                  <span className="text-sm text-text">{analyzeProgress}%</span>
+                  <span className="text-sm text-foreground">
+                    {analyzeProgress}%
+                  </span>
                 </div>
                 <Progress value={analyzeProgress} />
               </div>
@@ -245,7 +247,7 @@ export function DeleteSyncDryRunModal({
       <>
         {hasSafetyTriggered && (
           <div className="p-4 border border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 rounded-md flex items-start gap-3 mb-6">
-            <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
             <div>
               <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
                 Safety Mechanism Triggered
@@ -263,41 +265,47 @@ export function DeleteSyncDryRunModal({
         >
           <Card>
             <CardContent className="pt-6">
-              <h3 className="text-sm font-medium text-text mb-2">Total</h3>
-              <p className="text-2xl font-bold text-text">
+              <h3 className="text-sm font-medium text-foreground mb-2">
+                Total
+              </h3>
+              <p className="text-2xl font-bold text-foreground">
                 {deleteSyncDryRunResults.total.deleted}
               </p>
-              <p className="text-sm text-text">Items would be deleted</p>
+              <p className="text-sm text-foreground">Items would be deleted</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <h3 className="text-sm font-medium text-text mb-2">Movies</h3>
-              <p className="text-2xl font-bold text-text">
+              <h3 className="text-sm font-medium text-foreground mb-2">
+                Movies
+              </h3>
+              <p className="text-2xl font-bold text-foreground">
                 {deleteSyncDryRunResults.movies.deleted}
               </p>
-              <p className="text-sm text-text">Movies would be deleted</p>
+              <p className="text-sm text-foreground">Movies would be deleted</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <h3 className="text-sm font-medium text-text mb-2">Shows</h3>
-              <p className="text-2xl font-bold text-text">
+              <h3 className="text-sm font-medium text-foreground mb-2">
+                Shows
+              </h3>
+              <p className="text-2xl font-bold text-foreground">
                 {deleteSyncDryRunResults.shows.deleted}
               </p>
-              <p className="text-sm text-text">Shows would be deleted</p>
+              <p className="text-sm text-foreground">Shows would be deleted</p>
             </CardContent>
           </Card>
           {deleteSyncDryRunResults.total.protected ? (
             <Card>
               <CardContent className="pt-6">
-                <h3 className="text-sm font-medium text-text mb-2">
+                <h3 className="text-sm font-medium text-foreground mb-2">
                   Protected
                 </h3>
-                <p className="text-2xl font-bold text-text">
+                <p className="text-2xl font-bold text-foreground">
                   {deleteSyncDryRunResults.total.protected}
                 </p>
-                <p className="text-sm text-text">
+                <p className="text-sm text-foreground">
                   Items protected from deletion
                 </p>
               </CardContent>
@@ -306,7 +314,7 @@ export function DeleteSyncDryRunModal({
         </div>
 
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-text" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-foreground" />
           <Input
             placeholder="Search by title or ID..."
             className="pl-9"
@@ -333,7 +341,7 @@ export function DeleteSyncDryRunModal({
 
           <TabsContent value="movies" className="mt-4">
             {filteredMovies && filteredMovies.length === 0 ? (
-              <div className="text-center py-8 text-text">
+              <div className="text-center py-8 text-foreground">
                 {searchTerm
                   ? 'No movies match your search'
                   : 'No movies to delete'}
@@ -341,7 +349,7 @@ export function DeleteSyncDryRunModal({
             ) : (
               <div className={`${tableMaxHeight} overflow-y-auto`}>
                 <Table>
-                  <TableHeader className="bg-main text-text uppercase sticky top-0 z-10">
+                  <TableHeader className="bg-main text-foreground uppercase sticky top-0 z-10">
                     <TableRow>
                       <TableHead className="text-left py-3 px-4 font-medium">
                         Title
@@ -358,15 +366,19 @@ export function DeleteSyncDryRunModal({
                     {filteredMovies?.map((movie, index) => (
                       <TableRow
                         key={movie.guid}
-                        className={index % 2 === 0 ? 'bg-main' : 'bg-bw'}
+                        className={
+                          index % 2 === 0
+                            ? 'bg-main'
+                            : 'bg-secondary-background'
+                        }
                       >
-                        <TableCell className="py-3 px-4 font-medium text-text">
+                        <TableCell className="py-3 px-4 font-medium text-foreground">
                           {movie.title}
                         </TableCell>
-                        <TableCell className="py-3 px-4 text-text">
+                        <TableCell className="py-3 px-4 text-foreground">
                           {movie.instance}
                         </TableCell>
-                        <TableCell className="py-3 px-4 font-mono text-xs text-text">
+                        <TableCell className="py-3 px-4 font-mono text-xs text-foreground">
                           {movie.guid}
                         </TableCell>
                       </TableRow>
@@ -379,7 +391,7 @@ export function DeleteSyncDryRunModal({
 
           <TabsContent value="shows" className="mt-4">
             {filteredShows && filteredShows.length === 0 ? (
-              <div className="text-center py-8 text-text">
+              <div className="text-center py-8 text-foreground">
                 {searchTerm
                   ? 'No shows match your search'
                   : 'No shows to delete'}
@@ -387,7 +399,7 @@ export function DeleteSyncDryRunModal({
             ) : (
               <div className={`${tableMaxHeight} overflow-y-auto`}>
                 <Table>
-                  <TableHeader className="bg-main text-text uppercase sticky top-0 z-10">
+                  <TableHeader className="bg-main text-foreground uppercase sticky top-0 z-10">
                     <TableRow>
                       <TableHead className="text-left py-3 px-4 font-medium">
                         Title
@@ -404,15 +416,19 @@ export function DeleteSyncDryRunModal({
                     {filteredShows?.map((show, index) => (
                       <TableRow
                         key={show.guid}
-                        className={index % 2 === 0 ? 'bg-main' : 'bg-bw'}
+                        className={
+                          index % 2 === 0
+                            ? 'bg-main'
+                            : 'bg-secondary-background'
+                        }
                       >
-                        <TableCell className="py-3 px-4 font-medium text-text">
+                        <TableCell className="py-3 px-4 font-medium text-foreground">
                           {show.title}
                         </TableCell>
-                        <TableCell className="py-3 px-4 text-text">
+                        <TableCell className="py-3 px-4 text-foreground">
                           {show.instance}
                         </TableCell>
-                        <TableCell className="py-3 px-4 font-mono text-xs text-text">
+                        <TableCell className="py-3 px-4 font-mono text-xs text-foreground">
                           {show.guid}
                         </TableCell>
                       </TableRow>
@@ -445,8 +461,8 @@ export function DeleteSyncDryRunModal({
               flex flex-col p-5
             `}
           >
-            <SheetHeader className="mb-6 flex-shrink-0">
-              <SheetTitle className="text-text text-xl">
+            <SheetHeader className="mb-6 shrink-0">
+              <SheetTitle className="text-foreground text-xl">
                 Delete Sync Analysis Results
               </SheetTitle>
               <SheetDescription>
@@ -460,7 +476,7 @@ export function DeleteSyncDryRunModal({
             </div>
 
             {/* Empty spacer div to ensure content doesn't get cut off */}
-            <div className="h-2 flex-shrink-0" />
+            <div className="h-2 shrink-0" />
           </SheetContent>
         </Sheet>
       )
@@ -471,7 +487,7 @@ export function DeleteSyncDryRunModal({
       <Drawer open={showResultsContainer} onOpenChange={handleOpenChange}>
         <DrawerContent className="h-[90vh]">
           <DrawerHeader className="mb-6">
-            <DrawerTitle className="text-text text-xl">
+            <DrawerTitle className="text-foreground text-xl">
               Delete Sync Analysis Results
             </DrawerTitle>
             <DrawerDescription>

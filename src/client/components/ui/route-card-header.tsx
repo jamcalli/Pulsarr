@@ -63,7 +63,7 @@ const RouteCardHeader = ({
   return (
     <CardHeader>
       <CardTitle className="flex flex-col gap-2">
-        <div className="flex justify-between items-center text-text">
+        <div className="flex justify-between items-center text-foreground">
           <div className="group/name inline-flex items-center gap-2 flex-1 min-w-0">
             {!isNew && onToggleEnabled && (
               <div className="flex items-center gap-2">

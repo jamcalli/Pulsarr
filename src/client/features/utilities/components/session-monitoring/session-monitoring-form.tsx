@@ -16,7 +16,7 @@ import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
 
 import { cn } from '@/lib/utils'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 
 import { useRollingMonitoring } from '@/features/utilities/hooks/useRollingMonitoring'
@@ -217,20 +217,13 @@ export function SessionMonitoringForm() {
 
   // Helper function to show success toast
   const showSuccessToast = () => {
-    toast({
-      title: 'Success',
-      description: 'Session monitoring settings updated successfully',
-    })
+    toast.success('Session monitoring settings updated successfully')
   }
 
   // Helper function to handle submit errors
   const handleSubmitError = (error: unknown) => {
     console.error('Failed to update session monitoring settings:', error)
-    toast({
-      title: 'Error',
-      description: 'Failed to update session monitoring settings',
-      variant: 'destructive',
-    })
+    toast.error('Failed to update session monitoring settings')
   }
 
   // Helper function to cleanup submit state
@@ -356,10 +349,10 @@ export function SessionMonitoringForm() {
 
                   {/* Information about rolling monitoring */}
                   <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
-                    <h3 className="font-medium text-text mb-2">
+                    <h3 className="font-medium text-foreground mb-2">
                       Rolling Monitoring Options
                     </h3>
-                    <p className="text-sm text-text">
+                    <p className="text-sm text-foreground">
                       When adding shows to Sonarr, you can now select "Pilot
                       Rolling" or "First Season Rolling" monitoring options.
                       These will start with minimal episodes and automatically

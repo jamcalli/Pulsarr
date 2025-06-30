@@ -11,7 +11,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useDebounce } from '@/hooks/useDebounce'
 import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
@@ -104,7 +104,7 @@ export function SessionMonitoringStatus({
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-medium text-sm text-text">
+        <h3 className="font-medium text-sm text-foreground">
           Rolling Monitoring Status
         </h3>
         <Button
@@ -116,11 +116,7 @@ export function SessionMonitoringStatus({
               await runSessionMonitor()
             } catch (error) {
               console.error('Failed to run session monitor:', error)
-              toast({
-                title: 'Error',
-                description: 'Failed to run session monitor. Please try again.',
-                variant: 'destructive',
-              })
+              toast.error('Failed to run session monitor. Please try again.')
             }
           }}
           disabled={!isEnabled || rollingLoading.runningMonitor}
@@ -138,10 +134,12 @@ export function SessionMonitoringStatus({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Active Rolling Shows */}
-        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-blue/10">
+        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-slate-50 dark:bg-slate-900/50">
           <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-text" />
-            <span className="text-sm font-medium text-text">Active Shows</span>
+            <Activity className="h-4 w-4 text-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              Active Shows
+            </span>
             <Badge variant="neutral" className="text-xs">
               {rollingShows.length}
             </Badge>
@@ -161,10 +159,12 @@ export function SessionMonitoringStatus({
         </div>
 
         {/* Inactive Shows */}
-        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-blue/10">
+        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-slate-50 dark:bg-slate-900/50">
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-text" />
-            <span className="text-sm font-medium text-text">Inactive</span>
+            <Clock className="h-4 w-4 text-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              Inactive
+            </span>
             <Badge variant="neutral" className="text-xs">
               {inactiveShows.length}
             </Badge>
@@ -211,7 +211,7 @@ export function SessionMonitoringStatus({
               disabled={!isEnabled}
               aria-disabled={!isEnabled}
             />
-            <span className="text-xs text-text mr-1">d</span>
+            <span className="text-xs text-foreground mr-1">d</span>
             {inactiveShows.length > 0 && (
               <Button
                 type="button"
@@ -222,12 +222,9 @@ export function SessionMonitoringStatus({
                     await resetInactiveShows(localInactivityDays)
                   } catch (error) {
                     console.error('Failed to reset inactive shows:', error)
-                    toast({
-                      title: 'Error',
-                      description:
-                        'Failed to reset inactive shows. Please try again.',
-                      variant: 'destructive',
-                    })
+                    toast.error(
+                      'Failed to reset inactive shows. Please try again.',
+                    )
                   }
                 }}
                 disabled={!isEnabled || rollingLoading.resetting}

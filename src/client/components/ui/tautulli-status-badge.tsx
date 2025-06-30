@@ -13,11 +13,11 @@ export function TautulliStatusBadge() {
   const getBadgeVariant = () => {
     switch (status) {
       case 'running':
-        return 'bg-green-500 hover:bg-green-500 text-white'
+        return 'bg-green-500 hover:bg-green-500 text-black'
       case 'disabled':
-        return 'bg-red-500 hover:bg-red-500 text-white'
+        return 'bg-red-500 hover:bg-red-500 text-black'
       default:
-        return 'bg-gray-400 hover:bg-gray-400 text-white'
+        return 'bg-gray-400 hover:bg-gray-400 text-black'
     }
   }
   

@@ -34,7 +34,7 @@ export function SessionMonitoringResetSettings({
 
   return (
     <div>
-      <h3 className="font-medium text-sm text-text mb-2">
+      <h3 className="font-medium text-sm text-foreground mb-2">
         Rolling Monitoring Reset Settings
       </h3>
       <div className="space-y-4">
@@ -52,13 +52,13 @@ export function SessionMonitoringResetSettings({
                   />
                 </FormControl>
                 <div className="flex items-center">
-                  <FormLabel className="text-text m-0">
+                  <FormLabel className="text-foreground m-0">
                     Enable Automatic Reset
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                        <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">
@@ -88,13 +88,13 @@ export function SessionMonitoringResetSettings({
                   />
                 </FormControl>
                 <div className="flex items-center">
-                  <FormLabel className="text-text m-0">
+                  <FormLabel className="text-foreground m-0">
                     Enable Progressive Cleanup
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                        <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">
@@ -120,13 +120,13 @@ export function SessionMonitoringResetSettings({
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <div className="flex items-center">
-                  <FormLabel className="text-text m-0">
+                  <FormLabel className="text-foreground m-0">
                     Inactivity Reset Days
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                        <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">
@@ -169,13 +169,13 @@ export function SessionMonitoringResetSettings({
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <div className="flex items-center">
-                  <FormLabel className="text-text m-0">
+                  <FormLabel className="text-foreground m-0">
                     Auto Reset Check Interval (hours)
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                        <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">

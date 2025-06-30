@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useEffect, useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { useConfigStore } from '@/stores/configStore'
 import { ConfigSchema } from '@root/schemas/config/config.schema'
@@ -39,7 +39,6 @@ export function useApprovalConfiguration() {
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
     useState<ApprovalConfigurationFormData | null>(null)
-  const { toast } = useToast()
 
   // Computed state matching delete sync pattern
   const isSaving = saveStatus === 'loading'
@@ -208,11 +207,9 @@ export function useApprovalConfiguration() {
       // Reset form with saved values to clear dirty state
       form.reset(data)
 
-      toast({
-        description:
-          'Approval and quota settings have been updated successfully.',
-        variant: 'default',
-      })
+      toast.success(
+        'Approval and quota settings have been updated successfully.',
+      )
 
       // Show success state for 1 second (matching delete sync)
       await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -226,12 +223,9 @@ export function useApprovalConfiguration() {
       // Set error state
       setSaveStatus('error')
 
-      toast({
-        title: 'Save Failed',
-        description:
-          err instanceof Error ? err.message : 'Failed to save configuration',
-        variant: 'destructive',
-      })
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to save configuration',
+      )
 
       // Error cleanup after 1 second (matching delete sync)
       setTimeout(() => {

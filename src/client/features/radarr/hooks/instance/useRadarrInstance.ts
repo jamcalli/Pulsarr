@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
 
@@ -14,7 +14,6 @@ import type { UseFormReturn } from 'react-hook-form'
  * @returns An object containing the current instance, all instances, and functions to update, delete, and fetch instance data.
  */
 export function useRadarrInstance(instanceId: number) {
-  const { toast } = useToast()
   const instance = useRadarrStore((state) =>
     state.instances.find((i) => i.id === instanceId),
   )
@@ -91,32 +90,17 @@ export function useRadarrInstance(instanceId: number) {
         setTestStatus('idle')
         await fetchInstances()
 
-        toast({
-          title: isLastRealInstance
-            ? 'Configuration Cleared'
-            : 'Instance Deleted',
-          description: isLastRealInstance
+        toast.success(
+          isLastRealInstance
             ? 'Radarr configuration has been cleared'
             : 'Radarr instance has been deleted',
-          variant: 'default',
-        })
+        )
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to delete instance',
-          variant: 'destructive',
-        })
+        toast.error('Failed to delete instance')
         throw error
       }
     },
-    [
-      instanceId,
-      instances,
-      updateInstance,
-      deleteInstance,
-      fetchInstances,
-      toast,
-    ],
+    [instanceId, instances, updateInstance, deleteInstance, fetchInstances],
   )
 
   return {

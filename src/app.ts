@@ -114,7 +114,9 @@ export default async function serviceApp(
     if (request.session.user) {
       // Use the in-memory config instead of querying the database
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
-      return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+      return reply.redirect(
+        hasPlexTokens ? '/dashboard' : '/plex/configuration',
+      )
     }
 
     // Check authentication method setting
@@ -133,7 +135,9 @@ export default async function serviceApp(
       // Check if Plex tokens are configured
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-      return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+      return reply.redirect(
+        hasPlexTokens ? '/dashboard' : '/plex/configuration',
+      )
     }
 
     // CASE 2: Local IP bypass is active
@@ -149,7 +153,9 @@ export default async function serviceApp(
         // Check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-        return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+        return reply.redirect(
+          hasPlexTokens ? '/dashboard' : '/plex/configuration',
+        )
       }
 
       // No users exist yet with local bypass, redirect to create user
@@ -196,7 +202,9 @@ export default async function serviceApp(
 
           // If trying to access login or create-user, redirect appropriately
           if (isLoginPage || isCreateUserPage) {
-            return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+            return reply.redirect(
+              hasPlexTokens ? '/dashboard' : '/plex/configuration',
+            )
           }
 
           // Allow access to all other pages with the temp session
@@ -207,7 +215,9 @@ export default async function serviceApp(
         if (request.session.user) {
           // If trying to access login or create-user, redirect appropriately
           if (isLoginPage || isCreateUserPage) {
-            return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+            return reply.redirect(
+              hasPlexTokens ? '/dashboard' : '/plex/configuration',
+            )
           }
 
           // Allow access to requested page
@@ -227,7 +237,9 @@ export default async function serviceApp(
 
             // If trying to access login or create-user, redirect appropriately
             if (isLoginPage || isCreateUserPage) {
-              return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+              return reply.redirect(
+                hasPlexTokens ? '/dashboard' : '/plex/configuration',
+              )
             }
 
             // Allow access to all other pages with the temp session

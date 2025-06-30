@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, Square, Play, BookmarkCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -23,7 +23,6 @@ import { useConfigStore } from '@/stores/configStore'
  */
 export function WatchlistStatusBadge() {
   const { status, syncMode } = useWatchlistStatus()
-  const { toast } = useToast()
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading'>('idle')
   const [currentAction, setCurrentAction] = useState<'start' | 'stop' | null>(null)
   const [_lastStableStatus, setLastStableStatus] = useState<string>(status)
@@ -56,15 +55,15 @@ export function WatchlistStatusBadge() {
   const getBadgeVariant = () => {
     switch (status) {
       case 'running':
-        return 'bg-green-500 hover:bg-green-500 text-white'
+        return 'bg-green-500 hover:bg-green-500 text-black'
       case 'starting':
-        return 'bg-yellow-500 hover:bg-yellow-500 text-white'
+        return 'bg-yellow-500 hover:bg-yellow-500 text-black'
       case 'stopping':
-        return 'bg-orange-500 hover:bg-orange-500 text-white'
+        return 'bg-orange-500 hover:bg-orange-500 text-black'
       case 'stopped':
-        return 'bg-red-500 hover:bg-red-500 text-white'
+        return 'bg-red-500 hover:bg-red-500 text-black'
       default:
-        return 'bg-gray-400 hover:bg-gray-400 text-white'
+        return 'bg-gray-400 hover:bg-gray-400 text-black'
     }
   }
   
@@ -88,10 +87,7 @@ export function WatchlistStatusBadge() {
           throw new Error(`Failed to stop Watchlist workflow: ${response.status}`)
         }
         
-        toast({
-          description: 'Watchlist workflow has been stopped successfully',
-          variant: 'default',
-        })
+        toast.success('Watchlist workflow has been stopped successfully')
       } else {
         const requestOptions = {
           method: 'POST',
@@ -110,10 +106,7 @@ export function WatchlistStatusBadge() {
         
         const data = await response.json()
         const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
-        toast({
-          description: `${data.message}${autoStartMsg}`,
-          variant: 'default',
-        })
+        toast.success(`${data.message}${autoStartMsg}`)
       }
       
     } catch (error) {
@@ -122,15 +115,9 @@ export function WatchlistStatusBadge() {
       
       // Error toast
       if (status !== 'running') {
-        toast({
-          description: 'Failed to start Watchlist workflow. Please check your configuration.',
-          variant: 'destructive',
-        })
+        toast.error('Failed to start Watchlist workflow. Please check your configuration.')
       } else {
-        toast({
-          description: 'Failed to stop Watchlist workflow',
-          variant: 'destructive',
-        })
+        toast.error('Failed to stop Watchlist workflow')
       }
     }
   }
@@ -197,7 +184,7 @@ export function WatchlistStatusBadge() {
                   />
                   <Label
                     htmlFor="auto-start"
-                    className="text-xs text-text cursor-pointer flex items-center gap-1"
+                    className="text-xs text-foreground cursor-pointer flex items-center gap-1"
                   >
                     <BookmarkCheck className="h-3.5 w-3.5" />
                     Auto-Start

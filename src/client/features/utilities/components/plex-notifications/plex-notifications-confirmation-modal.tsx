@@ -39,7 +39,7 @@ export function PlexNotificationsConfirmationModal({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text">
+          <CredenzaTitle className="text-foreground">
             Remove Plex Notifications?
           </CredenzaTitle>
           <CredenzaDescription>

@@ -28,6 +28,7 @@ type CarouselContextProps = {
   scrollNext: () => void
   canScrollPrev: boolean
   canScrollNext: boolean
+  plugins?: CarouselPlugin
 } & CarouselProps
 
 const CarouselContext = React.createContext<CarouselContextProps | null>(null)
@@ -140,6 +141,7 @@ const Carousel = React.forwardRef<
           className={cn("relative", className)}
           role="region"
           aria-roledescription="carousel"
+          data-slot="carousel"
           {...props}
         >
           {children}
@@ -157,7 +159,7 @@ const CarouselContent = React.forwardRef<
   const { carouselRef, orientation } = useCarousel()
 
   return (
-    <div ref={carouselRef} className="overflow-hidden">
+    <div ref={carouselRef} className="overflow-hidden" data-slot="carousel-content">
       <div
         ref={ref}
         className={cn(
@@ -181,6 +183,7 @@ const CarouselItem = React.forwardRef<
   return (
     <div
       ref={ref}
+      data-slot="carousel-item"
       role="group"
       aria-roledescription="slide"
       className={cn(
@@ -197,16 +200,17 @@ CarouselItem.displayName = "CarouselItem"
 const CarouselPrevious = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<typeof Button>
->(({ className, variant = "outline", size = "icon", ...props }, ref) => {
+>(({ className, variant = "noShadow", size = "icon", ...props }, ref) => {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
 
   return (
     <Button
       ref={ref}
-      variant={"noShadow"}
+      data-slot="carousel-previous"
+      variant={variant}
       size={size}
       className={cn(
-        "absolute  h-8 w-8 rounded-base",
+        "absolute h-8 w-8 rounded-base",
         orientation === "horizontal"
           ? "-left-12 top-1/2 -translate-y-1/2"
           : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
@@ -226,13 +230,14 @@ CarouselPrevious.displayName = "CarouselPrevious"
 const CarouselNext = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<typeof Button>
->(({ className, variant = "outline", size = "icon", ...props }, ref) => {
+>(({ className, variant = "noShadow", size = "icon", ...props }, ref) => {
   const { orientation, scrollNext, canScrollNext } = useCarousel()
 
   return (
     <Button
       ref={ref}
-      variant={"noShadow"}
+      data-slot="carousel-next"
+      variant={variant}
       size={size}
       className={cn(
         "absolute h-8 w-8 rounded-base",

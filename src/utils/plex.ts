@@ -1387,6 +1387,47 @@ export const fetchWatchlistFromRss = async (
 }
 
 /**
+ * Attempts to fetch user avatar from Plex API
+ * @param token - User's Plex token
+ * @returns Avatar URL or null if failed
+ */
+export async function fetchPlexAvatar(token: string): Promise<string | null> {
+  try {
+    // Create AbortController for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+    // Plex.tv API endpoint for user account info
+    const response = await fetch('https://plex.tv/api/v2/user', {
+      headers: {
+        'X-Plex-Token': token,
+        Accept: 'application/json',
+      },
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      return null
+    }
+
+    const userData = (await response.json()) as { thumb?: string }
+
+    // Plex avatar URLs are typically in the format: https://plex.tv/users/{uuid}/avatar?c={timestamp}
+    if (userData.thumb) {
+      return userData.thumb
+    }
+
+    return null
+  } catch (error) {
+    // Log error but don't throw - we want graceful fallback
+    console.warn('Failed to fetch Plex avatar:', error)
+    return null
+  }
+}
+
+/**
  * Checks if the configuration includes at least one Plex token.
  *
  * @returns `true` if the configuration's `plexTokens` property is a non-empty array; otherwise, `false`.

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { useConfigStore } from '@/stores/configStore'
 import type { PlexNotificationResponse } from '@root/schemas/plex/configure-notifications.schema'
@@ -41,7 +41,6 @@ export type PlexNotificationsFormValues = z.infer<
  * @returns An object containing the form instance, error message, loading and submission states, handlers for submitting, canceling, and deleting the configuration, a placeholder for initiating deletion, and the latest server response data.
  */
 export function usePlexNotifications() {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -240,10 +239,11 @@ export function usePlexNotifications() {
         const results: PlexNotificationResponse = await response.json()
         setLastResults(results)
 
-        toast({
-          description: results.message,
-          variant: results.success ? 'default' : 'destructive',
-        })
+        if (results.success) {
+          toast.success(results.message)
+        } else {
+          toast.error(results.message)
+        }
 
         // If the operation was successful, mark the form as pristine
         if (results.success) {
@@ -256,11 +256,7 @@ export function usePlexNotifications() {
             'Request timed out. Please check your Plex server connection and try again.'
           setError(timeoutError)
 
-          toast({
-            title: 'Connection Timeout',
-            description: timeoutError,
-            variant: 'destructive',
-          })
+          toast.error(timeoutError)
         } else {
           // Handle other errors
           const errorMessage =
@@ -270,18 +266,14 @@ export function usePlexNotifications() {
 
           setError(errorMessage)
 
-          toast({
-            title: 'Error',
-            description: errorMessage,
-            variant: 'destructive',
-          })
+          toast.error(errorMessage)
         }
       } finally {
         clearTimeout(timeoutId)
         setIsSubmitting(false)
       }
     },
-    [toast, form],
+    [form],
   )
 
   // Handle form cancellation
@@ -332,10 +324,11 @@ export function usePlexNotifications() {
       const results: PlexNotificationResponse = await response.json()
       setLastResults(results)
 
-      toast({
-        description: results.message,
-        variant: results.success ? 'default' : 'destructive',
-      })
+      if (results.success) {
+        toast.success(results.message)
+      } else {
+        toast.error(results.message)
+      }
 
       // After successful removal, fetch the current status to update UI
       await fetchCurrentStatus()
@@ -346,11 +339,7 @@ export function usePlexNotifications() {
           'Request timed out. Please check your Plex server connection and try again.'
         setError(timeoutError)
 
-        toast({
-          title: 'Connection Timeout',
-          description: timeoutError,
-          variant: 'destructive',
-        })
+        toast.error(timeoutError)
       } else {
         // Handle other errors
         const errorMessage =
@@ -360,17 +349,13 @@ export function usePlexNotifications() {
 
         setError(errorMessage)
 
-        toast({
-          title: 'Error',
-          description: errorMessage,
-          variant: 'destructive',
-        })
+        toast.error(errorMessage)
       }
     } finally {
       clearTimeout(timeoutId)
       setIsDeleting(false)
     }
-  }, [toast, fetchCurrentStatus])
+  }, [fetchCurrentStatus])
 
   const initiateDelete = useCallback(() => {
     // This function is just a placeholder for the action of clicking the delete button

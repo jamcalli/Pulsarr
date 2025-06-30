@@ -87,9 +87,9 @@ export function WatchlistCarousel({
   }, [items])
 
   return (
-    <Card className={cn('w-full bg-bg relative', className)}>
+    <Card className={cn('w-full bg-background relative', className)}>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-text">{title}</CardTitle>
+        <CardTitle className="text-foreground">{title}</CardTitle>
         <div className="flex items-center gap-2">
           <Button
             variant="noShadow"
@@ -120,7 +120,7 @@ export function WatchlistCarousel({
           </div>
         ) : sortedItems.length === 0 && !loading ? (
           <div className="flex h-48 items-center justify-center">
-            <span className="text-text text-muted-foreground">
+            <span className="text-foreground text-muted-foreground">
               No data available
             </span>
           </div>

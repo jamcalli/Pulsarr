@@ -119,7 +119,7 @@ const FallingAsteroids = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[1]">
+    <div className="fixed inset-0 pointer-events-none z-1">
       {asteroids.map(asteroid => (
         <div
           key={asteroid.id}

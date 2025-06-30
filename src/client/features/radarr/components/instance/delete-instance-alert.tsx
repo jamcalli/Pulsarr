@@ -29,7 +29,7 @@ export function DeleteInstanceAlert({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text">
+          <CredenzaTitle className="text-foreground">
             {isLastInstance
               ? 'Clear Instance Configuration?'
               : 'Remove Instance?'}

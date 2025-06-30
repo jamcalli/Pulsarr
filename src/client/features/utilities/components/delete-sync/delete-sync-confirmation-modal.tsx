@@ -51,7 +51,7 @@ export function DeleteSyncConfirmationModal({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text flex items-center gap-2">
+          <CredenzaTitle className="text-foreground flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-500" />
             {title}
           </CredenzaTitle>

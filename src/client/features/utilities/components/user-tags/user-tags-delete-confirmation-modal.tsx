@@ -47,7 +47,7 @@ export function UserTagsDeleteConfirmationModal({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text flex items-center gap-2">
+          <CredenzaTitle className="text-foreground flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-500" />
             Remove User Tags?
           </CredenzaTitle>
@@ -72,12 +72,12 @@ export function UserTagsDeleteConfirmationModal({
             />
             <label
               htmlFor="delete-definitions"
-              className="text-sm font-medium text-text leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="text-sm font-medium text-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               Also delete tag definitions
             </label>
           </div>
-          <p className="text-xs text-text mt-1 ml-6">
+          <p className="text-xs text-foreground mt-1 ml-6">
             When enabled, this will also remove the user tag definitions from
             your Sonarr and Radarr instances, not just remove them from media.
           </p>

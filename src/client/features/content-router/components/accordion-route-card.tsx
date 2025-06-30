@@ -720,8 +720,8 @@ const AccordionRouteCard = ({
                     {!isSaving && (
                       <span
                         className={cn(
-                          'inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-                          'text-mtext bg-main border-2 border-border',
+                          'inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+                          'text-main-foreground bg-main border-2 border-border',
                           'h-8 w-8',
                           'opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0 cursor-pointer',
                         )}
@@ -779,7 +779,9 @@ const AccordionRouteCard = ({
 
                   {/* Actions section */}
                   <div>
-                    <h3 className="font-medium text-text mb-2">Actions</h3>
+                    <h3 className="font-medium text-foreground mb-2">
+                      Actions
+                    </h3>
                     <div className="flex flex-wrap items-center gap-4">
                       {'id' in route && route.id && (
                         <Button
@@ -854,7 +856,7 @@ const AccordionRouteCard = ({
                   {isNew && (
                     <Alert variant="default">
                       <div className="flex items-center">
-                        <Info className="h-5 w-5 mr-2" />
+                        <Info className="h-4 w-4 mr-2 shrink-0" />
                         <AlertDescription>
                           <p className="text-sm">
                             Build conditions below to determine when content
@@ -875,13 +877,13 @@ const AccordionRouteCard = ({
                       render={({ field, fieldState }) => (
                         <FormItem>
                           <div className="flex items-center space-x-2">
-                            <FormLabel className="text-text">
+                            <FormLabel className="text-foreground">
                               Condition Rules
                             </FormLabel>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p className="max-w-xs">
@@ -894,7 +896,7 @@ const AccordionRouteCard = ({
                             </TooltipProvider>
                           </div>
                           <FormControl>
-                            <div className="border rounded-md p-4 bg-card/50 border-text relative">
+                            <div className="border-2 rounded-md p-4 bg-card/50 border-foreground relative">
                               {loading && (
                                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-md">
                                   <div className="text-center space-y-2">
@@ -979,13 +981,15 @@ const AccordionRouteCard = ({
                   </div>
 
                   {/* Actions Section - Approval Behavior */}
-                  <div className="space-y-4 border rounded-md p-4 bg-card/30 border-text/20">
+                  <div className="space-y-4 border-2 rounded-md p-4 bg-card/30 border-foreground">
                     <div className="flex items-center space-x-2">
-                      <h3 className="text-sm font-medium text-text">Actions</h3>
+                      <h3 className="text-sm font-medium text-foreground">
+                        Actions
+                      </h3>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
@@ -1006,13 +1010,13 @@ const AccordionRouteCard = ({
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center space-x-2">
-                              <FormLabel className="text-text">
+                              <FormLabel className="text-foreground">
                                 Always Require Approval
                               </FormLabel>
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <div className="max-w-xs">
@@ -1040,7 +1044,7 @@ const AccordionRouteCard = ({
                                   aria-label="Always Require Approval"
                                 />
                               </FormControl>
-                              <span className="text-sm text-text text-muted-foreground">
+                              <span className="text-sm text-foreground text-muted-foreground">
                                 Force approval for this rule regardless of
                                 quotas
                               </span>
@@ -1056,13 +1060,13 @@ const AccordionRouteCard = ({
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center space-x-2">
-                              <FormLabel className="text-text">
+                              <FormLabel className="text-foreground">
                                 Bypass User Quotas
                               </FormLabel>
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <div className="max-w-xs">
@@ -1089,7 +1093,7 @@ const AccordionRouteCard = ({
                                   aria-label="Bypass User Quotas"
                                 />
                               </FormControl>
-                              <span className="text-sm text-text text-muted-foreground">
+                              <span className="text-sm text-foreground text-muted-foreground">
                                 Skip quota checks for this rule
                               </span>
                             </div>
@@ -1106,7 +1110,7 @@ const AccordionRouteCard = ({
                         name="approval_reason"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-text">
+                            <FormLabel className="text-foreground">
                               Approval Reason
                             </FormLabel>
                             <FormControl>
@@ -1133,7 +1137,7 @@ const AccordionRouteCard = ({
                       name="target_instance_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             {contentType === 'radarr' ? 'Radarr' : 'Sonarr'}{' '}
                             Instance
                           </FormLabel>
@@ -1168,13 +1172,13 @@ const AccordionRouteCard = ({
                         <FormItem>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
-                              <FormLabel className="text-text">
+                              <FormLabel className="text-foreground">
                                 Priority Weight
                               </FormLabel>
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p className="max-w-xs">
@@ -1191,7 +1195,7 @@ const AccordionRouteCard = ({
                                 </Tooltip>
                               </TooltipProvider>
                             </div>
-                            <span className="text-sm text-text text-muted-foreground">
+                            <span className="text-sm text-foreground text-muted-foreground">
                               {field.value}
                             </span>
                           </div>
@@ -1221,7 +1225,7 @@ const AccordionRouteCard = ({
                       name="root_folder"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Root Folder
                           </FormLabel>
                           <Select
@@ -1264,7 +1268,7 @@ const AccordionRouteCard = ({
                       name="quality_profile"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Quality Profile
                           </FormLabel>
                           <Select
@@ -1309,7 +1313,7 @@ const AccordionRouteCard = ({
                   <Separator className="my-4" />
 
                   {/* Advanced Settings */}
-                  <h3 className="font-medium text-text mb-4">
+                  <h3 className="font-medium text-foreground mb-4">
                     Advanced Settings
                   </h3>
 
@@ -1322,13 +1326,13 @@ const AccordionRouteCard = ({
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center space-x-2">
-                              <FormLabel className="text-text">
+                              <FormLabel className="text-foreground">
                                 Season Monitoring
                               </FormLabel>
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p className="max-w-xs">
@@ -1395,13 +1399,13 @@ const AccordionRouteCard = ({
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-center space-x-2">
-                              <FormLabel className="text-text">
+                              <FormLabel className="text-foreground">
                                 Series Type
                               </FormLabel>
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p className="max-w-xs">
@@ -1449,13 +1453,13 @@ const AccordionRouteCard = ({
                       render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center space-x-2">
-                            <FormLabel className="text-text">
+                            <FormLabel className="text-foreground">
                               Search on Add
                             </FormLabel>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p className="max-w-xs">
@@ -1475,7 +1479,7 @@ const AccordionRouteCard = ({
                                 aria-label="Search on Add"
                               />
                             </FormControl>
-                            <span className="text-sm text-text text-muted-foreground">
+                            <span className="text-sm text-foreground text-muted-foreground">
                               Automatically search for content when added
                             </span>
                           </div>
@@ -1491,11 +1495,13 @@ const AccordionRouteCard = ({
                       render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center space-x-2">
-                            <FormLabel className="text-text">Tags</FormLabel>
+                            <FormLabel className="text-foreground">
+                              Tags
+                            </FormLabel>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p className="max-w-xs">
@@ -1525,7 +1531,7 @@ const AccordionRouteCard = ({
                                     type="button"
                                     variant="noShadow"
                                     size="icon"
-                                    className="flex-shrink-0"
+                                    className="shrink-0"
                                     onClick={() =>
                                       setShowTagCreationDialog(true)
                                     }

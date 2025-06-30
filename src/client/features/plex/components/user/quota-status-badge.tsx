@@ -50,7 +50,8 @@ function SingleQuotaBadge({
   }
 
   const currentUsage = quota.currentUsage ?? 0
-  const percentage = (currentUsage / quota.quotaLimit) * 100
+  const percentage =
+    quota.quotaLimit > 0 ? (currentUsage / quota.quotaLimit) * 100 : 0
 
   const getBadgeColor = () => {
     if (percentage >= 100) return 'bg-red-500 hover:bg-red-500 text-black'

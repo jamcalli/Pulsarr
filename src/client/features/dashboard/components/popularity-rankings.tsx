@@ -7,7 +7,9 @@ export function PopularityRankings() {
 
   return (
     <div className="mb-8">
-      <h2 className="mb-4 text-2xl font-bold text-text">Popularity Rankings</h2>
+      <h2 className="mb-4 text-2xl font-bold text-foreground">
+        Popularity Rankings
+      </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <WatchlistCarousel
