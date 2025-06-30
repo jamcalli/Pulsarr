@@ -15,6 +15,8 @@ import {
   DailyStatsListResponseSchema,
   GetQuotaUsageQuerySchema,
   GetDailyStatsQuerySchema,
+  BulkQuotaOperationSchema,
+  BulkQuotaOperationResponseSchema,
   QuotaErrorSchema,
 } from '@schemas/quota/quota.schema.js'
 
@@ -66,11 +68,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Create both movie and show quotas with the same settings
-        const userQuotas = await fastify.quotaService.setupDefaultQuotas(
+        const userQuotas = await fastify.quotaService.createUserQuotas(
           request.body.userId,
           request.body.quotaType,
           request.body.quotaLimit,
-          request.body.quotaLimit,
+          request.body.bypassApproval,
         )
 
         reply.status(201)
@@ -657,6 +659,81 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         fastify.log.error('Error getting daily usage stats:', error)
         return reply.internalServerError(
           'Failed to retrieve daily usage statistics',
+        )
+      }
+    },
+  )
+
+  // Bulk quota operations
+  fastify.patch<{
+    Body: z.infer<typeof BulkQuotaOperationSchema>
+    Reply:
+      | z.infer<typeof BulkQuotaOperationResponseSchema>
+      | z.infer<typeof QuotaErrorSchema>
+  }>(
+    '/users/bulk',
+    {
+      schema: {
+        summary: 'Bulk quota operations',
+        operationId: 'bulkQuotaOperations',
+        description:
+          'Perform bulk quota operations on multiple users (update or delete)',
+        body: BulkQuotaOperationSchema,
+        response: {
+          200: BulkQuotaOperationResponseSchema,
+          400: QuotaErrorSchema,
+          500: QuotaErrorSchema,
+        },
+        tags: ['Quota'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { userIds, operation, movieQuota, showQuota } = request.body
+
+        if (userIds.length === 0) {
+          reply.status(400)
+          return {
+            success: false,
+            message: 'User IDs array cannot be empty',
+          }
+        }
+
+        let result: { processedCount: number; failedIds: number[] }
+
+        if (operation === 'delete') {
+          // Delete all quotas for the specified users
+          result = await fastify.db.bulkDeleteQuotas(userIds)
+        } else {
+          // Update/create quotas for the specified users
+          if (!movieQuota && !showQuota) {
+            reply.status(400)
+            return {
+              success: false,
+              message:
+                'At least one quota configuration (movie or show) must be provided for update operation',
+            }
+          }
+
+          result = await fastify.db.bulkUpdateQuotas(
+            userIds,
+            movieQuota,
+            showQuota,
+          )
+        }
+
+        return {
+          success: result.processedCount > 0,
+          message: `${operation === 'delete' ? 'Deleted' : 'Updated'} quotas for ${result.processedCount} of ${userIds.length} users`,
+          processedCount: result.processedCount,
+          ...(result.failedIds.length > 0
+            ? { failedIds: result.failedIds }
+            : {}),
+        }
+      } catch (error) {
+        fastify.log.error('Error in bulk quota operation:', error)
+        return reply.internalServerError(
+          'Failed to perform bulk quota operation',
         )
       }
     },

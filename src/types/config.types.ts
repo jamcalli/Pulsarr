@@ -194,6 +194,15 @@ export interface Config {
   }
   // New User Defaults
   newUserDefaultCanSync?: boolean
+  newUserDefaultRequiresApproval?: boolean
+  newUserDefaultMovieQuotaEnabled?: boolean
+  newUserDefaultMovieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
+  newUserDefaultMovieQuotaLimit?: number
+  newUserDefaultMovieBypassApproval?: boolean
+  newUserDefaultShowQuotaEnabled?: boolean
+  newUserDefaultShowQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
+  newUserDefaultShowQuotaLimit?: number
+  newUserDefaultShowBypassApproval?: boolean
   // Quota System Configuration
   quotaSettings?: {
     // Cleanup configuration

@@ -386,6 +386,44 @@ const schema = {
       type: 'boolean',
       default: true,
     },
+    newUserDefaultRequiresApproval: {
+      type: 'boolean',
+      default: false,
+    },
+    newUserDefaultMovieQuotaEnabled: {
+      type: 'boolean',
+      default: false,
+    },
+    newUserDefaultMovieQuotaType: {
+      type: 'string',
+      enum: ['daily', 'weekly_rolling', 'monthly'],
+      default: 'monthly',
+    },
+    newUserDefaultMovieQuotaLimit: {
+      type: 'number',
+      default: 10,
+    },
+    newUserDefaultMovieBypassApproval: {
+      type: 'boolean',
+      default: false,
+    },
+    newUserDefaultShowQuotaEnabled: {
+      type: 'boolean',
+      default: false,
+    },
+    newUserDefaultShowQuotaType: {
+      type: 'string',
+      enum: ['daily', 'weekly_rolling', 'monthly'],
+      default: 'monthly',
+    },
+    newUserDefaultShowQuotaLimit: {
+      type: 'number',
+      default: 10,
+    },
+    newUserDefaultShowBypassApproval: {
+      type: 'boolean',
+      default: false,
+    },
     allowIframes: {
       type: 'boolean',
       default: false,

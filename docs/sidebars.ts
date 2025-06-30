@@ -31,7 +31,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Features',
-      items: ['features/content-routing', 'features/multi-instance-support'],
+      items: [
+        'features/content-routing',
+        'features/multi-instance-support',
+        'features/approval-and-quota-system',
+      ],
     },
     {
       type: 'category',

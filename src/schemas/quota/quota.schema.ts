@@ -162,6 +162,35 @@ export const QuotaErrorSchema = z.object({
   message: z.string(),
 })
 
+// Bulk quota operation schemas
+export const BulkQuotaOperationSchema = z.object({
+  userIds: z.array(z.number()).min(1).max(100),
+  operation: z.enum(['update', 'delete']),
+  movieQuota: z
+    .object({
+      enabled: z.boolean(),
+      quotaType: QuotaTypeSchema.optional(),
+      quotaLimit: z.number().min(1).max(1000).optional(),
+      bypassApproval: z.boolean().optional(),
+    })
+    .optional(),
+  showQuota: z
+    .object({
+      enabled: z.boolean(),
+      quotaType: QuotaTypeSchema.optional(),
+      quotaLimit: z.number().min(1).max(1000).optional(),
+      bypassApproval: z.boolean().optional(),
+    })
+    .optional(),
+})
+
+export const BulkQuotaOperationResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  processedCount: z.number(),
+  failedIds: z.array(z.number()).optional(),
+})
+
 // Type exports
 export type CreateUserQuota = z.infer<typeof CreateUserQuotaSchema>
 export type UpdateUserQuota = z.infer<typeof UpdateUserQuotaSchema>
@@ -196,3 +225,7 @@ export type DailyStatsListResponse = z.infer<
 >
 export type UserQuotasResponse = z.infer<typeof UserQuotasResponseSchema>
 export type QuotaError = z.infer<typeof QuotaErrorSchema>
+export type BulkQuotaOperation = z.infer<typeof BulkQuotaOperationSchema>
+export type BulkQuotaOperationResponse = z.infer<
+  typeof BulkQuotaOperationResponseSchema
+>

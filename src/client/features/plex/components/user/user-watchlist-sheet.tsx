@@ -62,6 +62,7 @@ import {
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { WatchlistItem } from '@root/schemas/users/watchlist.schema'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface ColumnMetaType {
   className?: string
@@ -109,6 +110,9 @@ export function UserWatchlistSheet({
   )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
+
+  // Persistent table pagination
+  const { pageSize, setPageSize } = useTablePagination('user-watchlist', 10)
 
   const columns: ColumnDef<WatchlistItem>[] = [
     {
@@ -249,6 +253,18 @@ export function UserWatchlistSheet({
       sorting,
       columnFilters,
       columnVisibility,
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newPagination = updater({ pageIndex: 0, pageSize })
+        if (newPagination.pageSize !== pageSize) {
+          setPageSize(newPagination.pageSize)
+        }
+      }
     },
   })
 
