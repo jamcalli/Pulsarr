@@ -15,16 +15,16 @@ interface QuotaSystemActionsProps {
 }
 
 /**
- * Displays operational controls for the quota maintenance schedule, including status, enable/disable toggle, and immediate run actions.
+ * Renders operational controls for managing the quota maintenance schedule, including status display, enable/disable toggle, and immediate run actions.
  *
- * Shows the current job status, provides buttons to enable or disable the schedule and to run maintenance immediately, and displays a warning when the schedule is disabled.
+ * Provides a visual indicator of the current job status, buttons to enable or disable the schedule and to trigger maintenance immediately, and a warning message when the schedule is disabled.
  *
- * @param isScheduleEnabled - Indicates if the quota maintenance schedule is enabled
- * @param isToggling - Indicates if the enable/disable action is in progress
- * @param isRunning - Indicates if the maintenance job is currently running
- * @param isLoading - Indicates if the component is in a loading state
- * @param onToggleSchedule - Function to toggle the schedule enabled state
- * @param onRunNow - Function to trigger running the maintenance job immediately
+ * @param isScheduleEnabled - Whether the quota maintenance schedule is currently enabled
+ * @param isToggling - Whether the enable/disable action is in progress
+ * @param isRunning - Whether the maintenance job is currently running
+ * @param isLoading - Whether the component is in a loading state
+ * @param onToggleSchedule - Callback to toggle the schedule enabled state
+ * @param onRunNow - Callback to trigger running the maintenance job immediately
  * @param job - The current job status object, or null/undefined if unavailable
  */
 export function QuotaSystemActions({

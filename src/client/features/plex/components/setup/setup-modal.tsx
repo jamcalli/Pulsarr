@@ -20,9 +20,9 @@ interface SetupModalProps {
 }
 
 /**
- * Displays a modal dialog for setting up Plex integration by entering a Plex token and syncing watchlists.
+ * Renders a modal dialog for configuring Plex integration by entering a Plex token and syncing watchlists.
  *
- * Guides the user through entering their Plex token, validates the token, and manages the syncing of both personal and shared Plex watchlists. Progress is displayed for each sync step, and the modal prevents closure during submission. Success and error notifications are shown as appropriate.
+ * Guides the user through entering and validating a Plex token, then manages the syncing of both personal and shared Plex watchlists with progress feedback. The modal prevents closure during submission and displays success or error notifications as appropriate.
  *
  * @param open - Whether the modal is currently open
  * @param onOpenChange - Callback to update the modal's open state

@@ -37,9 +37,9 @@ import { useApprovalSystem } from '@/features/plex/hooks/useApprovalSystem'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**
- * Renders a configuration form for the approval system, allowing users to manage scheduling, expiration, notification, and cleanup settings.
+ * Renders a form for configuring approval system settings, including scheduling, expiration, notifications, and cleanup.
  *
- * Provides controls to enable or disable the approval schedule, trigger the approval process immediately, and adjust related options. Displays current schedule status, last and next run times, and handles error and loading states with responsive UI.
+ * Provides interactive controls to enable or disable the approval schedule, trigger immediate approval processing, and adjust related options. Displays current schedule status, last and next run times, and manages error and loading states with a responsive user interface.
  */
 export function ApprovalSystemForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')

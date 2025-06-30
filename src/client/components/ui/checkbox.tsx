@@ -8,9 +8,9 @@ import type * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * Renders a styled checkbox component using Radix UI primitives with custom indicator and accessibility features.
+ * A styled checkbox component built with Radix UI primitives and a custom indicator.
  *
- * Accepts all props supported by `CheckboxPrimitive.Root`, allowing for additional customization via the `className` prop.
+ * Supports all props from `CheckboxPrimitive.Root` and allows additional styling via the `className` prop. The indicator displays a checkmark icon when checked and includes accessibility features.
  */
 function Checkbox({
   className,

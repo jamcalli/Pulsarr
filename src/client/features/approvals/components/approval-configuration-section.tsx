@@ -47,9 +47,9 @@ const getStatusBadge = (job: MaintenanceJob) => (
 )
 
 /**
- * Displays configuration sections for approval and quota systems, including status badges and management forms.
+ * Renders configuration sections for approval and quota systems, displaying their current status and providing management forms.
  *
- * Shows the current status of approval and quota maintenance jobs with visual badges, and provides forms for updating their configuration. If scheduler data fails to load, an error message is displayed instead.
+ * Shows status badges for approval and quota maintenance jobs, and displays forms for updating their configuration. If scheduler data cannot be loaded, an error message is shown instead.
  */
 export function ApprovalConfigurationSection() {
   const { approvalMaintenanceJob, quotaMaintenanceJob, schedulerError } =
