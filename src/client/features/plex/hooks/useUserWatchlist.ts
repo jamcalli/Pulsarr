@@ -1,16 +1,15 @@
 import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.schema'
 
 /**
- * React hook that manages state and data fetching for a user's watchlist UI.
+ * Provides state management and data fetching logic for displaying a user's watchlist in a UI component.
  *
- * Exposes watchlist data, loading and error states, open/closed state, and handler functions for opening, closing, and refreshing the watchlist.
+ * Returns the current watchlist data, loading and error states, open/closed state, and handler functions to open, close, or refresh the watchlist for a selected user.
  *
- * @returns An object with the current watchlist data, loading and error states, open state, and handler functions for UI interaction and data management.
+ * @returns An object containing watchlist data, loading and error states, open state, and handler functions for UI interaction and data management.
  */
 export function useUserWatchlist() {
-  const { toast } = useToast()
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -36,10 +35,7 @@ export function useUserWatchlist() {
       const error =
         err instanceof Error ? err : new Error('Unknown error occurred')
       setError(error)
-      toast({
-        description: error.message,
-        variant: 'destructive',
-      })
+      toast.error(error.message)
     } finally {
       setIsLoading(false)
     }

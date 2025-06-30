@@ -4,29 +4,18 @@
  * work well for content-centric websites.
  */
 
-/* Import fonts */
+/* All @import rules must come first */
+@import "tailwindcss";
 @import "./fonts.css";
-
-/* Import main app globals */
 @import "./globals.css";
-
-/* Import navbar customizations */
 @import "./navbar.css";
-
-/* Import GitHub stats button styling */
 @import "./github-stats.css";
-
-/* Import mode toggle button styling */
 @import "./mode-toggle.css";
-
-/* Import DocFeature component styles */
 @import "./docfeature.css";
-
-/* Import docs styling */
 @import "./docs.css";
-
-/* Import search styling */
 @import "./search.css";
+
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 /* Override Infima defaults that conflict with our styles */
 :root {
@@ -44,12 +33,26 @@
 	--ifm-color-primary-lighter: #56cbba;
 	--ifm-color-primary-lightest: #5ddcc5;
 
+	/* Asteroid variables */
+	--static-asteroid-fill: #948d89;
+	--static-asteroid-border: #dedede;
+
+	/* Starfield variables */
+	--color-secondary-black: #212121;
+
 	/* Make sure CSS variables from client match Docusaurus light mode */
+	--main: #48a9a6;
+	--mtext: #000;
+	--static-text: #c1666b;
 	--bg: #dfe5f2;
 	--bw: #e4dfda;
 	--blank: #000;
 	--border: #000;
 	--text: #000;
+	--box-shadow-x: 4px;
+	--box-shadow-y: 4px;
+	--border-radius: 5px;
+	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 }
 
 /* Match app dark theme */
@@ -64,11 +67,18 @@ html[data-theme="dark"] {
 	--ifm-menu-color-background-hover: #323642;
 
 	/* Make sure CSS variables from client match Docusaurus dark mode */
+	--main: #48a9a6;
+	--mtext: #000;
+	--static-text: #c1666b;
 	--bg: #272933;
 	--bw: #212121;
 	--blank: #e4dfda;
 	--border: #000;
 	--text: #e6e6e6;
+	--box-shadow-x: 4px;
+	--box-shadow-y: 4px;
+	--border-radius: 5px;
+	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 }
 
 /* Override the main app's global styles that prevent scrolling */
@@ -77,6 +87,9 @@ body {
 	position: static !important;
 	width: auto !important;
 	height: auto !important;
+	font-weight: 400 !important;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }
 
 #app {
@@ -116,13 +129,16 @@ html[data-theme="dark"] .prism-code {
 	font-size: 1.5rem !important;
 }
 
-/* Direct hero button styling */
-.hero-button,
+/* Direct hero button styling - avoid !important to allow hover animations */
+.hero-button {
+	font-size: 1.5rem;
+	padding: 1rem 2.5rem;
+	height: auto;
+	min-height: 3.5rem;
+}
+
 .hero-button > * {
-	font-size: 1.5rem !important;
-	padding: 1rem 2.5rem !important;
-	height: auto !important;
-	min-height: 3.5rem !important;
+	font-size: 1.5rem;
 }
 
 /* Clip paths and masking for the hero content */
@@ -139,4 +155,37 @@ html[data-theme="dark"] .prism-code {
 /* Make the endpoint background container full width */
 .openapi-left-panel__container pre {
 	width: 100% !important;
+}
+
+/* Card header text should always be black and properly centered */
+.docfeature-header h2 {
+	color: #000 !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	height: 100% !important;
+	margin: 0 !important;
+}
+
+.docfeature-header h2 span {
+	color: #000 !important;
+}
+
+/* Ensure proper vertical centering for card headers */
+.docfeature-header {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	height: 60px !important;
+}
+
+/* Get Started button should always have black text - only target default variant */
+.hero-button[class*="default"],
+button[class*="default"].hero-button {
+	color: #000 !important;
+}
+
+/* More specific targeting for main background buttons only */
+button[class*="bg-main"].hero-button {
+	color: #000 !important;
 }

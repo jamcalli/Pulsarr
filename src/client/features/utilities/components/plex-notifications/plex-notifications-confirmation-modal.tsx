@@ -18,16 +18,9 @@ interface PlexNotificationsConfirmationModalProps {
 }
 
 /**
- * Renders a confirmation modal for removing Plex notifications.
+ * Displays a modal dialog prompting the user to confirm removal of Plex notifications from all Radarr and Sonarr instances.
  *
- * This modal displays a message to confirm the user's intention to remove Plex notifications
- * from all Radarr and Sonarr instances. It provides buttons to either proceed with the removal
- * or cancel the operation.
- *
- * @param open - Controls whether the modal is visible.
- * @param onOpenChange - Callback to update the modal's open state.
- * @param onConfirm - Callback invoked when the user confirms the deletion.
- * @param isSubmitting - Optional flag that, when true, disables the confirm button during submission.
+ * Provides options to cancel or proceed with the removal. The confirm button is disabled and shows a loading state if a submission is in progress.
  */
 export function PlexNotificationsConfirmationModal({
   open,
@@ -39,7 +32,7 @@ export function PlexNotificationsConfirmationModal({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text">
+          <CredenzaTitle className="text-foreground">
             Remove Plex Notifications?
           </CredenzaTitle>
           <CredenzaDescription>

@@ -19,12 +19,12 @@ interface ClearSettingsAlertProps {
 }
 
 /**
- * Displays a modal dialog prompting the user to confirm clearing settings.
+ * Renders a modal dialog that prompts the user to confirm clearing settings.
  *
- * Renders a dialog with a customizable title and description, offering "Cancel" and "Clear" actions. Invokes {@link onConfirm} when "Clear" is clicked and then closes the dialog.
+ * Displays a customizable title and description, with "Cancel" and "Clear" actions. Calls the provided confirmation callback when "Clear" is selected and then closes the dialog.
  *
- * @param title - The title text displayed in the alert header.
- * @param description - The description text displayed below the title.
+ * @param title - The text shown as the dialog's title.
+ * @param description - The text shown as the dialog's description.
  */
 export function ClearSettingsAlert({
   open,
@@ -37,7 +37,7 @@ export function ClearSettingsAlert({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text">{title}</CredenzaTitle>
+          <CredenzaTitle className="text-foreground">{title}</CredenzaTitle>
           <CredenzaDescription>{description}</CredenzaDescription>
         </CredenzaHeader>
         <CredenzaBody>

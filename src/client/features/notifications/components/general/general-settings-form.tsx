@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import {
   generalFormSchema,
@@ -36,17 +36,16 @@ const DEFAULT_NEW_EPISODE_THRESHOLD = 172800000 // 48 hours (2 days)
 const DEFAULT_UPGRADE_BUFFER_TIME = 2000 // 2 seconds
 
 /**
- * Renders a form for editing general notification settings, allowing users to configure queue wait time, new episode threshold, and upgrade buffer time.
+ * Displays a form for configuring general notification settings, including queue wait time, new episode threshold, and upgrade buffer time.
  *
- * Converts between user-facing units (minutes, hours, seconds) and internal millisecond storage. Provides validation, contextual tooltips, and visual feedback for submission status.
+ * Handles unit conversion between user-facing values and internal storage, provides validation and contextual tooltips, and gives visual feedback for submission status and errors.
  *
- * @param isInitialized - Indicates whether configuration data has loaded and the form is ready for interaction.
+ * @param isInitialized - Whether the configuration data has loaded and the form is ready for user interaction.
  * @returns The React element representing the general settings form.
  */
 export function GeneralSettingsForm({
   isInitialized,
 }: GeneralSettingsFormProps) {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const [generalStatus, setGeneralStatus] = useState<
@@ -131,10 +130,7 @@ export function GeneralSettingsForm({
       // Keep the display values in the form
       generalForm.reset(data)
 
-      toast({
-        description: 'General notification settings have been updated',
-        variant: 'default',
-      })
+      toast.success('General notification settings have been updated')
 
       setTimeout(() => {
         setGeneralStatus('idle')
@@ -142,10 +138,7 @@ export function GeneralSettingsForm({
     } catch (error) {
       console.error('General settings update error:', error)
       setGeneralStatus('error')
-      toast({
-        description: 'Failed to update general settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update general settings')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setGeneralStatus('idle')
@@ -167,13 +160,13 @@ export function GeneralSettingsForm({
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">
+                  <FormLabel className="text-foreground">
                     Queue Wait Time (minutes)
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         Time to wait before processing queued notifications.
@@ -203,13 +196,13 @@ export function GeneralSettingsForm({
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">
+                  <FormLabel className="text-foreground">
                     New Episode Threshold (hours)
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         Threshold for immediate notifications. Recent episodes
@@ -239,13 +232,13 @@ export function GeneralSettingsForm({
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">
+                  <FormLabel className="text-foreground">
                     Upgrade Buffer Time (seconds)
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         Buffer time between quality upgrades to prevent

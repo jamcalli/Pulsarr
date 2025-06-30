@@ -291,7 +291,7 @@ export default function Home(): React.ReactElement {
                     >
                       <Button
                         variant="default"
-                        size={isMobile ? 'md' : 'lg'}
+                        size={isMobile ? 'default' : 'lg'}
                         className="hero-button"
                         onClick={() => history.push(docsIntroUrl)}
                       >
@@ -299,7 +299,7 @@ export default function Home(): React.ReactElement {
                       </Button>
                       <Button
                         variant="neutral"
-                        size={isMobile ? 'md' : 'lg'}
+                        size={isMobile ? 'default' : 'lg'}
                         className="hero-button"
                         onClick={() =>
                           window.open(

@@ -10,9 +10,9 @@ import { QuotaEditModal } from '@/features/plex/components/user/quota-edit-modal
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**
- * Renders the user watchlist table section with support for editing users, managing user quotas, and performing bulk updates.
+ * Displays the user watchlist table section with features for editing users, managing individual user quotas, and performing bulk updates.
  *
- * Integrates user and quota management hooks to coordinate loading state, modal dialogs, and update operations for comprehensive user administration.
+ * Handles loading state, modal dialogs, and user data integration for comprehensive user administration.
  */
 export default function UserTableSection() {
   const {
@@ -111,11 +111,11 @@ export default function UserTableSection() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-text">User Watchlists</h2>
+        <h2 className="text-2xl font-bold text-foreground">User Watchlists</h2>
       </div>
       <div className="grid gap-4 mt-4">
         {!hasUserData && !isLoading ? (
-          <div className="text-center py-8 text-text text-muted-foreground">
+          <div className="text-center py-8 text-foreground text-muted-foreground">
             No watchlist data available
           </div>
         ) : (

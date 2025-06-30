@@ -38,14 +38,14 @@ interface DataTableFacetedFilterProps<TData, TValue> {
 }
 
 /**
- * Provides a faceted filter popover UI for a data table column, enabling users to filter rows by selecting one or more options.
+ * Renders a faceted filter popover for a data table column, allowing users to filter rows by selecting one or more options from a searchable list.
  *
- * Renders a filter button with an icon, title, and badges indicating selected filters. When activated, displays a popover containing a searchable list of filter options with checkboxes, optional icons, and counts of matching rows. Supports custom filter logic and allows clearing all selected filters.
+ * Displays a filter button with an icon, title, and badges indicating selected filters. When opened, shows a popover containing selectable filter options, each with an optional icon and count of matching rows. Supports custom filter logic and provides an option to clear all selected filters.
  *
- * @param column - The table column to which the filter is applied.
- * @param title - The title displayed for the filter in the UI.
+ * @param column - The table column to apply the filter to.
+ * @param title - The title displayed on the filter button and as the input placeholder.
  * @param icon - Optional icon component for the filter button; defaults to a filter icon.
- * @param options - List of selectable filter options, each with a label, value, and optional icon.
+ * @param options - Array of filter options, each with a label, value, and optional icon.
  * @param filterFn - Optional custom filter function to override the column's default filtering logic.
  * @param showSearch - If true, displays a search input for filtering options within the popover.
  *
@@ -87,7 +87,7 @@ export function DataTableFacetedFilter<TData, TValue>({
               {selectedValues.size > 1 ? (
                 <Badge
                   variant="neutral"
-                  className="rounded-sm px-1 font-normal"
+                  className="rounded-xs px-1 font-normal"
                 >
                   {selectedValues.size} selected
                 </Badge>
@@ -99,7 +99,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                       <Badge
                         variant="neutral"
                         key={option.value}
-                        className="rounded-sm px-1 font-normal"
+                        className="rounded-xs px-1 font-normal"
                       >
                         {option.label}
                       </Badge>
@@ -137,7 +137,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                   >
                     <div
                       className={cn(
-                        'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                        'mr-2 flex h-4 w-4 items-center justify-center rounded-xs border border-primary',
                         isSelected
                           ? 'bg-primary text-primary-foreground'
                           : 'opacity-50 [&_svg]:invisible',

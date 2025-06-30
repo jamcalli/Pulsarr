@@ -564,7 +564,8 @@ export class SonarrService {
     return {
       title: series.title,
       guids: [
-        series.imdbId,
+        series.imdbId ? `imdb:${series.imdbId}` : undefined,
+        series.tmdbId ? `tmdb:${series.tmdbId}` : undefined,
         series.tvdbId ? `tvdb:${series.tvdbId}` : undefined,
         `sonarr:${series.id}`,
       ].filter((x): x is string => !!x),

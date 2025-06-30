@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { toast } from 'sonner'
 import { useApprovalConfiguration } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
@@ -17,9 +18,11 @@ const approvalConfigurationSchema = z.object({
 type ApprovalConfigurationFormData = z.infer<typeof approvalConfigurationSchema>
 
 /**
- * Integrates quota system configuration form management with scheduling controls, providing a unified interface for both.
+ * Provides a unified hook for managing quota approval configuration and scheduled quota maintenance.
  *
- * Synchronizes schedule-related form fields with scheduler state and coordinates updates to configuration and schedule. Returns combined state, handlers, and status flags for managing quota approval settings and scheduled quota maintenance operations.
+ * Synchronizes schedule-related form fields with the current scheduler state, coordinates saving of both configuration and schedule updates, and exposes combined state, handlers, and status flags for quota system management. Notifies the user if schedule updates fail after a successful configuration save.
+ *
+ * @returns An object containing state, handlers, and status flags for both quota approval configuration and quota maintenance scheduling.
  */
 export function useQuotaSystem() {
   // Form management hook for business logic configuration
@@ -104,12 +107,15 @@ export function useQuotaSystem() {
         await fetchSchedules()
       } catch (err) {
         // Schedule update failed, but config was already saved successfully
-        // Don't throw the error to avoid confusing users about the save status
         console.error(
           'Schedule update failed after successful config save:',
           err,
         )
-        // Consider showing a non-blocking warning to the user about the schedule update failure
+        // Show a warning toast to inform the user
+        toast.warning('Schedule Update Failed', {
+          description:
+            'Configuration saved successfully, but the schedule update failed. Please try updating the schedule separately.',
+        })
       }
     }
   }

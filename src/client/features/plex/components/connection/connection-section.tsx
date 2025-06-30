@@ -22,13 +22,11 @@ import PlexConnectionSkeleton from '@/features/plex/components/connection/connec
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**
- * Renders the Plex integration UI for managing connection credentials, watchlist statistics, and RSS feed generation.
+ * Displays the Plex integration section for managing connection credentials, watchlist statistics, and RSS feed generation.
  *
- * This component displays a form enabling users to update or remove their Plex token, refresh watchlist data, and generate RSS feeds.
- * It manages loading state with a minimum delay and conditionally renders a skeleton until initialization is complete.
- * Responsive design adjustments ensure proper layout on mobile devices.
+ * Provides a responsive UI for updating or removing the Plex token, generating RSS feeds, and refreshing watchlist data. Shows live progress and statistics for the user's and others' watchlists, and displays RSS feed URLs if available. Enforces a minimum loading delay before rendering the main interface.
  *
- * @returns The Plex connection section component.
+ * @returns The rendered Plex connection section component.
  */
 export default function PlexConnectionSection() {
   // Connection state
@@ -101,7 +99,7 @@ export default function PlexConnectionSection() {
   return (
     <div>
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-text">Plex Integration</h2>
+        <h2 className="text-2xl font-bold text-foreground">Plex Integration</h2>
       </div>
       <div className="grid gap-4 mt-4">
         <Form {...form}>
@@ -116,8 +114,8 @@ export default function PlexConnectionSection() {
                     control={form.control}
                     name="plexToken"
                     render={({ field }) => (
-                      <FormItem className="flex-grow">
-                        <FormLabel className="text-text">
+                      <FormItem className="grow">
+                        <FormLabel className="text-foreground">
                           Primary Plex Token
                         </FormLabel>
                         <FormControl>
@@ -199,15 +197,17 @@ export default function PlexConnectionSection() {
             {/* Watchlist stats section */}
             <div className="flex gap-4">
               <div className="flex-1">
-                <FormItem className="flex-grow">
-                  <FormLabel className="text-text">Self Watchlist</FormLabel>
+                <FormItem className="grow">
+                  <FormLabel className="text-foreground">
+                    Self Watchlist
+                  </FormLabel>
                   {selfWatchlistStatus === 'loading' ? (
                     <div className="space-y-1">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-text">
+                        <span className="text-sm text-foreground">
                           {selfWatchlistProgress.message || 'Processing...'}
                         </span>
-                        <span className="text-sm text-text">
+                        <span className="text-sm text-foreground">
                           {selfWatchlistProgress.progress}%
                         </span>
                       </div>
@@ -232,15 +232,17 @@ export default function PlexConnectionSection() {
               </div>
 
               <div className="flex-1">
-                <FormItem className="flex-grow">
-                  <FormLabel className="text-text">Others Watchlist</FormLabel>
+                <FormItem className="grow">
+                  <FormLabel className="text-foreground">
+                    Others Watchlist
+                  </FormLabel>
                   {othersWatchlistStatus === 'loading' ? (
                     <div className="space-y-1">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-text">
+                        <span className="text-sm text-foreground">
                           {othersWatchlistProgress.message || 'Processing...'}
                         </span>
-                        <span className="text-sm text-text">
+                        <span className="text-sm text-foreground">
                           {othersWatchlistProgress.progress}%
                         </span>
                       </div>
@@ -270,7 +272,9 @@ export default function PlexConnectionSection() {
                 className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}
               >
                 <FormItem className="flex-1">
-                  <FormLabel className="text-text text-sm">Self Feed</FormLabel>
+                  <FormLabel className="text-foreground text-sm">
+                    Self Feed
+                  </FormLabel>
                   <FormControl>
                     <Input
                       value={
@@ -288,7 +292,7 @@ export default function PlexConnectionSection() {
                 </FormItem>
 
                 <FormItem className="flex-1">
-                  <FormLabel className="text-text text-sm">
+                  <FormLabel className="text-foreground text-sm">
                     Friends Feed
                   </FormLabel>
                   <FormControl>

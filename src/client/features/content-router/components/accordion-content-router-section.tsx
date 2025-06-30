@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
 import AccordionRouteCardSkeleton from '@/features/content-router/components/accordion-route-card-skeleton'
 import AccordionRouteCard from '@/features/content-router/components/accordion-route-card'
@@ -212,8 +212,6 @@ const AccordionContentRouterSection = ({
   genres,
   onGenreDropdownOpen,
 }: AccordionContentRouterSectionProps) => {
-  const { toast } = useToast()
-
   // Use the appropriate adapter based on targetType
   const contentRouter =
     targetType === 'radarr'
@@ -254,14 +252,10 @@ const AccordionContentRouterSection = ({
 
       fetchRules().catch((error) => {
         console.error(`Failed to fetch ${targetType} routing rules:`, error)
-        toast({
-          title: 'Error',
-          description: `Failed to load ${targetType} routing rules.`,
-          variant: 'destructive',
-        })
+        toast.error(`Failed to load ${targetType} routing rules.`)
       })
     }
-  }, [fetchRules, targetType, toast])
+  }, [fetchRules, targetType])
 
   const addRoute = () => {
     // Create a new empty conditional route
@@ -356,16 +350,11 @@ const AccordionContentRouterSection = ({
           return updated
         })
 
-        toast({
-          title: 'Success',
-          description: 'Route created successfully',
-        })
+        toast.success('Route created successfully')
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: `Failed to create route: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          variant: 'destructive',
-        })
+        toast.error(
+          `Failed to create route: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
       } finally {
         setSavingRules((prev) => {
           const updated = { ...prev }
@@ -374,7 +363,7 @@ const AccordionContentRouterSection = ({
         })
       }
     },
-    [createRule, toast, storeFormValues],
+    [createRule, storeFormValues],
   )
 
   const handleUpdateRule = useCallback(
@@ -405,16 +394,11 @@ const AccordionContentRouterSection = ({
         // Update the rule and wait for minimum time
         await Promise.all([updateRule(id, modifiedData), minimumLoadingTime])
 
-        toast({
-          title: 'Success',
-          description: 'Route updated successfully',
-        })
+        toast.success('Route updated successfully')
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: `Failed to update route: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          variant: 'destructive',
-        })
+        toast.error(
+          `Failed to update route: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
 
         // On error, keep the form values in state
         return
@@ -433,7 +417,7 @@ const AccordionContentRouterSection = ({
         })
       }
     },
-    [updateRule, toast, storeFormValues],
+    [updateRule, storeFormValues],
   )
 
   const handleRemoveRule = useCallback(async () => {
@@ -449,19 +433,14 @@ const AccordionContentRouterSection = ({
         })
 
         setDeleteConfirmationRuleId(null)
-        toast({
-          title: 'Success',
-          description: 'Route removed successfully',
-        })
+        toast.success('Route removed successfully')
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: `Failed to remove route: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          variant: 'destructive',
-        })
+        toast.error(
+          `Failed to remove route: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
       }
     }
-  }, [deleteConfirmationRuleId, deleteRule, toast])
+  }, [deleteConfirmationRuleId, deleteRule])
 
   const handleCancelLocalRule = useCallback((tempId: string) => {
     // Clean up stored form values when canceling
@@ -578,10 +557,15 @@ const AccordionContentRouterSection = ({
       null : isLoading && hasExistingRoutes ? (
         // Loading with existing rules - show skeletons
         <div className="grid gap-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground">
               {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
             </h2>
+            <p className="text-sm text-foreground mt-1">
+              Define criteria-based routing rules for{' '}
+              {targetType === 'radarr' ? 'movies' : 'TV shows'} within or across{' '}
+              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} instances
+            </p>
           </div>
           <div className="grid gap-4">
             {skeletonIds.map((id) => (
@@ -594,12 +578,17 @@ const AccordionContentRouterSection = ({
       ) : !hasExistingRoutes && localRules.length === 0 ? (
         // Empty state - no rules
         <div className="grid gap-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground">
               {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
             </h2>
+            <p className="text-sm text-foreground mt-1">
+              Define criteria-based routing rules for{' '}
+              {targetType === 'radarr' ? 'movies' : 'TV shows'} within or across{' '}
+              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} instances
+            </p>
           </div>
-          <div className="text-center py-8 text-text">
+          <div className="text-center py-8 text-foreground">
             <p>No content routes configured</p>
             <Button onClick={addRoute} className="mt-4">
               Add Your First Route
@@ -609,11 +598,21 @@ const AccordionContentRouterSection = ({
       ) : (
         // Display routes
         <>
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
-              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
-            </h2>
-            <Button onClick={addRoute}>Add Route</Button>
+          <div className="mb-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
+                </h2>
+                <p className="text-sm text-foreground mt-1">
+                  Define criteria-based routing rules for{' '}
+                  {targetType === 'radarr' ? 'movies' : 'TV shows'} within or
+                  across {targetType === 'radarr' ? 'Radarr' : 'Sonarr'}{' '}
+                  instances
+                </p>
+              </div>
+              <Button onClick={addRoute}>Add Route</Button>
+            </div>
           </div>
           <div className="grid gap-4">
             {/* Saved rules */}

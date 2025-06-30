@@ -18,12 +18,9 @@ export const options = {
 }
 
 /**
- * Configures the Fastify server with plugin autoloading, SPA routing, global error and 404 handling, and authentication-aware redirects.
+ * Sets up the Fastify server with plugin autoloading, SPA routing, error handling, and authentication-aware redirects.
  *
  * Loads external and custom plugins, registers route handlers, and integrates Vite for serving a single-page application. Implements global error and not-found handlers with logging and rate limiting. Defines root and SPA routes that manage user sessions, authentication bypass, and redirects based on user existence and Plex token configuration.
- *
- * @remark
- * When authentication is disabled or local IP bypass is active and admin users exist, a temporary admin session is created if none exists. If no admin users exist, users are redirected to create a user account. Redirects after authentication checks depend on Plex token configuration, sending users to the dashboard or Plex setup page as appropriate.
  */
 export default async function serviceApp(
   fastify: FastifyInstance,
@@ -114,7 +111,9 @@ export default async function serviceApp(
     if (request.session.user) {
       // Use the in-memory config instead of querying the database
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
-      return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+      return reply.redirect(
+        hasPlexTokens ? '/dashboard' : '/plex/configuration',
+      )
     }
 
     // Check authentication method setting
@@ -133,7 +132,9 @@ export default async function serviceApp(
       // Check if Plex tokens are configured
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-      return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+      return reply.redirect(
+        hasPlexTokens ? '/dashboard' : '/plex/configuration',
+      )
     }
 
     // CASE 2: Local IP bypass is active
@@ -149,7 +150,9 @@ export default async function serviceApp(
         // Check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-        return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+        return reply.redirect(
+          hasPlexTokens ? '/dashboard' : '/plex/configuration',
+        )
       }
 
       // No users exist yet with local bypass, redirect to create user
@@ -196,7 +199,9 @@ export default async function serviceApp(
 
           // If trying to access login or create-user, redirect appropriately
           if (isLoginPage || isCreateUserPage) {
-            return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+            return reply.redirect(
+              hasPlexTokens ? '/dashboard' : '/plex/configuration',
+            )
           }
 
           // Allow access to all other pages with the temp session
@@ -207,7 +212,9 @@ export default async function serviceApp(
         if (request.session.user) {
           // If trying to access login or create-user, redirect appropriately
           if (isLoginPage || isCreateUserPage) {
-            return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+            return reply.redirect(
+              hasPlexTokens ? '/dashboard' : '/plex/configuration',
+            )
           }
 
           // Allow access to requested page
@@ -227,7 +234,9 @@ export default async function serviceApp(
 
             // If trying to access login or create-user, redirect appropriately
             if (isLoginPage || isCreateUserPage) {
-              return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
+              return reply.redirect(
+                hasPlexTokens ? '/dashboard' : '/plex/configuration',
+              )
             }
 
             // Allow access to all other pages with the temp session

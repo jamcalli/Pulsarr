@@ -5,17 +5,16 @@ import {
 } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 /**
- * Combines approval configuration form management and scheduling controls into a single hook.
+ * Provides a unified hook for managing approval configuration forms and scheduling controls.
  *
- * Synchronizes the approval schedule interval between the configuration form and the scheduler, ensuring consistency. Handles saving configuration changes, updating the approval maintenance schedule on the server, and notifying users of any issues. Returns an object exposing both form and scheduler state, actions, and status for use in approval system interfaces.
+ * Synchronizes the approval schedule interval between the configuration form and the scheduler, ensuring consistency. Handles saving configuration changes, updating the approval maintenance schedule on the server, and notifying users if schedule updates fail. Returns an object with combined form state, scheduler state, and related actions for use in approval system interfaces.
  *
  * @returns An object containing approval configuration form state and methods, along with scheduling controls and status.
  */
 export function useApprovalSystem() {
-  const { toast } = useToast()
   // Form management hook for business logic configuration
   const formHook = useApprovalConfiguration()
 
@@ -84,12 +83,9 @@ export function useApprovalSystem() {
           err,
         )
         // Show a non-blocking warning to the user about the schedule update failure
-        toast({
-          title: 'Schedule Update Failed',
-          description:
-            'Configuration saved successfully, but the schedule update failed. Please try updating the schedule separately.',
-          variant: 'default',
-        })
+        toast(
+          'Configuration saved successfully, but the schedule update failed. Please try updating the schedule separately.',
+        )
       }
     }
   }

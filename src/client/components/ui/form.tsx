@@ -135,7 +135,7 @@ const FormDescription = React.forwardRef<
     <p
       ref={ref}
       id={formDescriptionId}
-      className={cn('text-sm font-base text-text', className)}
+      className={cn('text-sm font-base text-foreground', className)}
       {...props}
     />
   )
@@ -163,7 +163,7 @@ const FormMessage = React.forwardRef<
       )}
       {...props}
     >
-      <span className="inline-block bg-bw px-2 py-1 rounded">
+      <span className="inline-block bg-secondary-background px-2 py-1 rounded-xs">
         {body}
       </span>
     </p>

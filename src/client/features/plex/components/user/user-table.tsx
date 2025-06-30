@@ -28,7 +28,6 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-  DropdownMenuLabel,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -47,11 +46,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
 import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { QuotaStatusBadge } from '@/features/plex/components/user/quota-status-badge'
 import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
@@ -71,11 +76,11 @@ interface UserTableProps {
 }
 
 /**
- * Renders an interactive user management table with sorting, filtering, pagination, column visibility toggling, row selection, and editing capabilities.
+ * Displays an interactive user management table with advanced features for sorting, filtering, pagination, column visibility, row selection, and editing.
  *
- * Allows editing individual user details and quotas, performing bulk edits on selected users, and viewing a user's watchlist in a modal. The table displays notification, sync, approval, and quota statuses, and adapts its controls and appearance based on loading state.
+ * Enables editing user details and quotas, performing bulk edits on selected users, and viewing a user's watchlist in a modal. The table presents notification, sync, approval, and quota statuses, and adapts its controls and appearance based on loading state.
  *
- * @remark If a user's ID is invalid when attempting to view their watchlist, an error is logged and a destructive toast notification is shown; the modal will not open.
+ * If an attempt is made to view the watchlist for a user with an invalid ID, an error is logged and an error toast is shown; the modal will not open.
  */
 
 export default function UserTable({
@@ -364,14 +369,22 @@ export default function UserTable({
         return (
           <div className="w-8">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="noShadow" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="noShadow" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">More actions</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onEditUser(user)}>
                   Edit user
                 </DropdownMenuItem>
@@ -388,11 +401,7 @@ export default function UserTable({
                       handleOpen(userId)
                     } else {
                       console.error('Invalid user ID:', user.id)
-                      toast({
-                        title: 'Error',
-                        description: 'Unable to open watchlist for this user',
-                        variant: 'destructive',
-                      })
+                      toast.error('Unable to open watchlist for this user')
                     }
                   }}
                 >
@@ -426,7 +435,7 @@ export default function UserTable({
   })
 
   return (
-    <div className="w-full font-base text-mtext overflow-x-auto">
+    <div className="w-full font-base text-main-foreground overflow-x-auto">
       <div>
         <div className="flex items-center justify-between py-4">
           <Input
@@ -601,12 +610,12 @@ export default function UserTable({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-sm text-text font-medium hidden xs:block">
+          <p className="text-sm text-foreground font-medium hidden xs:block">
             per page
           </p>
         </div>
 
-        <div className="flex items-center justify-center text-sm font-medium text-text">
+        <div className="flex items-center justify-center text-sm font-medium text-foreground">
           Page {table.getState().pagination.pageIndex + 1} of{' '}
           {table.getPageCount()}
         </div>

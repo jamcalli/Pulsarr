@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type {
   SonarrInstance,
   SonarrConnectionValues,
@@ -29,7 +29,7 @@ function checkNeedsConfiguration(instance: SonarrInstance) {
 /**
  * React hook for managing the connection state, validation, and configuration requirements of a Sonarr instance.
  *
- * Provides state and utility functions to test and reset the connection, track connection and save statuses, determine if additional configuration is needed, and handle instance creation, updating, and data fetching as part of the Sonarr connection workflow.
+ * Provides state variables and utility functions to test and reset the connection, track connection and save statuses, determine if additional configuration is needed, and handle instance creation, updating, and data fetching as part of the Sonarr connection workflow.
  *
  * @param instance - The Sonarr instance to manage.
  * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
@@ -49,7 +49,6 @@ export function useSonarrConnection(
   const [needsConfiguration, setNeedsConfiguration] = useState(false)
   const isNavigationTest = useRef(false)
   const hasInitialized = useRef(false)
-  const { toast } = useToast()
 
   const {
     instances,
@@ -161,12 +160,7 @@ export function useSonarrConnection(
       form: UseFormReturn<SonarrInstanceSchema>,
     ) => {
       if (!values.name?.trim()) {
-        toast({
-          title: 'Name Required',
-          description:
-            'Please provide an instance name before testing connection',
-          variant: 'destructive',
-        })
+        toast.error('Please provide an instance name before testing connection')
         return
       }
 
@@ -269,24 +263,17 @@ export function useSonarrConnection(
         if (!instance.id || instance.id !== -1) {
           setTestStatus('success')
           setIsConnectionValid(true)
-          toast({
-            title: 'Connection Successful',
-            description: 'Successfully connected to Sonarr',
-            variant: 'default',
-          })
+          toast.success('Successfully connected to Sonarr')
         }
       } catch (error) {
         setTestStatus('error')
         setIsConnectionValid(false)
         form.setValue('_connectionTested', false, { shouldValidate: true })
-        toast({
-          title: 'Connection Failed',
-          description:
-            error instanceof Error
-              ? error.message
-              : 'Failed to connect to Sonarr',
-          variant: 'destructive',
-        })
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'Failed to connect to Sonarr',
+        )
       }
     },
     [
@@ -296,7 +283,6 @@ export function useSonarrConnection(
       updateInstance,
       fetchInstances,
       fetchInstanceData,
-      toast,
       setShowInstanceCard,
     ],
   )

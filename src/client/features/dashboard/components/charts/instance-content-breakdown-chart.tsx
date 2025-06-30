@@ -9,6 +9,11 @@ import type {
   NameType,
 } from 'recharts/types/component/DefaultTooltipContent'
 
+/**
+ * Displays a stacked bar chart visualizing the breakdown of content statuses ("grabbed", "notified", "requested") for each instance.
+ *
+ * Fetches instance content data, transforms it for charting, and renders a responsive chart with a custom tooltip and legend. Shows loading or empty states when appropriate.
+ */
 export default function InstanceContentBreakdownChart() {
   const { data: instanceContentBreakdown, isLoading } = useInstanceContentData()
 
@@ -93,15 +98,15 @@ export default function InstanceContentBreakdownChart() {
     const totalItemsInInstance = data.grabbed + data.notified + data.requested
 
     return (
-      <div className="bg-bg border border-border p-2 rounded shadow-md text-xs">
-        <p className="font-medium text-text">{label}</p>
-        <p className="text-text">
+      <div className="bg-background border border-border p-2 rounded-xs shadow-md text-xs">
+        <p className="font-medium text-foreground">{label}</p>
+        <p className="text-foreground">
           <span className="font-medium">Total Items: </span>
           {data.total.toLocaleString()}
         </p>
 
         <div className="mt-1">
-          <p className="text-text">
+          <p className="text-foreground">
             <span className="font-medium">Grabbed: </span>
             {data.grabbed.toLocaleString()}
             <span className="ml-1">
@@ -109,7 +114,7 @@ export default function InstanceContentBreakdownChart() {
             </span>
           </p>
 
-          <p className="text-text">
+          <p className="text-foreground">
             <span className="font-medium">Notified: </span>
             {data.notified.toLocaleString()}
             <span className="ml-1">
@@ -117,7 +122,7 @@ export default function InstanceContentBreakdownChart() {
             </span>
           </p>
 
-          <p className="text-text">
+          <p className="text-foreground">
             <span className="font-medium">Requested: </span>
             {data.requested.toLocaleString()}
             <span className="ml-1">
@@ -136,16 +141,16 @@ export default function InstanceContentBreakdownChart() {
   ) {
     return (
       <div className="h-full">
-        <Card className="bg-bw relative shadow-md h-full flex flex-col">
-          <div className="bg-main text-text px-4 py-3 text-center flex-shrink-0">
+        <Card className="bg-secondary-background relative shadow-md h-full flex flex-col">
+          <div className="bg-main text-foreground px-4 py-3 text-center shrink-0">
             <h4 className="text-base font-medium">
               Instance Content Breakdown
             </h4>
           </div>
-          <CardContent className="pt-4 flex-grow flex flex-col justify-center">
-            <div className="flex-grow w-full md:min-h-0 min-h-[450px]">
+          <CardContent className="pt-4 grow flex flex-col justify-center">
+            <div className="grow w-full md:min-h-0 min-h-[450px]">
               <div className="h-full w-full flex items-center justify-center">
-                <span className="text-text text-muted-foreground">
+                <span className="text-foreground text-muted-foreground">
                   {isLoading
                     ? 'Loading instance data...'
                     : 'No instance data available'}
@@ -160,12 +165,12 @@ export default function InstanceContentBreakdownChart() {
 
   return (
     <div className="h-full">
-      <Card className="bg-bw relative shadow-md h-full flex flex-col">
-        <div className="bg-main text-text px-4 py-3 text-center flex-shrink-0">
+      <Card className="bg-secondary-background relative shadow-md h-full flex flex-col">
+        <div className="bg-main text-foreground px-4 py-3 text-center shrink-0">
           <h4 className="text-base font-medium">Instance Content Breakdown</h4>
         </div>
-        <CardContent className="pt-4 flex-grow flex flex-col">
-          <div className="flex-grow w-full md:min-h-0 min-h-[350px]">
+        <CardContent className="pt-4 grow flex flex-col">
+          <div className="grow w-full md:min-h-0 min-h-[350px]">
             <ChartContainer config={chartConfig} className="h-full w-full">
               <BarChart
                 data={chartData}
@@ -204,27 +209,27 @@ export default function InstanceContentBreakdownChart() {
             </ChartContainer>
           </div>
 
-          <div className="flex flex-wrap justify-center mt-3 gap-3 flex-shrink-0">
+          <div className="flex flex-wrap justify-center mt-3 gap-3 shrink-0">
             <div className="flex items-center">
               <span
                 className="h-3 w-3 rounded-full inline-block mr-2"
                 style={{ backgroundColor: `hsl(${cssColors.grabbed})` }}
               />
-              <span className="text-sm text-text">Grabbed</span>
+              <span className="text-sm text-foreground">Grabbed</span>
             </div>
             <div className="flex items-center">
               <span
                 className="h-3 w-3 rounded-full inline-block mr-2"
                 style={{ backgroundColor: `hsl(${cssColors.notified})` }}
               />
-              <span className="text-sm text-text">Notified</span>
+              <span className="text-sm text-foreground">Notified</span>
             </div>
             <div className="flex items-center">
               <span
                 className="h-3 w-3 rounded-full inline-block mr-2"
                 style={{ backgroundColor: `hsl(${cssColors.requested})` }}
               />
-              <span className="text-sm text-text">Requested</span>
+              <span className="text-sm text-foreground">Requested</span>
             </div>
           </div>
         </CardContent>

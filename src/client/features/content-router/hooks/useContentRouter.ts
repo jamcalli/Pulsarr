@@ -1,5 +1,5 @@
 import { useState, useCallback, createContext } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
@@ -21,15 +21,14 @@ export const ContentRouterContext =
   createContext<ContentRouterContextType | null>(null)
 
 /**
- * React hook for managing content routing rules for a given target type.
+ * React hook for managing content routing rules for a specified target type.
  *
- * Exposes state and functions to fetch, create, update, delete, and toggle routing rules, along with loading and error indicators.
+ * Provides state and functions to fetch, create, update, delete, and toggle routing rules, along with loading and error indicators.
  *
  * @param targetType - The content target type whose routing rules are managed (e.g., "radarr" or "sonarr").
- * @returns An object containing the current routing rules, loading and error states, and functions for rule management.
+ * @returns An object containing the current routing rules, loading and error states, and functions for managing rules.
  */
 export function useContentRouter({ targetType }: UseContentRouterParams) {
-  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [rules, setRules] = useState<ContentRouterRule[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -62,16 +61,14 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       setError(errorMessage)
-      toast({
-        title: 'Error',
-        description: `Failed to fetch ${targetType} routing rules: ${errorMessage}`,
-        variant: 'destructive',
-      })
+      toast.error(
+        `Failed to fetch ${targetType} routing rules: ${errorMessage}`,
+      )
       return []
     } finally {
       setIsLoading(false)
     }
-  }, [targetType, toast])
+  }, [targetType])
 
   /**
    * Create a new routing rule
@@ -152,99 +149,80 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
   /**
    * Delete a routing rule
    */
-  const deleteRule = useCallback(
-    async (id: number) => {
-      setIsLoading(true)
-      setError(null)
+  const deleteRule = useCallback(async (id: number) => {
+    setIsLoading(true)
+    setError(null)
 
-      try {
-        const response = await fetch(`/v1/content-router/rules/${id}`, {
-          method: 'DELETE',
-        })
+    try {
+      const response = await fetch(`/v1/content-router/rules/${id}`, {
+        method: 'DELETE',
+      })
 
-        if (!response.ok) {
-          throw new Error('Failed to delete routing rule')
-        }
-
-        // Update local state
-        setRules((prevRules) => prevRules.filter((rule) => rule.id !== id))
-
-        toast({
-          title: 'Success',
-          description: 'Routing rule deleted successfully',
-        })
-
-        return true
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error'
-        setError(errorMessage)
-        toast({
-          title: 'Error',
-          description: `Failed to delete routing rule: ${errorMessage}`,
-          variant: 'destructive',
-        })
-        throw err
-      } finally {
-        setIsLoading(false)
+      if (!response.ok) {
+        throw new Error('Failed to delete routing rule')
       }
-    },
-    [toast],
-  )
+
+      // Update local state
+      setRules((prevRules) => prevRules.filter((rule) => rule.id !== id))
+
+      toast.success('Routing rule deleted successfully')
+
+      return true
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+      toast.error(`Failed to delete routing rule: ${errorMessage}`)
+      throw err
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   /**
    * Toggle rule enabled state
    */
-  const toggleRule = useCallback(
-    async (id: number, enabled: boolean) => {
-      try {
-        // Optimistically update the local state first
-        setRules((prevRules) =>
-          prevRules.map((rule) =>
-            rule.id === id ? { ...rule, enabled } : rule,
-          ),
-        )
+  const toggleRule = useCallback(async (id: number, enabled: boolean) => {
+    try {
+      // Optimistically update the local state first
+      setRules((prevRules) =>
+        prevRules.map((rule) => (rule.id === id ? { ...rule, enabled } : rule)),
+      )
 
-        const toggleData: ContentRouterRuleToggle = { enabled }
-        const response = await fetch(`/v1/content-router/rules/${id}/toggle`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(toggleData),
-        })
+      const toggleData: ContentRouterRuleToggle = { enabled }
+      const response = await fetch(`/v1/content-router/rules/${id}/toggle`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(toggleData),
+      })
 
-        if (!response.ok) {
-          // Revert on non-2xx status
-          setRules((prevRules) =>
-            prevRules.map((rule) =>
-              rule.id === id ? { ...rule, enabled: !enabled } : rule,
-            ),
-          )
-          throw new Error('Failed to toggle routing rule')
-        }
-
-        toast({
-          title: 'Success',
-          description: `Routing rule ${enabled ? 'enabled' : 'disabled'} successfully`,
-        })
-      } catch (error) {
-        // Revert on network / runtime error as well
+      if (!response.ok) {
+        // Revert on non-2xx status
         setRules((prevRules) =>
           prevRules.map((rule) =>
             rule.id === id ? { ...rule, enabled: !enabled } : rule,
           ),
         )
-        toast({
-          title: 'Error',
-          description: `Failed to ${enabled ? 'enable' : 'disable'} route. Please try again.`,
-          variant: 'destructive',
-        })
-        throw error
+        throw new Error('Failed to toggle routing rule')
       }
-    },
-    [toast],
-  )
+
+      toast.success(
+        `Routing rule ${enabled ? 'enabled' : 'disabled'} successfully`,
+      )
+    } catch (error) {
+      // Revert on network / runtime error as well
+      setRules((prevRules) =>
+        prevRules.map((rule) =>
+          rule.id === id ? { ...rule, enabled: !enabled } : rule,
+        ),
+      )
+      toast.error(
+        `Failed to ${enabled ? 'enable' : 'disable'} route. Please try again.`,
+      )
+      throw error
+    }
+  }, [])
 
   return {
     rules,

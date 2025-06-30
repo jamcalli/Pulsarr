@@ -281,7 +281,7 @@ const ConditionGroupComponent = ({
 
   if (isLoading) {
     return (
-      <div className="space-y-4 border-l-2 pl-4 border-muted">
+      <div className="space-y-4 border-l-2 pl-4 border-foreground">
         <div className="flex justify-between">
           <Skeleton className="h-10 w-[30%]" />
           <div>
@@ -309,7 +309,7 @@ const ConditionGroupComponent = ({
   const conditions = Array.isArray(value.conditions) ? value.conditions : []
 
   return (
-    <div className={`border-l-2 pl-4 border-text ${getLevelColor()}`}>
+    <div className={`border-l-2 pl-4 border-foreground ${getLevelColor()}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-4">
           <TooltipProvider>
@@ -322,9 +322,9 @@ const ConditionGroupComponent = ({
                       onCheckedChange={handleToggleNegate}
                       variant="danger"
                     />
-                    <span className="text-text">NOT</span>
+                    <span className="text-foreground">NOT</span>
                   </Label>
-                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -355,7 +355,7 @@ const ConditionGroupComponent = ({
                       <SelectItem value="OR">OR</SelectItem>
                     </SelectContent>
                   </Select>
-                  <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>

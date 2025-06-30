@@ -87,8 +87,8 @@ html[data-theme="dark"] .github-stats-button .github-icon {
 	overflow: hidden;
 	border-radius: 5px; /* rounded-base */
 	border: 2px solid #000; /* border-2 border-border */
-	background-color: #e4dfda; /* bg-bw light mode */
-	color: #000; /* text-text light mode */
+	background-color: #e4dfda; /* bg-secondary-background light mode */
+	color: #000; /* text-foreground light mode */
 	padding: 0.375rem 0.75rem; /* py-1.5 px-3 to match original tooltip */
 	font-size: 0.875rem; /* text-sm */
 	font-weight: 500; /* font-base */
@@ -112,10 +112,10 @@ html[data-theme="dark"] .github-stats-button .github-icon {
 	color: inherit; /* Inherit color from tooltip */
 }
 
-/* Dark mode - bg-bw and text-text in dark mode */
+/* Dark mode - bg-secondary-background and text-foreground in dark mode */
 html[data-theme="dark"] .simple-tooltip {
-	background-color: #212121; /* bg-bw dark mode */
-	color: #e6e6e6; /* text-text dark mode */
+	background-color: #212121; /* bg-secondary-background dark mode */
+	color: #e6e6e6; /* text-foreground dark mode */
 }
 
 /* Simple fade animation matching main app behavior */

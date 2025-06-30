@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import semver from 'semver'
 
 interface GitHubRelease {
@@ -8,7 +8,6 @@ interface GitHubRelease {
 }
 
 export const useVersionCheck = (repoOwner: string, repoName: string) => {
-  const { toast } = useToast()
 
   useEffect(() => {
     const checkForUpdates = async () => {
@@ -26,26 +25,16 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
         const latestVersion = data.tag_name.replace(/^v/, '');
         
         if (semver.gt(latestVersion, currentVersion)) {
-          const handleClick = () => {
-            window.open(data.html_url, '_blank', 'noopener,noreferrer');
-          };
-          
-          toast({
-            description: (
-              <div>
-                A new version ({data.tag_name}) is available. You're running v{__APP_VERSION__}.{' '}
-                <span 
-                  className="text-blue-500 underline cursor-pointer" 
-                  onClick={handleClick}
-                >
-                  Click here
-                </span>{' '}
-                for more information.
-              </div>
-            ),
-            variant: 'default',
-            duration: 8000,
-          });
+          toast(
+            `A new version (${data.tag_name}) is available. You're running v${__APP_VERSION__}.`,
+            {
+              duration: 8000,
+              action: {
+                label: 'View Release',
+                onClick: () => window.open(data.html_url, '_blank', 'noopener,noreferrer')
+              }
+            }
+          );
         }
       } catch (err) {
         if (err instanceof Error) {
@@ -61,5 +50,5 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
     }, 3000);
     
     return () => clearTimeout(timeoutId);
-  }, [toast, repoOwner, repoName]);
+  }, [repoOwner, repoName]);
 };

@@ -4,26 +4,30 @@ import { Button } from '@/components/ui/button'
 import { Loader2, Square, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
+/**
+ * Displays the current status of the Discord bot and provides controls to start or stop it.
+ *
+ * Renders a badge indicating the bot's status and a button to toggle between starting and stopping the bot. The button is disabled during transitional states or while an action is in progress. Success and error notifications are shown based on the outcome of the start or stop action.
+ */
 export function DiscordStatusBadge() {
   const status = useDiscordStatus()
-  const { toast } = useToast()
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading'>('idle')
   const [currentAction, setCurrentAction] = useState<'start' | 'stop' | null>(null)
   
   const getBadgeVariant = () => {
     switch (status) {
       case 'running':
-        return 'bg-green-500 hover:bg-green-500 text-white'
+        return 'bg-green-500 hover:bg-green-500 text-black'
       case 'starting':
-        return 'bg-yellow-500 hover:bg-yellow-500 text-white'
+        return 'bg-yellow-500 hover:bg-yellow-500 text-black'
       case 'stopping':
-        return 'bg-orange-500 hover:bg-orange-500 text-white'
+        return 'bg-orange-500 hover:bg-orange-500 text-black'
       case 'stopped':
-        return 'bg-red-500 hover:bg-red-500 text-white'
+        return 'bg-red-500 hover:bg-red-500 text-black'
       default:
-        return 'bg-gray-400 hover:bg-gray-400 text-white'
+        return 'bg-gray-400 hover:bg-gray-400 text-black'
     }
   }
 
@@ -48,10 +52,7 @@ export function DiscordStatusBadge() {
         }
         
         // Success toast for stopping
-        toast({
-          description: 'Discord bot has been stopped successfully',
-          variant: 'default',
-        })
+        toast.success('Discord bot has been stopped successfully')
       } else {
         const response = await fetch('/v1/notifications/discordstart', { method: 'POST' })
         await minimumLoadingTime
@@ -61,10 +62,7 @@ export function DiscordStatusBadge() {
         }
         
         // Success toast for starting
-        toast({
-          description: 'Discord bot has been started successfully',
-          variant: 'default',
-        })
+        toast.success('Discord bot has been started successfully')
       }
       
       setActionStatus('idle')
@@ -75,15 +73,9 @@ export function DiscordStatusBadge() {
       
       // Enhanced error message for start failure
       if (status !== 'running') {
-        toast({
-          description: 'Failed to start Discord bot. Please check your bot token, client ID, and guild ID settings.',
-          variant: 'destructive',
-        })
+        toast.error('Failed to start Discord bot. Please check your bot token, client ID, and guild ID settings.')
       } else {
-        toast({
-          description: 'Failed to stop Discord bot',
-          variant: 'destructive',
-        })
+        toast.error('Failed to stop Discord bot')
       }
     }
   }

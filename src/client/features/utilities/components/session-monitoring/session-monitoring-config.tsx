@@ -31,7 +31,7 @@ export function SessionMonitoringConfig({
 }: SessionMonitoringConfigProps) {
   return (
     <div>
-      <h3 className="font-medium text-sm text-text mb-2">
+      <h3 className="font-medium text-sm text-foreground mb-2">
         Monitoring Configuration
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -41,13 +41,13 @@ export function SessionMonitoringConfig({
           render={({ field }) => (
             <FormItem className="space-y-1">
               <div className="flex items-center">
-                <FormLabel className="text-text m-0">
+                <FormLabel className="text-foreground m-0">
                   Polling Interval (minutes)
                 </FormLabel>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
@@ -86,13 +86,13 @@ export function SessionMonitoringConfig({
           render={({ field }) => (
             <FormItem className="space-y-1">
               <div className="flex items-center">
-                <FormLabel className="text-text m-0">
+                <FormLabel className="text-foreground m-0">
                   Remaining Episodes Threshold
                 </FormLabel>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
