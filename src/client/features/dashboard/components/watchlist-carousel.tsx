@@ -21,6 +21,18 @@ interface WatchlistCarouselProps {
   error?: string | null
 }
 
+/**
+ * Displays a horizontally scrollable carousel of media items with navigation controls, loading placeholders, and error handling.
+ *
+ * Renders a titled card containing a carousel of media items sorted by descending count and then alphabetically by title. Shows skeleton placeholders during loading, an error message if provided, or a "No data available" message when appropriate. Navigation buttons allow scrolling through the carousel when possible.
+ *
+ * @param title - The title displayed above the carousel.
+ * @param items - The list of media items to display in the carousel.
+ * @param className - Optional additional CSS classes for the root card.
+ * @param loading - Whether to show loading placeholders.
+ * @param error - Optional error message to display instead of the carousel.
+ * @returns The rendered carousel component.
+ */
 export function WatchlistCarousel({
   title,
   items = [],

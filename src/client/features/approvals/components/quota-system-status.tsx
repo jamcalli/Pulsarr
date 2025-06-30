@@ -9,9 +9,9 @@ interface QuotaSystemStatusProps {
 }
 
 /**
- * Displays the status of the quota maintenance system, including schedule, last run, and next run information.
+ * Displays the status of the quota maintenance system, including schedule, last run, and next run details.
  *
- * Renders a system status panel with a fixed description explaining quota resets and database cleanup operations.
+ * Renders a system status panel with a fixed description explaining that quotas are reset and old usage records are cleaned up to maintain database performance.
  */
 export function QuotaSystemStatus(props: QuotaSystemStatusProps) {
   return (

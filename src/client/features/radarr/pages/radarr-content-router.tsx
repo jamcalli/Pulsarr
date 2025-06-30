@@ -5,12 +5,11 @@ import AccordionContentRouterSection from '@/features/content-router/components/
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
- * Standalone Radarr Content Router page for managing content routing rules.
+ * Renders the Radarr Content Router page for configuring content routing rules across Radarr instances.
  *
- * Provides a dedicated interface for creating and managing content routing rules specific to Radarr instances.
- * Handles genre fetching and displays routing rules configuration.
+ * Initializes Radarr data on mount, fetches instance and genre information as needed, and displays a tabbed interface for managing routing rules. The UI is only rendered once initialization and data loading are complete.
  *
- * @returns The Radarr Content Router page component.
+ * @returns The Radarr Content Router page React component.
  */
 export default function RadarrContentRouterPage() {
   const instances = useRadarrStore((state) => state.instances)

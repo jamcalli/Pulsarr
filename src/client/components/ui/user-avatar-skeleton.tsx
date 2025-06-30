@@ -6,6 +6,16 @@ interface UserAvatarSkeletonProps {
   className?: string
 }
 
+/**
+ * Renders a skeleton placeholder for a user avatar with optional text lines.
+ *
+ * Displays a circular avatar skeleton and, if `showText` is true, one or two rectangular skeleton bars to represent user information. The number of text bars depends on the `size` prop.
+ *
+ * @param size - Determines the avatar and text skeleton size; `'sm'` or `'lg'`. Defaults to `'sm'`.
+ * @param showText - Whether to display text skeletons next to the avatar. Defaults to `true`.
+ * @param className - Additional CSS classes for the container.
+ * @returns A React element representing the avatar skeleton UI.
+ */
 export function UserAvatarSkeleton({ 
   size = 'sm', 
   showText = true,

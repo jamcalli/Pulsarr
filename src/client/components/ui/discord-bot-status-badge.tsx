@@ -6,6 +6,11 @@ import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+/**
+ * Displays the current status of the Discord bot and provides controls to start or stop it.
+ *
+ * Renders a badge indicating the bot's status and a button to toggle between starting and stopping the bot. The button is disabled during transitional states or while an action is in progress. Success and error notifications are shown based on the outcome of the start or stop action.
+ */
 export function DiscordStatusBadge() {
   const status = useDiscordStatus()
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading'>('idle')

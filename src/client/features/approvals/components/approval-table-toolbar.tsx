@@ -53,13 +53,13 @@ const triggerOptions = [
 ]
 
 /**
- * Renders a toolbar for the approval requests table, providing search, faceted filtering, bulk actions, and column visibility controls.
+ * Displays a toolbar for the approval requests table with search, faceted filters, bulk actions, and column visibility controls.
  *
- * The toolbar includes a search input for content titles, dynamic filters for status, user, content type, and trigger, a bulk actions button for selected rows, a reset filters button, and a dropdown menu to toggle column visibility.
+ * Provides a search input for content titles, dynamic filters for status, user, content type, and trigger, a bulk actions button for selected rows, a reset filters button, and a dropdown menu to toggle column visibility.
  *
- * @param isFiltered - Indicates if any filters are currently applied to the table.
- * @param onResetFilters - Callback invoked to clear all active filters.
- * @param onBulkActions - Optional callback triggered with the currently selected approval requests for bulk operations.
+ * @param isFiltered - True if any filters are currently applied to the table.
+ * @param onResetFilters - Callback to clear all active filters.
+ * @param onBulkActions - Optional callback invoked with the currently selected approval requests for bulk operations.
  */
 export function ApprovalTableToolbar({
   table,

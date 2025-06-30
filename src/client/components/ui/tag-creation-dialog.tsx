@@ -49,11 +49,16 @@ interface TagCreationDialogProps {
 }
 
 /**
- * Renders a dialog for creating a new tag in a Radarr or Sonarr instance.
+ * Displays a modal dialog for creating a new tag in a Radarr or Sonarr instance.
  *
- * Users can enter a tag name, which is validated and submitted to the backend. The dialog provides visual feedback for loading, success, and error states, and invokes a callback after successful creation.
+ * Allows users to input a tag name, validates the input, and submits a creation request to the backend. Provides visual feedback for loading, success, and error states, and prevents dialog closure or input changes while a request is in progress. Invokes a callback after successful tag creation.
  *
- * @remark Input fields are disabled and the dialog cannot be closed while a tag creation request is in progress.
+ * @param open - Whether the dialog is open
+ * @param onOpenChange - Callback invoked when the dialog open state changes
+ * @param instanceId - The ID of the Radarr or Sonarr instance
+ * @param instanceType - The type of instance ('radarr' or 'sonarr')
+ * @param instanceName - Optional display name of the instance
+ * @param onSuccess - Callback invoked after a tag is successfully created
  */
 export function TagCreationDialog({
   open,

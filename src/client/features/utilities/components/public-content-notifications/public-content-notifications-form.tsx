@@ -73,11 +73,24 @@ interface WebhookFieldProps {
 }
 
 /**
- * Renders an input field for one or more webhook URLs with label, tooltip, help text, validation, and optional test and clear actions.
+ * Renders a form input for configuring one or more webhook URLs, with support for labels, tooltips, help text, validation, and optional test and clear actions.
  *
- * Displays a multi-input field allowing up to five URLs, with optional buttons to test the webhook connection and clear the field. Shows loading and result states for testing, and disables actions as needed.
+ * Allows entry of up to five URLs, displays contextual information, and provides buttons to test the webhook connection (if enabled) and clear the field. Disables actions and shows loading or result states as appropriate. For Discord webhook fields, enforces basic URL validation.
  *
- * @remark For Discord webhook fields, basic URL validation is enforced to match the expected Discord webhook URL pattern.
+ * @param name - The form field name for the webhook URLs.
+ * @param label - The label displayed above the input field.
+ * @param placeholder - Placeholder text for the input.
+ * @param tooltip - Tooltip text providing additional information about the field.
+ * @param helpText - Help text displayed below the input.
+ * @param isTestable - Whether to show a test button for the webhook connection.
+ * @param testHandler - Handler function to trigger the webhook test.
+ * @param isTestLoading - Indicates if the webhook test is in progress.
+ * @param testResult - Indicates if the last webhook test was successful.
+ * @param showTestError - Whether to display an error tooltip for the test.
+ * @param onClear - Handler function to clear the field value.
+ * @param value - The current value(s) of the webhook URLs.
+ * @param disabled - Whether the input and actions are disabled.
+ * @param form - The form control object for managing state and validation.
  */
 function WebhookField({
   name,
@@ -174,13 +187,11 @@ function WebhookField({
 }
 
 /**
- * Provides an administrative form for configuring public content notifications, including enabling or disabling broadcasts to public Discord channels and Apprise endpoints.
+ * Renders an administrative form for configuring public content notifications, allowing management of Discord and Apprise webhook endpoints for broadcasting content availability.
  *
- * Administrators can manage general, movie-specific, and show-specific webhook URLs for both Discord and Apprise. Discord webhook fields support connection testing and require successful tests before changes can be saved. The form supports enabling/disabling the feature, clearing individual webhook fields with confirmation, and managing multiple endpoints per category.
+ * Administrators can enable or disable public notifications, add or remove webhook URLs for general, movie, and show categories, test Discord webhook connections, and clear individual fields with confirmation. The form enforces that all modified Discord webhook fields must pass connection tests before changes can be saved.
  *
- * @returns The UI for configuring public content notification endpoints and settings.
- *
- * @remark Saving changes is only permitted when all modified Discord webhook fields have passed connection tests.
+ * @returns The React element for the public content notifications configuration form.
  */
 export function PublicContentNotificationsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')

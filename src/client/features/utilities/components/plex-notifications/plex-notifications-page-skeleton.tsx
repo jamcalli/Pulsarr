@@ -3,7 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**
- * Skeleton loader for the Plex Notifications page showing placeholders for the page layout.
+ * Displays a skeleton loader mimicking the Plex Notifications page layout while content is loading.
+ *
+ * Renders placeholder elements for all major sections of the page, including the header, actions, current status, and Plex connection settings. The layout adapts responsively for mobile and desktop viewports.
  */
 export function PlexNotificationsPageSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')

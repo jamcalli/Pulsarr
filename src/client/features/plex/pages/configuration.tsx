@@ -22,10 +22,9 @@ import PlexConnectionSkeleton from '@/features/plex/components/connection/connec
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**
- * Plex Configuration page - manages Plex integration settings, tokens, RSS feeds, and watchlist statistics.
+ * Displays the Plex Configuration page for managing Plex integration settings.
  *
- * This page allows users to configure their Plex connection, manage tokens, generate RSS feeds,
- * refresh watchlist data, and view watchlist statistics for both self and other users.
+ * Provides a user interface to configure the Plex connection, manage tokens, generate RSS feeds, refresh watchlist data, and view watchlist statistics for the current user and others. The page adapts responsively for mobile and desktop layouts and handles loading states with visual feedback.
  */
 export default function PlexConfigurationPage() {
   const initialize = useConfigStore((state) => state.initialize)

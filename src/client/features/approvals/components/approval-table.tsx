@@ -43,18 +43,18 @@ interface ApprovalTableProps {
 }
 
 /**
- * Displays a paginated, sortable, and filterable table of approval requests with support for row selection and bulk actions.
+ * Renders a table of approval requests with sorting, filtering, pagination, row selection, and bulk action capabilities.
  *
- * Renders approval request data in a table with customizable columns, filtering (including date range and status), sorting, and pagination. Provides action handlers for approving, rejecting, viewing, and deleting individual requests, as well as optional bulk actions on selected rows. Shows a loading skeleton when data is loading and displays contextual messages when no data matches the current filters.
+ * Displays approval request data in a customizable table with support for column sorting, status and date range filtering, adjustable page size, and row selection for bulk operations. Provides action handlers for approving, rejecting, viewing, and deleting individual requests. Shows a loading skeleton when data is loading and contextual messages when no results match the current filters.
  *
- * @param data - Array of approval request objects to display in the table.
- * @param onApprove - Callback invoked when an approval request is approved.
- * @param onReject - Callback invoked when an approval request is rejected.
- * @param onView - Callback invoked when an approval request is viewed.
- * @param onDelete - Callback invoked when an approval request is deleted.
- * @param isLoading - Optional flag to display a loading state.
- * @param onBulkActions - Optional callback for performing actions on selected rows.
- * @returns The rendered approval requests table component.
+ * @param data - The approval requests to display.
+ * @param onApprove - Invoked when an approval request is approved.
+ * @param onReject - Invoked when an approval request is rejected.
+ * @param onView - Invoked when an approval request is viewed.
+ * @param onDelete - Invoked when an approval request is deleted.
+ * @param isLoading - Optional; whether to show a loading state.
+ * @param onBulkActions - Optional; called to perform actions on selected rows.
+ * @returns The approval requests table component.
  */
 export function ApprovalTable({
   data,
