@@ -205,6 +205,19 @@ const data = {
   ],
 }
 
+// Helper function to create default sections state
+const createDefaultSections = (
+  navItems: typeof data.navMain,
+): Record<string, boolean> => {
+  const result: Record<string, boolean> = {}
+  for (const item of navItems) {
+    if (item.items) {
+      result[item.title] = false
+    }
+  }
+  return result
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile, setOpenMobile } = useSidebar()
   const [activeSection, setActiveSection] = React.useState<string>('')
@@ -212,6 +225,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { asteroidsEnabled, setAsteroidsEnabled } = useSettings()
   const [showLogoutAlert, setShowLogoutAlert] = React.useState(false)
   const { currentUser, currentUserLoading, fetchCurrentUser } = useConfigStore()
+
+  // Memoized default sections to avoid recalculation
+  const defaultSections = React.useMemo(
+    () => createDefaultSections(data.navMain),
+    [],
+  )
 
   // Persistent collapsible state
   const [openSections, setOpenSections] = React.useState<
@@ -222,23 +241,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       if (saved) {
         return JSON.parse(saved)
       }
-      const result: Record<string, boolean> = {}
-      for (const item of data.navMain) {
-        // Only track collapsible sections (items with children)
-        if (item.items) {
-          result[item.title] = false // Default to closed
-        }
-      }
-      return result
+      return defaultSections
     } catch {
-      const result: Record<string, boolean> = {}
-      for (const item of data.navMain) {
-        // Only track collapsible sections (items with children)
-        if (item.items) {
-          result[item.title] = false // Default to closed
-        }
-      }
-      return result
+      return defaultSections
     }
   })
 
@@ -247,9 +252,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     localStorage.setItem('sidebar-open-sections', JSON.stringify(openSections))
   }, [openSections])
 
-  const toggleSection = (title: string) => {
+  const toggleSection = React.useCallback((title: string) => {
     setOpenSections((prev) => ({ ...prev, [title]: !prev[title] }))
-  }
+  }, [])
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -266,6 +271,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   React.useEffect(() => {
     fetchCurrentUser()
   }, [fetchCurrentUser])
+
+  // Memoized user avatar fallback to avoid string manipulation on every render
+  const userAvatarFallback = React.useMemo(() => {
+    return currentUser?.username?.charAt(0).toUpperCase() || '?'
+  }, [currentUser?.username])
 
   // Check if a route is active
   const isActiveRoute = React.useCallback(
@@ -346,6 +356,87 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     [navigate, location.pathname, isMobile, setOpenMobile],
   )
 
+  // Memoized navigation items rendering
+  const navigationItems = React.useMemo(() => {
+    return data.navMain.map((item) =>
+      item.items ? (
+        <Collapsible
+          key={item.title}
+          asChild
+          open={openSections[item.title]}
+          onOpenChange={() => toggleSection(item.title)}
+          className="group/collapsible"
+        >
+          <SidebarMenuItem>
+            <CollapsibleTrigger asChild>
+              <SidebarMenuButton
+                className="data-[state=open]:bg-main data-[state=open]:outline-border data-[state=open]:text-main-foreground"
+                tooltip={item.title}
+              >
+                {item.icon && <item.icon />}
+                <span>{item.title}</span>
+                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarMenuSub>
+                {item.items?.map((subItem) => (
+                  <SidebarMenuSubItem key={subItem.title}>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={isActiveRoute(subItem.url)}
+                    >
+                      <a
+                        href={subItem.url}
+                        onClick={(e) => handleNavigation(subItem.url, e)}
+                      >
+                        <span>{subItem.title}</span>
+                      </a>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                ))}
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </SidebarMenuItem>
+        </Collapsible>
+      ) : (
+        <SidebarMenuItem key={item.title}>
+          <SidebarMenuButton
+            asChild
+            tooltip={item.title}
+            isActive={isActiveRoute(item.url)}
+          >
+            <a href={item.url} onClick={(e) => handleNavigation(item.url, e)}>
+              {item.icon && <item.icon />}
+              <span>{item.title}</span>
+            </a>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ),
+    )
+  }, [openSections, isActiveRoute, handleNavigation, toggleSection])
+
+  // Memoized help resources rendering
+  const helpResourceItems = React.useMemo(() => {
+    return data.helpResources.map((item) => (
+      <SidebarMenuItem key={item.name}>
+        <SidebarMenuButton asChild>
+          <a
+            href={item.url}
+            onClick={(e) => handleNavigation(item.url, e)}
+            {...(item.url.startsWith('http') && {
+              target: '_blank',
+              rel: 'noopener noreferrer',
+            })}
+          >
+            <item.icon />
+            <span>{item.name}</span>
+          </a>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    ))
+  }, [handleNavigation])
+
   return (
     <>
       <Sidebar collapsible="icon" {...props}>
@@ -419,91 +510,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>Application</SidebarGroupLabel>
-            <SidebarMenu>
-              {data.navMain.map((item) =>
-                item.items ? (
-                  <Collapsible
-                    key={item.title}
-                    asChild
-                    open={openSections[item.title]}
-                    onOpenChange={() => toggleSection(item.title)}
-                    className="group/collapsible"
-                  >
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          className="data-[state=open]:bg-main data-[state=open]:outline-border data-[state=open]:text-main-foreground"
-                          tooltip={item.title}
-                        >
-                          {item.icon && <item.icon />}
-                          <span>{item.title}</span>
-                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.items?.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={isActiveRoute(subItem.url)}
-                              >
-                                <a
-                                  href={subItem.url}
-                                  onClick={(e) =>
-                                    handleNavigation(subItem.url, e)
-                                  }
-                                >
-                                  <span>{subItem.title}</span>
-                                </a>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
-                ) : (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      isActive={isActiveRoute(item.url)}
-                    >
-                      <a
-                        href={item.url}
-                        onClick={(e) => handleNavigation(item.url, e)}
-                      >
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ),
-              )}
-            </SidebarMenu>
+            <SidebarMenu>{navigationItems}</SidebarMenu>
           </SidebarGroup>
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Help & Resources</SidebarGroupLabel>
-            <SidebarMenu>
-              {data.helpResources.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild>
-                    <a
-                      href={item.url}
-                      onClick={(e) => handleNavigation(item.url, e)}
-                      {...(item.url.startsWith('http') && {
-                        target: '_blank',
-                        rel: 'noopener noreferrer',
-                      })}
-                    >
-                      <item.icon />
-                      <span>{item.name}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <SidebarMenu>{helpResourceItems}</SidebarMenu>
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
@@ -536,8 +547,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           style={{ backgroundColor: '#212121' }}
                           className="text-white"
                         >
-                          {currentUser?.username?.charAt(0).toUpperCase() ||
-                            '?'}
+                          {userAvatarFallback}
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
@@ -574,8 +584,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             style={{ backgroundColor: '#212121' }}
                             className="text-white"
                           >
-                            {currentUser?.username?.charAt(0).toUpperCase() ||
-                              '?'}
+                            {userAvatarFallback}
                           </AvatarFallback>
                         </Avatar>
                         <div className="grid flex-1 text-left text-sm leading-tight">

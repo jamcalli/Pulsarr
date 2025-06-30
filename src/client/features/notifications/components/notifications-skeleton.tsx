@@ -113,7 +113,8 @@ export function NotificationsSkeleton() {
               <div className="space-y-2">
                 <Skeleton className="h-4 w-36" /> {/* System Apprise URL */}
                 <Skeleton className="h-20 w-full" /> {/* Multi-input field */}
-                <Skeleton className="h-4 w-full max-w-sm" /> {/* Examples text */}
+                <Skeleton className="h-4 w-full max-w-sm" />{' '}
+                {/* Examples text */}
               </div>
             </div>
             <div className="flex justify-end">
@@ -164,7 +165,8 @@ export function NotificationsSkeleton() {
               <div className="space-y-2">
                 <Skeleton className="h-4 w-24" /> {/* Tautulli URL */}
                 <Skeleton className="h-10 w-full" /> {/* URL input */}
-                <Skeleton className="h-4 w-full max-w-xs" /> {/* Example text */}
+                <Skeleton className="h-4 w-full max-w-xs" />{' '}
+                {/* Example text */}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">

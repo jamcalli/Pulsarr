@@ -35,7 +35,6 @@ import {
   isSyncTagResponse,
   isCleanupTagResponse,
 } from '@/features/utilities/hooks/useUserTags'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { Progress } from '@/components/ui/progress'
 import { useProgressStore } from '@/stores/progressStore'
 import { UserTagsDeleteConfirmationModal } from '@/features/utilities/components/user-tags/user-tags-delete-confirmation-modal'
@@ -51,7 +50,6 @@ import { UserTagsPageSkeleton } from '@/features/utilities/pages/user-tags-page-
  * @returns A React element containing the user tag management page.
  */
 export function UserTagsPage() {
-  const isMobile = useMediaQuery('(max-width: 768px)')
   const { isInitialized, initialize } = useConfigStore()
 
   const {
@@ -153,9 +151,7 @@ export function UserTagsPage() {
                 ) : (
                   <Tag className="h-4 w-4" />
                 )}
-                <span className={isMobile ? 'hidden' : 'ml-2'}>
-                  Create Tags
-                </span>
+                <span className="ml-2">Create Tags</span>
               </Button>
 
               <Button
@@ -178,7 +174,7 @@ export function UserTagsPage() {
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
-                <span className={isMobile ? 'hidden' : 'ml-2'}>Sync Tags</span>
+                <span className="ml-2">Sync Tags</span>
               </Button>
 
               <Button
@@ -198,7 +194,7 @@ export function UserTagsPage() {
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-                <span className={isMobile ? 'hidden' : 'ml-2'}>Clean Up</span>
+                <span className="ml-2">Clean Up</span>
               </Button>
 
               <Button
@@ -221,9 +217,7 @@ export function UserTagsPage() {
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-                <span className={isMobile ? 'hidden' : 'ml-2'}>
-                  Remove Tags
-                </span>
+                <span className="ml-2">Remove Tags</span>
               </Button>
             </div>
 
