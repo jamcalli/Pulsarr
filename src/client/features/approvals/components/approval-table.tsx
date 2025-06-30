@@ -43,18 +43,12 @@ interface ApprovalTableProps {
 }
 
 /**
- * Renders a table of approval requests with sorting, filtering, pagination, row selection, and bulk action capabilities.
+ * Displays a paginated, sortable, and filterable table of approval requests with support for row selection and bulk actions.
  *
- * Displays approval request data in a customizable table with support for column sorting, status and date range filtering, adjustable page size, and row selection for bulk operations. Provides action handlers for approving, rejecting, viewing, and deleting individual requests. Shows a loading skeleton when data is loading and contextual messages when no results match the current filters.
+ * Provides interactive controls for sorting columns, filtering by status or date range, adjusting page size, and selecting rows for bulk operations. Action handlers can be supplied for approving, rejecting, viewing, or deleting individual requests. Shows a loading skeleton while data is loading and contextual empty states when no results are available.
  *
- * @param data - The approval requests to display.
- * @param onApprove - Invoked when an approval request is approved.
- * @param onReject - Invoked when an approval request is rejected.
- * @param onView - Invoked when an approval request is viewed.
- * @param onDelete - Invoked when an approval request is deleted.
- * @param isLoading - Optional; whether to show a loading state.
- * @param onBulkActions - Optional; called to perform actions on selected rows.
- * @returns The approval requests table component.
+ * @param data - The list of approval requests to display.
+ * @returns The rendered approval requests table component.
  */
 export function ApprovalTable({
   data,

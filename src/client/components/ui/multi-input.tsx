@@ -40,9 +40,9 @@ interface MultiInputProps {
 }
 
 /**
- * Displays a configurable list of input fields whose values are combined into a single separator-delimited string.
+ * Displays a dynamic list of input fields whose values are combined into a single separator-delimited string.
  *
- * Users can add or remove fields within specified limits, and each field's value is trimmed and validated if a validation function is provided. The combined value excludes empty fields and is updated on changes. All controls can be disabled via a prop.
+ * Users can add or remove fields within configurable minimum and maximum limits. Each field's value is trimmed and optionally validated. The combined value excludes empty fields and updates on changes. All controls can be disabled.
  *
  * @remarks
  * Empty fields are automatically removed from the combined value when saving.
