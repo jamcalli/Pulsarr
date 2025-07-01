@@ -38,6 +38,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
+import type { BulkQuotaFormData } from '@/features/plex/hooks/useBulkQuotaManagement'
 import { z } from 'zod'
 
 // Form schema for bulk quota configuration
@@ -58,7 +59,142 @@ const BulkQuotaFormSchema = z.object({
   showBypassApproval: z.boolean().default(false),
 })
 
-type BulkQuotaFormData = z.infer<typeof BulkQuotaFormSchema>
+interface QuotaSectionProps {
+  contentType: 'movie' | 'show'
+  form: ReturnType<typeof useForm<BulkQuotaFormData>>
+  enabled: boolean
+  disabled: boolean
+  colorStyle: React.CSSProperties
+}
+
+const QuotaSection = React.memo(
+  ({ contentType, form, enabled, disabled, colorStyle }: QuotaSectionProps) => {
+    const capitalizedType =
+      contentType.charAt(0).toUpperCase() + contentType.slice(1)
+    const fieldPrefix = contentType as 'movie' | 'show'
+
+    return (
+      <div className="space-y-4 border-l-2 pl-4" style={colorStyle}>
+        <h4 className="font-medium text-foreground">
+          {capitalizedType} Quotas
+        </h4>
+
+        <FormField
+          control={form.control}
+          name={`set${capitalizedType}Quota` as keyof BulkQuotaFormData}
+          render={({ field }) => (
+            <FormItem>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-foreground">
+                    Set {fieldPrefix} quotas
+                  </FormLabel>
+                  <FormDescription>
+                    Apply {fieldPrefix} quota configuration to selected users
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value as boolean}
+                    onCheckedChange={field.onChange}
+                    disabled={disabled}
+                  />
+                </FormControl>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        {enabled && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ml-4">
+            <FormField
+              control={form.control}
+              name={`${fieldPrefix}QuotaType` as keyof BulkQuotaFormData}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground">
+                    {capitalizedType} Quota Type
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value as string}
+                    disabled={disabled}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select quota type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly_rolling">
+                        Weekly Rolling
+                      </SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name={`${fieldPrefix}QuotaLimit` as keyof BulkQuotaFormData}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground">
+                    {capitalizedType} Quota Limit
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="10"
+                      min="1"
+                      max="1000"
+                      disabled={disabled}
+                      value={field.value as number | undefined}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name={`${fieldPrefix}BypassApproval` as keyof BulkQuotaFormData}
+              render={({ field }) => (
+                <FormItem className="flex flex-col justify-end h-full">
+                  <div className="flex items-center space-x-2">
+                    <FormControl>
+                      <Switch
+                        checked={field.value as boolean}
+                        onCheckedChange={field.onChange}
+                        disabled={disabled}
+                      />
+                    </FormControl>
+                    <div className="flex items-center">
+                      <FormLabel className="text-foreground m-0">
+                        Auto-approve when exceeded
+                      </FormLabel>
+                    </div>
+                  </div>
+                  <div className="mb-2" />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
+      </div>
+    )
+  },
+)
+
+QuotaSection.displayName = 'QuotaSection'
 
 export interface BulkQuotaEditStatus {
   type: 'idle' | 'loading' | 'success' | 'error'
@@ -140,237 +276,20 @@ const FormContent = React.memo(
               />
             </div>
 
-            {/* Movie Quota Section */}
-            <div
-              className="space-y-4 border-l-2 pl-4"
-              style={{ borderColor: 'var(--color-movie)' }}
-            >
-              <h4 className="font-medium text-foreground">Movie Quotas</h4>
-
-              <FormField
-                control={form.control}
-                name="setMovieQuota"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-foreground">
-                          Set movie quotas
-                        </FormLabel>
-                        <FormDescription>
-                          Apply movie quota configuration to selected users
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={saveStatus.type !== 'idle' || clearQuotas}
-                        />
-                      </FormControl>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              {setMovieQuota && !clearQuotas && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ml-4">
-                  <FormField
-                    control={form.control}
-                    name="movieQuotaType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground">
-                          Movie Quota Type
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={saveStatus.type !== 'idle'}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select quota type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly_rolling">
-                              Weekly Rolling
-                            </SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="movieQuotaLimit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground">
-                          Movie Quota Limit
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="10"
-                            min="1"
-                            max="1000"
-                            disabled={saveStatus.type !== 'idle'}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="movieBypassApproval"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col justify-end h-full">
-                        <div className="flex items-center space-x-2">
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={saveStatus.type !== 'idle'}
-                            />
-                          </FormControl>
-                          <div className="flex items-center">
-                            <FormLabel className="text-foreground m-0">
-                              Auto-approve when exceeded
-                            </FormLabel>
-                          </div>
-                        </div>
-                        <div className="mb-2" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Show Quota Section */}
-            <div
-              className="space-y-4 border-l-2 pl-4"
-              style={{ borderColor: 'var(--color-show)' }}
-            >
-              <h4 className="font-medium text-foreground">Show Quotas</h4>
-
-              <FormField
-                control={form.control}
-                name="setShowQuota"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-foreground">
-                          Set show quotas
-                        </FormLabel>
-                        <FormDescription>
-                          Apply show quota configuration to selected users
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={saveStatus.type !== 'idle' || clearQuotas}
-                        />
-                      </FormControl>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              {setShowQuota && !clearQuotas && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ml-4">
-                  <FormField
-                    control={form.control}
-                    name="showQuotaType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground">
-                          Show Quota Type
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={saveStatus.type !== 'idle'}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select quota type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly_rolling">
-                              Weekly Rolling
-                            </SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="showQuotaLimit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground">
-                          Show Quota Limit
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="10"
-                            min="1"
-                            max="1000"
-                            disabled={saveStatus.type !== 'idle'}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="showBypassApproval"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col justify-end h-full">
-                        <div className="flex items-center space-x-2">
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={saveStatus.type !== 'idle'}
-                            />
-                          </FormControl>
-                          <div className="flex items-center">
-                            <FormLabel className="text-foreground m-0">
-                              Auto-approve when exceeded
-                            </FormLabel>
-                          </div>
-                        </div>
-                        <div className="mb-2" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-            </div>
+            <QuotaSection
+              contentType="movie"
+              form={form}
+              enabled={setMovieQuota && !clearQuotas}
+              disabled={saveStatus.type !== 'idle' || clearQuotas}
+              colorStyle={{ borderColor: 'var(--color-movie)' }}
+            />
+            <QuotaSection
+              contentType="show"
+              form={form}
+              enabled={setShowQuota && !clearQuotas}
+              disabled={saveStatus.type !== 'idle' || clearQuotas}
+              colorStyle={{ borderColor: 'var(--color-show)' }}
+            />
           </div>
 
           <div className="flex justify-end gap-2">

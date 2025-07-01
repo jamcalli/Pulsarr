@@ -6,7 +6,7 @@ import type { BulkQuotaEditStatus } from '@/features/plex/components/user/bulk-q
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import type { BulkQuotaOperation } from '@root/schemas/quota/quota.schema.js'
 
-interface BulkQuotaFormData {
+export interface BulkQuotaFormData {
   clearQuotas: boolean
   setMovieQuota: boolean
   movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
