@@ -23,9 +23,9 @@ import SetupModal from '@/features/plex/components/setup/setup-modal'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**
- * Renders the Plex Configuration page for managing Plex integration settings.
+ * Displays the Plex Configuration page, allowing users to manage Plex integration settings.
  *
- * Provides a responsive interface for configuring the Plex connection, managing tokens, generating RSS feeds, refreshing watchlist data, and viewing watchlist statistics for the current user and others. Displays loading skeletons and visual feedback for asynchronous actions.
+ * Provides an interface for configuring Plex tokens, generating RSS feeds, refreshing watchlist data, and viewing watchlist statistics for the current user and others. Includes responsive layout, loading skeletons, and visual feedback for asynchronous actions.
  */
 export default function PlexConfigurationPage() {
   const config = useConfigStore((state) => state.config)
