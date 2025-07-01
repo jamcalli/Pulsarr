@@ -30,7 +30,7 @@ Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Rada
 
 Enjoy all the benefits of other content discovery systems without requiring users to use additional services. All the magic happens from the primary user's Plex Token.
 
-It provides user-based watchlist synchronization for yourself and for friends, intelligent content routing based on multiple criteria, and notification capabilities (Discord and Apprise).
+It provides user-based watchlist synchronization for yourself and for friends, intelligent content routing based on multiple criteria, approval workflows with quota management, and notification capabilities (Discord and Apprise).
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Dashboard1.png" alt="Dashboard" width="80%"/>
@@ -94,9 +94,11 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 - **Real-time Monitoring**: Instant watchlist updates for Plex Pass users (20-minute polling for non-Pass users)
 - **Smart Content Routing**: Route content based on genre, user, language, year, certification, and more
+- **Approval & Quota System**: Administrative approval workflows with configurable user quotas (daily/weekly/monthly limits)
 - **Multi-Instance Support**: Distribute content across multiple Sonarr/Radarr instances 
   with intelligent synchronization
 - **Multi-User Support**: Monitor watchlists for friends and family with granular permissions
+- **Discord Bot Integration**: Complete approval management directly from Discord with interactive commands
 - **Flexible Notifications**: Discord bot, Tautulli, webhooks, and 80+ services via Apprise
 - **Advanced Lifecycle Management**: Watchlist-based or tag-based deletion with playlist protection
 - **Plex Session Monitoring**: Auto-search for next seasons when users near season finales

@@ -2,6 +2,8 @@
 sidebar_position: 6
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # New User Defaults
 
 The New User Defaults system allows you to configure comprehensive default settings that will be automatically applied to newly discovered Plex users. This eliminates the need to manually configure each new user and ensures consistent policy enforcement across your system.
@@ -18,6 +20,8 @@ When Pulsarr discovers a new Plex user (through token users or friend sync), it 
 ## Accessing New User Defaults
 
 Navigate to **Utilities > New User Defaults** in the web interface to configure these settings.
+
+<img alt="New User Defaults Configuration" src={useBaseUrl('/img/New-User-Defaults.png')} />
 
 ## Configuration Options
 

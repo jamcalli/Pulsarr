@@ -49,6 +49,8 @@ Navigate to **Users** section to manage individual user quotas:
 - **Separate Limits**: Different quotas for movies vs shows
 - **Bypass Approval**: Allow trusted users unlimited requests
 
+<img alt="User Quota Configuration" src={useBaseUrl('/img/Quota-Settings.png')} />
+
 ### User Approval Settings
 - **Requires Approval**: Toggle to force all requests from a user to require approval
 - **Override Quotas**: This setting applies even if user has unlimited quotas
@@ -62,6 +64,8 @@ Configure approval behavior in the **Settings** section:
 - **Cleanup Days**: How long to keep expired requests in database
 - **Notifications**: Configure Discord and Apprise notifications for new requests
 
+<img alt="Approval System Settings" src={useBaseUrl('/img/Approvals-Settings.png')} />
+
 ## Approval Management
 
 The approval interface provides:
@@ -71,12 +75,16 @@ The approval interface provides:
 - **Real-time Updates**: Live updates as requests are processed
 - **Bulk Actions**: Process multiple requests efficiently
 
+<img alt="Approvals Table" src={useBaseUrl('/img/Approvals-Table.png')} />
+
 ### Approval Actions
 
 **Individual Actions**:
 - Approve & Execute: Routes content immediately
 - Reject: Denies the request
 - Delete: Removes from database
+
+<img alt="Approval Details Modal" src={useBaseUrl('/img/Approvals-More-Info.png')} />
 
 **Routing Overrides** (web UI only):
 - Modify quality profile and root folder
@@ -115,9 +123,21 @@ Approvals are created when:
 Manage approvals directly from Discord:
 
 - **Direct Message Notifications**: Primary admin receives DMs with "Review Approvals" button
+
+<img alt="Discord New Approval Notification" src={useBaseUrl('/img/Discord-Approval-New.png')} />
+
 - **Interactive `/approvals` Command**: Browse pending requests with navigation buttons
+
+<img alt="Discord Approval Request View" src={useBaseUrl('/img/Discord-Approval-Request.png')} />
+
 - **Full Management Interface**: Approve, reject, view details, or delete requests
+
+<img alt="Discord Approval Details" src={useBaseUrl('/img/Discord-Approval-More.png')} />
+
 - **History Browser**: Filter and review past approvals by status
+
+<img alt="Discord Approval History" src={useBaseUrl('/img/Discord-Approval-History.png')} />
+
 - **Batch Notifications**: Multiple requests grouped to reduce notification spam
 - **Mobile Friendly**: Complete approval workflow from Discord mobile app
 

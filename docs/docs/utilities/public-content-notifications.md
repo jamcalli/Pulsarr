@@ -2,6 +2,8 @@
 sidebar_position: 4
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Public Content Notifications
 
 Public content notifications broadcast content availability to shared channels, independent of individual user watchlists. Perfect for notifying entire communities about newly available content.
@@ -11,6 +13,8 @@ Public content notifications broadcast content availability to shared channels, 
 1. Navigate to **Utilities** → **Public Content Notifications**
 2. Toggle **Enable Public Content Notifications** to `ON`
 3. Configure notification URLs (see below)
+
+<img alt="Public Content Notifications Configuration" src={useBaseUrl('/img/Public-Content-Notifications.png')} />
 
 ## Configuration Fields
 

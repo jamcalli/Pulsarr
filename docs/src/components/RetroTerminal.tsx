@@ -33,12 +33,15 @@ const RetroTerminalContent = () => {
 
 INITIALIZING WATCHLIST MONITOR...
 > DETECTING PLEX CONTENT ADDITIONS
+> CHECKING USER QUOTAS & APPROVALS
 > ROUTING TO SONARR/RADARR INSTANCES  
 > DOWNLOADING REQUESTED MEDIA
 > NOTIFYING USERS WHEN READY
 > CLEANING UNWATCHED CONTENT
+> GENERATING ANALYTICS REPORTS
 
 SYSTEM STATUS: OPERATIONAL
+APPROVAL SYSTEM: ACTIVE
 `
 
   const fullTextSmall = `
@@ -46,12 +49,15 @@ PULSARR v${version}
 
 INITIALIZING WATCHLIST MONITOR...
 > DETECTING PLEX CONTENT ADDITIONS
+> CHECKING USER QUOTAS & APPROVALS
 > ROUTING TO SONARR/RADARR INSTANCES  
 > DOWNLOADING REQUESTED MEDIA
 > NOTIFYING USERS WHEN READY
 > CLEANING UNWATCHED CONTENT
+> GENERATING ANALYTICS REPORTS
 
 SYSTEM STATUS: OPERATIONAL
+APPROVAL SYSTEM: ACTIVE
 `
 
   const fullText = isSmallScreen ? fullTextSmall : fullTextLarge
@@ -147,7 +153,7 @@ SYSTEM STATUS: OPERATIONAL
             '0 0 2px 3px rgba(10, 10, 10, 0.7), inset 0 0 20px rgba(0, 0, 0, 0.9)',
           border: `3px solid ${getColorForProgress(bootProgress)}33`,
           transition: 'border-color 0.3s ease',
-          height: '415px', // Mid-height between 380px and 450px
+          height: '520px', // Further increased height for better alignment
         }}
       >
         {/* Screen reflection/glare */}

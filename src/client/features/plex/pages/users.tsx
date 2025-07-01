@@ -4,6 +4,7 @@ import { usePlexUser } from '@/features/plex/hooks/usePlexUser'
 import { usePlexBulkUpdate } from '@/features/plex/hooks/usePlexBulkUpdate'
 import { useQuotaManagement } from '@/features/plex/hooks/useQuotaManagement'
 import { useBulkQuotaManagement } from '@/features/plex/hooks/useBulkQuotaManagement'
+import { useApprovalEvents } from '@/hooks/useApprovalEvents'
 import UserTable from '@/features/plex/components/user/user-table'
 import UserEditModal from '@/features/plex/components/user/user-edit-modal'
 import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
@@ -21,6 +22,7 @@ import type { PlexUserTableRow } from '@/features/plex/store/types'
  */
 export default function PlexUsersPage() {
   const initialize = useConfigStore((state) => state.initialize)
+  const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
 
   // Initialize store on mount
   useEffect(() => {
@@ -56,6 +58,19 @@ export default function PlexUsersPage() {
     performBulkOperation,
     setSaveStatus: setBulkQuotaSaveStatus,
   } = useBulkQuotaManagement()
+
+  // Listen for approval events to refresh quota data
+  useApprovalEvents({
+    onApprovalApproved: () => {
+      // Refresh quota data when approvals are processed
+      refreshQuotaData()
+    },
+    onApprovalRejected: () => {
+      // Refresh quota data when approvals are rejected
+      refreshQuotaData()
+    },
+    showToasts: false, // Don't show duplicate toasts on this page
+  })
 
   // Quota modal state
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false)

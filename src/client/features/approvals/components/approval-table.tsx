@@ -195,21 +195,30 @@ export function ApprovalTable({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
-                    className={
-                      row.original.expiresAt &&
-                      new Date(row.original.expiresAt) < new Date()
-                        ? 'opacity-60'
-                        : ''
-                    }
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-2 py-2">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const isExpiredStatus = row.original.status === 'expired'
+                      const isActionsColumn = cell.column.id === 'actions'
+                      const isSelectColumn = cell.column.id === 'select'
+
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={`px-2 py-2 ${
+                            isExpiredStatus &&
+                            !isActionsColumn &&
+                            !isSelectColumn
+                              ? 'opacity-60'
+                              : ''
+                          }`}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      )
+                    })}
                   </TableRow>
                 ))
               ) : (

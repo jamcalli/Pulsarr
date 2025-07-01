@@ -419,21 +419,31 @@ export default function ApprovalActionsModal({
             </div>
           </div>
 
-          {request.expiresAt && (
+          {request.status === 'approved' || request.status === 'rejected' ? (
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-foreground" />
-              <span className="font-medium text-foreground">Expires:</span>
-              <span
-                className={`${isExpired ? 'text-red-600' : 'text-orange-600'}`}
-              >
-                {format(new Date(request.expiresAt), 'MMM d, yyyy HH:mm')}
+              <span className="font-medium text-foreground">Resolved:</span>
+              <span className="text-foreground">
+                {format(new Date(request.updatedAt), 'MMM d, yyyy HH:mm')}
               </span>
-              {isExpired && (
-                <Badge variant="warn" className="ml-2">
-                  Expired
-                </Badge>
-              )}
             </div>
+          ) : (
+            request.expiresAt && (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-foreground" />
+                <span className="font-medium text-foreground">Expires:</span>
+                <span
+                  className={`${isExpired ? 'text-red-600' : 'text-orange-600'}`}
+                >
+                  {format(new Date(request.expiresAt), 'MMM d, yyyy HH:mm')}
+                </span>
+                {isExpired && (
+                  <Badge variant="warn" className="ml-2">
+                    Expired
+                  </Badge>
+                )}
+              </div>
+            )
           )}
 
           {request.approvalReason && (
@@ -655,7 +665,10 @@ export default function ApprovalActionsModal({
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <Label htmlFor="action-notes">
+                        <Label
+                          htmlFor="action-notes"
+                          className="text-foreground"
+                        >
                           {action === 'approve'
                             ? 'Approval Notes'
                             : 'Rejection Reason'}{' '}
