@@ -27,9 +27,9 @@ interface ApprovalSystemScheduleProps {
 }
 
 /**
- * Renders a UI for configuring the interval and schedule of an approval maintenance job.
+ * Renders a UI for configuring and displaying the schedule of an approval maintenance job.
  *
- * Allows users to select a maintenance frequency, view the current schedule and cron expression, and save changes. Controls are disabled when loading or when scheduling is not enabled, and a warning is displayed if schedule configuration is unavailable.
+ * Users can select a maintenance frequency, view the current schedule and cron expression, and save changes. Controls are disabled when loading or when scheduling is not enabled, and a warning is shown if schedule configuration is unavailable.
  *
  * @param interval - The current maintenance interval in hours, or null if not set.
  * @param onIntervalChange - Invoked with the new interval when the user selects a different frequency.

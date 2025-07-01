@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react'
 
 /**
- * Hook for persisting table pagination settings to localStorage
- * 
+ * React hook that manages and persists a table's page size setting in localStorage.
+ *
+ * Initializes the page size for a table identified by `tableKey`, using a stored value from localStorage if available and valid (between 1 and 100), or falling back to `defaultPageSize`. Provides a setter function that validates and updates both localStorage and state.
+ *
  * @param tableKey - Unique identifier for the table (e.g., 'users', 'approvals')
- * @param defaultPageSize - Default page size if none stored (default: 20)
- * @returns Object with pageSize state and setter function
+ * @param defaultPageSize - Default page size if none is stored (default: 20)
+ * @returns An object containing the current `pageSize` and a `setPageSize` function to update it
  */
 export function useTablePagination(tableKey: string, defaultPageSize = 20) {
   const storageKey = `pulsarr-table-${tableKey}-pageSize`

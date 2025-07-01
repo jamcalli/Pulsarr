@@ -15,9 +15,9 @@ interface ApprovalSystemActionsProps {
 }
 
 /**
- * Renders controls for managing the approval maintenance schedule, including toggling the schedule's enabled state and initiating an immediate maintenance run.
+ * Renders UI controls for managing the approval maintenance schedule, including toggling the schedule state and initiating an immediate maintenance run.
  *
- * Displays the current job status as a badge, provides action buttons for schedule control, and shows a warning message when the schedule is disabled.
+ * Shows the current job status as a badge, provides action buttons for enabling/disabling the schedule and running maintenance, and displays a warning message when the schedule is disabled.
  */
 export function ApprovalSystemActions({
   isScheduleEnabled,

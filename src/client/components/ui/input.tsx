@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 /**
  * Renders a styled input element with consistent appearance and customizable attributes.
  *
- * Applies a predefined set of utility classes for layout, color, and interaction states, while allowing additional classes and standard input attributes to be specified.
+ * The input element includes a predefined set of utility classes for layout, color, and interaction states. Additional classes and standard input attributes can be provided through props.
  */
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (

@@ -5,7 +5,7 @@ import type * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * Renders a circular avatar container with default styling, wrapping the Radix UI Avatar root.
+ * Displays a circular avatar container with default styling, wrapping the Radix UI Avatar root.
  *
  * Merges custom class names with default styles and forwards all additional props to the underlying primitive.
  */
@@ -26,9 +26,9 @@ function Avatar({
 }
 
 /**
- * Displays an avatar image that fills its container and maintains a square aspect ratio.
+ * Renders an avatar image that fills its container and preserves a square aspect ratio.
  *
- * Merges default and custom class names, and includes a data attribute for targeting.
+ * Combines default and custom class names, and adds a `data-slot="avatar-image"` attribute for targeting. All additional props are forwarded to the underlying Radix UI primitive.
  */
 function AvatarImage({
   className,
@@ -44,9 +44,9 @@ function AvatarImage({
 }
 
 /**
- * Displays a styled fallback UI for the avatar when the image is unavailable.
+ * Renders a fallback UI centered within the avatar container when the avatar image cannot be displayed.
  *
- * Merges default centering, background, and text styles with any additional class names.
+ * Combines default centering, background, and text styles with any custom class names. Forwards all additional props to the underlying Radix UI primitive.
  */
 function AvatarFallback({
   className,

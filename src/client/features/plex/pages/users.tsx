@@ -14,11 +14,11 @@ import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 
 /**
- * Renders the Plex Users administration page, providing interfaces for viewing, editing, and managing user watchlists, individual user settings, quotas, and bulk operations.
+ * Displays the Plex Users administration page, allowing administrators to view, edit, and manage user watchlists, individual user settings, quotas, and perform bulk operations.
  *
- * Integrates user and quota management hooks, handles loading and modal state, and displays user data with options for individual and bulk updates.
+ * Integrates user and quota management hooks, handles approval event-driven data refresh, and manages modal and loading states for both individual and bulk user and quota editing workflows.
  *
- * @returns The Plex Users administration page component.
+ * @returns The rendered Plex Users administration page component.
  */
 export default function PlexUsersPage() {
   const initialize = useConfigStore((state) => state.initialize)

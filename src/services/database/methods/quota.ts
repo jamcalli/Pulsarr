@@ -14,13 +14,9 @@ import type {
 import type { Knex } from 'knex'
 
 /**
- * Helper function to upsert or delete quota for a specific user and content type.
+ * Inserts, updates, or deletes a user's quota configuration for a specific content type within a transaction.
  *
- * @param this - The DatabaseService instance
- * @param trx - The Knex transaction
- * @param userId - The user ID
- * @param contentType - The content type ('movie' or 'show')
- * @param quotaConfig - The quota configuration (optional)
+ * If the provided quota configuration is enabled and valid, upserts the quota record; if disabled, deletes the quota record.
  */
 async function upsertOrDeleteQuota(
   this: DatabaseService,
@@ -815,10 +811,10 @@ export async function getUsersWithQuotaType(
 }
 
 /**
- * Returns the most recent quota usage entry for the specified user, or null if no usage records exist.
+ * Retrieves the most recent quota usage record for a user.
  *
- * @param userId - The user ID to look up
- * @returns The latest quota usage record for the user, or null if not found
+ * @param userId - The ID of the user whose latest quota usage is requested
+ * @returns The latest quota usage record for the user, or null if none exist
  */
 export async function getLatestQuotaUsage(
   this: DatabaseService,
@@ -833,10 +829,12 @@ export async function getLatestQuotaUsage(
 }
 
 /**
- * Bulk deletes quotas for multiple users efficiently using database transactions and batching.
+ * Deletes quota configurations and associated usage records for multiple users in batches within a single transaction.
  *
- * @param userIds - Array of user IDs to delete quotas for
- * @returns Object containing the count of processed users and any failed user IDs
+ * Processes user IDs in batches of 50 for efficiency. Returns the number of users whose quotas were successfully deleted and an array of user IDs for which deletion failed.
+ *
+ * @param userIds - Array of user IDs whose quotas and usage records should be deleted
+ * @returns An object with the count of successfully processed users and an array of failed user IDs
  */
 export async function bulkDeleteQuotas(
   this: DatabaseService,
@@ -882,12 +880,14 @@ export async function bulkDeleteQuotas(
 }
 
 /**
- * Bulk updates or creates quotas for multiple users efficiently using database transactions and batching.
+ * Updates or creates quota configurations for multiple users in batches within a single transaction.
  *
- * @param userIds - Array of user IDs to update quotas for
- * @param movieQuota - Movie quota configuration (enabled, quotaType, quotaLimit, bypassApproval)
- * @param showQuota - Show quota configuration (enabled, quotaType, quotaLimit, bypassApproval)
- * @returns Object containing the count of processed users and any failed user IDs
+ * For each user, applies the provided movie and show quota configurations. Processes users in batches of 50 for efficiency. If any batch fails, all user IDs in that batch are marked as failed, but processing continues for other batches. Returns the total number of successfully processed users and an array of user IDs for which the update failed.
+ *
+ * @param userIds - List of user IDs to update quotas for
+ * @param movieQuota - Quota configuration to apply for movies, or undefined to skip
+ * @param showQuota - Quota configuration to apply for shows, or undefined to skip
+ * @returns An object with the count of processed users and an array of failed user IDs
  */
 export async function bulkUpdateQuotas(
   this: DatabaseService,

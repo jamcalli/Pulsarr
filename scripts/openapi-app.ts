@@ -30,12 +30,12 @@ declare module 'fastify' {
 }
 
 /**
- * Configures a minimal Fastify application for OpenAPI (Swagger) generation.
+ * Sets up a Fastify application instance configured specifically for OpenAPI (Swagger) schema generation.
  *
- * Registers only essential plugins and routes required for OpenAPI documentation, excluding database connections and runtime services. Sets up basic form body parsing, loads only relevant plugins and routes, and defines simple error and 404 handlers suitable for OpenAPI schema generation.
+ * Registers only the minimal set of plugins and routes required for documentation, decorates the Fastify instance with mock service implementations, and defines basic error and not-found handlers. This configuration omits authentication, database connections, and other runtime dependencies to ensure compatibility with OpenAPI tooling.
  *
  * @remark
- * This setup is intended for OpenAPI generation and should not be used as a full application runtime, as it omits authentication, database, and service dependencies.
+ * Intended solely for OpenAPI schema generation and not for use as a production or runtime application.
  */
 export default async function openapiApp(
   fastify: FastifyInstance,
