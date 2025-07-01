@@ -13,9 +13,9 @@ import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 
 /**
- * Displays the user watchlist table section with features for editing users, managing individual user quotas, and performing bulk updates.
+ * Renders the user watchlist table section with capabilities for editing users, managing individual and bulk user quotas, and performing bulk user updates.
  *
- * Handles loading state, modal dialogs, and user data integration for comprehensive user administration.
+ * Integrates loading state management, modal dialogs for user and quota editing, and user data from the global store to provide comprehensive user administration.
  */
 export default function UserTableSection() {
   const {

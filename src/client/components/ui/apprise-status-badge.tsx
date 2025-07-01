@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 /**
- * Renders a badge indicating whether the Apprise integration is enabled or disabled, using green for enabled and red for disabled states.
+ * Displays a badge showing whether Apprise integration is enabled or disabled, with green for enabled and red for disabled.
  */
 export function AppriseStatusBadge() {
   const config = useConfigStore(state => state.config)

@@ -31,11 +31,11 @@ interface DiscordWebhookFormProps {
 }
 
 /****
- * Renders a form for managing Discord webhook URLs, including input, validation, testing, saving, and clearing.
+ * Displays a form for entering, validating, testing, saving, and clearing Discord webhook URLs in the application configuration.
  *
- * Users can enter up to five Discord webhook URLs, test their validity, save them to the application configuration, or clear all saved webhooks with confirmation. The form enforces validation and requires a successful connection test before saving, providing user feedback and disabling controls during loading or testing states.
+ * Users can input up to five Discord webhook URLs, test their validity, save them after a successful test, or clear all saved webhooks with confirmation. The form enforces validation and requires a successful connection test before saving, providing user feedback and disabling controls during loading or testing states.
  *
- * @param isInitialized - Indicates if the configuration is ready for editing.
+ * @param isInitialized - Whether the configuration is ready for editing.
  */
 export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
   const config = useConfigStore((state) => state.config)

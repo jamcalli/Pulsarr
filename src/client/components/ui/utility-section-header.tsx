@@ -10,15 +10,15 @@ interface UtilitySectionHeaderProps {
 }
 
 /**
- * Displays a section header with a title, description, and an optional status badge for utility pages.
+ * Renders a section header with a title, description, and an optional status badge for utility pages.
  *
- * The badge visually indicates the current status using color and label, supporting 'enabled', 'disabled', 'failed', and 'unknown' states. Additional CSS classes can be applied to the container.
+ * The status badge visually represents the current state using color and label, supporting 'enabled', 'disabled', 'failed', and 'unknown' statuses. The badge can be hidden by setting `showStatus` to false. Additional CSS classes can be applied to the container for customization.
  *
- * @param title - The section title to display.
- * @param description - The description text shown below the title.
- * @param status - The status to display in the badge; defaults to 'unknown' if not provided.
- * @param showStatus - Whether to show the status badge; defaults to true for backward compatibility.
- * @param className - Additional CSS classes for the container.
+ * @param title - The main heading text for the section.
+ * @param description - Text displayed below the title.
+ * @param status - The status shown in the badge; defaults to 'unknown' if not specified.
+ * @param showStatus - If false, the status badge is not rendered; defaults to true.
+ * @param className - Extra CSS classes for the container element.
  */
 export function UtilitySectionHeader({
   title,

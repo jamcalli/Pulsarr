@@ -39,7 +39,7 @@ type AppriseFormSchema = z.infer<typeof appriseFormSchema>
 /****
  * Displays a form for configuring system-wide Apprise notification service URLs.
  *
- * Users can view the current Apprise server URL, add or update up to five system notification URLs, and clear them with confirmation. The form includes validation, status feedback, and disables controls when Apprise is not enabled or configuration is not initialized.
+ * Users can view the current Apprise server URL, add or update up to five system notification URLs, and clear them with confirmation. The form provides validation, status feedback, and disables controls when Apprise is not enabled or configuration is not initialized.
  *
  * @param isInitialized - Indicates whether the configuration is ready for editing.
  */

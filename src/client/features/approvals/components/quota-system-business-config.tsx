@@ -41,7 +41,7 @@ interface QuotaSystemBusinessConfigProps {
 /**
  * Renders a form for configuring quota reset policies and usage history cleanup settings.
  *
- * Allows users to specify weekly and monthly quota reset rules, define how to handle months lacking the specified reset day, and set retention periods for quota usage records. Form fields are dynamically enabled or disabled based on the quota maintenance schedule and loading state. Inline validation messages and contextual warnings are provided to guide user input.
+ * Users can specify weekly and monthly quota reset rules, choose how to handle months lacking the specified reset day, and set retention periods for quota usage records. Form fields are dynamically enabled or disabled based on the quota maintenance schedule and loading state. Inline validation and contextual warnings guide user input.
  *
  * @returns The quota system business configuration form UI.
  */

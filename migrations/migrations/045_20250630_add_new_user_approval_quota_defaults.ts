@@ -1,7 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds new user default columns for approval and quota settings to the `configs` table.
+ * Alters the `configs` table by adding columns for default user approval and quota settings for movies and shows.
+ *
+ * Adds boolean, string, and integer columns to manage default requirements for approval, quota enablement, quota type, quota limits, and approval bypass for new users.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
@@ -18,7 +20,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the new user default approval and quota columns from the `configs` table.
+ * Reverts the schema changes by dropping user approval and quota-related columns from the `configs` table.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {

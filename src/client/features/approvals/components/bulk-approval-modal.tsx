@@ -237,9 +237,9 @@ const FormContent = ({
 }
 
 /**
- * Displays a responsive modal interface for bulk approving, rejecting, or deleting selected approval requests.
+ * Displays a responsive modal for bulk approving, rejecting, or deleting selected approval requests.
  *
- * The modal adapts between mobile and desktop layouts, enforces action restrictions based on request statuses, prevents closure during ongoing actions, and provides user feedback for errors and results.
+ * The modal adapts its layout for mobile and desktop screens, enforces action restrictions based on the statuses of selected requests, prevents closure during ongoing actions, and provides user feedback for errors and results.
  *
  * @returns A modal component for managing bulk actions on approval requests.
  */
