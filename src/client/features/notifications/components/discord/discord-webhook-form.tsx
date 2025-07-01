@@ -432,7 +432,8 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
                         // Basic Discord webhook URL validation
                         return (
                           url === '' ||
-                          url.includes('discord.com/api/webhooks/')
+                          url.includes('discord.com/api/webhooks/') ||
+                          url.includes('discordapp.com/api/webhooks/')
                         )
                       }}
                       maxFields={5}

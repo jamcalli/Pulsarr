@@ -22,12 +22,13 @@ export function TopGenresChart() {
   const { data: topGenres, isLoading } = useTopGenresData()
 
   // CSS Custom Properties
-  const cssColors = {
-    fun:
+  const cssColors = useMemo(() => {
+    const fun =
       getComputedStyle(document.documentElement)
         .getPropertyValue('--fun')
-        .trim() || '#d4b483',
-  }
+        .trim() || '#d4b483'
+    return { fun }
+  }, [])
 
   // Top Genres data
   const topGenresData = useMemo((): GenreChartData[] => {

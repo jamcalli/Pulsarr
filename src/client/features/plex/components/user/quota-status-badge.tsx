@@ -50,8 +50,20 @@ function SingleQuotaBadge({
   }
 
   const currentUsage = quota.currentUsage ?? 0
-  const percentage =
-    quota.quotaLimit > 0 ? (currentUsage / quota.quotaLimit) * 100 : 0
+
+  // Treat 0 or negative limits as "unlimited"
+  if (quota.quotaLimit <= 0) {
+    return (
+      <Badge
+        variant="neutral"
+        className="px-1.5 py-0.5 h-6 text-xs bg-green-500 hover:bg-green-500 text-black"
+      >
+        {type === 'movie' ? 'M' : 'S'}:{currentUsage}/∞
+      </Badge>
+    )
+  }
+
+  const percentage = (currentUsage / quota.quotaLimit) * 100
 
   const getBadgeColor = () => {
     if (percentage >= 100) return 'bg-red-500 hover:bg-red-500 text-black'

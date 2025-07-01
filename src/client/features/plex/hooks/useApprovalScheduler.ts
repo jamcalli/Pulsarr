@@ -103,7 +103,7 @@ export function useApprovalScheduler() {
         const intervalMatch = hourPart.match(/^\*\/(\d+)$/)
         if (intervalMatch) {
           const interval = Number.parseInt(intervalMatch[1], 10)
-          if (Number.isFinite(interval) && interval > 0 && interval <= 23) {
+          if (Number.isFinite(interval) && interval > 0 && interval <= 24) {
             return interval
           }
         }
