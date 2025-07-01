@@ -2969,6 +2969,39 @@
                         "newUserDefaultCanSync": {
                           "type": "boolean"
                         },
+                        "newUserDefaultRequiresApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaType": {
+                          "type": "string",
+                          "enum": ["daily", "weekly_rolling", "monthly"]
+                        },
+                        "newUserDefaultMovieQuotaLimit": {
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 1000
+                        },
+                        "newUserDefaultMovieBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaType": {
+                          "type": "string",
+                          "enum": ["daily", "weekly_rolling", "monthly"]
+                        },
+                        "newUserDefaultShowQuotaLimit": {
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 1000
+                        },
+                        "newUserDefaultShowBypassApproval": {
+                          "type": "boolean"
+                        },
                         "quotaSettings": {
                           "type": "object",
                           "properties": {
@@ -3395,6 +3428,39 @@
                   "newUserDefaultCanSync": {
                     "type": "boolean"
                   },
+                  "newUserDefaultRequiresApproval": {
+                    "type": "boolean"
+                  },
+                  "newUserDefaultMovieQuotaEnabled": {
+                    "type": "boolean"
+                  },
+                  "newUserDefaultMovieQuotaType": {
+                    "type": "string",
+                    "enum": ["daily", "weekly_rolling", "monthly"]
+                  },
+                  "newUserDefaultMovieQuotaLimit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "newUserDefaultMovieBypassApproval": {
+                    "type": "boolean"
+                  },
+                  "newUserDefaultShowQuotaEnabled": {
+                    "type": "boolean"
+                  },
+                  "newUserDefaultShowQuotaType": {
+                    "type": "string",
+                    "enum": ["daily", "weekly_rolling", "monthly"]
+                  },
+                  "newUserDefaultShowQuotaLimit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "newUserDefaultShowBypassApproval": {
+                    "type": "boolean"
+                  },
                   "quotaSettings": {
                     "type": "object",
                     "properties": {
@@ -3761,6 +3827,39 @@
                           "additionalProperties": false
                         },
                         "newUserDefaultCanSync": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultRequiresApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaType": {
+                          "type": "string",
+                          "enum": ["daily", "weekly_rolling", "monthly"]
+                        },
+                        "newUserDefaultMovieQuotaLimit": {
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 1000
+                        },
+                        "newUserDefaultMovieBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaType": {
+                          "type": "string",
+                          "enum": ["daily", "weekly_rolling", "monthly"]
+                        },
+                        "newUserDefaultShowQuotaLimit": {
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 1000
+                        },
+                        "newUserDefaultShowBypassApproval": {
                           "type": "boolean"
                         },
                         "quotaSettings": {
@@ -11143,6 +11242,155 @@
         }
       }
     },
+    "/v1/quota/users/bulk": {
+      "patch": {
+        "operationId": "bulkQuotaOperations",
+        "summary": "Bulk quota operations",
+        "tags": ["Quota"],
+        "description": "Perform bulk quota operations on multiple users (update or delete)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 1,
+                    "maxItems": 100
+                  },
+                  "operation": {
+                    "type": "string",
+                    "enum": ["update", "delete"]
+                  },
+                  "movieQuota": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "quotaType": {
+                        "type": "string",
+                        "enum": ["daily", "weekly_rolling", "monthly"]
+                      },
+                      "quotaLimit": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 1000
+                      },
+                      "bypassApproval": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["enabled"],
+                    "additionalProperties": false
+                  },
+                  "showQuota": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "quotaType": {
+                        "type": "string",
+                        "enum": ["daily", "weekly_rolling", "monthly"]
+                      },
+                      "quotaLimit": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 1000
+                      },
+                      "bypassApproval": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["enabled"],
+                    "additionalProperties": false
+                  }
+                },
+                "required": ["userIds", "operation"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "processedCount": {
+                      "type": "number"
+                    },
+                    "failedIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "required": ["success", "message", "processedCount"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/quota/usage/cleanup": {
       "delete": {
         "operationId": "cleanupOldQuotaUsage",
@@ -12021,31 +12269,33 @@
       }
     },
     "/v1/radarr/test-connection": {
-      "get": {
+      "post": {
         "operationId": "testRadarrConnection",
         "summary": "Test Radarr connection",
         "tags": ["Radarr"],
         "description": "Test connectivity to a Radarr instance with provided credentials",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uri"
-            },
-            "in": "query",
-            "name": "baseUrl",
-            "required": true
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "baseUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "apiKey": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["baseUrl", "apiKey"],
+                "additionalProperties": false
+              }
+            }
           },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "in": "query",
-            "name": "apiKey",
-            "required": true
-          }
-        ],
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Default Response",
@@ -14714,31 +14964,33 @@
       }
     },
     "/v1/sonarr/test-connection": {
-      "get": {
+      "post": {
         "operationId": "testSonarrConnection",
         "summary": "Test Sonarr connection",
         "tags": ["Sonarr"],
         "description": "Test connectivity to a Sonarr instance with provided credentials",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uri"
-            },
-            "in": "query",
-            "name": "baseUrl",
-            "required": true
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "baseUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "apiKey": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["baseUrl", "apiKey"],
+                "additionalProperties": false
+              }
+            }
           },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "in": "query",
-            "name": "apiKey",
-            "required": true
-          }
-        ],
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Default Response",
