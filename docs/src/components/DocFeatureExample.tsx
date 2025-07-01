@@ -22,12 +22,13 @@ export default function DocFeatureExample() {
 
             <p className="text-foreground">
               Features include conditional content routing based on
-              genre/user/language/year/certification, comprehensive
-              multi-instance support with intelligent synchronization, granular
-              user permissions with tag tracking, personalized notifications via
-              built-in Discord bot or 80+ Apprise notification agents, automatic
-              Plex library updates, and smart content lifecycle management with
-              automatic deletion options when content leaves watchlists.
+              genre/user/language/year/certification, approval workflows with
+              configurable user quotas, comprehensive multi-instance support
+              with intelligent synchronization, granular user permissions with
+              tag tracking, personalized notifications via built-in Discord bot
+              or 80+ Apprise notification agents, automatic Plex library
+              updates, and smart content lifecycle management with automatic
+              deletion options when content leaves watchlists.
             </p>
 
             <p className="text-foreground text-xs opacity-70 mt-2">
@@ -70,6 +71,14 @@ export default function DocFeatureExample() {
                 <p className="text-foreground">
                   Distribute content across multiple Sonarr/Radarr instances
                   with intelligent synchronization
+                </p>
+              </div>
+
+              <div className="feature-item">
+                <h3 className="text-foreground">Approval & Quota System</h3>
+                <p className="text-foreground">
+                  Administrative approval workflows with configurable user
+                  quotas and Discord bot integration
                 </p>
               </div>
 

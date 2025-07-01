@@ -1,0 +1,71 @@
+---
+id: get-user-quotas
+title: "Get user quotas"
+description: "Get quota configurations for a specific user"
+sidebar_label: "Get user quotas"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVm1r2zAQ/iviPm3gLenLGPhboGMU+iHry76EMC72JdYmW6p0ThuM//s42ZnTJmsog8FgYIgj3T139+g5nRuwjjyyttVlDimsiO8C+S+1ZQyQAOMqQDqDuADzBHIKmddOHCCFz8TqXrZUZqulXtUdVFBL6xWq4CjTS52pOpCHBBx6LInJC2YDISuoREgb4I0jSCGw19UK2gS0oDvkAhKosJRNwbjMIQFP97X2lEPKvqZ2LivB2SpQEKzT8Vh+niZ6QUusDavr3hISyGzFVLHYonNGZzH10fcgDgeSs4vvlLFU4YUz1l24UGcZhbBjuLDWEFZSRkkh4IoOllgPPB8N0tc+2FV1uSAfQ9i1pu54/gSmZ+M2rj/PNgGq6lJ0EKNBAqGwDzBvE4inf8wrR202kMAD0Q+z+eatMZ1BaSsuzGZAutKl5oMJLjYOQ5g45+0azSG6211pzAa97Ja2m/CTkHsB5glgnmvRBJrpDo1LNIHajoL/vP9t3g8He53TtmWH/nzSjcfABO58fP4PXDJH6z5easTnwvbDIV7iXEAKo/XJKJ7jSKgLo6Y7ilZESn69veNrbyCFgtmlo9HJ+P3px/h8GMPzWTL1ukS/UTfRG9rkBef0bDw+20O40J4y7gHUJBar3jxoLpSznt/uYxqboSls4MOAV9vtg2BzGVNLG3nXbIT4aW0Ceq8m08s9sMn0UuU2q0uqOKogDsmtxzuFamroUT0gZ4XRgZWumFZ+ML2xlVhilatrzNHLRBWeO/ivJ6IFZwOXGLXVj00Z0XI03ZwOz9NqBom+dpr3YmN65JEzqKMYI71NL5IZrE+27d73mCSQDl0r5Ipd0yww0J03bSvL9zX5DaSzeQJr9BoXwu6sgVwHec97gb5Qy5vrXvhv1e9S7RexkityjaaWf5DAD9oMnxutXJEFYU4+ZtBtihwc77jtNbeo41fjfP50C237Exg7Q2E=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get user quotas"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/quota/users/{userId}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get quota configurations for a specific user
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"userId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"userQuotas":{"type":"object","properties":{"userId":{"type":"number"},"movieQuota":{"type":"object","properties":{"userId":{"type":"number"},"contentType":{"type":"string","enum":["movie","show"]},"quotaType":{"type":"string","enum":["daily","weekly_rolling","monthly"]},"quotaLimit":{"type":"number"},"bypassApproval":{"type":"boolean"}},"required":["userId","contentType","quotaType","quotaLimit","bypassApproval"],"additionalProperties":false},"showQuota":{"type":"object","properties":{"userId":{"type":"number"},"contentType":{"type":"string","enum":["movie","show"]},"quotaType":{"type":"string","enum":["daily","weekly_rolling","monthly"]},"quotaLimit":{"type":"number"},"bypassApproval":{"type":"boolean"}},"required":["userId","contentType","quotaType","quotaLimit","bypassApproval"],"additionalProperties":false}},"required":["userId"],"additionalProperties":false}},"required":["success","message","userQuotas"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

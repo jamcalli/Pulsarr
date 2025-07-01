@@ -12,31 +12,29 @@ export class QuotaService {
   constructor(private fastify: FastifyInstance) {}
 
   /**
-   * Sets up default quotas for a new user (both movie and show)
+   * Creates quotas for a user with specified settings (manual creation)
    */
-  async setupDefaultQuotas(
+  async createUserQuotas(
     userId: number,
-    quotaType: QuotaType = 'monthly',
-    movieQuotaLimit = 10,
-    showQuotaLimit = 10,
+    quotaType: QuotaType,
+    quotaLimit: number,
+    bypassApproval = false,
   ): Promise<UserQuotaConfigs> {
     const movieData: CreateUserQuotaData = {
       userId,
       contentType: 'movie',
       quotaType,
-      quotaLimit: movieQuotaLimit,
-      bypassApproval: false,
+      quotaLimit,
+      bypassApproval,
     }
 
     const showData: CreateUserQuotaData = {
       userId,
       contentType: 'show',
       quotaType,
-      quotaLimit: showQuotaLimit,
-      bypassApproval: false,
+      quotaLimit,
+      bypassApproval,
     }
-
-    // Reset timing is controlled by global maintenance schedule, not per-user settings
 
     const [movieQuota, showQuota] = await Promise.all([
       this.fastify.db.createUserQuota(movieData),
@@ -45,8 +43,47 @@ export class QuotaService {
 
     return {
       userId,
-      movieQuota,
-      showQuota,
+      movieQuota: movieQuota || undefined,
+      showQuota: showQuota || undefined,
+    }
+  }
+
+  /**
+   * Sets up default quotas for a new user based on config settings
+   */
+  async setupDefaultQuotas(userId: number): Promise<UserQuotaConfigs> {
+    const config = this.fastify.config
+    let movieQuota: UserQuotaConfig | null = null
+    let showQuota: UserQuotaConfig | null = null
+
+    // Create movie quota if enabled in config
+    if (config.newUserDefaultMovieQuotaEnabled) {
+      const movieData: CreateUserQuotaData = {
+        userId,
+        contentType: 'movie',
+        quotaType: config.newUserDefaultMovieQuotaType || 'monthly',
+        quotaLimit: config.newUserDefaultMovieQuotaLimit || 10,
+        bypassApproval: config.newUserDefaultMovieBypassApproval || false,
+      }
+      movieQuota = await this.fastify.db.createUserQuota(movieData)
+    }
+
+    // Create show quota if enabled in config
+    if (config.newUserDefaultShowQuotaEnabled) {
+      const showData: CreateUserQuotaData = {
+        userId,
+        contentType: 'show',
+        quotaType: config.newUserDefaultShowQuotaType || 'monthly',
+        quotaLimit: config.newUserDefaultShowQuotaLimit || 10,
+        bypassApproval: config.newUserDefaultShowBypassApproval || false,
+      }
+      showQuota = await this.fastify.db.createUserQuota(showData)
+    }
+
+    return {
+      userId,
+      movieQuota: movieQuota || undefined,
+      showQuota: showQuota || undefined,
     }
   }
 

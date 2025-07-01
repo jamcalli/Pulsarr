@@ -1,0 +1,71 @@
+---
+id: get-approval-requests
+title: "Get approval requests"
+description: "Retrieve approval requests with optional filtering"
+sidebar_label: "Get approval requests"
+hide_title: true
+hide_table_of_contents: true
+api: eJztWG1v2zYQ/isCP22ANjvthgH+5i5dEaxrjbz0S2AYZ+lss6VIhTw5MQz/9+IoyZJlKnaKbcCwAgHsmPfGu+ce8rgVJkcLJI2+SsVILJHGeW7NGtQ1PhToyIlYECydGN2LeklMY5GiS6zMWVOMxDWSlbjGCCqRyFbq0aOkVWS8IKhoIRWhlXopYpGDhQwJLRvfCpesMAMx2gra5ChGwlEliLrI2H+OOi1/Kd1gKmJh8TMm5L/iUy4tpmK6i4XksB4KtBsRCw1ZaRCocF7nofCSowUoh7s44F0X2Ryt6DFVOLRX6ZmmjjaSmbVEEQu3Mo+90SZGE2q6ZRvf6OehMAQzfEoQ0zJZpiC0M1sotpmBLkDNFgpYqfI3S6zkEkFvYGTlcokW0zebl+UyFpnUMuPYLtj7U/V9OBwyoBZQKBKjV8Mev0pmkr7ZY9tFnwezWDgMuZjyTy432qFjL6+GQ/44bILL0nx0XUk2OWVZyHMlE99qg8+OFQJhmzmDmXvDcmOSLN25IknQuZbg3BiFoBmeGToHSzzGwa7uk1YzN0JgLfDWJWHmTocg02BvVH3Qt/TB5zUQWBvcL2mUWk+Setbwn7h5bvldIdNzklEr7sp0GIfptW+hS0ykk2UVn08cJHQod7RJ35QN6GZ10fbkVgFJ6gJ9EliBTZwumnYEOsGeCtXLp6pgIQXLzeSM5i8cw0MBStJmYs1ClqUAvfm48EzedXRch+3eti6UP0/4E+ZsiWyBu3Kbhv4wKkUbCq6jUJ9SLyupNFbSJpgch2CT1Uc9TtNA3wX8OwRn9F9GSzL2sDz9QTu0Et2pAnCZUrDM4KBlxmBJQapNIHF7xhuvQSqYS3W4wSPboLUpdOKPB6l/lxozKM9IheCq09RtWOKqwss5aa4TyXlu2PS+DckOAFv1mMYC0lSWd4ZJC9IV4e957XQLWF+VIBe0z7F/9BBNgc4gee/nFBLKssfiEfGL2sysUaoUyIymFSPC96YhuOscCg2y/fJ7f5iGluvQw6G0BD6BKsISnJoezoGCTHmPxEBbMVqer3ybhr9z4HcO/L9yYMdkRXNx53Lumedllqr7ykkKLlnwuqfTQ9j8t+i2ufSGqT8EwXIy/Jtmz1riTaCrAs7reD8YwmAMRxqlMzems6Sle1sFF5wfvDE/l9yczAKDY431dqVezpzxsGtvvzF4KV2uYHOLT4FIGRIywztNUr3dq5yVscQiEKah/fPgkae9q91O5NLtZ/n9xBJ3hu+DqeNgxuhMFL1jQqdfun3agWzcPFW0sNRFShsH7Zy0M3C698nQwT2qYX/Ve0Wo5uQA0x2mt55bmyE1MJLWIcT7Ab8yfyp29vbLf2IQP5mW01v19mllqlc6/3xGKzESg/XFoM7pwDZJdWjX9dNaYZUYiRVRPhoMLoY/v/rN//06FN2HvImVGdhNdOO1/S2lV3n0ejh8fWThUlpMqDIQjf1Oox/8K2BuLP14bFOZBNTKOAobfF8vB41N+QRdGJ/08lFATArlwNpoPLk6MjaeXEWpSYoMNXkIRAtjo1rjpwiiicKn6BEoWSnpKJKacGkb0Rt//YtAp9F1fSXkPJfmP10wEHLjKAMPrOph6R3S8dNoN7htg9Jve1CtUEf4RINcgfSo9KneVmi5F+uLVg9Wjw4+mGksOMkss93OweGdVbsd/1w+kjGOUumYh+tnsVh84WeWhqzW5UQgfI17hPdse47wIQ2fo3HIq+do1Kxzjuz+gbARnvI/Vpbn0z2ffysEf1+/31ZajNu8rXVEQWxl397v3t6K3e4rb1w2Fw==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get approval requests"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/approval/requests"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve approval requests with optional filtering
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string","enum":["pending","approved","rejected","expired"]},"in":"query","name":"status","required":false},{"schema":{"type":"number"},"in":"query","name":"userId","required":false},{"schema":{"type":"string","enum":["movie","show"]},"in":"query","name":"contentType","required":false},{"schema":{"type":"string","enum":["quota_exceeded","router_rule","manual_flag","content_criteria"]},"in":"query","name":"triggeredBy","required":false},{"schema":{"type":"number","minimum":1,"maximum":1000,"default":20},"in":"query","name":"limit","required":false},{"schema":{"type":"number","minimum":0,"default":0},"in":"query","name":"offset","required":false}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"approvalRequests":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"userId":{"type":"number"},"userName":{"type":"string"},"contentType":{"type":"string","enum":["movie","show"]},"contentTitle":{"type":"string"},"contentKey":{"type":"string"},"contentGuids":{"type":"array","items":{"type":"string"}},"proposedRouterDecision":{"type":"object","properties":{"action":{"type":"string","enum":["route","require_approval","reject","continue"]},"routing":{"type":"object","properties":{"instanceId":{"type":"number"},"instanceType":{"type":"string","enum":["radarr","sonarr"]},"qualityProfile":{"anyOf":[{"type":"number"},{"type":"string"},{"enum":["null"],"nullable":true}]},"rootFolder":{"type":"string","nullable":true},"tags":{"type":"array","items":{"type":"string"}},"priority":{"type":"number"},"searchOnAdd":{"type":"boolean","nullable":true},"seasonMonitoring":{"type":"string","nullable":true},"seriesType":{"type":"string","enum":["standard","anime","daily"],"nullable":true},"minimumAvailability":{"type":"string","enum":["announced","inCinemas","released"]},"syncedInstances":{"type":"array","items":{"type":"number"}}},"required":["instanceId","instanceType","priority"],"additionalProperties":false},"approval":{"type":"object","properties":{"reason":{"type":"string"},"triggeredBy":{"type":"string","enum":["quota_exceeded","router_rule","manual_flag","content_criteria"]},"data":{"type":"object","properties":{"quotaType":{"type":"string","enum":["daily","weekly_rolling","monthly"]},"quotaUsage":{"type":"number"},"quotaLimit":{"type":"number"},"criteriaType":{"type":"string"},"criteriaValue":{"type":"string"},"ruleId":{"type":"number"},"autoApprove":{"type":"boolean"}},"additionalProperties":false},"proposedRouting":{"type":"object","properties":{"instanceId":{"type":"number"},"instanceType":{"type":"string","enum":["radarr","sonarr"]},"qualityProfile":{"anyOf":[{"type":"number"},{"type":"string"},{"enum":["null"],"nullable":true}]},"rootFolder":{"type":"string","nullable":true},"tags":{"type":"array","items":{"type":"string"}},"priority":{"type":"number"},"searchOnAdd":{"type":"boolean","nullable":true},"seasonMonitoring":{"type":"string","nullable":true},"seriesType":{"type":"string","enum":["standard","anime","daily"],"nullable":true},"minimumAvailability":{"type":"string","enum":["announced","inCinemas","released"]},"syncedInstances":{"type":"array","items":{"type":"number"}}},"required":["instanceId","instanceType","priority"],"additionalProperties":false}},"required":["reason","triggeredBy","data"],"additionalProperties":false}},"required":["action"],"additionalProperties":false},"routerRuleId":{"type":"number","nullable":true},"triggeredBy":{"type":"string","enum":["quota_exceeded","router_rule","manual_flag","content_criteria"]},"approvalReason":{"type":"string","nullable":true},"status":{"type":"string","enum":["pending","approved","rejected","expired"]},"approvedBy":{"type":"number","nullable":true},"approvalNotes":{"type":"string","nullable":true},"expiresAt":{"type":"string","nullable":true},"isExpired":{"type":"boolean"},"expirationStatus":{"type":"string","enum":["active","expiring_soon","expired"]},"expirationDisplayText":{"type":"string"},"timeUntilExpiration":{"type":"number","nullable":true},"createdAt":{"type":"string"},"updatedAt":{"type":"string"}},"required":["id","userId","userName","contentType","contentTitle","contentKey","contentGuids","proposedRouterDecision","routerRuleId","triggeredBy","approvalReason","status","approvedBy","approvalNotes","expiresAt","createdAt","updatedAt"],"additionalProperties":false}},"total":{"type":"number"},"limit":{"type":"number"},"offset":{"type":"number"}},"required":["success","message","approvalRequests","total","limit","offset"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

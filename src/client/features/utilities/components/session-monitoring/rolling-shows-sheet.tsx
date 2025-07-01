@@ -72,6 +72,7 @@ import {
 } from '@/components/ui/tooltip'
 
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 
@@ -142,6 +143,9 @@ export function RollingShowsSheet({
   )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
+
+  // Persistent table pagination
+  const { pageSize, setPageSize } = useTablePagination('rolling-shows', 15)
 
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = React.useState<{
@@ -419,6 +423,18 @@ export function RollingShowsSheet({
       sorting,
       columnFilters,
       columnVisibility,
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newPagination = updater({ pageIndex: 0, pageSize })
+        if (newPagination.pageSize !== pageSize) {
+          setPageSize(newPagination.pageSize)
+        }
+      }
     },
   })
 
