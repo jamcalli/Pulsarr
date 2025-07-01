@@ -2,9 +2,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Displays a skeleton loader that visually replicates the Radarr Content Router page layout during loading states.
+ * Displays a skeleton loader that visually mimics the Radarr Content Router page layout during loading states.
  *
- * The skeleton includes placeholders for the page header, route cards, settings, conditions, and action buttons, providing users with a preview of the page structure while data is being fetched.
+ * The skeleton includes placeholders for the page header, route cards, settings, conditions, and action buttons, giving users a preview of the page structure while data is being loaded.
  *
  * @returns A JSX element containing skeleton placeholders for the Radarr Content Router page.
  */

@@ -15,9 +15,7 @@ interface QuotaSystemActionsProps {
 }
 
 /**
- * Renders operational controls for managing the quota maintenance schedule, including status display, enable/disable toggle, and immediate run actions.
- *
- * Provides a visual indicator of the current job status, buttons to enable or disable the schedule and to trigger maintenance immediately, and a warning message when the schedule is disabled.
+ * Renders UI controls for managing the quota maintenance schedule, including status display, enable/disable toggle, immediate run action, and a warning when disabled.
  *
  * @param isScheduleEnabled - Whether the quota maintenance schedule is currently enabled
  * @param isToggling - Whether the enable/disable action is in progress

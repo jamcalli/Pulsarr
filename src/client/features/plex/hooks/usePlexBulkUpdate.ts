@@ -11,9 +11,9 @@ import type { BulkUpdateRequest } from '@root/schemas/users/users.schema'
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * Manages state and provides handlers for bulk updating Plex user data, including modal visibility, update status, and selected user rows.
+ * Provides state and handler functions for performing bulk updates of Plex user data, including managing modal visibility, update status, and selected user rows.
  *
- * Returns modal open state, a setter for modal visibility, the current update status, selected rows for editing, and functions to open the bulk edit modal and perform the bulk update operation.
+ * Returns the current modal open state, a setter for modal visibility, the current update status, selected rows for editing, and functions to open the bulk edit modal and execute the bulk update operation.
  */
 export function usePlexBulkUpdate() {
   const fetchUserData = useConfigStore((state) => state.fetchUserData)

@@ -54,9 +54,9 @@ interface ApprovalActionsModalProps {
 }
 
 /**
- * Displays a responsive modal for viewing and managing an approval request, allowing users to approve, reject, delete, or edit routing details.
+ * Renders a responsive modal interface for viewing and managing an approval request, including actions to approve, reject, delete, or edit routing details.
  *
- * Presents request information, routing configuration, approval history, and action controls. Supports optional notes for actions, manages loading and success states, and updates external data via an optional callback after actions. Adapts layout for desktop and mobile devices.
+ * Displays request metadata, routing configuration, approval history, and action controls. Supports optional notes for actions, manages loading and success states, and can trigger an external update callback after actions. Adapts layout for desktop and mobile devices.
  *
  * @param request - The approval request to display and manage
  * @param open - Whether the modal is visible

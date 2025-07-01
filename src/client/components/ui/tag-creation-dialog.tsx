@@ -51,11 +51,11 @@ interface TagCreationDialogProps {
 /**
  * Renders a modal dialog for creating a new tag in a Radarr or Sonarr instance.
  *
- * Users can enter a tag name, which is validated and submitted to the backend. The dialog provides feedback for loading, success, and error states, and disables input and dialog closure while a creation request is in progress. After successful creation, the dialog closes and a callback is invoked.
+ * Users can enter a tag name, which is validated and submitted to the backend. The dialog provides feedback for loading, success, and error states, and disables input and dialog closure while a creation request is in progress. After successful creation, the dialog closes and a callback is triggered.
  *
  * @param open - Whether the dialog is open
  * @param onOpenChange - Callback triggered when the dialog's open state changes
- * @param instanceId - The unique identifier of the Radarr or Sonarr instance
+ * @param instanceId - Unique identifier for the Radarr or Sonarr instance
  * @param instanceType - The type of instance ('radarr' or 'sonarr')
  * @param instanceName - Optional display name for the instance
  * @param onSuccess - Callback triggered after a tag is successfully created

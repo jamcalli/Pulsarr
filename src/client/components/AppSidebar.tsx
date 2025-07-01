@@ -219,11 +219,11 @@ const createDefaultSections = (
 }
 
 /**
- * Displays a responsive, collapsible sidebar navigation menu with user controls for theme, visual effects, and logout.
+ * Renders a responsive, collapsible sidebar navigation menu with user controls for theme switching, visual effects, and logout.
  *
- * The sidebar presents main navigation items (with optional collapsible sub-sections), external help/resource links, and current user information. It highlights the active route or anchor section, persists the open/closed state of collapsible sections, and adapts its layout for mobile and desktop. Users can switch between light and dark themes, toggle a visual "asteroids" effect (desktop only), and log out via a confirmation dialog.
+ * The sidebar displays main navigation items (with optional collapsible sub-sections), external help/resource links, and current user information. It highlights the active route or anchor section, persists the open/closed state of collapsible sections, and adapts its layout for mobile and desktop. Users can switch between light and dark themes, toggle a desktop-only "asteroids" visual effect, and log out via a confirmation dialog.
  *
- * @returns The sidebar React component containing navigation, settings, and user controls.
+ * @returns A React component containing the sidebar navigation, settings, and user controls.
  */
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile, setOpenMobile } = useSidebar()

@@ -10,7 +10,7 @@ import type {
 } from 'recharts/types/component/DefaultTooltipContent'
 
 /**
- * Renders a stacked bar chart showing the distribution of content statuses ("grabbed", "notified", "requested") for each instance.
+ * Renders a stacked bar chart visualizing the distribution of content statuses ("grabbed", "notified", "requested") for each instance.
  *
  * Fetches and processes instance content data, displaying a responsive chart with a custom tooltip and legend. Shows a loading or empty state if data is unavailable.
  */

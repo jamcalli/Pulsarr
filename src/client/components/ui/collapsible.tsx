@@ -3,7 +3,7 @@ import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
 import type * as React from "react"
 
 /**
- * Renders a collapsible container using Radix UI's Collapsible primitive, forwarding all props and adding a `data-slot="collapsible"` attribute.
+ * Renders a collapsible container by wrapping Radix UI's Collapsible primitive and adds a `data-slot="collapsible"` attribute.
  */
 function Collapsible({
   ...props
@@ -12,7 +12,7 @@ function Collapsible({
 }
 
 /**
- * Renders a trigger element for toggling the collapsible state, forwarding all props to the Radix UI primitive and adding a `data-slot="collapsible-trigger"` attribute.
+ * Renders a trigger element that toggles the collapsible state, forwarding all props and adding a `data-slot="collapsible-trigger"` attribute.
  */
 function CollapsibleTrigger({
   ...props
@@ -26,7 +26,7 @@ function CollapsibleTrigger({
 }
 
 /**
- * Renders the collapsible content area using the Radix UI primitive, adding a `data-slot="collapsible-content"` attribute for styling or targeting.
+ * Renders the collapsible content area using the Radix UI primitive and adds a `data-slot="collapsible-content"` attribute.
  */
 function CollapsibleContent({
   ...props

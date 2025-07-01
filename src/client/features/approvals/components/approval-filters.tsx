@@ -15,7 +15,7 @@ import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import type { GetApprovalRequestsQuery } from '@root/schemas/approval/approval.schema'
 
 /**
- * Renders filter controls for approval requests, allowing users to apply quick or advanced filters by status, content type, trigger type, and user ID.
+ * Renders interactive filter controls for approval requests, supporting both quick and advanced filtering by status, content type, trigger type, and user ID.
  *
  * Synchronizes filter state with a global approvals store, applies or clears filters, and displays badges for active filters. Disables controls during loading to prevent concurrent actions.
  */

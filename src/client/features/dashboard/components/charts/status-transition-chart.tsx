@@ -16,7 +16,7 @@ import { useStatusTransitionData } from '@/features/dashboard/hooks/useChartData
 /**
  * Renders a vertical bar chart comparing the average, minimum, and maximum time in minutes for status transitions from "grabbed" to "notified" for movies and shows.
  *
- * Displays a loading indicator while fetching data. The chart features error bars, reference lines for min/max values, and a legend distinguishing movies and shows by color and line style.
+ * Shows a loading indicator while data is being fetched. The chart displays error bars for average values, reference lines for min/max values, and a legend that distinguishes movies and shows by color and line style.
  */
 export function StatusTransitionsChart() {
   const { data: statusTransitions, isLoading } = useStatusTransitionData()

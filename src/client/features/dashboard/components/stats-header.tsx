@@ -8,7 +8,7 @@ interface StatsHeaderProps {
 }
 
 /**
- * Renders the dashboard header with a title, watchlist status badge, refresh button, and last updated time.
+ * Renders the dashboard header section with a title, watchlist status badge, refresh button, and last updated time.
  *
  * @param onRefresh - Function called when the refresh button is clicked.
  */

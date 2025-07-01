@@ -370,18 +370,16 @@ interface BulkQuotaEditModalProps {
 }
 
 /**
- * Displays a responsive modal for bulk editing quota settings for multiple users.
+ * Renders a responsive modal for bulk editing quota settings across multiple users.
  *
- * Enables clearing existing quotas or applying new movie and show quota configurations
- * to selected users. The modal adapts its layout for mobile and desktop, and disables
- * interaction during save operations.
+ * Allows administrators to clear all quotas or apply new movie and show quota configurations to selected users. The modal adapts its layout for mobile and desktop screens, disables interaction during save operations, and resets form state when opened.
  *
- * @param isOpen - Whether the modal is currently open
+ * @param isOpen - Whether the modal is open
  * @param onOpenChange - Callback to update the modal's open state
- * @param selectedRows - Array of selected user rows for bulk editing
- * @param onSave - Callback invoked with the bulk quota data when the form is submitted
+ * @param selectedRows - The user rows selected for bulk editing
+ * @param onSave - Callback invoked with the quota form data on submission
  * @param saveStatus - The current status of the save operation
- * @returns The modal component
+ * @returns The modal component for bulk quota editing
  */
 export function BulkQuotaEditModal({
   isOpen,
