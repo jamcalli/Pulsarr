@@ -7,9 +7,9 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 /**
- * Displays the current status of the Discord bot and provides controls to start or stop it.
+ * Displays a badge indicating the current Discord bot status and a button to start or stop the bot.
  *
- * Renders a badge indicating the bot's status and a button to toggle between starting and stopping the bot. The button is disabled during transitional states or while an action is in progress. Success and error notifications are shown based on the outcome of the start or stop action.
+ * The badge color reflects the bot's state: green for running, yellow for starting, orange for stopping, red for stopped, and gray for unknown. The toggle button is disabled during transitional states or while an action is in progress. Success and error notifications are shown based on the outcome of the start or stop operation.
  */
 export function DiscordStatusBadge() {
   const status = useDiscordStatus()

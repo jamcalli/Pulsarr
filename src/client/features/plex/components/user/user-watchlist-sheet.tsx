@@ -62,6 +62,7 @@ import {
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { WatchlistItem } from '@root/schemas/users/watchlist.schema'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface ColumnMetaType {
   className?: string
@@ -78,18 +79,18 @@ interface UserWatchlistSheetProps {
 }
 
 /**
- * Displays a responsive sheet or drawer containing a user's watchlist in an interactive table.
+ * Displays a user's watchlist in a responsive, interactive table within a sheet (desktop) or drawer (mobile).
  *
- * Provides sorting, filtering, pagination, and column visibility controls for the watchlist. Adapts between a sliding sheet on desktop and a drawer on mobile devices. Handles loading and error states with appropriate feedback.
+ * Provides sorting, filtering, pagination with persistent page size, and column visibility controls. Handles loading and error states with contextual feedback. Adapts layout automatically based on device type.
  *
- * @param isOpen - Whether the sheet or drawer is visible.
- * @param onClose - Function to close the sheet or drawer.
- * @param userName - Name of the user whose watchlist is shown.
- * @param watchlistItems - Array of watchlist items to display.
- * @param isLoading - Indicates if the watchlist data is loading.
- * @param error - Error object if loading failed.
+ * @param isOpen - Whether the sheet or drawer is visible
+ * @param onClose - Callback to close the sheet or drawer
+ * @param userName - Name of the user whose watchlist is displayed
+ * @param watchlistItems - List of watchlist items to display
+ * @param isLoading - Whether the watchlist data is currently loading
+ * @param error - Error object if loading failed
  *
- * @returns The rendered watchlist sheet or drawer component.
+ * @returns The rendered watchlist sheet or drawer component
  */
 export function UserWatchlistSheet({
   isOpen,
@@ -109,6 +110,9 @@ export function UserWatchlistSheet({
   )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
+
+  // Persistent table pagination
+  const { pageSize, setPageSize } = useTablePagination('user-watchlist', 10)
 
   const columns: ColumnDef<WatchlistItem>[] = [
     {
@@ -249,6 +253,18 @@ export function UserWatchlistSheet({
       sorting,
       columnFilters,
       columnVisibility,
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newPagination = updater({ pageIndex: 0, pageSize })
+        if (newPagination.pageSize !== pageSize) {
+          setPageSize(newPagination.pageSize)
+        }
+      }
     },
   })
 

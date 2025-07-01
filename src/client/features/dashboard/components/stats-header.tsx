@@ -8,9 +8,9 @@ interface StatsHeaderProps {
 }
 
 /**
- * Displays the dashboard header with a title, watchlist status badge, and controls for refreshing and viewing the last updated time.
+ * Renders the dashboard header section with a title, watchlist status badge, refresh button, and last updated time.
  *
- * @param onRefresh - Callback invoked when the refresh button is clicked.
+ * @param onRefresh - Function called when the refresh button is clicked.
  */
 export function StatsHeader({ onRefresh }: StatsHeaderProps) {
   const { isLoading, lastRefreshed } = useDashboardStats()

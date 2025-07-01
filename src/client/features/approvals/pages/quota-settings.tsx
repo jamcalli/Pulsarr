@@ -87,9 +87,9 @@ const formatScheduleDisplay = (
 }
 
 /**
- * Displays a standalone page for configuring quota maintenance scheduling, reset policies, and usage history cleanup.
+ * Renders a standalone page for managing quota maintenance scheduling, reset policies, and usage history cleanup.
  *
- * Allows users to enable or disable the quota schedule, run maintenance jobs on demand, view current and upcoming job status, and adjust schedule timing, reset rules, and cleanup retention settings. Includes responsive layout, loading and error handling, and form validation.
+ * Provides controls to enable or disable scheduled quota maintenance, run maintenance jobs immediately, view current and upcoming job status, and configure schedule timing, reset rules, and cleanup retention. Includes responsive layout, loading and error handling, and form validation.
  */
 export default function QuotaSettingsPage() {
   const isMobile = useMediaQuery('(max-width: 768px)')

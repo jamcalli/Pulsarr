@@ -1,0 +1,71 @@
+---
+id: get-daily-usage-stats
+title: "Get daily usage statistics"
+description: "Get daily usage statistics for a user"
+sidebar_label: "Get daily usage statistics"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVcFu2kAQ/ZXVnBppW0NoWsm3SKkipB5o0vSCOAz2gDdde53dMQlC/vdq1iaQAKXXSkiAZ+bN7ps3zxtwNXlk46pxDiksiW/Q2PVDwCXdM3IADYzLAOkUfjSOEWYacgqZN7VUQQq3xCqXItVIlQqMbAKbLKiF8wpVE8iDhho9lsTkBWwDISuoREg3wOuaIIWqKefkodVgBPapIb8GDRWWEhWQcQ4aPD01xlMOKfuGWn0aSUNpKlM2JaRDDSW+dL9HX67kCgtsLEM6GpxomOM6vGm3QBuoncmjULsqUJCWl4OBfL2l5KZDV3d9JmjIXMVUseRiXVuTRdKTxyAFR+7g5o+UsdDmZURsunahyTIKYS9x7pwlrIS3koJMYC8Y2JtqKbE4oW6iuzB6j3Jlw1SG881z5OPgpVv1KQezDIV7Ph5hx2iPRNp90qdd09cWW8Bt+UwD5rkRLtFO9k7bTes92Ja+HVdvmDmL1mr4/F8M/Oy9z1814nPhel+IG8wFpJCshsmTeEEiqx6SSKBMhvxqu92Nt5BCwVynSTIcfLr8Gj9XA3hvHxNvSvRrdR+rQRb6ZHE6GgxGBwg3xlPGPYC6jjdVH54NF6p2ni8OMa3L0BYu8HHA79vwUbCZ+MXCRdINW2F90tiA3qvryfgA7HoyVrnLmpIqjhKIrrit+KhQTSy9qGfkrLAmsDIV09LvUu9dJZlY5eoOc/RibMJzB/9rKEKoXeASo7B6+zrtyu9PuNlJ9Z+9vFcb0wsntUUT1Rgp3vQqmcJqCBqiTkQb/buk08pMg9ArWZvNHAM9eNu28rgzYVFQbgLO7avx/uXQH+56pV+oU0f7Tev9d8gKbSNJURkHjbrk3v93qTP5443kQjqdtRoKwpx8PG1XI3Kpea/qYPMF5XWrbr/9hLb9A6NgkTA=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get daily usage statistics"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/quota/stats/daily"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get daily usage statistics for a user
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"query","name":"userId","required":true},{"schema":{"type":"number","minimum":1,"maximum":365,"default":30},"in":"query","name":"days","required":false}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"dailyStats":{"type":"array","items":{"type":"object","properties":{"date":{"type":"string"},"movies":{"type":"number"},"shows":{"type":"number"},"total":{"type":"number"}},"required":["date","movies","shows","total"],"additionalProperties":false}}},"required":["success","message","dailyStats"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

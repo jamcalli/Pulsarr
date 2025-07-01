@@ -41,9 +41,9 @@ const CHART_CONFIG: Record<ChartType, ChartConfigItem> = {
 }
 
 /**
- * Displays a media analytics dashboard with selectable charts and descriptive headers.
+ * Renders a media analytics dashboard with tabbed navigation for multiple chart types.
  *
- * Renders a card containing a tabbed interface for switching between different analytics charts, each with its own label and description. The dashboard includes a header section and dynamically displays the selected chart.
+ * Displays a card containing a header with the selected chart's label and description, a tabbed interface for switching between analytics charts, and dynamically renders the currently selected chart.
  */
 export function AnalyticsDashboard() {
   const [activeChart, setActiveChart] = useState<ChartType>(

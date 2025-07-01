@@ -5,10 +5,9 @@ import type * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * Renders a styled avatar container component, wrapping the Radix UI Avatar root.
+ * Displays a circular avatar container with default styling, wrapping the Radix UI Avatar root.
  *
- * Combines default avatar layout, sizing, and border styles with any additional class names provided.
- * All other props are forwarded to the underlying Radix Avatar primitive.
+ * Merges custom class names with default styles and forwards all additional props to the underlying primitive.
  */
 function Avatar({
   className,
@@ -27,9 +26,9 @@ function Avatar({
 }
 
 /**
- * Renders an avatar image that fills its container with a square aspect ratio.
+ * Renders an avatar image that fills its container and preserves a square aspect ratio.
  *
- * Combines default and custom class names, and adds a data attribute for targeting.
+ * Combines default and custom class names, and adds a `data-slot="avatar-image"` attribute for targeting. All additional props are forwarded to the underlying Radix UI primitive.
  */
 function AvatarImage({
   className,
@@ -45,9 +44,9 @@ function AvatarImage({
 }
 
 /**
- * Renders a styled fallback element for the avatar, typically shown when the image cannot be loaded.
+ * Renders a fallback UI centered within the avatar container when the avatar image cannot be displayed.
  *
- * Applies default centering, background, and text styles, and merges any additional class names provided.
+ * Combines default centering, background, and text styles with any custom class names. Forwards all additional props to the underlying Radix UI primitive.
  */
 function AvatarFallback({
   className,
@@ -57,7 +56,7 @@ function AvatarFallback({
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "flex size-full items-center justify-center rounded-full bg-secondary-background text-foreground font-base",
+        "flex size-full items-center justify-center rounded-full bg-secondary-background text-foreground text-base",
         className,
       )}
       {...props}

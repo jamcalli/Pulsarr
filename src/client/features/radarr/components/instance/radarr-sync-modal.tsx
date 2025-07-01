@@ -21,9 +21,14 @@ interface RadarrSyncModalProps {
 }
 
 /**
- * Displays a modal dialog to manage and track the synchronization of Radarr instances.
+ * Displays a modal dialog for synchronizing one or more Radarr instances, managing the sync process and providing real-time progress feedback.
  *
- * Provides progress feedback, handles synchronization requests for one or more Radarr instances, and prevents user interaction while syncing is in progress. Supports both manual and automatic sync initiation, and notifies users of completion or errors.
+ * The modal can initiate synchronization automatically or manually, disables user interaction during syncing, and notifies users upon completion or error. Progress is shown for each instance and overall when syncing multiple instances.
+ *
+ * @param open - Controls whether the modal is visible
+ * @param onOpenChange - Callback to update the modal's open state
+ * @param syncedInstances - List of Radarr instance IDs to synchronize
+ * @param isManualSync - If true, synchronization starts automatically when the modal opens (default: false)
  */
 export function RadarrSyncModal({
   open,

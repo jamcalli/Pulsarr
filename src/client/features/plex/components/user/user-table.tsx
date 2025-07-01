@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  Target,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -60,6 +61,7 @@ import { toast } from 'sonner'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { QuotaStatusBadge } from '@/features/plex/components/user/quota-status-badge'
 import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface ColumnMetaType {
   className?: string
@@ -73,14 +75,15 @@ interface UserTableProps {
   onEditQuota: (user: UserWithQuotaInfo) => void
   isLoading?: boolean
   onBulkEdit?: (selectedRows: PlexUserTableRow[]) => void
+  onBulkEditQuotas?: (selectedRows: PlexUserTableRow[]) => void
 }
 
 /**
- * Displays an interactive user management table with advanced features for sorting, filtering, pagination, column visibility, row selection, and editing.
+ * Displays an interactive user management table with sorting, filtering, pagination, column visibility, row selection, and editing features.
  *
- * Enables editing user details and quotas, performing bulk edits on selected users, and viewing a user's watchlist in a modal. The table presents notification, sync, approval, and quota statuses, and adapts its controls and appearance based on loading state.
+ * Supports editing individual users and quotas, bulk editing settings or quotas for selected users, and viewing a user's watchlist in a modal. The table presents notification, sync, approval, and quota information for each user, and adapts its controls and appearance based on loading state.
  *
- * If an attempt is made to view the watchlist for a user with an invalid ID, an error is logged and an error toast is shown; the modal will not open.
+ * If a watchlist is requested for a user with an invalid ID, an error is logged and a toast notification is shown; the watchlist modal will not open.
  */
 
 export default function UserTable({
@@ -89,6 +92,7 @@ export default function UserTable({
   onEditQuota,
   isLoading = false,
   onBulkEdit,
+  onBulkEditQuotas,
 }: UserTableProps) {
   // Table state
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -99,6 +103,9 @@ export default function UserTable({
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [selectedUserName, setSelectedUserName] = React.useState<string>('')
+
+  // Persistent table pagination
+  const { pageSize, setPageSize } = useTablePagination('users', 20)
 
   const {
     watchlistData,
@@ -431,6 +438,18 @@ export default function UserTable({
       columnFilters,
       columnVisibility,
       rowSelection,
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newPagination = updater({ pageIndex: 0, pageSize })
+        if (newPagination.pageSize !== pageSize) {
+          setPageSize(newPagination.pageSize)
+        }
+      }
     },
   })
 
@@ -476,38 +495,56 @@ export default function UserTable({
           </DropdownMenu>
         </div>
 
-        {/* Bulk edit button that appears when rows are selected */}
-        {table.getFilteredSelectedRowModel().rows.length > 0 && onBulkEdit && (
-          <div className="pb-4">
-            <Button
-              variant="blue"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() => {
-                onBulkEdit(table.getFilteredSelectedRowModel().rows)
-              }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-edit"
-                aria-labelledby="editIconTitle"
-              >
-                <title id="editIconTitle">Edit Icon</title>
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-              Bulk Edit ({table.getFilteredSelectedRowModel().rows.length})
-            </Button>
-          </div>
-        )}
+        {/* Bulk edit buttons that appear when rows are selected */}
+        {table.getFilteredSelectedRowModel().rows.length > 0 &&
+          (onBulkEdit || onBulkEditQuotas) && (
+            <div className="pb-4 flex gap-2">
+              {onBulkEdit && (
+                <Button
+                  variant="blue"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    onBulkEdit(table.getFilteredSelectedRowModel().rows)
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-edit"
+                    aria-labelledby="editIconTitle"
+                  >
+                    <title id="editIconTitle">Edit Icon</title>
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Bulk Edit Settings (
+                  {table.getFilteredSelectedRowModel().rows.length})
+                </Button>
+              )}
+              {onBulkEditQuotas && (
+                <Button
+                  variant="cancel"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    onBulkEditQuotas(table.getFilteredSelectedRowModel().rows)
+                  }}
+                >
+                  <Target className="mr-2 h-4 w-4" />
+                  Bulk Edit Quotas (
+                  {table.getFilteredSelectedRowModel().rows.length})
+                </Button>
+              )}
+            </div>
+          )}
       </div>
       <div className="rounded-md">
         {isLoading ? (

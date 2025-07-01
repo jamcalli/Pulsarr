@@ -3,7 +3,7 @@ import type { Knex } from 'knex'
 /**
  * Migrates the `user_quotas` table to support separate quota records for movies and shows.
  *
- * Creates a new schema with a `content_type` column, duplicates each existing quota record for both 'movie' and 'show' types within a transaction, updates constraints and indexes, and replaces the original table with the new structure.
+ * Creates a new table with a `content_type` column, duplicates each existing quota record for both 'movie' and 'show' types, updates constraints and indexes, and replaces the original table with the new structure.
  */
 export async function up(knex: Knex): Promise<void> {
   // Step 1: Create a new temporary table with the correct structure

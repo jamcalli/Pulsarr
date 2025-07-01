@@ -18,9 +18,9 @@ const approvalConfigurationSchema = z.object({
 type ApprovalConfigurationFormData = z.infer<typeof approvalConfigurationSchema>
 
 /**
- * Provides a unified hook for managing quota approval configuration and scheduled quota maintenance.
+ * Combines quota approval configuration management with scheduled quota maintenance controls in a single React hook.
  *
- * Synchronizes schedule-related form fields with the current scheduler state, coordinates saving of both configuration and schedule updates, and exposes combined state, handlers, and status flags for quota system management. Notifies the user if schedule updates fail after a successful configuration save.
+ * Synchronizes schedule-related form fields with the scheduler state, coordinates saving of both configuration and schedule updates, and exposes unified state, handlers, and status flags for quota system management. Notifies the user if the schedule update fails after a successful configuration save.
  *
  * @returns An object containing state, handlers, and status flags for both quota approval configuration and quota maintenance scheduling.
  */

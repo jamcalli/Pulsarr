@@ -20,9 +20,9 @@ import type {
 type BulkActionStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * Renders the approval management section, providing a table-based interface for viewing, filtering, and managing approval requests with real-time updates and bulk actions.
+ * Displays the approval management interface, allowing users to view, filter, and manage approval requests with real-time updates and bulk actions.
  *
- * Integrates with the global approvals store to display approval requests and statistics, supports individual and bulk approval, rejection, and deletion, and handles user interactions through dialogs and modals. Real-time updates are received via server-sent events. Displays loading states and error banners as appropriate.
+ * Integrates with the global approvals store to provide up-to-date approval requests and statistics, supports individual and bulk approval, rejection, and deletion, and manages user interactions through dialogs and modals. Real-time updates are handled via server-sent events. Shows loading indicators and error banners as needed.
  *
  * @returns The approval management UI, or `null` if initialization is not complete.
  */

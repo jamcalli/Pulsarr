@@ -11,6 +11,57 @@ import type {
   CreateUserQuotaData,
   UpdateUserQuotaData,
 } from '@root/types/approval.types.js'
+import type { Knex } from 'knex'
+
+/**
+ * Inserts, updates, or deletes a user's quota configuration for a specific content type within a transaction.
+ *
+ * If the provided quota configuration is enabled and valid, upserts the quota record; if disabled, deletes the quota record.
+ */
+async function upsertOrDeleteQuota(
+  this: DatabaseService,
+  trx: Knex.Transaction,
+  userId: number,
+  contentType: 'movie' | 'show',
+  quotaConfig?: {
+    enabled: boolean
+    quotaType?: QuotaType
+    quotaLimit?: number
+    bypassApproval?: boolean
+  },
+): Promise<void> {
+  if (!quotaConfig) return
+
+  if (
+    quotaConfig.enabled &&
+    quotaConfig.quotaType &&
+    quotaConfig.quotaLimit !== undefined
+  ) {
+    const quotaData = {
+      user_id: userId,
+      content_type: contentType,
+      quota_type: quotaConfig.quotaType,
+      quota_limit: quotaConfig.quotaLimit,
+      bypass_approval: quotaConfig.bypassApproval || false,
+      created_at: this.timestamp,
+      updated_at: this.timestamp,
+    }
+
+    await trx('user_quotas')
+      .insert(quotaData)
+      .onConflict(['user_id', 'content_type'])
+      .merge({
+        quota_type: quotaData.quota_type,
+        quota_limit: quotaData.quota_limit,
+        bypass_approval: quotaData.bypass_approval,
+        updated_at: quotaData.updated_at,
+      })
+  } else if (!quotaConfig.enabled) {
+    await trx('user_quotas')
+      .where({ user_id: userId, content_type: contentType })
+      .del()
+  }
+}
 
 /**
  * Converts a user quota database row into a UserQuotaConfig object.
@@ -760,10 +811,10 @@ export async function getUsersWithQuotaType(
 }
 
 /**
- * Returns the most recent quota usage entry for the specified user, or null if no usage records exist.
+ * Retrieves the most recent quota usage record for a user.
  *
- * @param userId - The user ID to look up
- * @returns The latest quota usage record for the user, or null if not found
+ * @param userId - The ID of the user whose latest quota usage is requested
+ * @returns The latest quota usage record for the user, or null if none exist
  */
 export async function getLatestQuotaUsage(
   this: DatabaseService,
@@ -775,4 +826,122 @@ export async function getLatestQuotaUsage(
     .first()
 
   return row ? mapRowToQuotaUsage(row) : null
+}
+
+/**
+ * Deletes quota configurations and associated usage records for multiple users in batches within a single transaction.
+ *
+ * Processes user IDs in batches of 50 for efficiency. Returns the number of users whose quotas were successfully deleted and an array of user IDs for which deletion failed.
+ *
+ * @param userIds - Array of user IDs whose quotas and usage records should be deleted
+ * @returns An object with the count of successfully processed users and an array of failed user IDs
+ */
+export async function bulkDeleteQuotas(
+  this: DatabaseService,
+  userIds: number[],
+): Promise<{ processedCount: number; failedIds: number[] }> {
+  const failedIds: number[] = []
+  let processedCount = 0
+
+  try {
+    // Start a transaction to ensure all deletions are atomic
+    await this.knex.transaction(async (trx) => {
+      // For efficiency with large arrays, do batches
+      const BATCH_SIZE = 50
+      for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+        const batchIds = userIds.slice(i, i + BATCH_SIZE)
+
+        try {
+          // Delete user quotas and related usage records
+          const deletedQuotas = await trx('user_quotas')
+            .whereIn('user_id', batchIds)
+            .del()
+
+          // Delete related quota usage records
+          await trx('quota_usage').whereIn('user_id', batchIds).del()
+
+          // Track actual processed count based on actual deletions
+          processedCount += deletedQuotas
+        } catch (batchError) {
+          this.log.error(`Error deleting quota batch: ${batchError}`)
+          failedIds.push(...batchIds)
+        }
+      }
+    })
+  } catch (error) {
+    this.log.error(`Error in bulk quota deletion transaction: ${error}`)
+    return { processedCount: 0, failedIds: userIds }
+  }
+
+  this.log.info(
+    `Bulk deleted quotas for ${processedCount} users, ${failedIds.length} failed`,
+  )
+  return { processedCount, failedIds }
+}
+
+/**
+ * Updates or creates quota configurations for multiple users in batches within a single transaction.
+ *
+ * For each user, applies the provided movie and show quota configurations. Processes users in batches of 50 for efficiency. If any batch fails, all user IDs in that batch are marked as failed, but processing continues for other batches. Returns the total number of successfully processed users and an array of user IDs for which the update failed.
+ *
+ * @param userIds - List of user IDs to update quotas for
+ * @param movieQuota - Quota configuration to apply for movies, or undefined to skip
+ * @param showQuota - Quota configuration to apply for shows, or undefined to skip
+ * @returns An object with the count of processed users and an array of failed user IDs
+ */
+export async function bulkUpdateQuotas(
+  this: DatabaseService,
+  userIds: number[],
+  movieQuota?: {
+    enabled: boolean
+    quotaType?: QuotaType
+    quotaLimit?: number
+    bypassApproval?: boolean
+  },
+  showQuota?: {
+    enabled: boolean
+    quotaType?: QuotaType
+    quotaLimit?: number
+    bypassApproval?: boolean
+  },
+): Promise<{ processedCount: number; failedIds: number[] }> {
+  const failedIds: number[] = []
+  let processedCount = 0
+
+  try {
+    // Start a transaction to ensure all updates are atomic
+    await this.knex.transaction(async (trx) => {
+      // For efficiency with large arrays, do batches
+      const BATCH_SIZE = 50
+      for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+        const batchIds = userIds.slice(i, i + BATCH_SIZE)
+
+        try {
+          for (const userId of batchIds) {
+            await upsertOrDeleteQuota.call(
+              this,
+              trx,
+              userId,
+              'movie',
+              movieQuota,
+            )
+            await upsertOrDeleteQuota.call(this, trx, userId, 'show', showQuota)
+          }
+
+          processedCount += batchIds.length
+        } catch (batchError) {
+          this.log.error(`Error updating quota batch: ${batchError}`)
+          failedIds.push(...batchIds)
+        }
+      }
+    })
+  } catch (error) {
+    this.log.error(`Error in bulk quota update transaction: ${error}`)
+    return { processedCount: 0, failedIds: userIds }
+  }
+
+  this.log.info(
+    `Bulk updated quotas for ${processedCount} users, ${failedIds.length} failed`,
+  )
+  return { processedCount, failedIds }
 }

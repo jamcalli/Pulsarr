@@ -8,7 +8,9 @@ import type * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * Serves as the root container for the Sheet dialog, providing context and state management for all nested Sheet components.
+ * Provides the root container for the Sheet dialog, managing its open state and context for nested Sheet components.
+ *
+ * Forwards all props to the underlying SheetPrimitive.Root and adds a `data-slot="sheet"` attribute.
  */
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -26,9 +28,9 @@ function SheetTrigger({
 }
 
 /**
- * Renders a close button for the sheet dialog.
+ * Renders a close button for the Sheet dialog.
  *
- * Forwards all props to the underlying primitive and adds a `data-slot="sheet-close"` attribute.
+ * Forwards all props to the underlying primitive and adds a `data-slot="sheet-close"` attribute for styling or testing.
  */
 function SheetClose({
   ...props
@@ -37,7 +39,9 @@ function SheetClose({
 }
 
 /**
- * Renders the sheet content in a React portal, enabling it to appear outside the main DOM hierarchy.
+ * Renders the Sheet dialog content inside a React portal, enabling it to be mounted outside the main DOM hierarchy.
+ *
+ * Forwards all props to the underlying portal primitive and adds a `data-slot="sheet-portal"` attribute.
  */
 function SheetPortal({
   ...props
@@ -46,7 +50,9 @@ function SheetPortal({
 }
 
 /**
- * Renders a full-screen overlay behind the sheet, applying animation and styling based on the sheet's open or closed state.
+ * Renders a full-screen overlay behind the Sheet dialog with animated transitions for open and closed states.
+ *
+ * The overlay dims the background and visually separates the Sheet from the rest of the UI. Additional class names can be merged via the `className` prop.
  */
 function SheetOverlay({
   className,
@@ -65,11 +71,11 @@ function SheetOverlay({
 }
 
 /**
- * Renders the main content area of the sheet, sliding in from the specified side.
+ * Renders the main content area of the Sheet dialog with animated slide-in and slide-out transitions from a specified edge.
  *
- * Displays the sheet's content inside a portal with an overlay, applying slide-in and slide-out animations based on the `side` prop. Includes a close button in the top-right corner.
+ * The content is displayed inside a portal with an overlay and includes a close button in the top-right corner. The `side` prop determines the edge ("top", "bottom", "left", or "right") from which the Sheet appears.
  *
- * @param side - The edge of the screen from which the sheet appears (`"top"`, `"bottom"`, `"left"`, or `"right"`). Defaults to `"right"`.
+ * @param side - Specifies the edge of the screen from which the Sheet slides in.
  */
 function SheetContent({
   className,
@@ -109,9 +115,9 @@ function SheetContent({
 }
 
 /**
- * Renders the header section of the sheet with vertical layout and padding.
+ * Renders the header section of the Sheet dialog with vertical layout, gap, and padding.
  *
- * Additional class names can be merged via the `className` prop.
+ * Accepts additional class names via the `className` prop for custom styling and forwards other props to the underlying `div`.
  */
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -124,9 +130,9 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 /**
- * Renders the footer section of a sheet with consistent spacing and layout.
+ * Renders the footer section of the Sheet dialog with vertical layout, spacing, and padding.
  *
- * Applies flex layout, padding, and spacing to position footer content at the bottom of the sheet.
+ * Positions its content at the bottom of the Sheet and allows additional class names and props to be applied.
  */
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -139,9 +145,9 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 /**
- * Renders the title of the sheet with heading font and foreground color styling.
+ * Renders the title of the Sheet dialog with heading font and foreground color styling.
  *
- * Forwards all props to the underlying Radix UI title primitive.
+ * Forwards all props and accepts additional class names, applying them to the underlying Radix UI title primitive.
  */
 function SheetTitle({
   className,
@@ -157,9 +163,9 @@ function SheetTitle({
 }
 
 /**
- * Renders descriptive text for the sheet, styled with smaller font and foreground color.
+ * Renders descriptive text within the Sheet dialog with smaller font size and foreground color styling.
  *
- * Additional class names can be merged via the `className` prop.
+ * Additional class names can be provided via the `className` prop. All other props are forwarded to the underlying primitive.
  */
 function SheetDescription({
   className,

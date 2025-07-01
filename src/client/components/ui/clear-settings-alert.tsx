@@ -19,12 +19,12 @@ interface ClearSettingsAlertProps {
 }
 
 /**
- * Renders a modal dialog that prompts the user to confirm clearing settings.
+ * Renders a modal dialog prompting the user to confirm clearing settings.
  *
- * Displays a customizable title and description, with "Cancel" and "Clear" actions. Calls the provided confirmation callback when "Clear" is selected and then closes the dialog.
+ * The dialog displays a customizable title and description, with "Cancel" and "Clear" actions. Selecting "Clear" invokes the provided confirmation callback and closes the dialog.
  *
- * @param title - The text shown as the dialog's title.
- * @param description - The text shown as the dialog's description.
+ * @param title - Dialog title text.
+ * @param description - Dialog description text.
  */
 export function ClearSettingsAlert({
   open,
