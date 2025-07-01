@@ -64,9 +64,11 @@ export function useSonarrConnection(
         setTimeout(resolve, 500),
       )
       const [response] = await Promise.all([
-        fetch(
-          `/v1/sonarr/test-connection?baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}`,
-        ),
+        fetch('/v1/sonarr/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseUrl, apiKey }),
+        }),
         minimumLoadingTime,
       ])
       if (!response.ok) {

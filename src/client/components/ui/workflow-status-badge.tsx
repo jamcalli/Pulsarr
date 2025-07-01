@@ -30,7 +30,7 @@ export function WatchlistStatusBadge() {
     if (config && config._isReady !== undefined) {
       setAutoStart(config._isReady)
     }
-  }, [config])
+  }, [config?._isReady])
   
   // Track transitions between stable and transitional states
   useEffect(() => {

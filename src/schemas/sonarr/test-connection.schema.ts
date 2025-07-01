@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const TestConnectionQuerySchema = z.object({
+export const TestConnectionBodySchema = z.object({
   baseUrl: z.string().url('Invalid URL format'),
   apiKey: z.string().min(1, 'API key is required'),
 })
@@ -14,7 +14,7 @@ export const ErrorSchema = z.object({
   message: z.string(),
 })
 
-export type TestConnectionQuery = z.infer<typeof TestConnectionQuerySchema>
+export type TestConnectionBody = z.infer<typeof TestConnectionBodySchema>
 export type TestConnectionResponse = z.infer<
   typeof TestConnectionResponseSchema
 >

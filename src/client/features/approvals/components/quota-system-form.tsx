@@ -76,8 +76,11 @@ const formatScheduleDisplay = (
         }).format(time)
       : 'Not set'
 
-  const dayStr =
-    day === '*' ? 'every day' : `on ${getDayName(Number.parseInt(day || '0'))}`
+  const dayStr = !day
+    ? 'unknown day'
+    : day === '*'
+      ? 'every day'
+      : `on ${getDayName(Number.parseInt(day))}`
 
   return `${timeStr} ${dayStr}`
 }

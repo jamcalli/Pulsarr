@@ -124,7 +124,7 @@ async function testTautulliConnection(url: string, apiKey: string) {
   return response.json()
 }
 
-/****
+/**
  * Displays a form for configuring Tautulli notification integration, including enabling or disabling the service, entering connection details, testing connectivity, saving changes, and clearing all Tautulli settings.
  *
  * The form enforces validation and requires a successful connection test before saving new or updated credentials. User feedback is provided for connection testing, saving, and clearing actions. Form fields and actions are dynamically enabled or disabled based on the current state and loading status.
