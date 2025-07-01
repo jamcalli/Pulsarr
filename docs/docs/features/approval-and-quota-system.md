@@ -168,4 +168,4 @@ The system maintains detailed usage history:
 
 ## API Reference
 
-See [Approval API](/docs/api/approval.tag) and [Quota API](/docs/api/quota.tag) for programmatic access.
+See [Approval API](/docs/api/approval) and [Quota API](/docs/api/quota) for programmatic access.
