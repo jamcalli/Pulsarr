@@ -807,8 +807,8 @@ export async function bulkDeleteQuotas(
           // Delete related quota usage records
           await trx('quota_usage').whereIn('user_id', batchIds).del()
 
-          // For this operation, if any quotas were deleted, consider it successful
-          processedCount += batchIds.length
+          // Track actual processed count based on actual deletions
+          processedCount += deletedQuotas
         } catch (batchError) {
           this.log.error(`Error deleting quota batch: ${batchError}`)
           failedIds.push(...batchIds)
