@@ -19,6 +19,7 @@ import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { useWatchlistProgress } from '@/hooks/useProgress'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import PlexConnectionSkeleton from '@/features/plex/components/connection/connection-section-skeleton'
+import SetupModal from '@/features/plex/components/setup/setup-modal'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**
@@ -27,12 +28,21 @@ import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
  * Provides a responsive interface for configuring the Plex connection, managing tokens, generating RSS feeds, refreshing watchlist data, and viewing watchlist statistics for the current user and others. Displays loading skeletons and visual feedback for asynchronous actions.
  */
 export default function PlexConfigurationPage() {
+  const config = useConfigStore((state) => state.config)
   const initialize = useConfigStore((state) => state.initialize)
+  const { showSetupModal, setShowSetupModal } = usePlexSetup()
 
   // Initialize store on mount
   useEffect(() => {
     initialize()
   }, [initialize])
+
+  // Check if Plex token is missing and show setup modal
+  useEffect(() => {
+    if (config && (!config.plexTokens || config.plexTokens.length === 0)) {
+      setShowSetupModal(true)
+    }
+  }, [config, setShowSetupModal])
 
   // Connection state
   const { form, status, handleUpdateToken, handleRemoveToken } =
@@ -47,7 +57,6 @@ export default function PlexConfigurationPage() {
 
   // RSS feed state
   const { rssStatus, generateRssFeeds } = usePlexRssFeeds()
-  const config = useConfigStore((state) => state.config)
   const isInitialized = useConfigStore((state) => state.isInitialized)
 
   // Get user data to compute watchlist counts
@@ -66,9 +75,6 @@ export default function PlexConfigurationPage() {
   // Progress hooks for live updates
   const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
   const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
-
-  // Setup modal trigger
-  const { setShowSetupModal } = usePlexSetup()
 
   // Setup minimum loading time
   useEffect(() => {
@@ -107,6 +113,8 @@ export default function PlexConfigurationPage() {
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+      <SetupModal open={showSetupModal} onOpenChange={setShowSetupModal} />
+
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-foreground">Plex Integration</h2>
       </div>
