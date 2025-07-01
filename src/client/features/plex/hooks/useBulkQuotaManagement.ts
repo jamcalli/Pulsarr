@@ -19,6 +19,26 @@ export interface BulkQuotaFormData {
 }
 
 /**
+ * Helper function to format success messages for bulk quota operations.
+ *
+ * @param successful - Array of successful user IDs
+ * @param failed - Array of failed user IDs
+ * @param action - The action performed (e.g., 'cleared', 'updated')
+ * @returns Formatted success message
+ */
+const formatSuccessMessage = (
+  successful: number[],
+  failed: number[],
+  action: string,
+) => {
+  const userText = successful.length !== 1 ? 'users' : 'user'
+  const baseMessage = `Quotas ${action} for ${successful.length} ${userText}`
+  return failed.length > 0
+    ? `${baseMessage} (${failed.length} failed)`
+    : baseMessage
+}
+
+/**
  * React hook for managing bulk quota operations on multiple users.
  *
  * Provides state and functions to perform bulk quota operations including clearing
@@ -151,9 +171,7 @@ export function useBulkQuotaManagement() {
               console.error('Some quota deletions failed:', failed)
             }
 
-            return `Quotas cleared for ${successful.length} user${successful.length !== 1 ? 's' : ''}${
-              failed.length > 0 ? ` (${failed.length} failed)` : ''
-            }`
+            return formatSuccessMessage(successful, failed, 'cleared')
           }
 
           // Update quotas for selected users
@@ -166,9 +184,7 @@ export function useBulkQuotaManagement() {
             console.error('Some quota updates failed:', failed)
           }
 
-          return `Quotas updated for ${successful.length} user${successful.length !== 1 ? 's' : ''}${
-            failed.length > 0 ? ` (${failed.length} failed)` : ''
-          }`
+          return formatSuccessMessage(successful, failed, 'updated')
         }
 
         const [message] = await Promise.all([

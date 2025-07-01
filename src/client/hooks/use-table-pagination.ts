@@ -42,10 +42,6 @@ export function useTablePagination(tableKey: string, defaultPageSize = 20) {
     }
   }, [storageKey, tableKey])
 
-  // Sync with table when pageSize changes
-  useEffect(() => {
-    // This effect ensures any external changes to pageSize are reflected
-  }, [pageSize])
 
   return {
     pageSize,

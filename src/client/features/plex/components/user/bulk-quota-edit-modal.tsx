@@ -223,6 +223,37 @@ const FormContent = React.memo(
     const setShowQuota = form.watch('setShowQuota')
     const clearQuotas = form.watch('clearQuotas')
 
+    const isSubmitDisabled = React.useMemo(() => {
+      if (saveStatus.type !== 'idle' || !isFormDirty) return true
+
+      const hasAction = clearQuotas || setMovieQuota || setShowQuota
+      if (!hasAction) return true
+
+      if (
+        setMovieQuota &&
+        (!form.getValues('movieQuotaType') ||
+          !form.getValues('movieQuotaLimit'))
+      ) {
+        return true
+      }
+
+      if (
+        setShowQuota &&
+        (!form.getValues('showQuotaType') || !form.getValues('showQuotaLimit'))
+      ) {
+        return true
+      }
+
+      return false
+    }, [
+      saveStatus.type,
+      isFormDirty,
+      clearQuotas,
+      setMovieQuota,
+      setShowQuota,
+      form,
+    ])
+
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
@@ -304,17 +335,7 @@ const FormContent = React.memo(
             <Button
               type="submit"
               variant="default"
-              disabled={
-                saveStatus.type !== 'idle' ||
-                !isFormDirty ||
-                (!clearQuotas && !setMovieQuota && !setShowQuota) ||
-                (setMovieQuota &&
-                  (!form.getValues('movieQuotaType') ||
-                    !form.getValues('movieQuotaLimit'))) ||
-                (setShowQuota &&
-                  (!form.getValues('showQuotaType') ||
-                    !form.getValues('showQuotaLimit')))
-              }
+              disabled={isSubmitDisabled}
               className="min-w-[100px] flex items-center justify-center gap-2"
             >
               {saveStatus.type === 'loading' ? (
@@ -404,6 +425,22 @@ export function BulkQuotaEditModal({
     onOpenChange(newOpen)
   }
 
+  const modalEventHandlers = React.useMemo(
+    () => ({
+      onPointerDownOutside: (e: Event) => {
+        if (saveStatus.type === 'loading') {
+          e.preventDefault()
+        }
+      },
+      onEscapeKeyDown: (e: KeyboardEvent) => {
+        if (saveStatus.type === 'loading') {
+          e.preventDefault()
+        }
+      },
+    }),
+    [saveStatus.type],
+  )
+
   const isFormDirty = form.formState.isDirty
   const selectedCount = selectedRows.length
 
@@ -411,19 +448,7 @@ export function BulkQuotaEditModal({
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-        <SheetContent
-          onPointerDownOutside={(e) => {
-            if (saveStatus.type === 'loading') {
-              e.preventDefault()
-            }
-          }}
-          onEscapeKeyDown={(e) => {
-            if (saveStatus.type === 'loading') {
-              e.preventDefault()
-            }
-          }}
-          className="overflow-y-auto"
-        >
+        <SheetContent {...modalEventHandlers} className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="text-foreground">
               Bulk Edit Quotas
@@ -451,19 +476,7 @@ export function BulkQuotaEditModal({
   // Desktop view
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="sm:max-w-3xl"
-        onPointerDownOutside={(e) => {
-          if (saveStatus.type === 'loading') {
-            e.preventDefault()
-          }
-        }}
-        onEscapeKeyDown={(e) => {
-          if (saveStatus.type === 'loading') {
-            e.preventDefault()
-          }
-        }}
-      >
+      <DialogContent className="sm:max-w-3xl" {...modalEventHandlers}>
         <DialogHeader>
           <DialogTitle className="text-foreground">
             Bulk Edit Quotas
