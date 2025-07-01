@@ -19,9 +19,9 @@ interface DiscordClearAlertProps {
 }
 
 /**
- * Renders a modal confirmation dialog for clearing Discord-related data, with customizable title and description.
+ * Displays a modal confirmation dialog with customizable title and description for clearing Discord-related data.
  *
- * Provides "Cancel" and "Clear" actions; selecting "Clear" invokes the confirmation callback and closes the dialog.
+ * Offers "Cancel" and "Clear" actions; selecting "Clear" triggers the provided confirmation callback and closes the dialog.
  */
 export function DiscordClearAlert({
   open,

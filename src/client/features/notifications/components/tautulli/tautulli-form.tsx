@@ -93,14 +93,14 @@ const tautulliFormSchema = z
 type TautulliFormSchema = z.infer<typeof tautulliFormSchema>
 
 /**
- * Attempts to connect to a Tautulli server using the specified URL and API key.
+ * Attempts to connect to a Tautulli server using the provided URL and API key.
  *
- * Sends a POST request to the `/v1/tautulli/test-connection` endpoint and returns the server's JSON response if the connection is successful.
+ * Sends a POST request to the `/v1/tautulli/test-connection` endpoint and returns the server's JSON response if successful.
  *
- * @param url - The URL of the Tautulli server.
- * @param apiKey - The API key used for authentication with the Tautulli server.
- * @returns The JSON response from the Tautulli server if the connection succeeds.
- * @throws If the connection fails or the server responds with an error, throws an Error containing the server's message or HTTP status code.
+ * @param url - The Tautulli server URL.
+ * @param apiKey - The API key for authenticating with the Tautulli server.
+ * @returns The JSON response from the Tautulli server if the connection is successful.
+ * @throws Throws an Error containing the server's message or HTTP status code if the connection fails.
  */
 async function testTautulliConnection(url: string, apiKey: string) {
   const response = await fetch('/v1/tautulli/test-connection', {

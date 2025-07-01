@@ -11,9 +11,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useConfigStore } from '@/stores/configStore'
 
 /**
- * Renders a badge displaying the current watchlist workflow status, with controls to start, stop, or enable auto-start for the workflow.
+ * Renders a badge and controls for managing the watchlist workflow status.
  *
- * Provides interactive UI elements for managing the workflow, including a status badge, a start/stop button with loading indicators, and an auto-start toggle when applicable. Displays toast notifications to inform the user of the outcome of workflow actions.
+ * Displays the current workflow status with a badge, provides a button to start or stop the workflow with loading indicators, and shows an auto-start toggle when applicable. Notifies the user of action outcomes via toast messages.
  */
 export function WatchlistStatusBadge() {
   const { status, syncMode } = useWatchlistStatus()

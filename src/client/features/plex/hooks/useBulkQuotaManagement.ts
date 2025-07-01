@@ -39,12 +39,11 @@ const formatSuccessMessage = (
 }
 
 /**
- * React hook for managing bulk quota operations on multiple users.
+ * React hook for performing bulk quota operations on multiple users, including clearing quotas or updating movie/show quota settings.
  *
- * Provides state and functions to perform bulk quota operations including clearing
- * quotas and setting new movie/show quota configurations for multiple users.
+ * Returns state and functions to execute bulk quota actions, manage operation status, and trigger UI feedback.
  *
- * @returns An object containing the current save status, a function to perform bulk operations, and a setter for save status.
+ * @returns An object with the current save status, a function to perform bulk quota operations, and a setter for the save status.
  */
 export function useBulkQuotaManagement() {
   const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)

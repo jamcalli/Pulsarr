@@ -23,9 +23,9 @@ export function useContentDistributionData() {
 }
 
 /**
- * Provides notification statistics data from the dashboard store.
+ * Returns notification statistics data, loading state, and error information from the dashboard store.
  *
- * @returns An object containing `data` with notification statistics, `isLoading` indicating loading state, and `error` for any related errors.
+ * @returns An object with `data` containing notification statistics, `isLoading` indicating if the data is loading, and `error` for any related errors.
  */
 export function useNotificationStatsData() {
   const { notificationStats, loading, errors } = useDashboardStore()
@@ -38,11 +38,9 @@ export function useNotificationStatsData() {
 }
 
 /**
- * Returns the top genres data, loading state, and error from the dashboard store.
+ * Retrieves the top genres data, loading status, and error from the dashboard store.
  *
- * The data defaults to an empty array if unavailable.
- *
- * @returns An object with `data` (top genres array), `isLoading` (loading state for genres), and `error` (error related to genres data)
+ * @returns An object containing `data` (an array of top genres, or an empty array if unavailable), `isLoading` (whether the genres data is loading), and `error` (any error related to genres data)
  */
 export function useTopGenresData() {
   const { topGenres, loading, errors } = useDashboardStore()
@@ -55,9 +53,9 @@ export function useTopGenresData() {
 }
 
 /**
- * Returns grabbed-to-notified times data, its loading state, and any related error from the dashboard store.
+ * Provides the grabbed-to-notified times data, loading status, and any associated error from the dashboard store.
  *
- * @returns An object with the grabbed-to-notified times array (empty if unavailable), a loading flag, and an error message if present.
+ * @returns An object containing the grabbed-to-notified times array (empty if unavailable), a loading indicator, and an error if present.
  */
 export function useGrabbedToNotifiedData() {
   const { grabbedToNotifiedTimes, loading, errors } = useDashboardStore()
@@ -70,9 +68,9 @@ export function useGrabbedToNotifiedData() {
 }
 
 /**
- * Returns instance content breakdown data, its loading state, and any related error from the dashboard store.
+ * Retrieves the instance content breakdown data, loading state, and error from the dashboard store.
  *
- * @returns An object with the instance content breakdown array (empty if unavailable), a loading flag, and an error value.
+ * @returns An object containing the `instanceContentBreakdown` array (empty if unavailable), a loading flag, and any related error.
  */
 export function useInstanceContentData() {
   const { instanceContentBreakdown, loading, errors } = useDashboardStore()

@@ -3,9 +3,9 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 /**
- * Displays a badge indicating the current Tautulli service status with color-coded styling.
+ * Displays a badge representing the current Tautulli service status with color-coded styling.
  *
- * The badge uses green for "running", red for "disabled", and gray for any other status. The status text is capitalized.
+ * The badge appears green for "running", red for "disabled", and gray for any other status. The status text is shown with the first letter capitalized.
  */
 export function TautulliStatusBadge() {
   const status = useTautulliStatus()

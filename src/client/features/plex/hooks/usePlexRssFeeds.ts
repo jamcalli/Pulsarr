@@ -8,9 +8,9 @@ export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
 /**
  * React hook for accessing and generating Plex RSS feed URLs.
  *
- * Returns the current RSS feed URLs, the status of the feed generation process, and a function to trigger RSS feed generation and refresh. The generation function ensures a minimum loading time and updates the feed URLs upon success.
+ * Provides the current RSS feed URLs, the status of the feed generation process, and a function to trigger RSS feed generation and refresh. The generation function enforces a minimum loading time and updates the feed URLs upon success or sets an error status if generation fails.
  *
- * @returns An object containing `rssFeeds` (current RSS feed URLs), `rssStatus` (generation status), and `generateRssFeeds` (function to generate and refresh RSS feeds)
+ * @returns An object containing rssFeeds (current RSS feed URLs), rssStatus (generation status), and generateRssFeeds (function to generate and refresh RSS feeds)
  */
 export function usePlexRssFeeds() {
   const config = useConfigStore((state) => state.config)
