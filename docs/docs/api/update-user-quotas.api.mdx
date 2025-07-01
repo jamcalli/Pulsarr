@@ -1,0 +1,71 @@
+---
+id: update-user-quotas
+title: "Update user quotas"
+description: "Update quota configurations for a specific user"
+sidebar_label: "Update user quotas"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVm2LGzcQ/itiPiWg1HaSUthvblLoQT64l1y/GFPGq7FXiVbSSVr7lmX/exntOvad3XPfoVBjsCzNPJqXZ0bTgfMUMGlnbxQU0HiFie4ihZ8alzCChITbCMUS8gasJCiKZdCedaCAu6wh7vlUlM5u9LYZAKPYuCBQRE+l3uhSNJECSAh031BM3zvVQtFB6Wwim3iJ3htdZuXJ58jwHcSyohp5lVpPUIBbf6YygQQf2PakKfJpNuBTFvkqGlPQdgsSyDY1+6BQmxYk7Im+mPaX4IwZBGpnU2VaWPVyQPqga51OoGxTr7P1tba6ZrRZL2Hdeoxx7n1wOzQn4mvnDKGFvpeASml2Cc3ixOINmkh9zwIeA9aUKHCcL3g8utFL0Bxxj6kCCRZrPuSg3qgxrDqQgiKFhvoV70TvbBzi83o65Z/HyXtPG2xMErejJMi/Kx2xKUuK8VJIJNQUI24vZKqX2Z+Re1cvGX0/yxJf4XaaBsr+FZgxGtd4lW8DCbFy+yOH/nE2/l4GHqmxPPLl1LVTgx9deXbB6nk+DyH4P+7/dtwvX/bHlA4le6zPR9V4DYzh3k7f/geazFW/r7ua8VPl1NCPS27IuS8XMNnNJjmTEw5enHRDMnqmKYXdocs3wUABVUq+mExm029ef5e/307h6Qu7CLrG0IqPWRt6+Yxy8WY6fXOG8F4HKtMIIObZXfFir1MlvAvp5TmmcSWaysV0GfDD4fgi2EoCZ/L2+M7/8IC1N/Tknf5aiKe1Nj2vrfye8eO3cTmbOjEULBoTMQQxX9ycGThf3AjlyqYmmzK38ixy0HglUCwMPYg9p87omIS2ibbhKPrRWZZEq8QtKgz89HPuBvifZ8ww72KqMTN2fIzHYYgzPkxE8allJ/POnxidRiInekgTb1BnoufEdSP9lrCbHSI61i/bUBw7AqeN5bpujZHugul73r5vKLRQLFcSdhg0rjnGyw6UjrxWI/mfcefF7VhUL8VvmTpuouWs79A0/A8kfKH2OMr03H4rQkUhWzAcvhvueTX2yoPyWftgKg8aTE2fnpVdnZTxYv7p3Y/ceMe5tHaKlQLuebjC/WCpy47nlpP3OjBot01uNDCA8udXZxbxqw==
+sidebar_class_name: "patch api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update user quotas"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"patch"}
+  path={"/v1/quota/users/{userId}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update quota configurations for a specific user
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"userId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"quotaType":{"type":"string","enum":["daily","weekly_rolling","monthly"]},"quotaLimit":{"type":"number","minimum":1},"bypassApproval":{"type":"boolean"}},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"userQuotas":{"type":"object","properties":{"userId":{"type":"number"},"movieQuota":{"type":"object","properties":{"userId":{"type":"number"},"contentType":{"type":"string","enum":["movie","show"]},"quotaType":{"type":"string","enum":["daily","weekly_rolling","monthly"]},"quotaLimit":{"type":"number"},"bypassApproval":{"type":"boolean"}},"required":["userId","contentType","quotaType","quotaLimit","bypassApproval"],"additionalProperties":false},"showQuota":{"type":"object","properties":{"userId":{"type":"number"},"contentType":{"type":"string","enum":["movie","show"]},"quotaType":{"type":"string","enum":["daily","weekly_rolling","monthly"]},"quotaLimit":{"type":"number"},"bypassApproval":{"type":"boolean"}},"required":["userId","contentType","quotaType","quotaLimit","bypassApproval"],"additionalProperties":false}},"required":["userId"],"additionalProperties":false}},"required":["success","message","userQuotas"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -27,9 +27,9 @@ function checkNeedsConfiguration(instance: SonarrInstance) {
 }
 
 /**
- * React hook for managing the connection state, validation, and configuration requirements of a Sonarr instance.
+ * React hook for managing the connection, validation, and configuration state of a Sonarr instance.
  *
- * Provides state variables and utility functions to test and reset the connection, track connection and save statuses, determine if additional configuration is needed, and handle instance creation, updating, and data fetching as part of the Sonarr connection workflow.
+ * Provides state variables and utility functions to test and reset the connection, track connection and save statuses, determine if additional configuration is required, and handle instance creation, updating, and data fetching as part of the Sonarr connection workflow.
  *
  * @param instance - The Sonarr instance to manage.
  * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
@@ -64,9 +64,11 @@ export function useSonarrConnection(
         setTimeout(resolve, 500),
       )
       const [response] = await Promise.all([
-        fetch(
-          `/v1/sonarr/test-connection?baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}`,
-        ),
+        fetch('/v1/sonarr/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseUrl, apiKey }),
+        }),
         minimumLoadingTime,
       ])
       if (!response.ok) {

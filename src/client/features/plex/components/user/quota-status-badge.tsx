@@ -13,12 +13,12 @@ interface QuotaStatusBadgeProps {
 }
 
 /**
- * Displays a colored badge indicating quota usage or status for movies or shows.
+ * Renders a badge showing a user's quota status for movies or shows.
  *
- * Shows "None" if no quota is set, "Auto" if approval is bypassed, or the current usage and limit otherwise. The badge color reflects usage severity based on the percentage of quota used.
+ * The badge displays "None" if no quota is set, "Auto" if approval is bypassed, the current usage and quota limit if limited, or usage over infinity if unlimited. Badge color reflects usage severity.
  *
- * @param type - Specifies whether the badge represents a movie or show quota
- * @param quota - The quota information object, or null if no quota is assigned
+ * @param type - Specifies whether the badge represents a movie or show quota.
+ * @param quota - The user's quota data, or null if no quota is assigned.
  */
 function SingleQuotaBadge({
   type,
@@ -50,8 +50,20 @@ function SingleQuotaBadge({
   }
 
   const currentUsage = quota.currentUsage ?? 0
-  const percentage =
-    quota.quotaLimit > 0 ? (currentUsage / quota.quotaLimit) * 100 : 0
+
+  // Treat 0 or negative limits as "unlimited"
+  if (quota.quotaLimit <= 0) {
+    return (
+      <Badge
+        variant="neutral"
+        className="px-1.5 py-0.5 h-6 text-xs bg-green-500 hover:bg-green-500 text-black"
+      >
+        {type === 'movie' ? 'M' : 'S'}:{currentUsage}/∞
+      </Badge>
+    )
+  }
+
+  const percentage = (currentUsage / quota.quotaLimit) * 100
 
   const getBadgeColor = () => {
     if (percentage >= 100) return 'bg-red-500 hover:bg-red-500 text-black'

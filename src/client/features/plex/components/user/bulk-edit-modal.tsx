@@ -473,9 +473,9 @@ const FormContent = ({
 }
 
 /**
- * Renders a responsive modal for bulk editing multiple Plex users, enabling administrators to clear user fields and adjust notification, sync, and approval permissions.
+ * Displays a responsive modal for bulk editing multiple Plex users, allowing administrators to clear user fields and modify notification, sync, and approval permissions.
  *
- * Provides a form interface for updating selected users, supporting the clearing of alias, Discord ID, and Apprise endpoints, as well as toggling Apprise, Discord, and Tautulli notifications, watchlist sync, and approval requirement settings. Disables controls and prevents modal closure during save operations, and displays feedback on update success or failure.
+ * Presents a form for updating selected users, supporting the clearing of alias, Discord ID, and Apprise endpoints, as well as toggling Apprise, Discord, and Tautulli notifications, watchlist sync, and approval requirement settings. Disables controls and prevents modal closure during save operations, and provides feedback on update success or failure.
  */
 export default function BulkEditModal({
   open,

@@ -6,9 +6,9 @@ import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
 
 /**
- * React hook for accessing and managing a specific Radarr instance by its ID.
+ * React hook for managing a specific Radarr instance by its ID.
  *
- * Provides the current instance, all instances, and handler functions to update, delete, and fetch instance data. If the last real instance is deleted, the configuration is reset to a default placeholder instance.
+ * Returns the current instance, all instances, and handler functions to update, delete, and fetch instance data. If the last real instance is deleted, it is replaced with a default placeholder configuration.
  *
  * @param instanceId - The ID of the Radarr instance to manage.
  * @returns An object containing the current instance, all instances, and functions to update, delete, and fetch instance data.

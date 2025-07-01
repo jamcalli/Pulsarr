@@ -7,9 +7,9 @@ import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 /**
  * React hook for managing the scheduling, configuration, and execution of approval and quota maintenance jobs.
  *
- * Provides state and utilities for configuring interval-based (approval-maintenance) and time-based (quota-maintenance) jobs, including cron expression parsing/generation, schedule updates, status toggling, immediate execution, and formatting of run times. Integrates with a backend scheduler and exposes all relevant job data, configuration states, loading and error indicators, formatting helpers, and action handlers for use in scheduling UI components.
+ * Provides state, formatting utilities, and action handlers for configuring interval-based (approval) and time-based (quota) jobs. Supports cron expression parsing and generation, schedule updates, status toggling, immediate execution, and run time formatting. Integrates with a backend scheduler and exposes job data, configuration states, loading and error indicators, and UI interaction handlers.
  *
- * @returns An object containing job data, schedule configuration states, loading and error states, formatting utilities, and action handlers for interacting with approval and quota maintenance schedules.
+ * @returns An object containing job data, schedule configuration states, loading and error indicators, formatting utilities, and action handlers for approval and quota maintenance schedules.
  */
 export function useApprovalScheduler() {
   const {
@@ -103,7 +103,7 @@ export function useApprovalScheduler() {
         const intervalMatch = hourPart.match(/^\*\/(\d+)$/)
         if (intervalMatch) {
           const interval = Number.parseInt(intervalMatch[1], 10)
-          if (Number.isFinite(interval) && interval > 0 && interval <= 23) {
+          if (Number.isFinite(interval) && interval > 0 && interval <= 24) {
             return interval
           }
         }

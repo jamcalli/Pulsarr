@@ -7,11 +7,11 @@ import type { OthersWatchlistSuccess } from '@root/schemas/plex/others-watchlist
 export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * React hook for accessing and refreshing Plex watchlist data for the current user and others.
+ * React hook that provides access to Plex watchlist data for the current user and others, along with loading statuses and a refresh function.
  *
- * Provides the current watchlist data, their loading statuses, setters for those statuses, and a function to refresh both watchlists from the server.
+ * Returns the current watchlist data for both the user and others, their loading statuses, setter functions for those statuses, and a function to refresh both watchlists from the server.
  *
- * @returns An object containing the self and others watchlist data, their statuses, status setters, and a refresh function.
+ * @returns An object containing self and others watchlist data, their loading statuses, status setters, and a refresh function.
  */
 export function usePlexWatchlist() {
   const fetchUserData = useConfigStore((state) => state.fetchUserData)

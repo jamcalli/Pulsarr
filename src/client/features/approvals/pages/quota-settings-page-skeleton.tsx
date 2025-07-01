@@ -4,9 +4,9 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a skeleton placeholder UI for the Quota Settings page while content is loading.
+ * Renders a responsive skeleton UI for the Quota Settings page during data loading.
  *
- * Renders placeholder elements for all major sections of the Quota Settings page, including actions, status, schedule, reset policies, and cleanup settings. The layout adapts responsively for mobile and desktop screens.
+ * Displays placeholder elements for all primary sections of the Quota Settings page, including actions, status, schedule, reset policies, and cleanup settings. The layout adjusts for mobile and desktop screens to match the final page structure.
  *
  * @returns A JSX element containing skeleton placeholders for the Quota Settings page.
  */

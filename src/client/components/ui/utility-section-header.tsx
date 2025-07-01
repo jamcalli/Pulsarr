@@ -5,23 +5,26 @@ interface UtilitySectionHeaderProps {
   title: string
   description: string
   status?: 'enabled' | 'disabled' | 'failed' | 'unknown'
+  showStatus?: boolean
   className?: string
 }
 
 /**
- * Renders a section header with a title, description, and a status badge for utility pages.
+ * Renders a section header with a title, description, and an optional status badge for utility pages.
  *
- * Displays the provided title and description, along with a badge indicating the current status. The badge's color and label are determined by the status value, supporting 'enabled', 'disabled', 'failed', and 'unknown' states. Additional CSS classes can be applied to the container via the `className` prop.
+ * The status badge visually represents the current state using color and label, supporting 'enabled', 'disabled', 'failed', and 'unknown' statuses. The badge can be hidden by setting `showStatus` to false. Additional CSS classes can be applied to the container for customization.
  *
- * @param title - The section title to display.
- * @param description - The description text shown below the title.
- * @param status - The status to display in the badge; defaults to 'unknown' if not provided.
- * @param className - Optional additional CSS classes for the container.
+ * @param title - The main heading text for the section.
+ * @param description - Text displayed below the title.
+ * @param status - The status shown in the badge; defaults to 'unknown' if not specified.
+ * @param showStatus - If false, the status badge is not rendered; defaults to true.
+ * @param className - Extra CSS classes for the container element.
  */
 export function UtilitySectionHeader({
   title,
   description,
   status = 'unknown',
+  showStatus = true,
   className,
 }: UtilitySectionHeaderProps) {
   const getStatusStyles = (status: string) => {
@@ -54,17 +57,19 @@ export function UtilitySectionHeader({
     <div className={cn('mb-6', className)}>
       <div className="flex items-center">
         <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-        <div className="ml-2 inline-flex items-center gap-2 h-full">
-          <Badge
-            variant="neutral"
-            className={cn(
-              'px-2 py-0.5 h-7 text-sm',
-              getStatusStyles(status),
-            )}
-          >
-            {getStatusText(status)}
-          </Badge>
-        </div>
+        {showStatus && (
+          <div className="ml-2 inline-flex items-center gap-2 h-full">
+            <Badge
+              variant="neutral"
+              className={cn(
+                'px-2 py-0.5 h-7 text-sm',
+                getStatusStyles(status),
+              )}
+            >
+              {getStatusText(status)}
+            </Badge>
+          </div>
+        )}
       </div>
       <p className="text-sm text-foreground mt-1">{description}</p>
     </div>

@@ -11,9 +11,9 @@ import {
 /**
  * React hook that manages state, validation, and submission logic for a login form.
  *
- * Handles form validation using a Zod schema, tracks submission status and backend errors, and focuses the email input on mount. On successful login, displays a welcome toast and redirects the user to a dashboard or a specified route.
+ * Handles form validation with a Zod schema, tracks submission status and backend errors, and automatically focuses the email input on mount. On successful login, displays a welcome toast and redirects the user to a dashboard or a specified route.
  *
- * @returns An object containing the form instance, current status, backend error message, email input ref, and the submit handler function.
+ * @returns An object containing the form instance, current status, backend error message, email input reference, and the submit handler function.
  */
 export function useLoginForm() {
   const navigate = useNavigate()

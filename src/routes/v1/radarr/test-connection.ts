@@ -1,14 +1,14 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 import {
-  TestConnectionQuerySchema,
+  TestConnectionBodySchema,
   TestConnectionResponseSchema,
   ErrorSchema,
 } from '@schemas/radarr/test-connection.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Querystring: z.infer<typeof TestConnectionQuerySchema>
+  fastify.post<{
+    Body: z.infer<typeof TestConnectionBodySchema>
     Reply: z.infer<typeof TestConnectionResponseSchema>
   }>(
     '/test-connection',
@@ -18,7 +18,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'testRadarrConnection',
         description:
           'Test connectivity to a Radarr instance with provided credentials',
-        querystring: TestConnectionQuerySchema,
+        body: TestConnectionBodySchema,
         response: {
           200: TestConnectionResponseSchema,
           500: ErrorSchema,
@@ -28,7 +28,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { baseUrl, apiKey } = request.query
+        const { baseUrl, apiKey } = request.body
         const result = await fastify.radarrManager.testConnection(
           baseUrl,
           apiKey,

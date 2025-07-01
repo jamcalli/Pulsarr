@@ -93,15 +93,14 @@ const tautulliFormSchema = z
 type TautulliFormSchema = z.infer<typeof tautulliFormSchema>
 
 /**
- * Tests the connection to a Tautulli server using the provided URL and API key.
+ * Attempts to connect to a Tautulli server using the provided URL and API key.
  *
- * Sends a POST request to the `/v1/tautulli/test-connection` endpoint and returns the parsed response if successful.
+ * Sends a POST request to the `/v1/tautulli/test-connection` endpoint and returns the server's JSON response if successful.
  *
- * @param url - The Tautulli server URL to test.
+ * @param url - The Tautulli server URL.
  * @param apiKey - The API key for authenticating with the Tautulli server.
- * @returns The parsed JSON response from the server if the connection is successful.
- *
- * @throws {Error} If the server responds with an error or a non-OK status, containing the error message from the response or the HTTP status code.
+ * @returns The JSON response from the Tautulli server if the connection is successful.
+ * @throws Throws an Error containing the server's message or HTTP status code if the connection fails.
  */
 async function testTautulliConnection(url: string, apiKey: string) {
   const response = await fetch('/v1/tautulli/test-connection', {
@@ -125,10 +124,10 @@ async function testTautulliConnection(url: string, apiKey: string) {
   return response.json()
 }
 
-/****
- * Renders a form for configuring Tautulli notification integration, allowing users to enable or disable the service, enter connection details, test connectivity, save changes, or clear all Tautulli settings.
+/**
+ * Displays a form for configuring Tautulli notification integration, including enabling or disabling the service, entering connection details, testing connectivity, saving changes, and clearing all Tautulli settings.
  *
- * The form enforces validation rules and requires a successful connection test before saving new or updated credentials. User feedback is provided for connection testing, saving, and clearing actions. Form fields and actions are dynamically enabled or disabled based on the current state and loading status.
+ * The form enforces validation and requires a successful connection test before saving new or updated credentials. User feedback is provided for connection testing, saving, and clearing actions. Form fields and actions are dynamically enabled or disabled based on the current state and loading status.
  *
  * @param isInitialized - Indicates whether the configuration is ready for editing.
  */

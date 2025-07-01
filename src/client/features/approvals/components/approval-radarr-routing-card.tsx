@@ -67,9 +67,9 @@ interface ApprovalRadarrRoutingCardProps {
 }
 
 /**
- * Displays a form card for editing Radarr routing settings within an approval workflow.
+ * Renders a form card for editing Radarr routing settings within an approval workflow.
  *
- * Allows users to configure quality profile, root folder, search behavior, minimum availability, tags, synced instances, and priority for a specific Radarr instance. Fetches and validates instance data as needed, supports tag creation and refresh, and provides user feedback on save or error. Inputs and actions are conditionally enabled based on connection validity and component state.
+ * Provides fields for configuring quality profile, root folder, search behavior, minimum availability, tags, synced instances, and priority for a specific Radarr instance. Handles fetching and validation of instance data, supports tag creation and refresh, and displays user feedback on save or error. Form inputs and actions are conditionally enabled based on connection validity and component state.
  *
  * @param routing - The routing configuration to edit.
  * @param instanceId - The ID of the Radarr instance being configured.

@@ -5,9 +5,9 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * Renders a customizable slider with one or more thumbs, built on Radix UI's slider primitive.
+ * Renders a customizable slider component with one or more draggable thumbs.
  *
- * The number and initial positions of thumbs are determined by the `value` or `defaultValue` arrays, or default to two thumbs at the minimum and maximum values. All additional props are forwarded to the underlying Radix slider component for further customization.
+ * The number and initial positions of thumbs are determined by the `value` or `defaultValue` arrays; if neither is provided, two thumbs are placed at the minimum and maximum values. Additional props are forwarded to the underlying Radix UI slider primitive for further customization.
  */
 function Slider({
   className,

@@ -5,9 +5,9 @@ import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { useConfigStore } from '@/stores/configStore'
 
 /**
- * Displays statistics and syncing progress for the current user's watchlist and other users' watchlists.
+ * Renders statistics and syncing progress for the current user's watchlist and for other users' watchlists.
  *
- * Shows the number of items in the user's own watchlist and aggregates watchlist counts for other users. While syncing, displays progress bars and status messages for each section.
+ * Displays the item count for the user's own watchlist and aggregates counts for other users. Shows progress bars and status messages during syncing operations for each section.
  */
 export default function WatchlistStatsSection() {
   const users = useConfigStore((state) => state.users)

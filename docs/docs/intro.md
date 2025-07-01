@@ -28,6 +28,12 @@ Enjoy all the benefits of other content discovery systems without requiring user
   - Intelligent routing system with support for complex conditions and multiple instances
   - Route content based on genre, user, language, year, and certification
 
+- **Approval & Quota Management**:
+  - Administrative approval workflows for content requests
+  - Configurable user quotas (daily, weekly rolling, monthly limits)
+  - Complete Discord bot integration for approval management
+  - Automatic expiration and bulk processing capabilities
+
 - **Comprehensive Notification System**:
   - Discord integration with user-friendly notification system
   - Apprise integration supporting 80+ notification methods
@@ -66,18 +72,24 @@ Pulsarr uses an intelligent workflow to process and route content:
 2. **Content Analysis**:
    - Evaluate content metadata (genres, language, year, etc.)
    - Apply configured routing rules
+   - Check user quotas and approval requirements
    - Determine optimal target instance(s)
 
-3. **Automatic Acquisition**:
-   - Route content to appropriate Sonarr/Radarr instances
+3. **Approval Processing** (if required):
+   - Create approval requests for quota-exceeded or flagged content
+   - Send notifications to administrators via Discord and other channels
+   - Allow approval, rejection, or automatic expiration
+
+4. **Automatic Acquisition**:
+   - Route approved content to appropriate Sonarr/Radarr instances
    - Configure quality profiles, language, and monitoring settings
 
-4. **Notification Delivery**:
+5. **Notification Delivery**:
    - Send personalized notifications when content is available
    - Send public notifications to shared channels/endpoints
    - Support for Discord, Apprise, and webhook notifications
 
-5. **Content Lifecycle Management**:
+6. **Content Lifecycle Management**:
    - Optional automatic deletion when content leaves watchlists
    - Plex playlist protection for preserving important content
 

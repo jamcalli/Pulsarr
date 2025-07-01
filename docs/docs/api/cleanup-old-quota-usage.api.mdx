@@ -1,0 +1,71 @@
+---
+id: cleanup-old-quota-usage
+title: "Cleanup old quota usage"
+description: "Clean up old quota usage records"
+sidebar_label: "Cleanup old quota usage"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVE1v2zAM/SsCTxugzUmLYphvRdNDgQLL+rFLkANjMbE62XIlOm1g+L8PlJMmbYJh9wEGDEh8j+TTIzvwDQVk6+sbAzkUjrBumx/O/Gw942PEFYEGxlWEfAbpEOYaDMUi2EZwkMOVoFTbKO+MepYY1QpSBSp8MBE0NBiwIqYgPB3EoqQKIe+ANw1BDnVbLSiAhsrWtmoryMeSZYmtY8i/j3oNVlI9txQ2oKHGSmDeGQoPJdYT3EiaQM+tDWQgX6KL1M/lKDa+jhQl29loJL/35U+GNOpuGwkaCl8z1Syx2DTOFkmi7CkK4ET5fvFEBUufQQRlO6SLbVFQjAeBC+9FLOg1VBSTvPvLyMHWK+j7w0Zmbyx7yFwDGmOlJnTTg5RD170wXPwvrSZ+Lr3415AjpuQ3LiGHbD3OkiGzZMhs62/QECmsd25sg4McSuYmz7Lx6OvZt/RdjOCj06fBVhg26j6hodd/Aefno9H5EcPEBip4S6AuU7vq04vlUjU+8OdjTucLdKWPfJrwdnd9kmwuc7P0SXnLTqSfti5iCOpyenNEdjm9UcYXbUU1Jx+opQ9qh/iiUE0dvaoX5KJ0NrKyNdMq7EPvfS2RWBt1hwaDjLToPND/GosbGh+5wuSu7RhfDc/ycX98LK/bm/Vfds7WakyvnDUObbJikrbb+mMG6zFoSHDQsEu6c8lcgwgrcV23wEiPwfW9HA9rSLxjbMSFe9s4Gn7T5sRiWqNrpZj0ImsMVkCQz+a9hpLQUEhsA1gesuED1NFgCsub6SfXt9cP19D3fwCWJ/yc
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Cleanup old quota usage"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/quota/usage/cleanup"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Clean up old quota usage records
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number","minimum":1,"default":90},"in":"query","name":"olderThanDays","required":false}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -18,7 +18,7 @@ export const options = {
 }
 
 /**
- * Sets up the Fastify server with plugin autoloading, SPA routing, error handling, and authentication-aware redirects.
+ * Configures and initializes the Fastify server with plugin autoloading, SPA routing, error handling, and authentication-aware redirects.
  *
  * Loads external and custom plugins, registers route handlers, and integrates Vite for serving a single-page application. Implements global error and not-found handlers with logging and rate limiting. Defines root and SPA routes that manage user sessions, authentication bypass, and redirects based on user existence and Plex token configuration.
  */

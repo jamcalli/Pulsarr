@@ -8,11 +8,11 @@ import type { CreateUser } from '@root/schemas/users/users.schema'
 export type UserStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * React hook for managing Plex user data, edit modal state, save status, and user update operations.
+ * React hook that manages Plex user data, edit modal state, save status, loading state, and user update operations.
  *
- * Returns user data, selected user state, modal visibility controls, save status, loading state, and handler functions for editing and updating Plex users. Ensures a minimum loading delay for UI transitions and displays toast notifications on update outcomes.
+ * Provides access to user data, controls for selecting and editing users, modal visibility, save status, and loading state. Includes handler functions for initiating user edits and updating user information, with enforced minimum loading delays and toast notifications for update outcomes.
  *
- * @returns An object with user data, selected user state and setter, modal controls, save status and setter, loading state, and handler functions for editing and updating users.
+ * @returns An object containing user data, selected user state and setter, modal visibility controls, save status and setter, loading state, and handler functions for editing and updating users.
  */
 export function usePlexUser() {
   const users = useConfigStore((state) => state.users)

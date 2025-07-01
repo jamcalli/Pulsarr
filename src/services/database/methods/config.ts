@@ -2,9 +2,9 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { Config } from '@root/types/config.types.js'
 
 /**
- * Retrieves the normalized application configuration from the database.
+ * Retrieves and normalizes the application configuration from the database.
  *
- * Fetches the configuration record with `id: 1` from the `configs` table. All JSON fields are safely parsed with fallback defaults, optional string fields are normalized, and default values are applied for missing or undefined properties. Returns a fully constructed `Config` object if found, or `undefined` if no configuration exists.
+ * Fetches the configuration record with `id: 1` from the `configs` table, safely parses all JSON fields with fallback defaults, normalizes optional fields, and applies default values for missing properties. Returns a fully constructed `Config` object if found, or `undefined` if no configuration exists.
  *
  * @returns The normalized application configuration object if found, otherwise `undefined`.
  */
@@ -112,6 +112,27 @@ export async function getConfig(
           cleanupExpiredDays: 30,
         },
     newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
+    newUserDefaultRequiresApproval: Boolean(
+      config.newUserDefaultRequiresApproval ?? false,
+    ),
+    newUserDefaultMovieQuotaEnabled: Boolean(
+      config.newUserDefaultMovieQuotaEnabled ?? false,
+    ),
+    newUserDefaultMovieQuotaType:
+      config.newUserDefaultMovieQuotaType || 'monthly',
+    newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+    newUserDefaultMovieBypassApproval: Boolean(
+      config.newUserDefaultMovieBypassApproval ?? false,
+    ),
+    newUserDefaultShowQuotaEnabled: Boolean(
+      config.newUserDefaultShowQuotaEnabled ?? false,
+    ),
+    newUserDefaultShowQuotaType:
+      config.newUserDefaultShowQuotaType || 'monthly',
+    newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+    newUserDefaultShowBypassApproval: Boolean(
+      config.newUserDefaultShowBypassApproval ?? false,
+    ),
     // Handle optional RSS fields
     selfRss: config.selfRss || undefined,
     friendsRss: config.friendsRss || undefined,
@@ -171,9 +192,9 @@ export async function getConfig(
 }
 
 /**
- * Inserts a new configuration record into the database, enforcing that only one configuration entry exists.
+ * Creates a new configuration record in the database, ensuring only one configuration entry exists.
  *
- * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties. Returns the ID of the newly created configuration.
+ * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties, including new user default settings. Returns the ID of the newly created configuration.
  *
  * @param config - The configuration data to insert, excluding `id`, `created_at`, and `updated_at`
  * @returns The ID of the newly created configuration
@@ -273,6 +294,22 @@ export async function createConfig(
         : null,
       // New User Defaults
       newUserDefaultCanSync: config.newUserDefaultCanSync ?? true,
+      newUserDefaultRequiresApproval:
+        config.newUserDefaultRequiresApproval ?? false,
+      newUserDefaultMovieQuotaEnabled:
+        config.newUserDefaultMovieQuotaEnabled ?? false,
+      newUserDefaultMovieQuotaType:
+        config.newUserDefaultMovieQuotaType || 'monthly',
+      newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+      newUserDefaultMovieBypassApproval:
+        config.newUserDefaultMovieBypassApproval ?? false,
+      newUserDefaultShowQuotaEnabled:
+        config.newUserDefaultShowQuotaEnabled ?? false,
+      newUserDefaultShowQuotaType:
+        config.newUserDefaultShowQuotaType || 'monthly',
+      newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+      newUserDefaultShowBypassApproval:
+        config.newUserDefaultShowBypassApproval ?? false,
       // Ready state
       _isReady: config._isReady || false,
       // Timestamps
@@ -405,6 +442,15 @@ const ALLOWED_COLUMNS = new Set([
 
   // New user defaults
   'newUserDefaultCanSync',
+  'newUserDefaultRequiresApproval',
+  'newUserDefaultMovieQuotaEnabled',
+  'newUserDefaultMovieQuotaType',
+  'newUserDefaultMovieQuotaLimit',
+  'newUserDefaultMovieBypassApproval',
+  'newUserDefaultShowQuotaEnabled',
+  'newUserDefaultShowQuotaType',
+  'newUserDefaultShowQuotaLimit',
+  'newUserDefaultShowBypassApproval',
 ])
 
 // JSON columns that need special serialization handling

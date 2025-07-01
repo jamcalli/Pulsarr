@@ -31,6 +31,7 @@ import { ApprovalTableToolbar } from '@/features/approvals/components/approval-t
 import { createApprovalColumns } from '@/features/approvals/components/approval-table-columns'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface ApprovalTableProps {
   data: ApprovalRequestResponse[]
@@ -43,17 +44,11 @@ interface ApprovalTableProps {
 }
 
 /**
- * Renders a table of approval requests with sorting, filtering, pagination, row selection, and bulk action capabilities.
+ * Renders an interactive table of approval requests with pagination, sorting, filtering, row selection, and bulk action support.
  *
- * Displays approval request data in a customizable table with support for column sorting, status and date range filtering, adjustable page size, and row selection for bulk operations. Provides action handlers for approving, rejecting, viewing, and deleting individual requests. Shows a loading skeleton when data is loading and contextual messages when no results match the current filters.
+ * Allows users to sort and filter approval requests, adjust page size, select rows for bulk operations, and perform actions such as approve, reject, view, or delete on individual requests. Displays loading and empty states as appropriate.
  *
- * @param data - The approval requests to display.
- * @param onApprove - Invoked when an approval request is approved.
- * @param onReject - Invoked when an approval request is rejected.
- * @param onView - Invoked when an approval request is viewed.
- * @param onDelete - Invoked when an approval request is deleted.
- * @param isLoading - Optional; whether to show a loading state.
- * @param onBulkActions - Optional; called to perform actions on selected rows.
+ * @param data - The approval requests to display in the table.
  * @returns The approval requests table component.
  */
 export function ApprovalTable({
@@ -75,6 +70,9 @@ export function ApprovalTable({
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [isTableFiltered, setIsTableFiltered] = React.useState(true)
+
+  // Persistent table pagination
+  const { pageSize, setPageSize } = useTablePagination('approvals', 20)
 
   const columns = createApprovalColumns({
     onView,
@@ -102,6 +100,18 @@ export function ApprovalTable({
       columnFilters,
       columnVisibility,
       rowSelection,
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newPagination = updater({ pageIndex: 0, pageSize })
+        if (newPagination.pageSize !== pageSize) {
+          setPageSize(newPagination.pageSize)
+        }
+      }
     },
     enableRowSelection: true,
     filterFns: {
@@ -185,21 +195,30 @@ export function ApprovalTable({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
-                    className={
-                      row.original.expiresAt &&
-                      new Date(row.original.expiresAt) < new Date()
-                        ? 'opacity-60'
-                        : ''
-                    }
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-2 py-2">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const isExpiredStatus = row.original.status === 'expired'
+                      const isActionsColumn = cell.column.id === 'actions'
+                      const isSelectColumn = cell.column.id === 'select'
+
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={`px-2 py-2 ${
+                            isExpiredStatus &&
+                            !isActionsColumn &&
+                            !isSelectColumn
+                              ? 'opacity-60'
+                              : ''
+                          }`}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      )
+                    })}
                   </TableRow>
                 ))
               ) : (

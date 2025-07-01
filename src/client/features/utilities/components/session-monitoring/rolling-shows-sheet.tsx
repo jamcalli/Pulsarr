@@ -72,6 +72,7 @@ import {
 } from '@/components/ui/tooltip'
 
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 
@@ -100,9 +101,9 @@ interface RollingShowsSheetProps {
 }
 
 /**
- * Renders a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset or delete actions.
+ * Displays a responsive, interactive table of rolling monitored shows with filtering, sorting, pagination, and optional reset or delete actions.
  *
- * Adapts between a sliding sheet on desktop and a drawer on mobile devices. Users can filter shows by title, sort columns, toggle column visibility, and paginate results. For master records (shows without a specific user), provides action buttons to reset or remove shows, each with confirmation dialogs and loading indicators. Handles loading and error states with contextual feedback.
+ * Adapts between a sliding sheet on desktop and a drawer on mobile devices. Users can filter shows by title, sort and toggle columns, and paginate results. For master records (shows without a specific user), provides reset and remove actions with confirmation dialogs and loading indicators. Handles loading and error states with contextual feedback.
  *
  * @param isOpen - Whether the sheet or drawer is open.
  * @param onClose - Callback to close the sheet or drawer.
@@ -115,9 +116,6 @@ interface RollingShowsSheetProps {
  * @param showActions - Whether to display action buttons for each show.
  * @param actionLoading - Loading states for reset and delete actions.
  * @param activeActionId - ID of the show currently being acted upon.
- *
- * @remarks
- * Action buttons are only available for master records (shows without a specific user). Non-master records display a "Tracking only" label instead of action buttons.
  */
 export function RollingShowsSheet({
   isOpen,
@@ -142,6 +140,9 @@ export function RollingShowsSheet({
   )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
+
+  // Persistent table pagination
+  const { pageSize, setPageSize } = useTablePagination('rolling-shows', 15)
 
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = React.useState<{
@@ -419,6 +420,18 @@ export function RollingShowsSheet({
       sorting,
       columnFilters,
       columnVisibility,
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newPagination = updater({ pageIndex: 0, pageSize })
+        if (newPagination.pageSize !== pageSize) {
+          setPageSize(newPagination.pageSize)
+        }
+      }
     },
   })
 

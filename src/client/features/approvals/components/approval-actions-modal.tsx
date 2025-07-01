@@ -54,9 +54,9 @@ interface ApprovalActionsModalProps {
 }
 
 /**
- * Renders a modal interface for viewing and managing an approval request, enabling users to approve, reject, delete, or edit routing details.
+ * Renders a responsive modal interface for viewing and managing an approval request, including actions to approve, reject, delete, or edit routing details.
  *
- * Adapts its layout for desktop and mobile devices, displaying request information, routing configuration, approval history, and action controls. Supports optional notes for actions, manages loading and success states, and integrates with external stores for user and approval data. Invokes an optional callback after actions to refresh data.
+ * Displays request metadata, routing configuration, approval history, and action controls. Supports optional notes for actions, manages loading and success states, and can trigger an external update callback after actions. Adapts layout for desktop and mobile devices.
  *
  * @param request - The approval request to display and manage
  * @param open - Whether the modal is visible
@@ -419,21 +419,31 @@ export default function ApprovalActionsModal({
             </div>
           </div>
 
-          {request.expiresAt && (
+          {request.status === 'approved' || request.status === 'rejected' ? (
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-foreground" />
-              <span className="font-medium text-foreground">Expires:</span>
-              <span
-                className={`${isExpired ? 'text-red-600' : 'text-orange-600'}`}
-              >
-                {format(new Date(request.expiresAt), 'MMM d, yyyy HH:mm')}
+              <span className="font-medium text-foreground">Resolved:</span>
+              <span className="text-foreground">
+                {format(new Date(request.updatedAt), 'MMM d, yyyy HH:mm')}
               </span>
-              {isExpired && (
-                <Badge variant="warn" className="ml-2">
-                  Expired
-                </Badge>
-              )}
             </div>
+          ) : (
+            request.expiresAt && (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-foreground" />
+                <span className="font-medium text-foreground">Expires:</span>
+                <span
+                  className={`${isExpired ? 'text-red-600' : 'text-orange-600'}`}
+                >
+                  {format(new Date(request.expiresAt), 'MMM d, yyyy HH:mm')}
+                </span>
+                {isExpired && (
+                  <Badge variant="warn" className="ml-2">
+                    Expired
+                  </Badge>
+                )}
+              </div>
+            )
           )}
 
           {request.approvalReason && (
@@ -655,7 +665,10 @@ export default function ApprovalActionsModal({
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <Label htmlFor="action-notes">
+                        <Label
+                          htmlFor="action-notes"
+                          className="text-foreground"
+                        >
                           {action === 'approve'
                             ? 'Approval Notes'
                             : 'Rejection Reason'}{' '}

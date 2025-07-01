@@ -1,0 +1,71 @@
+---
+id: reject-approval-request
+title: "Reject approval request"
+description: "Reject an approval request (marks as rejected)"
+sidebar_label: "Reject approval request"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVV1v2jAU/SvWfWold4G207S8sXUPlSYN0W0vKA+X5ELcOrFrO1AU5b9P1wmDFlZt0t6KkDD2Pcf387gFY8lhUKa+LSAFR/eUh4m1zqxRz+ixIR9AQsCVh3QOuxPIJBTkc6csYyGFWUQKrAUONsL1cHFWoXvwAr3o6ak4BwnD6SdTbCFtITd1oDrwEq3VKo9OJfee2VvweUkV8ipsLUEKZsFUIME6DiEo8nzqCAfEYOeDU/UKuk4CFoViUtTTA8wStaeuYwOLDisK5DjWE3fuuCQoDtliKEFCjRUfqmIISjkqIA2uoS7jHW9N7XvvLkcj/nmeuRtaYqODmA2WIP9XMnyT5+T9geHCGE1YcwgVeY8rOp2qfRzz3yx7SPYXubweXb+dUD++jVAjfygNK4U1URjiDKSQrMfJbu6TYbJ90qqiS/qZBwme3Ho3Wo3TkEIZgk2TZDx6d/khft+P4KWuTJ2q0G3FXURDJ18Bp1ej0dURw41yrEw9gZjEsMXZRoVSWOPC+TGnNjnq0vhwmvDr7vgkWSaBKzrby9uXJ6yspkN5eiYlSxPLpQLbwLTRHp0Tk+nt0c2T6a0oTN5UVIfYPGJpnNghLgSKqaYnscGQl1r5IFQdaOX2pnemZkusCzHDAp0DCVyUnv7nmB3iylYYW3KQtp22vxD2l+4diPi/PwdDtwZ6ConVqGI3x6q0Q5PNYT0GCTu+/RPCTZwO8ht7LZPA5WFI2y7Q0w+nu463HxtyW0jnmYQ1OoULTvm8hUJ5XhdDs78S2NlsGKJz8Sevh02st5xd1A3/AwkPtO3fiS7rJJSEBbl4e3/wub/j4jvD98AjqeB27RHcfja8apsdjOz02913kLAYXtzKFIxxuOHM4aZ30sSY+7eU91rQWK+aqCnQc/LnFzVK15c=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Reject approval request"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/approval/requests/{id}/reject"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Reject an approval request (marks as rejected)
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"reason":{"type":"string"}},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"409":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
