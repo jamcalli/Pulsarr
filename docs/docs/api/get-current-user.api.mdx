@@ -1,0 +1,63 @@
+---
+id: get-current-user
+title: "Get current user information"
+description: "Retrieve information about the currently authenticated user, including Plex avatar if available"
+sidebar_label: "Get current user information"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1r20AQ/SvLnFpQaztpKOgWkhICPZik6cX4MF6NrU1Xu8rurBMj9N/LSHLi2KbpoRQCAsmemTdfb9824GsKyMa76wJyWBFfpBDI8V2kABkwriLkM5CfEeYZFBR1MLVEQA43xMHQmpRxSx+qDkjhwidWXJLSPZbdKExckmOjkalQKVLIlHHapsK4lZpaelK4RsagzFK+jMWFJcggUKy9ixQhb+BkPJbX6xouaYnJsroZPCED7R2TY/HFuraS1Xg3uo8S0EDUJVUoX7ypCXLwi3vSDBnUQebBpk8Xk9YU447jwntL6KDNoKIYcUU7xsjBuJXYpL+34U2x4+NStaCwDXZYHUemCo09agneHg/p53poysAl248555CozaC29HThnSPNVBxrW/LQQzJBzDPpYKfebXVDLc+Z93HnGWBRGFkJ2unOSJZoI+3n2C7hZeLDfN+CEaAv48k7IMybHf9Nq2fv4mz8g1Y7fC79oFdSGXIJOYzWk5EwI446MkYKaxGtfNZAChZyKJnrfDSajD+ffO2eszHsK9o0mArDRt120dBmfwjOT8fj0wOESxNI8wCgzrsG1YdHw6WqfeCPh5jWa7Slj3wc8PvWfBRsnoGIbzdrw3KYYZpsxBDU+fT6AOx8eq0Kr1NFjnu5XvqgthGfFPZi/IisS2siK+OYVuHF9dY78URXqBssMMj5ljn38D8nsv/aR66w41OvZHBFvL0NOvXfvTD2a2xeOPofLpiBoExPPKotmo7A3XqagVgzWE8G0emZKiSVfYipaRYY6S7YtpW/HxKFDeSzeQZrDKZX19m8zaAkLORWmDXwizayCa2pFvqu0SYp4eA4ym6fqX717Qe07W+itqtJ
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get current user information"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/users/me"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve information about the currently authenticated user, including Plex avatar if available
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"user":{"type":"object","properties":{"id":{"type":"number"},"username":{"type":"string"},"email":{"type":"string"},"role":{"type":"string"},"avatar":{"type":"string","nullable":true},"plexConnected":{"type":"boolean"}},"required":["id","username","email","role","avatar","plexConnected"],"additionalProperties":false}},"required":["success","message","user"],"additionalProperties":false}}}},"401":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

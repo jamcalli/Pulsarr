@@ -1,0 +1,63 @@
+---
+id: get-users-with-quotas
+title: "Get all users with quotas"
+description: "Get all users that have quota configurations"
+sidebar_label: "Get all users with quotas"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVE2L20AM/SuDTi24TbLLUvAtsGVZ2EO6H+0hhKLYSjy7Y48zIztrjP970cTZfNLQYyEQM5KepKcntWBLcsjaFvcpxLAkfvHk/C/N2Y/KMnqIgHHpIZ5CeIBZBCn5xOlSoiCGO2KFxqhKAhVnyCrDmtRK3FVii4VeVpscgubIl7bw5CFu4Wo4lL9DwFtaYGVYPfaeEEFiC6aCxRfL0ugkwA1evQS04JOMcpQvbkqCGOz8lRKGCEonDbLepPNVkpD3e45zaw1hAV0EOXmPS9ozena6WIpNeuv52JnROWwgAs2U+8vJBUNI/vArqnxOTuD79p7D+3H6CKiochlAbmstbPjMrmHWRRAovhSVojZS5prozTS/nTVm45DbgjPT7JAedK75bIHzpkTvx2XpbI3mHH+dTHZVaUepJO2bPWxtv+CDlCcJZhFgmmoZMprJHo0LNJ6642zbue6GeDCyi2hdBDf/hRIv9n251YDPme3XXSpDziCGQT0ahJkMwiaLzsjV8hVPW6icgRgy5jIeDEbDr1ffwu9mCMf3YOJ0jq5RTyEauugvwfH1cHh9gnCrHSXcA6hx6FF9WmvOVGkdfz7FNDZBk1nP5wEftuazYLMIdLGwgW7NRvieVMajc2o8uT8BG0/uVWqTKqeCw/DVwjq1jfiiUE0Mvas1cpIZ7Vnpgmnpdq5PthBPLFL1iCk6BxEIzxv4nyORQGk95xgkVWBOJ2c21L/aXuiDAtudRv/1NvdqY3rnQWlQBzUGotteJVOoR9vd7Zcs7JeQK9a2naOnF2e6Tp5XFbkG4uksghqdxrmwO5WDkxGm5IK03qgRWpOESpFjjaYK5/V4vWRQH9K9+/4MXfcHaQBV4g==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get all users with quotas"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/quota/users"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get all users that have quota configurations
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"userQuotas":{"type":"array","items":{"type":"object","properties":{"userId":{"type":"number"},"contentType":{"type":"string","enum":["movie","show"]},"quotaType":{"type":"string","enum":["daily","weekly_rolling","monthly"]},"quotaLimit":{"type":"number"},"bypassApproval":{"type":"boolean"}},"required":["userId","contentType","quotaType","quotaLimit","bypassApproval"],"additionalProperties":false}}},"required":["success","message","userQuotas"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

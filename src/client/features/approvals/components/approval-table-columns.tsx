@@ -389,7 +389,7 @@ export const createApprovalColumns = (
     accessorKey: 'expiresAt',
     id: 'expiresAt',
     meta: {
-      displayName: 'Expires',
+      displayName: 'Expires/Resolution',
     },
     header: ({ column }) => {
       return (
@@ -400,7 +400,7 @@ export const createApprovalColumns = (
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             className="whitespace-nowrap"
           >
-            Expires
+            Expires/Resolution
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         </div>
@@ -408,6 +408,21 @@ export const createApprovalColumns = (
     },
     cell: ({ row }) => {
       const expiresAt = row.getValue('expiresAt') as string | null
+      const status = row.original.status
+      const updatedAt = row.original.updatedAt
+
+      // Show resolution date for approved/denied requests
+      if (status === 'approved' || status === 'rejected') {
+        const resolvedDate = new Date(updatedAt)
+        return (
+          <div className="text-center">
+            <div className="text-sm text-muted-foreground">
+              {format(resolvedDate, 'MMM d, yyyy')}
+              <div className="text-xs">{format(resolvedDate, 'HH:mm')}</div>
+            </div>
+          </div>
+        )
+      }
 
       if (!expiresAt) {
         return (

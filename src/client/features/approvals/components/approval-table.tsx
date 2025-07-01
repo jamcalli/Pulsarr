@@ -31,6 +31,7 @@ import { ApprovalTableToolbar } from '@/features/approvals/components/approval-t
 import { createApprovalColumns } from '@/features/approvals/components/approval-table-columns'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface ApprovalTableProps {
   data: ApprovalRequestResponse[]
@@ -70,6 +71,9 @@ export function ApprovalTable({
   const [rowSelection, setRowSelection] = React.useState({})
   const [isTableFiltered, setIsTableFiltered] = React.useState(true)
 
+  // Persistent table pagination
+  const { pageSize, setPageSize } = useTablePagination('approvals', 20)
+
   const columns = createApprovalColumns({
     onView,
     onApprove,
@@ -96,6 +100,18 @@ export function ApprovalTable({
       columnFilters,
       columnVisibility,
       rowSelection,
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newPagination = updater({ pageIndex: 0, pageSize })
+        if (newPagination.pageSize !== pageSize) {
+          setPageSize(newPagination.pageSize)
+        }
+      }
     },
     enableRowSelection: true,
     filterFns: {
@@ -179,21 +195,30 @@ export function ApprovalTable({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
-                    className={
-                      row.original.expiresAt &&
-                      new Date(row.original.expiresAt) < new Date()
-                        ? 'opacity-60'
-                        : ''
-                    }
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-2 py-2">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const isExpiredStatus = row.original.status === 'expired'
+                      const isActionsColumn = cell.column.id === 'actions'
+                      const isSelectColumn = cell.column.id === 'select'
+
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={`px-2 py-2 ${
+                            isExpiredStatus &&
+                            !isActionsColumn &&
+                            !isSelectColumn
+                              ? 'opacity-60'
+                              : ''
+                          }`}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      )
+                    })}
                   </TableRow>
                 ))
               ) : (
