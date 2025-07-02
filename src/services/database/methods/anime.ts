@@ -3,7 +3,11 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { AnimeIdRow, InsertAnimeId } from '@root/types/anime.types.js'
 
 /**
- * Check if an external ID is anime
+ * Determines whether a given external ID and source pair exists in the anime IDs table.
+ *
+ * @param externalId - The external identifier to check
+ * @param source - The source associated with the external ID
+ * @returns True if the external ID and source exist in the anime IDs table; otherwise, false
  */
 export async function isAnime(
   this: DatabaseService,
@@ -18,7 +22,12 @@ export async function isAnime(
 }
 
 /**
- * Check if any of the provided IDs are anime
+ * Determines if any of the specified external ID and source pairs exist in the anime IDs table.
+ *
+ * Returns `false` if the input array is empty.
+ *
+ * @param ids - Array of objects each containing an external ID and its source to check for existence
+ * @returns `true` if at least one pair exists in the table, otherwise `false`
  */
 export async function isAnyAnime(
   this: DatabaseService,
@@ -37,7 +46,12 @@ export async function isAnyAnime(
 }
 
 /**
- * Bulk insert anime IDs
+ * Inserts multiple anime ID records into the `anime_ids` table, ignoring duplicates based on external ID and source.
+ *
+ * Performs bulk insertion in chunks for efficiency. If a transaction is provided, it is used for the operation; otherwise, a new transaction is created internally. No action is taken if the input array is empty.
+ *
+ * @param animeIds - Array of anime ID records to insert
+ * @param trx - Optional Knex transaction to use for the operation
  */
 export async function insertAnimeIds(
   this: DatabaseService,
@@ -66,14 +80,18 @@ export async function insertAnimeIds(
 }
 
 /**
- * Clear all anime IDs (for rebuilding the table)
+ * Deletes all records from the `anime_ids` table.
+ *
+ * This operation removes every anime ID entry, effectively resetting the table.
  */
 export async function clearAllAnimeIds(this: DatabaseService): Promise<void> {
   await this.knex('anime_ids').del()
 }
 
 /**
- * Get count of anime IDs
+ * Returns the total number of records in the `anime_ids` table.
+ *
+ * @returns The count of anime ID records as a number
  */
 export async function getAnimeCount(this: DatabaseService): Promise<number> {
   const result = await this.knex('anime_ids').count('* as count').first()
@@ -81,7 +99,10 @@ export async function getAnimeCount(this: DatabaseService): Promise<number> {
 }
 
 /**
- * Get count of anime IDs by source
+ * Returns the number of anime ID records for a specific source.
+ *
+ * @param source - The source to filter anime IDs by
+ * @returns The count of anime IDs associated with the given source
  */
 export async function getAnimeCountBySource(
   this: DatabaseService,
@@ -95,7 +116,10 @@ export async function getAnimeCountBySource(
 }
 
 /**
- * Get anime IDs by source
+ * Retrieves all anime ID records from the database filtered by the specified source.
+ *
+ * @param source - The source to filter anime IDs by
+ * @returns An array of anime ID records matching the given source
  */
 export async function getAnimeIdsBySource(
   this: DatabaseService,
@@ -105,7 +129,9 @@ export async function getAnimeIdsBySource(
 }
 
 /**
- * Get last updated timestamp
+ * Retrieves the most recent `updated_at` timestamp from the `anime_ids` table.
+ *
+ * @returns The latest update timestamp as a `Date` object, or `null` if no records exist.
  */
 export async function getLastUpdated(
   this: DatabaseService,
