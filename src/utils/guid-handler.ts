@@ -150,6 +150,23 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
 }
 
 /**
+ * Extracts the numeric IMDb ID from the first GUID prefixed with "imdb:".
+ *
+ * Parses the input and returns the integer following the "imdb:" prefix (with 'tt' prefix removed if present), or 0 if no valid IMDb GUID is found.
+ *
+ * @returns The extracted IMDb ID as a number, or 0 if not present or invalid.
+ */
+export function extractImdbId(guids: string[] | string | undefined): number {
+  const parsed = parseGuids(guids)
+  const imdbGuid = parsed.find((guid) => guid.startsWith('imdb:'))
+  if (!imdbGuid) return 0
+
+  const rawId = imdbGuid.replace('imdb:', '').replace(/^tt/, '')
+  const id = Number.parseInt(rawId, 10)
+  return Number.isNaN(id) ? 0 : id
+}
+
+/**
  * Checks if two arrays of GUID strings have at least one GUID in common.
  *
  * @param parsedGuids1 - The first array of GUID strings.
