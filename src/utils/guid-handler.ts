@@ -142,7 +142,7 @@ export function extractTmdbId(guids: string[] | string | undefined): number {
  */
 export function extractTvdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
-  const tvdbGuid = parsed.find((guid) => guid.startsWith('tvdb:'))
+  const tvdbGuid = parsed.find((guid) => guid.toLowerCase().startsWith('tvdb:'))
   if (!tvdbGuid) return 0
 
   const id = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
@@ -161,7 +161,7 @@ export function extractImdbId(guids: string[] | string | undefined): number {
   const imdbGuid = parsed.find((guid) => guid.startsWith('imdb:'))
   if (!imdbGuid) return 0
 
-  const rawId = imdbGuid.replace('imdb:', '').replace(/^tt/, '')
+  const rawId = imdbGuid.replace('imdb:', '').replace(/^tt/i, '')
   const id = Number.parseInt(rawId, 10)
   return Number.isNaN(id) ? 0 : id
 }

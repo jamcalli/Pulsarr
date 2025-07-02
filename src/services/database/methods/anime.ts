@@ -61,9 +61,7 @@ export async function insertAnimeIds(
   if (animeIds.length === 0) return
 
   const executeInsert = async (transaction: Knex.Transaction) => {
-    const chunkSize = 1000
-    for (let i = 0; i < animeIds.length; i += chunkSize) {
-      const chunk = animeIds.slice(i, i + chunkSize)
+    for (const chunk of this.chunkArray(animeIds, 1000)) {
       await transaction('anime_ids')
         .insert(chunk)
         .onConflict(['external_id', 'source'])
