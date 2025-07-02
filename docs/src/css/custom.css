@@ -189,3 +189,14 @@ button[class*="default"].hero-button {
 button[class*="bg-main"].hero-button {
 	color: #000 !important;
 }
+
+/* Planet responsive sizing - CSS-based to avoid hydration issues */
+.planet-sizing {
+	width: 1000px;
+}
+
+@media (max-width: 768px) {
+	.planet-sizing {
+		width: 600px;
+	}
+}

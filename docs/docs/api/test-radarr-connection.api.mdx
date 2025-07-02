@@ -5,8 +5,8 @@ description: "Test connectivity to a Radarr instance with provided credentials"
 sidebar_label: "Test Radarr connection"
 hide_title: true
 hide_table_of_contents: true
-api: eJy9VMFu2zAM/RWBpxZw4WTFLr4V2zAU6yHoul2CHBiZidXJkivRaQPD/z5QdpqkWYsetp2CWOQjH/keO/ANBWTj3XUJBTBFvsUSQ/jknSMtD5AB4zpCMYfhCRYZlBR1ME16L+COIis9ZmwMbxV7hWoIV8ZFRqdJPRquVBP8xpRUKh2oJMcGbYQMGgxYE1OQQh1EXVGNUHTA24aggMjBuDVksPKhRoYC2mCgz8BIAw8thS1k4LCW4CVG+hEsZBDooTWBSig4tNRnbyHXxt2QW3MFxfQVYGzMN9qe4i7kS2y8ixQF+sNkIj/HU/pMK2wtq9sxEjLQ3jE5llhsGmt0WkV+HyXhD7365T1plnEFWRyboVxstaYYDwKX3ltCJwOqKUZc0ynjvj/kMX9G2acsMsCyNNIT2tlByRXaSH0vCB//L9V3s3k/hzQjrrwYYE2pJIoIIN9M85A0nIsxLvShJyKFzU6tbbBQQMXcFHluvUZb+cjF5WRyCS+9crN7Vldp3OpssIUPfA4iJONWPtEzbIXfrLVRbHQ1uz4Bu5pdq9LrtibHaZ5q5YPaZVwoVDNLT+oRWVfWRFbGMa3DPvS7dxKJrhzdChkIrQH+51QE1PjINaYtjTZIfh/dfTSUo+66/c7/xoUY1830xHlj0SRxp8l348LmsJmKN3dEXi5tkYEMXgK7brwRfS+fB5vLKksTcWlFQkkfb1A6ux3Vdq5e6+4XbY+u0QZtK1Egh+gfVHo+T/tCC/kTjFSCYr7oM6gISwqJ7JAlOmz4IOvEn4LybJGvX+6g738DAMYonQ==
-sidebar_class_name: "get api-method"
+api: eJy9VU1v2zAM/SsCTxugLkmLYoBvXbtDsQIL2m6XIAfGZmJ1suRKdNIg8H8fKDtN0hRdD8WMADZEPoof7zEb8DUFZOPddQEZMEW+xQJDuPTOUS4G0MC4iJBNoDPBVENBMQ+mTvYM7imyynvE0vBasVeoOndlXGR0OamV4VLVwS9NQYXKAxXk2KCNoCHQY0ORv/liDdkGcu+YHMsn1rU1ecpx8BDlvg3EvKQK5YvXNUEGfvZAOYOGOkhFbCiKdYaRfgW75xg5GLcADXMfKmTIoAkGWg1Ymx+0fs2zMu6G3IJLyEZt26VqAhXSke0Fz/ipBiwKI9miHe8lM0cbqT3Ec2goHcTau9ilfDocyuuwwVc0x8ayuu09QX9Uh2KT5xTjnuPMe0vopCcVxYgLOm7KyzZso+wg/+xDq+H8/5b67mreX0PqEZdetFP7mO5EIQoMlqNBSPwfiKhO8n09RQpLCiKpDTRCTyiZ62wwGA2/nH5Nv/MhvFTZOJgKw1rdJTS0+g1wdjYcnh1FuDKBcu4DqIs0M/Wpk6UP/Pk4pvU52tJHfj3gzdb8arCpBpnR7U7a35+wqi0dSHMntK0En+eiwbi5TwMzLDAYNzbKTrkYXx8lczG+VoXPm4ocJ4aouQ9qizhRqMaWntQKOS+tiayMY1qEneudd+KJruhXF2iQOXXhf48kIZlyhYl3DivaLr9+1R1M+SC7vZX2EeuyJzDTEw9qiybJtek2XcfACSxHsle3hbxk4VSDDE4cN5t+GG0rx48NhTVkk6mGJQaDM+n8ZNpqKAkLCom2f9KgLruaTu4lHXG3jaR1pFLhVYcQntT8pu90T1Tjn3f3oGHW/y1UvhBMwFUqbQUZgAafepw0ns42YNEtmqR16GLK8xeSm2Z7
+sidebar_class_name: "post api-method"
 info_path: docs/api/pulsarr-api
 custom_edit_url: null
 ---
@@ -27,7 +27,7 @@ import Heading from "@theme/Heading";
 </Heading>
 
 <MethodEndpoint
-  method={"get"}
+  method={"post"}
   path={"/v1/radarr/test-connection"}
   context={"endpoint"}
 >
@@ -47,14 +47,14 @@ Test connectivity to a Radarr instance with provided credentials
 </Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string","format":"uri"},"in":"query","name":"baseUrl","required":true},{"schema":{"type":"string","minLength":1},"in":"query","name":"apiKey","required":true}]}
+  parameters={undefined}
 >
   
 </ParamsDetails>
 
 <RequestSchema
   title={"Body"}
-  body={undefined}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"baseUrl":{"type":"string","format":"uri"},"apiKey":{"type":"string","minLength":1}},"required":["baseUrl","apiKey"],"additionalProperties":false}}},"required":true}}
 >
   
 </RequestSchema>
