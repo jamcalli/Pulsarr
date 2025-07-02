@@ -79,12 +79,13 @@ export class AnimeService {
         return { count: 0, updated: false }
       }
 
-      // Clear existing data and insert new data
-      await this.db.clearAllAnimeIds()
-      this.logger.info('Cleared existing anime IDs')
+      // Use transaction for atomic replacement to avoid temporary empty state
+      await this.db.knex.transaction(async (trx) => {
+        await trx('anime_ids').del()
+        this.logger.info('Cleared existing anime IDs')
 
-      // Insert all at once - Knex batchInsert handles chunking automatically
-      await this.db.insertAnimeIds(animeIds)
+        await this.db.insertAnimeIds(animeIds, trx)
+      })
 
       const finalCount = await this.db.getAnimeCount()
       this.logger.info(
@@ -185,8 +186,7 @@ export class AnimeService {
     const countBySource: Record<string, number> = {}
 
     for (const source of sources) {
-      const ids = await this.db.getAnimeIdsBySource(source)
-      countBySource[source] = ids.length
+      countBySource[source] = await this.db.getAnimeCountBySource(source)
     }
 
     return {

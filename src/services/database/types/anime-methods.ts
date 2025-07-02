@@ -26,9 +26,13 @@ declare module '@services/database.service.js' {
     isAnyAnime(
       ids: Array<{ externalId: string; source: string }>,
     ): Promise<boolean>
-    insertAnimeIds(animeIds: InsertAnimeId[]): Promise<void>
+    insertAnimeIds(
+      animeIds: InsertAnimeId[],
+      trx?: import('knex').Knex.Transaction,
+    ): Promise<void>
     clearAllAnimeIds(): Promise<void>
     getAnimeCount(): Promise<number>
+    getAnimeCountBySource(source: string): Promise<number>
     getAnimeIdsBySource(source: string): Promise<AnimeIdRow[]>
     getLastUpdated(): Promise<Date | null>
   }
