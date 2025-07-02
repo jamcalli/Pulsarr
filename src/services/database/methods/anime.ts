@@ -1,0 +1,103 @@
+import type { DatabaseService } from '@services/database.service.js'
+import type { AnimeIdRow, InsertAnimeId } from '../types/anime-methods.js'
+
+/**
+ * Check if an external ID is anime
+ */
+export async function isAnime(
+  this: DatabaseService,
+  externalId: string,
+  source: string,
+): Promise<boolean> {
+  const result = await this.knex('anime_ids')
+    .where({ external_id: externalId, source })
+    .first()
+
+  return !!result
+}
+
+/**
+ * Check if any of the provided IDs are anime
+ */
+export async function isAnyAnime(
+  this: DatabaseService,
+  ids: Array<{ externalId: string; source: string }>,
+): Promise<boolean> {
+  if (ids.length === 0) return false
+
+  const query = this.knex('anime_ids')
+
+  // Build OR conditions for each ID/source pair
+  query.where(function () {
+    ids.forEach(({ externalId, source }, index) => {
+      if (index === 0) {
+        this.where({ external_id: externalId, source })
+      } else {
+        this.orWhere({ external_id: externalId, source })
+      }
+    })
+  })
+
+  const result = await query.first()
+  return !!result
+}
+
+/**
+ * Bulk insert anime IDs
+ */
+export async function insertAnimeIds(
+  this: DatabaseService,
+  animeIds: InsertAnimeId[],
+): Promise<void> {
+  if (animeIds.length === 0) return
+
+  // Use transaction with chunked inserts for better performance
+  await this.knex.transaction(async (trx) => {
+    const chunkSize = 1000
+    for (let i = 0; i < animeIds.length; i += chunkSize) {
+      const chunk = animeIds.slice(i, i + chunkSize)
+      await trx('anime_ids')
+        .insert(chunk)
+        .onConflict(['external_id', 'source'])
+        .ignore()
+    }
+  })
+}
+
+/**
+ * Clear all anime IDs (for rebuilding the table)
+ */
+export async function clearAllAnimeIds(this: DatabaseService): Promise<void> {
+  await this.knex('anime_ids').del()
+}
+
+/**
+ * Get count of anime IDs
+ */
+export async function getAnimeCount(this: DatabaseService): Promise<number> {
+  const result = await this.knex('anime_ids').count('* as count').first()
+  return Number(result?.count || 0)
+}
+
+/**
+ * Get anime IDs by source
+ */
+export async function getAnimeIdsBySource(
+  this: DatabaseService,
+  source: string,
+): Promise<AnimeIdRow[]> {
+  return this.knex('anime_ids').where({ source }).select('*')
+}
+
+/**
+ * Get last updated timestamp
+ */
+export async function getLastUpdated(
+  this: DatabaseService,
+): Promise<Date | null> {
+  const result = await this.knex('anime_ids')
+    .max('updated_at as lastUpdated')
+    .first()
+
+  return result?.lastUpdated ? new Date(result.lastUpdated) : null
+}
