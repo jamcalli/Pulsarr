@@ -5,7 +5,7 @@ description: "Sync Pulsarr users with Tautulli notification agents. Requires Ple
 sidebar_label: "Sync user notifiers"
 hide_title: true
 hide_table_of_contents: true
-api: eJzlVMFu2zAM/RWBpw1wm3TdLr4V6KXAsBlNu0uQAyMzsTpFckU6bWD43wcqSeuuA7YCuww7xQjJR/Lp8fUQW0ooLoarGkrgXbA32EnnvfsSxa0cJYYCBNcM5RyOMVgUUBPb5FqthRJmu2BN1XnGlEzHlNg8OGnMscKEDGdzL4NrCsKn5pruO5eITeXp0VTIfAoFJOI2BiaGsocP06n+vOx2SSvsvJjrQyYUYGMQCqK52Lb+0Glyx1rQA9uGNqhfsmsJSojLO7ICBbRJORC3b8edtcQ8SlzG6AkDDAVsiBnXNAqyJBfWGlPqqL7VzUfx0G2WlGAYdKu8a608Hrs8Q74EWBSAde10A/TVaMAVeqZhULyP/wQxv138T1b99L+smvGliXqLbeQ8GkoDJUy2ZxM53NJEpXISRvfJlLZZePMeuuShhEakLScTHy36JrKU59PpOfx8tVVyG0w7M8v1MBRvK790iawcqs1F3te8y3ffxiTv3wz4+Rj+JdiiABdWMVPvxCv3R8e5qK5egV1UV6aOtttQkL3trGJ68qgTg3vXeUCxjXcsxgWhdXpOncWgmRhqc401pgQFKM17+G9nKgd9pQ1meQXc0NEJ1QHN+IVejNY/K/WvGudBkEKPMmk9uizYzH9/0NEctmfZzw8+vredkZYWBSj/mtn3S2S6TX4Y9O/7jtIOyvmigC0mh0t9gPliKKAhrCll8X2nnTJvLbUq3i36Tid6dY36lk9Kr77ObmAYfgBBbUug
+api: eJzlVMFq20AQ/ZVlTi0okZ00FHQL5BIorYiTXowP49XY2nS1q+yOnBihfy+zlhMnDm0PvZSCQEI782bm7ZvXg28pIBvvrisoIG6dvsWOO2vNV89mZShEyIBxHaGYw/4MFhlUFHUwreRCAbOt06rsbMQQVBcpRPVouFb7DOUSnE61FK7JcTxVN/TQmUBRlZaeVIkxnkIGgWLrXaQIRQ9nk4m8Xle7ohV2ltXNGAkZaO+YHEsstq0dK+X3URJ6iLqmBuWLty1BAX55T5ohgzYIB2x25WKnNcV4ELj03hI6GDJoKEZc08Fh5GDcWs7ImrVZWrqT2Q8iXNcsKcAwyFxp2kqY3Nd5AX0LscgAq8rIFGjLgyZXaCMNgyB++ifI+e3ofzLqxf8yasLn2ss+tj6m1pBrKCDfTHMe9ymXVT1xBzsaKWyS9OY9dMFCATVzW+T5dHJ69jk9FxN4u7dlMA2GrZqlbBiyXyQX55PJ+RHClQmkeQRQl2lg9SEtf+sDfzzGtF6jrX3k9wG/7I/fBVtkYNzKJ+4NWyF/bzuX5fUR2GV5rSqvu4Yc77xn5cOzUZ0o3FnPI7KurYmsjGNah5fQmXcSia5SN1hhCJCB8LyD/z4VPcg1NZj05bChvR2KDarDK3rVWv8i1b/qnqMimZ44by2apNjEfz8KaQ6baTL10cwzeCOmRQbCv0T2/RIj3QU7DPL7oaOwhWK+yGCDweBSLmC+GDKoCSsKSX0/aCvMa02tqHeDtpOOjtZR7vJZ6uW32S0Mw08xB0kk
 sidebar_class_name: "post api-method"
 info_path: docs/api/pulsarr-api
 custom_edit_url: null
@@ -54,7 +54,7 @@ Sync Pulsarr users with Tautulli notification agents. Requires Plex Pass.
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"syncedUsers":{"type":"number"}},"required":["success","message","syncedUsers"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"eligibleUsers":{"type":"number"}},"required":["success","message","eligibleUsers"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
 >
   
 </StatusCodes>
