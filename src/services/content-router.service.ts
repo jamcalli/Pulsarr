@@ -25,7 +25,7 @@ import type { RouterDecision } from '@root/types/approval.types.js'
 import {
   extractTmdbId,
   extractTvdbId,
-  extractTypedGuid,
+  extractImdbId,
 } from '@utils/guid-handler.js'
 
 /**
@@ -907,6 +907,9 @@ export class ContentRouterService {
             )
             return item
           }
+          this.log.debug(
+            `Default Radarr instance found for "${item.title}": ${defaultInstance.id}`,
+          )
         } catch (error) {
           this.log.error(
             `Database error fetching default Radarr instance for metadata lookup of "${item.title}":`,
@@ -926,10 +929,14 @@ export class ContentRouterService {
           return item
         }
 
+        this.log.debug(
+          `Calling Radarr API for "${item.title}" with TMDB ID: ${itemId}`,
+        )
         // Call Radarr API to get movie details
         const apiResponse = await lookupService.getFromRadarr<
           RadarrMovieLookupResponse | RadarrMovieLookupResponse[]
         >(`movie/lookup/tmdb?tmdbId=${itemId}`)
+        this.log.debug(`Radarr API response received for "${item.title}"`)
 
         let movieMetadata: RadarrMovieLookupResponse | undefined
 
@@ -942,6 +949,67 @@ export class ContentRouterService {
 
         // Add metadata to the item if found
         if (movieMetadata) {
+          this.log.debug(
+            `Movie metadata found for "${item.title}", checking anime status`,
+          )
+
+          // Check anime status before returning
+          try {
+            const tvdbId = extractTvdbId(item.guids)?.toString()
+            const tmdbId = extractTmdbId(item.guids)?.toString()
+
+            // Try to get IMDb ID from guids first, then fallback to metadata
+            let imdbId = extractImdbId(item.guids)?.toString()
+            if ((!imdbId || imdbId === '0') && movieMetadata?.imdbId) {
+              imdbId = movieMetadata.imdbId.replace(/^tt/, '')
+            }
+
+            this.log.debug(
+              `Anime check for "${item.title}": tvdbId=${tvdbId || 'none'}, tmdbId=${tmdbId || 'none'}, imdbId=${imdbId || 'none'}`,
+            )
+
+            // Check if this content is anime
+            if (tvdbId || tmdbId || imdbId) {
+              const isAnimeContent = await this.fastify.anime.isAnime(
+                tvdbId,
+                tmdbId,
+                imdbId,
+              )
+              this.log.debug(
+                `Anime result for "${item.title}": ${isAnimeContent}`,
+              )
+
+              if (isAnimeContent) {
+                // Add "anime" to the genres for evaluation
+                const existingGenres = Array.isArray(item.genres)
+                  ? item.genres
+                  : []
+                const genresLowercase = existingGenres.map((g) =>
+                  g.toLowerCase(),
+                )
+                this.log.debug(
+                  `Adding anime genre to "${item.title}", existing genres: [${existingGenres.join(', ')}]`,
+                )
+                if (!genresLowercase.includes('anime')) {
+                  const enrichedGenres = [...existingGenres, 'anime']
+                  this.log.debug(
+                    `Enriched "${item.title}" with new genres: [${enrichedGenres.join(', ')}]`,
+                  )
+                  return {
+                    ...item,
+                    metadata: movieMetadata,
+                    genres: enrichedGenres,
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            this.log.debug(
+              'Failed to check anime status during enrichment:',
+              error,
+            )
+          }
+
           return {
             ...item,
             metadata: movieMetadata,
