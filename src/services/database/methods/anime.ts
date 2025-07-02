@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
 import type { DatabaseService } from '@services/database.service.js'
-import type { AnimeIdRow, InsertAnimeId } from '../types/anime-methods.js'
+import type { AnimeIdRow, InsertAnimeId } from '@root/types/anime.types.js'
 
 /**
  * Check if an external ID is anime
@@ -26,20 +26,13 @@ export async function isAnyAnime(
 ): Promise<boolean> {
   if (ids.length === 0) return false
 
-  const query = this.knex('anime_ids')
-
-  // Build OR conditions for each ID/source pair
-  query.where(function () {
-    ids.forEach(({ externalId, source }, index) => {
-      if (index === 0) {
-        this.where({ external_id: externalId, source })
-      } else {
+  const result = await this.knex('anime_ids')
+    .where(function () {
+      for (const { externalId, source } of ids) {
         this.orWhere({ external_id: externalId, source })
       }
     })
-  })
-
-  const result = await query.first()
+    .first()
   return !!result
 }
 
