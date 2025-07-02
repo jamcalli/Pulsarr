@@ -56,7 +56,6 @@ import type {
   ConditionGroup,
 } from '@root/types/router.types.js'
 import './database/types/analytics-methods.js'
-import './database/types/anime-methods.js'
 import './database/types/approval-methods.js'
 import './database/types/config-methods.js'
 import './database/types/instance-methods.js'
@@ -70,7 +69,6 @@ import './database/types/user-methods.js'
 import './database/types/watchlist-methods.js'
 import './database/types/webhook-methods.js'
 import * as analyticsMethods from './database/methods/analytics.js'
-import * as animeMethods from './database/methods/anime.js'
 import * as approvalMethods from './database/methods/approval.js'
 import * as configMethods from './database/methods/config.js'
 import * as junctionMethods from './database/methods/junction.js'
@@ -186,7 +184,6 @@ export class DatabaseService {
   private bindMethods(): void {
     const methodModules = [
       analyticsMethods,
-      animeMethods,
       approvalMethods,
       configMethods,
       junctionMethods,
