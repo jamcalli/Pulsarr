@@ -13,6 +13,11 @@ declare module 'fastify' {
   }
 }
 
+/**
+ * Fastify plugin that provides anime lookup functionality and manages scheduled updates of the anime database.
+ *
+ * On initialization, decorates the Fastify instance with an `anime` service, ensures a weekly update schedule exists, registers a scheduled job to update the anime database, and performs an immediate initial population if the database is empty. Logs all major actions and errors during setup and scheduled execution.
+ */
 async function animePlugin(fastify: FastifyInstance) {
   // Create anime service
   const animeService = new AnimeService(fastify.db, fastify.log)
