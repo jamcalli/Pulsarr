@@ -6,12 +6,11 @@
  */
 import type { FastifyBaseLogger } from 'fastify'
 import type { DatabaseService } from '@services/database.service.js'
-import type { InsertAnimeId } from '@services/database/types/anime-methods.js'
+import type { InsertAnimeId } from '@root/types/anime.types.js'
 import { XMLParser } from 'fast-xml-parser'
+import { ANIME_LIST_URL, ANIME_SOURCES } from '@root/types/anime.types.js'
 
 export class AnimeService {
-  private static readonly ANIME_LIST_URL =
-    'https://raw.githubusercontent.com/Anime-Lists/anime-lists/master/anime-list-full.xml'
   private static readonly USER_AGENT =
     'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
 
@@ -47,7 +46,7 @@ export class AnimeService {
       this.logger.info('Starting anime database update...')
 
       // Download the XML file
-      const response = await fetch(AnimeService.ANIME_LIST_URL, {
+      const response = await fetch(ANIME_LIST_URL, {
         headers: {
           'User-Agent': AnimeService.USER_AGENT,
         },
@@ -182,7 +181,7 @@ export class AnimeService {
     const totalCount = await this.db.getAnimeCount()
     const lastUpdated = await this.db.getLastUpdated()
 
-    const sources = ['tvdb', 'tmdb', 'imdb']
+    const sources = ANIME_SOURCES
     const countBySource: Record<string, number> = {}
 
     for (const source of sources) {

@@ -1,25 +1,5 @@
-/**
- * Database row type for anime_ids table
- */
-export interface AnimeIdRow {
-  id: number
-  external_id: string
-  source: string
-  created_at: Date
-  updated_at: Date
-}
+import type { AnimeIdRow, InsertAnimeId } from '@root/types/anime.types.js'
 
-/**
- * Insert type for anime_ids table
- */
-export interface InsertAnimeId {
-  external_id: string
-  source: string
-}
-
-/**
- * Anime lookup methods for DatabaseService
- */
 declare module '@services/database.service.js' {
   interface DatabaseService {
     isAnime(externalId: string, source: string): Promise<boolean>
