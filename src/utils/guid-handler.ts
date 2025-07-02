@@ -134,15 +134,15 @@ export function extractTmdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Extracts the numeric TVDB ID from the first GUID prefixed with "tvdb:".
+ * Returns the numeric TVDB ID from the first GUID in the input that starts with "tvdb:".
  *
- * Parses the input and returns the integer following the "tvdb:" prefix, or 0 if no valid TVDB GUID is found.
+ * Parses the input for a GUID prefixed with "tvdb:", extracts the integer following the prefix, and returns it. Returns 0 if no valid TVDB GUID is found or if the extracted value is not a valid number.
  *
- * @returns The extracted TVDB ID, or 0 if not present or invalid.
+ * @returns The TVDB ID as a number, or 0 if not found or invalid.
  */
 export function extractTvdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
-  const tvdbGuid = parsed.find((guid) => guid.startsWith('tvdb:'))
+  const tvdbGuid = parsed.find((guid) => guid.toLowerCase().startsWith('tvdb:'))
   if (!tvdbGuid) return 0
 
   const id = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
@@ -150,18 +150,18 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Extracts the numeric IMDb ID from the first GUID prefixed with "imdb:".
+ * Returns the numeric IMDb ID extracted from the first GUID with an "imdb:" prefix.
  *
- * Parses the input and returns the integer following the "imdb:" prefix (with 'tt' prefix removed if present), or 0 if no valid IMDb GUID is found.
+ * Removes the "imdb:" prefix and an optional leading "tt" from the GUID before parsing the numeric ID. Returns 0 if no valid IMDb GUID is found.
  *
- * @returns The extracted IMDb ID as a number, or 0 if not present or invalid.
+ * @returns The extracted IMDb ID as a number, or 0 if not found or invalid.
  */
 export function extractImdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
   const imdbGuid = parsed.find((guid) => guid.startsWith('imdb:'))
   if (!imdbGuid) return 0
 
-  const rawId = imdbGuid.replace('imdb:', '').replace(/^tt/, '')
+  const rawId = imdbGuid.replace('imdb:', '').replace(/^tt/i, '')
   const id = Number.parseInt(rawId, 10)
   return Number.isNaN(id) ? 0 : id
 }

@@ -1,10 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Creates the `anime_ids` table for anime content identification.
+ * Creates the `anime_ids` table to store external identifiers for anime content.
  *
- * This table stores external database IDs (TVDB, IMDB, TMDB, AniDB) that identify anime content,
- * allowing the content router to determine if media is anime-related.
+ * The table includes columns for an auto-incrementing primary key, external database ID, source of the ID, and timestamps. It enforces uniqueness on the combination of `external_id` and `source`, and adds indexes to optimize lookups.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('anime_ids', (table) => {
@@ -24,7 +23,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the `anime_ids` table.
+ * Drops the `anime_ids` table from the database if it exists.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('anime_ids')
