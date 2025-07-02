@@ -30,7 +30,20 @@ async function animePlugin(fastify: FastifyInstance) {
       if (!existingSchedule) {
         // Create the schedule - update weekly on Sundays at 3 AM
         const nextRun = new Date()
-        nextRun.setDate(nextRun.getDate() + ((7 - nextRun.getDay()) % 7)) // Next Sunday
+        const daysUntilSunday = (7 - nextRun.getDay()) % 7
+
+        // If today is Sunday, check if it's already past 3 AM
+        if (daysUntilSunday === 0) {
+          const currentHour = nextRun.getHours()
+          const currentMinute = nextRun.getMinutes()
+          // If it's past 3 AM, schedule for next Sunday
+          if (currentHour > 3 || (currentHour === 3 && currentMinute > 0)) {
+            nextRun.setDate(nextRun.getDate() + 7)
+          }
+        } else {
+          nextRun.setDate(nextRun.getDate() + daysUntilSunday)
+        }
+
         nextRun.setHours(3, 0, 0, 0) // 3 AM
 
         await fastify.db.createSchedule({
