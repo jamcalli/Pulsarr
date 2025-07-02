@@ -321,10 +321,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Approval',
-      link: {
-        type: 'doc',
-        id: 'api/approval',
-      },
       items: [
         {
           type: 'doc',
@@ -511,10 +507,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Quota',
-      link: {
-        type: 'doc',
-        id: 'api/quota',
-      },
       items: [
         {
           type: 'doc',
