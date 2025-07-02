@@ -20,7 +20,6 @@ export async function up(knex: Knex): Promise<void> {
     // Create indexes for fast lookups
     table.index(['external_id'])
     table.index(['source'])
-    table.index(['external_id', 'source'])
   })
 }
 
