@@ -5,8 +5,8 @@ description: "Test connectivity to a Sonarr instance with provided credentials"
 sidebar_label: "Test Sonarr connection"
 hide_title: true
 hide_table_of_contents: true
-api: eJy9VMFu2zAM/RWBpxZw4WTFLr4V2zAE6yHoul2CHBiZidXJkivRaQPD/z5QdpukWYsetp2CWOQjH/keO/ANBWTj3ayEApgif/cOQ/jknSMtD5AB4yZCsYDhCZYZlBR1ME16L+CWIis9ZmwN7xR7hWoIV8ZFRqdJPRiuVBP81pRUKh2oJMcGbYQMGgxYE1OQQh1EXVGNUHTAu4aggMjBuA1ksPahRoYC2mCgz8BIA/cthR1k4LCW4BVG+hEsZBDovjWBSig4tNRnbyHXxl2T23AFxfQVYGzMN9qd4i7lS2y8ixQF+sNkIj/HU/pMa2wtq5sxEjLQ3jE5llhsGmt0WkV+FyXhD7361R1plnEFWRyboVxstaYYDwJX3ltCJwOqKUbc0Cnjvj/ksXhG2acsM8CyNNIT2vlByTXaSH0vCB//L9V3s3k/hzQjrrwYYEOpJIoIIN9O85g0nIsxLvShJyKF7ZNa22ChgIq5KfLceo228pGLy8nkEl565frpWV2lcauzwRY+8DmIkIxb+0TPsBV+89ZGsdHVfHYCdjWfqdLrtibHaZ5q7YN6yrhQqOaWHtUDsq6siayMY9qEfehoUXSlusFSzJ2B0Brgf05FQI2PXGPa0miD5Pcx9WgoR911+53/jQsxrpvpkfPGokniTpPvxoUtYDuVzQxXKoOXS1tmIIOXwK4bb0Tfy+fB5rLK0kRcWZFQ0scblM5uRrWdq9e6+0W7o2u0RdtKFMgh+geVns/TvtBS/gQjlaBYLPsMKsKSQiI7ZIkOGz7IOvGnoDxb5OuXW+j735BoKUw=
-sidebar_class_name: "get api-method"
+api: eJy9VU1v2zAM/SsCTxugLkmLYoBvXbtDsQIL2m6XIAdGZmJ1tuRKdNIg8H8fKDtN0hRdD8UCAzFEPoof79Eb8DUFZOvddQ4ZMEW+8w5DuPTOkREDaGBcRMgm0JlgqiGnaIKtkz2De4qsTI9YWl4r9gpV566si4zOkFpZLlQd/NLmlCsTKCfHFssIGgI9NhT5m8/XkG3AeMfkWF6xrktrUo6Dhyj3bSCagiqUN17XBBn42QMZBg11kIrYUhTrDCP9CuWeY+Rg3QI0zH2okCGDJlhoNWBtf9D6Nc/KuhtyCy4gG7Vtl6oNlEtHthc846caMM+tZIvleC+ZOZaR2kM8h4bSQay9i13Kp8Oh/B02+Irm2JSsbntP0B/VodgYQzHuOc68Lwmd9KSiGHFBx0152YZtlB3kn31oNZz/31LfXc37a0g94sKLdmof050oRIHBcjSIif8DEdWJ2ddTpLCkIJLaQCP0hIK5zgaD0fDL6df0nA/hpcrGwVYY1uouoaHVb4Czs+Hw7CjClQ1kuA+gLtLM1KdOlj7w5+OYpTdYFj7y6wFvtuZXg001yIxud9L+/oRVXdKBNHdC20rweS4arJv7NDDLAoNxU0bZKRfj66NkLsbXKvemqchxYoia+6C2iBOFalzSk1ohm6K0kZV1TIuwc+33Fbpc3WIum06DzKkL/3skCcmUK0y8c1jRdvn10IMpH2S3t9I+Yl32BGZ64kFdok1ybbpN1zFwAsuRUK1b2RpesnCqQQYnjptNP4y2lePHhsIasslUwxKDxZl0fjJtNRSEOYVE2z9pUJddTSf3ko64l42kdaRS4VWHEJ7U/KbvdE9U459396Bh1n8WKp8LJuBKPhm4ggxAg089ThpPZxso0S2apHXoYsrvL0f+Zyo=
+sidebar_class_name: "post api-method"
 info_path: docs/api/pulsarr-api
 custom_edit_url: null
 ---
@@ -27,7 +27,7 @@ import Heading from "@theme/Heading";
 </Heading>
 
 <MethodEndpoint
-  method={"get"}
+  method={"post"}
   path={"/v1/sonarr/test-connection"}
   context={"endpoint"}
 >
@@ -47,14 +47,14 @@ Test connectivity to a Sonarr instance with provided credentials
 </Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string","format":"uri"},"in":"query","name":"baseUrl","required":true},{"schema":{"type":"string","minLength":1},"in":"query","name":"apiKey","required":true}]}
+  parameters={undefined}
 >
   
 </ParamsDetails>
 
 <RequestSchema
   title={"Body"}
-  body={undefined}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"baseUrl":{"type":"string","format":"uri"},"apiKey":{"type":"string","minLength":1}},"required":["baseUrl","apiKey"],"additionalProperties":false}}},"required":true}}
 >
   
 </RequestSchema>

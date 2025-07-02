@@ -104,6 +104,30 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: 'doc',
+          id: 'api/get-sonarr-instances',
+          label: 'Get Sonarr instances',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/create-sonarr-instance',
+          label: 'Create Sonarr instance',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/update-sonarr-instance',
+          label: 'Update Sonarr instance',
+          className: 'api-method put',
+        },
+        {
+          type: 'doc',
+          id: 'api/delete-sonarr-instance',
+          label: 'Delete Sonarr instance',
+          className: 'api-method delete',
+        },
+        {
+          type: 'doc',
           id: 'api/get-sonarr-tags',
           label: 'Get Sonarr tags',
           className: 'api-method get',
@@ -112,7 +136,7 @@ const sidebar: SidebarsConfig = {
           type: 'doc',
           id: 'api/test-sonarr-connection',
           label: 'Test Sonarr connection',
-          className: 'api-method get',
+          className: 'api-method post',
         },
       ],
     },
@@ -138,6 +162,30 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: 'doc',
+          id: 'api/get-radarr-instances',
+          label: 'Get Radarr instances',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/create-radarr-instance',
+          label: 'Create Radarr instance',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/update-radarr-instance',
+          label: 'Update Radarr instance',
+          className: 'api-method put',
+        },
+        {
+          type: 'doc',
+          id: 'api/delete-radarr-instance',
+          label: 'Delete Radarr instance',
+          className: 'api-method delete',
+        },
+        {
+          type: 'doc',
           id: 'api/get-radarr-root-folders',
           label: 'Get Radarr root folders',
           className: 'api-method get',
@@ -152,7 +200,7 @@ const sidebar: SidebarsConfig = {
           type: 'doc',
           id: 'api/test-radarr-connection',
           label: 'Test Radarr connection',
-          className: 'api-method get',
+          className: 'api-method post',
         },
       ],
     },
@@ -176,17 +224,6 @@ const sidebar: SidebarsConfig = {
           label: 'Update configuration',
           className: 'api-method put',
         },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Approval',
-      link: {
-        type: 'doc',
-        id: 'api/approval',
-      },
-      items: [
-        // Approval API endpoints will be added here
       ],
     },
     {
@@ -239,6 +276,12 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: 'doc',
+          id: 'api/get-current-user',
+          label: 'Get current user information',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
           id: 'api/get-users-list',
           label: 'Get users list',
           className: 'api-method get',
@@ -270,18 +313,86 @@ const sidebar: SidebarsConfig = {
         {
           type: 'doc',
           id: 'api/get-user-watchlist',
-          label: 'Get user watchlist',
+          label: 'Get user watchlist items',
           className: 'api-method get',
         },
       ],
     },
     {
       type: 'category',
+      label: 'Approval',
+      items: [
+        {
+          type: 'doc',
+          id: 'api/create-approval-request',
+          label: 'Create approval request',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-approval-requests',
+          label: 'Get approval requests',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-approval-request-by-id',
+          label: 'Get approval request by ID',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/update-approval-request',
+          label: 'Update approval request',
+          className: 'api-method patch',
+        },
+        {
+          type: 'doc',
+          id: 'api/delete-approval-request',
+          label: 'Delete approval request',
+          className: 'api-method delete',
+        },
+        {
+          type: 'doc',
+          id: 'api/reject-approval-request',
+          label: 'Reject approval request',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-approval-stats',
+          label: 'Get approval statistics',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/approve-and-execute-request',
+          label: 'Approve and execute request',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/bulk-approve-requests',
+          label: 'Bulk approve requests',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/bulk-reject-requests',
+          label: 'Bulk reject requests',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/bulk-delete-requests',
+          label: 'Bulk delete requests',
+          className: 'api-method delete',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Content Router',
-      link: {
-        type: 'doc',
-        id: 'api/content-router',
-      },
       items: [
         {
           type: 'doc',
@@ -354,10 +465,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Notifications',
-      link: {
-        type: 'doc',
-        id: 'api/notifications',
-      },
       items: [
         {
           type: 'doc',
@@ -387,34 +494,96 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Radarr Configuration',
-      link: {
-        type: 'doc',
-        id: 'api/radarr-configuration',
-      },
+      label: 'Progress',
       items: [
         {
           type: 'doc',
-          id: 'api/get-radarr-instances',
-          label: 'Get Radarr instances',
+          id: 'api/stream-progress',
+          label: 'Stream progress events',
           className: 'api-method get',
         },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Quota',
+      items: [
         {
           type: 'doc',
-          id: 'api/create-radarr-instance',
-          label: 'Create Radarr instance',
+          id: 'api/create-user-quota',
+          label: 'Create user quota',
           className: 'api-method post',
         },
         {
           type: 'doc',
-          id: 'api/update-radarr-instance',
-          label: 'Update Radarr instance',
-          className: 'api-method put',
+          id: 'api/get-users-with-quotas',
+          label: 'Get all users with quotas',
+          className: 'api-method get',
         },
         {
           type: 'doc',
-          id: 'api/delete-radarr-instance',
-          label: 'Delete Radarr instance',
+          id: 'api/get-user-quotas',
+          label: 'Get user quotas',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/update-user-quotas',
+          label: 'Update user quotas',
+          className: 'api-method patch',
+        },
+        {
+          type: 'doc',
+          id: 'api/delete-user-quota',
+          label: 'Delete user quota',
+          className: 'api-method delete',
+        },
+        {
+          type: 'doc',
+          id: 'api/update-separate-user-quotas',
+          label: 'Update separate movie and show quotas',
+          className: 'api-method patch',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-user-quota-status',
+          label: 'Get user quota status',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-bulk-user-quota-status',
+          label: 'Get quota status for multiple users',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/record-quota-usage',
+          label: 'Record quota usage',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-quota-usage-history',
+          label: 'Get quota usage history',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-daily-usage-stats',
+          label: 'Get daily usage statistics',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/bulk-quota-operations',
+          label: 'Bulk quota operations',
+          className: 'api-method patch',
+        },
+        {
+          type: 'doc',
+          id: 'api/cleanup-old-quota-usage',
+          label: 'Cleanup old quota usage',
           className: 'api-method delete',
         },
       ],
@@ -422,10 +591,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Scheduler',
-      link: {
-        type: 'doc',
-        id: 'api/scheduler',
-      },
       items: [
         {
           type: 'doc',
@@ -480,10 +645,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Session Monitoring',
-      link: {
-        type: 'doc',
-        id: 'api/session-monitoring',
-      },
       items: [
         {
           type: 'doc',
@@ -493,20 +654,8 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'api/get-inactive-rolling-monitored-shows',
-          label: 'Get inactive rolling monitored shows',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/reset-rolling-monitored-show',
-          label: 'Reset rolling monitored show',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/reset-inactive-rolling-monitored-shows',
-          label: 'Reset inactive rolling monitored shows',
+          id: 'api/run-session-monitor',
+          label: 'Run session monitor manually',
           className: 'api-method post',
         },
         {
@@ -517,53 +666,27 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'api/run-session-monitor',
-          label: 'Run session monitor',
+          id: 'api/reset-rolling-monitored-show',
+          label: 'Reset rolling monitored show',
           className: 'api-method post',
         },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Sonarr Configuration',
-      link: {
-        type: 'doc',
-        id: 'api/sonarr-configuration',
-      },
-      items: [
         {
           type: 'doc',
-          id: 'api/get-sonarr-instances',
-          label: 'Get Sonarr instances',
+          id: 'api/get-inactive-rolling-monitored-shows',
+          label: 'Get inactive rolling monitored shows',
           className: 'api-method get',
         },
         {
           type: 'doc',
-          id: 'api/create-sonarr-instance',
-          label: 'Create Sonarr instance',
+          id: 'api/reset-inactive-rolling-monitored-shows',
+          label: 'Reset inactive rolling monitored shows',
           className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/update-sonarr-instance',
-          label: 'Update Sonarr instance',
-          className: 'api-method put',
-        },
-        {
-          type: 'doc',
-          id: 'api/delete-sonarr-instance',
-          label: 'Delete Sonarr instance',
-          className: 'api-method delete',
         },
       ],
     },
     {
       type: 'category',
       label: 'Statistics',
-      link: {
-        type: 'doc',
-        id: 'api/statistics',
-      },
       items: [
         {
           type: 'doc',
@@ -642,10 +765,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Sync',
-      link: {
-        type: 'doc',
-        id: 'api/sync',
-      },
       items: [
         {
           type: 'doc',
@@ -664,10 +783,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Tags',
-      link: {
-        type: 'doc',
-        id: 'api/tags',
-      },
       items: [
         {
           type: 'doc',
@@ -709,11 +824,31 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Tautulli',
+      items: [
+        {
+          type: 'doc',
+          id: 'api/sync-tautulli-notifiers',
+          label: 'Sync user notifiers',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/test-tautulli-connection-with-credentials',
+          label: 'Test Tautulli connection with provided credentials',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/test-tautulli-connection',
+          label: 'Test Tautulli connection',
+          className: 'api-method post',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Watchlist Workflow',
-      link: {
-        type: 'doc',
-        id: 'api/watchlist-workflow',
-      },
       items: [
         {
           type: 'doc',
@@ -731,61 +866,6 @@ const sidebar: SidebarsConfig = {
           type: 'doc',
           id: 'api/get-watchlist-workflow-status',
           label: 'Get watchlist workflow status',
-          className: 'api-method get',
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Tautulli',
-      link: {
-        type: 'doc',
-        id: 'api/tautulli',
-      },
-      items: [
-        {
-          type: 'doc',
-          id: 'api/test-tautulli-connection',
-          label: 'Test Tautulli connection',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/test-tautulli-connection-with-credentials',
-          label: 'Test Tautulli connection with credentials',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/sync-tautulli-notifiers',
-          label: 'Sync Tautulli notifiers',
-          className: 'api-method post',
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Quota',
-      link: {
-        type: 'doc',
-        id: 'api/quota',
-      },
-      items: [
-        // Quota API endpoints will be added here
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Progress',
-      link: {
-        type: 'doc',
-        id: 'api/progress',
-      },
-      items: [
-        {
-          type: 'doc',
-          id: 'api/stream-progress',
-          label: 'Stream progress events',
           className: 'api-method get',
         },
       ],

@@ -191,8 +191,9 @@ export default function Home(): React.ReactElement {
                       </p>
                     </div>
 
-                    {/* Planet Image - Fixed mobile/desktop switching */}
+                    {/* Planet Image - CSS-based responsive sizing */}
                     <div
+                      className="planet-container"
                       style={{
                         position: 'fixed',
                         bottom: 0,
@@ -201,22 +202,22 @@ export default function Home(): React.ReactElement {
                         transform: 'translate(25%, 25%)',
                       }}
                     >
-                      <div
-                        className={`relative w-[1000px] ${isMobile ? 'w-[600px]' : 'w-[1000px]'}`}
-                        suppressHydrationWarning
-                      >
+                      <div className="relative planet-sizing">
                         <AspectRatio ratio={1522 / 1608}>
                           <picture>
                             <source
-                              media={
-                                isMobile
-                                  ? '(max-width: 768px)'
-                                  : '(min-width: 769px)'
-                              }
-                              srcSet={isMobile ? planetMobileUrl : planetUrl}
+                              media="(max-width: 768px)"
+                              srcSet={planetMobileUrl}
                               type="image/webp"
-                              width={isMobile ? '600' : '1522'}
-                              height={isMobile ? '634' : '1608'}
+                              width="600"
+                              height="634"
+                            />
+                            <source
+                              media="(min-width: 769px)"
+                              srcSet={planetUrl}
+                              type="image/webp"
+                              width="1522"
+                              height="1608"
                             />
                             <img
                               src={planetUrl}
@@ -260,7 +261,7 @@ export default function Home(): React.ReactElement {
                 <div
                   style={{
                     position: 'relative',
-                    paddingTop: isMobile ? '220px' : '210px', // Slightly increased mobile padding
+                    paddingTop: isMobile ? '300px' : '210px', // Increased mobile padding from 220px to 300px
                     zIndex: 100,
                     paddingBottom: '4rem',
                     paddingLeft: '2rem',
