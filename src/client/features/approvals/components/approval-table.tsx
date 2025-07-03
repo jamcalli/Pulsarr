@@ -44,12 +44,12 @@ interface ApprovalTableProps {
 }
 
 /**
- * Renders an interactive table of approval requests with pagination, sorting, filtering, row selection, and bulk action support.
+ * Displays a paginated, sortable, and filterable table of approval requests with support for row selection, bulk actions, and individual request actions.
  *
- * Allows users to sort and filter approval requests, adjust page size, select rows for bulk operations, and perform actions such as approve, reject, view, or delete on individual requests. Displays loading and empty states as appropriate.
+ * Users can filter and sort approval requests, adjust the number of rows per page, select multiple requests for bulk operations, and perform actions such as approve, reject, view, or delete on individual requests. The component handles loading and empty states and persists the user's page size preference.
  *
- * @param data - The approval requests to display in the table.
- * @returns The approval requests table component.
+ * @param data - The list of approval requests to display.
+ * @returns The rendered approval requests table component.
  */
 export function ApprovalTable({
   data,
