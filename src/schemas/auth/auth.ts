@@ -9,7 +9,7 @@ export interface AdminUser {
 }
 
 export const CredentialsSchema = z.object({
-  email: z.string().email().max(255),
+  email: z.string().trim().toLowerCase().email().max(255),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')

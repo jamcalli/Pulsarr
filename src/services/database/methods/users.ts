@@ -303,10 +303,10 @@ export async function createAdminUser(
 }
 
 /**
- * Retrieves an admin user matching the specified email address.
+ * Retrieves an admin user by email address using a case-insensitive match.
  *
  * @param email - The email address to search for.
- * @returns The admin user if found, otherwise undefined.
+ * @returns The matching admin user if found; otherwise, undefined.
  */
 export async function getAdminUser(
   this: DatabaseService,
@@ -314,7 +314,7 @@ export async function getAdminUser(
 ): Promise<AdminUser | undefined> {
   return await this.knex('admin_users')
     .select('id', 'username', 'email', 'password', 'role')
-    .where({ email })
+    .whereRaw('LOWER(email) = LOWER(?)', [email])
     .first()
 }
 
@@ -346,11 +346,11 @@ export async function hasAdminUsers(this: DatabaseService): Promise<boolean> {
 }
 
 /**
- * Updates the password of an admin user identified by email.
+ * Updates the password for an admin user matching the given email address, using a case-insensitive comparison.
  *
- * @param email - The email address of the admin user
+ * @param email - The email address of the admin user to update
  * @param hashedPassword - The new hashed password to set
- * @returns True if the password was successfully updated, false otherwise
+ * @returns True if the password was updated for at least one user; false if no matching user was found or an error occurred
  */
 export async function updateAdminPassword(
   this: DatabaseService,
@@ -358,10 +358,12 @@ export async function updateAdminPassword(
   hashedPassword: string,
 ): Promise<boolean> {
   try {
-    const updated = await this.knex('admin_users').where({ email }).update({
-      password: hashedPassword,
-      updated_at: this.timestamp,
-    })
+    const updated = await this.knex('admin_users')
+      .whereRaw('LOWER(email) = LOWER(?)', [email])
+      .update({
+        password: hashedPassword,
+        updated_at: this.timestamp,
+      })
     return updated > 0
   } catch (error) {
     this.log.error('Error updating admin password:', error)
