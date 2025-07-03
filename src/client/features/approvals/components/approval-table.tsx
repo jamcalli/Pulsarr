@@ -95,23 +95,16 @@ export function ApprovalTable({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    initialState: {
+      pagination: {
+        pageSize,
+      },
+    },
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination: {
-        pageIndex: 0,
-        pageSize,
-      },
-    },
-    onPaginationChange: (updater) => {
-      if (typeof updater === 'function') {
-        const newPagination = updater({ pageIndex: 0, pageSize })
-        if (newPagination.pageSize !== pageSize) {
-          setPageSize(newPagination.pageSize)
-        }
-      }
     },
     enableRowSelection: true,
     filterFns: {
@@ -135,6 +128,11 @@ export function ApprovalTable({
       },
     },
   })
+
+  // Update table pageSize when localStorage value changes
+  React.useEffect(() => {
+    table.setPageSize(pageSize)
+  }, [pageSize, table])
 
   const handleResetFilters = () => {
     table.resetColumnFilters()
@@ -250,7 +248,9 @@ export function ApprovalTable({
           <Select
             value={`${table.getState().pagination.pageSize}`}
             onValueChange={(value) => {
-              table.setPageSize(Number(value))
+              const newPageSize = Number(value)
+              setPageSize(newPageSize)
+              table.setPageSize(newPageSize)
             }}
             disabled={isLoading}
           >

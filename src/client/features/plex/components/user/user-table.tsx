@@ -433,25 +433,23 @@ export default function UserTable({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    initialState: {
+      pagination: {
+        pageSize,
+      },
+    },
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination: {
-        pageIndex: 0,
-        pageSize,
-      },
-    },
-    onPaginationChange: (updater) => {
-      if (typeof updater === 'function') {
-        const newPagination = updater({ pageIndex: 0, pageSize })
-        if (newPagination.pageSize !== pageSize) {
-          setPageSize(newPagination.pageSize)
-        }
-      }
     },
   })
+
+  // Update table pageSize when localStorage value changes
+  React.useEffect(() => {
+    table.setPageSize(pageSize)
+  }, [pageSize, table])
 
   return (
     <div className="w-full font-base text-main-foreground overflow-x-auto">
@@ -632,7 +630,9 @@ export default function UserTable({
           <Select
             value={`${table.getState().pagination.pageSize}`}
             onValueChange={(value) => {
-              table.setPageSize(Number(value))
+              const newPageSize = Number(value)
+              setPageSize(newPageSize)
+              table.setPageSize(newPageSize)
             }}
             disabled={isLoading}
           >
