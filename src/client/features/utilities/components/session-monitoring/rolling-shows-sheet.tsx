@@ -101,21 +101,9 @@ interface RollingShowsSheetProps {
 }
 
 /**
- * Displays a responsive, interactive table of rolling monitored shows with filtering, sorting, pagination, and optional reset or delete actions.
+ * Renders a responsive, interactive table of rolling monitored shows with filtering, sorting, pagination, and optional reset or delete actions.
  *
- * Adapts between a sliding sheet on desktop and a drawer on mobile devices. Users can filter shows by title, sort and toggle columns, and paginate results. For master records (shows without a specific user), provides reset and remove actions with confirmation dialogs and loading indicators. Handles loading and error states with contextual feedback.
- *
- * @param isOpen - Whether the sheet or drawer is open.
- * @param onClose - Callback to close the sheet or drawer.
- * @param title - Title displayed in the header.
- * @param shows - List of rolling monitored shows to display.
- * @param isLoading - Whether the data is currently loading.
- * @param error - Error object if loading failed.
- * @param onResetShow - Optional callback to reset a show to its original monitoring state.
- * @param onDeleteShow - Optional callback to remove a show from rolling monitoring.
- * @param showActions - Whether to display action buttons for each show.
- * @param actionLoading - Loading states for reset and delete actions.
- * @param activeActionId - ID of the show currently being acted upon.
+ * Adapts its layout between a sliding sheet on desktop and a drawer on mobile devices. Users can filter shows by title, sort and toggle columns, and paginate results. For master records (shows without a specific user), provides reset and remove actions with confirmation dialogs and loading indicators. Handles loading and error states with contextual feedback.
  */
 export function RollingShowsSheet({
   isOpen,
@@ -416,24 +404,22 @@ export function RollingShowsSheet({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
+    initialState: {
+      pagination: {
+        pageSize,
+      },
+    },
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      pagination: {
-        pageIndex: 0,
-        pageSize,
-      },
-    },
-    onPaginationChange: (updater) => {
-      if (typeof updater === 'function') {
-        const newPagination = updater({ pageIndex: 0, pageSize })
-        if (newPagination.pageSize !== pageSize) {
-          setPageSize(newPagination.pageSize)
-        }
-      }
     },
   })
+
+  // Update table pageSize when localStorage value changes
+  React.useEffect(() => {
+    table.setPageSize(pageSize)
+  }, [pageSize, table])
 
   const renderContent = () => {
     if (error) {
@@ -572,7 +558,9 @@ export function RollingShowsSheet({
             <Select
               value={`${table.getState().pagination.pageSize}`}
               onValueChange={(value) => {
-                table.setPageSize(Number(value))
+                const newPageSize = Number(value)
+                setPageSize(newPageSize)
+                table.setPageSize(newPageSize)
               }}
               disabled={isLoading}
             >

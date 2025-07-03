@@ -79,9 +79,9 @@ interface UserWatchlistSheetProps {
 }
 
 /**
- * Displays a user's watchlist in a responsive, interactive table within a sheet (desktop) or drawer (mobile).
+ * Renders a user's watchlist in a responsive table within a sheet (desktop) or drawer (mobile), supporting sorting, filtering, pagination with persistent page size, and column visibility controls.
  *
- * Provides sorting, filtering, pagination with persistent page size, and column visibility controls. Handles loading and error states with contextual feedback. Adapts layout automatically based on device type.
+ * Displays contextual loading and error feedback, adapts layout based on device type, and provides interactive controls for managing and viewing the watchlist.
  *
  * @param isOpen - Whether the sheet or drawer is visible
  * @param onClose - Callback to close the sheet or drawer
@@ -249,24 +249,22 @@ export function UserWatchlistSheet({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
+    initialState: {
+      pagination: {
+        pageSize,
+      },
+    },
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      pagination: {
-        pageIndex: 0,
-        pageSize,
-      },
-    },
-    onPaginationChange: (updater) => {
-      if (typeof updater === 'function') {
-        const newPagination = updater({ pageIndex: 0, pageSize })
-        if (newPagination.pageSize !== pageSize) {
-          setPageSize(newPagination.pageSize)
-        }
-      }
     },
   })
+
+  // Update table pageSize when localStorage value changes
+  React.useEffect(() => {
+    table.setPageSize(pageSize)
+  }, [pageSize, table])
 
   const renderContent = () => {
     if (error) {
@@ -406,7 +404,9 @@ export function UserWatchlistSheet({
             <Select
               value={`${table.getState().pagination.pageSize}`}
               onValueChange={(value) => {
-                table.setPageSize(Number(value))
+                const newPageSize = Number(value)
+                setPageSize(newPageSize)
+                table.setPageSize(newPageSize)
               }}
               disabled={isLoading}
             >
