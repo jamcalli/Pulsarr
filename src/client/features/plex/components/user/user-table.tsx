@@ -79,11 +79,17 @@ interface UserTableProps {
 }
 
 /**
- * Displays an interactive user management table with sorting, filtering, pagination, column visibility, row selection, and editing features.
+ * Renders an interactive user management table with sorting, filtering, pagination, column visibility, row selection, and editing capabilities.
  *
- * Supports editing individual users and quotas, bulk editing settings or quotas for selected users, and viewing a user's watchlist in a modal. The table presents notification, sync, approval, and quota information for each user, and adapts its controls and appearance based on loading state.
+ * Allows editing individual users and quotas, performing bulk edits on selected users, and viewing a user's watchlist in a modal. The table displays notification settings, sync and approval status, quota details, and watchlist counts for each user. Controls and appearance adapt to loading state, and error feedback is provided if a watchlist is requested for a user with an invalid ID.
  *
- * If a watchlist is requested for a user with an invalid ID, an error is logged and a toast notification is shown; the watchlist modal will not open.
+ * @param users - The list of users with quota information to display in the table.
+ * @param onEditUser - Callback invoked to edit an individual user.
+ * @param onEditQuota - Callback invoked to edit a user's quotas.
+ * @param isLoading - Optional flag indicating if the table is in a loading state.
+ * @param onBulkEdit - Optional callback for bulk editing settings of selected users.
+ * @param onBulkEditQuotas - Optional callback for bulk editing quotas of selected users.
+ * @returns The rendered user management table component.
  */
 
 export default function UserTable({
