@@ -1,8 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Normalizes existing admin user email addresses to lowercase for case-insensitive handling.
- * This ensures consistency with the updated email validation schemas that now convert emails to lowercase.
+ * Converts all admin user email addresses in the database to lowercase for consistency.
+ *
+ * Updates the `email` field and `updated_at` timestamp in the `admin_users` table for any records where the email is not already lowercase.
  */
 export async function up(knex: Knex): Promise<void> {
   // Update all admin user emails to lowercase
@@ -15,9 +16,11 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the email normalization by restoring original case.
- * Note: This down migration cannot perfectly restore the original case
- * since we don't store the original values. This is primarily for testing.
+ * Handles the down migration for admin user email normalization.
+ *
+ * This function does not revert emails to their original case, as the original casing is not stored.
+ * It logs a message indicating that the normalized lowercase emails remain unchanged.
+ * Primarily intended for testing rollback behavior.
  */
 export async function down(knex: Knex): Promise<void> {
   // No practical way to restore original case without storing it
