@@ -314,7 +314,7 @@ export async function getAdminUser(
 ): Promise<AdminUser | undefined> {
   return await this.knex('admin_users')
     .select('id', 'username', 'email', 'password', 'role')
-    .where({ email })
+    .whereRaw('LOWER(email) = LOWER(?)', [email])
     .first()
 }
 
@@ -358,10 +358,12 @@ export async function updateAdminPassword(
   hashedPassword: string,
 ): Promise<boolean> {
   try {
-    const updated = await this.knex('admin_users').where({ email }).update({
-      password: hashedPassword,
-      updated_at: this.timestamp,
-    })
+    const updated = await this.knex('admin_users')
+      .whereRaw('LOWER(email) = LOWER(?)', [email])
+      .update({
+        password: hashedPassword,
+        updated_at: this.timestamp,
+      })
     return updated > 0
   } catch (error) {
     this.log.error('Error updating admin password:', error)
