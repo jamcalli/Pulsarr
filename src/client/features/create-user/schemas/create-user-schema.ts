@@ -7,6 +7,7 @@ export const PasswordSchema = z
 export const EmailSchema = z
   .string()
   .trim()
+  .toLowerCase()
   .min(1, 'Email is required')
   .email('Please enter a valid email address')
   .refine((email) => email.includes('@'), {
