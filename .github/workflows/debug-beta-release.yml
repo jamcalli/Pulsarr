@@ -1,0 +1,97 @@
+name: Debug Beta Release
+on:
+  push:
+    tags:
+      - 'v*-beta*'
+    branches:
+      - 'debug/session-monitor'
+permissions:
+  contents: write
+  packages: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Only run if the tag is pushed from debug/session-monitor branch
+    if: github.ref_name == 'debug/session-monitor' || contains(github.ref, 'beta')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Check if prerelease
+        id: check-prerelease
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ "$VERSION" == *"-beta"* || "$VERSION" == *"-alpha"* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            lakker/pulsarr
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=debug-beta,enable=${{ steps.check-prerelease.outputs.is_prerelease == 'true' }}
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate Release Notes
+        uses: release-drafter/release-drafter@v5
+        id: release-drafter
+        with:
+          config-name: release-drafter.yml
+          tag: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## 🐛 Debug Beta Release
+            
+            This is a debug beta release from branch `debug/session-monitor` containing enhanced logging for session monitoring issues.
+            
+            **Usage:**
+            ```bash
+            docker pull lakker/pulsarr:debug-beta
+            ```
+            
+            **Changes:**
+            - Added comprehensive console logging to session monitoring service
+            - Enhanced debugging for rolling monitored show lookups
+            - Database query logging with SQL details
+            - TVDB ID extraction debugging
+            
+            ${{ steps.release-drafter.outputs.body }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
