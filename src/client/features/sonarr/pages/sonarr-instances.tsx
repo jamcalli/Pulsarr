@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { useConfigStore } from '@/stores/configStore'
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
 import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
- * Displays a standalone page for managing Sonarr instances, allowing users to add, view, and configure instances.
+ * Renders the page for managing Sonarr instances, enabling users to add, view, and configure their Sonarr connections.
  *
- * Handles initialization and loading states, and conditionally renders UI elements for adding new instances or displaying existing ones.
+ * Initializes both Sonarr and configuration stores on mount, manages loading and initialization states, and conditionally displays UI for adding new instances or listing existing ones.
  *
- * @returns The Sonarr Instances management page component.
+ * @returns The React component for the Sonarr Instances management page.
  */
 export default function SonarrInstancesPage() {
   const instances = useSonarrStore((state) => state.instances)
@@ -18,15 +19,19 @@ export default function SonarrInstancesPage() {
   const isInitialized = useSonarrStore((state) => state.isInitialized)
   const initialize = useSonarrStore((state) => state.initialize)
 
+  // Add config store initialization for session monitoring support
+  const configInitialize = useConfigStore((state) => state.initialize)
+
   const hasInitializedRef = useRef(false)
   const [showInstanceCard, setShowInstanceCard] = useState(false)
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
       initialize(true)
+      configInitialize() // Initialize config store for session monitoring
       hasInitializedRef.current = true
     }
-  }, [initialize])
+  }, [initialize, configInitialize])
 
   const addInstance = () => {
     setShowInstanceCard(true)
