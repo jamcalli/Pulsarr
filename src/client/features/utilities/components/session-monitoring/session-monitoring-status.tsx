@@ -49,12 +49,9 @@ interface SessionMonitoringStatusProps {
 }
 
 /**
- * Displays and manages the session monitoring status for active and inactive media shows.
+ * Renders the session monitoring status dashboard for media shows, providing controls to check sessions, view and manage active and inactive shows, adjust inactivity thresholds, and perform bulk reset or delete actions.
  *
- * Provides controls to check session status, view and manage lists of active and inactive shows, adjust the inactivity days threshold, and perform reset or delete actions. All interactive elements are disabled when monitoring is not enabled or when relevant operations are in progress.
- *
- * @remark
- * The inactivity days threshold input is debounced to minimize unnecessary updates. Reset and delete actions are unavailable while their respective operations are running.
+ * The component displays counts of active and inactive shows, allows users to view detailed lists, and supports bulk reset of inactive shows with confirmation. Inactivity threshold changes are debounced to reduce unnecessary updates. All controls are disabled when monitoring is not enabled or when relevant operations are in progress.
  */
 export function SessionMonitoringStatus({
   isEnabled,
