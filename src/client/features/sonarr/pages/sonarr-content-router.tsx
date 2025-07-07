@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { useConfigStore } from '@/stores/configStore'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
@@ -20,12 +21,16 @@ export default function SonarrContentRouterPage() {
   const initialize = useSonarrStore((state) => state.initialize)
   const fetchInstanceData = useSonarrStore((state) => state.fetchInstanceData)
 
+  // Add config store initialization for session monitoring support
+  const configInitialize = useConfigStore((state) => state.initialize)
+
   const hasInitializedRef = useRef(false)
 
   useEffect(() => {
     const initializeData = async () => {
       if (!hasInitializedRef.current) {
         await initialize(true)
+        configInitialize() // Initialize config store for session monitoring
 
         // Ensure instance data is fetched for all valid instances
         const validInstances = instances.filter(
@@ -43,7 +48,7 @@ export default function SonarrContentRouterPage() {
     }
 
     initializeData()
-  }, [initialize, fetchInstanceData, instances])
+  }, [initialize, fetchInstanceData, instances, configInitialize])
 
   const handleGenreDropdownOpen = async () => {
     if (!genres.length) {
