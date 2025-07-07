@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { useConfigStore } from '@/stores/configStore'
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
 import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
@@ -18,15 +19,19 @@ export default function SonarrInstancesPage() {
   const isInitialized = useSonarrStore((state) => state.isInitialized)
   const initialize = useSonarrStore((state) => state.initialize)
 
+  // Add config store initialization for session monitoring support
+  const configInitialize = useConfigStore((state) => state.initialize)
+
   const hasInitializedRef = useRef(false)
   const [showInstanceCard, setShowInstanceCard] = useState(false)
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
       initialize(true)
+      configInitialize() // Initialize config store for session monitoring
       hasInitializedRef.current = true
     }
-  }, [initialize])
+  }, [initialize, configInitialize])
 
   const addInstance = () => {
     setShowInstanceCard(true)

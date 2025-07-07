@@ -10,10 +10,17 @@ import {
   Eye,
   RotateCcw,
 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { toast } from 'sonner'
 import { useDebounce } from '@/hooks/useDebounce'
 import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
+import { BulkResetInactiveAlert } from '@/features/utilities/components/session-monitoring/bulk-reset-inactive-alert'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 import type { SessionMonitoringResult } from '@root/types/plex-session.types'
 
@@ -66,6 +73,8 @@ export function SessionMonitoringStatus({
 }: SessionMonitoringStatusProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [showActiveShows, setShowActiveShows] = useState(false)
+  const [showBulkResetConfirmation, setShowBulkResetConfirmation] =
+    useState(false)
   const [showInactiveShows, setShowInactiveShows] = useState(false)
   const [localInactivityDays, setLocalInactivityDays] = useState(inactivityDays)
 
@@ -98,6 +107,20 @@ export function SessionMonitoringStatus({
       fetchInactiveShows(inactivityDays)
     }
   }, [isEnabled, showInactiveShows, inactivityDays, fetchInactiveShows])
+
+  // Handle bulk reset of inactive shows with confirmation
+  const handleBulkResetConfirm = async () => {
+    try {
+      await resetInactiveShows(localInactivityDays)
+      setShowBulkResetConfirmation(false)
+      toast.success(
+        `Successfully reset ${inactiveShows.length} inactive show${inactiveShows.length !== 1 ? 's' : ''}`,
+      )
+    } catch (error) {
+      console.error('Failed to reset inactive shows:', error)
+      toast.error('Failed to reset inactive shows. Please try again.')
+    }
+  }
 
   // Show disabled state instead of hiding completely for better UX consistency
 
@@ -213,31 +236,38 @@ export function SessionMonitoringStatus({
             />
             <span className="text-xs text-foreground mr-1">d</span>
             {inactiveShows.length > 0 && (
-              <Button
-                type="button"
-                size="sm"
-                variant="error"
-                onClick={async () => {
-                  try {
-                    await resetInactiveShows(localInactivityDays)
-                  } catch (error) {
-                    console.error('Failed to reset inactive shows:', error)
-                    toast.error(
-                      'Failed to reset inactive shows. Please try again.',
-                    )
-                  }
-                }}
-                disabled={!isEnabled || rollingLoading.resetting}
-                aria-disabled={!isEnabled || rollingLoading.resetting}
-                className="h-7 px-2"
-                title="Reset all inactive shows"
-              >
-                {rollingLoading.resetting ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <RotateCcw className="h-3 w-3" />
-                )}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="error"
+                      onClick={() => setShowBulkResetConfirmation(true)}
+                      disabled={
+                        !isEnabled ||
+                        rollingLoading.resetting ||
+                        inactiveShows.length === 0
+                      }
+                      aria-disabled={
+                        !isEnabled ||
+                        rollingLoading.resetting ||
+                        inactiveShows.length === 0
+                      }
+                      className="h-7 px-2"
+                    >
+                      {rollingLoading.resetting ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Reset all inactive shows</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             <Button
               type="button"
@@ -279,6 +309,15 @@ export function SessionMonitoringStatus({
         shows={inactiveShows}
         isLoading={rollingLoading.fetchingInactive}
         showActions={false}
+      />
+
+      <BulkResetInactiveAlert
+        open={showBulkResetConfirmation}
+        onOpenChange={setShowBulkResetConfirmation}
+        onConfirm={handleBulkResetConfirm}
+        inactiveCount={inactiveShows.length}
+        inactivityDays={localInactivityDays}
+        isLoading={rollingLoading.resetting}
       />
     </div>
   )
