@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { useConfigStore } from '@/stores/configStore'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
- * Renders a standalone page for managing content routing rules for Sonarr instances.
+ * Displays the Sonarr Content Router page for managing content routing rules.
  *
- * Initializes Sonarr-related data on mount, fetches genres on demand, and displays a tabbed interface for configuring content routing rules. The page is only rendered once initialization and data loading are complete.
+ * Initializes Sonarr and configuration stores on mount, loads instance and genre data as needed, and renders a tabbed interface for configuring routing rules. The page is rendered only after all required data is loaded.
  *
  * @returns The Sonarr Content Router page component.
  */
@@ -20,12 +21,16 @@ export default function SonarrContentRouterPage() {
   const initialize = useSonarrStore((state) => state.initialize)
   const fetchInstanceData = useSonarrStore((state) => state.fetchInstanceData)
 
+  // Add config store initialization for session monitoring support
+  const configInitialize = useConfigStore((state) => state.initialize)
+
   const hasInitializedRef = useRef(false)
 
   useEffect(() => {
     const initializeData = async () => {
       if (!hasInitializedRef.current) {
         await initialize(true)
+        configInitialize() // Initialize config store for session monitoring
 
         // Ensure instance data is fetched for all valid instances
         const validInstances = instances.filter(
@@ -43,7 +48,7 @@ export default function SonarrContentRouterPage() {
     }
 
     initializeData()
-  }, [initialize, fetchInstanceData, instances])
+  }, [initialize, fetchInstanceData, instances, configInitialize])
 
   const handleGenreDropdownOpen = async () => {
     if (!genres.length) {
