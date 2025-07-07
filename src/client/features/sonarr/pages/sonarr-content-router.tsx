@@ -6,9 +6,9 @@ import AccordionContentRouterSection from '@/features/content-router/components/
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
- * Renders a standalone page for managing content routing rules for Sonarr instances.
+ * Displays the Sonarr Content Router page for managing content routing rules.
  *
- * Initializes Sonarr-related data on mount, fetches genres on demand, and displays a tabbed interface for configuring content routing rules. The page is only rendered once initialization and data loading are complete.
+ * Initializes Sonarr and configuration stores on mount, loads instance and genre data as needed, and renders a tabbed interface for configuring routing rules. The page is rendered only after all required data is loaded.
  *
  * @returns The Sonarr Content Router page component.
  */
