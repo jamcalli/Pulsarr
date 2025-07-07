@@ -104,26 +104,70 @@ export async function getRollingMonitoredShow(
   plexUserId?: string,
 ): Promise<RollingMonitoredShow | null> {
   try {
+    console.log('🔍 [DB_DEBUG] getRollingMonitoredShow called with:')
+    console.log(`🔍 [DB_DEBUG] - tvdbId: ${tvdbId || 'NONE'}`)
+    console.log(`🔍 [DB_DEBUG] - title: ${title || 'NONE'}`)
+    console.log(
+      `🔍 [DB_DEBUG] - plexUserId: ${plexUserId || 'NONE (global lookup)'}`,
+    )
+
     const query = this.knex('rolling_monitored_shows')
 
     if (tvdbId) {
+      console.log(`🔍 [DB_DEBUG] Adding WHERE tvdb_id = '${tvdbId}'`)
       query.where('tvdb_id', tvdbId)
     } else if (title) {
+      console.log(`🔍 [DB_DEBUG] Adding WHERE show_title = '${title}'`)
       query.where('show_title', title)
     } else {
+      console.log('🔍 [DB_DEBUG] No tvdbId or title provided - returning null')
       return null
     }
 
     // Always filter by user ID to ensure per-user entries
     if (plexUserId) {
+      console.log(
+        `🔍 [DB_DEBUG] Adding WHERE plex_user_id = '${plexUserId}' (user-specific lookup)`,
+      )
       query.where('plex_user_id', plexUserId)
     } else {
+      console.log(
+        '🔍 [DB_DEBUG] Adding WHERE plex_user_id IS NULL (global lookup)',
+      )
       // If no user ID provided, look for legacy global entries (null plex_user_id)
       query.whereNull('plex_user_id')
     }
 
-    return await query.first()
+    console.log(`🔍 [DB_DEBUG] Final SQL query: ${query.toSQL().sql}`)
+    console.log(
+      `🔍 [DB_DEBUG] Query bindings: ${JSON.stringify(query.toSQL().bindings)}`,
+    )
+
+    const result = await query.first()
+
+    console.log('🔍 [DB_DEBUG] Query result:')
+    if (result) {
+      console.log('🔍 [DB_DEBUG] ✅ FOUND entry:')
+      console.log(`🔍 [DB_DEBUG] - ID: ${result.id}`)
+      console.log(`🔍 [DB_DEBUG] - Title: ${result.show_title}`)
+      console.log(`🔍 [DB_DEBUG] - TVDB ID: ${result.tvdb_id}`)
+      console.log(
+        `🔍 [DB_DEBUG] - Plex User ID: ${result.plex_user_id || 'NULL'}`,
+      )
+      console.log(`🔍 [DB_DEBUG] - Monitoring Type: ${result.monitoring_type}`)
+      console.log(
+        `🔍 [DB_DEBUG] - Sonarr Series ID: ${result.sonarr_series_id}`,
+      )
+      console.log(
+        `🔍 [DB_DEBUG] - Current Monitored Season: ${result.current_monitored_season}`,
+      )
+    } else {
+      console.log('🔍 [DB_DEBUG] ❌ NO entry found')
+    }
+
+    return result
   } catch (error) {
+    console.log('🔍 [DB_DEBUG] ❌ ERROR in getRollingMonitoredShow:', error)
     this.log.error('Error getting rolling monitored show:', error)
     return null
   }
