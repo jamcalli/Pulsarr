@@ -21,12 +21,12 @@ interface BulkResetInactiveAlertProps {
 }
 
 /**
- * Displays a modal dialog prompting the user to confirm bulk reset of inactive rolling monitored shows.
+ * Renders a modal dialog to confirm bulk resetting of inactive monitored shows.
  *
- * The modal presents destructive action messaging and disables interaction while an operation is in progress. The confirm button invokes the provided callback when clicked.
+ * The dialog warns that resetting will revert shows to their original monitoring state, delete excess episode files, and erase all user viewing progress. Interaction is disabled while a reset operation is in progress. The confirm button triggers the provided callback.
  *
- * @param inactiveCount - Number of inactive shows that will be reset
- * @param inactivityDays - Number of days threshold for considering shows inactive
+ * @param inactiveCount - The number of inactive shows to be reset
+ * @param inactivityDays - The inactivity threshold in days for considering shows eligible for reset
  */
 export function BulkResetInactiveAlert({
   open,
