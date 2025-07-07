@@ -33,16 +33,16 @@ jobs:
           TAG_COMMIT=$(git rev-parse ${{ github.ref }})
           echo "Tag commit: $TAG_COMMIT"
           
-          # Check if this commit is on the develop branch
-          BRANCH_CONTAINS=$(git branch -r --contains $TAG_COMMIT | grep "origin/develop" || true)
+          # Check if this commit is on the develop or debug branch
+          BRANCH_CONTAINS=$(git branch -r --contains $TAG_COMMIT | grep -E "(origin/develop|origin/debug/session-monitor)" || true)
           echo "Branch contains check: $BRANCH_CONTAINS"
           
           if [[ -n "$BRANCH_CONTAINS" ]]; then
             echo "is_valid_branch=true" >> $GITHUB_OUTPUT
-            echo "Tag is on the develop branch"
+            echo "Tag is on the develop or debug branch"
           else
             echo "is_valid_branch=false" >> $GITHUB_OUTPUT
-            echo "Beta releases should only be created from the develop branch"
+            echo "Beta releases should only be created from the develop or debug/session-monitor branch"
             exit 1
           fi
       
