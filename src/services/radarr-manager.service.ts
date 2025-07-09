@@ -272,6 +272,24 @@ export class RadarrManagerService {
     )
   }
 
+  /**
+   * Efficiently check if a movie exists using TMDB lookup
+   * @param instanceId - The Radarr instance ID
+   * @param tmdbId - The TMDB ID to check
+   * @returns Promise resolving to true if movie exists, false otherwise
+   */
+  async movieExistsByTmdbId(
+    instanceId: number,
+    tmdbId: number,
+  ): Promise<boolean> {
+    const radarrService = this.radarrServices.get(instanceId)
+    if (!radarrService) {
+      throw new Error(`Radarr instance ${instanceId} not found`)
+    }
+
+    return await radarrService.movieExistsByTmdbId(tmdbId)
+  }
+
   async addInstance(instance: Omit<RadarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createRadarrInstance(instance)
     const radarrService = new RadarrService(

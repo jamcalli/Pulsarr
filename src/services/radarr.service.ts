@@ -484,6 +484,27 @@ export class RadarrService {
     }
   }
 
+  /**
+   * Check if a movie exists in Radarr using efficient lookup
+   * @param tmdbId - The TMDB ID to check
+   * @returns Promise resolving to true if movie exists, false otherwise
+   */
+  async movieExistsByTmdbId(tmdbId: number): Promise<boolean> {
+    try {
+      const movies = await this.getFromRadarr<RadarrMovie[]>(
+        `movie/lookup?term=tmdb:${tmdbId}`,
+      )
+
+      // Movie exists if it has a valid internal ID (> 0)
+      return movies.length > 0 && movies[0].id > 0
+    } catch (err) {
+      this.log.error(
+        `Error checking movie existence for TMDB ${tmdbId}: ${err}`,
+      )
+      return false
+    }
+  }
+
   async fetchExclusions(pageSize = 1000): Promise<Set<Item>> {
     const config = this.radarrConfig
     try {
