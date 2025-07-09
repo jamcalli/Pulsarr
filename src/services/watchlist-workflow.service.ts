@@ -788,20 +788,26 @@ export class WatchlistWorkflowService {
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
     try {
-      const parsedGuids = parseGuids(item.guids)
-      if (parsedGuids.length === 0) {
-        this.log.warn(`Show ${item.title} has no GUIDs to verify against`)
+      // Use utility function to extract TVDB ID
+      const tvdbId = extractTvdbId(item.guids)
+      if (tvdbId === 0) {
+        this.log.warn(
+          `Show ${item.title} has no valid TVDB ID, skipping verification`,
+          {
+            guids: item.guids,
+          },
+        )
         return false
       }
 
       // Get all Sonarr instances
       const instances = await this.sonarrManager.getAllInstances()
 
-      // Check each instance for the show
+      // Check each instance for the show using efficient lookup
       for (const instance of instances) {
-        const exists = await this.sonarrManager.verifyItemExists(
+        const exists = await this.sonarrManager.seriesExistsByTvdbId(
           instance.id,
-          item,
+          tvdbId,
         )
 
         if (exists) {
@@ -829,20 +835,26 @@ export class WatchlistWorkflowService {
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
     try {
-      const parsedGuids = parseGuids(item.guids)
-      if (parsedGuids.length === 0) {
-        this.log.warn(`Movie ${item.title} has no GUIDs to verify against`)
+      // Use utility function to extract TMDB ID
+      const tmdbId = extractTmdbId(item.guids)
+      if (tmdbId === 0) {
+        this.log.warn(
+          `Movie ${item.title} has no valid TMDB ID, skipping verification`,
+          {
+            guids: item.guids,
+          },
+        )
         return false
       }
 
       // Get all Radarr instances
       const instances = await this.radarrManager.getAllInstances()
 
-      // Check each instance for the movie
+      // Check each instance for the movie using efficient lookup
       for (const instance of instances) {
-        const exists = await this.radarrManager.verifyItemExists(
+        const exists = await this.radarrManager.movieExistsByTmdbId(
           instance.id,
-          item,
+          tmdbId,
         )
 
         if (exists) {
