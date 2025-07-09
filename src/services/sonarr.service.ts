@@ -616,6 +616,27 @@ export class SonarrService {
     }
   }
 
+  /**
+   * Check if a series exists in Sonarr using efficient lookup
+   * @param tvdbId - The TVDB ID to check
+   * @returns Promise resolving to true if series exists, false otherwise
+   */
+  async seriesExistsByTvdbId(tvdbId: number): Promise<boolean> {
+    try {
+      const series = await this.getFromSonarr<SonarrSeries[]>(
+        `series/lookup?term=tvdb:${tvdbId}`,
+      )
+
+      // Series exists if it has a valid internal ID (> 0)
+      return series.length > 0 && series[0].id > 0
+    } catch (err) {
+      this.log.error(
+        `Error checking series existence for TVDB ${tvdbId}: ${err}`,
+      )
+      return false
+    }
+  }
+
   async fetchExclusions(pageSize = 1000): Promise<Set<Item>> {
     const config = this.sonarrConfig
     try {
