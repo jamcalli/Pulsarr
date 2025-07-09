@@ -9,6 +9,7 @@ import type {
 } from '@root/types/sonarr.types.js'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
+import { extractTvdbId } from '@utils/guid-handler.js'
 
 export class SonarrManagerService {
   private sonarrServices: Map<number, SonarrService> = new Map()
@@ -361,6 +362,24 @@ export class SonarrManagerService {
         item.guids?.includes(existingGuid),
       ),
     )
+  }
+
+  /**
+   * Efficiently check if a series exists using TVDB lookup
+   * @param instanceId - The Sonarr instance ID
+   * @param tvdbId - The TVDB ID to check
+   * @returns Promise resolving to true if series exists, false otherwise
+   */
+  async seriesExistsByTvdbId(
+    instanceId: number,
+    tvdbId: number,
+  ): Promise<boolean> {
+    const sonarrService = this.sonarrServices.get(instanceId)
+    if (!sonarrService) {
+      throw new Error(`Sonarr instance ${instanceId} not found`)
+    }
+
+    return await sonarrService.seriesExistsByTvdbId(tvdbId)
   }
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
