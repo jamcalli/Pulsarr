@@ -363,6 +363,24 @@ export class SonarrManagerService {
     )
   }
 
+  /**
+   * Efficiently check if a series exists using TVDB lookup
+   * @param instanceId - The Sonarr instance ID
+   * @param tvdbId - The TVDB ID to check
+   * @returns Promise resolving to true if series exists, false otherwise
+   */
+  async seriesExistsByTvdbId(
+    instanceId: number,
+    tvdbId: number,
+  ): Promise<boolean> {
+    const sonarrService = this.sonarrServices.get(instanceId)
+    if (!sonarrService) {
+      throw new Error(`Sonarr instance ${instanceId} not found`)
+    }
+
+    return await sonarrService.seriesExistsByTvdbId(tvdbId)
+  }
+
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createSonarrInstance(instance)
     const sonarrService = new SonarrService(
