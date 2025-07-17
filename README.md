@@ -94,7 +94,7 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 ❤️ Pulsarr is proudly "elf-illiated" with ElfHosted (*along with many more excellent [open-source projects](https://docs.elfhosted.com/sponsorship/)*!)
 
-What is ElfHosted? [ElfHosted](https://store.elfhosted.com) is "easy mode" for self-hosting - an [open-source](https://docs.elfhosted.com/open/) PaaS which runs runs over 100 popular self-hostable apps for you, reliably and securely. They take responsibility for the painful stuff (*hardware, security, configuration, automation and updates*), so you sit back and enjoy the fun stuff! (*actually **using** your applications!*)
+What is ElfHosted? [ElfHosted](https://store.elfhosted.com/elf/jamcalli/) is "easy mode" for self-hosting - an [open-source](https://docs.elfhosted.com/open/) PaaS which runs runs over 100 popular self-hostable apps for you, reliably and securely. They take responsibility for the painful stuff (*hardware, security, configuration, automation and updates*), so you sit back and enjoy the fun stuff! (*actually **using** your applications!*)
 
 Popular [streaming bundles](https://store.elfhosted.com/product-category/streaming-bundles/elf/jamcalli/) are available with Plex, Jellyfin, or Emby, integrated with cloud storage like RealDebrid, Premiumize, etc, and tooled with heavy-hitters such as Radarr/Sonarr, [Pulsarr](https://store.elfhosted.com/product/pulsarr/) (*hello!*), Riven, [Stremio Addons](https://store.elfhosted.com/product-category/stremio-addons/elf/jamcalli/) and [more](https://store.elfhosted.com/product-category/apps/elf/jamcalli/).
 
