@@ -261,6 +261,11 @@ const schema = {
       type: 'string',
       default: '[]',
     },
+    // TMDB Config (Read Access Token is env-only, region stored in DB)
+    tmdbApiKey: {
+      type: 'string',
+      default: '',
+    },
     plexTokens: {
       type: 'string',
       default: '[]',
