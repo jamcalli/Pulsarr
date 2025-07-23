@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
 import { Calendar, Clock, Tv, Film, ExternalLink, Globe } from 'lucide-react'
 import { useConfigStore } from '@/stores/configStore'
 import { useState, useEffect } from 'react'
@@ -38,7 +37,9 @@ export function TmdbMetadataDisplay({
   onRegionChange,
 }: TmdbMetadataDisplayProps) {
   const { metadata } = data
-  const { details, watchProviders, radarrRatings } = metadata
+  const { details, watchProviders } = metadata
+  const radarrRatings =
+    'radarrRatings' in metadata ? metadata.radarrRatings : undefined
   const { config, updateConfig } = useConfigStore()
   const [availableRegions, setAvailableRegions] = useState<TmdbRegion[]>([])
   const [loadingRegions, setLoadingRegions] = useState(false)
@@ -456,9 +457,9 @@ export function TmdbMetadataDisplay({
             </div>
 
             {watchProviders &&
-            (watchProviders.flatrate?.length > 0 ||
-              watchProviders.rent?.length > 0 ||
-              watchProviders.buy?.length > 0) ? (
+            ((watchProviders.flatrate?.length ?? 0) > 0 ||
+              (watchProviders.rent?.length ?? 0) > 0 ||
+              (watchProviders.buy?.length ?? 0) > 0) ? (
               <div className="space-y-3">
                 {watchProviders.flatrate &&
                   watchProviders.flatrate.length > 0 && (

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { format } from 'date-fns'
 import {
   Sheet,
@@ -37,7 +37,6 @@ import {
   Loader2,
   Check,
   Trash2,
-  Info,
   ArrowLeftRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
