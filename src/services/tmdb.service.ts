@@ -1,7 +1,7 @@
 /**
  * TMDB Service
  *
- * Service for interacting with The Movie Database (TMDB) API v4 to fetch
+ * Service for interacting with The Movie Database (TMDB) API v3 to fetch
  * movie and TV show metadata including overview, ratings, and watch providers.
  * Uses modern Bearer token authentication (API Read Access Token).
  */
@@ -86,7 +86,9 @@ export class TmdbService {
         watchProvidersResponse.status === 'fulfilled' &&
         watchProvidersResponse.value
       ) {
-        watchProviders = watchProvidersResponse.value.results[movieRegion]
+        // API filters by region, get the requested region or fallback to any available region
+        const results = watchProvidersResponse.value.results
+        watchProviders = results[movieRegion] || Object.values(results)[0]
       } else if (watchProvidersResponse.status === 'rejected') {
         this.log.warn(
           `Failed to fetch watch providers for movie TMDB ID ${tmdbId}:`,
@@ -160,7 +162,9 @@ export class TmdbService {
         watchProvidersResponse.status === 'fulfilled' &&
         watchProvidersResponse.value
       ) {
-        watchProviders = watchProvidersResponse.value.results[tvRegion]
+        // API filters by region, get the requested region or fallback to any available region
+        const results = watchProvidersResponse.value.results
+        watchProviders = results[tvRegion] || Object.values(results)[0]
       } else if (watchProvidersResponse.status === 'rejected') {
         this.log.warn(
           `Failed to fetch watch providers for TV TMDB ID ${tmdbId}:`,
@@ -283,7 +287,7 @@ export class TmdbService {
     tmdbId: number,
     region: string,
   ): Promise<TmdbWatchProvidersResponse | null> {
-    const url = `${TmdbService.BASE_URL}/movie/${tmdbId}/watch/providers`
+    const url = `${TmdbService.BASE_URL}/movie/${tmdbId}/watch/providers?watch_region=${region}`
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000)
@@ -336,7 +340,7 @@ export class TmdbService {
     tmdbId: number,
     region: string,
   ): Promise<TmdbWatchProvidersResponse | null> {
-    const url = `${TmdbService.BASE_URL}/tv/${tmdbId}/watch/providers`
+    const url = `${TmdbService.BASE_URL}/tv/${tmdbId}/watch/providers?watch_region=${region}`
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000)
