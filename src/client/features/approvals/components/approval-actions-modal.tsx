@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { format } from 'date-fns'
 import {
   Sheet,
@@ -37,6 +37,7 @@ import {
   Loader2,
   Check,
   Trash2,
+  ArrowLeftRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
@@ -44,6 +45,8 @@ import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { ApprovalSonarrRoutingCard } from '@/features/approvals/components/approval-sonarr-routing-card'
 import { ApprovalRadarrRoutingCard } from '@/features/approvals/components/approval-radarr-routing-card'
+import { TmdbMetadataDisplay } from '@/components/tmdb-metadata-display'
+import { useTmdbMetadata } from '@/hooks/useTmdbMetadata'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 
 interface ApprovalActionsModalProps {
@@ -54,9 +57,9 @@ interface ApprovalActionsModalProps {
 }
 
 /**
- * Renders a responsive modal interface for viewing and managing an approval request, including actions to approve, reject, delete, or edit routing details.
+ * Displays a responsive modal for viewing and managing an approval request, including actions to approve, reject, delete, or edit routing, and a toggleable view for TMDB media metadata.
  *
- * Displays request metadata, routing configuration, approval history, and action controls. Supports optional notes for actions, manages loading and success states, and can trigger an external update callback after actions. Adapts layout for desktop and mobile devices.
+ * Shows request metadata, routing configuration, approval history, and action controls with optional notes. Manages loading and success states for actions, supports an external update callback, and adapts layout for desktop and mobile devices. Allows toggling between request details and media information fetched from TMDB.
  *
  * @param request - The approval request to display and manage
  * @param open - Whether the modal is visible
@@ -70,6 +73,28 @@ export default function ApprovalActionsModal({
   onOpenChange,
   onUpdate,
 }: ApprovalActionsModalProps) {
+  // Simple fade transition instead of 3D flip to preserve scrolling
+  const transitionStyles = `
+    .content-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .content-view {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      transition: opacity 0.3s ease-in-out;
+      opacity: 1;
+    }
+    
+    .content-view.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+  `
   const [action, setAction] = useState<'approve' | 'reject' | 'delete' | null>(
     null,
   )
@@ -84,6 +109,7 @@ export default function ApprovalActionsModal({
     'idle' | 'loading' | 'success'
   >('idle')
   const [editRoutingMode, setEditRoutingMode] = useState(false)
+  const [showMediaDetails, setShowMediaDetails] = useState(false)
   const submitSectionRef = useRef<HTMLDivElement>(null)
   const {
     approveRequest,
@@ -94,6 +120,14 @@ export default function ApprovalActionsModal({
   const users = useConfigStore((state) => state.users)
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isDesktop = !isMobile
+  const tmdbMetadata = useTmdbMetadata()
+
+  // Clear TMDB metadata when modal opens with a new request
+  // biome-ignore lint/correctness/useExhaustiveDependencies: request.id is intentionally included to reset state when switching between requests
+  useEffect(() => {
+    tmdbMetadata.clearData()
+    setShowMediaDetails(false)
+  }, [request.id])
 
   const getUserName = (userId: number) => {
     const user = users?.find((u) => u.id === userId)
@@ -327,6 +361,17 @@ export default function ApprovalActionsModal({
     setNotes('')
   }
 
+  const handleShowMediaDetails = async () => {
+    if (showMediaDetails) {
+      setShowMediaDetails(false)
+      return
+    }
+
+    // Always fetch fresh metadata for the current request
+    await tmdbMetadata.fetchMetadata(request)
+    setShowMediaDetails(true)
+  }
+
   const getStatusBadge = () => {
     switch (request.status) {
       case 'pending':
@@ -383,6 +428,44 @@ export default function ApprovalActionsModal({
     }
     return triggerLabels[request.triggeredBy] || request.triggeredBy
   }
+
+  const renderMediaDetailsContent = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-4">
+          Media Details
+        </h3>
+
+        {tmdbMetadata.error ? (
+          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">
+                  Unable to Load Media Details
+                </h4>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  {tmdbMetadata.error}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : tmdbMetadata.data ? (
+          <TmdbMetadataDisplay
+            data={tmdbMetadata.data}
+            onRegionChange={() => tmdbMetadata.fetchMetadata(request, true)}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-64">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Loading media details...</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   const renderContent = () => (
     <div className="space-y-6">
@@ -774,62 +857,134 @@ export default function ApprovalActionsModal({
   // For desktop - use Sheet
   if (isDesktop) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="right"
-          className="w-[90vw]! md:w-[70vw]! lg:w-[60vw]! xl:w-[50vw]! max-w-[800px]! sm:max-w-[800px]! overflow-y-auto flex flex-col p-5"
-        >
-          <SheetHeader className="mb-6 shrink-0">
-            <SheetTitle className="flex items-center gap-2 text-foreground text-xl">
-              {request.contentType === 'movie' ? (
-                <Monitor className="w-5 h-5" />
-              ) : (
-                <Tv className="w-5 h-5" />
-              )}
-              {request.contentTitle}
-              {getStatusBadge()}
-            </SheetTitle>
-            <SheetDescription>
-              Approval request details and actions
-            </SheetDescription>
-          </SheetHeader>
+      <>
+        <style>{transitionStyles}</style>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent
+            side="right"
+            className="w-[90vw]! md:w-[70vw]! lg:w-[60vw]! xl:w-[50vw]! max-w-[800px]! sm:max-w-[800px]! overflow-y-auto flex flex-col p-5 text-foreground"
+          >
+            <SheetHeader className="mb-6 shrink-0">
+              <div className="flex items-center justify-between">
+                <SheetTitle className="flex items-center gap-2 text-foreground text-xl">
+                  {request.contentType === 'movie' ? (
+                    <Monitor className="w-5 h-5" />
+                  ) : (
+                    <Tv className="w-5 h-5" />
+                  )}
+                  {request.contentTitle}
+                  {getStatusBadge()}
+                </SheetTitle>
+                <Button
+                  variant="neutralnoShadow"
+                  size="sm"
+                  onClick={handleShowMediaDetails}
+                  disabled={tmdbMetadata.loading}
+                  className="flex items-center gap-2"
+                >
+                  {tmdbMetadata.loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowLeftRight className="w-4 h-4" />
+                      {showMediaDetails
+                        ? 'Request Info'
+                        : `${request.contentType === 'movie' ? 'Movie' : 'Show'} Info`}
+                    </>
+                  )}
+                </Button>
+              </div>
+              <SheetDescription>
+                {showMediaDetails
+                  ? 'TMDB metadata and streaming information'
+                  : 'Approval request details and actions'}
+              </SheetDescription>
+            </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto pb-8 px-1">
-            {renderContent()}
-          </div>
-
-          {/* Empty spacer div to ensure content doesn't get cut off */}
-          <div className="h-2 shrink-0" />
-        </SheetContent>
-      </Sheet>
+            <div className="flex-1 overflow-y-auto pb-4 px-1">
+              <div className="content-container h-full">
+                <div
+                  className={`content-view ${showMediaDetails ? 'hidden' : ''}`}
+                >
+                  {renderContent()}
+                </div>
+                <div
+                  className={`content-view ${!showMediaDetails ? 'hidden' : ''}`}
+                >
+                  {renderMediaDetailsContent()}
+                </div>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
     )
   }
 
   // For mobile - use Drawer
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="h-[90vh] text-foreground">
-        <DrawerHeader className="mb-6 shrink-0">
-          <DrawerTitle className="flex items-center gap-2 text-foreground text-xl">
-            {request.contentType === 'movie' ? (
-              <Monitor className="w-5 h-5" />
-            ) : (
-              <Tv className="w-5 h-5" />
-            )}
-            {request.contentTitle}
-            {getStatusBadge()}
-          </DrawerTitle>
-          <DrawerDescription className="text-foreground">
-            Approval request details and actions
-          </DrawerDescription>
-        </DrawerHeader>
-        <div className="flex-1 overflow-y-auto pb-8 px-5">
-          {renderContent()}
-        </div>
-
-        {/* Empty spacer div to ensure content doesn't get cut off */}
-        <div className="h-2 shrink-0" />
-      </DrawerContent>
-    </Drawer>
+    <>
+      <style>{transitionStyles}</style>
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="h-[90vh] text-foreground">
+          <DrawerHeader className="mb-6 shrink-0">
+            <div className="flex items-center justify-between">
+              <DrawerTitle className="flex items-center gap-2 text-foreground text-xl">
+                {request.contentType === 'movie' ? (
+                  <Monitor className="w-5 h-5" />
+                ) : (
+                  <Tv className="w-5 h-5" />
+                )}
+                {request.contentTitle}
+                {getStatusBadge()}
+              </DrawerTitle>
+              <Button
+                variant="neutralnoShadow"
+                size="sm"
+                onClick={handleShowMediaDetails}
+                disabled={tmdbMetadata.loading}
+                className="flex items-center gap-2"
+              >
+                {tmdbMetadata.loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <ArrowLeftRight className="w-4 h-4" />
+                    {showMediaDetails
+                      ? 'Request Info'
+                      : `${request.contentType === 'movie' ? 'Movie' : 'Show'} Info`}
+                  </>
+                )}
+              </Button>
+            </div>
+            <DrawerDescription className="text-foreground">
+              {showMediaDetails
+                ? 'TMDB metadata and streaming information'
+                : 'Approval request details and actions'}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="flex-1 overflow-y-auto pb-4 px-5">
+            <div className="content-container h-full">
+              <div
+                className={`content-view ${showMediaDetails ? 'hidden' : ''}`}
+              >
+                {renderContent()}
+              </div>
+              <div
+                className={`content-view ${!showMediaDetails ? 'hidden' : ''}`}
+              >
+                {renderMediaDetailsContent()}
+              </div>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+    </>
   )
 }

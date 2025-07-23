@@ -856,6 +856,40 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'TMDB',
+      link: {
+        type: 'doc',
+        id: 'api/tmdb',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/get-tmdb-metadata-by-guid',
+          label: 'Get TMDB metadata by GUID',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-tmdb-movie-metadata',
+          label: 'Get movie metadata from TMDB',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-tmdb-tv-metadata',
+          label: 'Get TV show metadata from TMDB',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-tmdb-regions',
+          label: 'Get available TMDB regions',
+          className: 'api-method get',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Watchlist Workflow',
       items: [
         {

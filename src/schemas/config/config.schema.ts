@@ -202,6 +202,11 @@ export const ConfigSchema = z.object({
       cleanupExpiredDays: z.number().min(1).max(365).optional(),
     })
     .optional(),
+  // TMDB Configuration
+  tmdbRegion: z
+    .string()
+    .length(2, 'Region must be a 2-letter country code')
+    .optional(),
 })
 
 export const ConfigResponseSchema = z.object({
