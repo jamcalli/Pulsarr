@@ -15,8 +15,11 @@ interface UseTmdbMetadataReturn {
 }
 
 /**
- * Hook to fetch TMDB metadata for approval requests
- * Uses the intelligent TMDB endpoint that accepts GUID format (tmdb:123, tvdb:456)
+ * React hook for fetching and managing TMDB metadata related to approval requests.
+ *
+ * Provides stateful access to TMDB metadata, loading status, and error messages. Exposes functions to fetch metadata for a given approval request (optionally updating only region-specific watch provider data) and to clear all stored metadata and errors.
+ *
+ * @returns An object containing the current metadata, loading state, error message, and functions to fetch or clear metadata.
  */
 export function useTmdbMetadata(
   options: UseTmdbMetadataOptions = {},
