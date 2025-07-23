@@ -288,5 +288,15 @@ declare module '@services/database.service.js' {
       this: DatabaseService,
       guid: string,
     ): Promise<TokenWatchlistItem[]>
+
+    /**
+     * Retrieves all unique GUIDs associated with content that has the specified TVDB ID
+     * @param tvdbId - The TVDB ID to search for
+     * @returns Promise resolving to array of all unique GUIDs associated with the content
+     */
+    getAllGuidsByTvdbId(
+      this: DatabaseService,
+      tvdbId: number,
+    ): Promise<string[]>
   }
 }

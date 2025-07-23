@@ -88,6 +88,10 @@ radarrRootFolder=                      # Root folder path (empty = default. Or a
 radarrBypassIgnored=false              # Bypass ignored setting
 radarrTags=[]                          # Tags as JSON array
 
+# TMDB Configuration
+tmdbApiKey=xxxxxxxxxxxxxxxxxxxxxxxx    # TMDB API Read Access Token (Bearer token) for metadata lookups (env-only, not stored in DB)
+                                       # Required for TMDB metadata features. Get your token at: https://www.themoviedb.org/settings/api
+
 # Plex Configuration
 plexTokens=["xxxxxxxxxxxxxxxxxxxx"]    # Plex authentication token
 skipFriendSync=false                   # Skip syncing Plex friends
@@ -207,6 +211,7 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 - `discordWebhookUrl`, `discordBotToken`, `discordClientId`, `discordGuildId` - Discord
 - `appriseUrl`, `enableApprise`, `systemAppriseUrl` - Apprise notifications
 - `tautulliEnabled`, `tautulliUrl`, `tautulliApiKey` - Tautulli integration
+- `tmdbApiKey` - TMDB API Read Access Token for movie/TV metadata features
 
 ### Media Management
 - `sonarr*` variables - Sonarr instance seeding (development)
@@ -227,6 +232,26 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 ### Quota & Approval Systems
 - `quotaSettings` - JSON configuration for quota management and cleanup
 - `approvalExpiration` - JSON configuration for approval workflow expiration
+
+## TMDB API Configuration
+
+**Required for TMDB metadata features**: Users building Pulsarr from source must obtain their own TMDB API Read Access Token.
+
+1. **Create a TMDB account** at [themoviedb.org](https://www.themoviedb.org/)
+2. **Get your API Read Access Token** at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
+3. **Add to your `.env` file**:
+   ```env
+   tmdbApiKey=your_read_access_token_here
+   ```
+
+:::note Read Access Token vs API Key
+Use the **Read Access Token** (starts with `eyJ`), not the legacy API Key. The Read Access Token provides Bearer authentication required for modern TMDB API features.
+:::
+
+For Docker builds, you can also pass the token as a build argument:
+```bash
+docker build --build-arg tmdbApiKey=your_token_here -t pulsarr .
+```
 
 :::warning Development Only
 Variables marked with "dev only" or "development" comments should not be used in production environments. They are intended for testing and development setup only.
