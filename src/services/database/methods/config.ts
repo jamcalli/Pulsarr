@@ -4,7 +4,7 @@ import type { Config } from '@root/types/config.types.js'
 /**
  * Retrieves and normalizes the application configuration from the database.
  *
- * Fetches the configuration record with `id: 1` from the `configs` table, safely parses all JSON fields with fallback defaults, normalizes optional fields, and applies default values for missing properties. Returns a fully constructed `Config` object if found, or `undefined` if no configuration exists.
+ * Fetches the configuration record with `id: 1` from the `configs` table. Safely parses all JSON fields with fallback defaults, normalizes optional and boolean fields, and applies default values for missing properties, including the `tmdbRegion` (defaulting to `'US'`). Returns a fully constructed `Config` object if found, or `undefined` if no configuration exists.
  *
  * @returns The normalized application configuration object if found, otherwise `undefined`.
  */
@@ -194,9 +194,9 @@ export async function getConfig(
 }
 
 /**
- * Creates a new configuration record in the database, ensuring only one configuration entry exists.
+ * Inserts a new configuration record into the database, enforcing that only one configuration entry exists.
  *
- * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties, including new user default settings. Returns the ID of the newly created configuration.
+ * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties, including TMDB region and new user defaults. Returns the ID of the newly created configuration.
  *
  * @param config - The configuration data to insert, excluding `id`, `created_at`, and `updated_at`
  * @returns The ID of the newly created configuration
