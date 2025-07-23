@@ -151,6 +151,9 @@ export interface Config {
   radarrRootFolder: string
   radarrBypassIgnored: boolean
   radarrTags: string[]
+  // TMDB Config (API key from env, region from DB)
+  tmdbApiKey: string
+  tmdbRegion: string
   // Plex Config
   plexTokens: string[]
   skipFriendSync: boolean

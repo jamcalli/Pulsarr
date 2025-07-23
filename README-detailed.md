@@ -209,6 +209,14 @@ npm run migrate
 npm run start:prod
 ```
 
+**Important**: When building from source, you **must** provide your own TMDB API Read Access Token for metadata features. 
+
+1. Create a TMDB account at [themoviedb.org](https://www.themoviedb.org/)
+2. Get your API Read Access Token at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
+3. Add to your `.env` file: `tmdbApiKey=your_read_access_token_here`
+
+For more details, see the environment variables documentation.
+
 ### Initial Setup
 
 1. Access the web interface at `http://your-server:3003`
