@@ -3094,6 +3094,11 @@
                             }
                           },
                           "additionalProperties": false
+                        },
+                        "tmdbRegion": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 2
                         }
                       },
                       "additionalProperties": false
@@ -3549,6 +3554,11 @@
                       }
                     },
                     "additionalProperties": false
+                  },
+                  "tmdbRegion": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 2
                   }
                 },
                 "additionalProperties": false
@@ -3954,6 +3964,11 @@
                             }
                           },
                           "additionalProperties": false
+                        },
+                        "tmdbRegion": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 2
                         }
                       },
                       "additionalProperties": false
@@ -17403,6 +17418,3290 @@
         }
       }
     },
+    "/v1/tmdb/metadata/{id}": {
+      "get": {
+        "operationId": "getTmdbMetadataByGuid",
+        "summary": "Get TMDB metadata by GUID",
+        "tags": ["TMDB"],
+        "description": "Accepts GUID format IDs (tmdb:123, tvdb:456) and resolves to fetch TMDB metadata",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 2
+            },
+            "in": "query",
+            "name": "region",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "adult": {
+                                  "type": "boolean"
+                                },
+                                "backdrop_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "belongs_to_collection": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "poster_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "backdrop_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "poster_path",
+                                    "backdrop_path"
+                                  ],
+                                  "additionalProperties": false,
+                                  "nullable": true
+                                },
+                                "budget": {
+                                  "type": "number"
+                                },
+                                "genres": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["id", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "homepage": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
+                                },
+                                "id": {
+                                  "type": "number"
+                                },
+                                "imdb_id": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "origin_country": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "original_language": {
+                                  "type": "string"
+                                },
+                                "original_title": {
+                                  "type": "string"
+                                },
+                                "overview": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "popularity": {
+                                  "type": "number"
+                                },
+                                "poster_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "production_companies": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "origin_country": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "logo_path",
+                                      "name",
+                                      "origin_country"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "production_countries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "iso_3166_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["iso_3166_1", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "release_date": {
+                                  "type": "string"
+                                },
+                                "revenue": {
+                                  "type": "number"
+                                },
+                                "runtime": {
+                                  "type": "number",
+                                  "nullable": true
+                                },
+                                "spoken_languages": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "english_name": {
+                                        "type": "string"
+                                      },
+                                      "iso_639_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "english_name",
+                                      "iso_639_1",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "tagline": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "video": {
+                                  "type": "boolean"
+                                },
+                                "vote_average": {
+                                  "type": "number"
+                                },
+                                "vote_count": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "adult",
+                                "backdrop_path",
+                                "belongs_to_collection",
+                                "budget",
+                                "genres",
+                                "homepage",
+                                "id",
+                                "imdb_id",
+                                "origin_country",
+                                "original_language",
+                                "original_title",
+                                "overview",
+                                "popularity",
+                                "poster_path",
+                                "production_companies",
+                                "production_countries",
+                                "release_date",
+                                "revenue",
+                                "runtime",
+                                "spoken_languages",
+                                "status",
+                                "tagline",
+                                "title",
+                                "video",
+                                "vote_average",
+                                "vote_count"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "watchProviders": {
+                              "type": "object",
+                              "properties": {
+                                "link": {
+                                  "type": "string"
+                                },
+                                "flatrate": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "rent": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "buy": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "radarrRatings": {
+                              "type": "object",
+                              "properties": {
+                                "imdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "tmdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "metacritic": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "rottenTomatoes": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "trakt": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": ["details"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "adult": {
+                                  "type": "boolean"
+                                },
+                                "backdrop_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "created_by": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "credit_id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "original_name": {
+                                        "type": "string"
+                                      },
+                                      "gender": {
+                                        "type": "number"
+                                      },
+                                      "profile_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "credit_id",
+                                      "name",
+                                      "original_name",
+                                      "gender",
+                                      "profile_path"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "episode_run_time": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  }
+                                },
+                                "first_air_date": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "genres": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["id", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "homepage": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
+                                },
+                                "id": {
+                                  "type": "number"
+                                },
+                                "in_production": {
+                                  "type": "boolean"
+                                },
+                                "languages": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "last_air_date": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "last_episode_to_air": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "overview": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "vote_average": {
+                                      "type": "number"
+                                    },
+                                    "vote_count": {
+                                      "type": "number"
+                                    },
+                                    "air_date": {
+                                      "type": "string"
+                                    },
+                                    "episode_number": {
+                                      "type": "number"
+                                    },
+                                    "episode_type": {
+                                      "type": "string"
+                                    },
+                                    "production_code": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "runtime": {
+                                      "type": "number",
+                                      "nullable": true
+                                    },
+                                    "season_number": {
+                                      "type": "number"
+                                    },
+                                    "show_id": {
+                                      "type": "number"
+                                    },
+                                    "still_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "overview",
+                                    "vote_average",
+                                    "vote_count",
+                                    "air_date",
+                                    "episode_number",
+                                    "episode_type",
+                                    "production_code",
+                                    "runtime",
+                                    "season_number",
+                                    "show_id",
+                                    "still_path"
+                                  ],
+                                  "additionalProperties": false,
+                                  "nullable": true
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "next_episode_to_air": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "overview": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "vote_average": {
+                                      "type": "number"
+                                    },
+                                    "vote_count": {
+                                      "type": "number"
+                                    },
+                                    "air_date": {
+                                      "type": "string"
+                                    },
+                                    "episode_number": {
+                                      "type": "number"
+                                    },
+                                    "episode_type": {
+                                      "type": "string"
+                                    },
+                                    "production_code": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "runtime": {
+                                      "type": "number",
+                                      "nullable": true
+                                    },
+                                    "season_number": {
+                                      "type": "number"
+                                    },
+                                    "show_id": {
+                                      "type": "number"
+                                    },
+                                    "still_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "overview",
+                                    "vote_average",
+                                    "vote_count",
+                                    "air_date",
+                                    "episode_number",
+                                    "episode_type",
+                                    "production_code",
+                                    "runtime",
+                                    "season_number",
+                                    "show_id",
+                                    "still_path"
+                                  ],
+                                  "additionalProperties": false,
+                                  "nullable": true
+                                },
+                                "networks": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "origin_country": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "logo_path",
+                                      "name",
+                                      "origin_country"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "number_of_episodes": {
+                                  "type": "number"
+                                },
+                                "number_of_seasons": {
+                                  "type": "number"
+                                },
+                                "origin_country": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "original_language": {
+                                  "type": "string"
+                                },
+                                "original_name": {
+                                  "type": "string"
+                                },
+                                "overview": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "popularity": {
+                                  "type": "number"
+                                },
+                                "poster_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "production_companies": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "origin_country": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "logo_path",
+                                      "name",
+                                      "origin_country"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "production_countries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "iso_3166_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["iso_3166_1", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "seasons": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "air_date": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "episode_count": {
+                                        "type": "number"
+                                      },
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "overview": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "poster_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "season_number": {
+                                        "type": "number"
+                                      },
+                                      "vote_average": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "air_date",
+                                      "episode_count",
+                                      "id",
+                                      "name",
+                                      "overview",
+                                      "poster_path",
+                                      "season_number",
+                                      "vote_average"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "spoken_languages": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "english_name": {
+                                        "type": "string"
+                                      },
+                                      "iso_639_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "english_name",
+                                      "iso_639_1",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "tagline": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "type": {
+                                  "type": "string"
+                                },
+                                "vote_average": {
+                                  "type": "number"
+                                },
+                                "vote_count": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "adult",
+                                "backdrop_path",
+                                "created_by",
+                                "episode_run_time",
+                                "first_air_date",
+                                "genres",
+                                "homepage",
+                                "id",
+                                "in_production",
+                                "languages",
+                                "last_air_date",
+                                "last_episode_to_air",
+                                "name",
+                                "next_episode_to_air",
+                                "networks",
+                                "number_of_episodes",
+                                "number_of_seasons",
+                                "origin_country",
+                                "original_language",
+                                "original_name",
+                                "overview",
+                                "popularity",
+                                "poster_path",
+                                "production_companies",
+                                "production_countries",
+                                "seasons",
+                                "spoken_languages",
+                                "status",
+                                "tagline",
+                                "type",
+                                "vote_average",
+                                "vote_count"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "watchProviders": {
+                              "type": "object",
+                              "properties": {
+                                "link": {
+                                  "type": "string"
+                                },
+                                "flatrate": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "rent": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "buy": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": ["details"],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["success", "message", "metadata"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [false]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [false]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tmdb/movie/{id}": {
+      "get": {
+        "operationId": "getTmdbMovieMetadata",
+        "summary": "Get movie metadata from TMDB",
+        "tags": ["TMDB"],
+        "description": "Fetch TMDB movie metadata including overview, ratings, and watch providers",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 2
+            },
+            "in": "query",
+            "name": "region",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "adult": {
+                                  "type": "boolean"
+                                },
+                                "backdrop_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "belongs_to_collection": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "poster_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "backdrop_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "poster_path",
+                                    "backdrop_path"
+                                  ],
+                                  "additionalProperties": false,
+                                  "nullable": true
+                                },
+                                "budget": {
+                                  "type": "number"
+                                },
+                                "genres": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["id", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "homepage": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
+                                },
+                                "id": {
+                                  "type": "number"
+                                },
+                                "imdb_id": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "origin_country": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "original_language": {
+                                  "type": "string"
+                                },
+                                "original_title": {
+                                  "type": "string"
+                                },
+                                "overview": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "popularity": {
+                                  "type": "number"
+                                },
+                                "poster_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "production_companies": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "origin_country": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "logo_path",
+                                      "name",
+                                      "origin_country"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "production_countries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "iso_3166_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["iso_3166_1", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "release_date": {
+                                  "type": "string"
+                                },
+                                "revenue": {
+                                  "type": "number"
+                                },
+                                "runtime": {
+                                  "type": "number",
+                                  "nullable": true
+                                },
+                                "spoken_languages": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "english_name": {
+                                        "type": "string"
+                                      },
+                                      "iso_639_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "english_name",
+                                      "iso_639_1",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "tagline": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "video": {
+                                  "type": "boolean"
+                                },
+                                "vote_average": {
+                                  "type": "number"
+                                },
+                                "vote_count": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "adult",
+                                "backdrop_path",
+                                "belongs_to_collection",
+                                "budget",
+                                "genres",
+                                "homepage",
+                                "id",
+                                "imdb_id",
+                                "origin_country",
+                                "original_language",
+                                "original_title",
+                                "overview",
+                                "popularity",
+                                "poster_path",
+                                "production_companies",
+                                "production_countries",
+                                "release_date",
+                                "revenue",
+                                "runtime",
+                                "spoken_languages",
+                                "status",
+                                "tagline",
+                                "title",
+                                "video",
+                                "vote_average",
+                                "vote_count"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "watchProviders": {
+                              "type": "object",
+                              "properties": {
+                                "link": {
+                                  "type": "string"
+                                },
+                                "flatrate": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "rent": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "buy": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "radarrRatings": {
+                              "type": "object",
+                              "properties": {
+                                "imdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "tmdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "metacritic": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "rottenTomatoes": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "trakt": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": ["details"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "adult": {
+                                  "type": "boolean"
+                                },
+                                "backdrop_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "created_by": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "credit_id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "original_name": {
+                                        "type": "string"
+                                      },
+                                      "gender": {
+                                        "type": "number"
+                                      },
+                                      "profile_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "credit_id",
+                                      "name",
+                                      "original_name",
+                                      "gender",
+                                      "profile_path"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "episode_run_time": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  }
+                                },
+                                "first_air_date": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "genres": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["id", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "homepage": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
+                                },
+                                "id": {
+                                  "type": "number"
+                                },
+                                "in_production": {
+                                  "type": "boolean"
+                                },
+                                "languages": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "last_air_date": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "last_episode_to_air": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "overview": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "vote_average": {
+                                      "type": "number"
+                                    },
+                                    "vote_count": {
+                                      "type": "number"
+                                    },
+                                    "air_date": {
+                                      "type": "string"
+                                    },
+                                    "episode_number": {
+                                      "type": "number"
+                                    },
+                                    "episode_type": {
+                                      "type": "string"
+                                    },
+                                    "production_code": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "runtime": {
+                                      "type": "number",
+                                      "nullable": true
+                                    },
+                                    "season_number": {
+                                      "type": "number"
+                                    },
+                                    "show_id": {
+                                      "type": "number"
+                                    },
+                                    "still_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "overview",
+                                    "vote_average",
+                                    "vote_count",
+                                    "air_date",
+                                    "episode_number",
+                                    "episode_type",
+                                    "production_code",
+                                    "runtime",
+                                    "season_number",
+                                    "show_id",
+                                    "still_path"
+                                  ],
+                                  "additionalProperties": false,
+                                  "nullable": true
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "next_episode_to_air": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "overview": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "vote_average": {
+                                      "type": "number"
+                                    },
+                                    "vote_count": {
+                                      "type": "number"
+                                    },
+                                    "air_date": {
+                                      "type": "string"
+                                    },
+                                    "episode_number": {
+                                      "type": "number"
+                                    },
+                                    "episode_type": {
+                                      "type": "string"
+                                    },
+                                    "production_code": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "runtime": {
+                                      "type": "number",
+                                      "nullable": true
+                                    },
+                                    "season_number": {
+                                      "type": "number"
+                                    },
+                                    "show_id": {
+                                      "type": "number"
+                                    },
+                                    "still_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "overview",
+                                    "vote_average",
+                                    "vote_count",
+                                    "air_date",
+                                    "episode_number",
+                                    "episode_type",
+                                    "production_code",
+                                    "runtime",
+                                    "season_number",
+                                    "show_id",
+                                    "still_path"
+                                  ],
+                                  "additionalProperties": false,
+                                  "nullable": true
+                                },
+                                "networks": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "origin_country": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "logo_path",
+                                      "name",
+                                      "origin_country"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "number_of_episodes": {
+                                  "type": "number"
+                                },
+                                "number_of_seasons": {
+                                  "type": "number"
+                                },
+                                "origin_country": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "original_language": {
+                                  "type": "string"
+                                },
+                                "original_name": {
+                                  "type": "string"
+                                },
+                                "overview": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "popularity": {
+                                  "type": "number"
+                                },
+                                "poster_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "production_companies": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "origin_country": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "logo_path",
+                                      "name",
+                                      "origin_country"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "production_countries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "iso_3166_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["iso_3166_1", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "seasons": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "air_date": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "episode_count": {
+                                        "type": "number"
+                                      },
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "overview": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "poster_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "season_number": {
+                                        "type": "number"
+                                      },
+                                      "vote_average": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "air_date",
+                                      "episode_count",
+                                      "id",
+                                      "name",
+                                      "overview",
+                                      "poster_path",
+                                      "season_number",
+                                      "vote_average"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "spoken_languages": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "english_name": {
+                                        "type": "string"
+                                      },
+                                      "iso_639_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "english_name",
+                                      "iso_639_1",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "tagline": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "type": {
+                                  "type": "string"
+                                },
+                                "vote_average": {
+                                  "type": "number"
+                                },
+                                "vote_count": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "adult",
+                                "backdrop_path",
+                                "created_by",
+                                "episode_run_time",
+                                "first_air_date",
+                                "genres",
+                                "homepage",
+                                "id",
+                                "in_production",
+                                "languages",
+                                "last_air_date",
+                                "last_episode_to_air",
+                                "name",
+                                "next_episode_to_air",
+                                "networks",
+                                "number_of_episodes",
+                                "number_of_seasons",
+                                "origin_country",
+                                "original_language",
+                                "original_name",
+                                "overview",
+                                "popularity",
+                                "poster_path",
+                                "production_companies",
+                                "production_countries",
+                                "seasons",
+                                "spoken_languages",
+                                "status",
+                                "tagline",
+                                "type",
+                                "vote_average",
+                                "vote_count"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "watchProviders": {
+                              "type": "object",
+                              "properties": {
+                                "link": {
+                                  "type": "string"
+                                },
+                                "flatrate": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "rent": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "buy": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": ["details"],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["success", "message", "metadata"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [false]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [false]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tmdb/tv/{id}": {
+      "get": {
+        "operationId": "getTmdbTvMetadata",
+        "summary": "Get TV show metadata from TMDB",
+        "tags": ["TMDB"],
+        "description": "Fetch TMDB TV show metadata including overview, ratings, and watch providers",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 2
+            },
+            "in": "query",
+            "name": "region",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "adult": {
+                                  "type": "boolean"
+                                },
+                                "backdrop_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "belongs_to_collection": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "poster_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "backdrop_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "poster_path",
+                                    "backdrop_path"
+                                  ],
+                                  "additionalProperties": false,
+                                  "nullable": true
+                                },
+                                "budget": {
+                                  "type": "number"
+                                },
+                                "genres": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["id", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "homepage": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
+                                },
+                                "id": {
+                                  "type": "number"
+                                },
+                                "imdb_id": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "origin_country": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "original_language": {
+                                  "type": "string"
+                                },
+                                "original_title": {
+                                  "type": "string"
+                                },
+                                "overview": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "popularity": {
+                                  "type": "number"
+                                },
+                                "poster_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "production_companies": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "origin_country": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "logo_path",
+                                      "name",
+                                      "origin_country"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "production_countries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "iso_3166_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["iso_3166_1", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "release_date": {
+                                  "type": "string"
+                                },
+                                "revenue": {
+                                  "type": "number"
+                                },
+                                "runtime": {
+                                  "type": "number",
+                                  "nullable": true
+                                },
+                                "spoken_languages": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "english_name": {
+                                        "type": "string"
+                                      },
+                                      "iso_639_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "english_name",
+                                      "iso_639_1",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "tagline": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "video": {
+                                  "type": "boolean"
+                                },
+                                "vote_average": {
+                                  "type": "number"
+                                },
+                                "vote_count": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "adult",
+                                "backdrop_path",
+                                "belongs_to_collection",
+                                "budget",
+                                "genres",
+                                "homepage",
+                                "id",
+                                "imdb_id",
+                                "origin_country",
+                                "original_language",
+                                "original_title",
+                                "overview",
+                                "popularity",
+                                "poster_path",
+                                "production_companies",
+                                "production_countries",
+                                "release_date",
+                                "revenue",
+                                "runtime",
+                                "spoken_languages",
+                                "status",
+                                "tagline",
+                                "title",
+                                "video",
+                                "vote_average",
+                                "vote_count"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "watchProviders": {
+                              "type": "object",
+                              "properties": {
+                                "link": {
+                                  "type": "string"
+                                },
+                                "flatrate": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "rent": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "buy": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "radarrRatings": {
+                              "type": "object",
+                              "properties": {
+                                "imdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "tmdb": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "metacritic": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "rottenTomatoes": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                },
+                                "trakt": {
+                                  "type": "object",
+                                  "properties": {
+                                    "votes": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["user", "critic"]
+                                    }
+                                  },
+                                  "required": ["votes", "value", "type"],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": ["details"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "adult": {
+                                  "type": "boolean"
+                                },
+                                "backdrop_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "created_by": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "credit_id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "original_name": {
+                                        "type": "string"
+                                      },
+                                      "gender": {
+                                        "type": "number"
+                                      },
+                                      "profile_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "credit_id",
+                                      "name",
+                                      "original_name",
+                                      "gender",
+                                      "profile_path"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "episode_run_time": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number"
+                                  }
+                                },
+                                "first_air_date": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "genres": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["id", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "homepage": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
+                                },
+                                "id": {
+                                  "type": "number"
+                                },
+                                "in_production": {
+                                  "type": "boolean"
+                                },
+                                "languages": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "last_air_date": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "last_episode_to_air": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "overview": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "vote_average": {
+                                      "type": "number"
+                                    },
+                                    "vote_count": {
+                                      "type": "number"
+                                    },
+                                    "air_date": {
+                                      "type": "string"
+                                    },
+                                    "episode_number": {
+                                      "type": "number"
+                                    },
+                                    "episode_type": {
+                                      "type": "string"
+                                    },
+                                    "production_code": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "runtime": {
+                                      "type": "number",
+                                      "nullable": true
+                                    },
+                                    "season_number": {
+                                      "type": "number"
+                                    },
+                                    "show_id": {
+                                      "type": "number"
+                                    },
+                                    "still_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "overview",
+                                    "vote_average",
+                                    "vote_count",
+                                    "air_date",
+                                    "episode_number",
+                                    "episode_type",
+                                    "production_code",
+                                    "runtime",
+                                    "season_number",
+                                    "show_id",
+                                    "still_path"
+                                  ],
+                                  "additionalProperties": false,
+                                  "nullable": true
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "next_episode_to_air": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "overview": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "vote_average": {
+                                      "type": "number"
+                                    },
+                                    "vote_count": {
+                                      "type": "number"
+                                    },
+                                    "air_date": {
+                                      "type": "string"
+                                    },
+                                    "episode_number": {
+                                      "type": "number"
+                                    },
+                                    "episode_type": {
+                                      "type": "string"
+                                    },
+                                    "production_code": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "runtime": {
+                                      "type": "number",
+                                      "nullable": true
+                                    },
+                                    "season_number": {
+                                      "type": "number"
+                                    },
+                                    "show_id": {
+                                      "type": "number"
+                                    },
+                                    "still_path": {
+                                      "type": "string",
+                                      "nullable": true
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "overview",
+                                    "vote_average",
+                                    "vote_count",
+                                    "air_date",
+                                    "episode_number",
+                                    "episode_type",
+                                    "production_code",
+                                    "runtime",
+                                    "season_number",
+                                    "show_id",
+                                    "still_path"
+                                  ],
+                                  "additionalProperties": false,
+                                  "nullable": true
+                                },
+                                "networks": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "origin_country": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "logo_path",
+                                      "name",
+                                      "origin_country"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "number_of_episodes": {
+                                  "type": "number"
+                                },
+                                "number_of_seasons": {
+                                  "type": "number"
+                                },
+                                "origin_country": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "original_language": {
+                                  "type": "string"
+                                },
+                                "original_name": {
+                                  "type": "string"
+                                },
+                                "overview": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "popularity": {
+                                  "type": "number"
+                                },
+                                "poster_path": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "production_companies": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "origin_country": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "logo_path",
+                                      "name",
+                                      "origin_country"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "production_countries": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "iso_3166_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["iso_3166_1", "name"],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "seasons": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "air_date": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "episode_count": {
+                                        "type": "number"
+                                      },
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "overview": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "poster_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "season_number": {
+                                        "type": "number"
+                                      },
+                                      "vote_average": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "air_date",
+                                      "episode_count",
+                                      "id",
+                                      "name",
+                                      "overview",
+                                      "poster_path",
+                                      "season_number",
+                                      "vote_average"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "spoken_languages": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "english_name": {
+                                        "type": "string"
+                                      },
+                                      "iso_639_1": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "english_name",
+                                      "iso_639_1",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "tagline": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "type": {
+                                  "type": "string"
+                                },
+                                "vote_average": {
+                                  "type": "number"
+                                },
+                                "vote_count": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "adult",
+                                "backdrop_path",
+                                "created_by",
+                                "episode_run_time",
+                                "first_air_date",
+                                "genres",
+                                "homepage",
+                                "id",
+                                "in_production",
+                                "languages",
+                                "last_air_date",
+                                "last_episode_to_air",
+                                "name",
+                                "next_episode_to_air",
+                                "networks",
+                                "number_of_episodes",
+                                "number_of_seasons",
+                                "origin_country",
+                                "original_language",
+                                "original_name",
+                                "overview",
+                                "popularity",
+                                "poster_path",
+                                "production_companies",
+                                "production_countries",
+                                "seasons",
+                                "spoken_languages",
+                                "status",
+                                "tagline",
+                                "type",
+                                "vote_average",
+                                "vote_count"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "watchProviders": {
+                              "type": "object",
+                              "properties": {
+                                "link": {
+                                  "type": "string"
+                                },
+                                "flatrate": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "rent": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "buy": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "display_priority": {
+                                        "type": "number"
+                                      },
+                                      "logo_path": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "provider_id": {
+                                        "type": "number"
+                                      },
+                                      "provider_name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "display_priority",
+                                      "logo_path",
+                                      "provider_id",
+                                      "provider_name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": ["details"],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["success", "message", "metadata"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [false]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [false]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tmdb/regions": {
+      "get": {
+        "operationId": "getTmdbRegions",
+        "summary": "Get available TMDB regions",
+        "tags": ["TMDB"],
+        "description": "Fetch list of regions/countries that have watch provider data available in TMDB",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "regions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["code", "name"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["success", "message", "regions"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [false]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/users/bulk": {
       "patch": {
         "operationId": "bulkUpdateUsers",
@@ -19027,11 +22326,11 @@
   },
   "servers": [
     {
-      "url": "http://localhost",
+      "url": "https://your-pulsarr-instance.com",
       "description": "Primary Server"
     },
     {
-      "url": "http://localhost:3003",
+      "url": "https://your-pulsarr-instance.com:3003",
       "description": "Direct Server Access (with port)"
     },
     {
