@@ -1,0 +1,63 @@
+---
+id: get-tmdb-regions
+title: "Get available TMDB regions"
+description: "Fetch list of regions/countries that have watch provider data available in TMDB"
+sidebar_label: "Get available TMDB regions"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVE1v2zAM/SsCTxvgzumKXXzr0K0osAFB2+1S5MBITKxOllyKdhsY/u+DlLRJ02DZZcBO/uDj48cjOUBoiVFs8FcGKliS3DZmfk1LG3yEAgSXEao7uP1+8RlmBRiKmm2bHKCCryS6Vs5GUWGheO1V6tB5YUtRSY2iauxJPWJCthx6a4iVQUGFPVqHc0fKepUDFMAU2+AjRagG+DiZpMfrmBe0wM6Jut4goQAdvJCXhMW2dVbngsr7mBwGiLqmBtObrFqCCsL8nrRAAS2n8sWuw8VOa4pxBzgPwRF6KIB810B1J9zRbCygoRhxSTvQKGz9EsZUwrp5Wxsy4woKsEJNPJ6HDuYws8fmkCHHfOgsk0lSZfcNeFYAGmNTO9BNd6Is0EUa912fO7AtcFvOUaqxgE+Ts/9MsJzcnxU72oPjlWd+qcNmhVKiKDVUUPanpTRmXvLLRkXinjgt1QAdO6igFmljVZar0PFJ27mIzCfWR0Gv6YMODezv3ZRtg7xSN5kLxuKvqaqzyeTsDd+FZdKyoVPnuQHq3aOVWrWB5f1ehKosXdDo6hDlMOG3Z/NBslkB1i9C1sKKS2JM17mq8+nVG7Lz6ZUyQXcNecmDohaB1bPHiUI1dfS0PjH5FlkvtOQt9Cb4hERv1DUaZIYCkgZr+p+nabfaEKXBPH7rNYNLkp0Tle6T2qr4KsNhO9D/4CRuxlXoScrWofUp3SzGsBmzO+hPE7Ax89cLmxRI5mGYY6Qf7MYx/X7oiFdQ3c0K6JFtipe+xgJqQkOcZ/MXrVLvtaY2DXSPrsu3bH9fk5ovw3/55RbG8TewQjPH
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get available TMDB regions"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/tmdb/regions"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Fetch list of regions/countries that have watch provider data available in TMDB
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean","enum":[true]},"message":{"type":"string"},"regions":{"type":"array","items":{"type":"object","properties":{"code":{"type":"string"},"name":{"type":"string"}},"required":["code","name"],"additionalProperties":false}}},"required":["success","message","regions"],"additionalProperties":false}}}},"503":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean","enum":[false]},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

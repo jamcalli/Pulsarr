@@ -3094,6 +3094,11 @@
                             }
                           },
                           "additionalProperties": false
+                        },
+                        "tmdbRegion": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 2
                         }
                       },
                       "additionalProperties": false
@@ -3549,6 +3554,11 @@
                       }
                     },
                     "additionalProperties": false
+                  },
+                  "tmdbRegion": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 2
                   }
                 },
                 "additionalProperties": false
@@ -3954,6 +3964,11 @@
                             }
                           },
                           "additionalProperties": false
+                        },
+                        "tmdbRegion": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 2
                         }
                       },
                       "additionalProperties": false
@@ -20479,6 +20494,74 @@
                     }
                   },
                   "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [false]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tmdb/regions": {
+      "get": {
+        "operationId": "getTmdbRegions",
+        "summary": "Get available TMDB regions",
+        "tags": ["TMDB"],
+        "description": "Fetch list of regions/countries that have watch provider data available in TMDB",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "regions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["code", "name"],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["success", "message", "regions"],
                   "additionalProperties": false
                 }
               }
