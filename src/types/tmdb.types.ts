@@ -133,7 +133,11 @@ export interface TmdbRegion {
   name: string
 }
 
-// Type guard for TMDB Error Response
+/**
+ * Determines whether the given object matches the structure of a TMDB error response.
+ *
+ * @returns `true` if the object is a TMDB error response; otherwise, `false`.
+ */
 export function isTmdbError(response: object): response is TmdbErrorResponse {
   const obj = response as Record<string, unknown>
   return (

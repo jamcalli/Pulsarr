@@ -30,7 +30,12 @@ interface TmdbMetadataDisplayProps {
 }
 
 /**
- * Component to display TMDB metadata including overview, ratings, and watch providers
+ * Displays detailed TMDB metadata for a movie or TV show, including overview, ratings, and region-specific watch providers.
+ *
+ * Shows title, release year, runtime, genres, ratings from multiple sources, and additional details depending on whether the item is a movie or TV show. Allows users to select a region to filter available streaming, rental, and purchase providers, and optionally triggers a callback when the region changes.
+ *
+ * @param data - TMDB metadata response containing details and watch provider information
+ * @param onRegionChange - Optional callback invoked after the region is changed, typically to refetch metadata
  */
 export function TmdbMetadataDisplay({
   data,
