@@ -1096,3 +1096,53 @@ export async function getWatchlistItemsByGuid(
     ),
   }))
 }
+
+/**
+ * Retrieves all unique GUIDs associated with content that has the specified TVDB ID.
+ *
+ * Searches through all watchlist items to find those containing a TVDB GUID matching
+ * the provided ID, then returns all GUIDs from those items. This allows cross-referencing
+ * between different metadata providers (TMDB, TVDB, IMDB, etc.) for the same content.
+ *
+ * @param tvdbId - The TVDB ID to search for
+ * @returns An array of all unique GUIDs associated with the content
+ */
+export async function getAllGuidsByTvdbId(
+  this: DatabaseService,
+  tvdbId: number,
+): Promise<string[]> {
+  const tvdbGuid = `tvdb:${tvdbId}`
+
+  // Get all watchlist items that contain this TVDB ID
+  const items = this.isPostgres
+    ? await this.knex('watchlist_items')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
+          [tvdbGuid],
+        )
+        .select('guids')
+    : await this.knex('watchlist_items')
+        .whereRaw(
+          "EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
+          [tvdbGuid],
+        )
+        .select('guids')
+
+  // Collect all unique GUIDs from the found items
+  const allGuids = new Set<string>()
+
+  for (const item of items) {
+    const guids = this.safeJsonParse<string[]>(
+      item.guids,
+      [],
+      'watchlist_item.guids',
+    )
+    for (const guid of guids) {
+      if (guid && guid.trim() !== '') {
+        allGuids.add(guid.trim())
+      }
+    }
+  }
+
+  return Array.from(allGuids)
+}

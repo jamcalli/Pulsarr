@@ -2,8 +2,14 @@ FROM node:23.6.0-alpine AS builder
 
 WORKDIR /app
 
+# Accept TMDB API key as build argument
+ARG tmdbApiKey
+
 # Set cache dir
 ENV CACHE_DIR=/app/build-cache
+
+# Set TMDB API key as environment variable
+ENV tmdbApiKey=${tmdbApiKey}
 
 # Copy build essentials
 COPY package*.json ./
@@ -46,8 +52,12 @@ COPY migrations ./migrations
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
+# Pass TMDB API key to runtime
+ARG tmdbApiKey
+
 # Set production environment
 ENV NODE_ENV=production
+ENV tmdbApiKey=${tmdbApiKey}
 
 # Make volumes
 VOLUME ${CACHE_DIR}

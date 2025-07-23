@@ -15,6 +15,8 @@ interface FastifyInstanceWithSwagger extends FastifyInstance {
 process.env.NODE_ENV = 'production'
 process.env.authenticationMethod = 'disabled'
 process.env.logLevel = 'error'
+// Override baseUrl for public documentation
+process.env.baseUrl = 'https://your-pulsarr-instance.com'
 
 const app = Fastify({
   logger: false,

@@ -187,6 +187,8 @@ export async function getConfig(
     removedTagMode: config.removedTagMode || 'remove',
     removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
     deletionMode: config.deletionMode || 'watchlist',
+    // TMDB configuration
+    tmdbRegion: config.tmdbRegion || 'US',
     _isReady: Boolean(config._isReady),
   }
 }
@@ -310,6 +312,8 @@ export async function createConfig(
       newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
       newUserDefaultShowBypassApproval:
         config.newUserDefaultShowBypassApproval ?? false,
+      // TMDB configuration
+      tmdbRegion: config.tmdbRegion || 'US',
       // Ready state
       _isReady: config._isReady || false,
       // Timestamps
@@ -451,6 +455,9 @@ const ALLOWED_COLUMNS = new Set([
   'newUserDefaultShowQuotaType',
   'newUserDefaultShowQuotaLimit',
   'newUserDefaultShowBypassApproval',
+
+  // TMDB configuration
+  'tmdbRegion',
 ])
 
 // JSON columns that need special serialization handling
