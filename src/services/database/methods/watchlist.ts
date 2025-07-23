@@ -1059,12 +1059,12 @@ export async function getAllWatchlistItemsForUser(
 }
 
 /**
- * Retrieves all watchlist items containing the specified GUID in their GUIDs array.
+ * Retrieves all watchlist items whose GUIDs array contains the specified GUID, using case-insensitive matching.
  *
- * The GUID comparison is case-insensitive. Returned items have their `id` as a string and their `guids` and `genres` fields parsed as arrays.
+ * Each returned item has its `id` normalized to a string, and its `guids` and `genres` fields parsed as arrays.
  *
  * @param guid - The GUID to search for within each item's GUIDs array
- * @returns An array of matching watchlist items with normalized fields
+ * @returns An array of matching watchlist items with normalized and parsed fields
  */
 export async function getWatchlistItemsByGuid(
   this: DatabaseService,
@@ -1098,14 +1098,12 @@ export async function getWatchlistItemsByGuid(
 }
 
 /**
- * Retrieves all unique GUIDs associated with content that has the specified TVDB ID.
+ * Returns all unique GUIDs from watchlist items that include the specified TVDB ID.
  *
- * Searches through all watchlist items to find those containing a TVDB GUID matching
- * the provided ID, then returns all GUIDs from those items. This allows cross-referencing
- * between different metadata providers (TMDB, TVDB, IMDB, etc.) for the same content.
+ * Finds watchlist items whose GUIDs array contains a TVDB GUID matching the provided ID, then aggregates and returns all unique GUIDs from those items. Useful for cross-referencing content across different metadata providers.
  *
- * @param tvdbId - The TVDB ID to search for
- * @returns An array of all unique GUIDs associated with the content
+ * @param tvdbId - The TVDB ID to match against GUIDs
+ * @returns An array of unique GUID strings associated with the content
  */
 export async function getAllGuidsByTvdbId(
   this: DatabaseService,

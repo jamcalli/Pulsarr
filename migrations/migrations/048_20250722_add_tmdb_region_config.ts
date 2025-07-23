@@ -1,11 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds tmdbRegion configuration field to the configs table.
+ * Adds the `tmdbRegion` column to the `configs` table to store the default region code for TMDB watch provider data.
  *
- * The tmdbRegion field stores the default region code for TMDB watch provider data.
- * Defaults to 'US' for United States. The TMDB API key remains environment-only
- * and is not stored in the database.
+ * The new column is a string with a default value of `'US'`. The TMDB API key continues to be managed via environment variables and is not stored in the database.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
@@ -14,7 +12,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the tmdbRegion configuration field from the configs table.
+ * Reverts the schema change by dropping the `tmdbRegion` column from the `configs` table.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
