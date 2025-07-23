@@ -103,8 +103,13 @@ npm run start:prod
 
 The server will start on port 3003 by default. Navigate to `http://localhost:3003` to complete setup.
 
+:::important TMDB API Key Required
+When building from source, you **must** provide your own TMDB API Read Access Token for metadata features. See the [TMDB API Configuration](../development/environment-variables#tmdb-api-configuration) section for setup instructions.
+:::
+
 For more detailed configuration options, see:
 - [Configuration Guide](configuration)
+- [Environment Variables Reference](../development/environment-variables)
 
 ## Initial Setup
 

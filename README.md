@@ -90,6 +90,16 @@ Pulsarr uses SQLite by default but can also be configured to use PostgreSQL for 
 
 See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/installation/configuration) for PostgreSQL setup details.
 
+## Hosted Deployment Options
+
+### ElfHosted
+
+[ElfHosted](https://store.elfhosted.com/elf/jamcalli/) is a Platform-as-a-Service (PaaS) provider that offers managed hosting for self-hosted applications, including Pulsarr. ElfHosted handles infrastructure management, security updates, and system maintenance, allowing users to focus on configuring and using their applications.
+
+ElfHosted provides pre-configured streaming media bundles that integrate Pulsarr with popular media server applications (Plex, Jellyfin, Emby) and automation tools (Radarr, Sonarr). The platform includes community support through their [Discord server](https://discord.elfhosted.com) and maintains [documentation](https://docs.elfhosted.com) for their services.
+
+For users who prefer managed hosting over self-deployment, ElfHosted offers an alternative to manual installation and maintenance.
+
 ## ✨ Key Features
 
 - **Real-time Monitoring**: Instant watchlist updates for Plex Pass users (20-minute polling for non-Pass users)
