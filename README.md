@@ -90,17 +90,15 @@ Pulsarr uses SQLite by default but can also be configured to use PostgreSQL for 
 
 See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/installation/configuration) for PostgreSQL setup details.
 
-## ⚡️ Easy Mode (ElfHosted)
+## Hosted Deployment Options
 
-❤️ Pulsarr is proudly "elf-illiated" with ElfHosted (*along with many more excellent [open-source projects](https://docs.elfhosted.com/sponsorship/)*!)
+### ElfHosted
 
-What is ElfHosted? [ElfHosted](https://store.elfhosted.com/elf/jamcalli/) is "easy mode" for self-hosting - an [open-source](https://docs.elfhosted.com/open/) PaaS which runs runs over 100 popular self-hostable apps for you, reliably and securely. They take responsibility for the painful stuff (*hardware, security, configuration, automation and updates*), so you sit back and enjoy the fun stuff! (*actually **using** your applications!*)
+[ElfHosted](https://store.elfhosted.com/elf/jamcalli/) is a Platform-as-a-Service (PaaS) provider that offers managed hosting for self-hosted applications, including Pulsarr. ElfHosted handles infrastructure management, security updates, and system maintenance, allowing users to focus on configuring and using their applications.
 
-Popular [streaming bundles](https://store.elfhosted.com/product-category/streaming-bundles/elf/jamcalli/) are available with Plex, Jellyfin, or Emby, integrated with cloud storage like RealDebrid, Premiumize, etc, and tooled with heavy-hitters such as Radarr/Sonarr, [Pulsarr](https://store.elfhosted.com/product/pulsarr/) (*hello!*), Riven, [Stremio Addons](https://store.elfhosted.com/product-category/stremio-addons/elf/jamcalli/) and [more](https://store.elfhosted.com/product-category/apps/elf/jamcalli/).
+ElfHosted provides pre-configured streaming media bundles that integrate Pulsarr with popular media server applications (Plex, Jellyfin, Emby) and automation tools (Radarr, Sonarr). The platform includes community support through their [Discord server](https://discord.elfhosted.com) and maintains [documentation](https://docs.elfhosted.com) for their services.
 
-ElfHosted have an ["excellent" ⭐️⭐️⭐️⭐️⭐️ rating on TrustPilot](https://www.trustpilot.com/review/elfhosted.com), a well-moderated [Discord](https://discord.elfhosted.com) community (*[highly praised](https://docs.elfhosted.com/testimonials/) for support and friendliness*), and [comprehensive documentation and guides](https://docs.elfhosted.com) resource.
-
-Grab a [7-day trial for only $1](https://store.elfhosted.com/elf/jamcalli/), and experience ElfHosted for yourself! 🎉
+For users who prefer managed hosting over self-deployment, ElfHosted offers an alternative to manual installation and maintenance.
 
 ## ✨ Key Features
 

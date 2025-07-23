@@ -1,7 +1,7 @@
 /**
  * Type definitions for TMDB API responses
  *
- * These are internal types used by the TMDB service for API responses
+ * These are internal types used by the TMDB service for API v3 responses
  * that are not exposed in the public schemas.
  */
 

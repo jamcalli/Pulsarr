@@ -63,10 +63,10 @@ export const TmdbBelongsToCollectionSchema = z
 export const TmdbMovieDetailsSchema = z.object({
   adult: z.boolean(),
   backdrop_path: z.string().nullable(),
-  belongs_to_collection: TmdbBelongsToCollectionSchema,
+  belongs_to_collection: TmdbBelongsToCollectionSchema.nullable(),
   budget: z.number(),
   genres: z.array(TmdbGenreSchema),
-  homepage: z.string(),
+  homepage: z.string().url().nullable().or(z.literal('')),
   id: z.number(),
   imdb_id: z.string().nullable(),
   origin_country: z.array(z.string()),
@@ -79,10 +79,10 @@ export const TmdbMovieDetailsSchema = z.object({
   production_countries: z.array(TmdbProductionCountrySchema),
   release_date: z.string(),
   revenue: z.number(),
-  runtime: z.number(),
+  runtime: z.number().nullable(),
   spoken_languages: z.array(TmdbSpokenLanguageSchema),
   status: z.string(),
-  tagline: z.string(),
+  tagline: z.string().nullable(),
   title: z.string(),
   video: z.boolean(),
   vote_average: z.number(),
@@ -103,13 +103,13 @@ export const TmdbCreatorSchema = z.object({
 export const TmdbEpisodeSchema = z.object({
   id: z.number(),
   name: z.string(),
-  overview: z.string(),
+  overview: z.string().nullable(),
   vote_average: z.number(),
   vote_count: z.number(),
   air_date: z.string(),
   episode_number: z.number(),
   episode_type: z.string(),
-  production_code: z.string(),
+  production_code: z.string().nullable(),
   runtime: z.number().nullable(),
   season_number: z.number(),
   show_id: z.number(),
@@ -130,7 +130,7 @@ export const TmdbSeasonSchema = z.object({
   episode_count: z.number(),
   id: z.number(),
   name: z.string(),
-  overview: z.string(),
+  overview: z.string().nullable(),
   poster_path: z.string().nullable(),
   season_number: z.number(),
   vote_average: z.number(),
@@ -142,13 +142,13 @@ export const TmdbTvDetailsSchema = z.object({
   backdrop_path: z.string().nullable(),
   created_by: z.array(TmdbCreatorSchema),
   episode_run_time: z.array(z.number()),
-  first_air_date: z.string(),
+  first_air_date: z.string().nullable(),
   genres: z.array(TmdbGenreSchema),
-  homepage: z.string(),
+  homepage: z.string().url().nullable().or(z.literal('')),
   id: z.number(),
   in_production: z.boolean(),
   languages: z.array(z.string()),
-  last_air_date: z.string(),
+  last_air_date: z.string().nullable(),
   last_episode_to_air: TmdbEpisodeSchema.nullable(),
   name: z.string(),
   next_episode_to_air: TmdbEpisodeSchema.nullable(),
@@ -158,7 +158,7 @@ export const TmdbTvDetailsSchema = z.object({
   origin_country: z.array(z.string()),
   original_language: z.string(),
   original_name: z.string(),
-  overview: z.string(),
+  overview: z.string().nullable(),
   popularity: z.number(),
   poster_path: z.string().nullable(),
   production_companies: z.array(TmdbProductionCompanySchema),
@@ -166,7 +166,7 @@ export const TmdbTvDetailsSchema = z.object({
   seasons: z.array(TmdbSeasonSchema),
   spoken_languages: z.array(TmdbSpokenLanguageSchema),
   status: z.string(),
-  tagline: z.string(),
+  tagline: z.string().nullable(),
   type: z.string(),
   vote_average: z.number(),
   vote_count: z.number(),
@@ -175,7 +175,7 @@ export const TmdbTvDetailsSchema = z.object({
 // TMDB Watch Provider Schema (for API responses)
 export const TmdbWatchProviderSchema = z.object({
   display_priority: z.number(),
-  logo_path: z.string(),
+  logo_path: z.string().nullable(),
   provider_id: z.number(),
   provider_name: z.string(),
 })
@@ -214,8 +214,10 @@ export const GetTmdbMetadataParamsSchema = z.object({
 
 export const GetTmdbMetadataQuerySchema = z.object({
   region: z
-    .string()
-    .length(2, 'Region must be a 2-letter country code')
+    .preprocess(
+      (val) => (typeof val === 'string' ? val.toUpperCase() : val),
+      z.string().length(2, 'Region must be a 2-letter country code'),
+    )
     .optional(),
 })
 

@@ -18,7 +18,7 @@ import {
   type BulkDeleteRequest,
   type BulkOperationResponse,
 } from '@schemas/approval/approval.schema.js'
-import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
+import { extractTmdbId, extractTvdbId } from '@utils/guid-handler.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   /**
