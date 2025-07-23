@@ -78,6 +78,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Note: TMDB API key is intentionally included in the image for user convenience
+          # Users building from source should provide their own key
           build-args: |
             TMDBAPIKEY=${{ secrets.TMDBAPIKEY }}
           cache-from: type=gha
