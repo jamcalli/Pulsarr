@@ -16,7 +16,7 @@ export function PopularityRankings() {
         Popularity Rankings
       </h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <WatchlistCarousel
           title="Most Watchlisted Shows"
           items={mostWatchedShows || []}
