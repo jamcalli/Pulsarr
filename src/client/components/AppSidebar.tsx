@@ -11,6 +11,7 @@ import {
   Film,
   LayoutDashboard,
   LogOut,
+  Maximize,
   Monitor,
   Moon,
   Sparkles,
@@ -229,7 +230,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile, setOpenMobile } = useSidebar()
   const [activeSection, setActiveSection] = React.useState<string>('')
   const { theme, setTheme } = useTheme()
-  const { asteroidsEnabled, setAsteroidsEnabled } = useSettings()
+  const {
+    asteroidsEnabled,
+    setAsteroidsEnabled,
+    fullscreenEnabled,
+    setFullscreenEnabled,
+  } = useSettings()
   const [showLogoutAlert, setShowLogoutAlert] = React.useState(false)
   const { currentUser, currentUserLoading, fetchCurrentUser } = useConfigStore()
 
@@ -500,14 +506,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <span>Switch theme</span>
                   </DropdownMenuItem>
                   {!isMobile && (
-                    <DropdownMenuItem
-                      onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}
-                    >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      <span>
-                        {asteroidsEnabled ? 'Disable' : 'Enable'} asteroids
-                      </span>
-                    </DropdownMenuItem>
+                    <>
+                      {!fullscreenEnabled && (
+                        <DropdownMenuItem
+                          onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          <span>
+                            {asteroidsEnabled ? 'Disable' : 'Enable'} asteroids
+                          </span>
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        onClick={() => setFullscreenEnabled(!fullscreenEnabled)}
+                      >
+                        <Maximize className="mr-2 h-4 w-4" />
+                        <span>
+                          {fullscreenEnabled ? 'Exit' : 'Enter'} fullscreen
+                        </span>
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>

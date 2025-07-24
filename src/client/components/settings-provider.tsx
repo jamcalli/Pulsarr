@@ -9,11 +9,15 @@ type SettingsProviderProps = {
 type SettingsProviderState = {
   asteroidsEnabled: boolean
   setAsteroidsEnabled: (enabled: boolean) => void
+  fullscreenEnabled: boolean
+  setFullscreenEnabled: (enabled: boolean) => void
 }
 
 const initialState: SettingsProviderState = {
   asteroidsEnabled: true,
   setAsteroidsEnabled: () => null,
+  fullscreenEnabled: false,
+  setFullscreenEnabled: () => null,
 }
 
 const SettingsProviderContext =
@@ -43,6 +47,18 @@ export function SettingsProvider({
     }
   })
 
+  const [fullscreenEnabled, setFullscreenEnabledState] = useState<boolean>(
+    () => {
+      try {
+        const stored = localStorage.getItem('pulsarr-fullscreen-enabled')
+        return stored !== null ? JSON.parse(stored) : false
+      } catch (error) {
+        console.warn('Failed to load fullscreen setting:', error)
+        return false
+      }
+    },
+  )
+
   const setAsteroidsEnabled = React.useCallback((enabled: boolean) => {
     try {
       localStorage.setItem('pulsarr-asteroids-enabled', JSON.stringify(enabled))
@@ -54,12 +70,33 @@ export function SettingsProvider({
     }
   }, [])
 
+  const setFullscreenEnabled = React.useCallback((enabled: boolean) => {
+    try {
+      localStorage.setItem(
+        'pulsarr-fullscreen-enabled',
+        JSON.stringify(enabled),
+      )
+      setFullscreenEnabledState(enabled)
+    } catch (error) {
+      console.error('Failed to save fullscreen setting:', error)
+      // Still update state even if localStorage fails
+      setFullscreenEnabledState(enabled)
+    }
+  }, [])
+
   const value = React.useMemo(
     () => ({
       asteroidsEnabled,
       setAsteroidsEnabled,
+      fullscreenEnabled,
+      setFullscreenEnabled,
     }),
-    [asteroidsEnabled, setAsteroidsEnabled],
+    [
+      asteroidsEnabled,
+      setAsteroidsEnabled,
+      fullscreenEnabled,
+      setFullscreenEnabled,
+    ],
   )
 
   return (
