@@ -142,7 +142,7 @@ export default function InstanceContentBreakdownChart() {
     return (
       <div className="h-full">
         <Card className="bg-secondary-background relative shadow-md h-full flex flex-col">
-          <div className="bg-main text-foreground px-4 py-3 text-center shrink-0">
+          <div className="bg-main text-black px-4 py-3 text-center shrink-0">
             <h4 className="text-base font-medium">
               Instance Content Breakdown
             </h4>
@@ -166,7 +166,7 @@ export default function InstanceContentBreakdownChart() {
   return (
     <div className="h-full">
       <Card className="bg-secondary-background relative shadow-md h-full flex flex-col">
-        <div className="bg-main text-foreground px-4 py-3 text-center shrink-0">
+        <div className="bg-main text-black px-4 py-3 text-center shrink-0">
           <h4 className="text-base font-medium">Instance Content Breakdown</h4>
         </div>
         <CardContent className="pt-4 grow flex flex-col">

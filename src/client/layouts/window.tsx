@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useSettings } from '@/components/settings-provider'
 import {
   SidebarInset,
   SidebarProvider,
@@ -21,6 +22,7 @@ interface WindowedLayoutProps {
  */
 export default function WindowedLayout({ children }: WindowedLayoutProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const { fullscreenEnabled } = useSettings()
 
   // Mobile Layout
   if (isMobile) {
@@ -50,11 +52,23 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
     )
   }
 
-  // Desktop Windowed Layout
+  // Desktop Layout - Windowed or Fullscreen
+  const containerClass = fullscreenEnabled
+    ? 'outline-border grid grid-cols-[80px_auto] h-screen w-screen outline-4'
+    : 'outline-border grid grid-cols-[80px_auto] h-[90vh] w-[98vw] max-w-[1600px] rounded-base shadow-[10px_10px_0_0_#000] outline-4'
+
+  const headerClass = fullscreenEnabled
+    ? 'border-r-border relative flex items-center justify-center bg-main border-r-4'
+    : 'border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4'
+
+  const mainClass = fullscreenEnabled
+    ? 'bg-background relative flex h-screen overflow-hidden min-h-0'
+    : 'bg-background relative flex h-[90vh] rounded-br-base rounded-tr-base overflow-hidden min-h-0'
+
   return (
-    <div className="outline-border grid grid-cols-[80px_auto] h-[90vh] w-[98vw] max-w-[1600px] rounded-base shadow-[10px_10px_0_0_#000] outline-4">
-      {/* Header - Desktop windowed mode */}
-      <header className="border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4">
+    <div className={containerClass}>
+      {/* Header - Desktop mode */}
+      <header className={headerClass}>
         {/* Title */}
         <h1 className="whitespace-nowrap font-bold -rotate-90 text-[40px] tracking-[4px]">
           <span className="text-black inline-block">Pulsarr</span>
@@ -62,7 +76,7 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
       </header>
 
       {/* Main content area with sidebar */}
-      <main className="bg-background relative flex h-[90vh] rounded-br-base rounded-tr-base overflow-hidden min-h-0">
+      <main className={mainClass}>
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset className="bg-background">

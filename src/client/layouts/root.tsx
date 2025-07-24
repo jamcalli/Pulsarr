@@ -26,14 +26,14 @@ interface RootLayoutProps {
  */
 function BackgroundLayer() {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const { asteroidsEnabled } = useSettings()
+  const { asteroidsEnabled, fullscreenEnabled } = useSettings()
   const location = useLocation()
   const isLoginRoute = location.pathname === '/login'
 
-  // Show background on desktop always, or on mobile only for login
+  // Show background on desktop (non-fullscreen), or on mobile only for login
   const shouldShowBackground = useMemo(
-    () => !isMobile || (isMobile && isLoginRoute),
-    [isMobile, isLoginRoute],
+    () => (!isMobile && !fullscreenEnabled) || (isMobile && isLoginRoute),
+    [isMobile, fullscreenEnabled, isLoginRoute],
   )
 
   if (!shouldShowBackground) return null
