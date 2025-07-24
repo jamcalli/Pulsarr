@@ -55,7 +55,7 @@ export function AnalyticsDashboard() {
     return (
       <div className="flex flex-col overflow-hidden">
         {/* Top row with chart description */}
-        <div className="bg-main text-foreground px-6 py-4">
+        <div className="bg-main text-black px-6 py-4">
           <h3 className="text-lg font-medium">
             {CHART_CONFIG[activeChart].label}
           </h3>
@@ -82,7 +82,7 @@ export function AnalyticsDashboard() {
                     'flex h-12 items-center justify-center uppercase text-sm font-medium',
                     activeChart === key
                       ? 'bg-black text-white'
-                      : 'bg-main text-foreground',
+                      : 'bg-main text-black',
                     needsBorder &&
                       index < Object.entries(CHART_CONFIG).length - 1 &&
                       !isLastInRow &&
