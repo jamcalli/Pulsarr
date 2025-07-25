@@ -57,9 +57,8 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
     ? 'outline-border grid grid-cols-[auto] h-screen w-screen outline-4'
     : 'outline-border grid grid-cols-[80px_auto] h-[90vh] w-[98vw] max-w-[1600px] rounded-base shadow-[10px_10px_0_0_#000] outline-4'
 
-  const headerClass = fullscreenEnabled
-    ? 'border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4'
-    : 'border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4'
+  const headerClass =
+    'border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4'
 
   const mainClass = fullscreenEnabled
     ? 'bg-background relative flex h-screen overflow-hidden min-h-0'

@@ -1,11 +1,5 @@
 import { z } from 'zod'
 
-// Watchlist user result schema for metadata refresh response
-export const WatchlistUserResultSchema = z.object({
-  total: z.number(),
-  users: z.array(z.any()),
-})
-
 // Metadata refresh success response schema
 export const MetadataRefreshSuccessResponseSchema = z.object({
   success: z.boolean(),
@@ -28,4 +22,3 @@ export type MetadataRefreshSuccessResponse = z.infer<
 export type MetadataRefreshErrorResponse = z.infer<
   typeof MetadataRefreshErrorResponseSchema
 >
-export type WatchlistUserResult = z.infer<typeof WatchlistUserResultSchema>
