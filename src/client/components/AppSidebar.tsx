@@ -11,6 +11,7 @@ import {
   Film,
   LayoutDashboard,
   LogOut,
+  Maximize,
   Monitor,
   Moon,
   Sparkles,
@@ -219,17 +220,22 @@ const createDefaultSections = (
 }
 
 /**
- * Renders a responsive, collapsible sidebar navigation menu with user controls for theme switching, visual effects, and logout.
+ * Renders a responsive, collapsible sidebar navigation menu with integrated user controls for theme switching, fullscreen mode, visual effects, and logout.
  *
- * The sidebar displays main navigation items (with optional collapsible sub-sections), external help/resource links, and current user information. It highlights the active route or anchor section, persists the open/closed state of collapsible sections, and adapts its layout for mobile and desktop. Users can switch between light and dark themes, toggle a desktop-only "asteroids" visual effect, and log out via a confirmation dialog.
+ * The sidebar features main navigation with optional collapsible sections, external help/resource links, and displays current user information. It highlights the active route or anchor section, persists the open state of collapsible sections, and adapts its layout for mobile and desktop devices. Users can toggle between light and dark themes, enable or disable a desktop-only "asteroids" visual effect, enter or exit fullscreen mode, and log out via a confirmation dialog.
  *
- * @returns A React component containing the sidebar navigation, settings, and user controls.
+ * @returns The sidebar React component containing navigation, settings, and user controls.
  */
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile, setOpenMobile } = useSidebar()
   const [activeSection, setActiveSection] = React.useState<string>('')
   const { theme, setTheme } = useTheme()
-  const { asteroidsEnabled, setAsteroidsEnabled } = useSettings()
+  const {
+    asteroidsEnabled,
+    setAsteroidsEnabled,
+    fullscreenEnabled,
+    setFullscreenEnabled,
+  } = useSettings()
   const [showLogoutAlert, setShowLogoutAlert] = React.useState(false)
   const { currentUser, currentUserLoading, fetchCurrentUser } = useConfigStore()
 
@@ -500,14 +506,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <span>Switch theme</span>
                   </DropdownMenuItem>
                   {!isMobile && (
-                    <DropdownMenuItem
-                      onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}
-                    >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      <span>
-                        {asteroidsEnabled ? 'Disable' : 'Enable'} asteroids
-                      </span>
-                    </DropdownMenuItem>
+                    <>
+                      {!fullscreenEnabled && (
+                        <DropdownMenuItem
+                          onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          <span>
+                            {asteroidsEnabled ? 'Disable' : 'Enable'} asteroids
+                          </span>
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        onClick={() => setFullscreenEnabled(!fullscreenEnabled)}
+                      >
+                        <Maximize className="mr-2 h-4 w-4" />
+                        <span>
+                          {fullscreenEnabled ? 'Exit' : 'Enter'} fullscreen
+                        </span>
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
