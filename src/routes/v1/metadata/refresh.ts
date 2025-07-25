@@ -1,5 +1,4 @@
 import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
   MetadataRefreshSuccessResponseSchema,
   MetadataRefreshErrorResponseSchema,

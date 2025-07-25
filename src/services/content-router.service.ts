@@ -281,59 +281,15 @@ export class ContentRouterService {
               `Checking for existing approval request: userId=${context.userId}, contentKey=${contentKey} (plex key: ${context.itemKey})`,
             )
 
-            const existingRequest =
-              await this.fastify.db.getApprovalRequestByContent(
-                context.userId,
-                contentKey,
-              )
-
-            this.log.debug(
-              `Existing request result: ${existingRequest ? `found with status ${existingRequest.status}` : 'not found'}`,
+            const existingResult = await this.checkExistingApprovalRequest(
+              context.userId,
+              contentKey,
+              item,
+              context,
             )
 
-            if (existingRequest) {
-              // Handle each status explicitly
-              switch (existingRequest.status) {
-                case 'pending':
-                  // Don't create duplicate, don't route
-                  this.log.info(
-                    `Pending approval request already exists for "${item.title}" by user ${context.userName || context.userId}`,
-                  )
-                  return { routedInstances: [] }
-
-                case 'approved':
-                  // Route using the approved decision
-                  this.log.info(
-                    `Using previously approved routing for "${item.title}" by user ${context.userName || context.userId}`,
-                  )
-                  return await this.routeUsingApprovedDecision(
-                    existingRequest,
-                    item,
-                    context,
-                  )
-
-                case 'rejected':
-                  // Respect the rejection, don't route, don't create duplicate
-                  this.log.info(
-                    `Content "${item.title}" was previously rejected for user ${context.userName || context.userId}, skipping routing`,
-                  )
-                  return { routedInstances: [] }
-
-                case 'expired':
-                  // Expired requests can be reprocessed - continue to create new approval request
-                  this.log.info(
-                    `Previous approval request for "${item.title}" by user ${context.userName || context.userId} has expired, allowing reprocessing`,
-                  )
-                  // Fall through to continue execution
-                  break
-
-                default:
-                  // For any other unknown status, don't create duplicate, don't route
-                  this.log.info(
-                    `Existing approval request found with status "${existingRequest.status}" for "${item.title}" by user ${context.userName || context.userId}, skipping routing`,
-                  )
-                  return { routedInstances: [] }
-              }
+            if (existingResult) {
+              return existingResult
             }
           }
 
@@ -569,46 +525,15 @@ export class ContentRouterService {
             if (context.userId) {
               const contentKey = context.itemKey || item.guids[0] || ''
 
-              const existingRequest =
-                await this.fastify.db.getApprovalRequestByContent(
-                  context.userId,
-                  contentKey,
-                )
+              const existingResult = await this.checkExistingApprovalRequest(
+                context.userId,
+                contentKey,
+                item,
+                context,
+              )
 
-              if (existingRequest) {
-                switch (existingRequest.status) {
-                  case 'pending':
-                    this.log.info(
-                      `Pending approval request already exists for "${item.title}" by user ${context.userName || context.userId}`,
-                    )
-                    return { routedInstances: [] }
-
-                  case 'approved':
-                    this.log.info(
-                      `Using previously approved routing for "${item.title}" by user ${context.userName || context.userId}`,
-                    )
-                    return await this.routeUsingApprovedDecision(
-                      existingRequest,
-                      item,
-                      context,
-                    )
-
-                  case 'rejected':
-                    this.log.info(
-                      `Content "${item.title}" was previously rejected for user ${context.userName || context.userId}, skipping routing`,
-                    )
-                    return { routedInstances: [] }
-
-                  case 'expired':
-                    // Allow reprocessing of expired requests
-                    break
-
-                  default:
-                    this.log.info(
-                      `Existing approval request found with status "${existingRequest.status}" for "${item.title}" by user ${context.userName || context.userId}, skipping routing`,
-                    )
-                    return { routedInstances: [] }
-                }
+              if (existingResult) {
+                return existingResult
               }
             }
 
@@ -702,46 +627,15 @@ export class ContentRouterService {
         // This prevents previously rejected items from being re-routed
         const contentKey = context.itemKey || enrichedItem.guids[0] || ''
 
-        const existingRequest =
-          await this.fastify.db.getApprovalRequestByContent(
-            context.userId,
-            contentKey,
-          )
+        const existingResult = await this.checkExistingApprovalRequest(
+          context.userId,
+          contentKey,
+          enrichedItem,
+          context,
+        )
 
-        if (existingRequest) {
-          switch (existingRequest.status) {
-            case 'pending':
-              this.log.info(
-                `Pending approval request already exists for "${enrichedItem.title}" by user ${context.userName || context.userId}`,
-              )
-              return { routedInstances: [] }
-
-            case 'approved':
-              this.log.info(
-                `Using previously approved routing for "${enrichedItem.title}" by user ${context.userName || context.userId}`,
-              )
-              return await this.routeUsingApprovedDecision(
-                existingRequest,
-                enrichedItem,
-                context,
-              )
-
-            case 'rejected':
-              this.log.info(
-                `Content "${enrichedItem.title}" was previously rejected for user ${context.userName || context.userId}, skipping routing`,
-              )
-              return { routedInstances: [] }
-
-            case 'expired':
-              // Allow reprocessing of expired requests
-              break
-
-            default:
-              this.log.info(
-                `Existing approval request found with status "${existingRequest.status}" for "${enrichedItem.title}" by user ${context.userName || context.userId}, skipping routing`,
-              )
-              return { routedInstances: [] }
-          }
+        if (existingResult) {
+          return existingResult
         }
 
         // SECOND: Sort decisions by priority for approval checking
@@ -950,6 +844,63 @@ export class ContentRouterService {
     }
 
     return { routedInstances }
+  }
+
+  /**
+   * Checks for existing approval requests and handles them based on status.
+   * Returns null if processing should continue, or a routing result if processing should stop.
+   */
+  private async checkExistingApprovalRequest(
+    userId: number,
+    contentKey: string,
+    item: ContentItem,
+    context: RoutingContext,
+  ): Promise<{ routedInstances: number[] } | null> {
+    const existingRequest = await this.fastify.db.getApprovalRequestByContent(
+      userId,
+      contentKey,
+    )
+
+    if (!existingRequest) {
+      return null // No existing request, continue processing
+    }
+
+    switch (existingRequest.status) {
+      case 'pending':
+        this.log.info(
+          `Pending approval request already exists for "${item.title}" by user ${context.userName || context.userId}`,
+        )
+        return { routedInstances: [] }
+
+      case 'approved':
+        this.log.info(
+          `Using previously approved routing for "${item.title}" by user ${context.userName || context.userId}`,
+        )
+        return await this.routeUsingApprovedDecision(
+          existingRequest,
+          item,
+          context,
+        )
+
+      case 'rejected':
+        this.log.info(
+          `Content "${item.title}" was previously rejected for user ${context.userName || context.userId}, skipping routing`,
+        )
+        return { routedInstances: [] }
+
+      case 'expired':
+        // Allow reprocessing of expired requests
+        this.log.info(
+          `Previous approval request for "${item.title}" by user ${context.userName || context.userId} has expired, allowing reprocessing`,
+        )
+        return null // Continue processing
+
+      default:
+        this.log.info(
+          `Existing approval request found with status "${existingRequest.status}" for "${item.title}" by user ${context.userName || context.userId}, skipping routing`,
+        )
+        return { routedInstances: [] }
+    }
   }
 
   /**
