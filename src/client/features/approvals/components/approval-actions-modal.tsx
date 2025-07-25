@@ -430,7 +430,7 @@ export default function ApprovalActionsModal({
   }
 
   const renderMediaDetailsContent = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-2 pr-3">
       <div>
         <h3 className="text-lg font-semibold text-foreground mb-4">
           Media Details
@@ -468,7 +468,7 @@ export default function ApprovalActionsModal({
   )
 
   const renderContent = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-2 pr-3">
       {/* Request Information */}
       <div>
         <h3 className="text-lg font-semibold text-foreground mb-4">
