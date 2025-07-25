@@ -17,9 +17,9 @@ interface NotificationChartData {
 }
 
 /**
- * Displays two responsive pie charts summarizing notification statistics by channel and by type.
+ * Renders two responsive pie charts summarizing notification counts by channel and by type.
  *
- * Fetches notification data, processes it for visualization, and adapts chart appearance to the current theme and system color scheme. Shows a loading or empty state if data is unavailable.
+ * Fetches notification statistics, processes them for visualization, and adapts chart appearance to the current theme and system color scheme. Displays loading or empty states if data is unavailable.
  */
 export function NotificationCharts() {
   const { data: notificationStats, isLoading } = useNotificationStatsData()

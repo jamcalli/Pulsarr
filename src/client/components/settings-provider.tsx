@@ -24,14 +24,11 @@ const SettingsProviderContext =
   createContext<SettingsProviderState>(initialState)
 
 /**
- * Provides settings (asteroids-enabled, fullscreen-enabled) and their updaters to descendant components via React context.
+ * Supplies descendant components with asteroid and fullscreen settings, along with their update functions, via React context.
  *
- * Initializes settings from localStorage, defaulting to appropriate values if unavailable or invalid. Updates to settings are persisted to localStorage when possible.
+ * Initializes settings from localStorage if available, otherwise uses default values. Updates to settings are persisted to localStorage when possible, but state changes are always applied even if persistence fails.
  *
- * @param children - React nodes to be rendered within the provider.
- *
- * @remark
- * If localStorage access fails, the state is still updated but changes will not persist across reloads.
+ * @param children - The React nodes to render within the provider.
  */
 export function SettingsProvider({
   children,
