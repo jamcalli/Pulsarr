@@ -14,11 +14,11 @@ interface WindowedLayoutProps {
 }
 
 /**
- * Renders a responsive layout that adapts to mobile and desktop screens, providing distinct navigation and content presentation for each.
+ * Renders a responsive layout that switches between mobile and desktop designs, adapting navigation and content areas based on screen size and fullscreen settings.
  *
- * On mobile devices (≤768px), displays a fixed full-screen layout with a top header containing a slide-out navigation menu, app title, documentation link, and settings button. On desktop, presents a windowed two-column layout with a vertical sidebar title, persistent navigation, and a scrollable main content area.
+ * On mobile devices (≤768px), displays a fixed full-screen layout with a top header and slide-out sidebar navigation. On desktop, presents either a windowed or fullscreen two-column layout with a vertical sidebar, persistent navigation, and a scrollable main content area, depending on the fullscreen setting.
  *
- * @param children - The content to display within the main area of the layout.
+ * @param children - The main content to display within the layout.
  */
 export default function WindowedLayout({ children }: WindowedLayoutProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
