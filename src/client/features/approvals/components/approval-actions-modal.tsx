@@ -57,9 +57,9 @@ interface ApprovalActionsModalProps {
 }
 
 /**
- * Displays a responsive modal for viewing and managing an approval request, including actions to approve, reject, delete, or edit routing, and a toggleable view for TMDB media metadata.
+ * Renders a responsive modal for viewing and managing an approval request, including actions to approve, reject, delete, or edit routing, and a toggleable view for TMDB media metadata.
  *
- * Shows request metadata, routing configuration, approval history, and action controls with optional notes. Manages loading and success states for actions, supports an external update callback, and adapts layout for desktop and mobile devices. Allows toggling between request details and media information fetched from TMDB.
+ * Displays request metadata, routing configuration, approval history, and action controls with optional notes. Manages loading and success states for actions, supports an external update callback, and adapts layout for desktop and mobile devices. Allows toggling between request details and media information fetched from TMDB.
  *
  * @param request - The approval request to display and manage
  * @param open - Whether the modal is visible
