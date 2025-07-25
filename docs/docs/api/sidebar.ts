@@ -468,6 +468,22 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Metadata',
+      link: {
+        type: 'doc',
+        id: 'api/metadata',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/refresh-metadata',
+          label: 'Refresh metadata for all watchlist items',
+          className: 'api-method post',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Notifications',
       items: [
         {

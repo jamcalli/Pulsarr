@@ -8177,6 +8177,72 @@
         }
       }
     },
+    "/v1/metadata/refresh": {
+      "post": {
+        "operationId": "refreshMetadata",
+        "summary": "Refresh metadata for all watchlist items",
+        "tags": ["Metadata"],
+        "description": "Forces a refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "selfItems": {
+                      "type": "number"
+                    },
+                    "othersItems": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "totalItems",
+                    "selfItems",
+                    "othersItems"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/notifications/discordstart": {
       "post": {
         "operationId": "startDiscordBot",
@@ -17522,7 +17588,17 @@
                                   }
                                 },
                                 "homepage": {
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
                                 },
                                 "id": {
                                   "type": "number"
@@ -17605,7 +17681,8 @@
                                   "type": "number"
                                 },
                                 "runtime": {
-                                  "type": "number"
+                                  "type": "number",
+                                  "nullable": true
                                 },
                                 "spoken_languages": {
                                   "type": "array",
@@ -17634,7 +17711,8 @@
                                   "type": "string"
                                 },
                                 "tagline": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "title": {
                                   "type": "string"
@@ -17694,7 +17772,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -17721,7 +17800,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -17748,7 +17828,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -17920,7 +18001,8 @@
                                   }
                                 },
                                 "first_air_date": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "genres": {
                                   "type": "array",
@@ -17939,7 +18021,17 @@
                                   }
                                 },
                                 "homepage": {
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
                                 },
                                 "id": {
                                   "type": "number"
@@ -17954,7 +18046,8 @@
                                   }
                                 },
                                 "last_air_date": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "last_episode_to_air": {
                                   "type": "object",
@@ -17966,7 +18059,8 @@
                                       "type": "string"
                                     },
                                     "overview": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "vote_average": {
                                       "type": "number"
@@ -17984,7 +18078,8 @@
                                       "type": "string"
                                     },
                                     "production_code": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "runtime": {
                                       "type": "number",
@@ -18032,7 +18127,8 @@
                                       "type": "string"
                                     },
                                     "overview": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "vote_average": {
                                       "type": "number"
@@ -18050,7 +18146,8 @@
                                       "type": "string"
                                     },
                                     "production_code": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "runtime": {
                                       "type": "number",
@@ -18132,7 +18229,8 @@
                                   "type": "string"
                                 },
                                 "overview": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "popularity": {
                                   "type": "number"
@@ -18204,7 +18302,8 @@
                                         "type": "string"
                                       },
                                       "overview": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "poster_path": {
                                         "type": "string",
@@ -18257,7 +18356,8 @@
                                   "type": "string"
                                 },
                                 "tagline": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "type": {
                                   "type": "string"
@@ -18320,7 +18420,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -18347,7 +18448,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -18374,7 +18476,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -18557,7 +18660,17 @@
                                   }
                                 },
                                 "homepage": {
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
                                 },
                                 "id": {
                                   "type": "number"
@@ -18640,7 +18753,8 @@
                                   "type": "number"
                                 },
                                 "runtime": {
-                                  "type": "number"
+                                  "type": "number",
+                                  "nullable": true
                                 },
                                 "spoken_languages": {
                                   "type": "array",
@@ -18669,7 +18783,8 @@
                                   "type": "string"
                                 },
                                 "tagline": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "title": {
                                   "type": "string"
@@ -18729,7 +18844,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -18756,7 +18872,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -18783,7 +18900,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -18955,7 +19073,8 @@
                                   }
                                 },
                                 "first_air_date": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "genres": {
                                   "type": "array",
@@ -18974,7 +19093,17 @@
                                   }
                                 },
                                 "homepage": {
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
                                 },
                                 "id": {
                                   "type": "number"
@@ -18989,7 +19118,8 @@
                                   }
                                 },
                                 "last_air_date": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "last_episode_to_air": {
                                   "type": "object",
@@ -19001,7 +19131,8 @@
                                       "type": "string"
                                     },
                                     "overview": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "vote_average": {
                                       "type": "number"
@@ -19019,7 +19150,8 @@
                                       "type": "string"
                                     },
                                     "production_code": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "runtime": {
                                       "type": "number",
@@ -19067,7 +19199,8 @@
                                       "type": "string"
                                     },
                                     "overview": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "vote_average": {
                                       "type": "number"
@@ -19085,7 +19218,8 @@
                                       "type": "string"
                                     },
                                     "production_code": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "runtime": {
                                       "type": "number",
@@ -19167,7 +19301,8 @@
                                   "type": "string"
                                 },
                                 "overview": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "popularity": {
                                   "type": "number"
@@ -19239,7 +19374,8 @@
                                         "type": "string"
                                       },
                                       "overview": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "poster_path": {
                                         "type": "string",
@@ -19292,7 +19428,8 @@
                                   "type": "string"
                                 },
                                 "tagline": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "type": {
                                   "type": "string"
@@ -19355,7 +19492,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -19382,7 +19520,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -19409,7 +19548,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -19592,7 +19732,17 @@
                                   }
                                 },
                                 "homepage": {
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
                                 },
                                 "id": {
                                   "type": "number"
@@ -19675,7 +19825,8 @@
                                   "type": "number"
                                 },
                                 "runtime": {
-                                  "type": "number"
+                                  "type": "number",
+                                  "nullable": true
                                 },
                                 "spoken_languages": {
                                   "type": "array",
@@ -19704,7 +19855,8 @@
                                   "type": "string"
                                 },
                                 "tagline": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "title": {
                                   "type": "string"
@@ -19764,7 +19916,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -19791,7 +19944,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -19818,7 +19972,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -19990,7 +20145,8 @@
                                   }
                                 },
                                 "first_air_date": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "genres": {
                                   "type": "array",
@@ -20009,7 +20165,17 @@
                                   }
                                 },
                                 "homepage": {
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "format": "uri",
+                                      "nullable": true
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [""]
+                                    }
+                                  ]
                                 },
                                 "id": {
                                   "type": "number"
@@ -20024,7 +20190,8 @@
                                   }
                                 },
                                 "last_air_date": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "last_episode_to_air": {
                                   "type": "object",
@@ -20036,7 +20203,8 @@
                                       "type": "string"
                                     },
                                     "overview": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "vote_average": {
                                       "type": "number"
@@ -20054,7 +20222,8 @@
                                       "type": "string"
                                     },
                                     "production_code": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "runtime": {
                                       "type": "number",
@@ -20102,7 +20271,8 @@
                                       "type": "string"
                                     },
                                     "overview": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "vote_average": {
                                       "type": "number"
@@ -20120,7 +20290,8 @@
                                       "type": "string"
                                     },
                                     "production_code": {
-                                      "type": "string"
+                                      "type": "string",
+                                      "nullable": true
                                     },
                                     "runtime": {
                                       "type": "number",
@@ -20202,7 +20373,8 @@
                                   "type": "string"
                                 },
                                 "overview": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "popularity": {
                                   "type": "number"
@@ -20274,7 +20446,8 @@
                                         "type": "string"
                                       },
                                       "overview": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "poster_path": {
                                         "type": "string",
@@ -20327,7 +20500,8 @@
                                   "type": "string"
                                 },
                                 "tagline": {
-                                  "type": "string"
+                                  "type": "string",
+                                  "nullable": true
                                 },
                                 "type": {
                                   "type": "string"
@@ -20390,7 +20564,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -20417,7 +20592,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
@@ -20444,7 +20620,8 @@
                                         "type": "number"
                                       },
                                       "logo_path": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "nullable": true
                                       },
                                       "provider_id": {
                                         "type": "number"
