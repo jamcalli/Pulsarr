@@ -14,9 +14,9 @@ interface WindowedLayoutProps {
 }
 
 /**
- * Renders a responsive layout that switches between mobile and desktop designs, adapting navigation and content areas based on screen size and fullscreen settings.
+ * Renders a responsive layout that adapts navigation and content areas for mobile and desktop screens, supporting both windowed and fullscreen modes on desktop.
  *
- * On mobile devices (≤768px), displays a fixed full-screen layout with a top header and slide-out sidebar navigation. On desktop, presents either a windowed or fullscreen two-column layout with a vertical sidebar, persistent navigation, and a scrollable main content area, depending on the fullscreen setting.
+ * On mobile devices (≤768px), displays a fixed full-screen layout with a top header and slide-out sidebar navigation. On desktop, presents either a windowed or fullscreen layout with a vertical sidebar, persistent navigation, and a scrollable main content area, depending on the fullscreen setting.
  *
  * @param children - The main content to display within the layout.
  */
