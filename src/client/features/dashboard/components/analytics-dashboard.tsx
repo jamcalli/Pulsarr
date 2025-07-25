@@ -41,9 +41,9 @@ const CHART_CONFIG: Record<ChartType, ChartConfigItem> = {
 }
 
 /**
- * Renders a media analytics dashboard with tabbed navigation for multiple chart types.
+ * Displays a media analytics dashboard with tabbed navigation for selecting and viewing different chart types.
  *
- * Displays a card containing a header with the selected chart's label and description, a tabbed interface for switching between analytics charts, and dynamically renders the currently selected chart.
+ * Shows a card containing a header with the active chart's label and description, a tabbed interface for switching charts, and the currently selected analytics chart.
  */
 export function AnalyticsDashboard() {
   const [activeChart, setActiveChart] = useState<ChartType>(
@@ -55,7 +55,7 @@ export function AnalyticsDashboard() {
     return (
       <div className="flex flex-col overflow-hidden">
         {/* Top row with chart description */}
-        <div className="bg-main text-foreground px-6 py-4">
+        <div className="bg-main text-black px-6 py-4">
           <h3 className="text-lg font-medium">
             {CHART_CONFIG[activeChart].label}
           </h3>
@@ -82,7 +82,7 @@ export function AnalyticsDashboard() {
                     'flex h-12 items-center justify-center uppercase text-sm font-medium',
                     activeChart === key
                       ? 'bg-black text-white'
-                      : 'bg-main text-foreground',
+                      : 'bg-main text-black',
                     needsBorder &&
                       index < Object.entries(CHART_CONFIG).length - 1 &&
                       !isLastInRow &&

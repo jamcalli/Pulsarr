@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useSettings } from '@/components/settings-provider'
 import {
   SidebarInset,
   SidebarProvider,
@@ -13,14 +14,15 @@ interface WindowedLayoutProps {
 }
 
 /**
- * Renders a responsive layout that adapts to mobile and desktop screens, providing distinct navigation and content presentation for each.
+ * Renders a responsive layout that adapts navigation and content areas for mobile and desktop screens, supporting both windowed and fullscreen modes on desktop.
  *
- * On mobile devices (≤768px), displays a fixed full-screen layout with a top header containing a slide-out navigation menu, app title, documentation link, and settings button. On desktop, presents a windowed two-column layout with a vertical sidebar title, persistent navigation, and a scrollable main content area.
+ * On mobile devices (≤768px), displays a fixed full-screen layout with a top header and slide-out sidebar navigation. On desktop, presents either a windowed or fullscreen layout with a vertical sidebar, persistent navigation, and a scrollable main content area, depending on the fullscreen setting.
  *
- * @param children - The content to display within the main area of the layout.
+ * @param children - The main content to display within the layout.
  */
 export default function WindowedLayout({ children }: WindowedLayoutProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const { fullscreenEnabled } = useSettings()
 
   // Mobile Layout
   if (isMobile) {
@@ -50,19 +52,32 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
     )
   }
 
-  // Desktop Windowed Layout
+  // Desktop Layout - Windowed or Fullscreen
+  const containerClass = fullscreenEnabled
+    ? 'grid grid-cols-[auto] h-screen w-screen'
+    : 'outline-border grid grid-cols-[80px_auto] h-[90vh] w-[98vw] max-w-[1600px] rounded-base shadow-[10px_10px_0_0_#000] outline-4'
+
+  const headerClass =
+    'border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4'
+
+  const mainClass = fullscreenEnabled
+    ? 'bg-background relative flex h-screen overflow-hidden min-h-0'
+    : 'bg-background relative flex h-[90vh] rounded-br-base rounded-tr-base overflow-hidden min-h-0'
+
   return (
-    <div className="outline-border grid grid-cols-[80px_auto] h-[90vh] w-[98vw] max-w-[1600px] rounded-base shadow-[10px_10px_0_0_#000] outline-4">
-      {/* Header - Desktop windowed mode */}
-      <header className="border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4">
-        {/* Title */}
-        <h1 className="whitespace-nowrap font-bold -rotate-90 text-[40px] tracking-[4px]">
-          <span className="text-black inline-block">Pulsarr</span>
-        </h1>
-      </header>
+    <div className={containerClass}>
+      {/* Header - Desktop mode - only show when not in fullscreen */}
+      {!fullscreenEnabled && (
+        <header className={headerClass}>
+          {/* Title */}
+          <h1 className="whitespace-nowrap font-bold -rotate-90 text-[40px] tracking-[4px]">
+            <span className="text-black inline-block">Pulsarr</span>
+          </h1>
+        </header>
+      )}
 
       {/* Main content area with sidebar */}
-      <main className="bg-background relative flex h-[90vh] rounded-br-base rounded-tr-base overflow-hidden min-h-0">
+      <main className={mainClass}>
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset className="bg-background">

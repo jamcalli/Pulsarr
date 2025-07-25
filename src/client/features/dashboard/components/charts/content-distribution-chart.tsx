@@ -13,9 +13,9 @@ import type {
 } from 'recharts/types/component/DefaultTooltipContent'
 
 /**
- * Renders a dashboard section with a pie chart visualizing the distribution of content types and a related breakdown chart.
+ * Displays a dashboard section that visualizes the distribution of content types using a pie chart and provides a breakdown chart for further analysis.
  *
- * Fetches content type distribution data and theme settings, then displays a pie chart with a custom tooltip, legend, and a breakdown chart for further analysis of content types.
+ * Fetches content type distribution data and theme settings, then presents a pie chart with a custom tooltip, legend, and a related breakdown chart to help analyze content composition.
  */
 export function ContentDistributionChart() {
   const { data: contentTypeDistribution } = useContentDistributionData()
@@ -115,7 +115,7 @@ export function ContentDistributionChart() {
       {/* Content Type Distribution Card */}
       <div className="flex flex-col">
         <Card className="bg-secondary-background relative shadow-md">
-          <div className="bg-main text-foreground px-4 py-3 text-center">
+          <div className="bg-main text-black px-4 py-3 text-center">
             <h4 className="text-base font-medium">Content Types</h4>
           </div>
           <CardContent className="pt-4">

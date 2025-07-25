@@ -11,6 +11,8 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel'
 import { cn } from '@/lib/utils'
+import { useSettings } from '@/components/settings-provider'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
 
 interface WatchlistCarouselProps {
@@ -22,12 +24,12 @@ interface WatchlistCarouselProps {
 }
 
 /**
- * Renders a titled card containing a horizontally scrollable carousel of media items, with navigation controls, loading skeletons, and error handling.
+ * Renders a responsive card containing a horizontally scrollable carousel of media items with navigation controls, adaptive layout, and comprehensive loading and error handling.
  *
- * Displays media items sorted by descending count and then alphabetically by title. Shows skeleton placeholders during loading, an error message if provided, or a "No data available" message when appropriate. Navigation buttons allow scrolling through the carousel when possible.
+ * Media items are sorted by descending count and then alphabetically by title. The carousel dynamically adjusts the number and size of visible items based on fullscreen mode and viewport breakpoints. While loading, skeleton placeholders are shown for at least 500ms. If an error message is provided, it is displayed in place of the carousel; if there are no items and not loading, a "No data available" message is shown. Navigation buttons are enabled only when additional scrolling is possible.
  *
  * @param title - The title displayed above the carousel.
- * @param items - The list of media items to display in the carousel.
+ * @param items - The list of media items to display.
  * @param className - Optional additional CSS classes for the root card.
  * @param loading - Whether to show loading placeholders.
  * @param error - Optional error message to display instead of the carousel.
@@ -44,6 +46,18 @@ export function WatchlistCarousel({
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
+  const { fullscreenEnabled } = useSettings()
+
+  // Custom breakpoints for poster visibility
+  const isXXL = useMediaQuery('(min-width: 2450px)')
+  const isXL = useMediaQuery('(min-width: 1900px)')
+  const isLG = useMediaQuery('(min-width: 1600px)')
+  const isMD2 = useMediaQuery('(min-width: 1200px)')
+  const isMD = useMediaQuery('(min-width: 768px)')
+  // Check if cards are stacked (single column) vs side-by-side
+  const isStacked = useMediaQuery('(max-width: 1279px)') // Below xl breakpoint
+  // Check for smaller stacked screens where 3 posters is too many
+  const isSmallStacked = useMediaQuery('(max-width: 1100px)')
 
   const scrollPrev = useCallback(() => {
     api?.scrollPrev()
@@ -97,6 +111,54 @@ export function WatchlistCarousel({
       return titleA.localeCompare(titleB)
     })
   }, [items])
+
+  // Dynamic class based on fullscreen mode and custom breakpoints
+  const carouselItemClass = useMemo(() => {
+    if (fullscreenEnabled) {
+      // Fullscreen: Scale based on actual screen size and layout (stacked vs side-by-side)
+      if (isXXL) return 'pl-2 md:pl-4 basis-1/5 p-1' // 5 posters on huge screens (2450px+)
+      if (isXL) return 'pl-2 md:pl-4 basis-1/4 p-1' // 4 posters on very large screens (1900px+)
+      if (isLG) return 'pl-2 md:pl-4 basis-1/3 p-1' // 3 posters on large screens (1600px+)
+      if (isMD2) {
+        // At this breakpoint, check if cards are stacked
+        if (isStacked) {
+          return 'pl-2 md:pl-4 basis-1/3 p-1' // 3 posters when stacked (1200px-1279px)
+        }
+        return 'pl-2 md:pl-4 basis-1/2 p-1' // 2 posters when side-by-side (1280px+)
+      }
+      if (isMD) return 'pl-2 md:pl-4 basis-1/2 p-1' // 2 posters on medium screens (768px+)
+      return 'pl-2 md:pl-4 basis-1/2 p-1' // 2 posters on small screens
+    }
+    // Windowed: Adjust based on whether cards are stacked or side-by-side
+    if (isStacked) {
+      if (isSmallStacked) {
+        // Small stacked screens: 2 posters for better readability
+        return 'pl-2 md:pl-4 basis-1/2 p-1' // 2 posters on smaller stacked screens (≤1100px)
+      }
+      // Large stacked screens: 3 posters to use available width
+      return 'pl-2 md:pl-4 basis-1/3 md:basis-1/3 lg:basis-1/3 p-1' // 3 posters when stacked (1101px-1279px)
+    }
+    // Side-by-side (2 columns): Limited width, show 2 posters
+    return 'pl-2 md:pl-4 basis-1/2 p-1' // 2 posters when side-by-side
+  }, [
+    fullscreenEnabled,
+    isXXL,
+    isXL,
+    isLG,
+    isMD2,
+    isMD,
+    isStacked,
+    isSmallStacked,
+  ])
+
+  // Inline style to ensure proper sizing when stacked in windowed mode
+  const carouselItemStyle = useMemo(() => {
+    if (!fullscreenEnabled && isStacked && !isSmallStacked) {
+      // Force 3 posters when stacked in windowed mode (only for larger stacked screens)
+      return { flexBasis: 'calc(33.333% - 0.5rem)' }
+    }
+    return {}
+  }, [fullscreenEnabled, isStacked, isSmallStacked])
 
   return (
     <Card className={cn('w-full bg-background relative', className)}>
@@ -155,7 +217,8 @@ export function WatchlistCarousel({
                   ].map((skeletonId) => (
                     <CarouselItem
                       key={`${title}-${skeletonId}`}
-                      className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 lg:basis-1/2 p-1"
+                      className={carouselItemClass}
+                      style={carouselItemStyle}
                     >
                       <div className="p-1">
                         <MediaCardSkeleton />
@@ -166,7 +229,8 @@ export function WatchlistCarousel({
                   sortedItems.map((item, index) => (
                     <CarouselItem
                       key={`item-${typeof item.title === 'string' ? item.title : ''}-${item.count}`}
-                      className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 lg:basis-1/2 p-1"
+                      className={carouselItemClass}
+                      style={carouselItemStyle}
                     >
                       <div className="p-1">
                         {/* Set priority=true for the first 3 items that will be visible */}

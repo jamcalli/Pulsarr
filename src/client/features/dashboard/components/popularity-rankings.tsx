@@ -2,9 +2,9 @@ import { WatchlistCarousel } from '@/features/dashboard/components/watchlist-car
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboardStats'
 
 /**
- * Renders a section displaying the most watchlisted shows and movies in separate carousels, with integrated loading and error handling.
+ * Renders a section displaying the most watchlisted shows and movies in separate carousels, each with combined general and category-specific loading and error state handling.
  *
- * Shows a "Popularity Rankings" heading and two carousels—one for shows and one for movies—each reflecting combined general and specific loading and error states based on dashboard statistics.
+ * Shows a "Popularity Rankings" heading and two carousels—one for shows and one for movies—using data and state from dashboard statistics.
  */
 export function PopularityRankings() {
   const { mostWatchedShows, mostWatchedMovies, loadingStates, errorStates } =
@@ -16,7 +16,7 @@ export function PopularityRankings() {
         Popularity Rankings
       </h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <WatchlistCarousel
           title="Most Watchlisted Shows"
           items={mostWatchedShows || []}

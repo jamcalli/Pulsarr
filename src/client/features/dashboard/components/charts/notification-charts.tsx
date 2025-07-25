@@ -17,9 +17,9 @@ interface NotificationChartData {
 }
 
 /**
- * Displays two responsive pie charts summarizing notification statistics by channel and by type.
+ * Renders two responsive pie charts summarizing notification counts by channel and by type.
  *
- * Fetches notification data, processes it for visualization, and adapts chart appearance to the current theme and system color scheme. Shows a loading or empty state if data is unavailable.
+ * Fetches notification statistics, processes them for visualization, and adapts chart appearance to the current theme and system color scheme. Displays loading or empty states if data is unavailable.
  */
 export function NotificationCharts() {
   const { data: notificationStats, isLoading } = useNotificationStatsData()
@@ -180,7 +180,7 @@ export function NotificationCharts() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="flex flex-col">
         <Card className="bg-secondary-background relative shadow-md">
-          <div className="bg-main text-foreground px-4 py-3 text-center">
+          <div className="bg-main text-black px-4 py-3 text-center">
             <h4 className="text-base font-medium">By Channel</h4>
           </div>
           <CardContent className="pt-4">
@@ -285,7 +285,7 @@ export function NotificationCharts() {
 
       <div className="flex flex-col">
         <Card className="bg-secondary-background relative shadow-md">
-          <div className="bg-main text-foreground px-4 py-3 text-center">
+          <div className="bg-main text-black px-4 py-3 text-center">
             <h4 className="text-base font-medium">By Type</h4>
           </div>
           <CardContent className="pt-4">

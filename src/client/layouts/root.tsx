@@ -18,22 +18,22 @@ interface RootLayoutProps {
 }
 
 /**
- * Renders the animated background layer with visual effects and branding, conditionally displayed based on device type and current route.
+ * Renders the animated background layer with branding and visual effects when appropriate for the device type, fullscreen mode, and current route.
  *
- * The background is always shown on desktop devices, but on mobile devices it appears only on the login route. It includes a CRT overlay, a parallax starfield with a planet image (responsive to device type), a pulsar graphic, an optional asteroids animation, a centered title and subtitle, and a version display in the bottom-right corner.
+ * The background is shown on desktop devices only if fullscreen mode is disabled, and on mobile devices only on the login route. It features a CRT overlay, parallax starfield, responsive planet image, pulsar graphic, optional asteroids animation, a centered title and subtitle, and a version display.
  *
- * @returns The background layer JSX if conditions are met; otherwise, `null`.
+ * @returns The background layer JSX if display conditions are met; otherwise, `null`.
  */
 function BackgroundLayer() {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const { asteroidsEnabled } = useSettings()
+  const { asteroidsEnabled, fullscreenEnabled } = useSettings()
   const location = useLocation()
   const isLoginRoute = location.pathname === '/login'
 
-  // Show background on desktop always, or on mobile only for login
+  // Show background on desktop (non-fullscreen), or on mobile only for login
   const shouldShowBackground = useMemo(
-    () => !isMobile || (isMobile && isLoginRoute),
-    [isMobile, isLoginRoute],
+    () => (!isMobile && !fullscreenEnabled) || (isMobile && isLoginRoute),
+    [isMobile, fullscreenEnabled, isLoginRoute],
   )
 
   if (!shouldShowBackground) return null
