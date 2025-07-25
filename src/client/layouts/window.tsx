@@ -54,7 +54,7 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
 
   // Desktop Layout - Windowed or Fullscreen
   const containerClass = fullscreenEnabled
-    ? 'outline-border grid grid-cols-[auto] h-screen w-screen outline-4'
+    ? 'grid grid-cols-[auto] h-screen w-screen'
     : 'outline-border grid grid-cols-[80px_auto] h-[90vh] w-[98vw] max-w-[1600px] rounded-base shadow-[10px_10px_0_0_#000] outline-4'
 
   const headerClass =

@@ -53,8 +53,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           othersItems: totalOthersItems,
         }
       } catch (err) {
-        fastify.log.error(`Error refreshing metadata: ${err}`)
-        return reply.internalServerError('Unable to refresh metadata')
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error'
+        fastify.log.error(`Error refreshing metadata: ${errorMessage}`, {
+          error: err,
+        })
+
+        return reply.status(500).send({
+          success: false,
+          message: `Unable to refresh metadata: ${errorMessage}`,
+        })
       }
     },
   )
