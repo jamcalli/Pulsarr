@@ -1,0 +1,63 @@
+---
+id: refresh-metadata
+title: "Refresh metadata for all watchlist items"
+description: "Forces a refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API"
+sidebar_label: "Refresh metadata for all watchlist items"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVMFu2zAM/RWBpxVw5nbFLr4VKDYE2LCgXXcJcmBkOlYnSy5Fpw0C//tA12mTtN122042ROqRIt97W4gtMYqLYVpCAUwVU6q/kmCJgpCB4CpBMYeno0UGJSXLrtVbUMCnyJaSQTNeNrEyzZht3rUxCXHKzOeb6WXKzIoCUzoxVWSD3ht6cElcWJl7FFt7l8Q4oSaZ5cYwTSoSW2t4QKs4Nmbm6cFczKaQAVNqY0iUoNjCh9NT/Rw2d0kVdl7M1ZgJGdgYhIJoLratd3Z4fn6b9MIWkq2pQf2TTUtQQFzekhXIoGUdlrjHcqmzllLaS1zG6AkD9Bk0lBKuaC+YhF1YaUyioJ/qG/fCoWuWxBpO5Ku3o1Fq4vRWvNeR3HWOqdSd7Vp87ueg+n6tQ+RFBliWTueCfrb37Ap9or7XQh//l3ErH4equ/Z+N/6jCe0S//zgAVXqqCpRTmuDKDUUkK/P8h3f81EDw2x5Taza2ULHHgqoRdpU5PkmdjxpO5+QeeJCEgyW3tvYwLG0Zuwa5I25HrCgz/4aqjg/PT1/gXfpmKyMcOZimKh5d++kNm1kOTmqUOS5jxZ9HZO8DvhlF34VbJGBC1Uc1uDE6x5mj72O+j0Eu5hNTRlt11CQgSSDSexuTAw+Sn/PKILQip9Tr2PQTAylucISmSED3cEj/I8zFZDursGBegEbbelqtK0nz9pZ05EjHfe7fab2v/TAkeBCD5K3Ht3gP8MOtyND57A+GzzgydR3LF1koMvTlO12iYlu2Pe9Ht91xBso5osM1sgOl7q9+aLPoCYsiQda/6SNrs1aalUPa/SdtvJC5kqEJ/HMvl1/h77/Bf2nQnw=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Refresh metadata for all watchlist items"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/metadata/refresh"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Forces a refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"totalItems":{"type":"number"},"selfItems":{"type":"number"},"othersItems":{"type":"number"}},"required":["success","message","totalItems","selfItems","othersItems"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean","default":false},"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

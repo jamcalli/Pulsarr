@@ -256,7 +256,7 @@ export class PlexWatchlistService {
     return results.every((result) => result === true)
   }
 
-  async getSelfWatchlist() {
+  async getSelfWatchlist(forceRefresh = false) {
     if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
     }
@@ -313,12 +313,14 @@ export class PlexWatchlistService {
     const { brandNewItems, existingItemsToLink } = this.categorizeItems(
       userWatchlistMap,
       existingItems,
+      forceRefresh,
     )
 
     const processedItems = await this.processAndSaveNewItems(
       brandNewItems,
       true,
       existingGuidsSnapshot,
+      forceRefresh,
     )
     await this.linkExistingItems(existingItemsToLink)
 
@@ -393,7 +395,7 @@ export class PlexWatchlistService {
     }
   }
 
-  async getOthersWatchlists() {
+  async getOthersWatchlists(forceRefresh = false) {
     if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
     }
@@ -458,12 +460,14 @@ export class PlexWatchlistService {
     const { brandNewItems, existingItemsToLink } = this.categorizeItems(
       userWatchlistMap,
       existingItems,
+      forceRefresh,
     )
 
     const processedItems = await this.processAndSaveNewItems(
       brandNewItems,
       false,
       existingGuidsSnapshot,
+      forceRefresh,
     )
     await this.linkExistingItems(existingItemsToLink)
 
@@ -781,21 +785,34 @@ export class PlexWatchlistService {
   private categorizeItems(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
     existingItems: WatchlistItem[],
+    forceRefresh = false,
   ) {
     const brandNewItems = new Map<Friend, Set<TokenWatchlistItem>>()
     const existingItemsToLink = new Map<Friend, Set<WatchlistItem>>()
-    const existingItemsByKey = this.mapExistingItemsByKey(existingItems)
 
-    userWatchlistMap.forEach((items, user) => {
-      const { newItems, itemsToLink } = this.separateNewAndExistingItems(
-        items,
-        user,
-        existingItemsByKey,
+    if (forceRefresh) {
+      // When force refresh is enabled, treat all items as brand new to trigger metadata re-fetching
+      this.log.info(
+        'Force refresh enabled - treating all items as new for metadata refresh',
       )
+      userWatchlistMap.forEach((items, user) => {
+        brandNewItems.set(user, items)
+      })
+    } else {
+      // Normal categorization logic
+      const existingItemsByKey = this.mapExistingItemsByKey(existingItems)
 
-      if (newItems.size > 0) brandNewItems.set(user, newItems)
-      if (itemsToLink.size > 0) existingItemsToLink.set(user, itemsToLink)
-    })
+      userWatchlistMap.forEach((items, user) => {
+        const { newItems, itemsToLink } = this.separateNewAndExistingItems(
+          items,
+          user,
+          existingItemsByKey,
+        )
+
+        if (newItems.size > 0) brandNewItems.set(user, newItems)
+        if (itemsToLink.size > 0) existingItemsToLink.set(user, itemsToLink)
+      })
+    }
 
     return { brandNewItems, existingItemsToLink }
   }
@@ -804,6 +821,7 @@ export class PlexWatchlistService {
     brandNewItems: Map<Friend, Set<TokenWatchlistItem>>,
     isSelfWatchlist = false,
     existingGuidsSnapshot?: Set<string>,
+    isMetadataRefresh = false,
   ): Promise<Map<Friend, Set<WatchlistItem>>> {
     if (brandNewItems.size === 0) {
       return new Map<Friend, Set<WatchlistItem>>()
@@ -854,14 +872,20 @@ export class PlexWatchlistService {
           })
         }
 
-        await this.dbService.createWatchlistItems(itemsToInsert)
+        await this.dbService.createWatchlistItems(
+          itemsToInsert,
+          isMetadataRefresh
+            ? { onConflict: 'merge' }
+            : { onConflict: 'ignore' },
+        )
         await this.dbService.syncGenresFromWatchlist()
 
         this.log.info(`Processed ${itemsToInsert.length} new items`)
 
         // Send notifications directly if we have a GUID snapshot
         // This handles the interval-based sync case (not RSS)
-        if (existingGuidsSnapshot) {
+        // Skip notifications during metadata refresh since these aren't actually new items
+        if (existingGuidsSnapshot && !isMetadataRefresh) {
           await this.sendNotificationsForNewItems(
             processedItems,
             existingGuidsSnapshot,
