@@ -24,6 +24,24 @@ If you're upgrading from a version prior to 0.2.15, you may need to delete and r
 
 **Multi-Instance Support**: Send content to multiple instances simultaneously with different configurations.
 
+## Automatic Anime Detection
+
+Pulsarr automatically detects anime content to enable targeted routing and processing. When content is processed through the Content Router, it checks external IDs (TVDB, TMDB, IMDb) against a comprehensive anime database.
+
+**How it works:**
+- Downloads anime database from the [anime-lists repository](https://github.com/Anime-Lists/anime-lists) 
+- Updates automatically every **Sunday at 3 AM**
+- Matches content IDs against anime database entries
+- Automatically adds "anime" to content genres when matched
+- Enables anime-specific routing rules (e.g., `genre contains "Anime"`)
+
+**Database Sources:**
+- **Primary**: anime-list-full.xml from anime-lists GitHub repository
+- **Supported IDs**: TVDB, TMDB, IMDb external identifiers
+- **Update Schedule**: Weekly automatic updates (Sundays at 3 AM)
+
+This seamless detection allows you to create routing rules like `IF genre contains "Anime"` without manually tagging content, as the system automatically identifies and classifies anime for you.
+
 ## Creating Rules
 
 Each rule consists of:
