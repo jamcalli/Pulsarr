@@ -8177,6 +8177,72 @@
         }
       }
     },
+    "/v1/metadata/refresh": {
+      "post": {
+        "operationId": "refreshMetadata",
+        "summary": "Refresh metadata for all watchlist items",
+        "tags": ["Metadata"],
+        "description": "Forces a refresh of metadata (posters, GUIDs, genres) for all existing watchlist items by re-fetching data from Plex API",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    },
+                    "selfItems": {
+                      "type": "number"
+                    },
+                    "othersItems": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "totalItems",
+                    "selfItems",
+                    "othersItems"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/notifications/discordstart": {
       "post": {
         "operationId": "startDiscordBot",
