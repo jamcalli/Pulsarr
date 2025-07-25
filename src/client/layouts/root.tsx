@@ -18,11 +18,11 @@ interface RootLayoutProps {
 }
 
 /**
- * Renders the animated background layer with visual effects and branding, conditionally displayed based on device type and current route.
+ * Conditionally renders the animated background layer with branding and visual effects based on device type, fullscreen mode, and current route.
  *
- * The background is always shown on desktop devices, but on mobile devices it appears only on the login route. It includes a CRT overlay, a parallax starfield with a planet image (responsive to device type), a pulsar graphic, an optional asteroids animation, a centered title and subtitle, and a version display in the bottom-right corner.
+ * The background appears on desktop devices only when fullscreen mode is disabled, and on mobile devices only on the login route. It includes a CRT overlay, parallax starfield, responsive planet image, pulsar graphic, optional asteroids animation, a centered title and subtitle, and a version display.
  *
- * @returns The background layer JSX if conditions are met; otherwise, `null`.
+ * @returns The background layer JSX if display conditions are met; otherwise, `null`.
  */
 function BackgroundLayer() {
   const isMobile = useMediaQuery('(max-width: 768px)')

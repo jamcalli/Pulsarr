@@ -10,9 +10,9 @@ import type {
 } from 'recharts/types/component/DefaultTooltipContent'
 
 /**
- * Renders a stacked bar chart visualizing the distribution of content statuses ("grabbed", "notified", "requested") for each instance.
+ * Displays a stacked bar chart summarizing the counts of "grabbed", "notified", and "requested" content statuses for each instance.
  *
- * Fetches and processes instance content data, displaying a responsive chart with a custom tooltip and legend. Shows a loading or empty state if data is unavailable.
+ * Fetches instance content data, processes it for visualization, and renders a responsive chart with a custom tooltip and legend. Shows a loading or empty state if data is unavailable.
  */
 export default function InstanceContentBreakdownChart() {
   const { data: instanceContentBreakdown, isLoading } = useInstanceContentData()
