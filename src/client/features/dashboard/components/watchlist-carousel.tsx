@@ -24,12 +24,12 @@ interface WatchlistCarouselProps {
 }
 
 /**
- * Displays a responsive card with a horizontally scrollable carousel of media items, including navigation controls, loading skeletons, and error or empty state handling.
+ * Renders a responsive card containing a horizontally scrollable carousel of media items with navigation controls, adaptive layout, and comprehensive loading and error handling.
  *
- * Media items are sorted by descending count and then alphabetically by title. The carousel adapts its layout and item sizing based on fullscreen mode and viewport breakpoints. While loading, skeleton placeholders are shown for a minimum duration. If an error message is provided, it is displayed instead of the carousel; if there are no items and not loading, a "No data available" message is shown. Navigation buttons allow scrolling when additional items are available.
+ * Media items are sorted by descending count and then alphabetically by title. The carousel dynamically adjusts the number and size of visible items based on fullscreen mode and viewport breakpoints. While loading, skeleton placeholders are shown for at least 500ms. If an error message is provided, it is displayed in place of the carousel; if there are no items and not loading, a "No data available" message is shown. Navigation buttons are enabled only when additional scrolling is possible.
  *
  * @param title - The title displayed above the carousel.
- * @param items - The list of media items to display in the carousel.
+ * @param items - The list of media items to display.
  * @param className - Optional additional CSS classes for the root card.
  * @param loading - Whether to show loading placeholders.
  * @param error - Optional error message to display instead of the carousel.
