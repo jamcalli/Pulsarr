@@ -54,11 +54,11 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
 
   // Desktop Layout - Windowed or Fullscreen
   const containerClass = fullscreenEnabled
-    ? 'outline-border grid grid-cols-[80px_auto] h-screen w-screen outline-4'
+    ? 'outline-border grid grid-cols-[auto] h-screen w-screen outline-4'
     : 'outline-border grid grid-cols-[80px_auto] h-[90vh] w-[98vw] max-w-[1600px] rounded-base shadow-[10px_10px_0_0_#000] outline-4'
 
   const headerClass = fullscreenEnabled
-    ? 'border-r-border relative flex items-center justify-center bg-main border-r-4'
+    ? 'border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4'
     : 'border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4'
 
   const mainClass = fullscreenEnabled
@@ -67,13 +67,15 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
 
   return (
     <div className={containerClass}>
-      {/* Header - Desktop mode */}
-      <header className={headerClass}>
-        {/* Title */}
-        <h1 className="whitespace-nowrap font-bold -rotate-90 text-[40px] tracking-[4px]">
-          <span className="text-black inline-block">Pulsarr</span>
-        </h1>
-      </header>
+      {/* Header - Desktop mode - only show when not in fullscreen */}
+      {!fullscreenEnabled && (
+        <header className={headerClass}>
+          {/* Title */}
+          <h1 className="whitespace-nowrap font-bold -rotate-90 text-[40px] tracking-[4px]">
+            <span className="text-black inline-block">Pulsarr</span>
+          </h1>
+        </header>
+      )}
 
       {/* Main content area with sidebar */}
       <main className={mainClass}>
