@@ -1,12 +1,15 @@
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
 import fp from 'fastify-plugin'
-import bearerAuthPlugin from '@fastify/bearer-auth'
+import auth from '@fastify/auth'
 import { ApiKeyService } from '@services/api-key.service.js'
 
 /**
- * Plugin to register the API key service and bearer auth
+ * Plugin to register the API key service and authentication strategy
  */
 const apiKeyPlugin: FastifyPluginAsync = async (fastify, opts) => {
+  // Register the auth plugin
+  await fastify.register(auth)
+
   // Create the API key service
   const apiKeyService = new ApiKeyService(fastify)
 
@@ -16,24 +19,41 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, opts) => {
   // Decorate fastify with the service
   fastify.decorate('apiKeys', apiKeyService)
 
-  // Register bearer auth plugin with dynamic validation
-  await fastify.register(bearerAuthPlugin, {
-    keys: new Set<string>(), // Required by type but not used since we have custom auth
-    addHook: false,
-    auth: async (key, req) => {
-      const isValid = await apiKeyService.validateApiKey(key)
+  // Register API key verification strategy
+  fastify.decorate(
+    'verifyApiKey',
+    async (
+      request: FastifyRequest,
+      reply: FastifyReply,
+      done: (error?: Error) => void,
+    ) => {
+      const apiKey = request.headers['x-api-key'] as string
+
+      if (!apiKey) {
+        const error = new Error('Missing API key') as Error & {
+          statusCode?: number
+        }
+        error.statusCode = 401
+        return done(error)
+      }
+
+      const isValid = await apiKeyService.validateApiKey(apiKey)
+
       if (!isValid) {
         fastify.log.warn(
-          { ip: req.ip, url: req.url },
+          { ip: request.ip, url: request.url },
           'Invalid API key authentication attempt',
         )
+        const error = new Error('Invalid API key') as Error & {
+          statusCode?: number
+        }
+        error.statusCode = 401
+        return done(error)
       }
-      return isValid
+
+      done()
     },
-    errorResponse: (err) => {
-      return { error: 'Invalid API key' }
-    },
-  })
+  )
 }
 
 export default fp(apiKeyPlugin, {
@@ -45,5 +65,10 @@ export default fp(apiKeyPlugin, {
 declare module 'fastify' {
   interface FastifyInstance {
     apiKeys: ApiKeyService
+    verifyApiKey: (
+      request: FastifyRequest,
+      reply: FastifyReply,
+      done: (error?: Error) => void,
+    ) => void
   }
 }

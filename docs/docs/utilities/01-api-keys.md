@@ -11,10 +11,10 @@ API Keys provide secure, programmatic access to your Pulsarr instance for extern
 
 ## Usage
 
-Include your API key in the `Authorization` header:
+Include your API key in the `X-API-Key` header:
 
 ```bash
-curl -H "Authorization: Bearer YOUR_API_KEY" \
+curl -H "X-API-Key: YOUR_API_KEY" \
      http://your-pulsarr-instance/v1/endpoint
 ```
 
@@ -33,7 +33,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 
 ## Troubleshooting
 
-**401 Unauthorized**: Check key format (`Bearer YOUR_KEY`) and ensure key isn't revoked  
+**401 Unauthorized**: Check that you're using the `X-API-Key` header and ensure key isn't revoked  
 **Key Not Working**: Verify you copied the complete key without extra spaces
 
 ## API Reference
