@@ -48,6 +48,7 @@ export class ApiKeyService {
   async createApiKey(data: ApiKeyCreate): Promise<ApiKeyResponse> {
     try {
       const apiKey = await this.fastify.db.createApiKey(data)
+      await this.refreshCache() // Refresh cache after creation
       this.fastify.log.info(
         { apiKeyId: apiKey.id, name: apiKey.name },
         'Created new API key',
@@ -78,6 +79,7 @@ export class ApiKeyService {
     try {
       const result = await this.fastify.db.revokeApiKey(id)
       if (result) {
+        await this.refreshCache() // Refresh cache after revocation
         this.fastify.log.info({ apiKeyId: id }, 'Revoked API key')
       } else {
         this.fastify.log.warn(

@@ -8,16 +8,8 @@ import {
   type CreateApiKeyResponse,
   type GetApiKeysResponse,
 } from '@root/schemas/api-keys/api-keys.schema'
-
-export interface ApiKey {
-  id: number
-  name: string
-  key: string
-  created_at: string
-}
-
-// Minimum loading delay for consistent UX
-const MIN_LOADING_DELAY = 500
+import type { ApiKey } from '@root/types/api-key.types'
+import { MIN_LOADING_DELAY } from '@root/client/features/plex/store/constants'
 
 export interface ApiKeysState {
   apiKeys: ApiKey[]
@@ -68,9 +60,15 @@ const handleApiResponse = async <T>(
     throw new Error(errorMessage)
   }
 
-  // Handle 204 No Content responses
+  // Handle 204 No Content responses (typically for DELETE operations)
   if (response.status === 204) {
-    return undefined as T
+    // Only return undefined for void operations (no schema expected)
+    if (!schema) {
+      return undefined as T
+    }
+    throw new Error(
+      `${defaultErrorMessage}: Unexpected 204 response for operation expecting data`,
+    )
   }
 
   try {
@@ -344,7 +342,7 @@ export const useApiKeysStore = create<ApiKeysState>()(
               apiKeys: state.apiKeys.filter((key) => key.id !== id),
               visibleKeys: Object.fromEntries(
                 Object.entries(state.visibleKeys).filter(
-                  ([keyId]) => Number.parseInt(keyId) !== id,
+                  ([keyId]) => Number(keyId) !== id,
                 ),
               ),
               showDeleteConfirmation: null,
