@@ -10,6 +10,11 @@ import { useApiKeysStore } from '@/features/utilities/stores/apiKeysStore'
 
 type ApiKeyFormData = CreateApiKey
 
+/**
+ * Provides state and utility functions for managing API keys, including creation, revocation, visibility toggling, clipboard copying, and form handling.
+ *
+ * Returns form handlers, API key data, loading and error states, and actions for use in UI components.
+ */
 export function useApiKeys() {
   const {
     apiKeys,

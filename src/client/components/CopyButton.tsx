@@ -34,6 +34,11 @@ interface CopyButtonProps extends React.ComponentProps<typeof Button> {
   iconOnly?: boolean
 }
 
+/**
+ * Renders a button that copies provided text, HTML content, or the contents of a referenced HTML element to the clipboard.
+ *
+ * If plain text is not provided, HTML content is converted to plain text before copying. Supports both modern and legacy clipboard APIs, and provides user feedback via icon and toast notification. The button can be rendered as icon-only or with a label.
+ */
 export function CopyButton({
   text,
   html,
