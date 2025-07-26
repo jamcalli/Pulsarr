@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button'
 import { invariant } from '@epic-web/invariant'
 import { toast } from 'sonner'
 
+// Create singleton instance to avoid recreating on every copy operation
+const turndownService = new TurndownService()
+
 interface CopyButtonProps extends React.ComponentProps<typeof Button> {
   /**
    * Plain text content to copy to clipboard. Takes precedence over auto-generated plain-text version if HTML is provided.
@@ -54,7 +57,6 @@ export function CopyButton({
       let textContent = text
 
       if (!textContent && htmlContent) {
-        const turndownService = new TurndownService()
         textContent = turndownService.turndown(htmlContent)
       }
 
