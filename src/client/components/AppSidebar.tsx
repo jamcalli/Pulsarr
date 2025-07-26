@@ -184,6 +184,10 @@ const data = {
           title: 'User Tags',
           url: '/utilities/user-tags',
         },
+        {
+          title: 'API Keys',
+          url: '/utilities/api-keys',
+        },
       ],
     },
   ],
