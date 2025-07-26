@@ -161,6 +161,10 @@ const data = {
       icon: Wrench,
       items: [
         {
+          title: 'API Keys',
+          url: '/utilities/api-keys',
+        },
+        {
           title: 'Delete Sync',
           url: '/utilities/delete-sync',
         },
@@ -183,10 +187,6 @@ const data = {
         {
           title: 'User Tags',
           url: '/utilities/user-tags',
-        },
-        {
-          title: 'API Keys',
-          url: '/utilities/api-keys',
         },
       ],
     },

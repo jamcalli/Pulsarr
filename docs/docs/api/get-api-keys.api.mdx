@@ -1,0 +1,63 @@
+---
+id: get-api-keys
+title: "Get API keys"
+description: "Retrieve all active API keys"
+sidebar_label: "Get API keys"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1v2zAM/SsCTxvgLOmKXXzr0KEotkPQbLsEwcDITKxGllyJThsE/u8DZeezAbLrTjFE6pF8eo/Zgq8pIBvvHgvIYUl8V5vvtImQAeMyQj6Fu/GjSkezDAqKOphaLkAOT8TB0JoUWqtQs1mTkuxVBxAo1t5FipBv4fNoJD+nAPe0wMayeuozIQPtHZNjycW6tkan7obPUS5sIeqSKpQv3tQEOfj5M2mGDOogs7DpysVGa4rxKHHuvSV00GZQUYy4pKNg5GDcUmLYz3+IYQi4gQwMUxWvVzbFUY5rqjkFwXVYXS64os3Fcx0ImYo/yBfCrbD70phAhTyRKaCv0OGd3J5lgEVhhEa046NeF2gjtedYO+YONB1IuQrVZvDlv3joq0NfHzXhc+l740hnyCXkMFzfDLE2A7HB/gMyiBTWFMRTW2iChRxK5jrmw+HGN2FQNzZiCAPjIqPT9En7Cs4tNw6mwrBRk4QFbfbPUPntaHT7Du/eBNLcw6m7xIL68Gq4VLUP/PGsQj4cWq/Rlj7yZcAfu/BFsJmwoJtgeJNomBMGCneN8DZNwRiNd7uD4/yJCKJ78+Nb+5eV9oTklCYySEnv+uv3k8KGS3Lcy0410bil+pruKPYrSvo5aeewEJIbZCMIoPZ+ZWjnvxx67t8VnnRYgzlGKi6X76BiUqdxC59qGrYCO+5gZb9enKnwuqnIcYe38EHtbgwUqrGlN/WKrEtrIivjmJbhkDrxTjLRFeoJi657kWoH//tGuKh95AqTN/tJH4iP1/1JT9uDv6/9TfSsMr3xsLZoEvNJctveUVNY33RbaGel/ecsAxGb5Gy3Qu2vYNtWjl8aCptOVWsMBudC43TWZlASFhSS/tLyBVFqLQZeo226Fz5bSCLEvdkfvv2Etv0LztGBJw==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get API keys"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/api-keys/api-keys"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve all active API keys
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"apiKeys":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"key":{"type":"string"},"created_at":{"type":"string"}},"required":["id","name","key","created_at"],"additionalProperties":false}}},"required":["success","message","apiKeys"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

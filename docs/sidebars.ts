@@ -50,11 +50,13 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Utilities',
       items: [
+        'utilities/api-keys',
         'utilities/delete-sync',
-        'utilities/user-tagging',
-        'utilities/session-monitoring',
+        'utilities/new-user-defaults',
         'utilities/plex-notifications',
         'utilities/public-content-notifications',
+        'utilities/session-monitoring',
+        'utilities/user-tagging',
       ],
     },
     {
