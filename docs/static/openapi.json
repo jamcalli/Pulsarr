@@ -7,10 +7,11 @@
   },
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "description": "API key authentication using Bearer token"
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key authentication using X-API-Key header"
       },
       "sessionAuth": {
         "type": "apiKey",
@@ -94,9 +95,18 @@
                         },
                         "created_at": {
                           "type": "string"
+                        },
+                        "is_active": {
+                          "type": "boolean"
                         }
                       },
-                      "required": ["id", "name", "key", "created_at"],
+                      "required": [
+                        "id",
+                        "name",
+                        "key",
+                        "created_at",
+                        "is_active"
+                      ],
                       "additionalProperties": false
                     }
                   },
@@ -183,9 +193,18 @@
                           },
                           "created_at": {
                             "type": "string"
+                          },
+                          "is_active": {
+                            "type": "boolean"
                           }
                         },
-                        "required": ["id", "name", "key", "created_at"],
+                        "required": [
+                          "id",
+                          "name",
+                          "key",
+                          "created_at",
+                          "is_active"
+                        ],
                         "additionalProperties": false
                       }
                     }
@@ -22684,7 +22703,7 @@
   ],
   "security": [
     {
-      "bearerAuth": [],
+      "apiKeyAuth": [],
       "sessionAuth": []
     }
   ],

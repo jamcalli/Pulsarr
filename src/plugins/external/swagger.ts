@@ -69,10 +69,11 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
       ],
       components: {
         securitySchemes: {
-          bearerAuth: {
-            type: 'http' as const,
-            scheme: 'bearer' as const,
-            description: 'API key authentication using Bearer token',
+          apiKeyAuth: {
+            type: 'apiKey' as const,
+            in: 'header' as const,
+            name: 'X-API-Key',
+            description: 'API key authentication using X-API-Key header',
           },
           sessionAuth: {
             type: 'apiKey' as const,
@@ -84,7 +85,7 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
       },
       security: [
         {
-          bearerAuth: [],
+          apiKeyAuth: [],
           sessionAuth: [],
         },
       ],
