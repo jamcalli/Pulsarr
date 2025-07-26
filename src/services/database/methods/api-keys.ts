@@ -26,9 +26,6 @@ export async function createApiKey(
     })
     .returning('*')
 
-  // Refresh the in-memory cache
-  await this.fastify.apiKeys.refreshCache()
-
   return {
     id: apiKey.id,
     name: apiKey.name,
@@ -73,11 +70,6 @@ export async function revokeApiKey(
   const result = await this.knex('api_keys')
     .where('id', id)
     .update({ is_active: false })
-
-  if (result > 0) {
-    // Refresh the in-memory cache
-    await this.fastify.apiKeys.refreshCache()
-  }
 
   return result > 0
 }
