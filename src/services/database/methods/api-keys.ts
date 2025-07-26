@@ -6,11 +6,24 @@ import type {
   ApiKeyResponse,
 } from '@root/types/api-key.types.js'
 
+/**
+ * Generates a secure random API key as a 32-byte base64url-encoded string.
+ *
+ * @returns A cryptographically secure, base64url-encoded API key string
+ */
 function generateApiKey(): string {
   // Generate a secure random key
   return randomBytes(32).toString('base64url')
 }
 
+/**
+ * Creates a new API key record with a unique key and returns its details.
+ *
+ * Attempts to generate and insert a unique API key up to five times if a key collision occurs. Throws an error if a unique key cannot be generated after the maximum retries or if another database error occurs.
+ *
+ * @param data - The API key creation details, including the name.
+ * @returns The created API key's details.
+ */
 export async function createApiKey(
   this: DatabaseService,
   data: ApiKeyCreate,
@@ -79,6 +92,11 @@ export async function createApiKey(
   throw new Error('Failed to create API key: Maximum retry attempts exceeded')
 }
 
+/**
+ * Retrieves all active API keys from the database, ordered by creation date descending.
+ *
+ * @returns An array of active API key details.
+ */
 export async function getApiKeys(
   this: DatabaseService,
 ): Promise<ApiKeyResponse[]> {
@@ -96,6 +114,12 @@ export async function getApiKeys(
   }))
 }
 
+/**
+ * Retrieves an active API key record matching the provided key string.
+ *
+ * @param key - The API key string to validate
+ * @returns The API key object if found and active, or null if not found or inactive
+ */
 export async function validateApiKey(
   this: DatabaseService,
   key: string,
@@ -109,6 +133,12 @@ export async function validateApiKey(
   return apiKey || null
 }
 
+/**
+ * Deactivates an API key by its ID.
+ *
+ * @param id - The unique identifier of the API key to revoke
+ * @returns True if the API key was successfully deactivated; false if no matching key was found
+ */
 export async function revokeApiKey(
   this: DatabaseService,
   id: number,
@@ -120,6 +150,11 @@ export async function revokeApiKey(
   return result > 0
 }
 
+/**
+ * Retrieves all active API key strings from the database.
+ *
+ * @returns An array of active API key strings.
+ */
 export async function getActiveApiKeys(
   this: DatabaseService,
 ): Promise<string[]> {

@@ -19,10 +19,11 @@ interface ApiKeysDeleteConfirmationModalProps {
 }
 
 /**
- * Confirmation modal for API key deletion with destructive action warning.
+ * Displays a modal dialog prompting the user to confirm revocation of an API key.
  *
- * Provides a clear warning about the irreversible nature of API key revocation
- * and requires explicit user confirmation before proceeding.
+ * Presents a warning about the irreversible consequences of revoking the specified API key and requires explicit user confirmation before proceeding. The modal disables the confirmation button and shows a loading state while the revocation is in progress.
+ *
+ * @param apiKeyName - The name of the API key to be revoked, shown in the confirmation message.
  */
 export function ApiKeysDeleteConfirmationModal({
   open,
