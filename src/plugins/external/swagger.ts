@@ -62,6 +62,31 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           name: 'Users',
           description: 'User management endpoints',
         },
+        {
+          name: 'API Keys',
+          description: 'API key management endpoints',
+        },
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http' as const,
+            scheme: 'bearer' as const,
+            description: 'API key authentication using Bearer token',
+          },
+          sessionAuth: {
+            type: 'apiKey' as const,
+            in: 'cookie' as const,
+            name: fastify.config.cookieName,
+            description: 'Session-based authentication using cookies',
+          },
+        },
+      },
+      security: [
+        {
+          bearerAuth: [],
+          sessionAuth: [],
+        },
       ],
     },
     hideUntagged: true,

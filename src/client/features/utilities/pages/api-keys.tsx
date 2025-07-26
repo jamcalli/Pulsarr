@@ -1,0 +1,164 @@
+import { useEffect } from 'react'
+import { useConfigStore } from '@/stores/configStore'
+import { Button } from '@/components/ui/button'
+import { RefreshCw, AlertTriangle, Loader2 } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { useApiKeys } from '@/features/utilities/hooks/useApiKeys'
+import { ApiKeysForm } from '@/features/utilities/components/api-keys/api-keys-form'
+import { ApiKeysDeleteConfirmationModal } from '@/features/utilities/components/api-keys/api-keys-delete-confirmation-modal'
+import { ApiKeysSkeleton } from '@/features/utilities/components/api-keys/api-keys-skeleton'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+
+/**
+ * Displays the API Keys management interface, allowing administrators to create, view, and revoke API keys for external access.
+ *
+ * Provides secure key display, copy functionality, and confirmation modals for revocation. Handles loading, error, and refreshing states for a seamless management experience.
+ *
+ * @returns The API keys management page as a React element.
+ */
+export function ApiKeysPage() {
+  const { isInitialized, initialize } = useConfigStore()
+
+  const {
+    form,
+    apiKeys,
+    isLoading,
+    isCreating,
+    isRevoking,
+    isRefreshing,
+    error,
+    visibleKeys,
+    showDeleteConfirmation,
+    setShowDeleteConfirmation,
+    onSubmit,
+    revokeApiKey,
+    toggleKeyVisibility,
+    initiateRevoke,
+    fetchApiKeys,
+  } = useApiKeys()
+
+  // Initialize stores on mount
+  useEffect(() => {
+    initialize()
+  }, [initialize])
+
+  const totalKeysCount = apiKeys.length
+
+  if (!isInitialized || isLoading) {
+    return (
+      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+        <ApiKeysSkeleton />
+      </div>
+    )
+  }
+
+  const selectedApiKey = apiKeys.find(
+    (key) => key.id === showDeleteConfirmation,
+  )
+
+  return (
+    <>
+      <ApiKeysDeleteConfirmationModal
+        open={showDeleteConfirmation !== null}
+        onOpenChange={(open) => !open && setShowDeleteConfirmation(null)}
+        onConfirm={() =>
+          showDeleteConfirmation && revokeApiKey(showDeleteConfirmation)
+        }
+        isSubmitting={
+          showDeleteConfirmation
+            ? isRevoking[showDeleteConfirmation] || false
+            : false
+        }
+        apiKeyName={selectedApiKey?.name || ''}
+      />
+
+      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+        <UtilitySectionHeader
+          title="API Keys"
+          description="Manage API keys for external access to your Pulsarr instance"
+          showStatus={false}
+        />
+
+        <div className="mt-6 space-y-6">
+          {/* Actions section */}
+          <div>
+            <h3 className="font-medium text-foreground mb-2">Actions</h3>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => fetchApiKeys(true)}
+                disabled={isLoading || isRefreshing}
+                variant="noShadow"
+                className="h-8"
+              >
+                {isRefreshing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="ml-2">
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </span>
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Current Status section */}
+          {apiKeys.length > 0 && (
+            <>
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
+                <h3 className="font-medium text-foreground mb-2">
+                  Current Status
+                </h3>
+                <p className="text-sm text-foreground mb-3">
+                  API keys created and configured for external access:
+                </p>
+                <p className="text-sm text-foreground">
+                  {totalKeysCount === 1
+                    ? '1 API key'
+                    : `${totalKeysCount} API keys`}{' '}
+                  created
+                </p>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {error && (
+            <>
+              <div className="p-4 border border-red-500 bg-red-50 dark:bg-red-900/20 rounded-md flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
+                    Error
+                  </h4>
+                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                    {error}
+                  </p>
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {/* Configuration form */}
+          <ApiKeysForm
+            form={form}
+            apiKeys={apiKeys}
+            isCreating={isCreating}
+            isRevoking={isRevoking}
+            visibleKeys={visibleKeys}
+            onSubmit={onSubmit}
+            onToggleVisibility={toggleKeyVisibility}
+            onInitiateRevoke={initiateRevoke}
+          />
+        </div>
+      </div>
+    </>
+  )
+}
+
+export default ApiKeysPage
