@@ -10,13 +10,11 @@ import { ApiKeysSkeleton } from '@/features/utilities/components/api-keys/api-ke
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * API Keys management page for creating and managing API keys for external access.
+ * Displays the API Keys management interface, allowing administrators to create, view, and revoke API keys for external access.
  *
- * Provides administrators with controls to create, view, and revoke API keys.
- * Includes secure key display with copy functionality and confirmation
- * modals for destructive actions.
+ * Provides secure key display, copy functionality, and confirmation modals for revocation. Handles loading, error, and refreshing states for a seamless management experience.
  *
- * @returns A React element containing the API keys management page.
+ * @returns The API keys management page as a React element.
  */
 export function ApiKeysPage() {
   const { isInitialized, initialize } = useConfigStore()
