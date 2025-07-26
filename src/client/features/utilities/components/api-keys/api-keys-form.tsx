@@ -19,7 +19,7 @@ import { CopyButton } from '@/components/CopyButton'
 import { Separator } from '@/components/ui/separator'
 import type { UseFormReturn } from 'react-hook-form'
 import type { CreateApiKey } from '@root/schemas/api-keys/api-keys.schema'
-import type { ApiKey } from '@/features/utilities/stores/apiKeysStore'
+import type { ApiKey } from '@root/types/api-key.types'
 
 interface ApiKeysFormProps {
   form: UseFormReturn<CreateApiKey>

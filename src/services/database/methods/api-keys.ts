@@ -15,23 +15,68 @@ export async function createApiKey(
   this: DatabaseService,
   data: ApiKeyCreate,
 ): Promise<ApiKeyResponse> {
-  const key = generateApiKey()
+  const MAX_RETRIES = 5
+  let attempt = 0
 
-  const [apiKey] = await this.knex('api_keys')
-    .insert({
-      name: data.name,
-      key: key,
-      is_active: true,
-      created_at: this.timestamp,
-    })
-    .returning('*')
+  while (attempt < MAX_RETRIES) {
+    const key = generateApiKey()
 
-  return {
-    id: apiKey.id,
-    name: apiKey.name,
-    key: apiKey.key,
-    created_at: apiKey.created_at,
+    try {
+      const [apiKey] = await this.knex('api_keys')
+        .insert({
+          name: data.name,
+          key: key,
+          is_active: true,
+          created_at: this.timestamp,
+        })
+        .returning('*')
+
+      return {
+        id: apiKey.id,
+        name: apiKey.name,
+        key: apiKey.key,
+        created_at: apiKey.created_at,
+        is_active: apiKey.is_active,
+      }
+    } catch (error) {
+      // Handle unique constraint violations for both PostgreSQL and better-sqlite3
+      const isUniqueViolation =
+        // PostgreSQL: SQLSTATE 23505
+        (error instanceof Error &&
+          'code' in error &&
+          error.code === '23505' &&
+          'constraint' in error &&
+          typeof error.constraint === 'string' &&
+          error.constraint.includes('key')) ||
+        // better-sqlite3: Error code SQLITE_CONSTRAINT_UNIQUE (19)
+        (error instanceof Error &&
+          'code' in error &&
+          error.code === 'SQLITE_CONSTRAINT_UNIQUE') ||
+        // better-sqlite3: Generic constraint error with UNIQUE in message
+        (error instanceof Error &&
+          'code' in error &&
+          error.code === 'SQLITE_CONSTRAINT' &&
+          error.message.includes('UNIQUE')) ||
+        // Fallback: Check message for UNIQUE constraint failures
+        (error instanceof Error &&
+          error.message.includes('UNIQUE constraint failed'))
+
+      if (isUniqueViolation) {
+        attempt++
+        if (attempt >= MAX_RETRIES) {
+          throw new Error(
+            'Failed to generate unique API key after multiple attempts',
+          )
+        }
+        // Retry with a new key
+        continue
+      }
+      // Re-throw other errors
+      throw error
+    }
   }
+
+  throw new Error('Failed to create API key: Maximum retry attempts exceeded')
 }
 
 export async function getApiKeys(
@@ -47,6 +92,7 @@ export async function getApiKeys(
     name: key.name,
     key: key.key,
     created_at: key.created_at,
+    is_active: key.is_active,
   }))
 }
 

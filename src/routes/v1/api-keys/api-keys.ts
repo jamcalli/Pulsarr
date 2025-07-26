@@ -45,14 +45,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             name: apiKey.name,
             key: apiKey.key,
             created_at: apiKey.created_at,
+            is_active: apiKey.is_active,
           },
         }
       } catch (error) {
-        if (error instanceof Error && error.message.includes('validation')) {
+        if (error instanceof z.ZodError) {
           reply.status(400)
           return {
             success: false,
-            message: error.message,
+            message: `Validation error: ${error.errors.map((e) => e.message).join(', ')}`,
           }
         }
         fastify.log.error({ error }, 'Failed to create API key')
@@ -96,6 +97,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             name: key.name,
             key: key.key,
             created_at: key.created_at,
+            is_active: key.is_active,
           })),
         }
       } catch (error) {
