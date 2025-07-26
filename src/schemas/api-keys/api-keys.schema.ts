@@ -16,6 +16,7 @@ export const CreateApiKeyResponseSchema = z.object({
     name: z.string(),
     key: z.string(),
     created_at: z.string(),
+    is_active: z.boolean(),
   }),
 })
 
@@ -29,6 +30,7 @@ export const GetApiKeysResponseSchema = z.object({
       name: z.string(),
       key: z.string(),
       created_at: z.string(),
+      is_active: z.boolean(),
     }),
   ),
 })

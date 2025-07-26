@@ -3,6 +3,7 @@ export interface ApiKey {
   name: string
   key: string
   created_at: string
+  is_active: boolean
 }
 
 export interface ApiKeyCreate {
@@ -14,4 +15,5 @@ export interface ApiKeyResponse {
   name: string
   key: string
   created_at: string
+  is_active: boolean
 }

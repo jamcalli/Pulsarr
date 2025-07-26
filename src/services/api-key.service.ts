@@ -36,13 +36,6 @@ export class ApiKeyService {
   }
 
   /**
-   * Get the current API key cache
-   */
-  getCache(): Set<string> {
-    return this.apiKeyCache
-  }
-
-  /**
    * Create a new API key
    */
   async createApiKey(data: ApiKeyCreate): Promise<ApiKeyResponse> {
