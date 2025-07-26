@@ -10,10 +10,4 @@ export interface ApiKeyCreate {
   name: string
 }
 
-export interface ApiKeyResponse {
-  id: number
-  name: string
-  key: string
-  created_at: string
-  is_active: boolean
-}
+export type ApiKeyResponse = ApiKey
