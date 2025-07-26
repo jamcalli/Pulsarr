@@ -320,11 +320,35 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Approval',
+      label: 'API Keys',
       link: {
         type: 'doc',
-        id: 'api/approval',
+        id: 'api/api-keys',
       },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/create-api-key',
+          label: 'Create API key',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-api-keys',
+          label: 'Get API keys',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/revoke-api-key',
+          label: 'Revoke API key',
+          className: 'api-method delete',
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Approval',
       items: [
         {
           type: 'doc',
@@ -469,10 +493,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Metadata',
-      link: {
-        type: 'doc',
-        id: 'api/metadata',
-      },
       items: [
         {
           type: 'doc',
@@ -527,10 +547,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Quota',
-      link: {
-        type: 'doc',
-        id: 'api/quota',
-      },
       items: [
         {
           type: 'doc',
@@ -873,10 +889,6 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'TMDB',
-      link: {
-        type: 'doc',
-        id: 'api/tmdb',
-      },
       items: [
         {
           type: 'doc',

@@ -69,8 +69,10 @@ import './database/types/session-methods.js'
 import './database/types/user-methods.js'
 import './database/types/watchlist-methods.js'
 import './database/types/webhook-methods.js'
+import './database/types/api-key-methods.js'
 import * as analyticsMethods from './database/methods/analytics.js'
 import * as animeMethods from './database/methods/anime.js'
+import * as apiKeyMethods from './database/methods/api-keys.js'
 import * as approvalMethods from './database/methods/approval.js'
 import * as configMethods from './database/methods/config.js'
 import * as junctionMethods from './database/methods/junction.js'
@@ -187,6 +189,7 @@ export class DatabaseService {
     const methodModules = [
       analyticsMethods,
       animeMethods,
+      apiKeyMethods,
       approvalMethods,
       configMethods,
       junctionMethods,
