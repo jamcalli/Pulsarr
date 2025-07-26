@@ -91,7 +91,7 @@ export class ApiKeyService {
   }
 
   /**
-   * Validate an API key (for use by bearer auth plugin)
+   * Validate an API key
    */
   async validateApiKey(key: string): Promise<boolean> {
     const isValid = this.apiKeyCache.has(key)

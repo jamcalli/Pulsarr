@@ -15,11 +15,11 @@ export default async function (fastify: FastifyInstance) {
     }
 
     // Check for API key authentication first (no bypass for API keys)
-    const authHeader = request.headers.authorization
-    if (authHeader?.startsWith('Bearer ')) {
+    const apiKey = request.headers['x-api-key'] as string
+    if (apiKey) {
       try {
         await new Promise<void>((resolve, reject) => {
-          fastify.verifyBearerAuth?.(request, reply, (err) => {
+          fastify.verifyApiKey(request, reply, (err) => {
             if (err) reject(err)
             else resolve()
           })
