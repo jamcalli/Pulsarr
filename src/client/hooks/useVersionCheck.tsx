@@ -28,6 +28,7 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
           toast(
             `A new version (${data.tag_name}) is available. You're running v${__APP_VERSION__}.`,
             {
+              id: 'version-update-notification',
               duration: 8000,
               action: {
                 label: 'View Release',
