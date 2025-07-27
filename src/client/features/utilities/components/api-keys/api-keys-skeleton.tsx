@@ -31,8 +31,8 @@ export function ApiKeysSkeleton() {
         <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
           <h3 className="font-medium text-foreground mb-2">Current Status</h3>
           <div className="space-y-2">
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-full max-w-64" />
+            <Skeleton className="h-4 w-3/4 max-w-48" />
           </div>
         </div>
 
@@ -65,13 +65,10 @@ export function ApiKeysSkeleton() {
                 key={i}
                 className="p-4 border-2 border-border rounded-md bg-card space-y-3"
               >
-                {/* Header with name, status badge, and date */}
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-5 w-16" />
-                  </div>
-                  <Skeleton className="h-4 w-40" />
+                {/* Header with name and date */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-40 sm:w-auto" />
                 </div>
 
                 {/* API Key display with actions */}
@@ -82,8 +79,7 @@ export function ApiKeysSkeleton() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-between items-center">
-                  <Skeleton className="h-8 w-16" />
+                <div className="flex justify-end">
                   <Skeleton className="h-8 w-20" />
                 </div>
               </div>

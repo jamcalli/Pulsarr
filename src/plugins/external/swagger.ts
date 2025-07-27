@@ -39,32 +39,93 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
       ],
       tags: [
         {
-          name: 'Plex',
-          description: 'Plex related endpoints',
+          name: 'API Keys',
+          description: 'API key management endpoints',
         },
         {
-          name: 'Sonarr',
-          description: 'Sonarr related endpoints',
-        },
-        {
-          name: 'Radarr',
-          description: 'Radarr related endpoints',
-        },
-        {
-          name: 'Config',
-          description: 'Configuration endpoints',
+          name: 'Approval',
+          description: 'Content approval system endpoints',
         },
         {
           name: 'Authentication',
-          description: 'Authentication endpoints',
+          description: 'Authentication and authorization endpoints',
+        },
+        {
+          name: 'Config',
+          description: 'Configuration management endpoints',
+        },
+        {
+          name: 'Content Router',
+          description: 'Content routing and rule management endpoints',
+        },
+        {
+          name: 'Metadata',
+          description: 'Metadata refresh and management endpoints',
+        },
+        {
+          name: 'Models',
+          description: 'Data models and schema definitions',
+        },
+        {
+          name: 'Notifications',
+          description: 'Notification system endpoints',
+        },
+        {
+          name: 'Plex',
+          description: 'Plex server integration endpoints',
+        },
+        {
+          name: 'Progress',
+          description: 'Operation progress tracking endpoints',
+        },
+        {
+          name: 'Quota',
+          description: 'User quota management endpoints',
+        },
+        {
+          name: 'Radarr',
+          description: 'Radarr integration endpoints',
+        },
+        {
+          name: 'Scheduler',
+          description: 'Job scheduling and management endpoints',
+        },
+        {
+          name: 'Session Monitoring',
+          description:
+            'Plex session monitoring and rolling show management endpoints',
+        },
+        {
+          name: 'Sonarr',
+          description: 'Sonarr integration endpoints',
+        },
+        {
+          name: 'Statistics',
+          description: 'Analytics and statistics endpoints',
+        },
+        {
+          name: 'Sync',
+          description: 'Synchronization control endpoints',
+        },
+        {
+          name: 'Tags',
+          description: 'Tag management endpoints',
+        },
+        {
+          name: 'Tautulli',
+          description: 'Tautulli integration endpoints',
+        },
+        {
+          name: 'TMDB',
+          description: 'The Movie Database (TMDB) integration endpoints',
         },
         {
           name: 'Users',
           description: 'User management endpoints',
         },
         {
-          name: 'API Keys',
-          description: 'API key management endpoints',
+          name: 'Watchlist Workflow',
+          description: 'Watchlist processing workflow endpoints',
         },
       ],
       components: {
