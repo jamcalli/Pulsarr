@@ -1,24 +1,20 @@
 ---
 id: tmdb
 title: "TMDB"
-description: "TMDB metadata and regional streaming provider information"
+description: "TMDB"
+custom_edit_url: null
 ---
 
-# TMDB
 
-The TMDB endpoints provide access to movie and TV show metadata from The Movie Database (TMDB), including detailed information about content, ratings, and regional streaming provider availability.
 
-## Features
+The Movie Database (TMDB) integration endpoints
 
-- **Intelligent Metadata Lookup**: Accepts both TMDB and TVDB GUIDs for flexible content identification
-- **Regional Streaming Data**: Get watch provider information for different countries/regions
-- **Comprehensive Metadata**: Access detailed information including overview, ratings, cast, and production details
-- **Multiple Content Types**: Support for both movies and TV shows
 
-## Regional Support
 
-TMDB endpoints support regional filtering for streaming provider data. Use the `region` query parameter with a 2-letter country code (ISO 3166-1) to get region-specific watch provider information.
+```mdx-code-block
+import DocCardList from '@theme/DocCardList';
+import {useCurrentSidebarCategory} from '@docusaurus/theme-common';
 
-## Authentication
-
-All TMDB endpoints require a valid TMDB API key to be configured in the application settings.
+<DocCardList items={useCurrentSidebarCategory().items}/>
+```
+      

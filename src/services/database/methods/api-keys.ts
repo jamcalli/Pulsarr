@@ -45,7 +45,7 @@ export async function createApiKey(
         name: apiKey.name,
         key: apiKey.key,
         created_at: apiKey.created_at,
-        is_active: apiKey.is_active,
+        is_active: Boolean(apiKey.is_active),
       }
     } catch (error) {
       // Handle unique constraint violations for both PostgreSQL and better-sqlite3
@@ -104,7 +104,7 @@ export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
     name: key.name,
     key: key.key,
     created_at: key.created_at,
-    is_active: key.is_active,
+    is_active: Boolean(key.is_active),
   }))
 }
 
@@ -124,7 +124,15 @@ export async function validateApiKey(
     .where('is_active', true)
     .first()
 
-  return apiKey || null
+  if (!apiKey) return null
+
+  return {
+    id: apiKey.id,
+    name: apiKey.name,
+    key: apiKey.key,
+    created_at: apiKey.created_at,
+    is_active: Boolean(apiKey.is_active),
+  }
 }
 
 /**
