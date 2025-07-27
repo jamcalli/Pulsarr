@@ -8,318 +8,6 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Plex',
-      link: {
-        type: 'doc',
-        id: 'api/plex',
-      },
-      items: [
-        {
-          type: 'doc',
-          id: 'api/get-self-watchlist-items',
-          label: 'Get self watchlist items',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-others-watchlist-tokens',
-          label: 'Get others watchlist tokens',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/ping-plex',
-          label: 'Test Plex server connection',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/generate-rss-feeds',
-          label: 'Generate RSS feeds',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/parse-rss-watchlists',
-          label: 'Parse RSS watchlists',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-watchlist-genres',
-          label: 'Get watchlist genres',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/configure-plex-notifications',
-          label: 'Configure Plex notifications',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/remove-plex-notifications',
-          label: 'Remove Plex notifications',
-          className: 'api-method delete',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-plex-notification-status',
-          label: 'Get Plex notification status',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/discover-plex-servers',
-          label: 'Discover Plex servers',
-          className: 'api-method post',
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Sonarr',
-      link: {
-        type: 'doc',
-        id: 'api/sonarr',
-      },
-      items: [
-        {
-          type: 'doc',
-          id: 'api/create-sonarr-tag',
-          label: 'Create Sonarr tag',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-sonarr-quality-profiles',
-          label: 'Get Sonarr quality profiles',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-sonarr-root-folders',
-          label: 'Get Sonarr root folders',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-sonarr-instances',
-          label: 'Get Sonarr instances',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/create-sonarr-instance',
-          label: 'Create Sonarr instance',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/update-sonarr-instance',
-          label: 'Update Sonarr instance',
-          className: 'api-method put',
-        },
-        {
-          type: 'doc',
-          id: 'api/delete-sonarr-instance',
-          label: 'Delete Sonarr instance',
-          className: 'api-method delete',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-sonarr-tags',
-          label: 'Get Sonarr tags',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/test-sonarr-connection',
-          label: 'Test Sonarr connection',
-          className: 'api-method post',
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Radarr',
-      link: {
-        type: 'doc',
-        id: 'api/radarr',
-      },
-      items: [
-        {
-          type: 'doc',
-          id: 'api/create-radarr-tag',
-          label: 'Create Radarr tag',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-radarr-quality-profiles',
-          label: 'Get Radarr quality profiles',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-radarr-instances',
-          label: 'Get Radarr instances',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/create-radarr-instance',
-          label: 'Create Radarr instance',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/update-radarr-instance',
-          label: 'Update Radarr instance',
-          className: 'api-method put',
-        },
-        {
-          type: 'doc',
-          id: 'api/delete-radarr-instance',
-          label: 'Delete Radarr instance',
-          className: 'api-method delete',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-radarr-root-folders',
-          label: 'Get Radarr root folders',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-radarr-tags',
-          label: 'Get Radarr tags',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/test-radarr-connection',
-          label: 'Test Radarr connection',
-          className: 'api-method post',
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Config',
-      link: {
-        type: 'doc',
-        id: 'api/config',
-      },
-      items: [
-        {
-          type: 'doc',
-          id: 'api/get-config',
-          label: 'Get configuration',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/update-config',
-          label: 'Update configuration',
-          className: 'api-method put',
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Authentication',
-      link: {
-        type: 'doc',
-        id: 'api/authentication',
-      },
-      items: [
-        {
-          type: 'doc',
-          id: 'api/update-user-password',
-          label: 'Update user password',
-          className: 'api-method put',
-        },
-        {
-          type: 'doc',
-          id: 'api/create-admin-user',
-          label: 'Create admin user',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/login-user',
-          label: 'User login',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/logout-user',
-          label: 'User logout',
-          className: 'api-method post',
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Users',
-      link: {
-        type: 'doc',
-        id: 'api/users',
-      },
-      items: [
-        {
-          type: 'doc',
-          id: 'api/bulk-update-users',
-          label: 'Bulk update users',
-          className: 'api-method patch',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-current-user',
-          label: 'Get current user information',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-users-list',
-          label: 'Get users list',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-users-with-counts',
-          label: 'Get users with watchlist counts',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/create-user',
-          label: 'Create user',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/update-user',
-          label: 'Update user',
-          className: 'api-method patch',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-user-by-id',
-          label: 'Get user by ID',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/get-user-watchlist',
-          label: 'Get user watchlist items',
-          className: 'api-method get',
-        },
-      ],
-    },
-    {
-      type: 'category',
       label: 'API Keys',
       link: {
         type: 'doc',
@@ -424,7 +112,67 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Authentication',
+      link: {
+        type: 'doc',
+        id: 'api/authentication',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/update-user-password',
+          label: 'Update user password',
+          className: 'api-method put',
+        },
+        {
+          type: 'doc',
+          id: 'api/create-admin-user',
+          label: 'Create admin user',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/login-user',
+          label: 'User login',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/logout-user',
+          label: 'User logout',
+          className: 'api-method post',
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Config',
+      link: {
+        type: 'doc',
+        id: 'api/config',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/get-config',
+          label: 'Get configuration',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/update-config',
+          label: 'Update configuration',
+          className: 'api-method put',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Content Router',
+      link: {
+        type: 'doc',
+        id: 'api/content-router',
+      },
       items: [
         {
           type: 'doc',
@@ -513,6 +261,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Notifications',
+      link: {
+        type: 'doc',
+        id: 'api/notifications',
+      },
       items: [
         {
           type: 'doc',
@@ -542,7 +294,81 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Plex',
+      link: {
+        type: 'doc',
+        id: 'api/plex',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/get-self-watchlist-items',
+          label: 'Get self watchlist items',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-others-watchlist-tokens',
+          label: 'Get others watchlist tokens',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/ping-plex',
+          label: 'Test Plex server connection',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/generate-rss-feeds',
+          label: 'Generate RSS feeds',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/parse-rss-watchlists',
+          label: 'Parse RSS watchlists',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-watchlist-genres',
+          label: 'Get watchlist genres',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/configure-plex-notifications',
+          label: 'Configure Plex notifications',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/remove-plex-notifications',
+          label: 'Remove Plex notifications',
+          className: 'api-method delete',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-plex-notification-status',
+          label: 'Get Plex notification status',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/discover-plex-servers',
+          label: 'Discover Plex servers',
+          className: 'api-method post',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Progress',
+      link: {
+        type: 'doc',
+        id: 'api/progress',
+      },
       items: [
         {
           type: 'doc',
@@ -642,7 +468,75 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Radarr',
+      link: {
+        type: 'doc',
+        id: 'api/radarr',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/create-radarr-tag',
+          label: 'Create Radarr tag',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-radarr-quality-profiles',
+          label: 'Get Radarr quality profiles',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-radarr-instances',
+          label: 'Get Radarr instances',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/create-radarr-instance',
+          label: 'Create Radarr instance',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/update-radarr-instance',
+          label: 'Update Radarr instance',
+          className: 'api-method put',
+        },
+        {
+          type: 'doc',
+          id: 'api/delete-radarr-instance',
+          label: 'Delete Radarr instance',
+          className: 'api-method delete',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-radarr-root-folders',
+          label: 'Get Radarr root folders',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-radarr-tags',
+          label: 'Get Radarr tags',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/test-radarr-connection',
+          label: 'Test Radarr connection',
+          className: 'api-method post',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Scheduler',
+      link: {
+        type: 'doc',
+        id: 'api/scheduler',
+      },
       items: [
         {
           type: 'doc',
@@ -697,6 +591,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Session Monitoring',
+      link: {
+        type: 'doc',
+        id: 'api/session-monitoring',
+      },
       items: [
         {
           type: 'doc',
@@ -738,7 +636,75 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Sonarr',
+      link: {
+        type: 'doc',
+        id: 'api/sonarr',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/create-sonarr-tag',
+          label: 'Create Sonarr tag',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-sonarr-quality-profiles',
+          label: 'Get Sonarr quality profiles',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-sonarr-root-folders',
+          label: 'Get Sonarr root folders',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-sonarr-instances',
+          label: 'Get Sonarr instances',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/create-sonarr-instance',
+          label: 'Create Sonarr instance',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/update-sonarr-instance',
+          label: 'Update Sonarr instance',
+          className: 'api-method put',
+        },
+        {
+          type: 'doc',
+          id: 'api/delete-sonarr-instance',
+          label: 'Delete Sonarr instance',
+          className: 'api-method delete',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-sonarr-tags',
+          label: 'Get Sonarr tags',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/test-sonarr-connection',
+          label: 'Test Sonarr connection',
+          className: 'api-method post',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Statistics',
+      link: {
+        type: 'doc',
+        id: 'api/statistics',
+      },
       items: [
         {
           type: 'doc',
@@ -817,6 +783,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Sync',
+      link: {
+        type: 'doc',
+        id: 'api/sync',
+      },
       items: [
         {
           type: 'doc',
@@ -835,6 +805,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Tags',
+      link: {
+        type: 'doc',
+        id: 'api/tags',
+      },
       items: [
         {
           type: 'doc',
@@ -877,6 +851,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Tautulli',
+      link: {
+        type: 'doc',
+        id: 'api/tautulli',
+      },
       items: [
         {
           type: 'doc',
@@ -901,6 +879,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'TMDB',
+      link: {
+        type: 'doc',
+        id: 'api/tmdb',
+      },
       items: [
         {
           type: 'doc',
@@ -930,7 +912,69 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Users',
+      link: {
+        type: 'doc',
+        id: 'api/users',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/bulk-update-users',
+          label: 'Bulk update users',
+          className: 'api-method patch',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-current-user',
+          label: 'Get current user information',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-users-list',
+          label: 'Get users list',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-users-with-counts',
+          label: 'Get users with watchlist counts',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/create-user',
+          label: 'Create user',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/update-user',
+          label: 'Update user',
+          className: 'api-method patch',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-user-by-id',
+          label: 'Get user by ID',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-user-watchlist',
+          label: 'Get user watchlist items',
+          className: 'api-method get',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Watchlist Workflow',
+      link: {
+        type: 'doc',
+        id: 'api/watchlist-workflow',
+      },
       items: [
         {
           type: 'doc',

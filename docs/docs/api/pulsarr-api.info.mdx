@@ -31,5 +31,73 @@ import Export from "@theme/ApiExplorer/Export";
 
 API documentation for Pulsarr - a Plex watchlist integration for Sonarr and Radarr
 
-
+<div
+  style={{"marginBottom":"2rem"}}
+>
+  <Heading
+    id={"authentication"}
+    as={"h2"}
+    className={"openapi-tabs__heading"}
+    children={"Authentication"}
+  >
+  </Heading><SchemaTabs
+    className={"openapi-tabs__security-schemes"}
+  >
+    <TabItem
+      label={"API Key: apiKeyAuth"}
+      value={"apiKeyAuth"}
+    >
+      
+      
+      API key authentication using X-API-Key header
+      
+      <div>
+        <table>
+          <tbody>
+            <tr>
+              <th>
+                Security Scheme Type:
+              </th><td>
+                apiKey
+              </td>
+            </tr><tr>
+              <th>
+                Header parameter name:
+              </th><td>
+                X-API-Key
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </TabItem><TabItem
+      label={"API Key: sessionAuth"}
+      value={"sessionAuth"}
+    >
+      
+      
+      Session-based authentication using cookies
+      
+      <div>
+        <table>
+          <tbody>
+            <tr>
+              <th>
+                Security Scheme Type:
+              </th><td>
+                apiKey
+              </td>
+            </tr><tr>
+              <th>
+                Cookie parameter name:
+              </th><td>
+                pulsarr
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </TabItem>
+  </SchemaTabs>
+</div>
       
