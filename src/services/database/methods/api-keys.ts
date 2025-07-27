@@ -1,10 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import type { DatabaseService } from '@services/database.service.js'
-import type {
-  ApiKey,
-  ApiKeyCreate,
-  ApiKeyResponse,
-} from '@root/types/api-key.types.js'
+import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
 
 /**
  * Generates a secure random API key as a 32-byte base64url-encoded string.
@@ -27,7 +23,7 @@ function generateApiKey(): string {
 export async function createApiKey(
   this: DatabaseService,
   data: ApiKeyCreate,
-): Promise<ApiKeyResponse> {
+): Promise<ApiKey> {
   const MAX_RETRIES = 5
   let attempt = 0
 
@@ -97,9 +93,7 @@ export async function createApiKey(
  *
  * @returns An array of active API key details.
  */
-export async function getApiKeys(
-  this: DatabaseService,
-): Promise<ApiKeyResponse[]> {
+export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
   const keys = await this.knex('api_keys')
     .select('*')
     .where('is_active', true)

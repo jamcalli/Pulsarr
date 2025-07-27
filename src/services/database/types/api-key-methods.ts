@@ -1,8 +1,4 @@
-import type {
-  ApiKey,
-  ApiKeyCreate,
-  ApiKeyResponse,
-} from '@root/types/api-key.types.js'
+import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -12,13 +8,13 @@ declare module '@services/database.service.js' {
      * @param data - API key creation data (name and optional expiration)
      * @returns Promise resolving to the created API key with the actual key value
      */
-    createApiKey(data: ApiKeyCreate): Promise<ApiKeyResponse>
+    createApiKey(data: ApiKeyCreate): Promise<ApiKey>
 
     /**
      * Retrieves all active API keys
      * @returns Promise resolving to array of API keys
      */
-    getApiKeys(): Promise<ApiKeyResponse[]>
+    getApiKeys(): Promise<ApiKey[]>
 
     /**
      * Validates an API key

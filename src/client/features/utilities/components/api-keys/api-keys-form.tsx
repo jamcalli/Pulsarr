@@ -59,8 +59,8 @@ export function ApiKeysForm({
     return new Date(dateString).toLocaleString()
   }
 
-  const maskKey = () => {
-    return '•'.repeat(32)
+  const maskKey = (keyLength = 32) => {
+    return '•'.repeat(keyLength)
   }
 
   return (
@@ -132,7 +132,11 @@ export function ApiKeysForm({
                   <div className="relative flex-1">
                     <Input
                       type={visibleKeys[apiKey.id] ? 'text' : 'password'}
-                      value={visibleKeys[apiKey.id] ? apiKey.key : maskKey()}
+                      value={
+                        visibleKeys[apiKey.id]
+                          ? apiKey.key
+                          : maskKey(apiKey.key.length)
+                      }
                       readOnly
                       className="pr-20 font-mono text-sm"
                     />
