@@ -46,12 +46,11 @@ export async function isAnyAnime(
 }
 
 /**
- * Inserts multiple anime ID records into the `anime_ids` table, ignoring duplicates based on external ID and source.
+ * Inserts multiple anime ID records into the `anime_ids` table, skipping duplicates based on external ID and source.
  *
- * Performs bulk insertion in chunks for efficiency. If a transaction is provided, it is used for the operation; otherwise, a new transaction is created internally. No action is taken if the input array is empty.
+ * Performs bulk insertion in database-appropriate chunk sizes to avoid query limitations. Uses the provided transaction if available; otherwise, creates a new transaction internally. No operation is performed if the input array is empty.
  *
- * @param animeIds - Array of anime ID records to insert
- * @param trx - Optional Knex transaction to use for the operation
+ * @param animeIds - List of anime ID records to insert
  */
 export async function insertAnimeIds(
   this: DatabaseService,
@@ -61,7 +60,12 @@ export async function insertAnimeIds(
   if (animeIds.length === 0) return
 
   const executeInsert = async (transaction: Knex.Transaction) => {
-    for (const chunk of this.chunkArray(animeIds, 1000)) {
+    // SQLite has a limit on compound SELECT terms when using onConflict
+    // Reduce chunk size for SQLite to avoid "too many terms in compound SELECT" error
+    const client = this.knex.client.config.client
+    const chunkSize = client === 'better-sqlite3' ? 100 : 1000
+
+    for (const chunk of this.chunkArray(animeIds, chunkSize)) {
       await transaction('anime_ids')
         .insert(chunk)
         .onConflict(['external_id', 'source'])
