@@ -3,9 +3,9 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
 
 /**
- * Generates a secure random API key as a 32-byte base64url-encoded string.
+ * Generates a cryptographically secure API key as a 32-byte base64url-encoded string.
  *
- * @returns A cryptographically secure, base64url-encoded API key string
+ * @returns A secure, base64url-encoded API key string
  */
 function generateApiKey(): string {
   // Generate a secure random key
@@ -15,10 +15,10 @@ function generateApiKey(): string {
 /**
  * Creates a new API key record with a unique key and returns its details.
  *
- * Attempts to generate and insert a unique API key up to five times if a key collision occurs. Throws an error if a unique key cannot be generated after the maximum retries or if another database error occurs.
+ * Attempts to insert a new API key with the provided name, retrying up to five times if a key collision occurs due to uniqueness constraints. Throws an error if a unique key cannot be generated after the maximum retries or if another database error occurs.
  *
  * @param data - The API key creation details, including the name.
- * @returns The created API key's details.
+ * @returns The newly created API key object.
  */
 export async function createApiKey(
   this: DatabaseService,
@@ -89,9 +89,9 @@ export async function createApiKey(
 }
 
 /**
- * Retrieves all active API keys from the database, ordered by creation date descending.
+ * Returns a list of all active API keys, ordered by most recently created.
  *
- * @returns An array of active API key details.
+ * @returns An array of active API key objects.
  */
 export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
   const keys = await this.knex('api_keys')
@@ -109,10 +109,10 @@ export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
 }
 
 /**
- * Retrieves an active API key record matching the provided key string.
+ * Checks if the provided API key string corresponds to an active API key.
  *
- * @param key - The API key string to validate
- * @returns The API key object if found and active, or null if not found or inactive
+ * @param key - The API key string to check
+ * @returns The active API key object if found; otherwise, null
  */
 export async function validateApiKey(
   this: DatabaseService,
@@ -128,10 +128,10 @@ export async function validateApiKey(
 }
 
 /**
- * Deactivates an API key by its ID.
+ * Revokes an API key by setting its active status to false.
  *
  * @param id - The unique identifier of the API key to revoke
- * @returns True if the API key was successfully deactivated; false if no matching key was found
+ * @returns True if the API key was found and deactivated; false if no matching key exists
  */
 export async function revokeApiKey(
   this: DatabaseService,
@@ -145,7 +145,9 @@ export async function revokeApiKey(
 }
 
 /**
- * Retrieves all active API key strings from the database.
+ * Returns an array of all active API key strings.
+ *
+ * Queries the database for API keys marked as active and returns their key values.
  *
  * @returns An array of active API key strings.
  */
