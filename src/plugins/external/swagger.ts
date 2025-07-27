@@ -62,7 +62,31 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           name: 'Users',
           description: 'User management endpoints',
         },
+        {
+          name: 'API Keys',
+          description: 'API key management endpoints',
+        },
       ],
+      components: {
+        securitySchemes: {
+          apiKeyAuth: {
+            type: 'apiKey' as const,
+            in: 'header' as const,
+            name: 'X-API-Key',
+            description: 'API key authentication using X-API-Key header',
+          },
+          sessionAuth: {
+            type: 'apiKey' as const,
+            in: 'cookie' as const,
+            name: fastify.config.cookieName,
+            description: 'Session-based authentication using cookies',
+          },
+        },
+      },
+      security: [
+        { apiKeyAuth: [] as string[] },
+        { sessionAuth: [] as string[] },
+      ] as Array<Record<string, string[]>>,
     },
     hideUntagged: true,
     exposeRoute: true,

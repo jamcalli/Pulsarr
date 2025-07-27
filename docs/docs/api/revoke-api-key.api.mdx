@@ -1,0 +1,71 @@
+---
+id: revoke-api-key
+title: "Revoke API key"
+description: "Revoke an API key by ID"
+sidebar_label: "Revoke API key"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVbFu20AM/ZUDpwSQa6dJF20unCFIBsNpuxgeaImxLpbulDvKiSDo3wueJNuJ3aBDt06W78jHx6dHqgFbkkPW1tylEIOjnd3StNT3VEMEjBsP8RKm8zt1T7WHVQQp+cTpUlIghkVIUGiUxGypVuta3c0gghIdFsTkBKEBn2RUIMQNcF0SxGCqYk0O2gi0AJXIGURgsJBLnUIEjl4q7SiFmF1F7UpOfGmNJy84Xyc38vOez4yesMpZLfpIiCCxhsmwxGJZ5joJ7Y6fvSQcEWvbto3g5h+jDu3a9TMlLLo4kZx114SvkoS8PwpcW5sTGhGmIO9xQ0eXnp02GxCiB3WWe5RDyioCTFMtnDCfH5V8wtxT1+q3yeT/aDXgc2bF4SnlxBT8yRnEMN5djbHUoy3V/vDQ6LSFCDy53WDgyuUQQ8Zc+ng8rm3lRmWVe3RupI1nNAl9SWwBHydk7nSBrlaPAQva6K+h4uvJ5PoEb6YdJdzDqWlQQ128as5UaR1ffqgQj8e5TTDPrOfzgA/D9VmwlaiQVE5zHWRYEzpy00rEW4ZL77U1w8Fx/KMYo3v3x1n7Nyz0ROQQJnYIQSf8hsWCFWdkuLefqrw2G/U95Ci2Wwo+ekdnXwmHhRZWTWLtVtNh2fTanxR+7LBGa/SUni/fQfngUm2ebKipORfYeQcri/FsT6lNqoIMd3hP1qkhY6RQzXN6U6/ISZZrz0obpo07hD5aI5FoUrXAtGMvVu3gf12JFqX1XGCY0b7Tflv3in5k1Rwm/ZO93kvK9MbjMkcdZA9+a/qZWsLuCiIYhun9Y6xTmVjxm0Q2jaj70+VtK8cvFbm6M9YOnca1KLlsINVentN+qD8hfrHol8Wl+hPZwRRGFNhhXsk/iEAkCZ+edtVGkBGm5EL17kKmo+SjlJNlKObfL5rZ7cPtj1to29+MT4vq
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Revoke API key"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/api-keys/api-keys/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Revoke an API key by ID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"204":{"description":"Default Response","content":{"application/json":{"schema":{}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

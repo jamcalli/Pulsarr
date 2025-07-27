@@ -28,6 +28,7 @@ const PublicContentNotificationsPage = lazy(
   () => import('@/features/utilities/pages/public-content-notifications'),
 )
 const UserTagsPage = lazy(() => import('@/features/utilities/pages/user-tags'))
+const ApiKeysPage = lazy(() => import('@/features/utilities/pages/api-keys'))
 const ApprovalSettingsPage = lazy(
   () => import('@/features/approvals/pages/approval-settings'),
 )
@@ -237,6 +238,16 @@ export const router = createBrowserRouter([
               <AuthenticatedLayout>
                 <Suspense fallback={<LoadingFallback />}>
                   <UserTagsPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'api-keys',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ApiKeysPage />
                 </Suspense>
               </AuthenticatedLayout>
             ),

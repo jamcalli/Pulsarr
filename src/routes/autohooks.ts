@@ -14,7 +14,25 @@ export default async function (fastify: FastifyInstance) {
       return
     }
 
-    // Check if auth should be bypassed based on config and IP
+    // Check for API key authentication first (no bypass for API keys)
+    const apiKey = request.headers['x-api-key'] as string
+    if (apiKey) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          fastify.verifyApiKey(request, reply, (err) => {
+            if (err) reject(err)
+            else resolve()
+          })
+        })
+        // Valid API key, allow access
+        return
+      } catch (err) {
+        // Invalid API key
+        return reply.code(401).send({ message: 'Invalid API key' })
+      }
+    }
+
+    // Check if session auth should be bypassed based on config and IP
     const { shouldBypass, isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
       fastify,
       request,
@@ -35,9 +53,11 @@ export default async function (fastify: FastifyInstance) {
       return
     }
 
-    // Regular authentication check for all other cases
+    // Regular session authentication check for all other cases
     if (!request.session.user) {
-      reply.unauthorized('You must be authenticated to access this route.')
+      return reply
+        .code(401)
+        .send({ message: 'You must be authenticated to access this route.' })
     }
   })
 }
