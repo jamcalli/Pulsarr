@@ -132,5 +132,5 @@ After completing the quick start, you might want to:
 - [Configure Discord notifications](../notifications/discord)
 - [Set up Apprise integration](../notifications/apprise)
 - [Configure content routing rules](../features/content-routing)
-- [Set up user tagging](../utilities/user-tagging)
-- [Configure automatic deletion](../utilities/delete-sync)
+- [Set up user tagging](../utilities/07-user-tagging.md)
+- [Configure automatic deletion](../utilities/02-delete-sync.md)

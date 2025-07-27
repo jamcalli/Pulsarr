@@ -37,7 +37,7 @@ Manage user content requests with configurable quotas and administrative approva
 
 ### New User Defaults
 
-Configure default quota and approval settings for newly discovered Plex users via **Utilities > New User Defaults**. This eliminates manual setup for each new user and ensures consistent policy enforcement. See the [New User Defaults](../utilities/new-user-defaults.md) guide for complete details.
+Configure default quota and approval settings for newly discovered Plex users via **Utilities > New User Defaults**. This eliminates manual setup for each new user and ensures consistent policy enforcement. See the [New User Defaults](../utilities/03-new-user-defaults.md) guide for complete details.
 
 ### Individual User Management
 
