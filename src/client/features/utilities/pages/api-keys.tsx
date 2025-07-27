@@ -20,9 +20,9 @@ const getUserFriendlyErrorMessage = (error: string) => {
 }
 
 /**
- * Displays the API Keys management interface, allowing administrators to create, view, and revoke API keys for external access.
+ * Renders the API Keys management page, enabling administrators to create, view, refresh, and revoke API keys for external access.
  *
- * Provides secure key display, copy functionality, and confirmation modals for revocation. Handles loading, error, and refreshing states for a seamless management experience.
+ * The interface provides secure key display, copy functionality, and confirmation dialogs for key revocation. It manages loading, error, and refreshing states to ensure a responsive user experience.
  *
  * @returns The API keys management page as a React element.
  */
