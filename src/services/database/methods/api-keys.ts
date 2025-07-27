@@ -13,12 +13,12 @@ function generateApiKey(): string {
 }
 
 /**
- * Creates a new API key record with a unique key and returns its details.
+ * Creates a new API key with the specified name and returns its details.
  *
- * Attempts to insert a new API key with the provided name, retrying up to five times if a key collision occurs due to uniqueness constraints. Throws an error if a unique key cannot be generated after the maximum retries or if another database error occurs.
+ * Attempts to generate and insert a unique API key, retrying up to five times if a key collision occurs. Throws an error if a unique key cannot be created after the maximum retries or if another database error occurs.
  *
  * @param data - The API key creation details, including the name.
- * @returns The newly created API key object.
+ * @returns The newly created API key object with id, name, key, creation timestamp, and active status.
  */
 export async function createApiKey(
   this: DatabaseService,
@@ -89,9 +89,9 @@ export async function createApiKey(
 }
 
 /**
- * Returns a list of all active API keys, ordered by most recently created.
+ * Retrieves all active API keys from the database, ordered by creation date descending.
  *
- * @returns An array of active API key objects.
+ * @returns An array of active API key objects, each with a Boolean `is_active` property.
  */
 export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
   const keys = await this.knex('api_keys')
@@ -109,10 +109,10 @@ export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
 }
 
 /**
- * Checks if the provided API key string corresponds to an active API key.
+ * Validates whether the given API key string exists and is active.
  *
- * @param key - The API key string to check
- * @returns The active API key object if found; otherwise, null
+ * @param key - The API key string to validate
+ * @returns The corresponding active API key object if found; otherwise, null
  */
 export async function validateApiKey(
   this: DatabaseService,
