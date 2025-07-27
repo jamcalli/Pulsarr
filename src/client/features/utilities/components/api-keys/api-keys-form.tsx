@@ -33,17 +33,9 @@ interface ApiKeysFormProps {
 }
 
 /**
- * Renders a form for creating new API keys and displays a list of existing keys with options to show, copy, or revoke each key.
+ * Displays a form for creating new API keys and lists existing keys with controls to show, copy, or revoke each key.
  *
- * Allows users to input a name and generate a new API key, view and manage existing keys, toggle key visibility, copy keys to the clipboard, and revoke keys with appropriate loading and disabled states.
- *
- * @param apiKeys - List of API key objects to display and manage.
- * @param isCreating - Indicates if a new API key is currently being generated.
- * @param isRevoking - Mapping of API key IDs to revocation loading states.
- * @param visibleKeys - Mapping of API key IDs to their visibility state.
- * @param onSubmit - Callback invoked when the form is submitted to create a new API key.
- * @param onToggleVisibility - Callback to toggle the visibility of a specific API key.
- * @param onInitiateRevoke - Callback to initiate revocation of a specific API key.
+ * Users can enter a name to generate a new API key, view and manage their existing keys, toggle key visibility, copy keys to the clipboard, and revoke keys. The component manages loading and disabled states for key creation and revocation actions.
  */
 export function ApiKeysForm({
   form,
