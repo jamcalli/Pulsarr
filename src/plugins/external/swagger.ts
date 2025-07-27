@@ -83,12 +83,7 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           },
         },
       },
-      security: [
-        {
-          apiKeyAuth: [],
-          sessionAuth: [],
-        },
-      ],
+      security: [{ apiKeyAuth: [] }, { sessionAuth: [] }],
     },
     hideUntagged: true,
     exposeRoute: true,
