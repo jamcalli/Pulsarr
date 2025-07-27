@@ -30,9 +30,9 @@ function BackgroundLayer() {
   const location = useLocation()
   const isLoginRoute = location.pathname === '/login'
 
-  // Show background on desktop (non-fullscreen), or on mobile only for login
+  // Show background on login route always, or on desktop when fullscreen is disabled
   const shouldShowBackground = useMemo(
-    () => (!isMobile && !fullscreenEnabled) || (isMobile && isLoginRoute),
+    () => isLoginRoute || (!isMobile && !fullscreenEnabled),
     [isMobile, fullscreenEnabled, isLoginRoute],
   )
 
