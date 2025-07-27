@@ -61,7 +61,12 @@ export async function insertAnimeIds(
   if (animeIds.length === 0) return
 
   const executeInsert = async (transaction: Knex.Transaction) => {
-    for (const chunk of this.chunkArray(animeIds, 1000)) {
+    // SQLite has a limit on compound SELECT terms when using onConflict
+    // Reduce chunk size for SQLite to avoid "too many terms in compound SELECT" error
+    const client = this.knex.client.config.client
+    const chunkSize = client === 'better-sqlite3' ? 100 : 1000
+
+    for (const chunk of this.chunkArray(animeIds, chunkSize)) {
       await transaction('anime_ids')
         .insert(chunk)
         .onConflict(['external_id', 'source'])
