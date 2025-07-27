@@ -1,5 +1,14 @@
 import { z } from 'zod'
 
+// Common API Key Schema
+const ApiKeySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  key: z.string(),
+  created_at: z.string(),
+  is_active: z.boolean(),
+})
+
 // Create API Key Schema
 export const CreateApiKeySchema = z.object({
   name: z
@@ -11,28 +20,14 @@ export const CreateApiKeySchema = z.object({
 export const CreateApiKeyResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  apiKey: z.object({
-    id: z.number(),
-    name: z.string(),
-    key: z.string(),
-    created_at: z.string(),
-    is_active: z.boolean(),
-  }),
+  apiKey: ApiKeySchema,
 })
 
 // Get API Keys Schema
 export const GetApiKeysResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  apiKeys: z.array(
-    z.object({
-      id: z.number(),
-      name: z.string(),
-      key: z.string(),
-      created_at: z.string(),
-      is_active: z.boolean(),
-    }),
-  ),
+  apiKeys: z.array(ApiKeySchema),
 })
 
 // Revoke API Key Schema

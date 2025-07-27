@@ -49,13 +49,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          reply.status(400)
-          return {
-            success: false,
-            message: `Validation error: ${error.errors.map((e) => e.message).join(', ')}`,
-          }
-        }
         fastify.log.error({ error }, 'Failed to create API key')
         reply.status(500)
         return {

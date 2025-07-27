@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import type { ApiKeyCreate, ApiKeyResponse } from '@root/types/api-key.types.js'
+import type { ApiKeyCreate, ApiKey } from '@root/types/api-key.types.js'
 
 /**
  * Service for managing API keys
@@ -38,7 +38,7 @@ export class ApiKeyService {
   /**
    * Create a new API key
    */
-  async createApiKey(data: ApiKeyCreate): Promise<ApiKeyResponse> {
+  async createApiKey(data: ApiKeyCreate): Promise<ApiKey> {
     try {
       const apiKey = await this.fastify.db.createApiKey(data)
       await this.refreshCache() // Refresh cache after creation
@@ -56,7 +56,7 @@ export class ApiKeyService {
   /**
    * Get all API keys
    */
-  async getApiKeys(): Promise<ApiKeyResponse[]> {
+  async getApiKeys(): Promise<ApiKey[]> {
     try {
       return await this.fastify.db.getApiKeys()
     } catch (error) {

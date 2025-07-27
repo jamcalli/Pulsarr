@@ -9,6 +9,16 @@ import { ApiKeysDeleteConfirmationModal } from '@/features/utilities/components/
 import { ApiKeysSkeleton } from '@/features/utilities/components/api-keys/api-keys-skeleton'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
+const getUserFriendlyErrorMessage = (error: string) => {
+  if (error.includes('network') || error.includes('fetch')) {
+    return 'Unable to connect to the server. Please check your connection and try again.'
+  }
+  if (error.includes('unauthorized') || error.includes('403')) {
+    return 'You do not have permission to manage API keys.'
+  }
+  return error // Fallback to technical message
+}
+
 /**
  * Displays the API Keys management interface, allowing administrators to create, view, and revoke API keys for external access.
  *
@@ -136,7 +146,7 @@ export function ApiKeysPage() {
                     Error
                   </h4>
                   <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                    {error}
+                    {getUserFriendlyErrorMessage(error)}
                   </p>
                 </div>
               </div>

@@ -9,5 +9,3 @@ export interface ApiKey {
 export interface ApiKeyCreate {
   name: string
 }
-
-export type ApiKeyResponse = ApiKey
