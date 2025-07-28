@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Loader2,
@@ -38,6 +39,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import { useNavigate } from 'react-router-dom'
+import { useConfigStore } from '@/stores/configStore'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -45,9 +47,9 @@ import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { DeleteSyncPageSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-page-skeleton'
 
 /**
- * Delete Sync utility page - provides a full-featured interface for configuring and managing the delete synchronization job.
+ * Renders the Delete Sync page, providing a comprehensive interface for configuring and managing the delete synchronization job.
  *
- * Users can set deletion criteria, scheduling, safety thresholds, and notification preferences, as well as enable or disable the job, trigger immediate runs, and perform dry runs. The form provides contextual tooltips, validation feedback, confirmation modals, and adapts responsively for mobile devices.
+ * Users can set deletion criteria, schedule jobs, define safety thresholds, configure notifications, and control job execution. The page includes contextual tooltips, validation feedback, confirmation modals, and adapts responsively for mobile devices.
  */
 export default function DeleteSyncPage() {
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -82,7 +84,14 @@ export default function DeleteSyncPage() {
     setShowDryRunModal,
   } = useDeleteSync()
 
+  const { initialize: configInitialize } = useConfigStore()
+
   const navigate = useNavigate()
+
+  // Initialize config store on mount
+  useEffect(() => {
+    configInitialize()
+  }, [configInitialize])
 
   // Determine status based on job state
   const getStatus = () => {
