@@ -3,40 +3,47 @@ import type { Knex } from 'knex'
 /**
  * Adds a unique constraint to the `notifications` table to prevent duplicate notifications for the same user and content combination.
  *
- * Removes existing duplicate notifications, retaining only the most recent entry for each unique set of `user_id`, `watchlist_item_id`, `type`, `season_number`, `episode_number`, and `notification_status`. Then enforces uniqueness on these columns to prevent future duplicates.
+ * Removes existing duplicate notifications, keeping only the most recent entry for each unique set of `user_id`, `watchlist_item_id`, `type`, `season_number`, `episode_number`, and `notification_status`, then enforces uniqueness on these columns for future inserts.
  */
 export async function up(knex: Knex): Promise<void> {
-  // First, identify and remove duplicate notifications
-  // Keep the most recent notification for each unique combination
-  const duplicateQuery = `
-    DELETE FROM notifications 
-    WHERE id NOT IN (
-      SELECT MAX(id) 
-      FROM notifications 
-      GROUP BY user_id, watchlist_item_id, type, season_number, episode_number, notification_status
-    )
-  `
-
-  const deletedCount = await knex.raw(duplicateQuery)
-  console.log(
-    `Cleaned up ${deletedCount.rowCount || deletedCount.changes || 0} duplicate notifications`,
-  )
-
   // Check if we're using PostgreSQL or SQLite
   const isPostgres = knex.client.config.client === 'pg'
 
+  // First, identify and remove duplicate notifications
+  // Keep the most recent notification for each unique combination
   if (isPostgres) {
-    // PostgreSQL: Use two-step approach with NOT VALID then VALIDATE
+    // PostgreSQL: Use a more reliable approach with CTEs to avoid subquery issues
+    const duplicateQuery = `
+      WITH duplicates AS (
+        SELECT id, ROW_NUMBER() OVER (
+          PARTITION BY user_id, watchlist_item_id, type, season_number, episode_number, notification_status 
+          ORDER BY id DESC
+        ) as rn 
+        FROM notifications
+      )
+      DELETE FROM notifications 
+      WHERE id IN (SELECT id FROM duplicates WHERE rn > 1)
+    `
+    await knex.raw(duplicateQuery)
+  } else {
+    // SQLite: Original query works fine
+    const duplicateQuery = `
+      DELETE FROM notifications 
+      WHERE id NOT IN (
+        SELECT MAX(id) 
+        FROM notifications 
+        GROUP BY user_id, watchlist_item_id, type, season_number, episode_number, notification_status
+      )
+    `
+    await knex.raw(duplicateQuery)
+  }
+
+  if (isPostgres) {
+    // PostgreSQL: Add constraint directly after cleaning duplicates
     await knex.raw(`
       ALTER TABLE notifications
       ADD CONSTRAINT notifications_unique_content_user
       UNIQUE (user_id, watchlist_item_id, type, season_number, episode_number, notification_status)
-      NOT VALID
-    `)
-
-    await knex.raw(`
-      ALTER TABLE notifications
-      VALIDATE CONSTRAINT notifications_unique_content_user
     `)
   } else {
     // SQLite: Use standard unique constraint after cleanup
