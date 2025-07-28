@@ -44,7 +44,7 @@ ENV CACHE_DIR=/app/build-cache
 COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --omit=dev --prefer-offline --no-audit --ignore-scripts && \
-    npm rebuild better-sqlite3
+    npm rebuild --verbose
 
 # Create necessary directories
 RUN mkdir -p /app/data/db && \
@@ -58,6 +58,10 @@ COPY vite.config.js ./
 COPY migrations ./migrations
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
+
+# Copy license and documentation files for compliance
+COPY LICENSE* ./
+COPY README.md ./
 
 # Pass TMDB API key to runtime (GitHub Actions converts to TMDBAPIKEY)
 ARG TMDBAPIKEY

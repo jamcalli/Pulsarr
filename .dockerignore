@@ -7,8 +7,14 @@ npm-debug.log*
 # Development and build artifacts
 .git
 .github
+# Exclude documentation files first
+README-detailed.md
+docs/**/*.md
 *.md
-README*
+# Then include specific files for compliance
+!LICENSE*
+!NOTICE*
+!README.md
 *.log
 build.log
 tsconfig.tsbuildinfo
