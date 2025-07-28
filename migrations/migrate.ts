@@ -6,9 +6,9 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 /**
- * Runs the latest database migrations using the development configuration.
+ * Applies all pending database migrations using the development configuration.
  *
- * Ensures that all pending migrations are applied and the database connection is properly closed, regardless of success or failure.
+ * Terminates the process with exit code 1 if migration fails. Ensures the database connection is closed after completion.
  */
 async function migrate() {
   const db = knex(config.development)
@@ -18,6 +18,7 @@ async function migrate() {
     console.log('Migrations completed successfully')
   } catch (err) {
     console.error('Error running migrations:', err)
+    process.exit(1)
   } finally {
     await db.destroy()
   }

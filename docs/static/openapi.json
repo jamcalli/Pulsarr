@@ -8830,8 +8830,7 @@
                             "enum": ["Download"]
                           },
                           "instanceName": {
-                            "type": "string",
-                            "enum": ["Sonarr"]
+                            "type": "string"
                           },
                           "series": {
                             "type": "object",
@@ -8925,8 +8924,7 @@
                             "enum": ["Download"]
                           },
                           "instanceName": {
-                            "type": "string",
-                            "enum": ["Sonarr"]
+                            "type": "string"
                           },
                           "series": {
                             "type": "object",
@@ -9036,8 +9034,7 @@
                     "type": "object",
                     "properties": {
                       "instanceName": {
-                        "type": "string",
-                        "enum": ["Radarr"]
+                        "type": "string"
                       },
                       "movie": {
                         "type": "object",
@@ -22688,6 +22685,29 @@
     }
   },
   "servers": [
+    {
+      "url": "{protocol}://{host}:{port}{basePath}",
+      "description": "Custom Server",
+      "variables": {
+        "protocol": {
+          "enum": ["http", "https"],
+          "default": "http",
+          "description": "The protocol used to communicate with the server"
+        },
+        "host": {
+          "default": "localhost",
+          "description": "The hostname or IP address of the Pulsarr server"
+        },
+        "port": {
+          "default": "3003",
+          "description": "The port on which Pulsarr is running"
+        },
+        "basePath": {
+          "default": "",
+          "description": "The base path (if running behind a reverse proxy with path prefix)"
+        }
+      }
+    },
     {
       "url": "https://your-pulsarr-instance.com",
       "description": "Primary Server"

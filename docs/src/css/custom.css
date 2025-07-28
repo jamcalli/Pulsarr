@@ -200,3 +200,19 @@ button[class*="bg-main"].hero-button {
 		width: 600px;
 	}
 }
+
+/* Fix OpenAPI server variable input and button contrast */
+.openapi-explorer__floating-btn input,
+.openapi-explorer__floating-btn button {
+	background-color: var(--ifm-background-surface-color, #fff) !important;
+	color: var(--ifm-color-content, #000) !important;
+	border: 1px solid var(--ifm-color-emphasis-300, #ccc) !important;
+}
+
+/* Dark mode fixes */
+html[data-theme="dark"] .openapi-explorer__floating-btn input,
+html[data-theme="dark"] .openapi-explorer__floating-btn button {
+	background-color: var(--ifm-background-surface-color, #1e202a) !important;
+	color: var(--ifm-color-content, #e6e6e6) !important;
+	border-color: var(--ifm-color-emphasis-300, #555) !important;
+}
