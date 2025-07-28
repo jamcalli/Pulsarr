@@ -3,7 +3,7 @@ import type { Knex } from 'knex'
 /**
  * Adds a unique constraint to the `notifications` table to prevent duplicate notifications for the same user and content combination.
  *
- * Removes existing duplicate notifications, retaining only the most recent entry for each unique set of `user_id`, `watchlist_item_id`, `type`, `season_number`, `episode_number`, and `notification_status`. Then enforces uniqueness on these columns to prevent future duplicates.
+ * Removes existing duplicate notifications, keeping only the most recent entry for each unique set of `user_id`, `watchlist_item_id`, `type`, `season_number`, `episode_number`, and `notification_status`, then enforces uniqueness on these columns for future inserts.
  */
 export async function up(knex: Knex): Promise<void> {
   // Check if we're using PostgreSQL or SQLite
