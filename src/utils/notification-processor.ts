@@ -25,7 +25,7 @@ const WEBHOOK_CACHE_TTL_MS = 10000 // 10 seconds
 /**
  * Generates a stable 32-character SHA-256 hash to uniquely identify a webhook payload for deduplication.
  *
- * The hash is derived from key fields such as instance name, content type, content ID, and title. For TV show payloads, episode details are also included. Event type and upgrade status are excluded to group related events.
+ * The hash is computed from key identifying fields: for movies, it includes the TMDB ID and title; for TV shows, it includes the TVDB ID, title, and the first episode's season and episode numbers. Event type and upgrade status are intentionally excluded to group related events.
  *
  * @returns A 32-character hexadecimal hash string representing the webhook's unique identity.
  */
@@ -60,9 +60,9 @@ function createWebhookHash(payload: WebhookPayload): string {
 }
 
 /**
- * Determines if a webhook payload is valid and not a recent duplicate, allowing it to be processed.
+ * Determines whether a webhook payload is valid and not a recent duplicate, making it eligible for processing.
  *
- * Validates Sonarr and Radarr webhook payloads by checking for required fields, event types, and file information. Skips test events, upgrade events, and incomplete or duplicate payloads within a short deduplication window.
+ * Validates Sonarr and Radarr webhook payloads by checking for required fields, event types, and file information. Skips test events, upgrade events, incomplete payloads, and duplicates received within a short deduplication window.
  *
  * @returns `true` if the webhook is valid and not a duplicate; otherwise, `false`.
  */
