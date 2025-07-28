@@ -43,7 +43,8 @@ ENV CACHE_DIR=/app/build-cache
 # Copy package files and install production dependencies with cache
 COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production --prefer-offline --no-audit
+    npm ci --omit=dev --prefer-offline --no-audit --ignore-scripts && \
+    npm rebuild better-sqlite3
 
 # Create necessary directories
 RUN mkdir -p /app/data/db && \
