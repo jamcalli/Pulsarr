@@ -82,7 +82,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       let instance = null
 
       if (instanceId) {
-        if (body.instanceName === 'Sonarr') {
+        // Determine instance type based on payload structure
+        if ('series' in body && 'episodes' in body) {
           instance = await fastify.db.getSonarrInstanceByIdentifier(instanceId)
           fastify.log.debug(
             {
@@ -93,7 +94,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             },
             'Sonarr instance lookup result',
           )
-        } else if (body.instanceName === 'Radarr') {
+        } else if ('movie' in body) {
           instance = await fastify.db.getRadarrInstanceByIdentifier(instanceId)
           fastify.log.debug(
             {
@@ -131,16 +132,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             instanceName: body.instanceName,
             eventType: 'eventType' in body ? body.eventType : 'unknown',
             contentTitle:
-              body.instanceName === 'Radarr' && 'movie' in body
+              'movie' in body
                 ? body.movie.title
-                : body.instanceName === 'Sonarr' && 'series' in body
+                : 'series' in body
                   ? body.series.title
                   : 'unknown',
           },
           'Webhook passed deduplication and will be processed',
         )
 
-        if (body.instanceName === 'Radarr' && 'movie' in body) {
+        if ('movie' in body) {
           const tmdbGuid = `tmdb:${body.movie.tmdbId}`
           const matchingItems =
             await fastify.db.getWatchlistItemsByGuid(tmdbGuid)
@@ -221,12 +222,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { success: true }
         }
 
-        if (
-          body.instanceName === 'Sonarr' &&
-          'series' in body &&
-          'episodes' in body &&
-          body.episodes
-        ) {
+        if ('series' in body && 'episodes' in body && body.episodes) {
           const tvdbId = body.series.tvdbId.toString()
           const seasonNumber = body.episodes[0].seasonNumber
           const episodeNumber = body.episodes[0].episodeNumber

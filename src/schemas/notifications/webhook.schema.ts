@@ -36,7 +36,7 @@ export const WebhookQuerySchema = z.object({
 })
 
 export const RadarrWebhookPayloadSchema = z.object({
-  instanceName: z.literal('Radarr'),
+  instanceName: z.string(),
   movie: z.object({
     title: z.string(),
     tmdbId: z.number(),
@@ -45,7 +45,7 @@ export const RadarrWebhookPayloadSchema = z.object({
 
 const BaseSonarrWebhookSchema = z.object({
   eventType: z.literal('Download'),
-  instanceName: z.literal('Sonarr'),
+  instanceName: z.string(),
   series: SonarrSeriesSchema,
   episodes: z.array(SonarrEpisodeSchema),
   isUpgrade: z.boolean().optional(),
