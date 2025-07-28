@@ -1,0 +1,68 @@
+# Node modules and package files
+node_modules
+docs/node_modules
+npm-debug.log*
+.npm
+
+# Development and build artifacts
+.git
+.github
+*.md
+README*
+*.log
+build.log
+tsconfig.tsbuildinfo
+dist
+docs/build
+docs/.docusaurus
+docs/static/openapi.json
+
+# Documentation (except required for build)
+docs/docs
+docs/src
+assets
+*.gif
+
+# Database and data
+data
+*.db
+*.db-shm
+*.db-wal
+
+# Environment and config files (keep what's needed)
+.env*
+!.env.example
+
+# Development tools
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+coverage
+*.lcov
+*.tgz
+
+# Temporary files
+tmp
+temp
+repomix-output.xml
+
+# Backups
+backups
+
+# Build caches
+.cache
+.vite
+.tsbuildinfo
