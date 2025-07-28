@@ -26,19 +26,26 @@ export default function GitHubStatsButton(): React.ReactElement {
   }, [])
 
   useEffect(() => {
-    // Show tooltip after 2 seconds
-    const showTimer = setTimeout(() => {
-      setShowTooltip(true)
-    }, 2000)
+    // Check if tooltip has already been shown this session
+    const tooltipShown = sessionStorage.getItem('github-tooltip-shown')
 
-    // Hide tooltip after 6 seconds total
-    const hideTimer = setTimeout(() => {
-      setShowTooltip(false)
-    }, 6000)
+    if (!tooltipShown) {
+      // Show tooltip after 2 seconds
+      const showTimer = setTimeout(() => {
+        setShowTooltip(true)
+        // Mark as shown for this session
+        sessionStorage.setItem('github-tooltip-shown', 'true')
+      }, 2000)
 
-    return () => {
-      clearTimeout(showTimer)
-      clearTimeout(hideTimer)
+      // Hide tooltip after 6 seconds total
+      const hideTimer = setTimeout(() => {
+        setShowTooltip(false)
+      }, 6000)
+
+      return () => {
+        clearTimeout(showTimer)
+        clearTimeout(hideTimer)
+      }
     }
   }, [])
 
