@@ -23,26 +23,22 @@ const webhookCache = new Map<
 const WEBHOOK_CACHE_TTL_MS = 10000 // 10 seconds
 
 /**
- * Generates a stable SHA-256 hash (truncated to 32 characters) representing the unique identity of a webhook payload for deduplication purposes.
+ * Generates a stable 32-character SHA-256 hash to uniquely identify a webhook payload for deduplication.
  *
- * The hash is based on key content fields such as instance name, content type, content ID, and title. For Sonarr payloads, episode details are also included. Event type and upgrade status are intentionally excluded to group related events together.
+ * The hash is derived from key fields such as instance name, content type, content ID, and title. For TV show payloads, episode details are also included. Event type and upgrade status are excluded to group related events.
  *
- * @returns A 32-character hexadecimal hash string identifying the webhook content.
+ * @returns A 32-character hexadecimal hash string representing the webhook's unique identity.
  */
 function createWebhookHash(payload: WebhookPayload): string {
   const hashData: Record<string, string | number> = {
     instanceName: payload.instanceName,
   }
 
-  if (payload.instanceName === 'Radarr' && 'movie' in payload) {
+  if ('movie' in payload) {
     hashData.contentType = 'movie'
     hashData.contentId = payload.movie.tmdbId
     hashData.title = payload.movie.title
-  } else if (
-    payload.instanceName === 'Sonarr' &&
-    'series' in payload &&
-    'episodes' in payload
-  ) {
+  } else if ('series' in payload && 'episodes' in payload) {
     hashData.contentType = 'show'
     hashData.contentId = payload.series.tvdbId
     hashData.title = payload.series.title
@@ -64,11 +60,11 @@ function createWebhookHash(payload: WebhookPayload): string {
 }
 
 /**
- * Determines whether a webhook payload should be processed or skipped as a duplicate or invalid event.
+ * Determines if a webhook payload is valid and not a recent duplicate, allowing it to be processed.
  *
- * Validates Sonarr and Radarr webhook payloads, ensuring required fields and event types are present, and skips test, upgrade, or incomplete events. Uses a deduplication cache to prevent processing duplicate webhooks within a short time window.
+ * Validates Sonarr and Radarr webhook payloads by checking for required fields, event types, and file information. Skips test events, upgrade events, and incomplete or duplicate payloads within a short deduplication window.
  *
- * @returns `true` if the webhook should be processed; `false` if it is a duplicate or invalid.
+ * @returns `true` if the webhook is valid and not a duplicate; otherwise, `false`.
  */
 export function isWebhookProcessable(
   payload: WebhookPayload,
@@ -80,7 +76,7 @@ export function isWebhookProcessable(
   }
 
   // Handle Sonarr webhooks
-  if (payload.instanceName === 'Sonarr') {
+  if ('series' in payload || 'episodes' in payload) {
     // Sonarr webhooks must have series, episodes, and eventType
     if (
       !('series' in payload) ||
@@ -119,12 +115,8 @@ export function isWebhookProcessable(
   }
 
   // Handle Radarr webhooks
-  if (payload.instanceName === 'Radarr') {
-    // Radarr webhooks must have movie info
-    if (!('movie' in payload)) {
-      logger?.debug('Skipping invalid Radarr webhook - missing movie info')
-      return false
-    }
+  if ('movie' in payload) {
+    // Radarr webhooks already have movie info, no additional check needed
   }
 
   // Check for duplicates
@@ -146,10 +138,9 @@ export function isWebhookProcessable(
 
   // Create content info for logging
   let contentInfo: string = payload.instanceName
-  if (payload.instanceName === 'Radarr' && 'movie' in payload) {
+  if ('movie' in payload) {
     contentInfo = `${payload.movie.title} (${payload.movie.tmdbId})`
   } else if (
-    payload.instanceName === 'Sonarr' &&
     'series' in payload &&
     'episodes' in payload &&
     payload.episodes.length > 0
