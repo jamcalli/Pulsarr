@@ -34,15 +34,11 @@ function createWebhookHash(payload: WebhookPayload): string {
     instanceName: payload.instanceName,
   }
 
-  if (payload.instanceName === 'Radarr' && 'movie' in payload) {
+  if ('movie' in payload) {
     hashData.contentType = 'movie'
     hashData.contentId = payload.movie.tmdbId
     hashData.title = payload.movie.title
-  } else if (
-    payload.instanceName === 'Sonarr' &&
-    'series' in payload &&
-    'episodes' in payload
-  ) {
+  } else if ('series' in payload && 'episodes' in payload) {
     hashData.contentType = 'show'
     hashData.contentId = payload.series.tvdbId
     hashData.title = payload.series.title
@@ -80,7 +76,7 @@ export function isWebhookProcessable(
   }
 
   // Handle Sonarr webhooks
-  if (payload.instanceName === 'Sonarr') {
+  if ('series' in payload || 'episodes' in payload) {
     // Sonarr webhooks must have series, episodes, and eventType
     if (
       !('series' in payload) ||
@@ -119,12 +115,8 @@ export function isWebhookProcessable(
   }
 
   // Handle Radarr webhooks
-  if (payload.instanceName === 'Radarr') {
-    // Radarr webhooks must have movie info
-    if (!('movie' in payload)) {
-      logger?.debug('Skipping invalid Radarr webhook - missing movie info')
-      return false
-    }
+  if ('movie' in payload) {
+    // Radarr webhooks already have movie info, no additional check needed
   }
 
   // Check for duplicates
@@ -146,10 +138,9 @@ export function isWebhookProcessable(
 
   // Create content info for logging
   let contentInfo: string = payload.instanceName
-  if (payload.instanceName === 'Radarr' && 'movie' in payload) {
+  if ('movie' in payload) {
     contentInfo = `${payload.movie.title} (${payload.movie.tmdbId})`
   } else if (
-    payload.instanceName === 'Sonarr' &&
     'series' in payload &&
     'episodes' in payload &&
     payload.episodes.length > 0
