@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Loader2,
@@ -38,6 +39,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import { useNavigate } from 'react-router-dom'
+import { useConfigStore } from '@/stores/configStore'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -82,7 +84,14 @@ export default function DeleteSyncPage() {
     setShowDryRunModal,
   } = useDeleteSync()
 
+  const { initialize: configInitialize } = useConfigStore()
+
   const navigate = useNavigate()
+
+  // Initialize config store on mount
+  useEffect(() => {
+    configInitialize()
+  }, [configInitialize])
 
   // Determine status based on job state
   const getStatus = () => {

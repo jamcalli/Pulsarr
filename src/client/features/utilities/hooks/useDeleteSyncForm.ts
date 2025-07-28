@@ -161,6 +161,7 @@ export function useDeleteSyncForm() {
   useEffect(() => {
     if (
       config &&
+      config.deletionMode !== undefined &&
       (!formInitializedRef.current || scheduleTime) &&
       saveStatus === 'idle'
     ) {
@@ -171,7 +172,7 @@ export function useDeleteSyncForm() {
 
       form.reset(
         {
-          deletionMode: config.deletionMode || 'watchlist',
+          deletionMode: config.deletionMode ?? 'watchlist',
           deleteMovie: config.deleteMovie || false,
           deleteEndedShow: config.deleteEndedShow || false,
           deleteContinuingShow: config.deleteContinuingShow || false,
