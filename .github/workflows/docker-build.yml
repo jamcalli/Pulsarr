@@ -82,8 +82,10 @@ jobs:
           # Users building from source should provide their own key
           build-args: |
             TMDBAPIKEY=${{ secrets.TMDBAPIKEY }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha,scope=buildkit
+          cache-to: |
+            type=gha,mode=max,scope=buildkit
 
       - name: Generate Release Notes
         uses: release-drafter/release-drafter@v5
