@@ -18,6 +18,7 @@ async function migrate() {
     console.log('Migrations completed successfully')
   } catch (err) {
     console.error('Error running migrations:', err)
+    process.exit(1)
   } finally {
     await db.destroy()
   }
