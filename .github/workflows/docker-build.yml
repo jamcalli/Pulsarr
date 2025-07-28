@@ -86,8 +86,6 @@ jobs:
             type=gha,scope=buildkit
           cache-to: |
             type=gha,mode=max,scope=buildkit
-          provenance: false
-          sbom: false
 
       - name: Generate Release Notes
         uses: release-drafter/release-drafter@v5
