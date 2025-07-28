@@ -26,8 +26,7 @@ COPY vite.config.js tsconfig.json postcss.config.mjs ./
 COPY src ./src
 
 # Build with cache mounts
-RUN --mount=type=cache,target=/app/.vite \
-    --mount=type=cache,target=/app/node_modules/.vite \
+RUN --mount=type=cache,target=/app/node_modules/.vite \
     npm run build
 
 # Ensure cache dir
