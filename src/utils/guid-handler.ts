@@ -1,10 +1,9 @@
 /**
- * Normalizes a GUID string to a consistent format.
+ * Converts a GUID string to lowercase and replaces '://' with ':' for consistent formatting.
  *
- * Converts provider://id format to provider:id and ensures lowercase.
- * This ensures consistent GUID comparison across the application.
+ * Ensures GUIDs are standardized for reliable comparison and processing.
  *
- * @param guid - The GUID string to normalize
+ * @param guid - The GUID string to standardize
  * @returns The normalized GUID string
  */
 export function normalizeGuid(guid: string): string {
@@ -13,11 +12,11 @@ export function normalizeGuid(guid: string): string {
 }
 
 /**
- * Converts various GUID input formats into a deduplicated array of trimmed GUID strings.
+ * Parses various GUID input formats into a deduplicated array of normalized GUID strings.
  *
- * Accepts an array of strings, a JSON-encoded string representing an array, a comma-separated string, a single string, or undefined. Returns an empty array if the input is undefined or empty.
+ * Accepts an array of strings, a JSON-encoded string array, a comma-separated string, a single string, or undefined. All GUIDs are normalized for consistent comparison. Returns an empty array if the input is undefined or empty.
  *
- * @returns An array of unique, trimmed GUID strings extracted from the input.
+ * @returns An array of unique, normalized GUID strings extracted from the input.
  */
 export function parseGuids(guids: string[] | string | undefined): string[] {
   if (!guids) return []
@@ -150,9 +149,9 @@ export function extractTmdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Returns the numeric TVDB ID from the first GUID in the input that starts with "tvdb:".
+ * Extracts the numeric TVDB ID from the first GUID starting with "tvdb:".
  *
- * Parses the input for a GUID prefixed with "tvdb:", extracts the integer following the prefix, and returns it. Returns 0 if no valid TVDB GUID is found or if the extracted value is not a valid number.
+ * Parses the input GUIDs and returns the integer value following the "tvdb:" prefix. Returns 0 if no valid TVDB GUID is found or if the extracted value is not a valid number.
  *
  * @returns The TVDB ID as a number, or 0 if not found or invalid.
  */
@@ -166,11 +165,11 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Returns the numeric IMDb ID extracted from the first GUID with an "imdb:" prefix.
+ * Extracts the numeric IMDb ID from the first GUID with an "imdb:" prefix.
  *
- * Removes the "imdb:" prefix and an optional leading "tt" from the GUID before parsing the numeric ID. Returns 0 if no valid IMDb GUID is found.
+ * Removes the "imdb:" prefix and an optional leading "tt" before parsing the numeric ID. Returns 0 if no valid IMDb GUID is found or if the extracted ID is not a valid number.
  *
- * @returns The extracted IMDb ID as a number, or 0 if not found or invalid.
+ * @returns The numeric IMDb ID, or 0 if not found or invalid.
  */
 export function extractImdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
@@ -183,14 +182,11 @@ export function extractImdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Returns the number of matching GUIDs between two arrays.
- * Used for weighting/scoring matches where higher scores indicate better matches.
+ * Calculates the number of matching GUIDs between two arrays of parsed GUID strings.
  *
- * @param parsedGuids1 - The first array of GUID strings.
- * @param parsedGuids2 - The second array of GUID strings.
- * @returns The number of matching GUIDs (0, 1, 2, 3, etc.)
- *
- * @remark Both parameters must be arrays of already-parsed GUID strings.
+ * @param parsedGuids1 - The first array of normalized GUID strings.
+ * @param parsedGuids2 - The second array of normalized GUID strings.
+ * @returns The count of GUIDs present in both arrays.
  */
 export function getGuidMatchScore(
   parsedGuids1: string[],
@@ -202,16 +198,11 @@ export function getGuidMatchScore(
 }
 
 /**
- * Checks if two arrays of GUID strings have any matching GUIDs.
- * Use getGuidMatchScore() for weighting - this function just checks if there's any match at all.
+ * Determines whether two arrays of parsed GUID strings share at least one matching GUID.
  *
- * Priority should be handled by caller: 3 matches > 2 matches > 1 match
- *
- * @param parsedGuids1 - The first array of GUID strings.
- * @param parsedGuids2 - The second array of GUID strings.
- * @returns `true` if there is at least one matching GUID; otherwise, `false`.
- *
- * @remark Both parameters must be arrays of already-parsed GUID strings.
+ * @param parsedGuids1 - The first array of normalized GUID strings.
+ * @param parsedGuids2 - The second array of normalized GUID strings.
+ * @returns `true` if any GUID is present in both arrays; otherwise, `false`.
  */
 export function hasMatchingParsedGuids(
   parsedGuids1: string[],

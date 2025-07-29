@@ -1098,12 +1098,12 @@ export async function getWatchlistItemsByGuid(
 }
 
 /**
- * Returns all unique GUIDs from watchlist items that include the specified TVDB ID.
+ * Retrieves all unique GUIDs from watchlist items that contain a TVDB GUID matching the specified TVDB ID.
  *
- * Finds watchlist items whose GUIDs array contains a TVDB GUID matching the provided ID, then aggregates and returns all unique GUIDs from those items. Useful for cross-referencing content across different metadata providers.
+ * Searches for watchlist items whose `guids` array includes a GUID in the format `tvdb:{tvdbId}` (case-insensitive), then aggregates and returns all unique GUIDs from those items.
  *
- * @param tvdbId - The TVDB ID to match against GUIDs
- * @returns An array of unique GUID strings associated with the content
+ * @param tvdbId - The TVDB ID to search for within GUIDs
+ * @returns An array of unique GUID strings found in matching watchlist items
  */
 export async function getAllGuidsByTvdbId(
   this: DatabaseService,
@@ -1146,12 +1146,12 @@ export async function getAllGuidsByTvdbId(
 }
 
 /**
- * Retrieves watchlist items by any GUID along with their user information for RSS matching.
- * This method finds all watchlist items that contain any of the provided GUIDs in their GUIDs array,
- * joining with user data to provide complete information needed for RSS matching.
+ * Retrieves all watchlist items containing any of the specified GUIDs, including associated user information.
  *
- * @param guids - Array of GUIDs to search for in watchlist items
- * @returns Promise resolving to an array of watchlist items with user information
+ * Searches for watchlist items where the `guids` array contains any of the provided GUIDs (case-insensitive), and joins each item with its user's `username` and `watchlist_id`.
+ *
+ * @param guids - GUIDs to match against watchlist items
+ * @returns An array of watchlist items with user details for each matching GUID
  */
 export async function getWatchlistItemsWithUsersByGuids(
   this: DatabaseService,
