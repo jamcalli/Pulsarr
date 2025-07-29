@@ -1304,6 +1304,7 @@ export class WatchlistWorkflowService {
           } else {
             this.log.info('Performing standard watchlist refresh')
             await this.fetchWatchlists()
+            await this.syncWatchlistItems()
           }
 
           this.log.info(`Queue processing completed for ${queueSize} items`)
