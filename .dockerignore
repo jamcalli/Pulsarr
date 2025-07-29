@@ -11,7 +11,6 @@ npm-debug.log*
 README-detailed.md
 docs/**/*.md
 *.md
-CLAUDE.md
 # Then include specific files for compliance
 !LICENSE*
 !NOTICE*
