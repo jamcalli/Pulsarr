@@ -9,6 +9,7 @@ import type {
 } from '@root/types/sonarr.types.js'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
+import { hasMatchingGuids } from '@utils/guid-handler.js'
 
 export class SonarrManagerService {
   private sonarrServices: Map<number, SonarrService> = new Map()
@@ -357,9 +358,7 @@ export class SonarrManagerService {
       instance.bypassIgnored,
     )
     return [...existingSeries].some((series) =>
-      series.guids.some((existingGuid: string) =>
-        item.guids?.includes(existingGuid),
-      ),
+      hasMatchingGuids(series.guids, item.guids),
     )
   }
 

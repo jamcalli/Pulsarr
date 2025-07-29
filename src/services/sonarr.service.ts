@@ -19,6 +19,12 @@ import {
   isSystemStatus,
   isSonarrStatus,
 } from '@root/types/system-status.types.js'
+import {
+  extractTvdbId,
+  extractSonarrId,
+  hasMatchingGuids,
+  normalizeGuid,
+} from '@utils/guid-handler.js'
 
 // Custom error class to include HTTP status
 class HttpError extends Error {
@@ -564,10 +570,10 @@ export class SonarrService {
     return {
       title: series.title,
       guids: [
-        series.imdbId ? `imdb:${series.imdbId}` : undefined,
-        series.tmdbId ? `tmdb:${series.tmdbId}` : undefined,
-        series.tvdbId ? `tvdb:${series.tvdbId}` : undefined,
-        `sonarr:${series.id}`,
+        series.imdbId ? normalizeGuid(`imdb:${series.imdbId}`) : undefined,
+        series.tmdbId ? normalizeGuid(`tmdb:${series.tmdbId}`) : undefined,
+        series.tvdbId ? normalizeGuid(`tvdb:${series.tvdbId}`) : undefined,
+        normalizeGuid(`sonarr:${series.id}`),
       ].filter((x): x is string => !!x),
       type: 'show',
       ended: series.ended,
@@ -783,9 +789,8 @@ export class SonarrService {
         searchForMissingEpisodes: shouldSearch,
       }
 
-      const tvdbId = item.guids
-        .find((guid) => guid.startsWith('tvdb:'))
-        ?.replace('tvdb:', '')
+      const tvdbIdNumber = extractTvdbId(item.guids)
+      const tvdbId = tvdbIdNumber > 0 ? tvdbIdNumber.toString() : undefined
 
       const rootFolderPath = await this.resolveRootFolder(overrideRootFolder)
 
@@ -907,49 +912,39 @@ export class SonarrService {
   async deleteFromSonarr(item: Item, deleteFiles: boolean): Promise<void> {
     const config = this.sonarrConfig
     try {
-      const sonarrGuid = item.guids.find((guid) => guid.startsWith('sonarr:'))
-      const tvdbGuid = item.guids.find((guid) => guid.startsWith('tvdb:'))
+      const sonarrId = extractSonarrId(item.guids)
 
-      if (!sonarrGuid && !tvdbGuid) {
+      if (sonarrId > 0) {
+        // Use the extracted Sonarr ID directly
+        await this.deleteFromSonarrById(sonarrId, deleteFiles)
+        this.log.info(`Deleted ${item.title} from Sonarr`)
+        return
+      }
+
+      // Fallback: try to find by TVDB ID
+      const tvdbId = extractTvdbId(item.guids)
+      if (tvdbId === 0) {
         this.log.warn(
-          `Unable to extract ID from show to delete: ${JSON.stringify(item)}`,
+          `Unable to extract any valid ID from show to delete: ${JSON.stringify(item)}`,
         )
         return
       }
 
-      let sonarrId: number | undefined
+      const allSeries = await this.fetchSeries(true)
+      const matchingSeries = [...allSeries].find((show) =>
+        hasMatchingGuids(show.guids, [`tvdb:${tvdbId}`]),
+      )
 
-      if (sonarrGuid) {
-        sonarrId = Number.parseInt(sonarrGuid.replace('sonarr:', ''), 10)
-      } else if (tvdbGuid) {
-        const tvdbId = tvdbGuid.replace('tvdb:', '')
-        const allSeries = await this.fetchSeries(true)
-        const matchingSeries = [...allSeries].find((show) =>
-          show.guids.some(
-            (guid) =>
-              guid.startsWith('tvdb:') && guid.replace('tvdb:', '') === tvdbId,
-          ),
-        )
-        if (!matchingSeries) {
-          throw new Error(`Could not find show with TVDB ID: ${tvdbId}`)
-        }
-        const matchingSonarrGuid = matchingSeries.guids.find((guid) =>
-          guid.startsWith('sonarr:'),
-        )
-        if (!matchingSonarrGuid) {
-          throw new Error('Could not find Sonarr ID for show')
-        }
-        sonarrId = Number.parseInt(
-          matchingSonarrGuid.replace('sonarr:', ''),
-          10,
-        )
+      if (!matchingSeries) {
+        throw new Error(`Could not find show with TVDB ID: ${tvdbId}`)
       }
 
-      if (sonarrId === undefined || Number.isNaN(sonarrId)) {
-        throw new Error('Failed to obtain valid Sonarr ID')
+      const matchingSonarrId = extractSonarrId(matchingSeries.guids)
+      if (matchingSonarrId === 0) {
+        throw new Error('Could not find Sonarr ID for show')
       }
 
-      await this.deleteFromSonarrById(sonarrId, deleteFiles)
+      await this.deleteFromSonarrById(matchingSonarrId, deleteFiles)
       this.log.info(`Deleted ${item.title} from Sonarr`)
     } catch (err) {
       this.log.error(`Error deleting from Sonarr: ${err}`)

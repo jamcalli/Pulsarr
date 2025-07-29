@@ -9,6 +9,7 @@ import type {
 } from '@root/types/radarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
+import { hasMatchingGuids } from '@utils/guid-handler.js'
 
 export class RadarrManagerService {
   private radarrServices: Map<number, RadarrService> = new Map()
@@ -266,9 +267,7 @@ export class RadarrManagerService {
       instance.bypassIgnored,
     )
     return [...existingMovies].some((movie) =>
-      movie.guids.some((existingGuid: string) =>
-        item.guids?.includes(existingGuid),
-      ),
+      hasMatchingGuids(movie.guids, item.guids),
     )
   }
 

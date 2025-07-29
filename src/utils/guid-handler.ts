@@ -1,4 +1,18 @@
 /**
+ * Normalizes a GUID string to a consistent format.
+ *
+ * Converts provider://id format to provider:id and ensures lowercase.
+ * This ensures consistent GUID comparison across the application.
+ *
+ * @param guid - The GUID string to normalize
+ * @returns The normalized GUID string
+ */
+export function normalizeGuid(guid: string): string {
+  // Normalize provider://id to provider:id and ensure lowercase
+  return guid.replace('://', ':').toLowerCase()
+}
+
+/**
  * Converts various GUID input formats into a deduplicated array of trimmed GUID strings.
  *
  * Accepts an array of strings, a JSON-encoded string representing an array, a comma-separated string, a single string, or undefined. Returns an empty array if the input is undefined or empty.
@@ -12,7 +26,7 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
     return [
       ...new Set(
         guids
-          .map((g) => (typeof g === 'string' ? g.trim() : ''))
+          .map((g) => (typeof g === 'string' ? normalizeGuid(g.trim()) : ''))
           .filter((g): g is string => typeof g === 'string' && g.length > 0),
       ),
     ]
@@ -25,7 +39,9 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
         return [
           ...new Set(
             parsed
-              .map((p) => (typeof p === 'string' ? p.trim() : ''))
+              .map((p) =>
+                typeof p === 'string' ? normalizeGuid(p.trim()) : '',
+              )
               .filter(
                 (p): p is string => typeof p === 'string' && p.length > 0,
               ),
@@ -48,14 +64,14 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
         ...new Set(
           trimmed
             .split(',')
-            .map((g) => g.trim())
+            .map((g) => normalizeGuid(g.trim()))
             .filter((g) => !!g),
         ),
       ]
     }
 
     // Last resort: treat as single GUID
-    return [trimmed]
+    return [normalizeGuid(trimmed)]
   }
   return []
 }
@@ -142,7 +158,7 @@ export function extractTmdbId(guids: string[] | string | undefined): number {
  */
 export function extractTvdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
-  const tvdbGuid = parsed.find((guid) => guid.toLowerCase().startsWith('tvdb:'))
+  const tvdbGuid = parsed.find((guid) => guid.startsWith('tvdb:'))
   if (!tvdbGuid) return 0
 
   const id = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
@@ -167,11 +183,33 @@ export function extractImdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Checks if two arrays of GUID strings have at least one GUID in common.
+ * Returns the number of matching GUIDs between two arrays.
+ * Used for weighting/scoring matches where higher scores indicate better matches.
  *
  * @param parsedGuids1 - The first array of GUID strings.
  * @param parsedGuids2 - The second array of GUID strings.
- * @returns `true` if there is at least one shared GUID; otherwise, `false`.
+ * @returns The number of matching GUIDs (0, 1, 2, 3, etc.)
+ *
+ * @remark Both parameters must be arrays of already-parsed GUID strings.
+ */
+export function getGuidMatchScore(
+  parsedGuids1: string[],
+  parsedGuids2: string[],
+): number {
+  const set1 = new Set(parsedGuids1)
+  const matchingGuids = parsedGuids2.filter((guid) => set1.has(guid))
+  return matchingGuids.length
+}
+
+/**
+ * Checks if two arrays of GUID strings have any matching GUIDs.
+ * Use getGuidMatchScore() for weighting - this function just checks if there's any match at all.
+ *
+ * Priority should be handled by caller: 3 matches > 2 matches > 1 match
+ *
+ * @param parsedGuids1 - The first array of GUID strings.
+ * @param parsedGuids2 - The second array of GUID strings.
+ * @returns `true` if there is at least one matching GUID; otherwise, `false`.
  *
  * @remark Both parameters must be arrays of already-parsed GUID strings.
  */
@@ -179,13 +217,7 @@ export function hasMatchingParsedGuids(
   parsedGuids1: string[],
   parsedGuids2: string[],
 ): boolean {
-  if (parsedGuids1.length > parsedGuids2.length) {
-    const set2 = new Set(parsedGuids2)
-    return parsedGuids1.some((guid) => set2.has(guid))
-  }
-
-  const set1 = new Set(parsedGuids1)
-  return parsedGuids2.some((guid) => set1.has(guid))
+  return getGuidMatchScore(parsedGuids1, parsedGuids2) > 0
 }
 
 /**

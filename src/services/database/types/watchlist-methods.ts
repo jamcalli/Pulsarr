@@ -298,5 +298,31 @@ declare module '@services/database.service.js' {
       this: DatabaseService,
       tvdbId: number,
     ): Promise<string[]>
+
+    /**
+     * Retrieves watchlist items by any GUID along with their user information for RSS matching
+     * @param guids - Array of GUIDs to search for in watchlist items
+     * @returns Promise resolving to array of watchlist items with user information
+     */
+    getWatchlistItemsWithUsersByGuids(
+      this: DatabaseService,
+      guids: string[],
+    ): Promise<
+      Array<{
+        // Watchlist item fields
+        id: number
+        user_id: number
+        key: string
+        title: string
+        type: string
+        thumb: string | null
+        guids: string[]
+        genres: string[]
+        status: string
+        // User fields
+        username: string
+        watchlist_id: string
+      }>
+    >
   }
 }
