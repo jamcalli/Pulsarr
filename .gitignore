@@ -34,3 +34,6 @@ config.json
 # repomix
 repomix*
 **/.claude/settings.local.json
+
+# Claude Code project instructions
+CLAUDE.md
