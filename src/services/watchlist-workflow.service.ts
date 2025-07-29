@@ -1266,6 +1266,17 @@ export class WatchlistWorkflowService {
 
       // Check if enough time has passed and there are items to process
       const timeSinceLastItem = Date.now() - this.lastQueueItemTime
+
+      // Debug logging to understand queue processing
+      if (this.changeQueue.size > 0) {
+        console.log('Queue processor check:', {
+          queueSize: this.changeQueue.size,
+          timeSinceLastItem: `${Math.round(timeSinceLastItem / 1000)}s`,
+          delayRequired: `${Math.round(this.queueProcessDelayMs / 1000)}s`,
+          willProcess: timeSinceLastItem >= this.queueProcessDelayMs,
+        })
+      }
+
       if (
         timeSinceLastItem >= this.queueProcessDelayMs &&
         this.changeQueue.size > 0
@@ -1323,10 +1334,13 @@ export class WatchlistWorkflowService {
     const hasUsersWithSyncDisabled =
       await this.dbService.hasUsersWithSyncDisabled()
 
-    // Check if any user-related routing rules exist
+    // Check if any user-related routing rules exist (only enabled ones)
     const conditionalRules =
       await this.fastify.db.getRouterRulesByType('conditional')
     const hasUserRoutingRules = conditionalRules.some((rule) => {
+      // Skip disabled rules
+      if (rule.enabled === false) return false
+
       const criteria = rule.criteria?.condition as
         | Condition
         | ConditionGroup
