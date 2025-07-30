@@ -10,6 +10,7 @@ import type {
 } from '@root/types/plex.types.js'
 import type { Config } from '@root/types/config.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
+import { normalizeGuid } from '@utils/guid-handler.js'
 
 // Custom error interface for rate limit errors
 interface RateLimitError extends Error {
@@ -1150,7 +1151,7 @@ export const toItemsSingle = async (
       key: item.id,
       type: item.type,
       thumb: item.thumb || metadata.thumb || '',
-      guids: metadata.Guid?.map((guid) => guid.id.replace('//', '')) || [],
+      guids: metadata.Guid?.map((guid) => normalizeGuid(guid.id)) || [],
       genres: metadata.Genre?.map((genre) => genre.tag) || [],
       user_id: item.user_id,
       status: 'pending' as const,
@@ -1354,10 +1355,7 @@ export const fetchWatchlistFromRss = async (
             key: `${prefix}_${Math.random().toString(36).substring(2, 15)}`,
             type: metadata.category.toUpperCase(),
             thumb: metadata.thumbnail?.url || '',
-            guids: metadata.guids.map((guid) => {
-              const [provider, id] = guid.split('://')
-              return `${provider}:${id}`
-            }),
+            guids: metadata.guids.map((guid) => normalizeGuid(guid)),
             genres: (metadata.keywords || []).map((genre) => {
               if (genre.toLowerCase() === 'sci-fi & fantasy') {
                 return 'Sci-Fi & Fantasy'
