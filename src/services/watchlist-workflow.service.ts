@@ -34,6 +34,7 @@ import type { IntervalConfig } from '@root/types/scheduler.types.js'
 import {
   parseGuids,
   hasMatchingGuids,
+  getGuidMatchScore,
   extractTmdbId,
   extractTvdbId,
   extractTypedGuid,
@@ -1130,10 +1131,19 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Check if show exists using hasMatchingGuids
-          const exists = existingSeries.some((series) =>
-            hasMatchingGuids(series.guids, tempItem.guids),
-          )
+          // Check if show exists using GUID weighting system
+          const potentialMatches = existingSeries
+            .map((series) => ({
+              series,
+              score: getGuidMatchScore(
+                parseGuids(series.guids),
+                parseGuids(tempItem.guids),
+              ),
+            }))
+            .filter((match) => match.score > 0)
+            .sort((a, b) => b.score - a.score)
+
+          const exists = potentialMatches.length > 0
 
           // Add to Sonarr if not exists
           if (!exists) {
@@ -1174,10 +1184,19 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Check if movie exists using hasMatchingGuids
-          const exists = existingMovies.some((movie) =>
-            hasMatchingGuids(movie.guids, tempItem.guids),
-          )
+          // Check if movie exists using GUID weighting system
+          const potentialMatches = existingMovies
+            .map((movie) => ({
+              movie,
+              score: getGuidMatchScore(
+                parseGuids(movie.guids),
+                parseGuids(tempItem.guids),
+              ),
+            }))
+            .filter((match) => match.score > 0)
+            .sort((a, b) => b.score - a.score)
+
+          const exists = potentialMatches.length > 0
 
           // Add to Radarr if not exists
           if (!exists) {
