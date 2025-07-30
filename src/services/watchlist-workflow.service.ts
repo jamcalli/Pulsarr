@@ -322,7 +322,7 @@ export class WatchlistWorkflowService {
       this.rssMode = !this.isUsingRssFallback
 
       this.log.info(
-        `Watchlist workflow running in ${this.isUsingRssFallback ? 'manual sync' : 'RSS'} mode with periodic reconciliation`,
+        `Watchlist workflow running in ${this.isUsingRssFallback ? 'periodic reconciliation' : 'RSS'} mode with periodic reconciliation`,
       )
 
       return true
@@ -1604,7 +1604,9 @@ export class WatchlistWorkflowService {
         true,
       )
 
-      this.log.info('Periodic reconciliation scheduled for every 20 minutes')
+      this.log.info(
+        'Periodic watchlist reconciliation scheduled for every 20 minutes',
+      )
     } catch (error) {
       this.log.error('Error setting up periodic reconciliation:', {
         error,
