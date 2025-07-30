@@ -9,11 +9,7 @@ import type {
 } from '@root/types/radarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
-import {
-  hasMatchingGuids,
-  getGuidMatchScore,
-  parseGuids,
-} from '@utils/guid-handler.js'
+import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
 
 export class RadarrManagerService {
   private radarrServices: Map<number, RadarrService> = new Map()

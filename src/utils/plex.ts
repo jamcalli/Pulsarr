@@ -1151,7 +1151,7 @@ export const toItemsSingle = async (
       key: item.id,
       type: item.type,
       thumb: item.thumb || metadata.thumb || '',
-      guids: metadata.Guid?.map((guid) => guid.id.replace('://', ':')) || [],
+      guids: metadata.Guid?.map((guid) => normalizeGuid(guid.id)) || [],
       genres: metadata.Genre?.map((genre) => genre.tag) || [],
       user_id: item.user_id,
       status: 'pending' as const,

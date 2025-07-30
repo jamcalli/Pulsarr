@@ -33,7 +33,6 @@ import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { IntervalConfig } from '@root/types/scheduler.types.js'
 import {
   parseGuids,
-  hasMatchingGuids,
   getGuidMatchScore,
   extractTmdbId,
   extractTvdbId,
