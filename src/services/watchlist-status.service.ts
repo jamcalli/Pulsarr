@@ -5,7 +5,11 @@ import type {
   DatabaseWatchlistItem,
   WatchlistInstanceStatus,
 } from '@root/types/watchlist-status.types.js'
-import { parseGuids, hasMatchingGuids } from '@utils/guid-handler.js'
+import {
+  parseGuids,
+  hasMatchingGuids,
+  getGuidMatchScore,
+} from '@utils/guid-handler.js'
 
 export class StatusService {
   constructor(
@@ -384,11 +388,20 @@ export class StatusService {
 
         // Process each Sonarr instance
         for (const [instanceId, instanceItems] of instanceItemMap.entries()) {
-          const matchingSeries = instanceItems.filter((series) =>
-            this.isGuidMatch(series.guids, item.guids),
-          )
+          // Use weighting system to find best matches (prioritize higher GUID match counts)
+          const potentialMatches = instanceItems
+            .map((series) => ({
+              series,
+              score: getGuidMatchScore(
+                parseGuids(series.guids),
+                parseGuids(item.guids),
+              ),
+            }))
+            .filter((match) => match.score > 0)
+            .sort((a, b) => b.score - a.score)
 
-          if (matchingSeries.length > 0) {
+          if (potentialMatches.length > 0) {
+            const matchingSeries = potentialMatches.map((match) => match.series)
             existingInstances.push(instanceId)
             const junctionKey = `${numericId}-${instanceId}`
             const currentJunction = junctionMap.get(junctionKey)
@@ -611,11 +624,20 @@ export class StatusService {
 
         // Process each Radarr instance
         for (const [instanceId, instanceItems] of instanceItemMap.entries()) {
-          const matchingMovies = instanceItems.filter((movie) =>
-            this.isGuidMatch(movie.guids, item.guids),
-          )
+          // Use weighting system to find best matches (prioritize higher GUID match counts)
+          const potentialMatches = instanceItems
+            .map((movie) => ({
+              movie,
+              score: getGuidMatchScore(
+                parseGuids(movie.guids),
+                parseGuids(item.guids),
+              ),
+            }))
+            .filter((match) => match.score > 0)
+            .sort((a, b) => b.score - a.score)
 
-          if (matchingMovies.length > 0) {
+          if (potentialMatches.length > 0) {
+            const matchingMovies = potentialMatches.map((match) => match.movie)
             existingInstances.push(instanceId)
             const junctionKey = `${numericId}-${instanceId}`
             const currentJunction = junctionMap.get(junctionKey)

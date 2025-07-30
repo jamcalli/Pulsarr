@@ -13,6 +13,7 @@ import {
   parseGuids,
   hasMatchingGuids,
   hasMatchingParsedGuids,
+  getGuidMatchScore,
 } from '@utils/guid-handler.js'
 import type {
   Item as WatchlistItem,
@@ -1714,69 +1715,90 @@ export class PlexWatchlistService {
     // Process each pending item
     for (const pendingItem of pendingItems) {
       const pendingGuids = this.getParsedGuids(guidCache, pendingItem.guids)
-      let foundMatch = false
+
+      // Collect all potential matches with their scores
+      const potentialMatches: Array<{
+        user: Friend
+        item: TokenWatchlistItem
+        score: number
+        matchingGuids: string[]
+      }> = []
 
       for (const [user, items] of userWatchlistMap.entries()) {
         for (const item of items) {
           const itemGuids = this.getParsedGuids(guidCache, item.guids || [])
+          const score = getGuidMatchScore(pendingGuids, itemGuids)
 
-          // Use existing hasMatchingParsedGuids function
+          // Only consider items that pass the threshold check
           if (hasMatchingParsedGuids(pendingGuids, itemGuids)) {
-            foundMatch = true
-            matchCount++
-            matchedItemIds.push(pendingItem.id)
+            potentialMatches.push({
+              user,
+              item,
+              score,
+              matchingGuids: pendingGuids.filter((g) => itemGuids.includes(g)),
+            })
+          }
+        }
+      }
 
-            this.log.info(
-              `Matched item "${pendingItem.title}" to user ${user.username}'s item "${item.title}"`,
-              { userId: user.userId },
-            )
+      // Find the best match (highest score)
+      if (potentialMatches.length > 0) {
+        // Sort by score descending (highest first)
+        potentialMatches.sort((a, b) => b.score - a.score)
+        const bestMatch = potentialMatches[0]
 
-            // Check if notification should be sent
-            let shouldSendNotification = true
+        matchCount++
+        matchedItemIds.push(pendingItem.id)
 
-            // Check if already notified (using prefetched data)
-            const userNotifications = notificationChecks.get(user.userId)
-            if (userNotifications?.get(item.title)) {
+        this.log.info(
+          `Matched item "${pendingItem.title}" to user ${bestMatch.user.username}'s item "${bestMatch.item.title}" (score: ${bestMatch.score})`,
+          { userId: bestMatch.user.userId, matchScore: bestMatch.score },
+        )
+
+        // Check if notification should be sent
+        let shouldSendNotification = true
+
+        // Check if already notified (using prefetched data)
+        const userNotifications = notificationChecks.get(bestMatch.user.userId)
+        if (userNotifications?.get(bestMatch.item.title)) {
+          this.log.info(
+            `Skipping notification for "${bestMatch.item.title}" - already sent previously to user ID ${bestMatch.user.userId}`,
+          )
+          shouldSendNotification = false
+        }
+
+        // Check if existed before sync
+        if (shouldSendNotification) {
+          for (const guid of pendingGuids) {
+            const normalizedGuid = guid.toLowerCase()
+            if (existingGuidsSnapshot.has(normalizedGuid)) {
               this.log.info(
-                `Skipping notification for "${item.title}" - already sent previously to user ID ${user.userId}`,
+                `Skipping notification for "${bestMatch.item.title}" - item with GUID ${guid} already existed before sync for user ID ${bestMatch.user.userId}`,
+                {
+                  itemTitle: bestMatch.item.title,
+                  guid,
+                  userId: bestMatch.user.userId,
+                },
               )
               shouldSendNotification = false
+              break
             }
-
-            // Check if existed before sync
-            if (shouldSendNotification) {
-              for (const guid of pendingGuids) {
-                const normalizedGuid = guid.toLowerCase()
-                if (existingGuidsSnapshot.has(normalizedGuid)) {
-                  this.log.info(
-                    `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync for user ID ${user.userId}`,
-                    { itemTitle: item.title, guid, userId: user.userId },
-                  )
-                  shouldSendNotification = false
-                  break
-                }
-              }
-            }
-
-            // Send notification if needed
-            if (shouldSendNotification) {
-              await this.sendWatchlistNotifications(user, {
-                id: item.id,
-                title: item.title,
-                type: item.type || 'unknown',
-                thumb: item.thumb,
-              })
-            }
-
-            break // Exit inner loop once we find a match
           }
         }
 
-        if (foundMatch) break // Exit outer loop once a match is found
+        // Send notification if needed
+        if (shouldSendNotification) {
+          await this.sendWatchlistNotifications(bestMatch.user, {
+            id: bestMatch.item.id,
+            title: bestMatch.item.title,
+            type: bestMatch.item.type || 'unknown',
+            thumb: bestMatch.item.thumb,
+          })
+        }
       }
 
       // Handle non-matching items
-      if (!foundMatch) {
+      if (potentialMatches.length === 0) {
         noMatchCount++
 
         let existsInDatabase = false

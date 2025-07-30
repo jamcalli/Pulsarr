@@ -1,6 +1,8 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   hasMatchingGuids,
+  getGuidMatchScore,
+  parseGuids,
   extractRadarrId,
   extractSonarrId,
 } from '@utils/guid-handler.js'
@@ -439,11 +441,22 @@ export class UserTagService {
             try {
               // Find users who have this show in their watchlist (only sync-enabled users)
               const showUsers = new Set<number>()
-              for (const item of watchlistItems) {
-                if (hasMatchingGuids(show.guids, item.guids)) {
-                  if (userMap.has(item.user_id)) {
-                    showUsers.add(item.user_id)
-                  }
+
+              // Use weighting system to find best matches for each watchlist item
+              const potentialMatches = watchlistItems
+                .map((item) => ({
+                  item,
+                  score: getGuidMatchScore(
+                    parseGuids(show.guids),
+                    parseGuids(item.guids),
+                  ),
+                }))
+                .filter((match) => match.score > 0)
+                .sort((a, b) => b.score - a.score)
+
+              for (const match of potentialMatches) {
+                if (userMap.has(match.item.user_id)) {
+                  showUsers.add(match.item.user_id)
                 }
               }
 
@@ -751,11 +764,22 @@ export class UserTagService {
             try {
               // Find users who have this movie in their watchlist (only sync-enabled users)
               const movieUsers = new Set<number>()
-              for (const item of watchlistItems) {
-                if (hasMatchingGuids(movie.guids, item.guids)) {
-                  if (userMap.has(item.user_id)) {
-                    movieUsers.add(item.user_id)
-                  }
+
+              // Use weighting system to find best matches for each watchlist item
+              const potentialMatches = watchlistItems
+                .map((item) => ({
+                  item,
+                  score: getGuidMatchScore(
+                    parseGuids(movie.guids),
+                    parseGuids(item.guids),
+                  ),
+                }))
+                .filter((match) => match.score > 0)
+                .sort((a, b) => b.score - a.score)
+
+              for (const match of potentialMatches) {
+                if (userMap.has(match.item.user_id)) {
+                  movieUsers.add(match.item.user_id)
                 }
               }
 

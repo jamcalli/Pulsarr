@@ -1144,3 +1144,95 @@ export async function getAllGuidsByTvdbId(
 
   return Array.from(allGuids)
 }
+
+/**
+ * Retrieves watchlist items by any GUID along with their user information for RSS matching.
+ * This method finds all watchlist items that contain any of the provided GUIDs in their GUIDs array,
+ * joining with user data to provide complete information needed for RSS matching.
+ *
+ * @param guids - Array of GUIDs to search for in watchlist items
+ * @returns Promise resolving to an array of watchlist items with user information
+ */
+export async function getWatchlistItemsWithUsersByGuids(
+  this: DatabaseService,
+  guids: string[],
+): Promise<
+  Array<{
+    // Watchlist item fields
+    id: number
+    user_id: number
+    key: string
+    title: string
+    type: string
+    thumb: string | null
+    guids: string[]
+    genres: string[]
+    status: string
+    // User fields
+    username: string
+    watchlist_id: string
+  }>
+> {
+  if (guids.length === 0) {
+    return []
+  }
+
+  // Normalize GUIDs to lowercase for consistent matching
+  const normalizedGuids = guids.map((guid) => guid.toLowerCase())
+
+  // Use database-specific JSON functions to efficiently find items containing any of the GUIDs
+  const items = this.isPostgres
+    ? await this.knex('watchlist_items as wi')
+        .join('users as u', 'wi.user_id', 'u.id')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(wi.guids) elem WHERE lower(elem) = ANY(?))',
+          [normalizedGuids],
+        )
+        .select(
+          'wi.id',
+          'wi.user_id',
+          'wi.key',
+          'wi.title',
+          'wi.type',
+          'wi.thumb',
+          'wi.guids',
+          'wi.genres',
+          'wi.status',
+          'u.username',
+          'u.watchlist_id',
+        )
+    : await this.knex('watchlist_items as wi')
+        .join('users as u', 'wi.user_id', 'u.id')
+        .where((builder) => {
+          // For SQLite, we need to check each GUID individually
+          for (const guid of normalizedGuids) {
+            builder.orWhereRaw(
+              "EXISTS (SELECT 1 FROM json_each(wi.guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+              [guid],
+            )
+          }
+        })
+        .select(
+          'wi.id',
+          'wi.user_id',
+          'wi.key',
+          'wi.title',
+          'wi.type',
+          'wi.thumb',
+          'wi.guids',
+          'wi.genres',
+          'wi.status',
+          'u.username',
+          'u.watchlist_id',
+        )
+
+  return items.map((item) => ({
+    ...item,
+    guids: this.safeJsonParse<string[]>(item.guids, [], 'watchlist_item.guids'),
+    genres: this.safeJsonParse<string[]>(
+      item.genres,
+      [],
+      'watchlist_item.genres',
+    ),
+  }))
+}
