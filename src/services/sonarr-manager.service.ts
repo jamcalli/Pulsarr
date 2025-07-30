@@ -9,7 +9,11 @@ import type {
 } from '@root/types/sonarr.types.js'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
-import { hasMatchingGuids } from '@utils/guid-handler.js'
+import {
+  hasMatchingGuids,
+  getGuidMatchScore,
+  parseGuids,
+} from '@utils/guid-handler.js'
 
 export class SonarrManagerService {
   private sonarrServices: Map<number, SonarrService> = new Map()
@@ -357,9 +361,19 @@ export class SonarrManagerService {
     const existingSeries = await sonarrService.fetchSeries(
       instance.bypassIgnored,
     )
-    return [...existingSeries].some((series) =>
-      hasMatchingGuids(series.guids, item.guids),
-    )
+    // Use weighting system to find best match (prioritize higher GUID match counts)
+    const potentialMatches = [...existingSeries]
+      .map((series) => ({
+        series,
+        score: getGuidMatchScore(
+          parseGuids(series.guids),
+          parseGuids(item.guids),
+        ),
+      }))
+      .filter((match) => match.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    return potentialMatches.length > 0
   }
 
   /**

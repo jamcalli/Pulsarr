@@ -11,7 +11,7 @@ import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ApprovalMetadata } from '@root/types/progress.types.js'
 import type { DiscordEmbed } from '@root/types/discord.types.js'
-import { hasMatchingGuids } from '@utils/guid-handler.js'
+import { hasMatchingGuids, getGuidMatchScore } from '@utils/guid-handler.js'
 
 export class ApprovalService {
   private notificationQueue: Set<number> = new Set()
@@ -212,12 +212,18 @@ export class ApprovalService {
         contentType,
       )
 
-      // Filter for matching content and different users
-      const matchingRequests = relatedRequests.filter(
-        (req) =>
-          req.userId !== excludeUserId &&
-          hasMatchingGuids(req.contentGuids, contentGuids),
-      )
+      // Filter for matching content and different users using weighting system
+      const potentialMatches = relatedRequests
+        .map((req) => ({
+          req,
+          score: getGuidMatchScore(req.contentGuids, contentGuids),
+        }))
+        .filter(
+          (match) => match.score > 0 && match.req.userId !== excludeUserId,
+        )
+        .sort((a, b) => b.score - a.score)
+
+      const matchingRequests = potentialMatches.map((match) => match.req)
 
       if (matchingRequests.length > 0) {
         this.fastify.log.info(

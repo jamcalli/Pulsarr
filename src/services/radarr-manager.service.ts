@@ -9,7 +9,11 @@ import type {
 } from '@root/types/radarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
-import { hasMatchingGuids } from '@utils/guid-handler.js'
+import {
+  hasMatchingGuids,
+  getGuidMatchScore,
+  parseGuids,
+} from '@utils/guid-handler.js'
 
 export class RadarrManagerService {
   private radarrServices: Map<number, RadarrService> = new Map()
@@ -266,9 +270,19 @@ export class RadarrManagerService {
     const existingMovies = await radarrService.fetchMovies(
       instance.bypassIgnored,
     )
-    return [...existingMovies].some((movie) =>
-      hasMatchingGuids(movie.guids, item.guids),
-    )
+    // Use weighting system to find best match (prioritize higher GUID match counts)
+    const potentialMatches = [...existingMovies]
+      .map((movie) => ({
+        movie,
+        score: getGuidMatchScore(
+          parseGuids(movie.guids),
+          parseGuids(item.guids),
+        ),
+      }))
+      .filter((match) => match.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    return potentialMatches.length > 0
   }
 
   /**
