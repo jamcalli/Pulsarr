@@ -1,4 +1,5 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
   RadarrAddOptions,
   RadarrPost,
@@ -19,6 +20,12 @@ import {
   isSystemStatus,
   isRadarrStatus,
 } from '@root/types/system-status.types.js'
+import {
+  extractTmdbId,
+  extractRadarrId,
+  hasMatchingGuids,
+  normalizeGuid,
+} from '@utils/guid-handler.js'
 
 // Custom error class to include HTTP status
 class HttpError extends Error {
@@ -433,9 +440,9 @@ export class RadarrService {
     return {
       title: movie.title,
       guids: [
-        movie.imdbId ? `imdb:${movie.imdbId}` : undefined,
-        movie.tmdbId ? `tmdb:${movie.tmdbId}` : undefined,
-        `radarr:${movie.id}`,
+        movie.imdbId ? normalizeGuid(`imdb:${movie.imdbId}`) : undefined,
+        movie.tmdbId ? normalizeGuid(`tmdb:${movie.tmdbId}`) : undefined,
+        normalizeGuid(`radarr:${movie.id}`),
       ].filter((x): x is string => !!x),
       type: 'movie',
       ended: undefined,
@@ -487,21 +494,32 @@ export class RadarrService {
   /**
    * Check if a movie exists in Radarr using efficient lookup
    * @param tmdbId - The TMDB ID to check
-   * @returns Promise resolving to true if movie exists, false otherwise
+   * @returns Promise resolving to ExistenceCheckResult with availability info
    */
-  async movieExistsByTmdbId(tmdbId: number): Promise<boolean> {
+  async movieExistsByTmdbId(tmdbId: number): Promise<ExistenceCheckResult> {
     try {
       const movies = await this.getFromRadarr<RadarrMovie[]>(
         `movie/lookup?term=tmdb:${tmdbId}`,
       )
 
       // Movie exists if it has a valid internal ID (> 0)
-      return movies.length > 0 && movies[0].id > 0
+      const found = movies.length > 0 && movies[0].id > 0
+
+      return {
+        found,
+        checked: true,
+        serviceName: 'Radarr',
+      }
     } catch (err) {
       this.log.error(
         `Error checking movie existence for TMDB ${tmdbId}: ${err}`,
       )
-      return false
+      return {
+        found: false,
+        checked: false,
+        serviceName: 'Radarr',
+        error: err instanceof Error ? err.message : String(err),
+      }
     }
   }
 
@@ -630,14 +648,6 @@ export class RadarrService {
     return fallbackId
   }
 
-  private extractTmdbId(item: Item): number {
-    const tmdbGuid = item.guids.find((guid) => guid.startsWith('tmdb:'))
-    if (!tmdbGuid) return 0
-
-    const parsed = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
-    return Number.isNaN(parsed) ? 0 : parsed
-  }
-
   async addToRadarr(
     item: Item,
     overrideRootFolder?: string,
@@ -657,7 +667,7 @@ export class RadarrService {
               : true, // Default to true for backward compatibility
       }
 
-      const tmdbId = this.extractTmdbId(item)
+      const tmdbId = extractTmdbId(item.guids)
 
       const rootFolderPath = await this.resolveRootFolder(overrideRootFolder)
 
@@ -765,48 +775,39 @@ export class RadarrService {
   async deleteFromRadarr(item: Item, deleteFiles: boolean): Promise<void> {
     const config = this.radarrConfig
     try {
-      const radarrGuid = item.guids.find((guid) => guid.startsWith('radarr:'))
-      const tmdbGuid = item.guids.find((guid) => guid.startsWith('tmdb:'))
-      if (!radarrGuid && !tmdbGuid) {
+      const radarrId = extractRadarrId(item.guids)
+
+      if (radarrId > 0) {
+        // Use the extracted Radarr ID directly
+        await this.deleteFromRadarrById(radarrId, deleteFiles)
+        this.log.info(`Deleted ${item.title} from Radarr`)
+        return
+      }
+
+      // Fallback: try to find by TMDB ID
+      const tmdbId = extractTmdbId(item.guids)
+      if (tmdbId === 0) {
         this.log.warn(
-          `Unable to extract ID from movie to delete: ${JSON.stringify(item)}`,
+          `Unable to extract TMDB ID from movie to delete: ${JSON.stringify(item)}`,
         )
         return
       }
 
-      let radarrId: number | undefined
+      const allMovies = await this.fetchMovies(true)
+      const matchingMovie = [...allMovies].find((movie) =>
+        hasMatchingGuids(movie.guids, [`tmdb:${tmdbId}`]),
+      )
 
-      if (radarrGuid) {
-        radarrId = Number.parseInt(radarrGuid.replace('radarr:', ''), 10)
-      } else if (tmdbGuid) {
-        const tmdbId = tmdbGuid.replace('tmdb:', '')
-        const allMovies = await this.fetchMovies(true)
-        const matchingMovie = [...allMovies].find((movie) =>
-          movie.guids.some(
-            (guid) =>
-              guid.startsWith('tmdb:') && guid.replace('tmdb:', '') === tmdbId,
-          ),
-        )
-        if (!matchingMovie) {
-          throw new Error(`Could not find movie with TMDB ID: ${tmdbId}`)
-        }
-        const matchingRadarrGuid = matchingMovie.guids.find((guid) =>
-          guid.startsWith('radarr:'),
-        )
-        if (!matchingRadarrGuid) {
-          throw new Error('Could not find Radarr ID for movie')
-        }
-        radarrId = Number.parseInt(
-          matchingRadarrGuid.replace('radarr:', ''),
-          10,
-        )
+      if (!matchingMovie) {
+        throw new Error(`Could not find movie with TMDB ID: ${tmdbId}`)
       }
 
-      if (radarrId === undefined || Number.isNaN(radarrId)) {
-        throw new Error('Failed to obtain valid Radarr ID')
+      const matchingRadarrId = extractRadarrId(matchingMovie.guids)
+      if (matchingRadarrId === 0) {
+        throw new Error('Could not find Radarr ID for movie')
       }
 
-      await this.deleteFromRadarrById(radarrId, deleteFiles)
+      await this.deleteFromRadarrById(matchingRadarrId, deleteFiles)
       this.log.info(`Deleted ${item.title} from Radarr`)
     } catch (err) {
       this.log.error(`Error deleting from Radarr: ${err}`)

@@ -1,9 +1,20 @@
 /**
- * Converts various GUID input formats into a deduplicated array of trimmed GUID strings.
+ * Converts a GUID string to lowercase and replaces "provider://id" with "provider:id" for consistent formatting.
  *
- * Accepts an array of strings, a JSON-encoded string representing an array, a comma-separated string, a single string, or undefined. Returns an empty array if the input is undefined or empty.
+ * @param guid - The GUID string to normalize
+ * @returns The normalized GUID string
+ */
+export function normalizeGuid(guid: string): string {
+  // Normalize provider://id to provider:id and ensure lowercase
+  return guid.replace('://', ':').toLowerCase()
+}
+
+/**
+ * Parses GUID input from various formats into a deduplicated array of normalized GUID strings.
  *
- * @returns An array of unique, trimmed GUID strings extracted from the input.
+ * Accepts an array of strings, a JSON-encoded string array, a comma-separated string, a single string, or undefined. All GUIDs are normalized for consistent comparison. Returns an empty array if the input is undefined or empty.
+ *
+ * @returns An array of unique, normalized GUID strings extracted from the input.
  */
 export function parseGuids(guids: string[] | string | undefined): string[] {
   if (!guids) return []
@@ -12,7 +23,7 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
     return [
       ...new Set(
         guids
-          .map((g) => (typeof g === 'string' ? g.trim() : ''))
+          .map((g) => (typeof g === 'string' ? normalizeGuid(g.trim()) : ''))
           .filter((g): g is string => typeof g === 'string' && g.length > 0),
       ),
     ]
@@ -25,7 +36,9 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
         return [
           ...new Set(
             parsed
-              .map((p) => (typeof p === 'string' ? p.trim() : ''))
+              .map((p) =>
+                typeof p === 'string' ? normalizeGuid(p.trim()) : '',
+              )
               .filter(
                 (p): p is string => typeof p === 'string' && p.length > 0,
               ),
@@ -48,14 +61,14 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
         ...new Set(
           trimmed
             .split(',')
-            .map((g) => g.trim())
+            .map((g) => normalizeGuid(g.trim()))
             .filter((g) => !!g),
         ),
       ]
     }
 
     // Last resort: treat as single GUID
-    return [trimmed]
+    return [normalizeGuid(trimmed)]
   }
   return []
 }
@@ -134,15 +147,15 @@ export function extractTmdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Returns the numeric TVDB ID from the first GUID in the input that starts with "tvdb:".
+ * Extracts the numeric TVDB ID from the first GUID prefixed with "tvdb:".
  *
- * Parses the input for a GUID prefixed with "tvdb:", extracts the integer following the prefix, and returns it. Returns 0 if no valid TVDB GUID is found or if the extracted value is not a valid number.
+ * Parses the input for GUIDs, searches for one starting with "tvdb:", and returns the integer value following the prefix. Returns 0 if no valid TVDB GUID is found or if the extracted value is not a valid number.
  *
  * @returns The TVDB ID as a number, or 0 if not found or invalid.
  */
 export function extractTvdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
-  const tvdbGuid = parsed.find((guid) => guid.toLowerCase().startsWith('tvdb:'))
+  const tvdbGuid = parsed.find((guid) => guid.startsWith('tvdb:'))
   if (!tvdbGuid) return 0
 
   const id = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
@@ -150,11 +163,11 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Returns the numeric IMDb ID extracted from the first GUID with an "imdb:" prefix.
+ * Extracts the numeric IMDb ID from the first GUID prefixed with "imdb:".
  *
- * Removes the "imdb:" prefix and an optional leading "tt" from the GUID before parsing the numeric ID. Returns 0 if no valid IMDb GUID is found.
+ * Removes the "imdb:" prefix and an optional leading "tt" before parsing the numeric ID. Returns 0 if no valid IMDb GUID is found or if the extracted ID is not a number.
  *
- * @returns The extracted IMDb ID as a number, or 0 if not found or invalid.
+ * @returns The numeric IMDb ID, or 0 if not found or invalid.
  */
 export function extractImdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
@@ -167,25 +180,33 @@ export function extractImdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Checks if two arrays of GUID strings have at least one GUID in common.
+ * Counts the number of matching GUIDs between two arrays of parsed GUID strings.
  *
- * @param parsedGuids1 - The first array of GUID strings.
- * @param parsedGuids2 - The second array of GUID strings.
- * @returns `true` if there is at least one shared GUID; otherwise, `false`.
+ * @param parsedGuids1 - The first array of normalized GUID strings.
+ * @param parsedGuids2 - The second array of normalized GUID strings.
+ * @returns The count of GUIDs present in both arrays.
+ */
+export function getGuidMatchScore(
+  parsedGuids1: string[],
+  parsedGuids2: string[],
+): number {
+  const set1 = new Set(parsedGuids1)
+  const matchingGuids = parsedGuids2.filter((guid) => set1.has(guid))
+  return matchingGuids.length
+}
+
+/**
+ * Determines whether two arrays of parsed GUID strings share at least one matching GUID.
  *
- * @remark Both parameters must be arrays of already-parsed GUID strings.
+ * @param parsedGuids1 - The first array of normalized GUID strings.
+ * @param parsedGuids2 - The second array of normalized GUID strings.
+ * @returns `true` if any GUID is present in both arrays; otherwise, `false`.
  */
 export function hasMatchingParsedGuids(
   parsedGuids1: string[],
   parsedGuids2: string[],
 ): boolean {
-  if (parsedGuids1.length > parsedGuids2.length) {
-    const set2 = new Set(parsedGuids2)
-    return parsedGuids1.some((guid) => set2.has(guid))
-  }
-
-  const set1 = new Set(parsedGuids1)
-  return parsedGuids2.some((guid) => set1.has(guid))
+  return getGuidMatchScore(parsedGuids1, parsedGuids2) > 0
 }
 
 /**

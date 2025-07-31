@@ -14,7 +14,11 @@ import type {
   RollingMonitoredShow,
   SessionMonitoringResult,
 } from '@root/types/plex-session.types.js'
-import { extractTvdbId, parseGuids } from '@utils/guid-handler.js'
+import {
+  extractTvdbId,
+  normalizeGuid,
+  parseGuids,
+} from '@utils/guid-handler.js'
 
 export class PlexSessionMonitorService {
   constructor(
@@ -258,8 +262,8 @@ export class PlexSessionMonitorService {
       if (metadataItem.guid) {
         // Don't normalize plex:// GUIDs as they're internal
         if (!metadataItem.guid.startsWith('plex://')) {
-          // Normalize provider://id to provider:id
-          const normalizedGuid = metadataItem.guid.replace('://', ':')
+          // Use centralized normalization
+          const normalizedGuid = normalizeGuid(metadataItem.guid)
           allGuids.push(normalizedGuid)
         }
       }
@@ -268,8 +272,8 @@ export class PlexSessionMonitorService {
       if (Array.isArray(metadataItem.Guid)) {
         for (const guidObj of metadataItem.Guid) {
           if (guidObj.id && !guidObj.id.startsWith('plex://')) {
-            // Normalize provider://id to provider:id
-            const normalizedGuid = guidObj.id.replace('://', ':')
+            // Use centralized normalization
+            const normalizedGuid = normalizeGuid(guidObj.id)
             allGuids.push(normalizedGuid)
           }
         }

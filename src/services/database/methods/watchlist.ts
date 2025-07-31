@@ -1098,12 +1098,12 @@ export async function getWatchlistItemsByGuid(
 }
 
 /**
- * Returns all unique GUIDs from watchlist items that include the specified TVDB ID.
+ * Retrieves all unique GUIDs from watchlist items that contain a TVDB GUID matching the specified TVDB ID.
  *
- * Finds watchlist items whose GUIDs array contains a TVDB GUID matching the provided ID, then aggregates and returns all unique GUIDs from those items. Useful for cross-referencing content across different metadata providers.
+ * Searches for watchlist items whose GUIDs array includes a GUID in the format `tvdb:{tvdbId}` (case-insensitive), then aggregates and returns all unique GUIDs from those items.
  *
- * @param tvdbId - The TVDB ID to match against GUIDs
- * @returns An array of unique GUID strings associated with the content
+ * @param tvdbId - The TVDB ID to search for within GUIDs
+ * @returns An array of unique GUID strings found in matching watchlist items
  */
 export async function getAllGuidsByTvdbId(
   this: DatabaseService,
@@ -1143,4 +1143,96 @@ export async function getAllGuidsByTvdbId(
   }
 
   return Array.from(allGuids)
+}
+
+/**
+ * Retrieves all watchlist items containing any of the specified GUIDs, including associated user information.
+ *
+ * Returns an array of watchlist items joined with user data, where each item's GUIDs array contains at least one of the provided GUIDs. GUID matching is case-insensitive.
+ *
+ * @param guids - The list of GUIDs to match against watchlist items
+ * @returns An array of objects representing watchlist items with user fields included
+ */
+export async function getWatchlistItemsWithUsersByGuids(
+  this: DatabaseService,
+  guids: string[],
+): Promise<
+  Array<{
+    // Watchlist item fields
+    id: number
+    user_id: number
+    key: string
+    title: string
+    type: string
+    thumb: string | null
+    guids: string[]
+    genres: string[]
+    status: string
+    // User fields
+    username: string
+    watchlist_id: string
+  }>
+> {
+  if (guids.length === 0) {
+    return []
+  }
+
+  // Normalize GUIDs to lowercase for consistent matching
+  const normalizedGuids = guids.map((guid) => guid.toLowerCase())
+
+  // Use database-specific JSON functions to efficiently find items containing any of the GUIDs
+  const items = this.isPostgres
+    ? await this.knex('watchlist_items as wi')
+        .join('users as u', 'wi.user_id', 'u.id')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(wi.guids) elem WHERE lower(elem) = ANY(?))',
+          [normalizedGuids],
+        )
+        .select(
+          'wi.id',
+          'wi.user_id',
+          'wi.key',
+          'wi.title',
+          'wi.type',
+          'wi.thumb',
+          'wi.guids',
+          'wi.genres',
+          'wi.status',
+          'u.username',
+          'u.watchlist_id',
+        )
+    : await this.knex('watchlist_items as wi')
+        .join('users as u', 'wi.user_id', 'u.id')
+        .where((builder) => {
+          // For SQLite, we need to check each GUID individually
+          for (const guid of normalizedGuids) {
+            builder.orWhereRaw(
+              "EXISTS (SELECT 1 FROM json_each(wi.guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+              [guid],
+            )
+          }
+        })
+        .select(
+          'wi.id',
+          'wi.user_id',
+          'wi.key',
+          'wi.title',
+          'wi.type',
+          'wi.thumb',
+          'wi.guids',
+          'wi.genres',
+          'wi.status',
+          'u.username',
+          'u.watchlist_id',
+        )
+
+  return items.map((item) => ({
+    ...item,
+    guids: this.safeJsonParse<string[]>(item.guids, [], 'watchlist_item.guids'),
+    genres: this.safeJsonParse<string[]>(
+      item.genres,
+      [],
+      'watchlist_item.genres',
+    ),
+  }))
 }

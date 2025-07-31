@@ -1,6 +1,7 @@
 import type { FastifyBaseLogger } from 'fastify'
 import type { FastifyInstance } from 'fastify'
 import { SonarrService } from '@services/sonarr.service.js'
+import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
   SonarrInstance,
   SonarrGenreRoute,
@@ -9,6 +10,7 @@ import type {
 } from '@root/types/sonarr.types.js'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
+import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
 
 export class SonarrManagerService {
   private sonarrServices: Map<number, SonarrService> = new Map()
@@ -356,29 +358,45 @@ export class SonarrManagerService {
     const existingSeries = await sonarrService.fetchSeries(
       instance.bypassIgnored,
     )
-    return [...existingSeries].some((series) =>
-      series.guids.some((existingGuid: string) =>
-        item.guids?.includes(existingGuid),
-      ),
-    )
+    // Use weighting system to find best match (prioritize higher GUID match counts)
+    const potentialMatches = [...existingSeries]
+      .map((series) => ({
+        series,
+        score: getGuidMatchScore(
+          parseGuids(series.guids),
+          parseGuids(item.guids),
+        ),
+      }))
+      .filter((match) => match.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    return potentialMatches.length > 0
   }
 
   /**
    * Efficiently check if a series exists using TVDB lookup
    * @param instanceId - The Sonarr instance ID
    * @param tvdbId - The TVDB ID to check
-   * @returns Promise resolving to true if series exists, false otherwise
+   * @returns Promise resolving to ExistenceCheckResult with availability info
    */
   async seriesExistsByTvdbId(
     instanceId: number,
     tvdbId: number,
-  ): Promise<boolean> {
+  ): Promise<ExistenceCheckResult> {
     const sonarrService = this.sonarrServices.get(instanceId)
     if (!sonarrService) {
-      throw new Error(`Sonarr instance ${instanceId} not found`)
+      return {
+        found: false,
+        checked: false,
+        serviceName: 'Sonarr',
+        instanceId,
+        error: `Sonarr instance ${instanceId} not found`,
+      }
     }
 
-    return await sonarrService.seriesExistsByTvdbId(tvdbId)
+    const result = await sonarrService.seriesExistsByTvdbId(tvdbId)
+    // Add instance ID to the result
+    return { ...result, instanceId }
   }
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
