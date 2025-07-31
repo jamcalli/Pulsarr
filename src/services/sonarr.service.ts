@@ -1,4 +1,5 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
   SonarrAddOptions,
   SonarrPost,
@@ -625,21 +626,32 @@ export class SonarrService {
   /**
    * Check if a series exists in Sonarr using efficient lookup
    * @param tvdbId - The TVDB ID to check
-   * @returns Promise resolving to true if series exists, false otherwise
+   * @returns Promise resolving to ExistenceCheckResult with availability info
    */
-  async seriesExistsByTvdbId(tvdbId: number): Promise<boolean> {
+  async seriesExistsByTvdbId(tvdbId: number): Promise<ExistenceCheckResult> {
     try {
       const series = await this.getFromSonarr<SonarrSeries[]>(
         `series/lookup?term=tvdb:${tvdbId}`,
       )
 
       // Series exists if it has a valid internal ID (> 0)
-      return series.length > 0 && series[0].id > 0
+      const found = series.length > 0 && series[0].id > 0
+
+      return {
+        found,
+        checked: true,
+        serviceName: 'Sonarr',
+      }
     } catch (err) {
       this.log.error(
         `Error checking series existence for TVDB ${tvdbId}: ${err}`,
       )
-      return false
+      return {
+        found: false,
+        checked: false,
+        serviceName: 'Sonarr',
+        error: err instanceof Error ? err.message : String(err),
+      }
     }
   }
 
