@@ -9,6 +9,7 @@ import type {
 } from '@root/types/radarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
+import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
 
 export class RadarrManagerService {
@@ -285,18 +286,26 @@ export class RadarrManagerService {
    * Efficiently check if a movie exists using TMDB lookup
    * @param instanceId - The Radarr instance ID
    * @param tmdbId - The TMDB ID to check
-   * @returns Promise resolving to true if movie exists, false otherwise
+   * @returns Promise resolving to ExistenceCheckResult with availability info
    */
   async movieExistsByTmdbId(
     instanceId: number,
     tmdbId: number,
-  ): Promise<boolean> {
+  ): Promise<ExistenceCheckResult> {
     const radarrService = this.radarrServices.get(instanceId)
     if (!radarrService) {
-      throw new Error(`Radarr instance ${instanceId} not found`)
+      return {
+        found: false,
+        checked: false,
+        serviceName: 'Radarr',
+        instanceId,
+        error: `Radarr instance ${instanceId} not found`,
+      }
     }
 
-    return await radarrService.movieExistsByTmdbId(tmdbId)
+    const result = await radarrService.movieExistsByTmdbId(tmdbId)
+    // Add instance ID to the result
+    return { ...result, instanceId }
   }
 
   async addInstance(instance: Omit<RadarrInstance, 'id'>): Promise<number> {
