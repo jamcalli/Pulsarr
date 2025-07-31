@@ -16,8 +16,8 @@ import type {
 } from '@root/types/plex-session.types.js'
 import {
   extractTvdbId,
-  parseGuids,
   normalizeGuid,
+  parseGuids,
 } from '@utils/guid-handler.js'
 
 export class PlexSessionMonitorService {

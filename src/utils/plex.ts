@@ -1151,8 +1151,14 @@ export const toItemsSingle = async (
       key: item.id,
       type: item.type,
       thumb: item.thumb || metadata.thumb || '',
-      guids: metadata.Guid?.map((guid) => normalizeGuid(guid.id)) || [],
-      genres: metadata.Genre?.map((genre) => genre.tag) || [],
+      guids:
+        metadata.Guid?.map((guid) =>
+          guid?.id ? normalizeGuid(guid.id) : null,
+        ).filter((guid): guid is string => guid !== null) || [],
+      genres:
+        metadata.Genre?.map((genre) => genre?.tag).filter(
+          (tag): tag is string => typeof tag === 'string',
+        ) || [],
       user_id: item.user_id,
       status: 'pending' as const,
       created_at: new Date().toISOString(),
@@ -1351,11 +1357,16 @@ export const fetchWatchlistFromRss = async (
       for (const metadata of json.items) {
         try {
           const item: Item = {
-            title: metadata.title,
+            title: metadata.title || 'Unknown Title',
             key: `${prefix}_${Math.random().toString(36).substring(2, 15)}`,
-            type: metadata.category.toUpperCase(),
+            type: (metadata.category || 'unknown').toUpperCase(),
             thumb: metadata.thumbnail?.url || '',
-            guids: metadata.guids.map((guid) => normalizeGuid(guid)),
+            guids: (metadata.guids ?? [])
+              .filter(
+                (guid): guid is string =>
+                  typeof guid === 'string' && guid.length > 0,
+              )
+              .map((guid) => normalizeGuid(guid)),
             genres: (metadata.keywords || []).map((genre) => {
               if (genre.toLowerCase() === 'sci-fi & fantasy') {
                 return 'Sci-Fi & Fantasy'

@@ -788,7 +788,7 @@ export class RadarrService {
       const tmdbId = extractTmdbId(item.guids)
       if (tmdbId === 0) {
         this.log.warn(
-          `Unable to extract any valid ID from movie to delete: ${JSON.stringify(item)}`,
+          `Unable to extract TMDB ID from movie to delete: ${JSON.stringify(item)}`,
         )
         return
       }
