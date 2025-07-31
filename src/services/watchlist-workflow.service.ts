@@ -856,7 +856,7 @@ export class WatchlistWorkflowService {
           tvdbId,
         )
 
-        // If any service is available, we can proceed
+        // If this instance is available, return its result
         if (result.checked) {
           return {
             found: result.found,
@@ -923,7 +923,7 @@ export class WatchlistWorkflowService {
           tmdbId,
         )
 
-        // If any service is available, we can proceed
+        // If this instance is available, return its result
         if (result.checked) {
           return {
             found: result.found,
