@@ -1,4 +1,5 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
   RadarrAddOptions,
   RadarrPost,
@@ -493,21 +494,32 @@ export class RadarrService {
   /**
    * Check if a movie exists in Radarr using efficient lookup
    * @param tmdbId - The TMDB ID to check
-   * @returns Promise resolving to true if movie exists, false otherwise
+   * @returns Promise resolving to ExistenceCheckResult with availability info
    */
-  async movieExistsByTmdbId(tmdbId: number): Promise<boolean> {
+  async movieExistsByTmdbId(tmdbId: number): Promise<ExistenceCheckResult> {
     try {
       const movies = await this.getFromRadarr<RadarrMovie[]>(
         `movie/lookup?term=tmdb:${tmdbId}`,
       )
 
       // Movie exists if it has a valid internal ID (> 0)
-      return movies.length > 0 && movies[0].id > 0
+      const found = movies.length > 0 && movies[0].id > 0
+
+      return {
+        found,
+        checked: true,
+        serviceName: 'Radarr',
+      }
     } catch (err) {
       this.log.error(
         `Error checking movie existence for TMDB ${tmdbId}: ${err}`,
       )
-      return false
+      return {
+        found: false,
+        checked: false,
+        serviceName: 'Radarr',
+        error: err instanceof Error ? err.message : String(err),
+      }
     }
   }
 
