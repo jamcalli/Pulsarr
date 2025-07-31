@@ -31,6 +31,7 @@ import type {
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { IntervalConfig } from '@root/types/scheduler.types.js'
+import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import {
   parseGuids,
   getGuidMatchScore,
@@ -817,6 +818,140 @@ export class WatchlistWorkflowService {
   }
 
   /**
+   * Check if at least one Sonarr instance is available for service operations
+   *
+   * @param item - Watchlist item to check (for logging context)
+   * @returns Promise resolving to ExistenceCheckResult indicating availability
+   */
+  private async checkSonarrServiceAvailability(
+    item: TemptRssWatchlistItem,
+  ): Promise<ExistenceCheckResult> {
+    try {
+      // Use utility function to extract TVDB ID
+      const tvdbId = extractTvdbId(item.guids)
+      if (tvdbId === 0) {
+        return {
+          found: false,
+          checked: false,
+          serviceName: 'Sonarr',
+          error: 'No valid TVDB ID found',
+        }
+      }
+
+      // Get all Sonarr instances
+      const instances = await this.sonarrManager.getAllInstances()
+      if (instances.length === 0) {
+        return {
+          found: false,
+          checked: false,
+          serviceName: 'Sonarr',
+          error: 'No Sonarr instances configured',
+        }
+      }
+
+      // Check if at least one instance is available
+      for (const instance of instances) {
+        const result = await this.sonarrManager.seriesExistsByTvdbId(
+          instance.id,
+          tvdbId,
+        )
+
+        // If this instance is available, return its result
+        if (result.checked) {
+          return {
+            found: result.found,
+            checked: true,
+            serviceName: result.serviceName,
+            instanceId: result.instanceId,
+          }
+        }
+      }
+
+      // No instances were available
+      return {
+        found: false,
+        checked: false,
+        serviceName: 'Sonarr',
+        error: 'All Sonarr instances unavailable',
+      }
+    } catch (error) {
+      return {
+        found: false,
+        checked: false,
+        serviceName: 'Sonarr',
+        error: error instanceof Error ? error.message : String(error),
+      }
+    }
+  }
+
+  /**
+   * Check if at least one Radarr instance is available for service operations
+   *
+   * @param item - Watchlist item to check (for logging context)
+   * @returns Promise resolving to ExistenceCheckResult indicating availability
+   */
+  private async checkRadarrServiceAvailability(
+    item: TemptRssWatchlistItem,
+  ): Promise<ExistenceCheckResult> {
+    try {
+      // Use utility function to extract TMDB ID
+      const tmdbId = extractTmdbId(item.guids)
+      if (tmdbId === 0) {
+        return {
+          found: false,
+          checked: false,
+          serviceName: 'Radarr',
+          error: 'No valid TMDB ID found',
+        }
+      }
+
+      // Get all Radarr instances
+      const instances = await this.radarrManager.getAllInstances()
+      if (instances.length === 0) {
+        return {
+          found: false,
+          checked: false,
+          serviceName: 'Radarr',
+          error: 'No Radarr instances configured',
+        }
+      }
+
+      // Check if at least one instance is available
+      for (const instance of instances) {
+        const result = await this.radarrManager.movieExistsByTmdbId(
+          instance.id,
+          tmdbId,
+        )
+
+        // If this instance is available, return its result
+        if (result.checked) {
+          return {
+            found: result.found,
+            checked: true,
+            serviceName: result.serviceName,
+            instanceId: result.instanceId,
+          }
+        }
+      }
+
+      // No instances were available
+      return {
+        found: false,
+        checked: false,
+        serviceName: 'Radarr',
+        error: 'All Radarr instances unavailable',
+      }
+    } catch (error) {
+      return {
+        found: false,
+        checked: false,
+        serviceName: 'Radarr',
+        error: error instanceof Error ? error.message : String(error),
+      }
+    }
+  }
+
+  /**
    * Verify if a show already exists in any Sonarr instance
    *
    * @param item - Watchlist item to check
@@ -843,12 +978,25 @@ export class WatchlistWorkflowService {
 
       // Check each instance for the show using efficient lookup
       for (const instance of instances) {
-        const exists = await this.sonarrManager.seriesExistsByTvdbId(
+        const result = await this.sonarrManager.seriesExistsByTvdbId(
           instance.id,
           tvdbId,
         )
 
-        if (exists) {
+        // If service unavailable, skip processing and let periodic sync handle it
+        if (!result.checked) {
+          this.log.warn(
+            `Sonarr instance ${instance.name} unavailable for ${item.title}, skipping immediate processing`,
+            {
+              error: result.error,
+              serviceName: result.serviceName,
+              instanceId: result.instanceId,
+            },
+          )
+          return false
+        }
+
+        if (result.found) {
           this.log.info(
             `Show ${item.title} already exists in Sonarr instance ${instance.name}, skipping addition`,
           )
@@ -890,12 +1038,25 @@ export class WatchlistWorkflowService {
 
       // Check each instance for the movie using efficient lookup
       for (const instance of instances) {
-        const exists = await this.radarrManager.movieExistsByTmdbId(
+        const result = await this.radarrManager.movieExistsByTmdbId(
           instance.id,
           tmdbId,
         )
 
-        if (exists) {
+        // If service unavailable, skip processing and let periodic sync handle it
+        if (!result.checked) {
+          this.log.warn(
+            `Radarr instance ${instance.name} unavailable for ${item.title}, skipping immediate processing`,
+            {
+              error: result.error,
+              serviceName: result.serviceName,
+              instanceId: result.instanceId,
+            },
+          )
+          return false
+        }
+
+        if (result.found) {
           this.log.info(
             `Movie ${item.title} already exists in Radarr instance ${instance.name}, skipping addition`,
           )
@@ -1184,6 +1345,30 @@ export class WatchlistWorkflowService {
 
           // Add to Sonarr if not exists
           if (!exists) {
+            // Check service availability before attempting to route
+            const serviceCheck =
+              await this.checkSonarrServiceAvailability(tempItem)
+
+            if (!serviceCheck.checked) {
+              this.log.warn(
+                `Sonarr service unavailable for ${tempItem.title}, skipping addition during sync`,
+                {
+                  error: serviceCheck.error,
+                  serviceName: serviceCheck.serviceName,
+                  instanceId: serviceCheck.instanceId,
+                },
+              )
+              continue
+            }
+
+            // If the item already exists in an available service, skip it
+            if (serviceCheck.found) {
+              this.log.info(
+                `Show ${tempItem.title} already exists in available Sonarr instance, skipping addition`,
+              )
+              continue
+            }
+
             // Get the tvdbGuid string using extractTypedGuid
             const tvdbGuid =
               extractTypedGuid(tempItem.guids, 'tvdb:') || `tvdb:${tvdbId}`
@@ -1237,6 +1422,30 @@ export class WatchlistWorkflowService {
 
           // Add to Radarr if not exists
           if (!exists) {
+            // Check service availability before attempting to route
+            const serviceCheck =
+              await this.checkRadarrServiceAvailability(tempItem)
+
+            if (!serviceCheck.checked) {
+              this.log.warn(
+                `Radarr service unavailable for ${tempItem.title}, skipping addition during sync`,
+                {
+                  error: serviceCheck.error,
+                  serviceName: serviceCheck.serviceName,
+                  instanceId: serviceCheck.instanceId,
+                },
+              )
+              continue
+            }
+
+            // If the item already exists in an available service, skip it
+            if (serviceCheck.found) {
+              this.log.info(
+                `Movie ${tempItem.title} already exists in available Radarr instance, skipping addition`,
+              )
+              continue
+            }
+
             // Get the tmdbGuid string using extractTypedGuid
             const tmdbGuid =
               extractTypedGuid(tempItem.guids, 'tmdb:') || `tmdb:${tmdbId}`
