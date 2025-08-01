@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PlexLabelSyncConfigSchema } from '../plex/label-sync-config.schema.js'
 
 const LogLevelEnum = z.enum([
   'fatal',
@@ -117,6 +118,8 @@ export const ConfigSchema = z.object({
   enablePlexPlaylistProtection: z.boolean().optional(),
   plexProtectionPlaylistName: z.string().optional(),
   plexServerUrl: z.string().optional(),
+  // Plex Label Sync Configuration
+  plexLabelSync: PlexLabelSyncConfigSchema.optional(),
   // RSS and other settings
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),

@@ -179,6 +179,25 @@ export async function getConfig(
     plexProtectionPlaylistName:
       config.plexProtectionPlaylistName || 'Do Not Delete',
     plexServerUrl: config.plexServerUrl || undefined,
+    // Plex Label Sync configuration
+    plexLabelSync: config.plexLabelSync
+      ? this.safeJsonParse(
+          config.plexLabelSync,
+          {
+            enabled: false,
+            liveMode: true,
+            batchMode: false,
+            labelFormat: '{username}',
+            syncInterval: 3600,
+            pendingRetryInterval: 30,
+            pendingMaxAge: 30,
+            excludeLabels: [],
+            preserveExistingLabels: true,
+            labelAllVersions: true,
+          },
+          'config.plexLabelSync',
+        )
+      : undefined,
     // Tag configuration
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
     tagUsersInRadarr: Boolean(config.tagUsersInRadarr),

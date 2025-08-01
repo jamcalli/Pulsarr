@@ -171,6 +171,19 @@ export interface Config {
   enablePlexPlaylistProtection: boolean
   plexProtectionPlaylistName: string
   plexServerUrl?: string // Optional: Only set this if automatic discovery fails, URL is auto-detected in most cases
+  // Plex Label Sync Configuration
+  plexLabelSync?: {
+    enabled: boolean
+    liveMode: boolean
+    batchMode: boolean
+    labelFormat: string
+    syncInterval: number
+    pendingRetryInterval: number
+    pendingMaxAge: number
+    excludeLabels: string[]
+    preserveExistingLabels: boolean
+    labelAllVersions: boolean
+  }
   // RSS Config
   selfRss?: string
   friendsRss?: string
@@ -247,13 +260,15 @@ export interface Config {
 export type RawConfig = {
   [K in keyof Config]: Config[K] extends string[]
     ? string
-    : K extends 'plexSessionMonitoring'
+    : K extends 'plexLabelSync'
       ? string
-      : K extends 'publicContentNotifications'
+      : K extends 'plexSessionMonitoring'
         ? string
-        : K extends 'quotaSettings'
+        : K extends 'publicContentNotifications'
           ? string
-          : K extends 'approvalExpiration'
+          : K extends 'quotaSettings'
             ? string
-            : Config[K]
+            : K extends 'approvalExpiration'
+              ? string
+              : Config[K]
 }

@@ -62,6 +62,8 @@ import './database/types/config-methods.js'
 import './database/types/instance-methods.js'
 import './database/types/junction-methods.js'
 import './database/types/notification-methods.js'
+import './database/types/plex-label-sync-methods.js'
+import './database/types/plex-label-tracking-methods.js'
 import './database/types/quota-methods.js'
 import './database/types/router-methods.js'
 import './database/types/scheduler-methods.js'
@@ -77,6 +79,8 @@ import * as approvalMethods from './database/methods/approval.js'
 import * as configMethods from './database/methods/config.js'
 import * as junctionMethods from './database/methods/junction.js'
 import * as notificationMethods from './database/methods/notification.js'
+import * as plexLabelSyncMethods from './database/methods/plex-label-sync.js'
+import * as plexLabelTrackingMethods from './database/methods/plex-label-tracking.js'
 import * as quotaMethods from './database/methods/quota.js'
 import * as radarrInstanceMethods from './database/methods/radarr-instance.js'
 import * as routerMethods from './database/methods/router.js'
@@ -194,6 +198,8 @@ export class DatabaseService {
       configMethods,
       junctionMethods,
       notificationMethods,
+      plexLabelSyncMethods,
+      plexLabelTrackingMethods,
       quotaMethods,
       radarrInstanceMethods,
       routerMethods,
