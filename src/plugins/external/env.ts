@@ -48,6 +48,19 @@ const DEFAULT_APPROVAL_EXPIRATION = {
   cleanupExpiredDays: 30,
 }
 
+const DEFAULT_PLEX_LABEL_SYNC = {
+  enabled: false,
+  liveMode: true,
+  batchMode: false,
+  labelFormat: '{username}',
+  syncInterval: 3600,
+  pendingRetryInterval: 30,
+  pendingMaxAge: 30,
+  excludeLabels: [],
+  preserveExistingLabels: true,
+  labelAllVersions: true,
+}
+
 const schema = {
   type: 'object',
   required: ['port'],
@@ -443,6 +456,11 @@ const schema = {
       type: 'string',
       default: JSON.stringify(DEFAULT_APPROVAL_EXPIRATION),
     },
+    // Plex Label Sync Configuration
+    plexLabelSync: {
+      type: 'string',
+      default: JSON.stringify(DEFAULT_PLEX_LABEL_SYNC),
+    },
   },
 }
 
@@ -524,6 +542,13 @@ export default fp(
             'approvalExpiration',
           )
         : DEFAULT_APPROVAL_EXPIRATION,
+      plexLabelSync: rawConfig.plexLabelSync
+        ? safeJsonParse(
+            rawConfig.plexLabelSync as string,
+            DEFAULT_PLEX_LABEL_SYNC,
+            'plexLabelSync',
+          )
+        : DEFAULT_PLEX_LABEL_SYNC,
       _isReady: false,
     }
 
@@ -537,6 +562,15 @@ export default fp(
     parsedConfig.plexTokens = Array.isArray(parsedConfig.plexTokens)
       ? parsedConfig.plexTokens
       : []
+
+    // Ensure plexLabelSync.excludeLabels is an array
+    if (parsedConfig.plexLabelSync) {
+      parsedConfig.plexLabelSync.excludeLabels = Array.isArray(
+        parsedConfig.plexLabelSync.excludeLabels,
+      )
+        ? parsedConfig.plexLabelSync.excludeLabels
+        : []
+    }
 
     // Validate PostgreSQL configuration for security
     if (parsedConfig.dbType === 'postgres') {

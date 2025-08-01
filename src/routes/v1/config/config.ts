@@ -42,6 +42,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           // systemAppriseUrl comes from the database as it can be configured by the user
           enableApprise: fastify.config.enableApprise,
           appriseUrl: fastify.config.appriseUrl,
+          // Ensure plexLabelSync has all required fields with defaults
+          plexLabelSync: config.plexLabelSync
+            ? {
+                ...config.plexLabelSync,
+                labelAllVersions: config.plexLabelSync.labelAllVersions ?? true,
+              }
+            : undefined,
         }
 
         const response: z.infer<typeof ConfigResponseSchema> = {
@@ -113,6 +120,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        // Store current config state before changes for service management
+        const currentConfig = await fastify.db.getConfig()
+
         // Store current runtime values for revert if needed
         const originalRuntimeValues = { ...safeConfigUpdate }
         for (const key of Object.keys(originalRuntimeValues)) {
@@ -167,11 +177,70 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        // Handle Plex Label Sync config changes
+        if ('plexLabelSync' in safeConfigUpdate) {
+          const labelSyncConfig = safeConfigUpdate.plexLabelSync
+          const wasEnabled = currentConfig?.plexLabelSync?.enabled === true
+          const willBeEnabled = labelSyncConfig?.enabled === true
+
+          // Handle enabling/disabling the service
+          if (!wasEnabled && willBeEnabled) {
+            // Start processing if just enabled
+            try {
+              await fastify.pendingLabelSyncProcessor.initialize()
+              fastify.log.info(
+                'Plex label sync processor started via config update',
+              )
+            } catch (error) {
+              fastify.log.error(
+                'Failed to start Plex label sync processor after enabling:',
+                error,
+              )
+            }
+          } else if (wasEnabled && !willBeEnabled) {
+            // Stop processing if disabled
+            try {
+              await fastify.pendingLabelSyncProcessor.shutdown()
+              fastify.log.info(
+                'Plex label sync processor stopped via config update',
+              )
+            } catch (error) {
+              fastify.log.error(
+                'Failed to stop Plex label sync processor after disabling:',
+                error,
+              )
+            }
+          } else if (wasEnabled && willBeEnabled) {
+            // Service is enabled and will remain enabled, but configuration may have changed
+            // Restart the service to pick up new configuration
+            try {
+              await fastify.pendingLabelSyncProcessor.shutdown()
+              await fastify.pendingLabelSyncProcessor.initialize()
+              fastify.log.info(
+                'Plex label sync processor restarted with updated configuration',
+              )
+            } catch (error) {
+              fastify.log.error(
+                'Failed to restart Plex label sync processor with new configuration:',
+                error,
+              )
+            }
+          }
+        }
+
         // Merge saved DB config with runtime Apprise settings
         const mergedConfig = {
           ...savedConfig,
           enableApprise: fastify.config.enableApprise,
           appriseUrl: fastify.config.appriseUrl,
+          // Ensure plexLabelSync has all required fields with defaults
+          plexLabelSync: savedConfig.plexLabelSync
+            ? {
+                ...savedConfig.plexLabelSync,
+                labelAllVersions:
+                  savedConfig.plexLabelSync.labelAllVersions ?? true,
+              }
+            : undefined,
         }
 
         const response: z.infer<typeof ConfigResponseSchema> = {
