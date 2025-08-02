@@ -1146,6 +1146,47 @@ export async function getAllGuidsByTvdbId(
 }
 
 /**
+ * Retrieves all users who have a specific content item in their watchlist, identified by GUID.
+ *
+ * Searches for all watchlist items containing the specified GUID and returns the associated
+ * user information including username and user ID. GUID matching is case-insensitive.
+ *
+ * @param guid - The GUID to search for within watchlist items
+ * @returns An array of objects containing user information for users who have the content in their watchlist
+ */
+export async function getWatchlistUsersByGuid(
+  this: DatabaseService,
+  guid: string,
+): Promise<
+  Array<{
+    id: number
+    username: string
+    watchlist_id: string
+  }>
+> {
+  // Use database-specific JSON functions to efficiently find items containing the GUID
+  const users = this.isPostgres
+    ? await this.knex('watchlist_items as wi')
+        .join('users as u', 'wi.user_id', 'u.id')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(wi.guids) elem WHERE lower(elem) = lower(?))',
+          [guid],
+        )
+        .select('u.id', 'u.name as username', 'u.watchlist_id')
+        .distinct()
+    : await this.knex('watchlist_items as wi')
+        .join('users as u', 'wi.user_id', 'u.id')
+        .whereRaw(
+          "EXISTS (SELECT 1 FROM json_each(wi.guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
+          [guid],
+        )
+        .select('u.id', 'u.name as username', 'u.watchlist_id')
+        .distinct()
+
+  return users
+}
+
+/**
  * Retrieves all watchlist items containing any of the specified GUIDs, including associated user information.
  *
  * Returns an array of watchlist items joined with user data, where each item's GUIDs array contains at least one of the provided GUIDs. GUID matching is case-insensitive.

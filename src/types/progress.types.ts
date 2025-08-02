@@ -30,6 +30,8 @@ export interface ProgressEvent {
     | 'radarr-tagging'
     | 'sonarr-tag-removal'
     | 'radarr-tag-removal'
+    | 'plex-label-sync'
+    | 'plex-label-removal'
     | 'approval'
   phase: string
   progress: number

@@ -1,0 +1,63 @@
+---
+id: cleanup-orphaned-plex-labels
+title: "Cleanup orphaned plex labels"
+description: "Clean up orphaned plex labels and expired pending syncs"
+sidebar_label: "Cleanup orphaned plex labels"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVk2P2zYQ/SvEnBJArnYb9KKbkVyMBogQp0WBhQ80NbaYpUiGH14bgv57MaTkr1WwKAoUPUkgZ97MvHkzUg/GouNBGr1qoAKhkOtovzjbco1NrfD4mW9ReSgg8L2H6gnGg00BDXrhpCVvqOAj+bJomRm9mVV4ZCqZM64bhkcrHZ2jbqTeM3/SgpAdemu0Rw9VD78+PNDjFvsT7nhUgX0dLaEAYXRAHciWW6ukSFWU3z059OBFix2nt3CyCBWY7XcUAQqwjmoOMofzUQj0/spwawxVAkMBHXrP93h16YOTek93YxFvR3DYmQM2V4Y6dlt0BLLjUs1eDcTKj0h0EecTxtljUwBvGkklc1Vfxdtx5XEoYGrC/zO/O/epCRfGL/xelfIWKMH+9t/K5+cKuStxMny7hqS70BqaR2t8islDCxWUh8cyj1M5DioU4NEd0NFk9hCdggp660wwwqihKsu+NT4MVW+NC0O/5R5rHtoBXk1v9MF0bJ3QoIADd5JvVa5yAqR31LGjgtoQKDw9xmWQOIZqurnF/9Yim2BY9NiwYJgwXRc1cY/sRYaWhRZZLojUR6nnZk7Qygiu2kzKa3y60LxDZhxb1Yw3jUPvmdkl3Doqz527widObvE/PDx8mE/duMCMZi+tFO0ZSnrmotbjRpjIvYWchSNTRl1l7+RuwmBbbKVuGGcOqaWJsOMpM5OMrcOdPL4HEsnU7dSAqixPJrqFzYktpPaBa4G/CNO9SqB2suPuNPX6H0BVs/x8kg5FGOHYMo0ye5ezNi68v4tQleW5jfOAn6frWbANaV5EJ8MpiZ5b+TuelpGIf9pQLI/eS6PPR1cea5rrLOprv/P05kMoQFIiLfImTQOpCir4a7GsV4tscJvysl6xZzwxHkOLOozrhEVPfT27sRFwKG5z/El4YcyzxEv4sSWvgq8z1oJU1cynkKF8WktS70yKKYMi2EnNy3o1W1djROxQh4y3M+6s/wXjjP4R2AsPolXSByZ1wL27mK6NJkv6/H/lTc6exJ3h/3zMc+hDx9PeHSv9mNfb7K/EfY79ZZf/i3+QsQEBj6G0isv0/U+i7cf1+wSHRyjgnMS0gjfTonqCPi3YP5waBjr+EdGRRjeXdZolOgmL5PuMJ+JZCLQh7V0VsxLuPkqk4vN3of6y/gbD8DdfP2jG
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Cleanup orphaned plex labels"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/labels/cleanup"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Clean up orphaned plex labels and expired pending syncs
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"pending":{"type":"object","properties":{"removed":{"type":"number"},"failed":{"type":"number"}},"required":["removed","failed"],"additionalProperties":false},"orphaned":{"type":"object","properties":{"removed":{"type":"number"},"failed":{"type":"number"}},"required":["removed","failed"],"additionalProperties":false}},"required":["success","message","pending","orphaned"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -64,9 +64,51 @@ import {
 const data = {
   navMain: [
     {
+      title: 'Approvals',
+      url: '#',
+      icon: CheckCircle,
+      items: [
+        {
+          title: 'Approval Settings',
+          url: '/approvals/settings',
+        },
+        {
+          title: 'Approvals',
+          url: '/approvals',
+        },
+        {
+          title: 'Quota Settings',
+          url: '/approvals/quota-settings',
+        },
+      ],
+    },
+    {
       title: 'Dashboard',
       url: '/dashboard',
       icon: LayoutDashboard,
+    },
+    {
+      title: 'Notifications',
+      url: '#',
+      icon: Bell,
+      items: [
+        {
+          title: 'Apprise Notifications',
+          url: '/notifications#apprise-notifications',
+        },
+        {
+          title: 'Discord Notifications',
+          url: '/notifications#discord-notifications',
+        },
+        {
+          title: 'General Notifications',
+          url: '/notifications#general-notifications',
+        },
+        {
+          title: 'Tautulli Notifications',
+          url: '/notifications#tautulli-notifications',
+        },
+      ],
     },
     {
       title: 'Plex',
@@ -84,25 +126,17 @@ const data = {
       ],
     },
     {
-      title: 'Notifications',
+      title: 'Radarr',
       url: '#',
-      icon: Bell,
+      icon: Film,
       items: [
         {
-          title: 'Discord Notifications',
-          url: '/notifications#discord-notifications',
+          title: 'Content Router',
+          url: '/radarr/content-router',
         },
         {
-          title: 'Apprise Notifications',
-          url: '/notifications#apprise-notifications',
-        },
-        {
-          title: 'Tautulli Notifications',
-          url: '/notifications#tautulli-notifications',
-        },
-        {
-          title: 'General Notifications',
-          url: '/notifications#general-notifications',
+          title: 'Instances',
+          url: '/radarr/instances',
         },
       ],
     },
@@ -112,46 +146,12 @@ const data = {
       icon: Tv,
       items: [
         {
-          title: 'Instances',
-          url: '/sonarr/instances',
-        },
-        {
           title: 'Content Router',
           url: '/sonarr/content-router',
         },
-      ],
-    },
-    {
-      title: 'Radarr',
-      url: '#',
-      icon: Film,
-      items: [
         {
           title: 'Instances',
-          url: '/radarr/instances',
-        },
-        {
-          title: 'Content Router',
-          url: '/radarr/content-router',
-        },
-      ],
-    },
-    {
-      title: 'Approvals',
-      url: '#',
-      icon: CheckCircle,
-      items: [
-        {
-          title: 'Approvals',
-          url: '/approvals',
-        },
-        {
-          title: 'Approval Settings',
-          url: '/approvals/settings',
-        },
-        {
-          title: 'Quota Settings',
-          url: '/approvals/quota-settings',
+          url: '/sonarr/instances',
         },
       ],
     },
@@ -171,6 +171,10 @@ const data = {
         {
           title: 'New User Defaults',
           url: '/utilities/new-user-defaults',
+        },
+        {
+          title: 'Plex Labels',
+          url: '/utilities/plex-labels',
         },
         {
           title: 'Plex Notifications',
@@ -198,14 +202,14 @@ const data = {
       icon: BookOpen,
     },
     {
-      name: 'GitHub Repository',
-      url: 'https://github.com/jamcalli/Pulsarr',
-      icon: Bot,
-    },
-    {
       name: 'GitHub Issues',
       url: 'https://github.com/jamcalli/Pulsarr/issues',
       icon: AlertCircle,
+    },
+    {
+      name: 'GitHub Repository',
+      url: 'https://github.com/jamcalli/Pulsarr',
+      icon: Bot,
     },
   ],
 }

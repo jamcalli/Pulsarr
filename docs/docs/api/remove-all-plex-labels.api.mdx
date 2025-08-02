@@ -1,0 +1,71 @@
+---
+id: remove-all-plex-labels
+title: "Remove all plex labels"
+description: "Remove all plex user labels from content and optionally delete all labels"
+sidebar_label: "Remove all plex labels"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vktv20YQ/iuLOSUAVcpJeuFNrX0Q4oNgu0UBQYcVORI3Xu4y+5BEEPzvxeySEqUwdQuk8cXCzsw374/Tgq7RcCe0WhaQgcFKH3Ah5Uri6ZFvUVpIwPG9hWwN/cMmgQJtbkRNdpDBU7BiXEpWSzwxb9EwGZTZzuiK5Vo5VI5xVTAdrLiUDStQoot2cvBl8KtH637TRQNZC70l/eR1LUUeYk2/WHLcgs1LrDj9ck2NkIHefsHcQQK1ocycQEvS6GkhZZ/CxWCrtUSugHLacS8dZDsuLXZdArwoRAx2NULrxaRg0NZa2ejjw3weXY1Lcx9B2VOvCcmPSsn6PEc7lUqXQIXW8j2OhNYZofZBposJQQKofEVdjjMAm5ifl86+HUxtNAWDxUhV+WqLBgIMIU7LdlzISVEXZ0EYkq5HHi54Z+vNG726hhoqdylTX5RLwm8BEuSn+aef2e/vt/QmvUHx3+Tw68+d2f8hhzDsrtTEXnHLySt3JWSQHu7SSCxpP9QJWDQHNERnLXgjIYO2NtrpXMsuS9O21NZ1WVtr47p2yy2uuCs7uKW83711umLPAQ0SOHAj+FaetyEA0u9hq0rnakjCv55Be7YZJNf4LyWyAYb4tGBOs1xXlVdUfGRH4UrmSmQxIVolCj12c4CWOucyPE/hk0DxCpk2bLlivCgMWsv0LuCuvLTcmBE+1eQa/+N8/nE6dG0c04odS5GXZyhhmfFK9Tw0FPcachKOVBk1lb0TuwGDbbEUqmCcGaSWhoKdmliZoFwb3InTe6ApGbodGpClaaO9mdUxsJlQ1nGV4y+5rr4JYGVExU0z9Po/QGWT9bkXBnPXw7FF4CL2LkatjXt/4yFL03MbpwEfB/Ek2IZmPvdGuCYMPa/FZ2wWngq/3pAvi9YKrc5PI4tnWuw41GO78/rGR0hAUCAl8iJsA00VZPDXbLFazqLCdciL1ZK9YsO4dyUq1/MJ85b6ejZjPWCXXMf4Hfe51q8CL+77lnzj/DlizWiqiukQIpQNvEQk93S5Sh5OvKolTl4VkZUonJ0OYQpHmjAswGK1nCxFoXNfoXIxhJ0255WZMc7oFmNH7vJSCuuYUA735qL6rBVp0m31xIuYMO1DhP/zLq6udRUPXN0X5/ZmOx9gV9GNDrAfeuX1/XN4cmktuQhHS5j5tifvNRzuIIHRXRivkoHm1tAGev7DyK6j568eDU345kLGccCHsaThf8WGyDsGOnuhKEhd+jhNN182Wo5oQYtVu3/U3Yw+RPcPjw8vD5DAtj9j480Fhh8pFX6MRBeLFLYrvLUgudr78IWEiEp/fwNhdxRt
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Remove all plex labels"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/labels/remove"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove all plex user labels from content and optionally delete all labels
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"deleteAllLabels":{"type":"boolean","default":false}},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"mode":{"type":"string","enum":["remove"]},"results":{"type":"object","properties":{"processed":{"type":"number"},"removed":{"type":"number"},"failed":{"type":"number"}},"required":["processed","removed","failed"],"additionalProperties":false}},"required":["success","message","mode","results"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
