@@ -128,13 +128,32 @@ export class PendingWebhooksService {
             try {
               // Process based on instance type
               if (webhook.media_type === 'movie') {
-                // For movies, we don't need to parse the payload
+                // Parse the payload to get the full webhook data for label sync
+                let moviePayload: WebhookPayload | unknown
+                try {
+                  moviePayload =
+                    typeof webhook.payload === 'string'
+                      ? JSON.parse(webhook.payload)
+                      : webhook.payload
+                } catch (parseError) {
+                  this.log.error(
+                    `Failed to parse payload for movie webhook ${webhook.id}:`,
+                    parseError,
+                  )
+                  return await this.deleteWebhookAndCount(webhook.id)
+                }
+
                 const mediaInfo = {
                   type: 'movie' as const,
                   guid: webhook.guid,
                   title: webhook.title,
                 }
 
+                // Check for watchlist items directly (independent of notification settings)
+                const watchlistItems =
+                  await this.fastify.db.getWatchlistItemsByGuid(webhook.guid)
+
+                // Process notifications (separate from label sync)
                 const { matchedCount } = await processContentNotifications(
                   this.fastify,
                   mediaInfo,
@@ -144,9 +163,29 @@ export class PendingWebhooksService {
                   },
                 )
 
-                if (matchedCount > 0) {
+                if (watchlistItems.length > 0) {
+                  // Also trigger label sync for the content now that we found watchlist items
+                  if (
+                    this.fastify.config.plexLabelSync?.enabled &&
+                    this.fastify.plexLabelSyncService &&
+                    moviePayload &&
+                    typeof moviePayload === 'object' &&
+                    !Array.isArray(moviePayload)
+                  ) {
+                    try {
+                      await this.fastify.plexLabelSyncService.syncLabelsOnWebhook(
+                        moviePayload as WebhookPayload,
+                      )
+                    } catch (labelError) {
+                      this.log.error(
+                        `Error syncing labels for pending webhook ${webhook.id}:`,
+                        labelError,
+                      )
+                    }
+                  }
+
                   this.log.info(
-                    `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
+                    `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
                   )
                   // Delete the processed webhook
                   return await this.deleteWebhookAndCount(webhook.id)
@@ -208,6 +247,11 @@ export class PendingWebhooksService {
                     episodes: payload.episodes,
                   }
 
+                  // Check for watchlist items directly (independent of notification settings)
+                  const watchlistItems =
+                    await this.fastify.db.getWatchlistItemsByGuid(webhook.guid)
+
+                  // Process notifications (separate from label sync)
                   const { matchedCount } = await processContentNotifications(
                     this.fastify,
                     mediaInfo,
@@ -217,9 +261,26 @@ export class PendingWebhooksService {
                     },
                   )
 
-                  if (matchedCount > 0) {
+                  if (watchlistItems.length > 0) {
+                    // Also trigger label sync for the content now that we found watchlist items
+                    if (
+                      this.fastify.config.plexLabelSync?.enabled &&
+                      this.fastify.plexLabelSyncService
+                    ) {
+                      try {
+                        await this.fastify.plexLabelSyncService.syncLabelsOnWebhook(
+                          body as WebhookPayload,
+                        )
+                      } catch (labelError) {
+                        this.log.error(
+                          `Error syncing labels for pending webhook ${webhook.id}:`,
+                          labelError,
+                        )
+                      }
+                    }
+
                     this.log.info(
-                      `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
+                      `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
                     )
                     // Delete the processed webhook
                     return await this.deleteWebhookAndCount(webhook.id)

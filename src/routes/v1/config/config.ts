@@ -113,6 +113,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        // Store current config state before changes for service management
+        const currentConfig = await fastify.db.getConfig()
+
         // Store current runtime values for revert if needed
         const originalRuntimeValues = { ...safeConfigUpdate }
         for (const key of Object.keys(originalRuntimeValues)) {
@@ -164,6 +167,21 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 error,
               )
             }
+          }
+        }
+
+        // Handle Plex Label Sync config changes
+        if ('plexLabelSync' in safeConfigUpdate) {
+          const wasEnabled = currentConfig?.plexLabelSync?.enabled === true
+          const willBeEnabled = safeConfigUpdate.plexLabelSync?.enabled === true
+
+          // Log status changes (scheduler jobs automatically handle enable/disable)
+          if (!wasEnabled && willBeEnabled) {
+            fastify.log.info('Plex label sync enabled via config update')
+          } else if (wasEnabled && !willBeEnabled) {
+            fastify.log.info('Plex label sync disabled via config update')
+          } else if (wasEnabled && willBeEnabled) {
+            fastify.log.info('Plex label sync configuration updated')
           }
         }
 

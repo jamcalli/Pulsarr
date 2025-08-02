@@ -1,0 +1,63 @@
+---
+id: get-plex-labeling-config
+title: "Get plex labeling config"
+description: "Retrieve the current plex labeling configuration"
+sidebar_label: "Get plex labeling config"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vk2P2zYQ/SvEnBJArnYb9KKbkbSB0T0Yu2lRYOEDTY0tZilSIYdeG4L/ezGk5K8oWKSHnmyIwzdv3rwZqQfXoZeknV3UUMEWaWlw/yDXaLTdfnR2o7dQAMltgOoZ0kGAVQE1BuV1xzehgkckr3GHghoUKnqPlkRncC/MACVUwoo5GRTgMXTOBgxQ9fDr3R3/XIN+wo2MhsTjEAkFKGcJLXGs7DqjVUIrvwa+0ENQDbaS/9GhQ6jArb+iIiig81wo6ZwuRKUwhIvAtXMGpYVjAS2GILd4cRjIa7vls1zE2wnQyrXBejpBkuQP51tJk0lwr0yscdD6HCG9lwcoQBO2YeJm5pfVV4cH3epLfBvbNfoU5fFb1J7pPZ+YXtO6JTGBvCpA1rVm/aVZXlS/kSbgbZpR8bO8JzHfAmKo3/5ff/zYAjdljYFv15CMRY0bpoxTSmqggnJ3XybpQ6nGcQvod+h54nqI3kAFfecdOeXMsSrLvnGBjlXfOU/Hfi0DLiU1R7idyo8xkGvFU0KDAnbSa+52qnEEzHaNLZfTEHVQpJ9hyJPCUI0n1/hfGhQjjIgBa0FOKNe20bLyKF41NWkl5ILY3Ew9t3KENk5Jkx5P4fOBlS0K58ViKWRdewxBuE3CXUYTpPcX+KzJNf6Hu7sP09SdJ+GseG20ak5QOggfrR1mcRT3GnISjkMFN1W805sRQ6yx0bYWUnjklibB9oesTAruPG70/j2wRcZupwZUZXlw0c+6TGymbSBpFf6iXPsdgaXXrfSHsdc/AVVN6vNJe1Q0wIl5Gl7xLrN2nt7fZKjK8tTGacCH8XgSbMWeV9FrOiTTy07/iYd5ZOGfV5wrYAja2dOjixtPPNXZ1Jf3znszPeTFyUQalHWaBnYVVPDPbL5czHLANeX5ciFe8CBkpAYtDctExMB9PV0TA+CxuOb4g/TKuReN5/RDS75L/pSxZuyqeppChgppKWm7cSmnJsOwo5vny8VkXbVTsUVLGW/j/Mn/MyEFfwOIV0mqMTqQ0JZw68+hT85ypLS1eJR1Zs/mzvB/3+c5DNTKtHWHSj/j9CfBLb/+vMX/y3fFoDrhnsrOSJ1eucmp/bByn2F3P77vwtV7KC+nZ+jTUv3Lm+ORH3+L6NmXq/MKzbYczcSWfcEDa6sUdpR2rYm5+zevIXbu6U3w+fcvcDz+CxNqVY4=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get plex labeling config"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/labels/config"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve the current plex labeling configuration
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"config":{"type":"object","properties":{"enabled":{"type":"boolean"},"labelFormat":{"type":"string"},"excludeLabels":{"type":"array","items":{"type":"string"}},"concurrencyLimit":{"type":"number"}},"required":["enabled","labelFormat","excludeLabels","concurrencyLimit"],"additionalProperties":false}},"required":["success","message","config"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

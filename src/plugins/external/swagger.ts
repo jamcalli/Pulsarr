@@ -83,6 +83,10 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           description: 'Content routing and rule management endpoints',
         },
         {
+          name: 'Labels',
+          description: 'Plex label synchronization and management endpoints',
+        },
+        {
           name: 'Metadata',
           description: 'Metadata refresh and management endpoints',
         },

@@ -114,6 +114,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { success: true }
         }
 
+        // Trigger Plex label sync for all webhooks (including upgrades) before deduplication
+        if (fastify.config.plexLabelSync?.enabled) {
+          setImmediate(async () => {
+            try {
+              await fastify.plexLabelSyncService.syncLabelsOnWebhook(body)
+            } catch (error) {
+              fastify.log.error(
+                { error, instanceName: body.instanceName },
+                'Plex label sync failed for webhook',
+              )
+            }
+          })
+        }
+
         // Apply webhook deduplication
         if (!isWebhookProcessable(body, fastify.log)) {
           fastify.log.debug(
