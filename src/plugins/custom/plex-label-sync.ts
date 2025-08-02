@@ -23,6 +23,8 @@ export default fp(
       enabled: false,
       labelFormat: 'pulsarr:{username}',
       concurrencyLimit: 5, // Default concurrency limit
+      removedLabelMode: 'remove' as const,
+      removedLabelPrefix: 'pulsarr:removed',
     }
 
     // Create the Plex label sync service

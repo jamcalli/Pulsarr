@@ -185,29 +185,19 @@ export async function getConfig(
           config.plexLabelSync,
           {
             enabled: false,
-            liveMode: true,
-            batchMode: false,
             labelFormat: 'pulsarr:{username}',
-            syncInterval: 3600,
-            pendingRetryInterval: 30,
-            pendingMaxAge: 30,
-            preserveExistingLabels: true,
-            labelAllVersions: true,
             concurrencyLimit: 5,
+            removedLabelMode: 'remove' as const,
+            removedLabelPrefix: 'pulsarr:removed',
           },
           'config.plexLabelSync',
         )
       : {
           enabled: false,
-          liveMode: true,
-          batchMode: false,
           labelFormat: 'pulsarr:{username}',
-          syncInterval: 3600,
-          pendingRetryInterval: 30,
-          pendingMaxAge: 30,
-          preserveExistingLabels: true,
-          labelAllVersions: true,
           concurrencyLimit: 5,
+          removedLabelMode: 'remove' as const,
+          removedLabelPrefix: 'pulsarr:removed',
         },
     // Tag configuration
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
@@ -308,9 +298,17 @@ export async function createConfig(
       removedTagMode: config.removedTagMode || 'remove',
       removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
       deletionMode: config.deletionMode || 'watchlist',
-      // Plex Label Sync Configuration
+      // Plex Label Sync Configuration - only include actual schema fields
       plexLabelSync: config.plexLabelSync
-        ? JSON.stringify(config.plexLabelSync)
+        ? JSON.stringify({
+            enabled: config.plexLabelSync.enabled ?? false,
+            labelFormat:
+              config.plexLabelSync.labelFormat || 'pulsarr:{username}',
+            concurrencyLimit: config.plexLabelSync.concurrencyLimit ?? 5,
+            removedLabelMode: config.plexLabelSync.removedLabelMode || 'remove',
+            removedLabelPrefix:
+              config.plexLabelSync.removedLabelPrefix || 'pulsarr:removed',
+          })
         : null,
       // Plex Session Monitoring
       plexSessionMonitoring: config.plexSessionMonitoring

@@ -40,6 +40,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           enabled: false,
           labelFormat: 'pulsarr:{username}',
           concurrencyLimit: 5,
+          removedLabelMode: 'remove' as const,
+          removedLabelPrefix: 'pulsarr:removed',
         }
 
         return {
@@ -49,6 +51,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             enabled: Boolean(plexLabelSyncConfig.enabled),
             labelFormat: plexLabelSyncConfig.labelFormat,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
+            removedLabelMode: plexLabelSyncConfig.removedLabelMode || 'remove',
+            removedLabelPrefix:
+              plexLabelSyncConfig.removedLabelPrefix || 'pulsarr:removed',
           },
         }
       } catch (err) {
@@ -119,6 +124,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             enabled: request.body.enabled,
             labelFormat: request.body.labelFormat,
             concurrencyLimit: request.body.concurrencyLimit || 5,
+            removedLabelMode: request.body.removedLabelMode || 'remove',
+            removedLabelPrefix:
+              request.body.removedLabelPrefix || 'pulsarr:removed',
           },
         }
 
@@ -159,6 +167,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           enabled: false,
           labelFormat: 'pulsarr:{username}',
           concurrencyLimit: 5,
+          removedLabelMode: 'remove' as const,
+          removedLabelPrefix: 'pulsarr:removed',
         }
 
         return {
@@ -168,6 +178,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             enabled: Boolean(plexLabelSyncConfig.enabled),
             labelFormat: plexLabelSyncConfig.labelFormat,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
+            removedLabelMode: plexLabelSyncConfig.removedLabelMode || 'remove',
+            removedLabelPrefix:
+              plexLabelSyncConfig.removedLabelPrefix || 'pulsarr:removed',
           },
         }
       } catch (err) {

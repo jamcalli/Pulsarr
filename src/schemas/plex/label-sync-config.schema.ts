@@ -7,6 +7,18 @@ export const PlexLabelSyncConfigSchema = z.object({
   labelFormat: z.string().default('pulsarr:{username}'),
   // Maximum number of concurrent operations during processing
   concurrencyLimit: z.number().int().positive().default(5),
+  // How to handle label cleanup when users are removed from content
+  removedLabelMode: z
+    .enum(['remove', 'keep', 'special-label'])
+    .default('remove')
+    .describe(
+      'How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label',
+    ),
+  // Prefix for special "removed" labels (only used in special-label mode)
+  removedLabelPrefix: z
+    .string()
+    .default('pulsarr:removed')
+    .describe('Prefix for special labels indicating removed users'),
 })
 
 export const PlexLabelSyncConfigResponseSchema = z.object({
