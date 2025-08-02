@@ -90,5 +90,11 @@ declare module '@services/database.service.js' {
       plexRatingKey: string,
       labelApplied: string,
     ): Promise<boolean>
+
+    /**
+     * Removes all Plex label tracking records from the database
+     * @returns Promise resolving to the number of tracking records that were deleted
+     */
+    clearAllLabelTracking(this: DatabaseService): Promise<number>
   }
 }

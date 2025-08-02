@@ -50,15 +50,9 @@ const DEFAULT_APPROVAL_EXPIRATION = {
 
 const DEFAULT_PLEX_LABEL_SYNC = {
   enabled: false,
-  liveMode: true,
-  batchMode: false,
-  labelFormat: '{username}',
-  syncInterval: 3600,
-  pendingRetryInterval: 30,
-  pendingMaxAge: 30,
+  labelFormat: 'pulsarr:{username}',
   excludeLabels: [],
-  preserveExistingLabels: true,
-  labelAllVersions: true,
+  concurrencyLimit: 5,
 }
 
 const schema = {
@@ -456,7 +450,7 @@ const schema = {
       type: 'string',
       default: JSON.stringify(DEFAULT_APPROVAL_EXPIRATION),
     },
-    // Plex Label Sync Configuration
+    // Plex Label Sync Configuration - nested object following complex config pattern
     plexLabelSync: {
       type: 'string',
       default: JSON.stringify(DEFAULT_PLEX_LABEL_SYNC),
@@ -562,15 +556,6 @@ export default fp(
     parsedConfig.plexTokens = Array.isArray(parsedConfig.plexTokens)
       ? parsedConfig.plexTokens
       : []
-
-    // Ensure plexLabelSync.excludeLabels is an array
-    if (parsedConfig.plexLabelSync) {
-      parsedConfig.plexLabelSync.excludeLabels = Array.isArray(
-        parsedConfig.plexLabelSync.excludeLabels,
-      )
-        ? parsedConfig.plexLabelSync.excludeLabels
-        : []
-    }
 
     // Validate PostgreSQL configuration for security
     if (parsedConfig.dbType === 'postgres') {

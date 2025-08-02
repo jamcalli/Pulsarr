@@ -5,14 +5,14 @@ declare module '@services/database.service.js' {
     // PLEX LABEL SYNC MANAGEMENT
     /**
      * Creates a new pending label sync record for content that needs label synchronization
-     * @param guid - The content identifier (e.g., 'tmdb:123456', 'tvdb:789')
+     * @param watchlistItemId - The watchlist item ID that contains the Plex key
      * @param contentTitle - Human-readable title of the content for logging/debugging
      * @param expiresInMinutes - Number of minutes until this sync attempt expires (defaults to 30)
      * @returns Promise resolving to the ID of the newly created pending sync record
      */
     createPendingLabelSync(
       this: DatabaseService,
-      guid: string,
+      watchlistItemId: number,
       contentTitle: string,
       expiresInMinutes?: number,
     ): Promise<number>
@@ -45,5 +45,41 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the number of expired records that were deleted
      */
     expirePendingLabelSyncs(this: DatabaseService): Promise<number>
+
+    /**
+     * Gets watchlist item with Plex key for direct metadata access
+     * @param watchlistItemId - The watchlist item ID
+     * @returns Promise resolving to the watchlist item with Plex key or null if not found
+     */
+    getWatchlistItemWithPlexKey(
+      this: DatabaseService,
+      watchlistItemId: number,
+    ): Promise<{
+      id: number
+      user_id: number
+      title: string
+      plex_key: string | null
+      guids: string[]
+    } | null>
+
+    /**
+     * Gets all pending label syncs with their associated watchlist items and GUID parts
+     * @returns Promise resolving to array of pending syncs with watchlist item data
+     */
+    getPendingLabelSyncsWithPlexKeys(this: DatabaseService): Promise<
+      Array<{
+        id: number
+        watchlist_item_id: number
+        content_title: string
+        retry_count: number
+        last_retry_at: string | null
+        created_at: string
+        expires_at: string
+        plex_key: string | null
+        user_id: number
+        guids: string[]
+        type: string
+      }>
+    >
   }
 }

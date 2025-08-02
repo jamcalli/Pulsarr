@@ -25,12 +25,14 @@ import type {
 } from '@root/types/plex.types.js'
 import type { User } from '@root/types/config.types.js'
 import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.js'
+import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 
 export class PlexWatchlistService {
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
+    private readonly plexLabelSyncService?: PlexLabelSyncService,
   ) {}
 
   private get config() {
@@ -1615,6 +1617,35 @@ export class PlexWatchlistService {
       this.log.info(
         `Detected ${removedKeys.length} removed items for user ${userId}`,
       )
+
+      // Get the watchlist items that will be deleted for label cleanup
+      if (this.plexLabelSyncService) {
+        try {
+          const itemsToDelete =
+            await this.dbService.getWatchlistItemsByKeys(removedKeys)
+
+          // Filter to only items belonging to this user
+          const userItemsToDelete = itemsToDelete.filter(
+            (item) => item.user_id === userId,
+          )
+
+          if (userItemsToDelete.length > 0) {
+            await this.plexLabelSyncService.cleanupLabelsForWatchlistItems(
+              userItemsToDelete.map((item) => ({
+                id: Number((item as WatchlistItem & { id: number }).id),
+                title: item.title,
+              })),
+            )
+          }
+        } catch (error) {
+          this.log.warn(
+            'Failed to cleanup labels for removed watchlist items:',
+            error,
+          )
+          // Continue with deletion even if label cleanup fails
+        }
+      }
+
       await this.dbService.deleteWatchlistItems(userId, removedKeys)
     }
   }

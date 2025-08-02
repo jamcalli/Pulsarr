@@ -247,3 +247,25 @@ export async function isLabelTracked(
 
   return !!result
 }
+
+/**
+ * Removes all Plex label tracking records from the database.
+ *
+ * Deletes every tracking record in the system, typically used during bulk label removal
+ * or system resets. Use with caution as this will remove all tracking information.
+ *
+ * @returns The number of tracking records that were deleted
+ */
+export async function clearAllLabelTracking(
+  this: DatabaseService,
+): Promise<number> {
+  const deleted = await this.knex('plex_label_tracking').delete()
+
+  if (deleted > 0) {
+    this.log.info(
+      `Cleared all ${deleted} Plex label tracking records from database`,
+    )
+  }
+
+  return deleted
+}

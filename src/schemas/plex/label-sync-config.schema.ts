@@ -3,24 +3,12 @@ import { z } from 'zod'
 export const PlexLabelSyncConfigSchema = z.object({
   // Enable/disable the entire label sync feature
   enabled: z.boolean().default(false),
-  // Live mode - webhook-triggered syncing (real-time updates)
-  liveMode: z.boolean().default(true),
-  // Batch mode - scheduled full syncs (periodic updates)
-  batchMode: z.boolean().default(false),
   // Template for label naming (supports variables like {username})
   labelFormat: z.string().default('pulsarr:{username}'),
-  // Interval between batch syncs in seconds
-  syncInterval: z.number().int().positive().default(3600),
-  // Interval between retry attempts for pending syncs in seconds
-  pendingRetryInterval: z.number().int().positive().default(30),
-  // Maximum age for pending syncs before expiration in minutes
-  pendingMaxAge: z.number().int().positive().default(30),
-  // Labels that should never be modified by the sync process
+  // Labels that should be excluded/removed from existing labels
   excludeLabels: z.array(z.string()).default([]),
-  // Whether to preserve existing labels when syncing
-  preserveExistingLabels: z.boolean().default(true),
-  // Whether to label all versions of content (HD, 4K, etc.) or just the first one found
-  labelAllVersions: z.boolean().default(true),
+  // Maximum number of concurrent operations during processing
+  concurrencyLimit: z.number().int().positive().default(5),
 })
 
 export const PlexLabelSyncConfigResponseSchema = z.object({
