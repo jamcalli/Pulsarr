@@ -4,7 +4,7 @@ import { z } from 'zod'
 export const PlexLabelingConfigSchema = z.object({
   enabled: z.boolean(),
   labelFormat: z.string(),
-  concurrencyLimit: z.number().int().positive().optional(),
+  concurrencyLimit: z.number().int().min(1).max(20).optional(),
 })
 
 // Generic error schema
@@ -61,6 +61,7 @@ const RemoveOperationResultSchema = z.object({
   failed: z.number(),
 })
 
+// Empty schema - no parameters needed for removing all Pulsarr labels
 export const RemoveLabelsRequestSchema = z.object({})
 
 export const RemovePlexLabelsResponseSchema = BaseResponseSchema.extend({

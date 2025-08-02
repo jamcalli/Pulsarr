@@ -56,10 +56,10 @@ export class PendingLabelSyncProcessorService {
     config: Config,
   ) {
     this._config = {
-      retryInterval: 30, // Default retry interval since it's not in flattened config
-      maxAge: 30, // Default max age since it's not in flattened config
-      cleanupInterval: 60, // Clean up expired syncs every minute
-      concurrencyLimit: 5, // Limit concurrent sync operations to avoid overwhelming the system
+      retryInterval: 30, // Default retry interval - not configurable
+      maxAge: 30, // Default max age - not configurable
+      cleanupInterval: 60, // Clean up expired syncs every minute - not configurable
+      concurrencyLimit: config.plexLabelSync?.concurrencyLimit ?? 5, // Use config value
     }
   }
 

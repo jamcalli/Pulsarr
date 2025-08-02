@@ -8686,8 +8686,8 @@
                   },
                   "concurrencyLimit": {
                     "type": "integer",
-                    "exclusiveMinimum": true,
-                    "minimum": 0
+                    "minimum": 1,
+                    "maximum": 20
                   }
                 },
                 "required": ["enabled", "labelFormat"],

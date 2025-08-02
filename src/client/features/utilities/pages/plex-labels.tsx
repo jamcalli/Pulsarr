@@ -131,11 +131,7 @@ export function PlexLabelsPage() {
                 size="sm"
                 onClick={async () => {
                   const newEnabledState = !isEnabled
-                  try {
-                    await handleToggle(newEnabledState)
-                  } catch (error) {
-                    // Error handling is done in the hook
-                  }
+                  await handleToggle(newEnabledState)
                 }}
                 disabled={isSaving || isToggling || form.formState.isDirty}
                 variant={isEnabled ? 'error' : 'noShadow'}

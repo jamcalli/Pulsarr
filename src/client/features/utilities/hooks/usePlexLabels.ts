@@ -29,9 +29,7 @@ type ActionResult =
 export function isSyncLabelsResponse(
   response: ActionResult,
 ): response is z.infer<typeof SyncPlexLabelsResponseSchema> {
-  return (
-    (response as z.infer<typeof SyncPlexLabelsResponseSchema>).mode === 'sync'
-  )
+  return 'mode' in response && response.mode === 'sync'
 }
 
 /**
@@ -56,10 +54,7 @@ export function isCleanupLabelsResponse(
 export function isRemoveLabelsResponse(
   response: ActionResult,
 ): response is z.infer<typeof RemovePlexLabelsResponseSchema> {
-  return (
-    (response as z.infer<typeof RemovePlexLabelsResponseSchema>).mode ===
-    'remove'
-  )
+  return 'mode' in response && response.mode === 'remove'
 }
 
 /**
@@ -104,7 +99,7 @@ export function usePlexLabels() {
     removePlexLabels,
     setLoadingWithMinDuration, // Important - this is used in DeleteSyncForm
   } = useUtilitiesStore()
-  const { fetchConfig } = useConfigStore()
+  const { fetchConfig: fetchGlobalConfig } = useConfigStore()
 
   // Update local remove results when store results change
   useEffect(() => {
@@ -204,7 +199,7 @@ export function usePlexLabels() {
         form.reset(formDataCopy, { keepDirty: false })
 
         // Refresh the global config to ensure Delete Sync form gets the updated values
-        await fetchConfig()
+        await fetchGlobalConfig()
 
         // Wait before setting status back to idle (exactly like DeleteSyncForm)
         await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -226,7 +221,12 @@ export function usePlexLabels() {
         setLoadingWithMinDuration(false)
       }
     },
-    [form, updatePlexLabelsConfig, setLoadingWithMinDuration, fetchConfig],
+    [
+      form,
+      updatePlexLabelsConfig,
+      setLoadingWithMinDuration,
+      fetchGlobalConfig,
+    ],
   )
 
   // Handle form cancellation
@@ -348,7 +348,7 @@ export function usePlexLabels() {
         form.setValue('enabled', newEnabledState, { shouldDirty: false })
 
         // Refresh the global config to ensure other components get the updated values
-        await fetchConfig()
+        await fetchGlobalConfig()
 
         toast.success(
           `Plex labeling ${newEnabledState ? 'enabled' : 'disabled'} successfully`,
@@ -380,7 +380,12 @@ export function usePlexLabels() {
         setLoadingWithMinDuration(false)
       }
     },
-    [form, updatePlexLabelsConfig, setLoadingWithMinDuration, fetchConfig],
+    [
+      form,
+      updatePlexLabelsConfig,
+      setLoadingWithMinDuration,
+      fetchGlobalConfig,
+    ],
   )
 
   return {
