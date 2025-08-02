@@ -114,6 +114,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { success: true }
         }
 
+        // Trigger Plex label sync for all webhooks (including upgrades) before deduplication
+        if (fastify.config.plexLabelSync?.enabled) {
+          setImmediate(async () => {
+            try {
+              await fastify.plexLabelSyncService.syncLabelsOnWebhook(body)
+            } catch (error) {
+              fastify.log.error(
+                { error, instanceName: body.instanceName },
+                'Plex label sync failed for webhook',
+              )
+            }
+          })
+        }
+
         // Apply webhook deduplication
         if (!isWebhookProcessable(body, fastify.log)) {
           fastify.log.debug(
@@ -219,23 +233,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             instanceType: 'radarr',
           })
 
-          // Trigger Plex label sync after notification processing
-          if (
-            fastify.config.plexLabelSync?.enabled &&
-            fastify.config.plexLabelSync?.liveMode
-          ) {
-            setImmediate(async () => {
-              try {
-                await fastify.plexLabelSyncService.syncLabelsOnWebhook(body)
-              } catch (error) {
-                fastify.log.error(
-                  { error, guid: mediaInfo.guid },
-                  'Plex label sync failed for movie webhook',
-                )
-              }
-            })
-          }
-
           return { success: true }
         }
 
@@ -313,25 +310,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   instanceId: instance?.id,
                   instanceType: 'sonarr',
                 })
-
-                // Trigger Plex label sync after notification processing
-                if (
-                  fastify.config.plexLabelSync?.enabled &&
-                  fastify.config.plexLabelSync?.liveMode
-                ) {
-                  setImmediate(async () => {
-                    try {
-                      await fastify.plexLabelSyncService.syncLabelsOnWebhook(
-                        body,
-                      )
-                    } catch (error) {
-                      fastify.log.error(
-                        { error, guid: mediaInfo.guid },
-                        'Plex label sync failed for show webhook (recent episode)',
-                      )
-                    }
-                  })
-                }
               } else {
                 if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
                   webhookQueue[tvdbId].seasons[seasonNumber] = {
@@ -465,23 +443,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   instanceType: 'sonarr',
                 },
               )
-
-              // Trigger Plex label sync after notification processing
-              if (
-                fastify.config.plexLabelSync?.enabled &&
-                fastify.config.plexLabelSync?.liveMode
-              ) {
-                setImmediate(async () => {
-                  try {
-                    await fastify.plexLabelSyncService.syncLabelsOnWebhook(body)
-                  } catch (error) {
-                    fastify.log.error(
-                      { error, guid: mediaInfo.guid },
-                      'Plex label sync failed for show webhook (recent episodes)',
-                    )
-                  }
-                })
-              }
             }
 
             const nonRecentEpisodes = body.episodes.filter(

@@ -10,7 +10,12 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const service = new PlexWatchlistService(fastify.log, fastify, fastify.db)
+    const service = new PlexWatchlistService(
+      fastify.log,
+      fastify,
+      fastify.db,
+      fastify.plexLabelSyncService,
+    )
 
     fastify.decorate('plexWatchlist', service)
   },
@@ -21,6 +26,7 @@ export default fp(
       'database',
       'discord-notification-service',
       'quota',
+      'plex-label-sync',
     ],
   },
 )

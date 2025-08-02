@@ -1684,8 +1684,11 @@ export class PlexServerService {
         return []
       }
 
-      // Normalize the GUID using the existing utility
-      const normalizedGuid = normalizeGuid(guid)
+      // Don't normalize plex:// GUIDs as they're internal Plex identifiers
+      // Only normalize external provider GUIDs (tmdb://, tvdb://, etc.)
+      const normalizedGuid = guid.startsWith('plex://')
+        ? guid
+        : normalizeGuid(guid)
 
       const url = new URL('/library/all', serverUrl)
       url.searchParams.append('guid', normalizedGuid)
@@ -1712,6 +1715,13 @@ export class PlexServerService {
 
       this.log.debug(
         `Found ${results.length} results for GUID: ${normalizedGuid}`,
+        {
+          normalizedGuid,
+          originalGuid: guid,
+          hasMetadata: !!data.MediaContainer.Metadata,
+          containerSize: data.MediaContainer.size,
+          fullUrl: url.toString(),
+        },
       )
       return results
     } catch (error) {
@@ -1791,7 +1801,7 @@ export class PlexServerService {
         return false
       }
 
-      const url = new URL(`/library/metadata/${ratingKey}/edit`, serverUrl)
+      const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
 
       // Add each label as a separate parameter - this is the format Plex expects
       for (const [index, label] of labels.entries()) {
@@ -1818,11 +1828,60 @@ export class PlexServerService {
         )
       }
 
-      this.log.info(`Successfully updated labels for rating key ${ratingKey}`)
+      this.log.debug(`Successfully updated labels for rating key ${ratingKey}`)
       return true
     } catch (error) {
       this.log.error(
         `Error updating labels for rating key "${ratingKey}":`,
+        error,
+      )
+      return false
+    }
+  }
+
+  /**
+   * Removes specific labels from a Plex item by fetching current labels and updating with the remaining ones
+   *
+   * @param ratingKey - The Plex rating key of the item to update
+   * @param labelsToRemove - Array of label strings to remove from the item
+   * @returns Promise resolving to true if successful, false otherwise
+   */
+  async removeLabels(
+    ratingKey: string,
+    labelsToRemove: string[],
+  ): Promise<boolean> {
+    try {
+      if (labelsToRemove.length === 0) {
+        return true // Nothing to remove
+      }
+
+      // First, get the current metadata to find existing labels
+      const currentMetadata = await this.getMetadata(ratingKey)
+      if (!currentMetadata) {
+        this.log.warn(`Could not fetch metadata for rating key ${ratingKey}`)
+        return false
+      }
+
+      // Extract current labels
+      const currentLabels =
+        currentMetadata.Label?.map((label) => label.tag) || []
+
+      // Filter out the labels we want to remove
+      const remainingLabels = currentLabels.filter(
+        (label) => !labelsToRemove.includes(label),
+      )
+
+      this.log.debug(`Removing labels from rating key ${ratingKey}`, {
+        currentLabels,
+        labelsToRemove,
+        remainingLabels,
+      })
+
+      // Update with the remaining labels
+      return await this.updateLabels(ratingKey, remainingLabels)
+    } catch (error) {
+      this.log.error(
+        `Error removing labels from rating key "${ratingKey}":`,
         error,
       )
       return false

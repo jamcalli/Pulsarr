@@ -6,17 +6,19 @@
  *
  * Key Features:
  * - Webhook-triggered label updates (real-time)
- * - Batch synchronization of all content
+ * - Batch synchronization of all content with parallel processing
  * - Retry logic with exponential backoff
  * - Pending sync queue for items not yet available in Plex
  * - User label management with configurable format
  * - Content GUID matching and resolution
+ * - Configurable concurrency control for optimal performance
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexServerService } from '@utils/plex-server.js'
 import type { DatabaseService } from './database.service.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import type { WebhookPayload } from '@schemas/notifications/webhook.schema.js'
+import pLimit from 'p-limit'
 import {
   parseGuids,
   hasMatchingGuids,
@@ -79,8 +81,6 @@ export class PlexLabelSyncService {
   ) {
     this.log.info('Initializing PlexLabelSyncService', {
       enabled: config.enabled,
-      liveMode: config.liveMode,
-      batchMode: config.batchMode,
       labelFormat: config.labelFormat,
     })
   }
@@ -93,8 +93,8 @@ export class PlexLabelSyncService {
    * @returns Promise resolving to true if sync was successful, false otherwise
    */
   async syncLabelsOnWebhook(webhook: WebhookPayload): Promise<boolean> {
-    if (!this.config.enabled || !this.config.liveMode) {
-      this.log.debug('Webhook label sync is disabled, skipping')
+    if (!this.config.enabled) {
+      this.log.debug('Plex label sync is disabled, skipping webhook processing')
       return false
     }
 
@@ -118,49 +118,70 @@ export class PlexLabelSyncService {
         instanceName: webhook.instanceName,
       })
 
-      // Find all Plex items with retry logic
-      const plexItems = await this.findPlexItemsWithRetry(contentGuid, 5)
-      if (plexItems.length === 0) {
-        this.log.info('Content not found in Plex, queuing for pending sync', {
+      // Get watchlist items that match this GUID
+      const watchlistItems = await this.db.getWatchlistItemsByGuid(contentGuid)
+      if (watchlistItems.length === 0) {
+        this.log.debug('No users have this content in their watchlist yet', {
           guid: contentGuid,
-          title: this.getContentTitleFromWebhook(webhook),
-        })
-
-        await this.queuePendingLabelSync(
-          contentGuid,
-          this.getContentTitleFromWebhook(webhook),
-        )
-        return false
-      }
-
-      // Get all users with this content in their watchlist
-      const watchlistUsers = await this.getUsersWithContent(contentGuid)
-      if (watchlistUsers.length === 0) {
-        this.log.debug('No users have this content in their watchlist', {
-          guid: contentGuid,
-          itemCount: plexItems.length,
-          ratingKeys: plexItems.map((item) => item.ratingKey),
+          note: 'Content may be downloaded before appearing in watchlists - will retry when watchlist syncs',
         })
         return true
       }
 
-      // Determine which items to label based on configuration
-      const itemsToLabel = this.selectItemsForLabeling(plexItems)
-      const ratingKeys = itemsToLabel.map((item) => item.ratingKey)
-
-      // Apply user labels to all selected Plex items
-      const success = await this.applyUserLabels(ratingKeys, watchlistUsers)
-
-      this.log.info('Webhook label sync completed', {
+      this.log.debug('Found watchlist items for webhook content', {
         guid: contentGuid,
-        totalItems: plexItems.length,
-        labeledItems: itemsToLabel.length,
-        ratingKeys,
-        userCount: watchlistUsers.length,
-        success,
+        itemCount: watchlistItems.length,
+        items: watchlistItems.map((item) => ({
+          id: item.id,
+          title: item.title,
+          plex_key: item.key,
+          user_id: item.user_id,
+        })),
       })
 
-      return success
+      // Process each watchlist item directly using Plex keys
+      let allSuccessful = true
+      for (const item of watchlistItems) {
+        if (!item.key) {
+          this.log.warn(
+            'Watchlist item missing Plex key, queuing for pending sync',
+            {
+              itemId: item.id,
+              title: item.title,
+            },
+          )
+          await this.queuePendingLabelSyncByWatchlistId(
+            Number(item.id),
+            item.title,
+          )
+          continue
+        }
+
+        const success = await this.syncLabelForWatchlistItem(item)
+        if (!success) {
+          allSuccessful = false
+        }
+      }
+
+      if (allSuccessful) {
+        this.log.info('Webhook label sync completed successfully', {
+          guid: contentGuid,
+          itemCount: watchlistItems.length,
+          labelsApplied: true,
+        })
+      } else {
+        this.log.info(
+          'Webhook label sync completed with some items queued for retry',
+          {
+            guid: contentGuid,
+            itemCount: watchlistItems.length,
+            labelsApplied: false,
+            note: 'Content not yet available in Plex, queued for pending sync',
+          },
+        )
+      }
+
+      return allSuccessful
     } catch (error) {
       this.log.error('Error processing webhook for label sync:', error)
       return false
@@ -171,11 +192,21 @@ export class PlexLabelSyncService {
    * Synchronizes all labels for all content in batch mode
    * This processes all watchlist items and applies appropriate labels
    *
+   * @param progressCallback - Optional callback to report progress for SSE
    * @returns Promise resolving to sync results
    */
-  async syncAllLabels(): Promise<SyncResult> {
-    if (!this.config.enabled || !this.config.batchMode) {
-      this.log.debug('Batch label sync is disabled, skipping')
+  async syncAllLabels(
+    progressCallback?: (progress: number, message: string) => void,
+  ): Promise<SyncResult> {
+    this.log.info('Manual batch label sync requested', {
+      enabled: this.config.enabled,
+      labelFormat: this.config.labelFormat,
+    })
+
+    if (!this.config.enabled) {
+      this.log.warn('Plex label sync is disabled, skipping', {
+        enabled: this.config.enabled,
+      })
       return { processed: 0, updated: 0, failed: 0, pending: 0 }
     }
 
@@ -188,73 +219,189 @@ export class PlexLabelSyncService {
 
     try {
       this.log.info('Starting batch label synchronization')
+      progressCallback?.(5, 'Starting Plex label synchronization...')
 
       // Get all active watchlist items from database
+      this.log.debug('Fetching watchlist items from database...')
       const [movieItems, showItems] = await Promise.all([
         this.db.getAllMovieWatchlistItems(),
         this.db.getAllShowWatchlistItems(),
       ])
       const watchlistItems = [...movieItems, ...showItems]
-      this.log.info(`Found ${watchlistItems.length} watchlist items to process`)
 
-      // Group by content GUID to avoid duplicate API calls
-      const groupedContent = await this.groupByContentGuid(watchlistItems)
       this.log.info(
-        `Grouped into ${groupedContent.length} unique content items`,
+        `Database query results: Found ${movieItems.length} movies and ${showItems.length} shows (${watchlistItems.length} total items)`,
+        {
+          movieItemsCount: movieItems.length,
+          showItemsCount: showItems.length,
+          totalWatchlistItems: watchlistItems.length,
+          sampleMovieItems: movieItems.slice(0, 3).map((item) => ({
+            id: item.id,
+            title: item.title,
+            plex_key: item.key,
+            user_id: item.user_id,
+          })),
+          sampleShowItems: showItems.slice(0, 3).map((item) => ({
+            id: item.id,
+            title: item.title,
+            plex_key: item.key,
+            user_id: item.user_id,
+          })),
+        },
       )
 
-      // Process each unique content item
-      for (const contentGroup of groupedContent) {
-        try {
-          result.processed++
+      if (watchlistItems.length === 0) {
+        this.log.warn(
+          'No watchlist items found in database - this might indicate an empty watchlist table',
+        )
+        progressCallback?.(100, 'No content found to label')
+        return result
+      }
 
-          // Find all Plex items
-          const plexItems = await this.findPlexItemsWithRetry(
-            contentGroup.guid,
-            3,
+      progressCallback?.(
+        15,
+        `Found ${watchlistItems.length} watchlist items to process`,
+      )
+
+      // Filter items that have Plex keys vs those that need to be queued
+      const itemsWithKeys: typeof watchlistItems = []
+      const itemsWithoutKeys: typeof watchlistItems = []
+
+      for (const item of watchlistItems) {
+        if (item.key) {
+          itemsWithKeys.push(item)
+        } else {
+          itemsWithoutKeys.push(item)
+          // Queue items without Plex keys for pending sync
+          await this.queuePendingLabelSyncByWatchlistId(
+            Number(item.id),
+            item.title,
           )
-          if (plexItems.length === 0) {
-            this.log.debug(
-              'Content not found in Plex, queuing for pending sync',
-              {
-                guid: contentGroup.guid,
-                title: contentGroup.title,
-              },
-            )
+        }
+      }
 
-            await this.queuePendingLabelSync(
-              contentGroup.guid,
-              contentGroup.title,
-            )
-            result.pending++
-            continue
-          }
+      this.log.info(
+        `Plex key analysis: ${itemsWithKeys.length} items with keys, ${itemsWithoutKeys.length} without keys (queued for pending sync)`,
+        {
+          itemsWithKeys: itemsWithKeys.length,
+          itemsWithoutKeys: itemsWithoutKeys.length,
+          sampleItemsWithKeys: itemsWithKeys.slice(0, 3).map((item) => ({
+            id: item.id,
+            title: item.title,
+            plex_key: item.key,
+          })),
+        },
+      )
 
-          // Determine which items to label based on configuration
-          const itemsToLabel = this.selectItemsForLabeling(plexItems)
-          const ratingKeys = itemsToLabel.map((item) => item.ratingKey)
+      if (itemsWithKeys.length === 0) {
+        this.log.warn(
+          'No watchlist items have Plex keys - all items have been queued for pending sync',
+        )
+        progressCallback?.(
+          100,
+          'No content with Plex keys found - all items queued for pending sync',
+        )
+        result.pending = itemsWithoutKeys.length
+        return result
+      }
 
-          // Apply user labels
-          const success = await this.applyUserLabels(
-            ratingKeys,
-            contentGroup.users,
-          )
+      progressCallback?.(
+        25,
+        `Processing ${itemsWithKeys.length} items with Plex keys using direct access`,
+      )
 
-          if (success) {
-            result.updated++
-          } else {
-            result.failed++
-          }
-        } catch (error) {
+      // Process watchlist items directly using Plex keys with parallel processing
+      const concurrencyLimit = this.config.concurrencyLimit || 5
+      this.log.info(
+        `Starting parallel processing of ${itemsWithKeys.length} watchlist items with concurrency limit of ${concurrencyLimit}`,
+      )
+
+      const limit = pLimit(concurrencyLimit)
+      let processedCount = 0
+
+      const itemProcessingResults = await Promise.allSettled(
+        itemsWithKeys.map((item) =>
+          limit(async () => {
+            const itemResult = {
+              processed: 0,
+              updated: 0,
+              failed: 0,
+              pending: 0,
+            }
+
+            try {
+              itemResult.processed++
+              processedCount++
+
+              // Report progress during processing
+              if (itemsWithKeys.length > 0) {
+                const processProgress =
+                  25 + Math.floor((processedCount / itemsWithKeys.length) * 65)
+                progressCallback?.(
+                  processProgress,
+                  `Processing item ${processedCount}/${itemsWithKeys.length}: ${item.title}`,
+                )
+              }
+
+              // Sync label directly using Plex key
+              const success = await this.syncLabelForWatchlistItem(item)
+
+              this.log.debug('Direct Plex key label sync completed', {
+                itemId: item.id,
+                title: item.title,
+                plexKey: item.key,
+                userId: item.user_id,
+                success,
+              })
+
+              if (success) {
+                itemResult.updated++
+              } else {
+                itemResult.failed++
+              }
+            } catch (error) {
+              this.log.error(
+                `Error processing watchlist item ${item.id}:`,
+                error,
+              )
+              itemResult.failed++
+            }
+
+            return itemResult
+          }),
+        ),
+      )
+
+      // Aggregate results from parallel processing
+      for (const promiseResult of itemProcessingResults) {
+        if (promiseResult.status === 'fulfilled') {
+          const itemResult = promiseResult.value
+          result.processed += itemResult.processed
+          result.updated += itemResult.updated
+          result.failed += itemResult.failed
+          result.pending += itemResult.pending
+        } else {
           this.log.error(
-            `Error processing content group for GUID ${contentGroup.guid}:`,
-            error,
+            'Promise rejected during parallel item processing:',
+            promiseResult.reason,
           )
           result.failed++
         }
       }
 
+      // Get accurate pending count from database (includes items without keys + items with keys not found in Plex)
+      const pendingSyncs = await this.db.getPendingLabelSyncs()
+      result.pending = pendingSyncs.length
+
+      this.log.info(
+        `Parallel processing completed: ${result.processed} processed, ${result.updated} updated, ${result.failed} failed, ${result.pending} pending`,
+      )
+
       this.log.info('Batch label synchronization completed', result)
+      progressCallback?.(
+        100,
+        `Completed Plex label sync: updated ${result.updated} items, failed ${result.failed}, pending ${result.pending}`,
+      )
       return result
     } catch (error) {
       this.log.error('Error in batch label synchronization:', error)
@@ -263,6 +410,9 @@ export class PlexLabelSyncService {
   }
 
   /**
+   * @deprecated This method is no longer used as we now use direct Plex key access
+   * instead of GUID-based searching for much better performance.
+   *
    * Finds all Plex items by GUID with exponential backoff retry logic
    * Returns ALL matching items to handle multiple versions (HD, 4K, etc.)
    *
@@ -274,6 +424,14 @@ export class PlexLabelSyncService {
     guid: string,
     maxRetries: number,
   ): Promise<Array<{ ratingKey: string; title: string }>> {
+    this.log.warn(
+      'Using deprecated GUID-based search method. Consider updating to use direct Plex key access.',
+      {
+        guid,
+        maxRetries,
+      },
+    )
+
     let retryCount = 0
     let delay = 1000 // Start with 1 second delay
 
@@ -379,24 +537,24 @@ export class PlexLabelSyncService {
 
   /**
    * Applies user labels to a single Plex item while preserving existing labels
+   * Also tracks applied labels in the database for cleanup purposes
    *
    * @param ratingKey - The Plex rating key of the item
-   * @param users - Array of users who have this content
+   * @param users - Array of users who have this content with watchlist IDs
    * @returns Promise resolving to true if successful, false otherwise
    */
   private async applyUserLabelsToSingleItem(
     ratingKey: string,
-    users: Array<{ user_id: number; username: string }>,
+    users: Array<{ user_id: number; username: string; watchlist_id: number }>,
   ): Promise<boolean> {
     try {
       // Get current item metadata to preserve existing labels
       let existingLabels: string[] = []
 
-      if (this.config.preserveExistingLabels) {
-        const metadata = await this.plexServer.getMetadata(ratingKey)
-        if (metadata?.Label) {
-          existingLabels = metadata.Label.map((label) => label.tag)
-        }
+      // Always preserve existing labels (removed config option)
+      const metadata = await this.plexServer.getMetadata(ratingKey)
+      if (metadata?.Label) {
+        existingLabels = metadata.Label.map((label) => label.tag)
       }
 
       // Generate user labels based on configured format
@@ -423,10 +581,48 @@ export class PlexLabelSyncService {
       const success = await this.plexServer.updateLabels(ratingKey, allLabels)
 
       if (success) {
-        this.log.info(`Successfully updated labels for item ${ratingKey}`, {
+        this.log.debug(`Successfully updated labels for item ${ratingKey}`, {
           labelCount: allLabels.length,
           userCount: users.length,
         })
+
+        // Track each applied user label in the database for cleanup purposes
+        let trackingErrors = 0
+        for (const user of users) {
+          const userLabel = this.config.labelFormat.replace(
+            '{username}',
+            user.username,
+          )
+          try {
+            await this.db.trackPlexLabel(
+              user.watchlist_id,
+              ratingKey,
+              userLabel,
+            )
+            this.log.debug('Successfully tracked label in database', {
+              watchlistId: user.watchlist_id,
+              ratingKey,
+              label: userLabel,
+            })
+          } catch (error) {
+            this.log.error(
+              `Failed to track label in database for watchlist ${user.watchlist_id}:`,
+              error,
+            )
+            trackingErrors++
+          }
+        }
+
+        if (trackingErrors > 0) {
+          this.log.warn(
+            `Labels applied to Plex but ${trackingErrors} tracking records failed to save`,
+            {
+              ratingKey,
+              successfulTracks: users.length - trackingErrors,
+              failedTracks: trackingErrors,
+            },
+          )
+        }
       } else {
         this.log.warn(`Failed to update labels for item ${ratingKey}`)
       }
@@ -439,48 +635,154 @@ export class PlexLabelSyncService {
   }
 
   /**
-   * Adds content to the pending sync queue for later processing
+   * Adds watchlist item to the pending sync queue for later processing
    *
-   * @param guid - The content GUID
+   * @param watchlistItemId - The watchlist item ID
    * @param title - The content title for human readability
    */
-  private async queuePendingLabelSync(
-    guid: string,
+  private async queuePendingLabelSyncByWatchlistId(
+    watchlistItemId: number,
     title: string,
   ): Promise<void> {
     try {
-      const expiresAt = new Date()
-      expiresAt.setMinutes(expiresAt.getMinutes() + this.config.pendingMaxAge)
+      await this.db.createPendingLabelSync(
+        watchlistItemId,
+        title,
+        30, // 30 minute default expiration
+      )
 
-      const pendingSync: Omit<PendingLabelSync, 'id' | 'created_at'> = {
-        guid,
-        content_title: title,
-        retry_count: 0,
-        last_retry_at: null,
-        expires_at: expiresAt,
-      }
-
-      // Check if already exists to avoid duplicates
-      const existing = await this.db
-        .knex('pending_label_syncs')
-        .where({ guid })
-        .first()
-
-      if (!existing) {
-        await this.db.knex('pending_label_syncs').insert(pendingSync)
-        this.log.debug('Added content to pending label sync queue', {
-          guid,
-          title,
-          expiresAt,
-        })
-      } else {
-        this.log.debug('Content already in pending label sync queue', {
-          guid,
-          title,
-        })
-      }
+      this.log.debug('Added watchlist item to pending label sync queue', {
+        watchlistItemId,
+        title,
+      })
     } catch (error) {
       this.log.error('Error queuing pending label sync:', error)
+    }
+  }
+
+  /**
+   * Syncs labels for a single watchlist item by resolving GUID to rating key
+   *
+   * @param watchlistItem - The watchlist item with GUID part in key field
+   * @returns Promise resolving to true if successful, false otherwise
+   */
+  private async syncLabelForWatchlistItem(watchlistItem: {
+    id: string | number
+    title: string
+    key: string | null
+    user_id: number
+    type?: string
+  }): Promise<boolean> {
+    try {
+      if (!watchlistItem.key) {
+        this.log.warn('Watchlist item missing Plex key', {
+          itemId: watchlistItem.id,
+          title: watchlistItem.title,
+        })
+        return false
+      }
+
+      // Get user information
+      const user = await this.db
+        .knex('users')
+        .where('id', watchlistItem.user_id)
+        .select('id', 'name')
+        .first()
+
+      if (!user) {
+        this.log.warn('User not found for watchlist item', {
+          itemId: watchlistItem.id,
+          userId: watchlistItem.user_id,
+        })
+        return false
+      }
+
+      const username = user.name || `user_${user.id}`
+
+      // The watchlist item key contains a GUID part, not a rating key
+      // We need to construct the full GUID and search for the rating key
+      let fullGuid: string
+
+      // Determine content type from watchlist item to construct proper GUID
+      const contentType = watchlistItem.type || 'movie' // Default to movie if type not specified
+
+      if (contentType === 'show') {
+        fullGuid = `plex://show/${watchlistItem.key}`
+      } else {
+        // For movies and other content types
+        fullGuid = `plex://movie/${watchlistItem.key}`
+      }
+
+      this.log.debug('Resolving GUID to rating key for label sync', {
+        itemId: watchlistItem.id,
+        title: watchlistItem.title,
+        guidPart: watchlistItem.key,
+        fullGuid,
+        contentType,
+      })
+
+      // Search for the content in Plex using the full GUID
+      const plexItems = await this.plexServer.searchByGuid(fullGuid)
+
+      if (plexItems.length === 0) {
+        this.log.debug('Content not found in Plex library', {
+          itemId: watchlistItem.id,
+          title: watchlistItem.title,
+          guidPart: watchlistItem.key,
+          fullGuid,
+          contentType,
+        })
+
+        // Queue for pending sync since content might be added to Plex later
+        await this.queuePendingLabelSyncByWatchlistId(
+          Number(watchlistItem.id),
+          watchlistItem.title,
+        )
+
+        return false
+      }
+
+      // Apply labels to all found items (handles multiple versions)
+      let allSuccessful = true
+      for (const plexItem of plexItems) {
+        this.log.debug('Applying label to Plex item', {
+          itemId: watchlistItem.id,
+          title: watchlistItem.title,
+          ratingKey: plexItem.ratingKey,
+          plexTitle: plexItem.title,
+        })
+
+        const success = await this.applyUserLabelsToSingleItem(
+          plexItem.ratingKey,
+          [
+            {
+              user_id: watchlistItem.user_id,
+              username,
+              watchlist_id: Number(watchlistItem.id),
+            },
+          ],
+        )
+
+        if (!success) {
+          allSuccessful = false
+        }
+      }
+
+      this.log.debug('GUID-resolved label sync completed', {
+        itemId: watchlistItem.id,
+        title: watchlistItem.title,
+        guidPart: watchlistItem.key,
+        fullGuid,
+        plexItemsFound: plexItems.length,
+        ratingKeys: plexItems.map((item) => item.ratingKey),
+        username,
+        allSuccessful,
+      })
+
+      return allSuccessful
+    } catch (error) {
+      this.log.error('Error syncing label for watchlist item:', error)
+      return false
     }
   }
 
@@ -503,14 +805,17 @@ export class PlexLabelSyncService {
     const guidMap = new Map<string, GroupedWatchlistContent>()
 
     // Get all unique user IDs
-    const userIds = [...new Set(watchlistItems.map(item => item.user_id))]
-    
+    const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
+
     // Fetch actual usernames
-    const users = await this.db.knex('users')
+    const users = await this.db
+      .knex('users')
       .whereIn('id', userIds)
       .select('id', 'name')
-    
-    const userMap = new Map(users.map(user => [user.id, user.name || `user_${user.id}`]))
+
+    const userMap = new Map(
+      users.map((user) => [user.id, user.name || `user_${user.id}`]),
+    )
 
     for (const item of watchlistItems) {
       // Skip items without GUIDs
@@ -618,19 +923,40 @@ export class PlexLabelSyncService {
     Array<{ user_id: number; username: string; watchlist_id: number }>
   > {
     try {
+      this.log.debug(`getUsersWithContent called for GUID: ${guid}`)
+
       // Use the proper database method to get watchlist items by GUID
       const watchlistItems = await this.db.getWatchlistItemsByGuid(guid)
 
+      this.log.debug(
+        `Found ${watchlistItems.length} watchlist items for GUID ${guid}`,
+        {
+          items: watchlistItems.map((item) => ({
+            id: item.id,
+            user_id: item.user_id,
+            title: item.title,
+            guids: item.guids,
+          })),
+        },
+      )
+
       if (watchlistItems.length === 0) {
+        this.log.debug(`No watchlist items found for GUID: ${guid}`)
         return []
       }
 
       // Get unique user IDs and fetch user information
       const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
+      this.log.debug(`Fetching user information for user IDs: ${userIds}`)
+
       const users = await this.db
         .knex('users')
         .whereIn('id', userIds)
         .select('id', 'name')
+
+      this.log.debug(`Found ${users.length} users:`, {
+        users: users.map((user) => ({ id: user.id, name: user.name })),
+      })
 
       // Create a map for quick user lookup
       const userMap = new Map(
@@ -638,11 +964,24 @@ export class PlexLabelSyncService {
       )
 
       // Return combined information with watchlist IDs
-      return watchlistItems.map((item) => ({
+      const result = watchlistItems.map((item) => ({
         user_id: item.user_id,
         username: userMap.get(item.user_id) || `user_${item.user_id}`,
         watchlist_id: Number(item.id), // Convert string ID to number for tracking
       }))
+
+      this.log.debug(
+        `getUsersWithContent returning ${result.length} users for GUID ${guid}:`,
+        {
+          result: result.map((r) => ({
+            user_id: r.user_id,
+            username: r.username,
+            watchlist_id: r.watchlist_id,
+          })),
+        },
+      )
+
+      return result
     } catch (error) {
       this.log.error('Error getting users with content:', error)
       return []
@@ -668,96 +1007,181 @@ export class PlexLabelSyncService {
     }
 
     try {
-      this.log.info('Processing pending label syncs')
+      // Get pending syncs with their watchlist items and Plex keys
+      const pendingSyncs = await this.db.getPendingLabelSyncsWithPlexKeys()
 
-      // Get pending syncs that haven't expired
-      const pendingSyncs = await this.db
-        .knex('pending_label_syncs')
-        .where('expires_at', '>', new Date())
-        .orderBy('created_at', 'asc')
+      // Only log if there are pending syncs to process
+      if (pendingSyncs.length > 0) {
+        this.log.info(`Processing ${pendingSyncs.length} pending label syncs`)
+      }
 
-      this.log.info(
-        `Found ${pendingSyncs.length} pending label syncs to process`,
-      )
+      // Process pending syncs in parallel with configurable concurrency limit
+      const concurrencyLimit = this.config.concurrencyLimit || 5
+      const limit = pLimit(concurrencyLimit)
 
-      for (const pendingSync of pendingSyncs) {
-        try {
-          result.processed++
+      const pendingProcessingResults = await Promise.allSettled(
+        pendingSyncs.map((pendingSync) =>
+          limit(async () => {
+            const syncResult = {
+              processed: 0,
+              updated: 0,
+              failed: 0,
+              pending: 0,
+            }
 
-          // Try to find all items in Plex
-          const plexItems = await this.findPlexItemsWithRetry(
-            pendingSync.guid,
-            2,
-          )
-          if (plexItems.length === 0) {
-            // Update retry count
-            await this.db
-              .knex('pending_label_syncs')
-              .where({ id: pendingSync.id })
-              .update({
-                retry_count: pendingSync.retry_count + 1,
-                last_retry_at: new Date(),
+            try {
+              syncResult.processed++
+
+              // Check if watchlist item has GUID part now
+              if (!pendingSync.plex_key) {
+                // Update retry count
+                await this.db.updatePendingLabelSyncRetry(pendingSync.id)
+                syncResult.pending++
+                this.log.debug('Pending sync still missing GUID part', {
+                  watchlistItemId: pendingSync.watchlist_item_id,
+                  title: pendingSync.content_title,
+                })
+                return syncResult
+              }
+
+              // Get user information
+              const user = await this.db
+                .knex('users')
+                .where('id', pendingSync.user_id)
+                .select('id', 'name')
+                .first()
+
+              if (!user) {
+                // Remove from pending queue if user doesn't exist
+                await this.db.deletePendingLabelSync(pendingSync.id)
+                this.log.debug('Removed pending sync for non-existent user', {
+                  userId: pendingSync.user_id,
+                  title: pendingSync.content_title,
+                })
+                return syncResult
+              }
+
+              const username = user.name || `user_${user.id}`
+
+              // The plex_key contains a GUID part, need to resolve to rating key
+              let fullGuid: string
+              const contentType = pendingSync.type || 'movie'
+
+              if (contentType === 'show') {
+                fullGuid = `plex://show/${pendingSync.plex_key}`
+              } else {
+                fullGuid = `plex://movie/${pendingSync.plex_key}`
+              }
+
+              this.log.debug('Resolving GUID to rating key for pending sync', {
+                watchlistItemId: pendingSync.watchlist_item_id,
+                title: pendingSync.content_title,
+                guidPart: pendingSync.plex_key,
+                fullGuid,
+                contentType,
               })
 
-            result.pending++
-            continue
-          }
+              // Search for the content in Plex using the full GUID
+              const plexItems = await this.plexServer.searchByGuid(fullGuid)
 
-          // Get users with this content
-          const users = await this.getUsersWithContent(pendingSync.guid)
-          if (users.length === 0) {
-            // Remove from pending queue if no users have it
-            await this.db
-              .knex('pending_label_syncs')
-              .where({ id: pendingSync.id })
-              .delete()
-            continue
-          }
+              if (plexItems.length === 0) {
+                // Content not found yet, update retry count and keep pending
+                await this.db.updatePendingLabelSyncRetry(pendingSync.id)
+                syncResult.pending++
+                this.log.debug(
+                  'Content still not found in Plex library for pending sync',
+                  {
+                    watchlistItemId: pendingSync.watchlist_item_id,
+                    title: pendingSync.content_title,
+                    guid: fullGuid,
+                  },
+                )
+                return syncResult
+              }
 
-          // Determine which items to label based on configuration
-          const itemsToLabel = this.selectItemsForLabeling(plexItems)
-          const ratingKeys = itemsToLabel.map((item) => item.ratingKey)
+              // Apply labels to all found items
+              let allSuccessful = true
+              for (const plexItem of plexItems) {
+                const success = await this.applyUserLabelsToSingleItem(
+                  plexItem.ratingKey,
+                  [
+                    {
+                      user_id: pendingSync.user_id,
+                      username,
+                      watchlist_id: pendingSync.watchlist_item_id,
+                    },
+                  ],
+                )
 
-          // Apply labels
-          const success = await this.applyUserLabels(ratingKeys, users)
+                if (!success) {
+                  allSuccessful = false
+                }
+              }
 
-          if (success) {
-            // Remove from pending queue
-            await this.db
-              .knex('pending_label_syncs')
-              .where({ id: pendingSync.id })
-              .delete()
+              const success = allSuccessful
 
-            result.updated++
-            this.log.info('Successfully processed pending sync', {
-              guid: pendingSync.guid,
-              title: pendingSync.content_title,
-              itemCount: itemsToLabel.length,
-              ratingKeys,
-            })
-          } else {
-            result.failed++
-          }
-        } catch (error) {
+              if (success) {
+                // Remove from pending queue
+                await this.db.deletePendingLabelSync(pendingSync.id)
+
+                syncResult.updated++
+                this.log.debug('Successfully processed pending sync', {
+                  watchlistItemId: pendingSync.watchlist_item_id,
+                  title: pendingSync.content_title,
+                  guidPart: pendingSync.plex_key,
+                  fullGuid,
+                  plexItemsFound: plexItems.length,
+                  ratingKeys: plexItems.map((item) => item.ratingKey),
+                  username,
+                })
+              } else {
+                // Update retry count for failed attempts
+                await this.db.updatePendingLabelSyncRetry(pendingSync.id)
+                syncResult.failed++
+              }
+            } catch (error) {
+              this.log.error(
+                `Error processing pending sync for watchlist item ${pendingSync.watchlist_item_id} (${pendingSync.content_title}):`,
+                error,
+              )
+              // Update retry count for errors
+              await this.db.updatePendingLabelSyncRetry(pendingSync.id)
+              syncResult.failed++
+            }
+
+            return syncResult
+          }),
+        ),
+      )
+
+      // Aggregate results from parallel processing
+      for (const promiseResult of pendingProcessingResults) {
+        if (promiseResult.status === 'fulfilled') {
+          const syncResult = promiseResult.value
+          result.processed += syncResult.processed
+          result.updated += syncResult.updated
+          result.failed += syncResult.failed
+          result.pending += syncResult.pending
+        } else {
           this.log.error(
-            `Error processing pending sync for ${pendingSync.guid}:`,
-            error,
+            'Promise rejected during parallel pending sync processing:',
+            promiseResult.reason,
           )
           result.failed++
         }
       }
 
       // Clean up expired pending syncs
-      const expiredCount = await this.db
-        .knex('pending_label_syncs')
-        .where('expires_at', '<=', new Date())
-        .delete()
+      const expiredCount = await this.db.expirePendingLabelSyncs()
 
       if (expiredCount > 0) {
         this.log.info(`Cleaned up ${expiredCount} expired pending syncs`)
       }
 
-      this.log.info('Completed processing pending label syncs', result)
+      // Only log completion if we actually processed something
+      if (result.processed > 0) {
+        this.log.info('Completed processing pending label syncs', result)
+      }
       return result
     } catch (error) {
       this.log.error('Error processing pending label syncs:', error)
@@ -779,35 +1203,281 @@ export class PlexLabelSyncService {
       return []
     }
 
-    // Check configuration for labeling behavior
-    const labelAllVersions = this.config.labelAllVersions ?? true // Default to true for multiple versions
+    this.log.debug(`Found ${plexItems.length} item(s) in Plex to label`, {
+      items: plexItems.map((item) => ({
+        ratingKey: item.ratingKey,
+        title: item.title,
+      })),
+    })
+    return plexItems
+  }
 
-    if (labelAllVersions) {
-      this.log.debug(
-        `Configuration set to label all ${plexItems.length} version(s) of content`,
+  /**
+   * Removes labels associated with watchlist items that are being deleted
+   *
+   * This method handles cleanup of Plex labels when watchlist items are removed.
+   * It fetches tracking records for the given watchlist items and removes the
+   * corresponding labels from Plex content.
+   *
+   * @param watchlistItems - Array of watchlist items that are being deleted
+   */
+  async cleanupLabelsForWatchlistItems(
+    watchlistItems: Array<{ id: number; title?: string }>,
+  ): Promise<void> {
+    if (!this.config.enabled || watchlistItems.length === 0) {
+      return
+    }
+
+    this.log.debug('Starting label cleanup for deleted watchlist items', {
+      itemCount: watchlistItems.length,
+      items: watchlistItems.map((item) => ({
+        id: item.id,
+        title: item.title || 'Unknown',
+      })),
+    })
+
+    try {
+      // Get all tracked labels for these watchlist items
+      const trackedLabels = []
+      for (const item of watchlistItems) {
+        const labels = await this.db.getTrackedLabelsForWatchlist(item.id)
+        trackedLabels.push(...labels)
+      }
+
+      this.log.debug(`Found ${trackedLabels.length} tracked labels to remove`)
+
+      // Group by rating key to batch operations
+      const labelsByRatingKey = new Map<string, string[]>()
+      for (const tracking of trackedLabels) {
+        const labels = labelsByRatingKey.get(tracking.plex_rating_key) || []
+        labels.push(tracking.label_applied)
+        labelsByRatingKey.set(tracking.plex_rating_key, labels)
+      }
+
+      // Remove labels from Plex content with parallel processing
+      const concurrencyLimit = this.config.concurrencyLimit || 5
+      const limit = pLimit(concurrencyLimit)
+      let removedCount = 0
+
+      const labelRemovalResults = await Promise.allSettled(
+        Array.from(labelsByRatingKey.entries()).map(([ratingKey, labels]) =>
+          limit(async () => {
+            try {
+              await this.plexServer.removeLabels(ratingKey, labels)
+              this.log.debug(
+                `Removed ${labels.length} labels from Plex content`,
+                {
+                  ratingKey,
+                  labels,
+                },
+              )
+              return labels.length
+            } catch (error) {
+              this.log.warn(
+                `Failed to remove labels from Plex content ${ratingKey}:`,
+                error,
+              )
+              return 0
+            }
+          }),
+        ),
+      )
+
+      // Aggregate successful removals
+      for (const result of labelRemovalResults) {
+        if (result.status === 'fulfilled') {
+          removedCount += result.value
+        }
+      }
+
+      // Clean up tracking records from database
+      for (const item of watchlistItems) {
+        await this.db.cleanupWatchlistTracking(item.id)
+      }
+
+      this.log.info(
+        `Completed label cleanup for ${watchlistItems.length} deleted watchlist items`,
         {
-          items: plexItems.map((item) => ({
-            ratingKey: item.ratingKey,
-            title: item.title,
-          })),
+          trackedLabelsRemoved: trackedLabels.length,
+          plexLabelsRemoved: removedCount,
         },
       )
-      return plexItems
+    } catch (error) {
+      this.log.error('Error during label cleanup for watchlist items:', error)
+      // Don't throw - label cleanup failure shouldn't prevent item deletion
     }
-    this.log.debug(
-      `Configuration set to label only first version, found ${plexItems.length} version(s)`,
-      {
-        selectedItem: {
-          ratingKey: plexItems[0].ratingKey,
-          title: plexItems[0].title,
-        },
-        skippedItems: plexItems.slice(1).map((item) => ({
-          ratingKey: item.ratingKey,
-          title: item.title,
-        })),
-      },
-    )
-    return [plexItems[0]]
+  }
+
+  /**
+   * Removes all tracked Plex labels from content with progress reporting
+   * This processes all tracked labels and removes them from Plex content
+   *
+   * @param deleteAllLabels - Whether to remove all labels (true) or just user labels (false)
+   * @param progressCallback - Optional callback to report progress for SSE
+   * @returns Promise resolving to removal results
+   */
+  async removeAllLabels(
+    deleteAllLabels = false,
+    progressCallback?: (progress: number, message: string) => void,
+  ): Promise<{ processed: number; removed: number; failed: number }> {
+    if (!this.config.enabled) {
+      this.log.debug('Plex label sync is disabled, skipping label removal')
+      return { processed: 0, removed: 0, failed: 0 }
+    }
+
+    const result = {
+      processed: 0,
+      removed: 0,
+      failed: 0,
+    }
+
+    try {
+      this.log.info('Starting bulk Plex label removal')
+      progressCallback?.(5, 'Starting Plex label removal...')
+
+      // Get all tracked labels from database
+      const trackedLabels = await this.db.getAllTrackedLabels()
+      this.log.info(`Found ${trackedLabels.length} tracked labels to process`)
+      progressCallback?.(
+        15,
+        `Found ${trackedLabels.length} tracked labels to process`,
+      )
+
+      // Group by rating key to batch operations
+      const labelsByRatingKey = new Map<string, string[]>()
+      for (const tracking of trackedLabels) {
+        const labels = labelsByRatingKey.get(tracking.plex_rating_key) || []
+        labels.push(tracking.label_applied)
+        labelsByRatingKey.set(tracking.plex_rating_key, labels)
+      }
+
+      progressCallback?.(
+        25,
+        `Processing ${labelsByRatingKey.size} items with parallel processing`,
+      )
+
+      // Process label removal in parallel with configurable concurrency limit
+      const concurrencyLimit = this.config.concurrencyLimit || 5
+      const limit = pLimit(concurrencyLimit)
+      let processedCount = 0
+      const ratingKeyEntries = Array.from(labelsByRatingKey.entries())
+
+      const labelRemovalResults = await Promise.allSettled(
+        ratingKeyEntries.map(([ratingKey, labels]) =>
+          limit(async () => {
+            const itemResult = {
+              processed: 0,
+              removed: 0,
+              failed: 0,
+            }
+
+            try {
+              itemResult.processed++
+              processedCount++
+
+              // Report progress during processing
+              if (ratingKeyEntries.length > 0) {
+                const processProgress =
+                  25 +
+                  Math.floor((processedCount / ratingKeyEntries.length) * 65)
+                progressCallback?.(
+                  processProgress,
+                  `Processing item ${processedCount}/${ratingKeyEntries.length}`,
+                )
+              }
+
+              if (deleteAllLabels) {
+                // Remove all labels from the item
+                await this.plexServer.updateLabels(ratingKey, [])
+                itemResult.removed += labels.length
+              } else {
+                // Get current labels and remove only user labels
+                const metadata = await this.plexServer.getMetadata(ratingKey)
+                const currentLabels =
+                  metadata?.Label?.map((label) => label.tag) || []
+                const filteredLabels = currentLabels.filter(
+                  (label) => !labels.includes(label),
+                )
+                await this.plexServer.updateLabels(ratingKey, filteredLabels)
+                itemResult.removed += labels.length
+              }
+
+              this.log.debug(
+                `Removed ${labels.length} labels from Plex content`,
+                {
+                  ratingKey,
+                  labels,
+                  deleteAllLabels,
+                },
+              )
+            } catch (error) {
+              this.log.error(
+                `Failed to remove labels from Plex content ${ratingKey}:`,
+                error,
+              )
+              itemResult.failed++
+            }
+
+            return itemResult
+          }),
+        ),
+      )
+
+      // Aggregate results from parallel processing
+      for (const promiseResult of labelRemovalResults) {
+        if (promiseResult.status === 'fulfilled') {
+          const itemResult = promiseResult.value
+          result.processed += itemResult.processed
+          result.removed += itemResult.removed
+          result.failed += itemResult.failed
+        } else {
+          this.log.error(
+            'Promise rejected during parallel label removal:',
+            promiseResult.reason,
+          )
+          result.failed++
+        }
+      }
+
+      // Clean up tracking records from database
+      await this.db.clearAllLabelTracking()
+
+      this.log.info('Bulk Plex label removal completed', result)
+      progressCallback?.(
+        100,
+        `Completed Plex label removal: removed ${result.removed} labels from ${result.processed} items, ${result.failed} failed`,
+      )
+      return result
+    } catch (error) {
+      this.log.error('Error in bulk Plex label removal:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Analyzes GUID types for debugging purposes
+   *
+   * @param guids - Array of GUIDs to analyze
+   * @returns Object with counts of different GUID types
+   */
+  private analyzeGuidTypes(guids: string[]): Record<string, number> {
+    const types: Record<string, number> = {}
+
+    for (const guid of guids) {
+      if (!guid) continue
+
+      if (guid.startsWith('tmdb:')) {
+        types.tmdb = (types.tmdb || 0) + 1
+      } else if (guid.startsWith('tvdb:')) {
+        types.tvdb = (types.tvdb || 0) + 1
+      } else if (guid.startsWith('imdb:')) {
+        types.imdb = (types.imdb || 0) + 1
+      } else {
+        types.other = (types.other || 0) + 1
+      }
+    }
+
+    return types
   }
 
   /**

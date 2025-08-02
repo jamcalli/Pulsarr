@@ -1,0 +1,63 @@
+---
+id: sync-plex-labels
+title: "Sync plex labels"
+description: "Synchronize plex labels for all watchlist content"
+sidebar_label: "Sync plex labels"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vk2P4zYM/SsCT7uAU8900Ytvg+4l6AI1NtuiQJCDIjNj7ciSVh8zcQ3/94KSnTiZDAbtoScbJvlIPT5SHsBYdDxIo9cNVOB7LWqFxy98j8pDAYE/eqi2MH3YFdCgF05aCoEKNr0WrTNa/o3MKjwylRzZwTjGlWIvPIhWSR+YMDqgDlCAQ2+N9uihGuDnuzt6XKJ+xgOPKrCvkycUMIdXA3BrlRSp6PK7p4ABvGix4/QWeotQgdl/R0HZrKMjBpnT+SgEer9w3BujkGsYC+jQe/6IC6MPTurHZDPNDUMBqGNHBBFzsBvT6aIK/v1SrDNUCjYLVx27PTrKF23Dwxu2A5fqDZNF3VBhr22ptB9ROorcLrKfc52Qzzi7AnjTSOKaq3pR/4Erj9egM7tnKifizrS8B0iQv/y/mni77VfHmx3fP0MSU2gNzZQ1PuXkoYUKyuf7Ms9ImSRTgEf3jI6mbIDoFFQwWGeCEUaNVVkOrfFhrAZrXBiHPfdY89COcD2Jv0YfTMc2CQ0KeOZO8r06aS0B0vus2DYEC0V6TIOdCIZqtlzif2uRzTAsemxYMEyYrouaiEf2IkPLQossH4jUSKXnTs7Qygiu2szIa3wyaN4hM46ta8abxqH3zBwSbh2V584t8ImTS/xPd3efbpduXGBGs5dWivYEJT1zUetpxmdyLyFvwpEro5ayD/IwY7A9tlI3jDOH1NJE2LHPzCRn6/Agjx+BFDJ3OzWgKsveRLeyubCV1D5wLfAnYbpXBdROdtz1c6//BVR1k5/P0qEIExx7SDPMPuSqjQsfrzJUZXlq423AL7P5JtiONC+ik6FPoudW/ob9QyTitzvK5dF7afTp0yJiQ0OdRb2MO41u/ggFSCqkRd6kaSBVQQV/rR7q9So7XJb8UK/ZE/aMx9CiDtMuYdFTX09hbAIci8sa30gvjHmSeE4/teRV8k3GWpGqmtslZCifdpLUB5NyyqAIdlbzQ72+ea7GiNihDhmPruY5YsU4o/t+cU9LHfDRnV03RpMn1w37yptcPYk7w/95n+fQh46npTudlP4Llj8E13UN5+X9n/4hJroDHkNpFZfp/k4SHaZNu4XneyjglD5f0PNO2sKQdukfTo0jff4R0ZEcd+fNmdU4a4iU+oQ9USoE2pBWrIq56VeXDwn2tP/r3zffYBz/AUPVSaM=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Sync plex labels"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/labels/sync"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Synchronize plex labels for all watchlist content
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"mode":{"type":"string","enum":["sync"]},"results":{"type":"object","properties":{"processed":{"type":"number"},"updated":{"type":"number"},"failed":{"type":"number"},"pending":{"type":"number"}},"required":["processed","updated","failed","pending"],"additionalProperties":false}},"required":["success","message","mode","results"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

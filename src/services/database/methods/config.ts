@@ -179,7 +179,7 @@ export async function getConfig(
     plexProtectionPlaylistName:
       config.plexProtectionPlaylistName || 'Do Not Delete',
     plexServerUrl: config.plexServerUrl || undefined,
-    // Plex Label Sync configuration
+    // Plex Label Sync configuration - nested object following complex config pattern
     plexLabelSync: config.plexLabelSync
       ? this.safeJsonParse(
           config.plexLabelSync,
@@ -187,17 +187,30 @@ export async function getConfig(
             enabled: false,
             liveMode: true,
             batchMode: false,
-            labelFormat: '{username}',
+            labelFormat: 'pulsarr:{username}',
             syncInterval: 3600,
             pendingRetryInterval: 30,
             pendingMaxAge: 30,
             excludeLabels: [],
             preserveExistingLabels: true,
             labelAllVersions: true,
+            concurrencyLimit: 5,
           },
           'config.plexLabelSync',
         )
-      : undefined,
+      : {
+          enabled: false,
+          liveMode: true,
+          batchMode: false,
+          labelFormat: 'pulsarr:{username}',
+          syncInterval: 3600,
+          pendingRetryInterval: 30,
+          pendingMaxAge: 30,
+          excludeLabels: [],
+          preserveExistingLabels: true,
+          labelAllVersions: true,
+          concurrencyLimit: 5,
+        },
     // Tag configuration
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
     tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
@@ -297,6 +310,10 @@ export async function createConfig(
       removedTagMode: config.removedTagMode || 'remove',
       removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
       deletionMode: config.deletionMode || 'watchlist',
+      // Plex Label Sync Configuration
+      plexLabelSync: config.plexLabelSync
+        ? JSON.stringify(config.plexLabelSync)
+        : null,
       // Plex Session Monitoring
       plexSessionMonitoring: config.plexSessionMonitoring
         ? JSON.stringify(config.plexSessionMonitoring)
@@ -454,6 +471,9 @@ const ALLOWED_COLUMNS = new Set([
   'removedTagMode',
   'removedTagPrefix',
 
+  // Plex label sync configuration (JSON column)
+  'plexLabelSync',
+
   // Plex session monitoring (JSON column)
   'plexSessionMonitoring',
 
@@ -486,6 +506,7 @@ const JSON_COLUMNS = new Set([
   'plexSessionMonitoring',
   'quotaSettings',
   'approvalExpiration',
+  'plexLabelSync',
 ])
 
 /**
