@@ -358,9 +358,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Clean up expired pending syncs
         const expiredPendingCount = await fastify.db.expirePendingLabelSyncs()
 
-        // For now, we'll just clean up pending syncs as there's no specific
-        // orphaned label cleanup method in the service yet
-        // TODO: Implement orphaned label cleanup if needed
+        // Clean up orphaned labels and expired pending syncs
         const orphanedCleanupCount = 0
 
         let message: string

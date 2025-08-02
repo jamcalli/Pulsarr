@@ -59,9 +59,8 @@ export default fp(
               return
             }
 
-            // Check if the plex label sync feature is enabled
-            const config = await fastify.db.getConfig()
-            if (!config?.plexLabelSync?.enabled) {
+            // Check if the plex label sync feature is enabled using cached config
+            if (!fastify.config?.plexLabelSync?.enabled) {
               return
             }
 
@@ -91,9 +90,8 @@ export default fp(
               return
             }
 
-            // Check if the plex label sync feature is enabled
-            const config = await fastify.db.getConfig()
-            if (!config?.plexLabelSync?.enabled) {
+            // Check if the plex label sync feature is enabled using cached config
+            if (!fastify.config?.plexLabelSync?.enabled) {
               return
             }
 
