@@ -82,7 +82,57 @@ export class PlexLabelSyncService {
     this.log.info('Initializing PlexLabelSyncService', {
       enabled: config.enabled,
       labelFormat: config.labelFormat,
+      removedLabelMode: config.removedLabelMode || 'remove',
+      removedLabelPrefix: config.removedLabelPrefix || 'pulsarr:removed',
     })
+  }
+
+  /**
+   * Gets the configured label cleanup mode
+   */
+  private get removedLabelMode(): 'remove' | 'keep' | 'special-label' {
+    return this.config.removedLabelMode || 'remove'
+  }
+
+  /**
+   * Gets the prefix for special "removed" labels
+   */
+  private get removedLabelPrefix(): string {
+    return this.config.removedLabelPrefix || 'pulsarr:removed'
+  }
+
+  /**
+   * Checks if a label was created by this app based on the configured format
+   *
+   * @param labelName - The label to check
+   * @returns True if this is an app-managed user label
+   */
+  private isAppUserLabel(labelName: string): boolean {
+    // Extract the pattern from labelFormat (e.g., "pulsarr:{username}" becomes "pulsarr:")
+    const formatPrefix = this.config.labelFormat.substring(
+      0,
+      this.config.labelFormat.indexOf('{'),
+    )
+
+    // Check if label starts with our format prefix
+    return labelName.startsWith(formatPrefix)
+  }
+
+  /**
+   * Gets or creates a special "removed" label for tracking removed users
+   *
+   * @param itemName - The name of the content item (for logging)
+   * @returns The removed label string
+   */
+  private async ensureRemovedLabel(itemName: string): Promise<string> {
+    const removedLabel = this.removedLabelPrefix
+
+    this.log.debug('Using removed label for content', {
+      itemName,
+      removedLabel,
+    })
+
+    return removedLabel
   }
 
   /**
@@ -550,8 +600,6 @@ export class PlexLabelSyncService {
     try {
       // Get current item metadata to preserve existing labels
       let existingLabels: string[] = []
-
-      // Always preserve existing labels (removed config option)
       const metadata = await this.plexServer.getMetadata(ratingKey)
       if (metadata?.Label) {
         existingLabels = metadata.Label.map((label) => label.tag)
@@ -562,22 +610,101 @@ export class PlexLabelSyncService {
         this.config.labelFormat.replace('{username}', user.username),
       )
 
-      // Combine existing labels with new user labels
-      const allLabels = [...new Set([...existingLabels, ...userLabels])]
+      // Clean up any existing "removed" labels when users are re-adding content
+      const removedLabels = existingLabels.filter((label) =>
+        label.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase()),
+      )
+
+      let cleanedExistingLabels = existingLabels
+      if (userLabels.length > 0 && removedLabels.length > 0) {
+        // Remove any "removed" labels since we're adding users back
+        cleanedExistingLabels = existingLabels.filter(
+          (label) => !removedLabels.includes(label),
+        )
+        this.log.debug('Removing obsolete "removed" labels', {
+          ratingKey,
+          removedLabels,
+        })
+      }
+
+      // Handle labels based on configured cleanup mode
+      let finalLabels: string[]
+
+      if (this.removedLabelMode === 'keep') {
+        // Simply add any missing user labels, don't remove any
+        finalLabels = [...new Set([...cleanedExistingLabels, ...userLabels])]
+
+        this.log.debug('Using "keep" mode - preserving all existing labels', {
+          ratingKey,
+          mode: 'keep',
+          existingCount: cleanedExistingLabels.length,
+          addingCount: userLabels.length,
+        })
+      } else if (this.removedLabelMode === 'special-label') {
+        // Find which labels are non-user labels that should be preserved
+        const nonUserLabels = cleanedExistingLabels.filter(
+          (label) => !this.isAppUserLabel(label),
+        )
+
+        // Find user labels that exist but are not in the current user list
+        const existingUserLabels = cleanedExistingLabels.filter((label) =>
+          this.isAppUserLabel(label),
+        )
+        const removedUserLabels = existingUserLabels.filter(
+          (label) => !userLabels.includes(label),
+        )
+
+        // If we have labels being removed, add special "removed" label
+        if (removedUserLabels.length > 0) {
+          const itemName = metadata?.title || 'Unknown'
+          const removedLabel = await this.ensureRemovedLabel(itemName)
+          finalLabels = [
+            ...new Set([...nonUserLabels, ...userLabels, removedLabel]),
+          ]
+
+          this.log.debug('Using "special-label" mode - adding removed label', {
+            ratingKey,
+            mode: 'special-label',
+            removedUserLabels,
+            removedLabel,
+          })
+        } else {
+          finalLabels = [...new Set([...nonUserLabels, ...userLabels])]
+
+          this.log.debug('Using "special-label" mode - no users removed', {
+            ratingKey,
+            mode: 'special-label',
+          })
+        }
+      } else {
+        // Default 'remove' mode - filter out any existing user labels and add current ones
+        const nonUserLabels = cleanedExistingLabels.filter(
+          (label) => !this.isAppUserLabel(label),
+        )
+        finalLabels = [...new Set([...nonUserLabels, ...userLabels])]
+
+        this.log.debug('Using "remove" mode - replacing user labels', {
+          ratingKey,
+          mode: 'remove',
+          preservedCount: nonUserLabels.length,
+          userLabelCount: userLabels.length,
+        })
+      }
 
       this.log.debug('Applying labels to Plex item', {
         ratingKey,
         existingLabels,
         userLabels,
-        finalLabels: allLabels,
+        finalLabels,
+        mode: this.removedLabelMode,
       })
 
       // Update the labels in Plex
-      const success = await this.plexServer.updateLabels(ratingKey, allLabels)
+      const success = await this.plexServer.updateLabels(ratingKey, finalLabels)
 
       if (success) {
         this.log.debug(`Successfully updated labels for item ${ratingKey}`, {
-          labelCount: allLabels.length,
+          labelCount: finalLabels.length,
           userCount: users.length,
         })
 

@@ -115,6 +115,8 @@ export function usePlexLabels() {
       enabled: false,
       labelFormat: 'pulsarr:{username}',
       concurrencyLimit: 5,
+      removedLabelMode: 'remove',
+      removedLabelPrefix: 'pulsarr:removed',
     },
   })
 
@@ -125,6 +127,8 @@ export function usePlexLabels() {
         enabled: data.config.enabled,
         labelFormat: data.config.labelFormat,
         concurrencyLimit: data.config.concurrencyLimit || 5,
+        removedLabelMode: data.config.removedLabelMode || 'remove',
+        removedLabelPrefix: data.config.removedLabelPrefix || 'pulsarr:removed',
       })
     },
     [form],
