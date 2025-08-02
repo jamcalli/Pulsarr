@@ -22,7 +22,6 @@ export default fp(
     const labelSyncConfig = fastify.config.plexLabelSync || {
       enabled: false,
       labelFormat: 'pulsarr:{username}',
-      excludeLabels: [] as string[], // Labels to exclude from existing labels
       concurrencyLimit: 5, // Default concurrency limit
     }
 

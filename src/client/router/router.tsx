@@ -28,6 +28,9 @@ const PublicContentNotificationsPage = lazy(
   () => import('@/features/utilities/pages/public-content-notifications'),
 )
 const UserTagsPage = lazy(() => import('@/features/utilities/pages/user-tags'))
+const PlexLabelsPage = lazy(
+  () => import('@/features/utilities/pages/plex-labels'),
+)
 const ApiKeysPage = lazy(() => import('@/features/utilities/pages/api-keys'))
 const ApprovalSettingsPage = lazy(
   () => import('@/features/approvals/pages/approval-settings'),
@@ -238,6 +241,16 @@ export const router = createBrowserRouter([
               <AuthenticatedLayout>
                 <Suspense fallback={<LoadingFallback />}>
                   <UserTagsPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'plex-labels',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <PlexLabelsPage />
                 </Suspense>
               </AuthenticatedLayout>
             ),

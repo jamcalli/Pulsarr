@@ -5,8 +5,6 @@ export const PlexLabelSyncConfigSchema = z.object({
   enabled: z.boolean().default(false),
   // Template for label naming (supports variables like {username})
   labelFormat: z.string().default('pulsarr:{username}'),
-  // Labels that should be excluded/removed from existing labels
-  excludeLabels: z.array(z.string()).default([]),
   // Maximum number of concurrent operations during processing
   concurrencyLimit: z.number().int().positive().default(5),
 })

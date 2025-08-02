@@ -3214,13 +3214,6 @@
                               "type": "string",
                               "default": "pulsarr:{username}"
                             },
-                            "excludeLabels": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              },
-                              "default": []
-                            },
                             "concurrencyLimit": {
                               "type": "integer",
                               "exclusiveMinimum": true,
@@ -3705,13 +3698,6 @@
                         "type": "string",
                         "default": "pulsarr:{username}"
                       },
-                      "excludeLabels": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        },
-                        "default": []
-                      },
                       "concurrencyLimit": {
                         "type": "integer",
                         "exclusiveMinimum": true,
@@ -4137,13 +4123,6 @@
                             "labelFormat": {
                               "type": "string",
                               "default": "pulsarr:{username}"
-                            },
-                            "excludeLabels": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              },
-                              "default": []
                             },
                             "concurrencyLimit": {
                               "type": "integer",
@@ -8584,12 +8563,6 @@
                         "labelFormat": {
                           "type": "string"
                         },
-                        "excludeLabels": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
                         "concurrencyLimit": {
                           "type": "number"
                         }
@@ -8597,7 +8570,6 @@
                       "required": [
                         "enabled",
                         "labelFormat",
-                        "excludeLabels",
                         "concurrencyLimit"
                       ],
                       "additionalProperties": false
@@ -8658,12 +8630,6 @@
                         "labelFormat": {
                           "type": "string"
                         },
-                        "excludeLabels": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
                         "concurrencyLimit": {
                           "type": "number"
                         }
@@ -8671,7 +8637,6 @@
                       "required": [
                         "enabled",
                         "labelFormat",
-                        "excludeLabels",
                         "concurrencyLimit"
                       ],
                       "additionalProperties": false
@@ -8719,12 +8684,6 @@
                   "labelFormat": {
                     "type": "string"
                   },
-                  "excludeLabels": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
                   "concurrencyLimit": {
                     "type": "integer",
                     "exclusiveMinimum": true,
@@ -8761,12 +8720,6 @@
                         "labelFormat": {
                           "type": "string"
                         },
-                        "excludeLabels": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
                         "concurrencyLimit": {
                           "type": "number"
                         }
@@ -8774,7 +8727,6 @@
                       "required": [
                         "enabled",
                         "labelFormat",
-                        "excludeLabels",
                         "concurrencyLimit"
                       ],
                       "additionalProperties": false
@@ -8968,26 +8920,10 @@
     },
     "/v1/labels/remove": {
       "delete": {
-        "operationId": "removeAllPlexLabels",
-        "summary": "Remove all plex labels",
+        "operationId": "removePulsarrPlexLabels",
+        "summary": "Remove Pulsarr labels from Plex content",
         "tags": ["Labels"],
-        "description": "Remove all plex user labels from content and optionally delete all labels",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "deleteAllLabels": {
-                    "type": "boolean",
-                    "default": false
-                  }
-                },
-                "additionalProperties": false
-              }
-            }
-          }
-        },
+        "description": "Remove all Pulsarr-created labels from Plex content while preserving other labels",
         "responses": {
           "200": {
             "description": "Default Response",
