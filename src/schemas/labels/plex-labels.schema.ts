@@ -4,7 +4,6 @@ import { z } from 'zod'
 export const PlexLabelingConfigSchema = z.object({
   enabled: z.boolean(),
   labelFormat: z.string(),
-  excludeLabels: z.array(z.string()).optional(),
   concurrencyLimit: z.number().int().positive().optional(),
 })
 
@@ -20,7 +19,6 @@ export const PlexLabelingStatusResponseSchema = z.object({
   config: z.object({
     enabled: z.boolean(),
     labelFormat: z.string(),
-    excludeLabels: z.array(z.string()),
     concurrencyLimit: z.number(),
   }),
 })
@@ -63,9 +61,7 @@ const RemoveOperationResultSchema = z.object({
   failed: z.number(),
 })
 
-export const RemoveLabelsRequestSchema = z.object({
-  deleteAllLabels: z.boolean().optional().default(false),
-})
+export const RemoveLabelsRequestSchema = z.object({})
 
 export const RemovePlexLabelsResponseSchema = BaseResponseSchema.extend({
   mode: z.literal('remove'),

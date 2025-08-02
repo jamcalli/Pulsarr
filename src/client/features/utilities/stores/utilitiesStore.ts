@@ -12,16 +12,30 @@ import {
   CleanupResponseSchema,
   RemoveTagsResponseSchema,
 } from '@root/schemas/tags/user-tags.schema'
+import {
+  type PlexLabelingConfigSchema,
+  PlexLabelingStatusResponseSchema,
+  SyncPlexLabelsResponseSchema,
+  CleanupPlexLabelsResponseSchema,
+  RemovePlexLabelsResponseSchema,
+} from '@root/schemas/labels/plex-labels.schema'
 import { z } from 'zod'
 
 // Single type alias needed for the function parameter
 type TaggingConfig = z.infer<typeof TaggingConfigSchema>
+type PlexLabelingConfig = z.infer<typeof PlexLabelingConfigSchema>
 
 // Use inferred type from the schema for better type safety
 type TaggingStatusResponse = z.infer<typeof TaggingStatusResponseSchema>
+type PlexLabelingStatusResponse = z.infer<
+  typeof PlexLabelingStatusResponseSchema
+>
 
 // Use the existing schema type for the return type
 export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>
+export type PlexLabelRemovalResult = z.infer<
+  typeof RemovePlexLabelsResponseSchema
+>
 
 // Minimum loading delay for consistent UX
 const MIN_LOADING_DELAY = 500
@@ -32,6 +46,8 @@ export interface UtilitiesState {
   isLoadingRef: boolean
   removeTagsResults: TagRemovalResult | null
   showDeleteTagsConfirmation: boolean
+  removePlexLabelsResults: PlexLabelRemovalResult | null
+  showDeletePlexLabelsConfirmation: boolean
   loading: {
     schedules: boolean
     deleteSyncDryRun: boolean
@@ -43,6 +59,10 @@ export interface UtilitiesState {
     syncUserTags: boolean
     cleanupUserTags: boolean
     removeUserTags: boolean
+    plexLabels: boolean
+    syncPlexLabels: boolean
+    cleanupPlexLabels: boolean
+    removePlexLabels: boolean
   }
   error: {
     schedules: string | null
@@ -55,6 +75,10 @@ export interface UtilitiesState {
     syncUserTags: string | null
     cleanupUserTags: string | null
     removeUserTags: string | null
+    plexLabels: string | null
+    syncPlexLabels: string | null
+    cleanupPlexLabels: string | null
+    removePlexLabels: string | null
   }
   hasLoadedSchedules: boolean
 
@@ -78,6 +102,18 @@ export interface UtilitiesState {
   cleanupUserTags: () => Promise<z.infer<typeof CleanupResponseSchema>>
   setShowDeleteTagsConfirmation: (show: boolean) => void
   removeUserTags: (deleteTagDefinitions: boolean) => Promise<TagRemovalResult>
+
+  // Plex labels functions
+  fetchPlexLabelsConfig: () => Promise<PlexLabelingStatusResponse>
+  updatePlexLabelsConfig: (
+    config: PlexLabelingConfig,
+  ) => Promise<PlexLabelingStatusResponse>
+  syncPlexLabels: () => Promise<z.infer<typeof SyncPlexLabelsResponseSchema>>
+  cleanupPlexLabels: () => Promise<
+    z.infer<typeof CleanupPlexLabelsResponseSchema>
+  >
+  setShowDeletePlexLabelsConfirmation: (show: boolean) => void
+  removePlexLabels: () => Promise<PlexLabelRemovalResult>
 }
 
 // Enhanced helper function to handle API responses with Zod schema validation
@@ -223,6 +259,8 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       isLoadingRef: false,
       removeTagsResults: null,
       showDeleteTagsConfirmation: false,
+      removePlexLabelsResults: null,
+      showDeletePlexLabelsConfirmation: false,
       loading: {
         schedules: false,
         deleteSyncDryRun: false,
@@ -234,6 +272,10 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         syncUserTags: false,
         cleanupUserTags: false,
         removeUserTags: false,
+        plexLabels: false,
+        syncPlexLabels: false,
+        cleanupPlexLabels: false,
+        removePlexLabels: false,
       },
       error: {
         schedules: null,
@@ -246,6 +288,10 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         syncUserTags: null,
         cleanupUserTags: null,
         removeUserTags: null,
+        plexLabels: null,
+        syncPlexLabels: null,
+        cleanupPlexLabels: null,
+        removePlexLabels: null,
       },
 
       // Loading state management that mimics your pattern in other components
@@ -283,6 +329,10 @@ export const useUtilitiesStore = create<UtilitiesState>()(
             syncUserTags: null,
             cleanupUserTags: null,
             removeUserTags: null,
+            plexLabels: null,
+            syncPlexLabels: null,
+            cleanupPlexLabels: null,
+            removePlexLabels: null,
           },
         }))
       },
@@ -480,6 +530,75 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           loadingKey: 'cleanupUserTags',
           errorKey: 'cleanupUserTags',
           defaultErrorMessage: 'Failed to clean up user tags',
+        })
+      },
+
+      setShowDeletePlexLabelsConfirmation: (show: boolean) => {
+        set({ showDeletePlexLabelsConfirmation: show })
+      },
+
+      // Plex Labels methods
+      fetchPlexLabelsConfig: async () => {
+        return apiRequest<PlexLabelingStatusResponse>({
+          url: '/v1/labels/status',
+          schema:
+            PlexLabelingStatusResponseSchema as z.ZodType<PlexLabelingStatusResponse>,
+          loadingKey: 'plexLabels',
+          errorKey: 'plexLabels',
+          defaultErrorMessage: 'Failed to fetch plex labels configuration',
+        })
+      },
+
+      updatePlexLabelsConfig: async (config: PlexLabelingConfig) => {
+        return apiRequest<PlexLabelingStatusResponse, PlexLabelingConfig>({
+          url: '/v1/labels/config',
+          method: 'PUT',
+          body: config,
+          schema:
+            PlexLabelingStatusResponseSchema as z.ZodType<PlexLabelingStatusResponse>,
+          loadingKey: 'plexLabels',
+          errorKey: 'plexLabels',
+          defaultErrorMessage: 'Failed to update plex labels configuration',
+        })
+      },
+
+      syncPlexLabels: async () => {
+        return apiRequest<z.infer<typeof SyncPlexLabelsResponseSchema>>({
+          url: '/v1/labels/sync',
+          method: 'POST',
+          schema: SyncPlexLabelsResponseSchema,
+          loadingKey: 'syncPlexLabels',
+          errorKey: 'syncPlexLabels',
+          defaultErrorMessage: 'Failed to sync plex labels',
+        })
+      },
+
+      cleanupPlexLabels: async () => {
+        return apiRequest<z.infer<typeof CleanupPlexLabelsResponseSchema>>({
+          url: '/v1/labels/cleanup',
+          method: 'POST',
+          schema: CleanupPlexLabelsResponseSchema,
+          loadingKey: 'cleanupPlexLabels',
+          errorKey: 'cleanupPlexLabels',
+          defaultErrorMessage: 'Failed to clean up plex labels',
+        })
+      },
+
+      removePlexLabels: async () => {
+        return apiRequest<PlexLabelRemovalResult, Record<string, never>>({
+          url: '/v1/labels/remove',
+          method: 'DELETE',
+          body: {},
+          schema: RemovePlexLabelsResponseSchema,
+          loadingKey: 'removePlexLabels',
+          errorKey: 'removePlexLabels',
+          defaultErrorMessage: 'Failed to remove Pulsarr labels',
+          onSuccess: (data) => {
+            set((state) => ({
+              ...state,
+              removePlexLabelsResults: data,
+            }))
+          },
         })
       },
     }

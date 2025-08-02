@@ -1,0 +1,566 @@
+import { useEffect } from 'react'
+import { useConfigStore } from '@/stores/configStore'
+import { Button } from '@/components/ui/button'
+import {
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
+  Trash2,
+  Save,
+  X,
+  HelpCircle,
+  Power,
+} from 'lucide-react'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  usePlexLabels,
+  isSyncLabelsResponse,
+  isCleanupLabelsResponse,
+} from '@/features/utilities/hooks/usePlexLabels'
+import { Progress } from '@/components/ui/progress'
+import { useProgressStore } from '@/stores/progressStore'
+import { PlexLabelsDeleteConfirmationModal } from '@/features/utilities/components/plex-labels/plex-labels-delete-confirmation-modal'
+import { useLabelingProgress } from '@/features/utilities/hooks/useLabelingProgress'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-page-skeleton'
+
+/**
+ * Standalone Plex Labels page for managing user-based labeling in Plex.
+ *
+ * Provides administrators with controls to enable or disable Plex labeling, set label formats, and configure concurrency limits. Includes actions for synchronizing, cleaning up, and removing Plex labels, with real-time progress indicators, operation results, and error feedback. Safeguards prevent conflicting actions and accidental destructive operations.
+ *
+ * @returns A React element containing the Plex label management page.
+ */
+export function PlexLabelsPage() {
+  const { isInitialized, initialize } = useConfigStore()
+
+  const {
+    form,
+    isSaving,
+    isToggling,
+    isSyncingLabels,
+    isCleaningLabels,
+    isRemovingLabels,
+    error,
+    lastResults,
+    lastActionResults,
+    lastRemoveResults,
+    labelDefinitionsDeleted,
+    isLabelDeletionComplete,
+    showDeleteConfirmation,
+    setShowDeleteConfirmation,
+    onSubmit,
+    handleCancel,
+    handleToggle,
+    handleSyncLabels,
+    handleCleanupLabels,
+    initiateRemoveLabels,
+    handleRemoveLabels,
+  } = usePlexLabels()
+
+  // Use the custom hook for progress tracking
+  const plexLabelSyncProgress = useLabelingProgress('plex-label-sync')
+  const plexLabelRemovalProgress = useLabelingProgress('plex-label-removal')
+
+  // Initialize stores on mount
+  useEffect(() => {
+    initialize()
+  }, [initialize])
+
+  // Initialize progress connection
+  useEffect(() => {
+    const progressStore = useProgressStore.getState()
+    progressStore.initialize()
+    return () => {
+      progressStore.cleanup()
+    }
+  }, [])
+
+  // Determine the enabled status badge info
+  const isEnabled = form.watch('enabled')
+
+  const status = isEnabled ? 'enabled' : 'disabled'
+
+  // Determine if label settings can be edited
+  const canEditLabelSettings =
+    (isLabelDeletionComplete && labelDefinitionsDeleted) ||
+    !lastResults?.success
+
+  if (!isInitialized) {
+    return <PlexLabelsPageSkeleton />
+  }
+
+  return (
+    <>
+      <PlexLabelsDeleteConfirmationModal
+        open={showDeleteConfirmation}
+        onOpenChange={setShowDeleteConfirmation}
+        onConfirm={handleRemoveLabels}
+        isSubmitting={isRemovingLabels}
+      />
+
+      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+        <UtilitySectionHeader
+          title="Plex Labels"
+          description="Configure user-based labeling for Plex content"
+          status={status}
+        />
+
+        <div className="mt-6 space-y-6">
+          {/* Actions section */}
+          <div>
+            <h3 className="font-medium text-foreground mb-2">Actions</h3>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button
+                type="button"
+                size="sm"
+                onClick={async () => {
+                  const newEnabledState = !isEnabled
+                  try {
+                    await handleToggle(newEnabledState)
+                  } catch (error) {
+                    // Error handling is done in the hook
+                  }
+                }}
+                disabled={isSaving || isToggling || form.formState.isDirty}
+                variant={isEnabled ? 'error' : 'noShadow'}
+                className="h-8"
+              >
+                {isToggling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Power className="h-4 w-4" />
+                )}
+                <span className="ml-2">
+                  {isToggling
+                    ? isEnabled
+                      ? 'Disabling...'
+                      : 'Enabling...'
+                    : isEnabled
+                      ? 'Disable'
+                      : 'Enable'}
+                </span>
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSyncLabels}
+                disabled={
+                  isSyncingLabels ||
+                  isToggling ||
+                  !lastResults?.config?.enabled ||
+                  form.formState.isDirty
+                }
+                variant="noShadow"
+                className="h-8"
+              >
+                {isSyncingLabels ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="ml-2">Sync Labels</span>
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleCleanupLabels}
+                disabled={
+                  isCleaningLabels ||
+                  isToggling ||
+                  !lastResults?.config?.enabled ||
+                  form.formState.isDirty
+                }
+                variant="noShadow"
+                className="h-8"
+              >
+                {isCleaningLabels ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span className="ml-2">Clean Up</span>
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={initiateRemoveLabels}
+                disabled={
+                  isRemovingLabels ||
+                  isToggling ||
+                  !lastResults?.config?.enabled ||
+                  form.formState.isDirty
+                }
+                variant="error"
+                className="h-8"
+              >
+                {isRemovingLabels ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span className="ml-2">Remove Pulsarr Labels</span>
+              </Button>
+            </div>
+
+            {/* Notify users when they have unsaved changes */}
+            {form.formState.isDirty && (
+              <div className="mt-2 text-sm text-error">
+                You have unsaved changes. Please save your configuration before
+                performing label operations.
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Status section - displays last action results if available */}
+          {(lastActionResults ||
+            lastResults ||
+            lastRemoveResults ||
+            isSyncingLabels ||
+            isRemovingLabels) && (
+            <div>
+              <h3 className="font-medium text-foreground mb-2">Status</h3>
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
+                {/* Display appropriate status message */}
+                {!(isSyncingLabels || isRemovingLabels) && (
+                  <p className="text-sm text-foreground">
+                    {lastRemoveResults?.message ||
+                      lastActionResults?.message ||
+                      lastResults?.message ||
+                      'Configuration status'}
+                  </p>
+                )}
+
+                {/* Progress bars for sync operations */}
+                {isSyncingLabels && (
+                  <div className="mt-3 space-y-3">
+                    {/* Overall progress message */}
+                    <p className="text-sm text-foreground mb-2">
+                      Synchronizing Pulsarr labels...
+                    </p>
+
+                    {/* Plex progress bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-foreground">
+                          Plex
+                        </span>
+                        <span className="text-xs text-foreground">
+                          {plexLabelSyncProgress.progress}%
+                        </span>
+                      </div>
+                      <Progress value={plexLabelSyncProgress.progress} />
+                      {plexLabelSyncProgress.message && (
+                        <p className="text-xs text-foreground mt-1">
+                          {plexLabelSyncProgress.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Progress bars for removal operations */}
+                {isRemovingLabels && (
+                  <div className="mt-3 space-y-3">
+                    {/* Overall progress message */}
+                    <p className="text-sm text-foreground mb-2">
+                      Removing Pulsarr labels...
+                    </p>
+
+                    {/* Plex progress bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-foreground">
+                          Plex
+                        </span>
+                        <span className="text-xs text-foreground">
+                          {plexLabelRemovalProgress.progress}%
+                        </span>
+                      </div>
+                      <Progress value={plexLabelRemovalProgress.progress} />
+                      {plexLabelRemovalProgress.message && (
+                        <p className="text-xs text-foreground mt-1">
+                          {plexLabelRemovalProgress.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {lastActionResults && !isSyncingLabels && !isRemovingLabels && (
+                  <>
+                    <h4 className="font-medium text-sm text-foreground mt-3 mb-1">
+                      Last Operation Results
+                    </h4>
+
+                    {/* Sync results */}
+                    {isSyncLabelsResponse(lastActionResults) && (
+                      <div className="mt-2">
+                        <h5 className="text-xs font-medium text-foreground">
+                          Plex Sync Results
+                        </h5>
+                        <ul className="mt-1 space-y-1">
+                          <li className="text-xs text-foreground">
+                            Processed: {lastActionResults.results.processed},
+                            Updated: {lastActionResults.results.updated},
+                            Failed: {lastActionResults.results.failed}, Pending:{' '}
+                            {lastActionResults.results.pending}
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Cleanup results */}
+                    {isCleanupLabelsResponse(lastActionResults) && (
+                      <div className="mt-2">
+                        <h5 className="text-xs font-medium text-foreground">
+                          Cleanup Results
+                        </h5>
+                        <ul className="mt-1 space-y-1">
+                          <li className="text-xs text-foreground">
+                            Pending: {lastActionResults.pending.removed}{' '}
+                            removed, {lastActionResults.pending.failed} failed
+                          </li>
+                          <li className="text-xs text-foreground">
+                            Orphaned: {lastActionResults.orphaned.removed}{' '}
+                            removed, {lastActionResults.orphaned.failed} failed
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Label removal results */}
+                {lastRemoveResults && !isRemovingLabels && (
+                  <>
+                    <h4 className="font-medium text-sm text-foreground mt-3 mb-1">
+                      Label Removal Results
+                    </h4>
+
+                    {/* Plex removal results */}
+                    <div className="mt-2">
+                      <h5 className="text-xs font-medium text-foreground">
+                        Plex
+                      </h5>
+                      <ul className="mt-1 space-y-1">
+                        <li className="text-xs text-foreground">
+                          Processed: {lastRemoveResults.results.processed},
+                          Removed: {lastRemoveResults.results.removed}, Failed:{' '}
+                          {lastRemoveResults.results.failed}
+                        </li>
+                      </ul>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-4 border border-red-500 bg-red-50 dark:bg-red-900/20 rounded-md flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
+                  Error
+                </h4>
+                <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                  {error}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <h3 className="font-medium text-sm text-foreground mb-2">
+                  Label Configuration
+                </h3>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="labelFormat"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground">
+                            Label Format
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p>
+                                    Defines the format used for all user labels.
+                                    Use {'{username}'} as a placeholder for the
+                                    actual username.
+                                  </p>
+                                  <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
+                                    {form.watch('labelFormat') ||
+                                      'pulsarr:{username}'}
+                                  </code>
+
+                                  <p className="text-xs">
+                                    <span className="font-semibold">
+                                      Examples:
+                                    </span>
+                                    <br />• With default format:{' '}
+                                    <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                                      pulsarr:john_doe
+                                    </code>
+                                    <br />• With "user:{'{username}'}" format:{' '}
+                                    <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                                      user:john_doe
+                                    </code>
+                                  </p>
+
+                                  <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                    <strong>Note:</strong> Changing this
+                                    requires removing existing Pulsarr labels
+                                    first, as old labels won't be recognized
+                                    with the new format.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="pulsarr:{username}"
+                            disabled={!canEditLabelSettings}
+                          />
+                        </FormControl>
+                        {lastResults?.success &&
+                          lastResults.config?.enabled &&
+                          !canEditLabelSettings && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              You must remove existing Pulsarr labels before
+                              changing the label format.
+                            </p>
+                          )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Final format:{' '}
+                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                            {(
+                              form.watch('labelFormat') || 'pulsarr:{username}'
+                            ).replace('{username}', 'username')}
+                          </code>
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="concurrencyLimit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground">
+                            Concurrency Limit
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Maximum number of concurrent operations when
+                                  processing labels. Lower values reduce server
+                                  load but take longer. Recommended: 5-10.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={20}
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(
+                                Number.parseInt(e.target.value) || 5,
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Number of concurrent operations (1-20, default: 5)
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Action buttons - always show, but disable save when not dirty */}
+              <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
+                {form.formState.isDirty && !isSaving && !isToggling && (
+                  <Button
+                    type="button"
+                    variant="cancel"
+                    onClick={handleCancel}
+                    disabled={isSaving || isToggling}
+                    className="flex items-center gap-1"
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Cancel</span>
+                  </Button>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={isSaving || isToggling || !form.formState.isDirty}
+                  className="flex items-center gap-2"
+                  variant="blue"
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+      </div>
+    </>
+  )
+}
+
+export default PlexLabelsPage

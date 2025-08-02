@@ -562,17 +562,12 @@ export class PlexLabelSyncService {
         this.config.labelFormat.replace('{username}', user.username),
       )
 
-      // Filter out excluded labels
-      const filteredExistingLabels = existingLabels.filter(
-        (label) => !this.config.excludeLabels.includes(label),
-      )
-
       // Combine existing labels with new user labels
-      const allLabels = [...new Set([...filteredExistingLabels, ...userLabels])]
+      const allLabels = [...new Set([...existingLabels, ...userLabels])]
 
       this.log.debug('Applying labels to Plex item', {
         ratingKey,
-        existingLabels: filteredExistingLabels,
+        existingLabels,
         userLabels,
         finalLabels: allLabels,
       })
@@ -1309,15 +1304,13 @@ export class PlexLabelSyncService {
   }
 
   /**
-   * Removes all tracked Plex labels from content with progress reporting
-   * This processes all tracked labels and removes them from Plex content
+   * Removes all Pulsarr-created labels from Plex content items that are tracked in the database.
+   * This preserves any other labels that were not created by Pulsarr.
    *
-   * @param deleteAllLabels - Whether to remove all labels (true) or just user labels (false)
    * @param progressCallback - Optional callback to report progress for SSE
    * @returns Promise resolving to removal results
    */
   async removeAllLabels(
-    deleteAllLabels = false,
     progressCallback?: (progress: number, message: string) => void,
   ): Promise<{ processed: number; removed: number; failed: number }> {
     if (!this.config.enabled) {
@@ -1386,28 +1379,21 @@ export class PlexLabelSyncService {
                 )
               }
 
-              if (deleteAllLabels) {
-                // Remove all labels from the item
-                await this.plexServer.updateLabels(ratingKey, [])
-                itemResult.removed += labels.length
-              } else {
-                // Get current labels and remove only user labels
-                const metadata = await this.plexServer.getMetadata(ratingKey)
-                const currentLabels =
-                  metadata?.Label?.map((label) => label.tag) || []
-                const filteredLabels = currentLabels.filter(
-                  (label) => !labels.includes(label),
-                )
-                await this.plexServer.updateLabels(ratingKey, filteredLabels)
-                itemResult.removed += labels.length
-              }
+              // Get current labels and remove only Pulsarr-created labels
+              const metadata = await this.plexServer.getMetadata(ratingKey)
+              const currentLabels =
+                metadata?.Label?.map((label) => label.tag) || []
+              const filteredLabels = currentLabels.filter(
+                (label) => !labels.includes(label),
+              )
+              await this.plexServer.updateLabels(ratingKey, filteredLabels)
+              itemResult.removed += labels.length
 
               this.log.debug(
-                `Removed ${labels.length} labels from Plex content`,
+                `Removed ${labels.length} Pulsarr labels from Plex content`,
                 {
                   ratingKey,
                   labels,
-                  deleteAllLabels,
                 },
               )
             } catch (error) {

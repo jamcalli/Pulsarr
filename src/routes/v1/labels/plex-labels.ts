@@ -39,7 +39,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const plexLabelSyncConfig = config.plexLabelSync || {
           enabled: false,
           labelFormat: 'pulsarr:{username}',
-          excludeLabels: [],
           concurrencyLimit: 5,
         }
 
@@ -49,7 +48,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           config: {
             enabled: Boolean(plexLabelSyncConfig.enabled),
             labelFormat: plexLabelSyncConfig.labelFormat,
-            excludeLabels: plexLabelSyncConfig.excludeLabels,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
           },
         }
@@ -120,7 +118,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           plexLabelSync: {
             enabled: request.body.enabled,
             labelFormat: request.body.labelFormat,
-            excludeLabels: request.body.excludeLabels || [],
             concurrencyLimit: request.body.concurrencyLimit || 5,
           },
         }
@@ -161,7 +158,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const plexLabelSyncConfig = savedConfig.plexLabelSync || {
           enabled: false,
           labelFormat: 'pulsarr:{username}',
-          excludeLabels: [],
           concurrencyLimit: 5,
         }
 
@@ -171,7 +167,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           config: {
             enabled: Boolean(plexLabelSyncConfig.enabled),
             labelFormat: plexLabelSyncConfig.labelFormat,
-            excludeLabels: plexLabelSyncConfig.excludeLabels,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
           },
         }
@@ -395,19 +390,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
-  // Remove all plex labels from content
+  // Remove pulsarr labels from content
   fastify.delete<{
-    Body: z.infer<typeof RemoveLabelsRequestSchema>
     Reply: z.infer<typeof RemovePlexLabelsResponseSchema>
   }>(
     '/remove',
     {
       schema: {
-        summary: 'Remove all plex labels',
-        operationId: 'removeAllPlexLabels',
+        summary: 'Remove Pulsarr labels from Plex content',
+        operationId: 'removePulsarrPlexLabels',
         description:
-          'Remove all plex user labels from content and optionally delete all labels',
-        body: RemoveLabelsRequestSchema,
+          'Remove all Pulsarr-created labels from Plex content while preserving other labels',
         response: {
           200: RemovePlexLabelsResponseSchema,
           404: ErrorSchema,
@@ -437,9 +430,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             },
           }
         }
-
-        // Extract option from request
-        const { deleteAllLabels = false } = request.body
 
         // Set up SSE progress reporting
         const operationId = `plex-label-removal-${Date.now()}`
@@ -480,11 +470,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               }
             : undefined
 
-          // Call the service method to remove all labels
-          const results = await fastify.plexLabelSyncService.removeAllLabels(
-            deleteAllLabels,
-            progressCallback,
-          )
+          // Call the service method to remove Pulsarr labels
+          const results =
+            await fastify.plexLabelSyncService.removeAllLabels(progressCallback)
 
           // Emit completion event
           if (emitProgress) {
@@ -499,12 +487,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
           let message: string
           if (results.processed === 0) {
-            message = 'No labels found to remove'
+            message = 'No Pulsarr labels found to remove'
           } else {
-            message = `Removed ${results.removed} labels from ${results.processed} items`
-            if (deleteAllLabels) {
-              message += ' (all labels removed)'
-            }
+            message = `Removed ${results.removed} Pulsarr labels from ${results.processed} items`
           }
 
           return {
