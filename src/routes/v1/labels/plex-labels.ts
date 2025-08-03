@@ -380,15 +380,32 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Clean up expired pending syncs
         const expiredPendingCount = await fastify.db.expirePendingLabelSyncs()
 
-        // Clean up orphaned labels and expired pending syncs
-        const orphanedCleanupCount = 0
+        // Clean up orphaned labels if enabled in configuration
+        let orphanedResult = { removed: 0, failed: 0 }
+        if (config.plexLabelSync?.cleanupOrphanedLabels) {
+          try {
+            orphanedResult =
+              await fastify.plexLabelSyncService.cleanupOrphanedPlexLabels()
+          } catch (cleanupError) {
+            fastify.log.error(
+              'Error during orphaned label cleanup:',
+              cleanupError,
+            )
+            orphanedResult = { removed: 0, failed: 1 }
+          }
+        }
 
         let message: string
-        if (expiredPendingCount === 0 && orphanedCleanupCount === 0) {
-          message =
-            'No orphaned labels or expired pending syncs found to clean up'
+        if (expiredPendingCount === 0 && orphanedResult.removed === 0) {
+          if (!config.plexLabelSync?.cleanupOrphanedLabels) {
+            message =
+              'No expired pending syncs found to clean up. Orphaned label cleanup is disabled in configuration.'
+          } else {
+            message =
+              'No orphaned labels or expired pending syncs found to clean up'
+          }
         } else {
-          message = `Cleaned up ${expiredPendingCount} expired pending syncs and ${orphanedCleanupCount} orphaned labels`
+          message = `Cleaned up ${expiredPendingCount} expired pending syncs and ${orphanedResult.removed} orphaned labels`
         }
 
         return {
@@ -399,8 +416,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             failed: 0,
           },
           orphaned: {
-            removed: orphanedCleanupCount,
-            failed: 0,
+            removed: orphanedResult.removed,
+            failed: orphanedResult.failed,
           },
         }
       } catch (err) {
