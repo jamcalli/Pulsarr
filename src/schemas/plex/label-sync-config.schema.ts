@@ -7,6 +7,8 @@ export const PlexLabelSyncConfigSchema = z.object({
   labelFormat: z.string().default('pulsarr:{username}'),
   // Maximum number of concurrent operations during processing
   concurrencyLimit: z.number().int().positive().default(5),
+  // Whether to clean up orphaned labels during cleanup operations
+  cleanupOrphanedLabels: z.boolean().default(false),
   // How to handle label cleanup when users are removed from content
   removedLabelMode: z
     .enum(['remove', 'keep', 'special-label'])

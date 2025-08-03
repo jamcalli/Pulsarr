@@ -46,10 +46,29 @@ export default function PlexSessionMonitoringPage() {
   const [inactivityDays, setInactivityDays] = useState(
     config?.plexSessionMonitoring?.inactivityResetDays || 7,
   )
+  const [isInitializing, setIsInitializing] = useState(true)
+  const initializationStartTime = useRef<number | null>(null)
 
-  // Initialize store on mount
+  // Initialize store on mount with minimum loading duration
   useEffect(() => {
-    initialize()
+    const initializeWithMinDuration = async () => {
+      setIsInitializing(true)
+      initializationStartTime.current = Date.now()
+
+      try {
+        await initialize()
+
+        // Ensure minimum loading time for better UX
+        const elapsed = Date.now() - (initializationStartTime.current || 0)
+        const remaining = Math.max(0, 800 - elapsed) // Slightly longer than other utilities
+        await new Promise((resolve) => setTimeout(resolve, remaining))
+      } finally {
+        setIsInitializing(false)
+        initializationStartTime.current = null
+      }
+    }
+
+    initializeWithMinDuration()
   }, [initialize])
 
   const {
@@ -263,11 +282,11 @@ export default function PlexSessionMonitoringPage() {
 
   // Determine status based on configuration state
   const getStatus = () => {
-    if (!isInitialized) return 'unknown'
+    if (!isInitialized || isInitializing) return 'unknown'
     return isEnabled ? 'enabled' : 'disabled'
   }
 
-  if (!isInitialized) {
+  if (!isInitialized || isInitializing) {
     return <PlexSessionMonitoringPageSkeleton />
   }
 

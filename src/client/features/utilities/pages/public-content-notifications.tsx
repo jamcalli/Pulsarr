@@ -180,10 +180,29 @@ function WebhookField({
  */
 export default function PublicContentNotificationsPage() {
   const { initialize, isInitialized } = useConfigStore()
+  const [isInitializing, setIsInitializing] = React.useState(true)
+  const initializationStartTime = React.useRef<number | null>(null)
 
-  // Initialize store on mount
+  // Initialize store on mount with minimum loading duration
   React.useEffect(() => {
-    initialize()
+    const initializeWithMinDuration = async () => {
+      setIsInitializing(true)
+      initializationStartTime.current = Date.now()
+
+      try {
+        await initialize()
+
+        // Ensure minimum loading time for better UX
+        const elapsed = Date.now() - (initializationStartTime.current || 0)
+        const remaining = Math.max(0, 800 - elapsed) // Slightly longer than other utilities
+        await new Promise((resolve) => setTimeout(resolve, remaining))
+      } finally {
+        setIsInitializing(false)
+        initializationStartTime.current = null
+      }
+    }
+
+    initializeWithMinDuration()
   }, [initialize])
 
   const {
@@ -308,11 +327,11 @@ export default function PublicContentNotificationsPage() {
 
   // Determine status based on configuration state
   const getStatus = () => {
-    if (!isInitialized) return 'unknown'
+    if (!isInitialized || isInitializing) return 'unknown'
     return isEnabled ? 'enabled' : 'disabled'
   }
 
-  if (!isInitialized) {
+  if (!isInitialized || isInitializing) {
     return <PublicContentNotificationsPageSkeleton />
   }
 

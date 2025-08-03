@@ -40,6 +40,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           enabled: false,
           labelFormat: 'pulsarr:{username}',
           concurrencyLimit: 5,
+          cleanupOrphanedLabels: false,
           removedLabelMode: 'remove' as const,
           removedLabelPrefix: 'pulsarr:removed',
         }
@@ -51,6 +52,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             enabled: Boolean(plexLabelSyncConfig.enabled),
             labelFormat: plexLabelSyncConfig.labelFormat,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
+            cleanupOrphanedLabels: Boolean(
+              plexLabelSyncConfig.cleanupOrphanedLabels ?? false,
+            ),
             removedLabelMode: plexLabelSyncConfig.removedLabelMode || 'remove',
             removedLabelPrefix:
               plexLabelSyncConfig.removedLabelPrefix || 'pulsarr:removed',
@@ -124,6 +128,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             enabled: request.body.enabled,
             labelFormat: request.body.labelFormat,
             concurrencyLimit: request.body.concurrencyLimit || 5,
+            cleanupOrphanedLabels: request.body.cleanupOrphanedLabels ?? false,
             removedLabelMode: request.body.removedLabelMode || 'remove',
             removedLabelPrefix:
               request.body.removedLabelPrefix || 'pulsarr:removed',
@@ -167,6 +172,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           enabled: false,
           labelFormat: 'pulsarr:{username}',
           concurrencyLimit: 5,
+          cleanupOrphanedLabels: false,
           removedLabelMode: 'remove' as const,
           removedLabelPrefix: 'pulsarr:removed',
         }
@@ -178,6 +184,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             enabled: Boolean(plexLabelSyncConfig.enabled),
             labelFormat: plexLabelSyncConfig.labelFormat,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
+            cleanupOrphanedLabels: Boolean(
+              plexLabelSyncConfig.cleanupOrphanedLabels ?? false,
+            ),
             removedLabelMode: plexLabelSyncConfig.removedLabelMode || 'remove',
             removedLabelPrefix:
               plexLabelSyncConfig.removedLabelPrefix || 'pulsarr:removed',

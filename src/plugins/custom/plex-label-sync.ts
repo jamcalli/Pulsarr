@@ -23,6 +23,7 @@ export default fp(
       enabled: false,
       labelFormat: 'pulsarr:{username}',
       concurrencyLimit: 5, // Default concurrency limit
+      cleanupOrphanedLabels: false,
       removedLabelMode: 'remove' as const,
       removedLabelPrefix: 'pulsarr:removed',
     }

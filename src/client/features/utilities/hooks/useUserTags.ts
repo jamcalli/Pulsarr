@@ -103,7 +103,6 @@ export function useUserTags() {
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
 
-  const hasInitializedRef = useRef(false)
   const initialLoadRef = useRef(true)
 
   const {
@@ -315,13 +314,8 @@ export function useUserTags() {
     }
   }, [cleanupUserTags])
 
-  // Check if on initial loading - don't show loading on navigation
-  if (!hasInitializedRef.current && !loading.userTags) {
-    hasInitializedRef.current = true
-  }
-
-  // Only show loading skeleton on initial load, not on navigation
-  const isLoading = !hasInitializedRef.current && loading.userTags
+  // Show loading until we have actual results from the API
+  const isLoading = initialLoadRef.current && !lastResults
 
   const initiateRemoveTags = useCallback(() => {
     setShowDeleteTagsConfirmation(true)

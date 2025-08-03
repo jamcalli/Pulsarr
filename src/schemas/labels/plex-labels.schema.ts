@@ -5,6 +5,7 @@ export const PlexLabelingConfigSchema = z.object({
   enabled: z.boolean(),
   labelFormat: z.string(),
   concurrencyLimit: z.number().int().min(1).max(20).optional(),
+  cleanupOrphanedLabels: z.boolean().optional(),
   removedLabelMode: z
     .enum(['remove', 'keep', 'special-label'])
     .optional()
@@ -30,6 +31,7 @@ export const PlexLabelingStatusResponseSchema = z.object({
     enabled: z.boolean(),
     labelFormat: z.string(),
     concurrencyLimit: z.number(),
+    cleanupOrphanedLabels: z.boolean(),
     removedLabelMode: z.enum(['remove', 'keep', 'special-label']),
     removedLabelPrefix: z.string(),
   }),

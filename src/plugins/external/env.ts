@@ -52,6 +52,7 @@ const DEFAULT_PLEX_LABEL_SYNC = {
   enabled: false,
   labelFormat: 'pulsarr:{username}',
   concurrencyLimit: 5,
+  cleanupOrphanedLabels: false,
   removedLabelMode: 'remove' as const,
   removedLabelPrefix: 'pulsarr:removed',
 }
