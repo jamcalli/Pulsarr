@@ -1572,6 +1572,7 @@ export class WatchlistWorkflowService {
           } else {
             this.log.info('Performing standard watchlist refresh')
             await this.fetchWatchlists()
+            await this.syncWatchlistItems()
             // Update last successful sync time after watchlist refresh
             const now = Date.now()
             this.lastSuccessfulSyncTime = now

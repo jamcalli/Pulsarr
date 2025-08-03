@@ -96,5 +96,41 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the number of tracking records that were deleted
      */
     clearAllLabelTracking(this: DatabaseService): Promise<number>
+
+    /**
+     * Removes tracking records for a specific label on a specific Plex rating key
+     * @param plexRatingKey - The Plex rating key
+     * @param labelApplied - The label to remove tracking for
+     * @returns Promise resolving to the number of tracking records that were deleted
+     */
+    removeTrackedLabel(
+      this: DatabaseService,
+      plexRatingKey: string,
+      labelApplied: string,
+    ): Promise<number>
+
+    /**
+     * Find orphaned tracking records where the applied label doesn't match any current valid user labels
+     * @param validLabels - Set of currently valid user labels (lowercase)
+     * @param labelFormatPrefix - The prefix from the label format (e.g., "pulsarr:")
+     * @returns Promise resolving to array of tracking records with orphaned labels grouped by rating key
+     */
+    getOrphanedLabelTracking(
+      this: DatabaseService,
+      validLabels: Set<string>,
+      labelFormatPrefix: string,
+    ): Promise<Array<{ plex_rating_key: string; orphaned_labels: string[] }>>
+
+    /**
+     * Remove multiple tracking records in a batch operation
+     * @param plexRatingKey - The Plex rating key
+     * @param orphanedLabels - Array of label names to remove tracking for
+     * @returns Promise resolving to the number of tracking records that were deleted
+     */
+    removeOrphanedTracking(
+      this: DatabaseService,
+      plexRatingKey: string,
+      orphanedLabels: string[],
+    ): Promise<number>
   }
 }
