@@ -50,7 +50,7 @@ import { UserTagsPageSkeleton } from '@/features/utilities/pages/user-tags-page-
  * @returns A React element containing the user tag management page.
  */
 export function UserTagsPage() {
-  const { isInitialized, initialize } = useConfigStore()
+  const { initialize: configInitialize } = useConfigStore()
 
   const {
     form,
@@ -59,6 +59,7 @@ export function UserTagsPage() {
     isSyncingTags,
     isCleaningTags,
     isRemovingTags,
+    isLoading,
     error,
     lastResults,
     lastActionResults,
@@ -82,10 +83,10 @@ export function UserTagsPage() {
   const sonarrRemovalProgress = useTaggingProgress('sonarr-tag-removal')
   const radarrRemovalProgress = useTaggingProgress('radarr-tag-removal')
 
-  // Initialize stores on mount
+  // Initialize config store on mount
   useEffect(() => {
-    initialize()
-  }, [initialize])
+    configInitialize()
+  }, [configInitialize])
 
   // Initialize progress connection
   useEffect(() => {
@@ -106,7 +107,7 @@ export function UserTagsPage() {
   const canEditTagSettings =
     (isTagDeletionComplete && tagDefinitionsDeleted) || !lastResults?.success
 
-  if (!isInitialized) {
+  if (isLoading) {
     return <UserTagsPageSkeleton />
   }
 
