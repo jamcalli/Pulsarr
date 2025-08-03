@@ -50,7 +50,7 @@ const DEFAULT_APPROVAL_EXPIRATION = {
 
 const DEFAULT_PLEX_LABEL_SYNC = {
   enabled: false,
-  labelFormat: 'pulsarr:{username}',
+  labelPrefix: 'pulsarr',
   concurrencyLimit: 5,
   cleanupOrphanedLabels: false,
   removedLabelMode: 'remove' as const,

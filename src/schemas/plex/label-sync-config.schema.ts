@@ -3,8 +3,8 @@ import { z } from 'zod'
 export const PlexLabelSyncConfigSchema = z.object({
   // Enable/disable the entire label sync feature
   enabled: z.boolean().default(false),
-  // Template for label naming (supports variables like {username})
-  labelFormat: z.string().default('pulsarr:{username}'),
+  // Prefix for label naming (e.g., "pulsarr" results in "pulsarr:username")
+  labelPrefix: z.string().default('pulsarr'),
   // Maximum number of concurrent operations during processing
   concurrencyLimit: z.number().int().positive().default(5),
   // Whether to clean up orphaned labels during cleanup operations

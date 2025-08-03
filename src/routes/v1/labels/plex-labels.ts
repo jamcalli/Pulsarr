@@ -38,7 +38,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Use the nested plexLabelSync configuration object
         const plexLabelSyncConfig = config.plexLabelSync || {
           enabled: false,
-          labelFormat: 'pulsarr:{username}',
+          labelPrefix: 'pulsarr',
           concurrencyLimit: 5,
           cleanupOrphanedLabels: false,
           removedLabelMode: 'remove' as const,
@@ -50,7 +50,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Plex labeling configuration retrieved successfully',
           config: {
             enabled: Boolean(plexLabelSyncConfig.enabled),
-            labelFormat: plexLabelSyncConfig.labelFormat,
+            labelPrefix: plexLabelSyncConfig.labelPrefix,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
             cleanupOrphanedLabels: Boolean(
               plexLabelSyncConfig.cleanupOrphanedLabels ?? false,
@@ -126,7 +126,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const configUpdate = {
           plexLabelSync: {
             enabled: request.body.enabled,
-            labelFormat: request.body.labelFormat,
+            labelPrefix: request.body.labelPrefix,
             concurrencyLimit: request.body.concurrencyLimit || 5,
             cleanupOrphanedLabels: request.body.cleanupOrphanedLabels ?? false,
             removedLabelMode: request.body.removedLabelMode || 'remove',
@@ -170,7 +170,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Use the nested plexLabelSync configuration object
         const plexLabelSyncConfig = savedConfig.plexLabelSync || {
           enabled: false,
-          labelFormat: 'pulsarr:{username}',
+          labelPrefix: 'pulsarr',
           concurrencyLimit: 5,
           cleanupOrphanedLabels: false,
           removedLabelMode: 'remove' as const,
@@ -182,7 +182,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Plex labeling configuration updated successfully',
           config: {
             enabled: Boolean(plexLabelSyncConfig.enabled),
-            labelFormat: plexLabelSyncConfig.labelFormat,
+            labelPrefix: plexLabelSyncConfig.labelPrefix,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
             cleanupOrphanedLabels: Boolean(
               plexLabelSyncConfig.cleanupOrphanedLabels ?? false,

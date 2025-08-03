@@ -303,24 +303,22 @@ export async function removeTrackedLabel(
  * Find orphaned tracking records where the applied label doesn't match any current valid user labels.
  *
  * Uses SQL queries to efficiently identify tracking records that should be cleaned up because:
- * - The label doesn't match the current label format for any sync-enabled user
+ * - The label doesn't match the current label prefix for any sync-enabled user
  * - The watchlist item references a user who no longer has sync enabled
- * - The label format has changed and old labels are now orphaned
+ * - The label prefix has changed and old labels are now orphaned
  *
  * @param validLabels - Set of currently valid user labels (lowercase)
- * @param labelFormatPrefix - The prefix from the label format (e.g., "pulsarr:")
+ * @param labelPrefix - The prefix from the label configuration (e.g., "pulsarr")
  * @returns Array of tracking records with orphaned labels grouped by rating key
  */
 export async function getOrphanedLabelTracking(
   this: DatabaseService,
   validLabels: Set<string>,
-  labelFormatPrefix: string,
+  labelPrefix: string,
 ): Promise<Array<{ plex_rating_key: string; orphaned_labels: string[] }>> {
-  // First, get all tracking records that match our label format prefix
+  // First, get all tracking records that match our label prefix
   const appManagedLabels = (await this.knex('plex_label_tracking')
-    .whereRaw('LOWER(label_applied) LIKE ?', [
-      `${labelFormatPrefix.toLowerCase()}%`,
-    ])
+    .whereRaw('LOWER(label_applied) LIKE ?', [`${labelPrefix.toLowerCase()}:%`])
     .select('plex_rating_key', 'label_applied')
     .orderBy('plex_rating_key')) as Array<{
     plex_rating_key: string

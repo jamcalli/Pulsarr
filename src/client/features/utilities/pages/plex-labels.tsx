@@ -408,12 +408,12 @@ export function PlexLabelsPage() {
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="labelFormat"
+                    name="labelPrefix"
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center">
                           <FormLabel className="text-foreground">
-                            Label Format
+                            Label Prefix
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
@@ -423,24 +423,23 @@ export function PlexLabelsPage() {
                               <TooltipContent>
                                 <div className="max-w-xs space-y-2">
                                   <p>
-                                    Defines the format used for all user labels.
-                                    Use {'{username}'} as a placeholder for the
-                                    actual username.
+                                    Defines the prefix used for all user labels.
+                                    Username will be appended after a colon.
                                   </p>
                                   <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
-                                    {form.watch('labelFormat') ||
-                                      'pulsarr:{username}'}
+                                    {form.watch('labelPrefix') || 'pulsarr'}
+                                    :username
                                   </code>
 
                                   <p className="text-xs">
                                     <span className="font-semibold">
                                       Examples:
                                     </span>
-                                    <br />• With default format:{' '}
+                                    <br />• With default prefix:{' '}
                                     <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
                                       pulsarr:john_doe
                                     </code>
-                                    <br />• With "user:{'{username}'}" format:{' '}
+                                    <br />• With "user" prefix:{' '}
                                     <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
                                       user:john_doe
                                     </code>
@@ -450,7 +449,7 @@ export function PlexLabelsPage() {
                                     <strong>Note:</strong> Changing this
                                     requires removing existing Pulsarr labels
                                     first, as old labels won't be recognized
-                                    with the new format.
+                                    with the new prefix.
                                   </p>
                                 </div>
                               </TooltipContent>
@@ -460,7 +459,7 @@ export function PlexLabelsPage() {
                         <FormControl>
                           <Input
                             {...field}
-                            placeholder="pulsarr:{username}"
+                            placeholder="pulsarr"
                             disabled={!canEditLabelSettings}
                           />
                         </FormControl>
@@ -469,15 +468,13 @@ export function PlexLabelsPage() {
                           !canEditLabelSettings && (
                             <p className="text-xs text-gray-500 mt-1">
                               You must remove existing Pulsarr labels before
-                              changing the label format.
+                              changing the label prefix.
                             </p>
                           )}
                         <p className="text-xs text-gray-500 mt-1">
                           Final format:{' '}
                           <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                            {(
-                              form.watch('labelFormat') || 'pulsarr:{username}'
-                            ).replace('{username}', 'username')}
+                            {form.watch('labelPrefix') || 'pulsarr'}:username
                           </code>
                         </p>
                         <FormMessage />

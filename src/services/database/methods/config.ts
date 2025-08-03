@@ -185,7 +185,7 @@ export async function getConfig(
           config.plexLabelSync,
           {
             enabled: false,
-            labelFormat: 'pulsarr:{username}',
+            labelPrefix: 'pulsarr',
             concurrencyLimit: 5,
             removedLabelMode: 'remove' as const,
             removedLabelPrefix: 'pulsarr:removed',
@@ -194,7 +194,7 @@ export async function getConfig(
         )
       : {
           enabled: false,
-          labelFormat: 'pulsarr:{username}',
+          labelPrefix: 'pulsarr',
           concurrencyLimit: 5,
           removedLabelMode: 'remove' as const,
           removedLabelPrefix: 'pulsarr:removed',
@@ -302,8 +302,7 @@ export async function createConfig(
       plexLabelSync: config.plexLabelSync
         ? JSON.stringify({
             enabled: config.plexLabelSync.enabled ?? false,
-            labelFormat:
-              config.plexLabelSync.labelFormat || 'pulsarr:{username}',
+            labelPrefix: config.plexLabelSync.labelPrefix || 'pulsarr',
             concurrencyLimit: config.plexLabelSync.concurrencyLimit ?? 5,
             removedLabelMode: config.plexLabelSync.removedLabelMode || 'remove',
             removedLabelPrefix:

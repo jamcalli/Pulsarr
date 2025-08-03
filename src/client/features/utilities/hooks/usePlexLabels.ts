@@ -112,7 +112,7 @@ export function usePlexLabels() {
     resolver: zodResolver(PlexLabelingConfigSchema),
     defaultValues: {
       enabled: false,
-      labelFormat: 'pulsarr:{username}',
+      labelPrefix: 'pulsarr',
       concurrencyLimit: 5,
       cleanupOrphanedLabels: false,
       removedLabelMode: 'remove',
@@ -125,7 +125,7 @@ export function usePlexLabels() {
     (data: z.infer<typeof PlexLabelingStatusResponseSchema>) => {
       form.reset({
         enabled: data.config.enabled,
-        labelFormat: data.config.labelFormat,
+        labelPrefix: data.config.labelPrefix,
         concurrencyLimit: data.config.concurrencyLimit || 5,
         cleanupOrphanedLabels: data.config.cleanupOrphanedLabels || false,
         removedLabelMode: data.config.removedLabelMode || 'remove',

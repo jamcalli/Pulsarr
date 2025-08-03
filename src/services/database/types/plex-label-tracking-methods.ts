@@ -112,13 +112,13 @@ declare module '@services/database.service.js' {
     /**
      * Find orphaned tracking records where the applied label doesn't match any current valid user labels
      * @param validLabels - Set of currently valid user labels (lowercase)
-     * @param labelFormatPrefix - The prefix from the label format (e.g., "pulsarr:")
+     * @param labelPrefix - The prefix from the label configuration (e.g., "pulsarr")
      * @returns Promise resolving to array of tracking records with orphaned labels grouped by rating key
      */
     getOrphanedLabelTracking(
       this: DatabaseService,
       validLabels: Set<string>,
-      labelFormatPrefix: string,
+      labelPrefix: string,
     ): Promise<Array<{ plex_rating_key: string; orphaned_labels: string[] }>>
 
     /**
