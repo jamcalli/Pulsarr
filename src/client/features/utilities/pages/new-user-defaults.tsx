@@ -57,10 +57,29 @@ export default function NewUserDefaultsPage() {
   const { config, updateConfig, isInitialized, initialize } = useConfigStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingStartTime = useRef<number | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
+  const initializationStartTime = useRef<number | null>(null)
 
-  // Initialize store on mount
+  // Initialize store on mount with minimum loading duration
   useEffect(() => {
-    initialize()
+    const initializeWithMinDuration = async () => {
+      setIsInitializing(true)
+      initializationStartTime.current = Date.now()
+
+      try {
+        await initialize()
+
+        // Ensure minimum loading time for better UX
+        const elapsed = Date.now() - (initializationStartTime.current || 0)
+        const remaining = Math.max(0, 800 - elapsed) // Slightly longer than other utilities
+        await new Promise((resolve) => setTimeout(resolve, remaining))
+      } finally {
+        setIsInitializing(false)
+        initializationStartTime.current = null
+      }
+    }
+
+    initializeWithMinDuration()
   }, [initialize])
 
   const form = useForm<NewUserDefaultsFormData>({
@@ -143,7 +162,7 @@ export default function NewUserDefaultsPage() {
 
   // No status needed for header - we'll show detailed status in the body
 
-  if (!isInitialized) {
+  if (!isInitialized || isInitializing) {
     return <NewUserDefaultsPageSkeleton />
   }
 

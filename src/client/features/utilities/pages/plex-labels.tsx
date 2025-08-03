@@ -20,6 +20,14 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
@@ -47,7 +55,7 @@ import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-p
  * @returns A React element containing the Plex label management page.
  */
 export function PlexLabelsPage() {
-  const { isInitialized, initialize } = useConfigStore()
+  const { initialize: configInitialize } = useConfigStore()
 
   const {
     form,
@@ -56,6 +64,7 @@ export function PlexLabelsPage() {
     isSyncingLabels,
     isCleaningLabels,
     isRemovingLabels,
+    isLoading,
     error,
     lastResults,
     lastActionResults,
@@ -77,10 +86,10 @@ export function PlexLabelsPage() {
   const plexLabelSyncProgress = useLabelingProgress('plex-label-sync')
   const plexLabelRemovalProgress = useLabelingProgress('plex-label-removal')
 
-  // Initialize stores on mount
+  // Initialize config store on mount
   useEffect(() => {
-    initialize()
-  }, [initialize])
+    configInitialize()
+  }, [configInitialize])
 
   // Initialize progress connection
   useEffect(() => {
@@ -101,7 +110,7 @@ export function PlexLabelsPage() {
     (isLabelDeletionComplete && labelDefinitionsDeleted) ||
     !lastResults?.success
 
-  if (!isInitialized) {
+  if (isLoading) {
     return <PlexLabelsPageSkeleton />
   }
 
@@ -182,6 +191,7 @@ export function PlexLabelsPage() {
                   isCleaningLabels ||
                   isToggling ||
                   !lastResults?.config?.enabled ||
+                  !lastResults?.config?.cleanupOrphanedLabels ||
                   form.formState.isDirty
                 }
                 variant="noShadow"
@@ -519,6 +529,176 @@ export function PlexLabelsPage() {
                       </FormItem>
                     )}
                   />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="font-medium text-sm text-foreground mb-2">
+                  Cleanup Settings
+                </h3>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="cleanupOrphanedLabels"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-3">
+                          <FormControl>
+                            <Switch
+                              checked={field.value ?? false}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="flex items-center">
+                            <FormLabel className="text-foreground">
+                              Clean Up Orphaned Labels
+                            </FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Removes labels that no longer correspond to
+                                    active users. Prevents accumulation of
+                                    unused labels when users are deleted or
+                                    renamed.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="removedLabelMode"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground">
+                            Label Behavior on Removal
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs space-y-2">
+                                  <p>
+                                    Controls what happens to user labels when
+                                    content is removed from a user's watchlist:
+                                  </p>
+                                  <ul className="list-disc pl-4 space-y-1">
+                                    <li>
+                                      <strong>Remove</strong>: User label is
+                                      removed (default)
+                                    </li>
+                                    <li>
+                                      <strong>Keep</strong>: User label is kept
+                                      forever
+                                    </li>
+                                    <li>
+                                      <strong>Special Label</strong>: User label
+                                      is removed and a "removed" label is added
+                                    </li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <FormControl>
+                          <Select
+                            value={field.value || 'remove'}
+                            onValueChange={field.onChange}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select behavior..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="remove">Remove</SelectItem>
+                              <SelectItem value="keep">Keep</SelectItem>
+                              <SelectItem value="special-label">
+                                Special Label
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch('removedLabelMode') === 'special-label' && (
+                    <FormField
+                      control={form.control}
+                      name="removedLabelPrefix"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center">
+                            <FormLabel className="text-foreground">
+                              Removed Label Prefix
+                            </FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="max-w-xs space-y-2">
+                                    <p>
+                                      Label prefix used to mark content that was
+                                      previously in a user's watchlist when
+                                      using "Special Label" mode.
+                                    </p>
+                                    <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                      <strong>Note:</strong> Changing this
+                                      requires removing existing labels first,
+                                      as old removed labels won't be recognized
+                                      with the new value.
+                                    </p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="pulsarr:removed"
+                              disabled={!canEditLabelSettings}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                          {lastResults?.success &&
+                            form.watch('removedLabelMode') ===
+                              'special-label' &&
+                            lastResults.config?.enabled &&
+                            !canEditLabelSettings && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                You must remove existing Pulsarr labels before
+                                changing the removed label prefix.
+                              </p>
+                            )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            Label format:{' '}
+                            <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
+                              {form.watch('removedLabelPrefix') ||
+                                'pulsarr:removed'}
+                            </code>
+                          </p>
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </div>
 
