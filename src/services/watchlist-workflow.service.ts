@@ -797,16 +797,10 @@ export class WatchlistWorkflowService {
     if (hasNewItems) {
       const now = Date.now()
       this.lastQueueItemTime = now
-      // Reset last successful sync time to prevent periodic job from running shortly after
-      // when RSS processing will handle the changes - both timers must be synchronized
-      // Add additional buffer time to account for processing delay and prevent race conditions
-      this.lastSuccessfulSyncTime = now + this.queueProcessDelayMs
       this.log.info(
         `Added ${items.size} changed items to queue from ${source} RSS feed`,
       )
-      this.log.debug(
-        `Synchronized timers: lastQueueItemTime=${now}, lastSuccessfulSyncTime=${this.lastSuccessfulSyncTime} (with ${this.queueProcessDelayMs}ms buffer)`,
-      )
+      this.log.debug(`Queue timer updated: lastQueueItemTime=${now}`)
 
       try {
         await this.plexService.storeRssWatchlistItems(items, source)
@@ -1573,6 +1567,7 @@ export class WatchlistWorkflowService {
           } else {
             this.log.info('Performing standard watchlist refresh')
             await this.fetchWatchlists()
+            await this.syncWatchlistItems()
             // Update last successful sync time after watchlist refresh
             const now = Date.now()
             this.lastSuccessfulSyncTime = now
@@ -1736,7 +1731,10 @@ export class WatchlistWorkflowService {
             }
 
             // Check if 20 minutes have passed without a sync
-            const timeSinceLastSync = Date.now() - this.lastSuccessfulSyncTime
+            const timeSinceLastSync = Math.max(
+              0,
+              Date.now() - this.lastSuccessfulSyncTime,
+            )
             const twentyMinutesInMs = 20 * 60 * 1000 // 20 minutes threshold
 
             if (timeSinceLastSync >= twentyMinutesInMs) {

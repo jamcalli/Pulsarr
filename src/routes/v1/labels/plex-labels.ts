@@ -38,8 +38,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Use the nested plexLabelSync configuration object
         const plexLabelSyncConfig = config.plexLabelSync || {
           enabled: false,
-          labelFormat: 'pulsarr:{username}',
+          labelPrefix: 'pulsarr',
           concurrencyLimit: 5,
+          cleanupOrphanedLabels: false,
+          removedLabelMode: 'remove' as const,
+          removedLabelPrefix: 'pulsarr:removed',
         }
 
         return {
@@ -47,8 +50,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Plex labeling configuration retrieved successfully',
           config: {
             enabled: Boolean(plexLabelSyncConfig.enabled),
-            labelFormat: plexLabelSyncConfig.labelFormat,
+            labelPrefix: plexLabelSyncConfig.labelPrefix,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
+            cleanupOrphanedLabels: Boolean(
+              plexLabelSyncConfig.cleanupOrphanedLabels ?? false,
+            ),
+            removedLabelMode: plexLabelSyncConfig.removedLabelMode ?? 'remove',
+            removedLabelPrefix:
+              plexLabelSyncConfig.removedLabelPrefix ?? 'pulsarr:removed',
           },
         }
       } catch (err) {
@@ -117,8 +126,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const configUpdate = {
           plexLabelSync: {
             enabled: request.body.enabled,
-            labelFormat: request.body.labelFormat,
+            labelPrefix: request.body.labelPrefix,
             concurrencyLimit: request.body.concurrencyLimit || 5,
+            cleanupOrphanedLabels: request.body.cleanupOrphanedLabels ?? false,
+            removedLabelMode: request.body.removedLabelMode ?? 'remove',
+            removedLabelPrefix:
+              request.body.removedLabelPrefix ?? 'pulsarr:removed',
           },
         }
 
@@ -157,8 +170,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Use the nested plexLabelSync configuration object
         const plexLabelSyncConfig = savedConfig.plexLabelSync || {
           enabled: false,
-          labelFormat: 'pulsarr:{username}',
+          labelPrefix: 'pulsarr',
           concurrencyLimit: 5,
+          cleanupOrphanedLabels: false,
+          removedLabelMode: 'remove' as const,
+          removedLabelPrefix: 'pulsarr:removed',
         }
 
         return {
@@ -166,8 +182,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Plex labeling configuration updated successfully',
           config: {
             enabled: Boolean(plexLabelSyncConfig.enabled),
-            labelFormat: plexLabelSyncConfig.labelFormat,
+            labelPrefix: plexLabelSyncConfig.labelPrefix,
             concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
+            cleanupOrphanedLabels: Boolean(
+              plexLabelSyncConfig.cleanupOrphanedLabels ?? false,
+            ),
+            removedLabelMode: plexLabelSyncConfig.removedLabelMode ?? 'remove',
+            removedLabelPrefix:
+              plexLabelSyncConfig.removedLabelPrefix ?? 'pulsarr:removed',
           },
         }
       } catch (err) {
@@ -358,15 +380,32 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Clean up expired pending syncs
         const expiredPendingCount = await fastify.db.expirePendingLabelSyncs()
 
-        // Clean up orphaned labels and expired pending syncs
-        const orphanedCleanupCount = 0
+        // Clean up orphaned labels if enabled in configuration
+        let orphanedResult = { removed: 0, failed: 0 }
+        if (config.plexLabelSync?.cleanupOrphanedLabels) {
+          try {
+            orphanedResult =
+              await fastify.plexLabelSyncService.cleanupOrphanedPlexLabels()
+          } catch (cleanupError) {
+            fastify.log.error(
+              'Error during orphaned label cleanup:',
+              cleanupError,
+            )
+            orphanedResult = { removed: 0, failed: 1 }
+          }
+        }
 
         let message: string
-        if (expiredPendingCount === 0 && orphanedCleanupCount === 0) {
-          message =
-            'No orphaned labels or expired pending syncs found to clean up'
+        if (expiredPendingCount === 0 && orphanedResult.removed === 0) {
+          if (!config.plexLabelSync?.cleanupOrphanedLabels) {
+            message =
+              'No expired pending syncs found to clean up. Orphaned label cleanup is disabled in configuration.'
+          } else {
+            message =
+              'No orphaned labels or expired pending syncs found to clean up'
+          }
         } else {
-          message = `Cleaned up ${expiredPendingCount} expired pending syncs and ${orphanedCleanupCount} orphaned labels`
+          message = `Cleaned up ${expiredPendingCount} expired pending syncs and ${orphanedResult.removed} orphaned labels`
         }
 
         return {
@@ -377,8 +416,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             failed: 0,
           },
           orphaned: {
-            removed: orphanedCleanupCount,
-            failed: 0,
+            removed: orphanedResult.removed,
+            failed: orphanedResult.failed,
           },
         }
       } catch (err) {

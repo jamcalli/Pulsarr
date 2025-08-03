@@ -3,8 +3,19 @@ import { z } from 'zod'
 // Configuration schema for plex labeling
 export const PlexLabelingConfigSchema = z.object({
   enabled: z.boolean(),
-  labelFormat: z.string(),
+  labelPrefix: z.string(),
   concurrencyLimit: z.number().int().min(1).max(20).optional(),
+  cleanupOrphanedLabels: z.boolean().optional(),
+  removedLabelMode: z
+    .enum(['remove', 'keep', 'special-label'])
+    .optional()
+    .describe(
+      'How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label',
+    ),
+  removedLabelPrefix: z
+    .string()
+    .optional()
+    .describe('Prefix for special labels indicating removed users'),
 })
 
 // Generic error schema
@@ -18,8 +29,11 @@ export const PlexLabelingStatusResponseSchema = z.object({
   message: z.string(),
   config: z.object({
     enabled: z.boolean(),
-    labelFormat: z.string(),
+    labelPrefix: z.string(),
     concurrencyLimit: z.number(),
+    cleanupOrphanedLabels: z.boolean(),
+    removedLabelMode: z.enum(['remove', 'keep', 'special-label']),
+    removedLabelPrefix: z.string(),
   }),
 })
 

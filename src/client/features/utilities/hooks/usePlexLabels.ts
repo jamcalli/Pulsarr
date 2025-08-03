@@ -83,7 +83,6 @@ export function usePlexLabels() {
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
 
-  const hasInitializedRef = useRef(false)
   const initialLoadRef = useRef(true)
 
   const {
@@ -113,8 +112,11 @@ export function usePlexLabels() {
     resolver: zodResolver(PlexLabelingConfigSchema),
     defaultValues: {
       enabled: false,
-      labelFormat: 'pulsarr:{username}',
+      labelPrefix: 'pulsarr',
       concurrencyLimit: 5,
+      cleanupOrphanedLabels: false,
+      removedLabelMode: 'remove',
+      removedLabelPrefix: 'pulsarr:removed',
     },
   })
 
@@ -123,8 +125,11 @@ export function usePlexLabels() {
     (data: z.infer<typeof PlexLabelingStatusResponseSchema>) => {
       form.reset({
         enabled: data.config.enabled,
-        labelFormat: data.config.labelFormat,
+        labelPrefix: data.config.labelPrefix,
         concurrencyLimit: data.config.concurrencyLimit || 5,
+        cleanupOrphanedLabels: data.config.cleanupOrphanedLabels || false,
+        removedLabelMode: data.config.removedLabelMode || 'remove',
+        removedLabelPrefix: data.config.removedLabelPrefix || 'pulsarr:removed',
       })
     },
     [form],
@@ -271,13 +276,8 @@ export function usePlexLabels() {
     }
   }, [cleanupPlexLabels])
 
-  // Check if on initial loading - don't show loading on navigation
-  if (!hasInitializedRef.current && !loading.plexLabels) {
-    hasInitializedRef.current = true
-  }
-
-  // Only show loading skeleton on initial load, not on navigation
-  const isLoading = !hasInitializedRef.current && loading.plexLabels
+  // Show loading until we have initial data (similar to DeleteSync pattern)
+  const isLoading = initialLoadRef.current && !lastResults
 
   const initiateRemoveLabels = useCallback(() => {
     setShowDeletePlexLabelsConfirmation(true)

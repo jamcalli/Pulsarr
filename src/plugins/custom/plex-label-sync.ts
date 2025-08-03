@@ -21,8 +21,11 @@ export default fp(
     // Use the nested plexLabelSync configuration object
     const labelSyncConfig = fastify.config.plexLabelSync || {
       enabled: false,
-      labelFormat: 'pulsarr:{username}',
+      labelPrefix: 'pulsarr',
       concurrencyLimit: 5, // Default concurrency limit
+      cleanupOrphanedLabels: false,
+      removedLabelMode: 'remove' as const,
+      removedLabelPrefix: 'pulsarr:removed',
     }
 
     // Create the Plex label sync service

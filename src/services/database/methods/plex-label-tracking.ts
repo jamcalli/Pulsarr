@@ -269,3 +269,119 @@ export async function clearAllLabelTracking(
 
   return deleted
 }
+
+/**
+ * Removes tracking records for a specific label on a specific Plex rating key.
+ *
+ * Deletes all tracking records that match the given rating key and label,
+ * regardless of watchlist item. This is useful for orphaned label cleanup.
+ *
+ * @param plexRatingKey - The Plex rating key
+ * @param labelApplied - The label to remove tracking for
+ * @returns The number of tracking records that were deleted
+ */
+export async function removeTrackedLabel(
+  this: DatabaseService,
+  plexRatingKey: string,
+  labelApplied: string,
+): Promise<number> {
+  const deleted = await this.knex('plex_label_tracking')
+    .where('plex_rating_key', plexRatingKey)
+    .where('label_applied', labelApplied)
+    .delete()
+
+  if (deleted > 0) {
+    this.log.debug(
+      `Removed ${deleted} tracking record(s) for label "${labelApplied}" on rating key ${plexRatingKey}`,
+    )
+  }
+
+  return deleted
+}
+
+/**
+ * Find orphaned tracking records where the applied label doesn't match any current valid user labels.
+ *
+ * Uses SQL queries to efficiently identify tracking records that should be cleaned up because:
+ * - The label doesn't match the current label prefix for any sync-enabled user
+ * - The watchlist item references a user who no longer has sync enabled
+ * - The label prefix has changed and old labels are now orphaned
+ *
+ * @param validLabels - Set of currently valid user labels (lowercase)
+ * @param labelPrefix - The prefix from the label configuration (e.g., "pulsarr")
+ * @returns Array of tracking records with orphaned labels grouped by rating key
+ */
+export async function getOrphanedLabelTracking(
+  this: DatabaseService,
+  validLabels: Set<string>,
+  labelPrefix: string,
+): Promise<Array<{ plex_rating_key: string; orphaned_labels: string[] }>> {
+  // First, get all tracking records that match our label prefix
+  const appManagedLabels = (await this.knex('plex_label_tracking')
+    .whereRaw('LOWER(label_applied) LIKE ?', [`${labelPrefix.toLowerCase()}:%`])
+    .select('plex_rating_key', 'label_applied')
+    .orderBy('plex_rating_key')) as Array<{
+    plex_rating_key: string
+    label_applied: string
+  }>
+
+  if (appManagedLabels.length === 0) {
+    return []
+  }
+
+  // Group by rating key and filter for orphaned labels
+  const orphanedByRatingKey = new Map<string, string[]>()
+
+  for (const record of appManagedLabels) {
+    const labelLower = record.label_applied.toLowerCase()
+
+    // If this label is not in our valid labels set, it's orphaned
+    if (!validLabels.has(labelLower)) {
+      const existing = orphanedByRatingKey.get(record.plex_rating_key) || []
+      existing.push(record.label_applied)
+      orphanedByRatingKey.set(record.plex_rating_key, existing)
+    }
+  }
+
+  // Convert map to array format
+  return Array.from(orphanedByRatingKey.entries()).map(
+    ([plex_rating_key, orphaned_labels]) => ({
+      plex_rating_key,
+      orphaned_labels,
+    }),
+  )
+}
+
+/**
+ * Remove multiple tracking records in a batch operation.
+ *
+ * Efficiently removes tracking records for multiple orphaned labels on a rating key.
+ * Uses a single delete query with WHERE IN clause for optimal performance.
+ *
+ * @param plexRatingKey - The Plex rating key
+ * @param orphanedLabels - Array of label names to remove tracking for
+ * @returns The number of tracking records that were deleted
+ */
+export async function removeOrphanedTracking(
+  this: DatabaseService,
+  plexRatingKey: string,
+  orphanedLabels: string[],
+): Promise<number> {
+  if (orphanedLabels.length === 0) {
+    return 0
+  }
+
+  const deleted = await this.knex('plex_label_tracking')
+    .where('plex_rating_key', plexRatingKey)
+    .whereIn('label_applied', orphanedLabels)
+    .delete()
+
+  if (deleted > 0) {
+    this.log.debug(
+      `Removed ${deleted} orphaned tracking record(s) for rating key ${plexRatingKey}`,
+      { orphanedLabels },
+    )
+  }
+
+  return deleted
+}
