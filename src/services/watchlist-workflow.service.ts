@@ -797,15 +797,10 @@ export class WatchlistWorkflowService {
     if (hasNewItems) {
       const now = Date.now()
       this.lastQueueItemTime = now
-      // Reset last successful sync time to current time when RSS changes are detected
-      // This ensures periodic reconciliation timing is based on actual activity
-      this.lastSuccessfulSyncTime = now
       this.log.info(
         `Added ${items.size} changed items to queue from ${source} RSS feed`,
       )
-      this.log.debug(
-        `Synchronized timers: lastQueueItemTime=${now}, lastSuccessfulSyncTime=${this.lastSuccessfulSyncTime}`,
-      )
+      this.log.debug(`Queue timer updated: lastQueueItemTime=${now}`)
 
       try {
         await this.plexService.storeRssWatchlistItems(items, source)
