@@ -125,7 +125,7 @@ export class PlexLabelSyncService {
   ) {
     this.log.info('Initializing PlexLabelSyncService', {
       enabled: config.enabled,
-      labelFormat: config.labelFormat,
+      labelPrefix: config.labelPrefix,
       removedLabelMode: config.removedLabelMode || 'remove',
       removedLabelPrefix: config.removedLabelPrefix || 'pulsarr:removed',
     })
@@ -146,20 +146,13 @@ export class PlexLabelSyncService {
   }
 
   /**
-   * Checks if a label was created by this app based on the configured format
+   * Checks if a label was created by this app based on the configured prefix
    *
    * @param labelName - The label to check
    * @returns True if this is an app-managed user label
    */
   private isAppUserLabel(labelName: string): boolean {
-    // Extract the pattern from labelFormat (e.g., "pulsarr:{username}" becomes "pulsarr:")
-    const formatPrefix = this.config.labelFormat.substring(
-      0,
-      this.config.labelFormat.indexOf('{'),
-    )
-
-    // Check if label starts with our format prefix
-    return labelName.startsWith(formatPrefix)
+    return labelName.toLowerCase().startsWith(`${this.config.labelPrefix}:`)
   }
 
   /**
@@ -492,8 +485,8 @@ export class PlexLabelSyncService {
 
     try {
       // Calculate desired user labels based on complete user set
-      const desiredUserLabels = content.users.map((user) =>
-        this.config.labelFormat.replace('{username}', user.username),
+      const desiredUserLabels = content.users.map(
+        (user) => `${this.config.labelPrefix}:${user.username}`,
       )
 
       this.log.debug('Starting label reconciliation for content', {
@@ -716,10 +709,7 @@ export class PlexLabelSyncService {
         // Determine which tracking records should exist
         const desiredTracking = new Set<string>()
         for (const user of content.users) {
-          const userLabel = this.config.labelFormat.replace(
-            '{username}',
-            user.username,
-          )
+          const userLabel = `${this.config.labelPrefix}:${user.username}`
           if (finalUserLabels.includes(userLabel)) {
             desiredTracking.add(
               `${user.watchlist_id}:${plexItem.ratingKey}:${userLabel}`,
@@ -746,10 +736,7 @@ export class PlexLabelSyncService {
 
         // Add new tracking records
         for (const user of content.users) {
-          const userLabel = this.config.labelFormat.replace(
-            '{username}',
-            user.username,
-          )
+          const userLabel = `${this.config.labelPrefix}:${user.username}`
           if (finalUserLabels.includes(userLabel)) {
             try {
               await this.db.trackPlexLabel(
@@ -834,7 +821,7 @@ export class PlexLabelSyncService {
   ): Promise<SyncResult> {
     this.log.info('Content-centric batch label sync requested', {
       enabled: this.config.enabled,
-      labelFormat: this.config.labelFormat,
+      labelPrefix: this.config.labelPrefix,
       removedLabelMode: this.removedLabelMode,
     })
 
@@ -1225,9 +1212,9 @@ export class PlexLabelSyncService {
         existingLabels = metadata.Label.map((label) => label.tag)
       }
 
-      // Generate user labels based on configured format
-      const userLabels = users.map((user) =>
-        this.config.labelFormat.replace('{username}', user.username),
+      // Generate user labels based on configured prefix
+      const userLabels = users.map(
+        (user) => `${this.config.labelPrefix}:${user.username}`,
       )
 
       // Clean up any existing "removed" labels when users are re-adding content
@@ -1331,10 +1318,7 @@ export class PlexLabelSyncService {
         // Track each applied user label in the database for cleanup purposes
         let trackingErrors = 0
         for (const user of users) {
-          const userLabel = this.config.labelFormat.replace(
-            '{username}',
-            user.username,
-          )
+          const userLabel = `${this.config.labelPrefix}:${user.username}`
           try {
             await this.db.trackPlexLabel(
               user.watchlist_id,
@@ -2263,17 +2247,12 @@ export class PlexLabelSyncService {
       const validLabels = new Set(
         users.map((user) => {
           const username = user.name || `user_${user.id}`
-          return this.config.labelFormat
-            .replace('{username}', username)
-            .toLowerCase()
+          return `${this.config.labelPrefix}:${username}`.toLowerCase()
         }),
       )
 
-      // Extract the prefix from labelFormat to identify app-managed labels
-      const formatPrefix = this.config.labelFormat.substring(
-        0,
-        this.config.labelFormat.indexOf('{'),
-      )
+      // Use the prefix directly to identify app-managed labels
+      const formatPrefix = this.config.labelPrefix
 
       this.log.debug(
         `Found ${users.length} sync-enabled users, will preserve ${validLabels.size} labels with prefix "${formatPrefix}"`,
