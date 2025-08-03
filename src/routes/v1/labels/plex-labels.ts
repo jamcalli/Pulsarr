@@ -55,9 +55,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             cleanupOrphanedLabels: Boolean(
               plexLabelSyncConfig.cleanupOrphanedLabels ?? false,
             ),
-            removedLabelMode: plexLabelSyncConfig.removedLabelMode || 'remove',
+            removedLabelMode: plexLabelSyncConfig.removedLabelMode ?? 'remove',
             removedLabelPrefix:
-              plexLabelSyncConfig.removedLabelPrefix || 'pulsarr:removed',
+              plexLabelSyncConfig.removedLabelPrefix ?? 'pulsarr:removed',
           },
         }
       } catch (err) {
@@ -129,9 +129,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             labelPrefix: request.body.labelPrefix,
             concurrencyLimit: request.body.concurrencyLimit || 5,
             cleanupOrphanedLabels: request.body.cleanupOrphanedLabels ?? false,
-            removedLabelMode: request.body.removedLabelMode || 'remove',
+            removedLabelMode: request.body.removedLabelMode ?? 'remove',
             removedLabelPrefix:
-              request.body.removedLabelPrefix || 'pulsarr:removed',
+              request.body.removedLabelPrefix ?? 'pulsarr:removed',
           },
         }
 
@@ -187,9 +187,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             cleanupOrphanedLabels: Boolean(
               plexLabelSyncConfig.cleanupOrphanedLabels ?? false,
             ),
-            removedLabelMode: plexLabelSyncConfig.removedLabelMode || 'remove',
+            removedLabelMode: plexLabelSyncConfig.removedLabelMode ?? 'remove',
             removedLabelPrefix:
-              plexLabelSyncConfig.removedLabelPrefix || 'pulsarr:removed',
+              plexLabelSyncConfig.removedLabelPrefix ?? 'pulsarr:removed',
           },
         }
       } catch (err) {

@@ -156,12 +156,12 @@ export class PlexLabelSyncService {
   }
 
   /**
-   * Gets or creates a special "removed" label for tracking removed users
+   * Gets the removed label string for tracking removed users
    *
    * @param itemName - The name of the content item (for logging)
    * @returns The removed label string
    */
-  private async ensureRemovedLabel(itemName: string): Promise<string> {
+  private async getRemovedLabel(itemName: string): Promise<string> {
     const removedLabel = this.removedLabelPrefix
 
     this.log.debug('Using removed label for content', {
@@ -592,7 +592,7 @@ export class PlexLabelSyncService {
       } else if (this.removedLabelMode === 'special-label') {
         // Remove user labels but add special "removed" label if needed
         if (labelsToRemove.length > 0) {
-          specialRemovedLabel = await this.ensureRemovedLabel(content.title)
+          specialRemovedLabel = await this.getRemovedLabel(content.title)
           finalLabels = [
             ...new Set([
               ...nonUserLabels,
@@ -1264,7 +1264,7 @@ export class PlexLabelSyncService {
         // If we have labels being removed, add special "removed" label
         if (removedUserLabels.length > 0) {
           const itemName = metadata?.title || 'Unknown'
-          const removedLabel = await this.ensureRemovedLabel(itemName)
+          const removedLabel = await this.getRemovedLabel(itemName)
           finalLabels = [
             ...new Set([...nonUserLabels, ...userLabels, removedLabel]),
           ]

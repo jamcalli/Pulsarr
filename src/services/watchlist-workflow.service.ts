@@ -1794,8 +1794,6 @@ export class WatchlistWorkflowService {
               )
             }
           } catch (error) {
-            // Update lastSuccessfulSyncTime even on error to prevent stuck future timestamps
-            this.lastSuccessfulSyncTime = Date.now()
             this.log.error('Error in periodic watchlist reconciliation:', {
               error,
               errorMessage:
