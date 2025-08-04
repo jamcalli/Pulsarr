@@ -45,6 +45,7 @@ import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sy
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { DeleteSyncPageSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-page-skeleton'
+import { formatScheduleDisplay } from '@/lib/utils'
 
 /**
  * Renders the Delete Sync page, providing a comprehensive interface for configuring and managing the delete synchronization job.
@@ -281,31 +282,16 @@ export default function DeleteSyncPage() {
                   Current schedule:{' '}
                   {deleteSyncJob.config.expression === '0 0 * * * *'
                     ? 'Every hour'
-                    : `${
+                    : formatScheduleDisplay(
                         isSaving &&
-                        submittedValues &&
-                        submittedValues.scheduleTime
-                          ? new Intl.DateTimeFormat('en-US', {
-                              hour: 'numeric',
-                              minute: 'numeric',
-                              hour12: true,
-                            }).format(submittedValues.scheduleTime)
-                          : scheduleTime
-                            ? new Intl.DateTimeFormat('en-US', {
-                                hour: 'numeric',
-                                minute: 'numeric',
-                                hour12: true,
-                              }).format(scheduleTime)
-                            : ''
-                      } ${
+                          submittedValues &&
+                          submittedValues.scheduleTime
+                          ? submittedValues.scheduleTime
+                          : scheduleTime,
                         isSaving && submittedValues && submittedValues.dayOfWeek
-                          ? submittedValues.dayOfWeek === '*'
-                            ? 'every day'
-                            : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(submittedValues.dayOfWeek)]}`
-                          : dayOfWeek === '*'
-                            ? 'every day'
-                            : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(dayOfWeek)]}`
-                      }`}
+                          ? submittedValues.dayOfWeek
+                          : dayOfWeek,
+                      )}
                 </p>
               </div>
             )}

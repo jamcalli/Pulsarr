@@ -103,8 +103,7 @@ export function UserTagsPage() {
   const status = isEnabled ? 'enabled' : 'disabled'
 
   // Determine if tag settings can be edited
-  const canEditTagSettings =
-    (isTagDeletionComplete && tagDefinitionsDeleted) || !config
+  const canEditTagSettings = isTagDeletionComplete && tagDefinitionsDeleted
 
   if (isLoading || !config) {
     return <UserTagsPageSkeleton />

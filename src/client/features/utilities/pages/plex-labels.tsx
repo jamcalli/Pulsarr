@@ -48,6 +48,7 @@ import { PlexLabelsDeleteConfirmationModal } from '@/features/utilities/componen
 import { useLabelingProgress } from '@/features/utilities/hooks/useLabelingProgress'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-page-skeleton'
+import { formatScheduleDisplay } from '@/lib/utils'
 
 /**
  * Standalone Plex Labels page for managing user-based labeling in Plex.
@@ -120,6 +121,21 @@ export function PlexLabelsPage() {
   const canEditLabelSettings =
     (isLabelDeletionComplete && labelDefinitionsDeleted) ||
     !lastResults?.config?.enabled
+
+  // Helper function to get current schedule display (form state takes precedence)
+  const getCurrentScheduleDisplay = () => {
+    const currentTime =
+      form.formState.isDirty && form.watch('scheduleTime')
+        ? (form.watch('scheduleTime') as Date)
+        : scheduleTime
+
+    const currentDay =
+      form.formState.isDirty && form.watch('dayOfWeek')
+        ? (form.watch('dayOfWeek') as string)
+        : dayOfWeek
+
+    return formatScheduleDisplay(currentTime, currentDay)
+  }
 
   if (isLoading || !config?.plexLabelSync) {
     return <PlexLabelsPageSkeleton />
@@ -512,29 +528,7 @@ export function PlexLabelsPage() {
                 {fullSyncJob.type === 'cron' &&
                   fullSyncJob.config?.expression && (
                     <div className="text-xs text-foreground">
-                      <p>
-                        Current schedule:{' '}
-                        {form.formState.isDirty && form.watch('scheduleTime')
-                          ? new Intl.DateTimeFormat('en-US', {
-                              hour: 'numeric',
-                              minute: 'numeric',
-                              hour12: true,
-                            }).format(form.watch('scheduleTime') as Date)
-                          : scheduleTime
-                            ? new Intl.DateTimeFormat('en-US', {
-                                hour: 'numeric',
-                                minute: 'numeric',
-                                hour12: true,
-                              }).format(scheduleTime)
-                            : ''}{' '}
-                        {form.formState.isDirty && form.watch('dayOfWeek')
-                          ? form.watch('dayOfWeek') === '*'
-                            ? 'every day'
-                            : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(form.watch('dayOfWeek') as string)]}`
-                          : dayOfWeek === '*'
-                            ? 'every day'
-                            : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(dayOfWeek)]}`}
-                      </p>
+                      <p>Current schedule: {getCurrentScheduleDisplay()}</p>
                     </div>
                   )}
               </div>

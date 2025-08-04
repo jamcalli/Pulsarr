@@ -16,6 +16,7 @@ import {
   type PlexLabelSyncConfig,
 } from '@root/schemas/plex/label-sync-config.schema'
 import type { z } from 'zod'
+import { parseCronExpression } from '@/lib/utils'
 
 export type PlexLabelsFormValues = z.infer<typeof PlexLabelSyncConfigSchema>
 
@@ -127,30 +128,7 @@ export function usePlexLabels() {
   // Extract schedule time and day of week from cron expression
   const [scheduleTime, dayOfWeek] = useMemo(() => {
     if (fullSyncJob?.type === 'cron' && fullSyncJob.config?.expression) {
-      try {
-        const cronParts = fullSyncJob.config.expression.split(' ')
-
-        if (cronParts.length >= 5) {
-          const hourIndex = cronParts.length === 5 ? 1 : 2
-          const minuteIndex = cronParts.length === 5 ? 0 : 1
-          const dayIndex = cronParts.length === 5 ? 4 : 5
-
-          const hour = Number.parseInt(cronParts[hourIndex], 10)
-          const minute = Number.parseInt(cronParts[minuteIndex], 10)
-          const day = cronParts[dayIndex]
-
-          if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
-            const date = new Date()
-            date.setHours(hour)
-            date.setMinutes(minute)
-            date.setSeconds(0)
-            date.setMilliseconds(0)
-            return [date, day]
-          }
-        }
-      } catch (e) {
-        console.error('Failed to parse cron expression:', e)
-      }
+      return parseCronExpression(fullSyncJob.config.expression)
     }
     return [undefined, '*']
   }, [fullSyncJob])
@@ -358,7 +336,9 @@ export function usePlexLabels() {
             },
           ).then((response) => {
             if (!response.ok) {
-              throw new Error('Failed to update schedule')
+              throw new Error(
+                'Failed to update sync schedule. Configuration was saved but schedule was not updated.',
+              )
             }
           })
         }
