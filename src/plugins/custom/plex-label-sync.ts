@@ -26,6 +26,8 @@ export default fp(
       cleanupOrphanedLabels: false,
       removedLabelMode: 'remove' as const,
       removedLabelPrefix: 'pulsarr:removed',
+      scheduleTime: undefined,
+      dayOfWeek: '*',
     }
 
     // Create the Plex label sync service
@@ -114,6 +116,60 @@ export default fp(
           enabled: true,
         })
 
+        // Check if plex label full sync schedule exists
+        const existingFullSyncSchedule = await fastify.db.getScheduleByName(
+          'plex-label-full-sync',
+        )
+
+        if (!existingFullSyncSchedule) {
+          // Create the schedule - run weekly on Sundays at 2 AM
+          const nextRun = new Date()
+          const daysUntilSunday = (7 - nextRun.getDay()) % 7
+
+          if (daysUntilSunday === 0) {
+            const currentHour = nextRun.getHours()
+            if (currentHour >= 2) {
+              nextRun.setDate(nextRun.getDate() + 7)
+            }
+          } else {
+            nextRun.setDate(nextRun.getDate() + daysUntilSunday)
+          }
+
+          nextRun.setHours(2, 0, 0, 0)
+
+          await fastify.db.createSchedule({
+            name: 'plex-label-full-sync',
+            type: 'cron',
+            config: { expression: '0 2 * * 0' }, // Every Sunday at 2 AM
+            enabled: false, // Start disabled
+            last_run: null,
+            next_run: {
+              time: nextRun.toISOString(),
+              status: 'pending',
+              estimated: true,
+            },
+          })
+
+          fastify.log.info('Created plex label full sync schedule')
+        }
+
+        // Register the full sync job handler
+        await fastify.scheduler.scheduleJob(
+          'plex-label-full-sync',
+          async (jobName) => {
+            const schedule = await fastify.db.getScheduleByName(jobName)
+            if (!schedule || !schedule.enabled) {
+              return
+            }
+
+            if (!fastify.config?.plexLabelSync?.enabled) {
+              return
+            }
+
+            await fastify.plexLabelSyncService.syncAllLabels()
+          },
+        )
+
         fastify.log.info(
           'Plex label sync scheduler jobs registered successfully',
         )
@@ -123,21 +179,6 @@ export default fp(
           'Error during Plex label sync scheduler registration',
         )
         // Don't throw - let server continue without label sync functionality
-      }
-    })
-
-    // Graceful shutdown on close
-    fastify.addHook('onClose', async () => {
-      try {
-        // Unschedule the jobs from the scheduler
-        await fastify.scheduler.unscheduleJob('pending-label-sync-processor')
-        await fastify.scheduler.unscheduleJob('pending-label-sync-cleanup')
-        fastify.log.info('Plex label sync scheduler jobs stopped gracefully')
-      } catch (error) {
-        fastify.log.error(
-          { error },
-          'Error during Plex label sync scheduler shutdown',
-        )
       }
     })
   },

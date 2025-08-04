@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const RadarrMovieSchema = z.object({
   title: z.string(),
   tmdbId: z.number(),
+  tags: z.array(z.string()).optional(),
 })
 
 export const SonarrEpisodeFileSchema = z.object({
@@ -24,6 +25,7 @@ export const SonarrEpisodeSchema = z.object({
 export const SonarrSeriesSchema = z.object({
   title: z.string(),
   tvdbId: z.number(),
+  tags: z.array(z.string()).optional(),
 })
 
 export const WebhookTestPayloadSchema = z.object({
@@ -37,10 +39,7 @@ export const WebhookQuerySchema = z.object({
 
 export const RadarrWebhookPayloadSchema = z.object({
   instanceName: z.string(),
-  movie: z.object({
-    title: z.string(),
-    tmdbId: z.number(),
-  }),
+  movie: RadarrMovieSchema,
 })
 
 const BaseSonarrWebhookSchema = z.object({

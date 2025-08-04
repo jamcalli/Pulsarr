@@ -187,8 +187,11 @@ export async function getConfig(
             enabled: false,
             labelPrefix: 'pulsarr',
             concurrencyLimit: 5,
+            cleanupOrphanedLabels: false,
             removedLabelMode: 'remove' as const,
             removedLabelPrefix: 'pulsarr:removed',
+            scheduleTime: undefined,
+            dayOfWeek: '*',
           },
           'config.plexLabelSync',
         )
@@ -196,8 +199,11 @@ export async function getConfig(
           enabled: false,
           labelPrefix: 'pulsarr',
           concurrencyLimit: 5,
+          cleanupOrphanedLabels: false,
           removedLabelMode: 'remove' as const,
           removedLabelPrefix: 'pulsarr:removed',
+          scheduleTime: undefined,
+          dayOfWeek: '*',
         },
     // Tag configuration
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
@@ -304,9 +310,13 @@ export async function createConfig(
             enabled: config.plexLabelSync.enabled ?? false,
             labelPrefix: config.plexLabelSync.labelPrefix || 'pulsarr',
             concurrencyLimit: config.plexLabelSync.concurrencyLimit ?? 5,
+            cleanupOrphanedLabels:
+              config.plexLabelSync.cleanupOrphanedLabels ?? false,
             removedLabelMode: config.plexLabelSync.removedLabelMode || 'remove',
             removedLabelPrefix:
               config.plexLabelSync.removedLabelPrefix || 'pulsarr:removed',
+            scheduleTime: config.plexLabelSync.scheduleTime,
+            dayOfWeek: config.plexLabelSync.dayOfWeek || '*',
           })
         : null,
       // Plex Session Monitoring
