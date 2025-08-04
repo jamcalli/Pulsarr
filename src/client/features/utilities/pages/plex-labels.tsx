@@ -10,6 +10,7 @@ import {
   X,
   HelpCircle,
   Power,
+  Clock,
 } from 'lucide-react'
 import {
   Form,
@@ -29,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { TimeSelector } from '@/components/ui/time-input'
 import {
   Tooltip,
   TooltipContent,
@@ -46,6 +48,7 @@ import { PlexLabelsDeleteConfirmationModal } from '@/features/utilities/componen
 import { useLabelingProgress } from '@/features/utilities/hooks/useLabelingProgress'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-page-skeleton'
+import { formatScheduleDisplay } from '@/lib/utils'
 
 /**
  * Standalone Plex Labels page for managing user-based labeling in Plex.
@@ -55,7 +58,7 @@ import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-p
  * @returns A React element containing the Plex label management page.
  */
 export function PlexLabelsPage() {
-  const { initialize: configInitialize } = useConfigStore()
+  const { config, initialize: configInitialize } = useConfigStore()
 
   const {
     form,
@@ -80,6 +83,15 @@ export function PlexLabelsPage() {
     handleCleanupLabels,
     initiateRemoveLabels,
     handleRemoveLabels,
+    // Full sync schedule functionality (now included in usePlexLabels)
+    scheduleTime,
+    dayOfWeek,
+    fullSyncJob,
+    formatLastRun,
+    formatNextRun,
+    isTogglingFullSyncStatus,
+    handleToggleFullSyncStatus,
+    handleTimeChange,
   } = usePlexLabels()
 
   // Use the custom hook for progress tracking
@@ -108,9 +120,24 @@ export function PlexLabelsPage() {
   // Determine if label settings can be edited
   const canEditLabelSettings =
     (isLabelDeletionComplete && labelDefinitionsDeleted) ||
-    !lastResults?.success
+    !lastResults?.config?.enabled
 
-  if (isLoading) {
+  // Helper function to get current schedule display (form state takes precedence)
+  const getCurrentScheduleDisplay = () => {
+    const currentTime =
+      form.formState.isDirty && form.watch('scheduleTime')
+        ? (form.watch('scheduleTime') as Date)
+        : scheduleTime
+
+    const currentDay =
+      form.formState.isDirty && form.watch('dayOfWeek')
+        ? (form.watch('dayOfWeek') as string)
+        : dayOfWeek
+
+    return formatScheduleDisplay(currentTime, currentDay)
+  }
+
+  if (isLoading || !config?.plexLabelSync) {
     return <PlexLabelsPageSkeleton />
   }
 
@@ -169,7 +196,7 @@ export function PlexLabelsPage() {
                 disabled={
                   isSyncingLabels ||
                   isToggling ||
-                  !lastResults?.config?.enabled ||
+                  !isEnabled ||
                   form.formState.isDirty
                 }
                 variant="noShadow"
@@ -190,8 +217,8 @@ export function PlexLabelsPage() {
                 disabled={
                   isCleaningLabels ||
                   isToggling ||
-                  !lastResults?.config?.enabled ||
-                  !lastResults?.config?.cleanupOrphanedLabels ||
+                  !isEnabled ||
+                  !form.watch('cleanupOrphanedLabels') ||
                   form.formState.isDirty
                 }
                 variant="noShadow"
@@ -212,7 +239,7 @@ export function PlexLabelsPage() {
                 disabled={
                   isRemovingLabels ||
                   isToggling ||
-                  !lastResults?.config?.enabled ||
+                  !isEnabled ||
                   form.formState.isDirty
                 }
                 variant="error"
@@ -399,6 +426,121 @@ export function PlexLabelsPage() {
 
           <Separator />
 
+          {/* Full Sync Actions section */}
+          <div>
+            <h3 className="font-medium text-foreground mb-2">
+              Full Sync Actions
+            </h3>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleToggleFullSyncStatus}
+                disabled={isTogglingFullSyncStatus || !isEnabled}
+                variant={fullSyncJob?.enabled ? 'error' : 'noShadow'}
+                className="h-8"
+              >
+                {isTogglingFullSyncStatus ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Power className="h-4 w-4" />
+                )}
+                <span className="ml-2">
+                  {fullSyncJob?.enabled
+                    ? 'Disable Schedule'
+                    : 'Enable Schedule'}
+                </span>
+              </Button>
+            </div>
+
+            {/* Disabled state message */}
+            {!isEnabled && (
+              <div className="text-sm text-error mt-2">
+                Enable Plex labeling to use the full sync schedule.
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Full Sync Status section */}
+          {fullSyncJob && (
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col items-center text-center">
+                  <h3 className="font-medium text-sm text-foreground mb-1">
+                    Schedule Status
+                  </h3>
+                  <p className="font-medium text-foreground">
+                    {fullSyncJob.enabled ? 'Enabled' : 'Disabled'}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <h3 className="font-medium text-sm text-foreground mb-1">
+                    Last Run
+                  </h3>
+                  <p className="font-medium text-foreground">
+                    {formatLastRun(fullSyncJob.last_run)}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <h3 className="font-medium text-sm text-foreground mb-1">
+                    Next Run
+                  </h3>
+                  <p className="font-medium text-foreground">
+                    {formatNextRun(fullSyncJob.next_run)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Schedule section */}
+          <div>
+            <div className="flex items-center mb-3">
+              <Clock className="h-4 w-4 mr-2 text-foreground" />
+              <h3 className="font-medium text-sm text-foreground">
+                Full Sync Schedule
+              </h3>
+            </div>
+
+            {fullSyncJob ? (
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="scheduleTime"
+                  render={({ field }) => (
+                    <div className="shrink-0">
+                      <TimeSelector
+                        value={field.value || scheduleTime}
+                        onChange={handleTimeChange}
+                        dayOfWeek={form.watch('dayOfWeek')}
+                        disabled={
+                          !fullSyncJob.enabled || isTogglingFullSyncStatus
+                        }
+                      />
+                    </div>
+                  )}
+                />
+
+                {fullSyncJob.type === 'cron' &&
+                  fullSyncJob.config?.expression && (
+                    <div className="text-xs text-foreground">
+                      <p>Current schedule: {getCurrentScheduleDisplay()}</p>
+                    </div>
+                  )}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Loading schedule configuration...
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div>
@@ -463,14 +605,12 @@ export function PlexLabelsPage() {
                             disabled={!canEditLabelSettings}
                           />
                         </FormControl>
-                        {lastResults?.success &&
-                          lastResults.config?.enabled &&
-                          !canEditLabelSettings && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              You must remove existing Pulsarr labels before
-                              changing the label prefix.
-                            </p>
-                          )}
+                        {isEnabled && !canEditLabelSettings && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            You must remove existing Pulsarr labels before
+                            changing the label prefix.
+                          </p>
+                        )}
                         <p className="text-xs text-gray-500 mt-1">
                           Final format:{' '}
                           <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
@@ -675,10 +815,8 @@ export function PlexLabelsPage() {
                             />
                           </FormControl>
                           <FormMessage />
-                          {lastResults?.success &&
-                            form.watch('removedLabelMode') ===
-                              'special-label' &&
-                            lastResults.config?.enabled &&
+                          {form.watch('removedLabelMode') === 'special-label' &&
+                            isEnabled &&
                             !canEditLabelSettings && (
                               <p className="text-xs text-gray-500 mt-1">
                                 You must remove existing Pulsarr labels before

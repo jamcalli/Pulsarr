@@ -5,31 +5,17 @@ import type {
   DeleteSyncResult,
 } from '@root/schemas/scheduler/scheduler.schema'
 import {
-  type TaggingConfigSchema,
-  TaggingStatusResponseSchema,
   CreateTaggingResponseSchema,
   SyncTaggingResponseSchema,
   CleanupResponseSchema,
   RemoveTagsResponseSchema,
 } from '@root/schemas/tags/user-tags.schema'
 import {
-  type PlexLabelingConfigSchema,
-  PlexLabelingStatusResponseSchema,
   SyncPlexLabelsResponseSchema,
   CleanupPlexLabelsResponseSchema,
   RemovePlexLabelsResponseSchema,
 } from '@root/schemas/labels/plex-labels.schema'
 import { z } from 'zod'
-
-// Single type alias needed for the function parameter
-type TaggingConfig = z.infer<typeof TaggingConfigSchema>
-type PlexLabelingConfig = z.infer<typeof PlexLabelingConfigSchema>
-
-// Use inferred type from the schema for better type safety
-type TaggingStatusResponse = z.infer<typeof TaggingStatusResponseSchema>
-type PlexLabelingStatusResponse = z.infer<
-  typeof PlexLabelingStatusResponseSchema
->
 
 // Use the existing schema type for the return type
 export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>
@@ -93,10 +79,6 @@ export interface UtilitiesState {
   resetErrors: () => void
 
   // User tags functions
-  fetchUserTagsConfig: () => Promise<TaggingStatusResponse>
-  updateUserTagsConfig: (
-    config: TaggingConfig,
-  ) => Promise<TaggingStatusResponse>
   createUserTags: () => Promise<z.infer<typeof CreateTaggingResponseSchema>>
   syncUserTags: () => Promise<z.infer<typeof SyncTaggingResponseSchema>>
   cleanupUserTags: () => Promise<z.infer<typeof CleanupResponseSchema>>
@@ -104,10 +86,6 @@ export interface UtilitiesState {
   removeUserTags: (deleteTagDefinitions: boolean) => Promise<TagRemovalResult>
 
   // Plex labels functions
-  fetchPlexLabelsConfig: () => Promise<PlexLabelingStatusResponse>
-  updatePlexLabelsConfig: (
-    config: PlexLabelingConfig,
-  ) => Promise<PlexLabelingStatusResponse>
   syncPlexLabels: () => Promise<z.infer<typeof SyncPlexLabelsResponseSchema>>
   cleanupPlexLabels: () => Promise<
     z.infer<typeof CleanupPlexLabelsResponseSchema>
@@ -472,33 +450,6 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       },
 
       // User Tags methods
-      fetchUserTagsConfig: async () => {
-        return apiRequest<TaggingStatusResponse>({
-          url: '/v1/tags/status',
-          // Use type assertion to handle type discrepancy with default values.
-          // This is needed because Zod schemas with .default() can cause TypeScript
-          // to infer optional properties when they will actually always be present
-          // in the runtime object after validation.
-          schema:
-            TaggingStatusResponseSchema as z.ZodType<TaggingStatusResponse>,
-          loadingKey: 'userTags',
-          errorKey: 'userTags',
-          defaultErrorMessage: 'Failed to fetch user tags configuration',
-        })
-      },
-
-      updateUserTagsConfig: async (config: TaggingConfig) => {
-        return apiRequest<TaggingStatusResponse, TaggingConfig>({
-          url: '/v1/tags/config',
-          method: 'PUT',
-          body: config,
-          schema:
-            TaggingStatusResponseSchema as z.ZodType<TaggingStatusResponse>,
-          loadingKey: 'userTags',
-          errorKey: 'userTags',
-          defaultErrorMessage: 'Failed to update user tags configuration',
-        })
-      },
 
       createUserTags: async () => {
         return apiRequest<z.infer<typeof CreateTaggingResponseSchema>>({
@@ -538,29 +489,6 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       },
 
       // Plex Labels methods
-      fetchPlexLabelsConfig: async () => {
-        return apiRequest<PlexLabelingStatusResponse>({
-          url: '/v1/labels/status',
-          schema:
-            PlexLabelingStatusResponseSchema as z.ZodType<PlexLabelingStatusResponse>,
-          loadingKey: 'plexLabels',
-          errorKey: 'plexLabels',
-          defaultErrorMessage: 'Failed to fetch plex labels configuration',
-        })
-      },
-
-      updatePlexLabelsConfig: async (config: PlexLabelingConfig) => {
-        return apiRequest<PlexLabelingStatusResponse, PlexLabelingConfig>({
-          url: '/v1/labels/config',
-          method: 'PUT',
-          body: config,
-          schema:
-            PlexLabelingStatusResponseSchema as z.ZodType<PlexLabelingStatusResponse>,
-          loadingKey: 'plexLabels',
-          errorKey: 'plexLabels',
-          defaultErrorMessage: 'Failed to update plex labels configuration',
-        })
-      },
 
       syncPlexLabels: async () => {
         return apiRequest<z.infer<typeof SyncPlexLabelsResponseSchema>>({
