@@ -115,20 +115,38 @@ export class PlexLabelSyncService {
    * @param log - Fastify logger instance
    * @param plexServer - PlexServerService instance for Plex API operations
    * @param db - DatabaseService instance for data operations
-   * @param config - Configuration for label sync behavior
+   * @param fastify - Fastify instance for accessing runtime config
    */
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly plexServer: PlexServerService,
     private readonly db: DatabaseService,
-    private readonly config: PlexLabelSyncConfig,
+    private readonly fastify: FastifyInstance,
   ) {
     this.log.info('Initializing PlexLabelSyncService', {
-      enabled: config.enabled,
-      labelPrefix: config.labelPrefix,
-      removedLabelMode: config.removedLabelMode || 'remove',
-      removedLabelPrefix: config.removedLabelPrefix || 'pulsarr:removed',
+      enabled: this.config.enabled,
+      labelPrefix: this.config.labelPrefix,
+      removedLabelMode: this.config.removedLabelMode || 'remove',
+      removedLabelPrefix: this.config.removedLabelPrefix || 'pulsarr:removed',
     })
+  }
+
+  /**
+   * Access to Plex label sync configuration
+   */
+  private get config(): PlexLabelSyncConfig {
+    return (
+      this.fastify.config.plexLabelSync || {
+        enabled: false,
+        labelPrefix: 'pulsarr',
+        concurrencyLimit: 5,
+        cleanupOrphanedLabels: false,
+        removedLabelMode: 'remove' as const,
+        removedLabelPrefix: 'pulsarr:removed',
+        scheduleTime: undefined,
+        dayOfWeek: '*',
+      }
+    )
   }
 
   /**

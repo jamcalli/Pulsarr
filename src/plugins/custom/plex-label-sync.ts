@@ -18,24 +18,12 @@ declare module 'fastify' {
 
 export default fp(
   async function plexLabelSync(fastify: FastifyInstance) {
-    // Use the nested plexLabelSync configuration object
-    const labelSyncConfig = fastify.config.plexLabelSync || {
-      enabled: false,
-      labelPrefix: 'pulsarr',
-      concurrencyLimit: 5, // Default concurrency limit
-      cleanupOrphanedLabels: false,
-      removedLabelMode: 'remove' as const,
-      removedLabelPrefix: 'pulsarr:removed',
-      scheduleTime: undefined,
-      dayOfWeek: '*',
-    }
-
     // Create the Plex label sync service
     const plexLabelSyncService = new PlexLabelSyncService(
       fastify.log,
       fastify.plexServerService,
       fastify.db,
-      labelSyncConfig,
+      fastify,
     )
 
     // Create the pending sync processor service
