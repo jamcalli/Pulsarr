@@ -29,19 +29,7 @@ export const ErrorSchema = z.object({
   message: z.string(),
 })
 
-// Status response schema
-export const TaggingStatusResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  config: z.object({
-    tagUsersInSonarr: z.boolean(),
-    tagUsersInRadarr: z.boolean(),
-    cleanupOrphanedTags: z.boolean(),
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
-    removedTagPrefix: z.string().default('pulsarr:removed'),
-    tagPrefix: z.string(),
-  }),
-})
+// Status response schema - REMOVED: Configuration data is now available through main config system only
 
 // Base response schema with common fields
 const BaseResponseSchema = z.object({

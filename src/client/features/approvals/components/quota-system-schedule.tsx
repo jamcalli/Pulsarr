@@ -10,6 +10,7 @@ import { HelpCircle, Save, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { TimeSelector } from '@/components/ui/time-input'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { formatScheduleDisplay } from '@/lib/utils'
 
 interface QuotaSystemScheduleProps {
   scheduleTime: Date | undefined
@@ -111,16 +112,7 @@ export function QuotaSystemSchedule({
             <div className="text-xs text-foreground">
               <p>
                 <strong>Current schedule:</strong>{' '}
-                {scheduleTime && !Number.isNaN(scheduleTime.getTime())
-                  ? new Intl.DateTimeFormat('en-US', {
-                      hour: 'numeric',
-                      minute: 'numeric',
-                      hour12: true,
-                    }).format(scheduleTime)
-                  : 'Not set'}{' '}
-                {dayOfWeek === '*'
-                  ? 'every day'
-                  : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(dayOfWeek)] || 'Unknown'}`}
+                {formatScheduleDisplay(scheduleTime, dayOfWeek)}
               </p>
               {job.config.expression && (
                 <p className="text-muted-foreground mt-1">

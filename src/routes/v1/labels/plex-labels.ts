@@ -1,209 +1,13 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 import {
-  PlexLabelingStatusResponseSchema,
   SyncPlexLabelsResponseSchema,
   RemovePlexLabelsResponseSchema,
-  RemoveLabelsRequestSchema,
   CleanupPlexLabelsResponseSchema,
-  PlexLabelingConfigSchema,
   ErrorSchema,
 } from '@schemas/labels/plex-labels.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
-  // Get plex labeling configuration status
-  fastify.get<{
-    Reply: z.infer<typeof PlexLabelingStatusResponseSchema>
-  }>(
-    '/status',
-    {
-      schema: {
-        summary: 'Get plex labeling status',
-        operationId: 'getPlexLabelingStatus',
-        description: 'Retrieve the current plex labeling configuration status',
-        response: {
-          200: PlexLabelingStatusResponseSchema,
-          500: ErrorSchema,
-        },
-        tags: ['Labels'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const config = await fastify.db.getConfig()
-        if (!config) {
-          return reply.notFound('Config not found in database')
-        }
-
-        // Use the nested plexLabelSync configuration object
-        const plexLabelSyncConfig = config.plexLabelSync || {
-          enabled: false,
-          labelPrefix: 'pulsarr',
-          concurrencyLimit: 5,
-          cleanupOrphanedLabels: false,
-          removedLabelMode: 'remove' as const,
-          removedLabelPrefix: 'pulsarr:removed',
-        }
-
-        return {
-          success: true,
-          message: 'Plex labeling configuration retrieved successfully',
-          config: {
-            enabled: Boolean(plexLabelSyncConfig.enabled),
-            labelPrefix: plexLabelSyncConfig.labelPrefix,
-            concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
-            cleanupOrphanedLabels: Boolean(
-              plexLabelSyncConfig.cleanupOrphanedLabels ?? false,
-            ),
-            removedLabelMode: plexLabelSyncConfig.removedLabelMode ?? 'remove',
-            removedLabelPrefix:
-              plexLabelSyncConfig.removedLabelPrefix ?? 'pulsarr:removed',
-          },
-        }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        fastify.log.error('Error fetching plex labeling configuration:', err)
-        return reply.internalServerError(
-          'Unable to fetch plex labeling configuration',
-        )
-      }
-    },
-  )
-
-  // Get plex labeling configuration (alias for status)
-  fastify.get<{
-    Reply: z.infer<typeof PlexLabelingStatusResponseSchema>
-  }>(
-    '/config',
-    {
-      schema: {
-        summary: 'Get plex labeling config',
-        operationId: 'getPlexLabelingConfig',
-        description: 'Retrieve the current plex labeling configuration',
-        response: {
-          200: PlexLabelingStatusResponseSchema,
-          500: ErrorSchema,
-        },
-        tags: ['Labels'],
-      },
-    },
-    async (request, reply) => {
-      // Reuse the same logic as /status
-      return fastify
-        .inject({
-          method: 'GET',
-          url: '/api/v1/labels/plex-labels/status',
-        })
-        .then((response) => response.json())
-    },
-  )
-
-  // Update plex labeling configuration
-  fastify.put<{
-    Body: z.infer<typeof PlexLabelingConfigSchema>
-    Reply: z.infer<typeof PlexLabelingStatusResponseSchema>
-  }>(
-    '/config',
-    {
-      schema: {
-        summary: 'Update plex labeling config',
-        operationId: 'updatePlexLabelingConfig',
-        description: 'Update the plex labeling configuration settings',
-        body: PlexLabelingConfigSchema,
-        response: {
-          200: PlexLabelingStatusResponseSchema,
-          400: ErrorSchema,
-          500: ErrorSchema,
-        },
-        tags: ['Labels'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        // Map the request body to nested plexLabelSync config object
-        const configUpdate = {
-          plexLabelSync: {
-            enabled: request.body.enabled,
-            labelPrefix: request.body.labelPrefix,
-            concurrencyLimit: request.body.concurrencyLimit || 5,
-            cleanupOrphanedLabels: request.body.cleanupOrphanedLabels ?? false,
-            removedLabelMode: request.body.removedLabelMode ?? 'remove',
-            removedLabelPrefix:
-              request.body.removedLabelPrefix ?? 'pulsarr:removed',
-          },
-        }
-
-        // Store current runtime values for revert if needed
-        const originalRuntimeValues: Record<string, unknown> = {
-          plexLabelSync: fastify.config.plexLabelSync,
-        }
-
-        // Update runtime config
-        try {
-          await fastify.updateConfig(configUpdate)
-        } catch (configUpdateError) {
-          fastify.log.error('Error updating runtime config:', configUpdateError)
-          return reply.badRequest('Failed to update runtime configuration')
-        }
-
-        // Update the database
-        const dbUpdated = await fastify.db.updateConfig(configUpdate)
-
-        if (!dbUpdated) {
-          // Revert runtime config using stored values
-          try {
-            await fastify.updateConfig(originalRuntimeValues)
-          } catch (revertError) {
-            fastify.log.error('Failed to revert runtime config:', revertError)
-          }
-          return reply.badRequest('Failed to update configuration in database')
-        }
-
-        // Get the updated config
-        const savedConfig = await fastify.db.getConfig()
-        if (!savedConfig) {
-          return reply.notFound('No configuration found after update')
-        }
-
-        // Use the nested plexLabelSync configuration object
-        const plexLabelSyncConfig = savedConfig.plexLabelSync || {
-          enabled: false,
-          labelPrefix: 'pulsarr',
-          concurrencyLimit: 5,
-          cleanupOrphanedLabels: false,
-          removedLabelMode: 'remove' as const,
-          removedLabelPrefix: 'pulsarr:removed',
-        }
-
-        return {
-          success: true,
-          message: 'Plex labeling configuration updated successfully',
-          config: {
-            enabled: Boolean(plexLabelSyncConfig.enabled),
-            labelPrefix: plexLabelSyncConfig.labelPrefix,
-            concurrencyLimit: plexLabelSyncConfig.concurrencyLimit,
-            cleanupOrphanedLabels: Boolean(
-              plexLabelSyncConfig.cleanupOrphanedLabels ?? false,
-            ),
-            removedLabelMode: plexLabelSyncConfig.removedLabelMode ?? 'remove',
-            removedLabelPrefix:
-              plexLabelSyncConfig.removedLabelPrefix ?? 'pulsarr:removed',
-          },
-        }
-      } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
-        fastify.log.error('Error updating plex labeling configuration:', err)
-        return reply.internalServerError(
-          'Unable to update plex labeling configuration',
-        )
-      }
-    },
-  )
-
   // Synchronize plex labels for all content
   fastify.post<{
     Reply: z.infer<typeof SyncPlexLabelsResponseSchema>
@@ -252,9 +56,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           ? (progress: number, message: string) => {
               // Determine phase based on progress
               let phase = 'start'
-              if (progress >= 5 && progress < 25) {
+              if (progress > 0 && progress < 15) {
                 phase = 'fetching-data'
-              } else if (progress >= 25 && progress < 90) {
+              } else if (progress >= 15 && progress < 90) {
                 phase = 'processing-content'
               } else if (progress >= 90) {
                 phase = 'complete'

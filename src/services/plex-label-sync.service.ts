@@ -6,7 +6,7 @@
  *
  * Key Features:
  * - Webhook-triggered label updates (real-time)
- * - Batch synchronization of all content with parallel processing
+ * - Batch synchronization of all content
  * - Retry logic with exponential backoff
  * - Pending sync queue for items not yet available in Plex
  * - User label management with configurable format
@@ -460,10 +460,10 @@ export class PlexLabelSyncService {
       }
     }
 
-    this.log.info('Content resolution completed', {
+    this.log.debug('Plex library scan completed', {
       totalContent: contentItems.length,
-      availableCount: available.length,
-      unavailableCount: unavailable.length,
+      foundInPlex: available.length,
+      waitingForDownload: unavailable.length,
     })
 
     return { available, unavailable }
@@ -819,11 +819,7 @@ export class PlexLabelSyncService {
   async syncAllLabels(
     progressCallback?: (progress: number, message: string) => void,
   ): Promise<SyncResult> {
-    this.log.info('Content-centric batch label sync requested', {
-      enabled: this.config.enabled,
-      labelPrefix: this.config.labelPrefix,
-      removedLabelMode: this.removedLabelMode,
-    })
+    this.log.info('Starting Plex label synchronization')
 
     if (!this.config.enabled) {
       this.log.warn('Plex label sync is disabled, skipping', {
@@ -840,11 +836,8 @@ export class PlexLabelSyncService {
     }
 
     try {
-      this.log.info('Starting content-centric batch label synchronization')
-      progressCallback?.(
-        5,
-        'Starting content-centric Plex label synchronization...',
-      )
+      this.log.debug('Beginning label sync process')
+      progressCallback?.(0, 'Starting Plex label synchronization...')
 
       // Step 1: Get all active watchlist items from database
       this.log.debug('Fetching watchlist items from database...')
@@ -895,12 +888,6 @@ export class PlexLabelSyncService {
       const { available, unavailable } =
         await this.resolveContentToPlexItems(contentItems)
 
-      this.log.info('Content resolution summary', {
-        totalUniqueContent: contentItems.length,
-        availableInPlex: available.length,
-        notYetAvailable: unavailable.length,
-      })
-
       // Step 4: Queue unavailable content for pending sync
       if (unavailable.length > 0) {
         await this.queueUnavailableContent(unavailable)
@@ -924,11 +911,9 @@ export class PlexLabelSyncService {
         `Processing ${available.length} content items with content-centric reconciliation...`,
       )
 
-      // Step 5: Process available content with parallel processing and concurrency control
+      // Step 5: Process available content
       const concurrencyLimit = this.config.concurrencyLimit || 5
-      this.log.info(
-        `Starting parallel content-centric processing of ${available.length} unique content items with concurrency limit of ${concurrencyLimit}`,
-      )
+      this.log.debug(`Processing ${available.length} content items`)
 
       const limit = pLimit(concurrencyLimit)
       let processedContentCount = 0
@@ -944,7 +929,7 @@ export class PlexLabelSyncService {
                 40 + Math.floor((processedContentCount / available.length) * 50)
               progressCallback?.(
                 processProgress,
-                `Processing content ${processedContentCount}/${available.length}: ${contentItems.content.title}`,
+                `Processing content ${processedContentCount}/${available.length}`,
               )
 
               // Perform complete label reconciliation for this content
@@ -989,7 +974,7 @@ export class PlexLabelSyncService {
         ),
       )
 
-      // Step 6: Aggregate results from parallel processing
+      // Step 6: Aggregate results
       let totalLabelsAdded = 0
       let totalLabelsRemoved = 0
 
@@ -1003,10 +988,7 @@ export class PlexLabelSyncService {
           totalLabelsAdded += contentResult.labelsAdded || 0
           totalLabelsRemoved += contentResult.labelsRemoved || 0
         } else {
-          this.log.error(
-            'Promise rejected during parallel content processing:',
-            promiseResult.reason,
-          )
+          this.log.error('Error processing content item:', promiseResult.reason)
           result.failed++
         }
       }
@@ -1016,12 +998,10 @@ export class PlexLabelSyncService {
       result.pending = pendingSyncs.length
 
       this.log.info(
-        `Content-centric processing completed: ${result.processed} content items processed, ${result.updated} updated, ${result.failed} failed, ${result.pending} pending`,
+        `Processed ${result.processed} content items: ${result.updated} updated, ${result.failed} failed, ${result.pending} pending`,
         {
           totalLabelsAdded,
           totalLabelsRemoved,
-          uniqueContentProcessed: result.processed,
-          reconciliationApproach: 'content-centric',
         },
       )
 
@@ -1044,11 +1024,10 @@ export class PlexLabelSyncService {
         }
       }
 
-      this.log.info('Content-centric batch label synchronization completed', {
+      this.log.info('Plex label synchronization completed', {
         ...result,
         totalLabelsAdded,
         totalLabelsRemoved,
-        approach: 'content-centric - each content processed exactly once',
       })
 
       progressCallback?.(
@@ -1880,7 +1859,7 @@ export class PlexLabelSyncService {
         ),
       )
 
-      // Aggregate results from parallel processing
+      // Aggregate results
       for (const promiseResult of pendingProcessingResults) {
         if (promiseResult.status === 'fulfilled') {
           const syncResult = promiseResult.value
@@ -1889,10 +1868,7 @@ export class PlexLabelSyncService {
           result.failed += syncResult.failed
           result.pending += syncResult.pending
         } else {
-          this.log.error(
-            'Promise rejected during parallel pending sync processing:',
-            promiseResult.reason,
-          )
+          this.log.error('Error processing pending sync:', promiseResult.reason)
           result.failed++
         }
       }
@@ -1980,7 +1956,7 @@ export class PlexLabelSyncService {
         labelsByRatingKey.set(tracking.plex_rating_key, labels)
       }
 
-      // Remove labels from Plex content with parallel processing
+      // Remove labels from Plex content
       const concurrencyLimit = this.config.concurrencyLimit || 5
       const limit = pLimit(concurrencyLimit)
       let removedCount = 0
@@ -2075,10 +2051,7 @@ export class PlexLabelSyncService {
         labelsByRatingKey.set(tracking.plex_rating_key, labels)
       }
 
-      progressCallback?.(
-        25,
-        `Processing ${labelsByRatingKey.size} items with parallel processing`,
-      )
+      progressCallback?.(25, `Processing ${labelsByRatingKey.size} items`)
 
       // Process label removal in parallel with configurable concurrency limit
       const concurrencyLimit = this.config.concurrencyLimit || 5
@@ -2140,7 +2113,7 @@ export class PlexLabelSyncService {
         ),
       )
 
-      // Aggregate results from parallel processing
+      // Aggregate results
       for (const promiseResult of labelRemovalResults) {
         if (promiseResult.status === 'fulfilled') {
           const itemResult = promiseResult.value
@@ -2216,7 +2189,7 @@ export class PlexLabelSyncService {
 
   /**
    * Cleanup orphaned Plex labels that no longer correspond to any sync-enabled users
-   * Uses efficient tracking-table-centric approach to minimize Plex API calls
+   * Removes labels that no longer correspond to any sync-enabled users
    *
    * @returns Promise resolving to cleanup results
    */
@@ -2234,9 +2207,7 @@ export class PlexLabelSyncService {
     const result = { removed: 0, failed: 0 }
 
     try {
-      this.log.info(
-        'Starting orphaned Plex label cleanup using tracking-table-centric approach',
-      )
+      this.log.info('Starting orphaned Plex label cleanup')
 
       // Step 1: Generate valid user labels from current sync-enabled users
       const users = await this.db
@@ -2396,14 +2367,10 @@ export class PlexLabelSyncService {
         }
       }
 
-      this.log.info(
-        'Completed orphaned Plex label cleanup using tracking-table-centric approach',
-        {
-          ...result,
-          itemsProcessed: orphanedTracking.length,
-          apiCallsReduction: `Only ${orphanedTracking.length} API calls instead of scanning all tracked content`,
-        },
-      )
+      this.log.info('Completed orphaned Plex label cleanup', {
+        ...result,
+        itemsProcessed: orphanedTracking.length,
+      })
       return result
     } catch (error) {
       this.log.error('Error during orphaned Plex label cleanup:', error)
