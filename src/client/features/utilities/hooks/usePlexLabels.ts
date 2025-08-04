@@ -1,19 +1,23 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
-import {
-  PlexLabelingConfigSchema,
-  type PlexLabelingStatusResponseSchema,
-  type SyncPlexLabelsResponseSchema,
-  type CleanupPlexLabelsResponseSchema,
-  type RemovePlexLabelsResponseSchema,
+import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import type {
+  SyncPlexLabelsResponseSchema,
+  CleanupPlexLabelsResponseSchema,
+  RemovePlexLabelsResponseSchema,
 } from '@root/schemas/labels/plex-labels.schema'
+import {
+  PlexLabelSyncConfigSchema,
+  type PlexLabelSyncConfig,
+} from '@root/schemas/plex/label-sync-config.schema'
 import type { z } from 'zod'
 
-export type PlexLabelsFormValues = z.infer<typeof PlexLabelingConfigSchema>
+export type PlexLabelsFormValues = z.infer<typeof PlexLabelSyncConfigSchema>
 
 // Union type for action results
 type ActionResult =
@@ -67,9 +71,6 @@ export function isRemoveLabelsResponse(
  * @returns An object with the form instance, operation state flags, last operation results, label deletion status, and handler functions for Plex label configuration and actions.
  */
 export function usePlexLabels() {
-  const [lastResults, setLastResults] = useState<z.infer<
-    typeof PlexLabelingStatusResponseSchema
-  > | null>(null)
   const [lastActionResults, setLastActionResults] =
     useState<ActionResult | null>(null)
   const [localRemoveResults, setLocalRemoveResults] = useState<z.infer<
@@ -88,17 +89,28 @@ export function usePlexLabels() {
   const {
     loading,
     error,
-    fetchPlexLabelsConfig,
-    updatePlexLabelsConfig,
     syncPlexLabels,
     cleanupPlexLabels,
     removePlexLabelsResults,
     showDeletePlexLabelsConfirmation,
     setShowDeletePlexLabelsConfirmation,
     removePlexLabels,
+    toggleScheduleStatus,
+    fetchSchedules,
+    schedules,
     setLoadingWithMinDuration, // Important - this is used in DeleteSyncForm
   } = useUtilitiesStore()
-  const { fetchConfig: fetchGlobalConfig } = useConfigStore()
+
+  // Manually set loading state during initial load
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      useUtilitiesStore.setState((state) => ({
+        ...state,
+        loading: { ...state.loading, plexLabels: true },
+      }))
+    }
+  }, [])
+  const { config, updateConfig } = useConfigStore()
 
   // Update local remove results when store results change
   useEffect(() => {
@@ -107,9 +119,45 @@ export function usePlexLabels() {
     }
   }, [removePlexLabelsResults])
 
+  // Get the plex-label-full-sync job from schedules
+  const fullSyncJob = useMemo(() => {
+    return schedules?.find((job) => job.name === 'plex-label-full-sync') || null
+  }, [schedules])
+
+  // Extract schedule time and day of week from cron expression
+  const [scheduleTime, dayOfWeek] = useMemo(() => {
+    if (fullSyncJob?.type === 'cron' && fullSyncJob.config?.expression) {
+      try {
+        const cronParts = fullSyncJob.config.expression.split(' ')
+
+        if (cronParts.length >= 5) {
+          const hourIndex = cronParts.length === 5 ? 1 : 2
+          const minuteIndex = cronParts.length === 5 ? 0 : 1
+          const dayIndex = cronParts.length === 5 ? 4 : 5
+
+          const hour = Number.parseInt(cronParts[hourIndex], 10)
+          const minute = Number.parseInt(cronParts[minuteIndex], 10)
+          const day = cronParts[dayIndex]
+
+          if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+            const date = new Date()
+            date.setHours(hour)
+            date.setMinutes(minute)
+            date.setSeconds(0)
+            date.setMilliseconds(0)
+            return [date, day]
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse cron expression:', e)
+      }
+    }
+    return [undefined, '*']
+  }, [fullSyncJob])
+
   // Initialize form with default values
   const form = useForm<PlexLabelsFormValues>({
-    resolver: zodResolver(PlexLabelingConfigSchema),
+    resolver: zodResolver(PlexLabelSyncConfigSchema),
     defaultValues: {
       enabled: false,
       labelPrefix: 'pulsarr',
@@ -117,49 +165,153 @@ export function usePlexLabels() {
       cleanupOrphanedLabels: false,
       removedLabelMode: 'remove',
       removedLabelPrefix: 'pulsarr:removed',
+      scheduleTime: undefined,
+      dayOfWeek: '*',
     },
   })
 
   // Update form values when config data is available
   const updateFormValues = useCallback(
-    (data: z.infer<typeof PlexLabelingStatusResponseSchema>) => {
+    (plexLabelSyncConfig: PlexLabelSyncConfig) => {
       form.reset({
-        enabled: data.config.enabled,
-        labelPrefix: data.config.labelPrefix,
-        concurrencyLimit: data.config.concurrencyLimit || 5,
-        cleanupOrphanedLabels: data.config.cleanupOrphanedLabels || false,
-        removedLabelMode: data.config.removedLabelMode || 'remove',
-        removedLabelPrefix: data.config.removedLabelPrefix || 'pulsarr:removed',
+        enabled: plexLabelSyncConfig.enabled,
+        labelPrefix: plexLabelSyncConfig.labelPrefix,
+        concurrencyLimit: plexLabelSyncConfig.concurrencyLimit || 5,
+        cleanupOrphanedLabels:
+          plexLabelSyncConfig.cleanupOrphanedLabels || false,
+        removedLabelMode: plexLabelSyncConfig.removedLabelMode || 'remove',
+        removedLabelPrefix:
+          plexLabelSyncConfig.removedLabelPrefix || 'pulsarr:removed',
+        scheduleTime: scheduleTime,
+        dayOfWeek: dayOfWeek,
       })
+    },
+    [form, scheduleTime, dayOfWeek],
+  )
+
+  // Initialize form values from config when available
+  useEffect(() => {
+    if (config?.plexLabelSync && initialLoadRef.current) {
+      // Add minimum 500ms display time for initial loading
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
+      Promise.all([
+        updateFormValues(config.plexLabelSync), // Existing logic
+        minimumLoadingTime, // New timing enforcement
+      ]).then(() => {
+        initialLoadRef.current = false
+
+        // Reset label definitions deleted state if labeling is enabled
+        if (config?.plexLabelSync?.enabled) {
+          setLabelDefinitionsDeleted(false)
+          setIsLabelDeletionComplete(false)
+        }
+
+        // Clear loading state
+        useUtilitiesStore.setState((state) => ({
+          ...state,
+          loading: { ...state.loading, plexLabels: false },
+        }))
+
+        // WORKAROUND: Reset form to clear dirty state caused by Date object recreation
+        // This matches the pattern used in Delete Sync form to prevent dirty state on load
+        setTimeout(() => {
+          form.reset(form.getValues(), { keepDirty: false })
+        }, 0)
+      })
+    }
+  }, [config?.plexLabelSync, updateFormValues, form])
+
+  // Full sync schedule state
+  const [isTogglingFullSyncStatus, setIsTogglingFullSyncStatus] =
+    useState(false)
+
+  // Format last run time
+  const formatLastRun = useCallback(
+    (lastRun: JobStatus['last_run'] | null | undefined) => {
+      if (!lastRun?.time) return 'Never'
+      try {
+        return formatDistanceToNow(parseISO(lastRun.time), { addSuffix: true })
+      } catch (e) {
+        return lastRun.time
+      }
+    },
+    [],
+  )
+
+  // Format next run time
+  const formatNextRun = useCallback(
+    (nextRun: JobStatus['next_run'] | null | undefined) => {
+      if (!nextRun?.time) return 'Not scheduled'
+      try {
+        return formatDistanceToNow(parseISO(nextRun.time), { addSuffix: true })
+      } catch (e) {
+        return nextRun.time
+      }
+    },
+    [],
+  )
+
+  // Load schedules on mount if not already loaded
+  useEffect(() => {
+    if (!schedules && !loading.schedules) {
+      fetchSchedules().catch((err) => {
+        console.error('Failed to fetch schedules:', err)
+      })
+    }
+  }, [schedules, loading.schedules, fetchSchedules])
+
+  // Handle time change for form integration (like Delete Sync)
+  const handleTimeChange = useCallback(
+    (newTime: Date, newDay?: string) => {
+      form.setValue('scheduleTime', newTime, { shouldDirty: true })
+      if (newDay !== undefined) {
+        form.setValue('dayOfWeek', newDay, { shouldDirty: true })
+      }
     },
     [form],
   )
 
-  // Fetch the configuration on mount
-  useEffect(() => {
-    const fetchConfig = async () => {
-      if (!initialLoadRef.current) return
+  // Toggle full sync status directly (no confirmation)
+  const handleToggleFullSyncStatus = useCallback(
+    async (enabled: boolean) => {
+      setIsTogglingFullSyncStatus(true)
 
       try {
-        const data = await fetchPlexLabelsConfig()
-        setLastResults(data)
-        updateFormValues(data)
-        initialLoadRef.current = false
+        // Create a minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
 
-        // Reset label definitions deleted state if labeling is enabled
-        if (data.success && data.config.enabled) {
-          setLabelDefinitionsDeleted(false)
-          setIsLabelDeletionComplete(false)
+        // Run operations in parallel and wait for both
+        const [success] = await Promise.all([
+          toggleScheduleStatus('plex-label-full-sync', !enabled),
+          minimumLoadingTime,
+        ])
+
+        if (success) {
+          toast.success(
+            `Plex label full sync ${enabled ? 'disabled' : 'enabled'} successfully`,
+          )
+        } else {
+          throw new Error('Failed to toggle full sync status')
         }
       } catch (err) {
-        // Error is already handled in the store
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : 'Failed to toggle full sync status'
+        toast.error(errorMessage)
+      } finally {
+        setIsTogglingFullSyncStatus(false)
       }
-    }
+    },
+    [toggleScheduleStatus],
+  )
 
-    fetchConfig()
-  }, [fetchPlexLabelsConfig, updateFormValues])
-
-  // Handle form submission - mimicking DeleteSyncForm exactly
+  // Handle form submission - using main config system
   const onSubmit = useCallback(
     async (data: PlexLabelsFormValues) => {
       // Set both states to maintain consistency with DeleteSyncForm
@@ -175,25 +327,57 @@ export function usePlexLabels() {
           setTimeout(resolve, 500),
         )
 
-        // Make the API call
-        const updateConfigPromise = updatePlexLabelsConfig(formDataCopy)
+        // Update config through main config system
+        const updateConfigPromise = updateConfig({
+          plexLabelSync: formDataCopy,
+        })
 
-        // Wait for both processes to complete (exactly like DeleteSyncForm)
-        await Promise.all([
-          updateConfigPromise.then((result) => {
-            // Store the result for later use
-            setLastResults(result)
+        // Handle schedule update if scheduleTime is provided
+        let scheduleUpdate = Promise.resolve()
+        if (data.scheduleTime) {
+          const hours = data.scheduleTime.getHours()
+          const minutes = data.scheduleTime.getMinutes()
+          const dayOfWeek = data.dayOfWeek || '*'
 
-            // If we enable labeling, we can no longer edit the label format
-            if (result.success && data.enabled) {
-              setLabelDefinitionsDeleted(false)
-              setIsLabelDeletionComplete(false)
+          // Create cron expression (seconds minutes hours day month weekday)
+          const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`
+
+          scheduleUpdate = fetch(
+            '/v1/scheduler/schedules/plex-label-full-sync',
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                type: 'cron',
+                config: {
+                  expression: cronExpression,
+                },
+              }),
+            },
+          ).then((response) => {
+            if (!response.ok) {
+              throw new Error('Failed to update schedule')
             }
+          })
+        }
 
-            return result
-          }),
+        // Wait for all processes to complete (exactly like DeleteSyncForm)
+        await Promise.all([
+          updateConfigPromise,
+          scheduleUpdate,
           minimumLoadingTime,
         ])
+
+        // Refresh schedules to get updated data
+        await fetchSchedules()
+
+        // If we enable labeling, we can no longer edit the label format
+        if (data.enabled) {
+          setLabelDefinitionsDeleted(false)
+          setIsLabelDeletionComplete(false)
+        }
 
         // Set success state
         setSaveStatus('success')
@@ -202,9 +386,6 @@ export function usePlexLabels() {
 
         // Reset form with updated configuration
         form.reset(formDataCopy, { keepDirty: false })
-
-        // Refresh the global config to ensure Delete Sync form gets the updated values
-        await fetchGlobalConfig()
 
         // Wait before setting status back to idle (exactly like DeleteSyncForm)
         await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -226,20 +407,15 @@ export function usePlexLabels() {
         setLoadingWithMinDuration(false)
       }
     },
-    [
-      form,
-      updatePlexLabelsConfig,
-      setLoadingWithMinDuration,
-      fetchGlobalConfig,
-    ],
+    [form, updateConfig, setLoadingWithMinDuration, fetchSchedules],
   )
 
   // Handle form cancellation
   const handleCancel = useCallback(() => {
-    if (lastResults) {
-      updateFormValues(lastResults)
+    if (config?.plexLabelSync) {
+      updateFormValues(config.plexLabelSync)
     }
-  }, [lastResults, updateFormValues])
+  }, [config?.plexLabelSync, updateFormValues])
 
   // Sync labels operation
   const handleSyncLabels = useCallback(async () => {
@@ -276,8 +452,8 @@ export function usePlexLabels() {
     }
   }, [cleanupPlexLabels])
 
-  // Show loading until we have initial data (similar to DeleteSync pattern)
-  const isLoading = initialLoadRef.current && !lastResults
+  // Show loading until we have initial data - use utilities store loading state for consistent 500ms minimum
+  const isLoading = initialLoadRef.current && loading.plexLabels
 
   const initiateRemoveLabels = useCallback(() => {
     setShowDeletePlexLabelsConfirmation(true)
@@ -328,27 +504,20 @@ export function usePlexLabels() {
         const currentValues = form.getValues()
         const formData = { ...currentValues, enabled: newEnabledState }
 
+        // Update config through main config system
         await Promise.all([
-          updatePlexLabelsConfig(formData).then((result) => {
-            // Store the result for later use
-            setLastResults(result)
-
-            // If we enable labeling, we can no longer edit the label format
-            if (result.success && newEnabledState) {
-              setLabelDefinitionsDeleted(false)
-              setIsLabelDeletionComplete(false)
-            }
-
-            return result
-          }),
+          updateConfig({ plexLabelSync: formData }),
           minimumLoadingTime,
         ])
 
+        // If we enable labeling, we can no longer edit the label format
+        if (newEnabledState) {
+          setLabelDefinitionsDeleted(false)
+          setIsLabelDeletionComplete(false)
+        }
+
         // Only update form state if the API call succeeds
         form.setValue('enabled', newEnabledState, { shouldDirty: false })
-
-        // Refresh the global config to ensure other components get the updated values
-        await fetchGlobalConfig()
 
         toast.success(
           `Plex labeling ${newEnabledState ? 'enabled' : 'disabled'} successfully`,
@@ -380,12 +549,7 @@ export function usePlexLabels() {
         setLoadingWithMinDuration(false)
       }
     },
-    [
-      form,
-      updatePlexLabelsConfig,
-      setLoadingWithMinDuration,
-      fetchGlobalConfig,
-    ],
+    [form, updateConfig, setLoadingWithMinDuration],
   )
 
   return {
@@ -397,7 +561,13 @@ export function usePlexLabels() {
     isSyncingLabels: loading.syncPlexLabels,
     isCleaningLabels: loading.cleanupPlexLabels,
     error: error.plexLabels,
-    lastResults,
+    lastResults: config?.plexLabelSync
+      ? {
+          success: true,
+          message: 'Configuration loaded',
+          config: config.plexLabelSync,
+        }
+      : null,
     lastActionResults,
     lastRemoveResults: localRemoveResults,
     labelDefinitionsDeleted,
@@ -412,5 +582,18 @@ export function usePlexLabels() {
     setShowDeleteConfirmation: setShowDeletePlexLabelsConfirmation,
     initiateRemoveLabels,
     handleRemoveLabels,
+
+    // Full sync schedule functionality
+    scheduleTime,
+    dayOfWeek,
+    fullSyncJob,
+    formatLastRun,
+    formatNextRun,
+    isTogglingFullSyncStatus,
+    handleToggleFullSyncStatus: () => {
+      if (!fullSyncJob) return
+      return handleToggleFullSyncStatus(fullSyncJob.enabled)
+    },
+    handleTimeChange,
   }
 }

@@ -58,6 +58,65 @@ export function PlexLabelsPageSkeleton() {
 
         <Separator />
 
+        {/* Full Sync Actions section skeleton */}
+        <div>
+          <h3 className="font-medium text-foreground mb-2">
+            Full Sync Actions
+          </h3>
+          <div className="flex flex-wrap items-center gap-4">
+            <Skeleton className="h-8 w-32" />
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Full Sync Status section skeleton */}
+        <div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col items-center text-center">
+              <h3 className="font-medium text-sm text-foreground mb-1">
+                Schedule Status
+              </h3>
+              <Skeleton className="h-5 w-16" />
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <h3 className="font-medium text-sm text-foreground mb-1">
+                Last Run
+              </h3>
+              <Skeleton className="h-5 w-20" />
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <h3 className="font-medium text-sm text-foreground mb-1">
+                Next Run
+              </h3>
+              <Skeleton className="h-5 w-24" />
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Full Sync Schedule section skeleton */}
+        <div>
+          <div className="flex items-center mb-3">
+            <Skeleton className="h-4 w-4 mr-2" />
+            <h3 className="font-medium text-sm text-foreground">
+              Full Sync Schedule
+            </h3>
+          </div>
+          <div className="space-y-4">
+            <div className="shrink-0">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+            </div>
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Label Configuration section skeleton */}
         <div>
           <h3 className="font-medium text-sm text-foreground mb-2">

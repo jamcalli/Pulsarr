@@ -21,6 +21,9 @@ export const PlexLabelSyncConfigSchema = z.object({
     .string()
     .default('pulsarr:removed')
     .describe('Prefix for special labels indicating removed users'),
+  // Schedule fields for full sync automation
+  scheduleTime: z.coerce.date().optional(),
+  dayOfWeek: z.string().default('*'),
 })
 
 export const PlexLabelSyncConfigResponseSchema = z.object({

@@ -210,6 +210,12 @@ export const ConfigSchema = z.object({
     .string()
     .length(2, 'Region must be a 2-letter country code')
     .optional(),
+  // User Tags Configuration - flat properties following new pattern
+  tagUsersInSonarr: z.boolean().optional(),
+  tagUsersInRadarr: z.boolean().optional(),
+  cleanupOrphanedTags: z.boolean().optional(),
+  tagPrefix: z.string().optional(),
+  // Note: removedTagMode and removedTagPrefix already exist above for delete sync compatibility
 })
 
 export const ConfigResponseSchema = z.object({

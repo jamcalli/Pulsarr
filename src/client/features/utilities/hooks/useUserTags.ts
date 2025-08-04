@@ -1,20 +1,24 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
-import {
-  TaggingConfigSchema,
-  type TaggingStatusResponseSchema,
-  type CreateTaggingResponseSchema,
-  type SyncTaggingResponseSchema,
-  type CleanupResponseSchema,
-  type RemoveTagsResponseSchema,
+import type {
+  CreateTaggingResponseSchema,
+  SyncTaggingResponseSchema,
+  CleanupResponseSchema,
+  RemoveTagsResponseSchema,
 } from '@root/schemas/tags/user-tags.schema'
 import type { z } from 'zod'
 
-export type UserTagsFormValues = z.infer<typeof TaggingConfigSchema>
+export interface UserTagsFormValues {
+  tagUsersInSonarr: boolean
+  tagUsersInRadarr: boolean
+  cleanupOrphanedTags: boolean
+  removedTagMode: 'remove' | 'keep' | 'special-tag'
+  removedTagPrefix: string
+  tagPrefix: string
+}
 
 // Union type for action results
 type ActionResult =
@@ -87,9 +91,6 @@ export function isRemoveTagsResponse(
  * @returns An object with the form instance, operation state flags, last operation results, tag deletion status, and handler functions for user tag configuration and actions.
  */
 export function useUserTags() {
-  const [lastResults, setLastResults] = useState<z.infer<
-    typeof TaggingStatusResponseSchema
-  > | null>(null)
   const [lastActionResults, setLastActionResults] =
     useState<ActionResult | null>(null)
   const [localRemoveResults, setLocalRemoveResults] = useState<z.infer<
@@ -108,8 +109,6 @@ export function useUserTags() {
   const {
     loading,
     error,
-    fetchUserTagsConfig,
-    updateUserTagsConfig,
     createUserTags,
     syncUserTags,
     cleanupUserTags,
@@ -119,7 +118,17 @@ export function useUserTags() {
     removeUserTags,
     setLoadingWithMinDuration, // Important - this is used in DeleteSyncForm
   } = useUtilitiesStore()
-  const { fetchConfig } = useConfigStore()
+
+  // Manually set loading state during initial load
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      useUtilitiesStore.setState((state) => ({
+        ...state,
+        loading: { ...state.loading, userTags: true },
+      }))
+    }
+  }, [])
+  const { config, updateConfig, fetchConfig } = useConfigStore()
 
   // Update local remove results when store results change
   useEffect(() => {
@@ -130,7 +139,6 @@ export function useUserTags() {
 
   // Initialize form with default values
   const form = useForm<UserTagsFormValues>({
-    resolver: zodResolver(TaggingConfigSchema),
     defaultValues: {
       tagUsersInSonarr: false,
       tagUsersInRadarr: false,
@@ -142,46 +150,49 @@ export function useUserTags() {
   })
 
   // Update form values when config data is available
-  const updateFormValues = useCallback(
-    (data: z.infer<typeof TaggingStatusResponseSchema>) => {
+  const updateFormValues = useCallback(() => {
+    if (config) {
       form.reset({
-        tagUsersInSonarr: data.config.tagUsersInSonarr,
-        tagUsersInRadarr: data.config.tagUsersInRadarr,
-        cleanupOrphanedTags: data.config.cleanupOrphanedTags,
-        removedTagMode: data.config.removedTagMode || 'remove',
-        removedTagPrefix: data.config.removedTagPrefix || 'pulsarr:removed', // Note: Despite the name, this is the complete tag label, not just a prefix (kept for API consistency)
-        tagPrefix: data.config.tagPrefix,
+        tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
+        tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
+        cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
+        removedTagMode: config.removedTagMode || 'remove',
+        removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed', // Note: Despite the name, this is the complete tag label, not just a prefix (kept for API consistency)
+        tagPrefix: config.tagPrefix || 'pulsarr:user',
       })
-    },
-    [form],
-  )
+    }
+  }, [form, config])
 
-  // Fetch the configuration on mount
+  // Update form when config changes
   useEffect(() => {
-    const fetchConfig = async () => {
-      if (!initialLoadRef.current) return
+    if (config && initialLoadRef.current) {
+      // Add minimum 500ms display time for initial loading
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
 
-      try {
-        const data = await fetchUserTagsConfig()
-        setLastResults(data)
-        updateFormValues(data)
+      Promise.all([
+        updateFormValues(), // Existing logic
+        minimumLoadingTime, // New timing enforcement
+      ]).then(() => {
         initialLoadRef.current = false
 
         // Reset tag definitions deleted state if there are active tags
-        if (
-          data.success &&
-          (data.config.tagUsersInSonarr || data.config.tagUsersInRadarr)
-        ) {
+        if (config.tagUsersInSonarr || config.tagUsersInRadarr) {
           setTagDefinitionsDeleted(false)
           setIsTagDeletionComplete(false)
         }
-      } catch (err) {
-        // Error is already handled in the store
-      }
-    }
 
-    fetchConfig()
-  }, [fetchUserTagsConfig, updateFormValues])
+        // Clear loading state
+        useUtilitiesStore.setState((state) => ({
+          ...state,
+          loading: { ...state.loading, userTags: false },
+        }))
+      })
+    } else if (config) {
+      updateFormValues()
+    }
+  }, [config, updateFormValues])
 
   // Handle form submission - mimicking DeleteSyncForm exactly
   const onSubmit = useCallback(
@@ -199,28 +210,24 @@ export function useUserTags() {
           setTimeout(resolve, 500),
         )
 
-        // Make the API call
-        const updateConfigPromise = updateUserTagsConfig(formDataCopy)
+        // Make the API call using main config system
+        const updateConfigPromise = updateConfig({
+          tagUsersInSonarr: formDataCopy.tagUsersInSonarr,
+          tagUsersInRadarr: formDataCopy.tagUsersInRadarr,
+          cleanupOrphanedTags: formDataCopy.cleanupOrphanedTags,
+          removedTagMode: formDataCopy.removedTagMode,
+          removedTagPrefix: formDataCopy.removedTagPrefix,
+          tagPrefix: formDataCopy.tagPrefix,
+        })
 
         // Wait for both processes to complete (exactly like DeleteSyncForm)
-        await Promise.all([
-          updateConfigPromise.then((result) => {
-            // Store the result for later use
-            setLastResults(result)
+        await Promise.all([updateConfigPromise, minimumLoadingTime])
 
-            // If we enable tagging, we can no longer edit the tag prefix
-            if (
-              result.success &&
-              (data.tagUsersInSonarr || data.tagUsersInRadarr)
-            ) {
-              setTagDefinitionsDeleted(false)
-              setIsTagDeletionComplete(false)
-            }
-
-            return result
-          }),
-          minimumLoadingTime,
-        ])
+        // If we enable tagging, we can no longer edit the tag prefix
+        if (data.tagUsersInSonarr || data.tagUsersInRadarr) {
+          setTagDefinitionsDeleted(false)
+          setIsTagDeletionComplete(false)
+        }
 
         // Set success state
         setSaveStatus('success')
@@ -253,15 +260,13 @@ export function useUserTags() {
         setLoadingWithMinDuration(false)
       }
     },
-    [form, updateUserTagsConfig, setLoadingWithMinDuration, fetchConfig],
+    [form, updateConfig, setLoadingWithMinDuration, fetchConfig],
   )
 
   // Handle form cancellation
   const handleCancel = useCallback(() => {
-    if (lastResults) {
-      updateFormValues(lastResults)
-    }
-  }, [lastResults, updateFormValues])
+    updateFormValues()
+  }, [updateFormValues])
 
   // Create tags operation
   const handleCreateTags = useCallback(async () => {
@@ -314,8 +319,8 @@ export function useUserTags() {
     }
   }, [cleanupUserTags])
 
-  // Show loading until we have actual results from the API
-  const isLoading = initialLoadRef.current && !lastResults
+  // Show loading until we have config loaded - use utilities store loading state for consistent 500ms minimum
+  const isLoading = initialLoadRef.current && loading.userTags
 
   const initiateRemoveTags = useCallback(() => {
     setShowDeleteTagsConfirmation(true)
@@ -363,7 +368,6 @@ export function useUserTags() {
     isSyncingTags: loading.syncUserTags,
     isCleaningTags: loading.cleanupUserTags,
     error: error.userTags,
-    lastResults,
     lastActionResults,
     lastRemoveResults: localRemoveResults,
     tagDefinitionsDeleted,

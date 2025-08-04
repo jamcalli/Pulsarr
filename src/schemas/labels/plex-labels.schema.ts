@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// Configuration schema for plex labeling
+// Configuration schema for plex labeling (legacy - kept for compatibility)
 export const PlexLabelingConfigSchema = z.object({
   enabled: z.boolean(),
   labelPrefix: z.string(),
@@ -18,12 +18,34 @@ export const PlexLabelingConfigSchema = z.object({
     .describe('Prefix for special labels indicating removed users'),
 })
 
+// Updated configuration schema for plex labeling updates through main config system
+export const PlexLabelingConfigUpdateSchema = z.object({
+  enabled: z.boolean(),
+  labelPrefix: z.string(),
+  concurrencyLimit: z.number().int().min(1).max(20).optional(),
+  cleanupOrphanedLabels: z.boolean().optional(),
+  removedLabelMode: z
+    .enum(['remove', 'keep', 'special-label'])
+    .optional()
+    .describe(
+      'How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label',
+    ),
+  removedLabelPrefix: z
+    .string()
+    .optional()
+    .describe('Prefix for special labels indicating removed users'),
+  dayOfWeek: z.string().optional(),
+  scheduleTime: z.coerce.date().optional(),
+})
+
 // Generic error schema
 export const ErrorSchema = z.object({
   message: z.string(),
 })
 
-// Status response schema for plex labeling
+// Status response schema for plex labeling (DEPRECATED - use main config system)
+// This schema is kept for backward compatibility but should not be used in new code
+// All configuration data is now available through the main /v1/config endpoint
 export const PlexLabelingStatusResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),

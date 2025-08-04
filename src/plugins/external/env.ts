@@ -55,6 +55,8 @@ const DEFAULT_PLEX_LABEL_SYNC = {
   cleanupOrphanedLabels: false,
   removedLabelMode: 'remove' as const,
   removedLabelPrefix: 'pulsarr:removed',
+  scheduleTime: undefined,
+  dayOfWeek: '*',
 }
 
 const schema = {

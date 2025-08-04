@@ -260,7 +260,7 @@ export default function DeleteSyncPage() {
             render={({ field }) => (
               <div className="shrink-0">
                 <TimeSelector
-                  value={field.value}
+                  value={field.value || scheduleTime}
                   onChange={handleTimeChange}
                   dayOfWeek={form.watch('dayOfWeek')}
                   className={
