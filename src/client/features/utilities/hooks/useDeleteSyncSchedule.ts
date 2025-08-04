@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { parseCronExpression } from '@/lib/utils'
 
 /**
  * Custom React hook to manage schedule details for the "delete-sync" job.
@@ -40,42 +41,11 @@ export function useDeleteSyncSchedule() {
       deleteSyncJob.type === 'cron' &&
       deleteSyncJob.config?.expression
     ) {
-      try {
-        // Parse time from cron expression (format: "second minute hour day-of-month month day-of-week")
-        const cronParts = deleteSyncJob.config.expression.split(' ')
-
-        // Maintain compatibility with potential 5 or 6 part cron expressions
-        if (cronParts.length >= 5) {
-          // Handle both 5-part (minute hour dom month dow) and 6-part (second minute hour dom month dow) formats
-          const hourIndex = cronParts.length === 5 ? 1 : 2
-          const minuteIndex = cronParts.length === 5 ? 0 : 1
-          const dayIndex = cronParts.length === 5 ? 4 : 5
-
-          const hour = Number.parseInt(cronParts[hourIndex], 10)
-          const minute = Number.parseInt(cronParts[minuteIndex], 10)
-          const day = cronParts[dayIndex]
-
-          // Validate hours and minutes but with fallbacks to maintain compatibility
-          if (
-            (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) ||
-            (Number.isFinite(hour) && Number.isFinite(minute))
-          ) {
-            const date = new Date()
-            date.setHours(hour)
-            date.setMinutes(minute)
-            date.setSeconds(0)
-            date.setMilliseconds(0)
-            setScheduleTime(date)
-            setDayOfWeek(day)
-          } else {
-            console.warn('Invalid hour or minute in cron expression')
-          }
-        } else {
-          console.warn('Unexpected cron format, expected at least 5 parts')
-        }
-      } catch (e) {
-        console.error('Failed to parse cron expression:', e)
-      }
+      const [parsedTime, parsedDay] = parseCronExpression(
+        deleteSyncJob.config.expression,
+      )
+      setScheduleTime(parsedTime)
+      setDayOfWeek(parsedDay)
     }
   }, [deleteSyncJob])
 
