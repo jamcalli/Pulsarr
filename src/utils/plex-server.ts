@@ -1813,14 +1813,25 @@ export class PlexServerService {
 
       const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
 
-      // Add each label as a separate parameter - this is the format Plex expects
-      for (const [index, label] of labels.entries()) {
-        url.searchParams.append(`label[${index}].tag.tag`, label)
-      }
+      // Handle empty labels array - this means we want to set the exact labels specified
+      // For Plex API: specifying exact labels will replace all existing labels
+      if (labels.length === 0) {
+        // Don't add any label parameters - this means "no labels"
+        // But this would remove ALL labels including user-created ones
+        // This method should only be used when we want to completely clear labels
+        this.log.debug(
+          `No labels specified for rating key ${ratingKey} - this will remove ALL labels`,
+        )
+      } else {
+        // Add each label as a separate parameter - this is the format Plex expects
+        for (const [index, label] of labels.entries()) {
+          url.searchParams.append(`label[${index}].tag.tag`, label)
+        }
 
-      this.log.debug(
-        `Updating labels for rating key ${ratingKey}: [${labels.join(', ')}]`,
-      )
+        this.log.debug(
+          `Updating labels for rating key ${ratingKey}: [${labels.join(', ')}]`,
+        )
+      }
 
       const response = await fetch(url.toString(), {
         method: 'PUT',
@@ -1838,7 +1849,15 @@ export class PlexServerService {
         )
       }
 
-      this.log.debug(`Successfully updated labels for rating key ${ratingKey}`)
+      if (labels.length === 0) {
+        this.log.debug(
+          `Successfully removed all labels from rating key ${ratingKey}`,
+        )
+      } else {
+        this.log.debug(
+          `Successfully updated labels for rating key ${ratingKey}`,
+        )
+      }
       return true
     } catch (error) {
       this.log.error(
@@ -1850,9 +1869,9 @@ export class PlexServerService {
   }
 
   /**
-   * Removes specific labels from a Plex item by fetching current labels and updating with the remaining ones
+   * Removes specific labels from a Plex content item using native API removal syntax
    *
-   * @param ratingKey - The Plex rating key of the item to update
+   * @param ratingKey - The Plex rating key of the item
    * @param labelsToRemove - Array of label strings to remove from the item
    * @returns Promise resolving to true if successful, false otherwise
    */
@@ -1865,33 +1884,46 @@ export class PlexServerService {
         return true // Nothing to remove
       }
 
-      // First, get the current metadata to find existing labels
-      const currentMetadata = await this.getMetadata(ratingKey)
-      if (!currentMetadata) {
-        this.log.warn(`Could not fetch metadata for rating key ${ratingKey}`)
+      const serverUrl = await this.getPlexServerUrl()
+      const adminToken = this.config.plexTokens?.[0] || ''
+
+      if (!adminToken) {
+        this.log.warn('No Plex admin token available for label removal')
         return false
       }
 
-      // Extract current labels
-      const currentLabels =
-        currentMetadata.Label?.map((label) => label.tag) || []
+      const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
 
-      // Filter out the labels we want to remove
-      const remainingLabels = currentLabels.filter(
-        (label) => !labelsToRemove.includes(label),
+      // Use Plex API specific removal syntax: label[].tag.tag-=LabelName
+      // Multiple labels can be removed by comma-separating them
+      const labelsToRemoveEncoded = labelsToRemove.join(',')
+      url.searchParams.append('label[].tag.tag-', labelsToRemoveEncoded)
+
+      this.log.debug(
+        `Removing specific labels from rating key ${ratingKey}: [${labelsToRemove.join(', ')}]`,
       )
 
-      this.log.debug(`Removing labels from rating key ${ratingKey}`, {
-        currentLabels,
-        labelsToRemove,
-        remainingLabels,
+      const response = await fetch(url.toString(), {
+        method: 'PUT',
+        headers: {
+          Accept: 'application/json',
+          'X-Plex-Token': adminToken,
+          'X-Plex-Client-Identifier': 'Pulsarr',
+        },
+        signal: AbortSignal.timeout(8000),
       })
 
-      // Update with the remaining labels
-      return await this.updateLabels(ratingKey, remainingLabels)
+      if (!response.ok) {
+        throw new Error(
+          `Failed to remove labels: ${response.status} ${response.statusText}`,
+        )
+      }
+
+      this.log.debug(`Successfully removed labels from rating key ${ratingKey}`)
+      return true
     } catch (error) {
       this.log.error(
-        `Error removing labels from rating key "${ratingKey}":`,
+        `Error removing specific labels from rating key "${ratingKey}":`,
         error,
       )
       return false
