@@ -474,6 +474,15 @@ export class RadarrService {
     }
   }
 
+  async getAllMovies(): Promise<RadarrMovie[]> {
+    try {
+      return await this.getFromRadarr<RadarrMovie[]>('movie')
+    } catch (error) {
+      this.log.error('Error fetching all movies:', error)
+      throw error
+    }
+  }
+
   async fetchMovies(bypass = false): Promise<Set<Item>> {
     try {
       const movies = await this.getFromRadarr<RadarrMovie[]>('movie')
