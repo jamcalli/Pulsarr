@@ -4,17 +4,17 @@ declare module '@services/database.service.js' {
   interface DatabaseService {
     // PLEX LABEL TRACKING MANAGEMENT
     /**
-     * Creates a new tracking record linking a Plex label to a watchlist item
+     * Updates the tracking record with the complete set of labels for a content item
      * @param watchlistId - The ID of the watchlist item
      * @param plexRatingKey - The Plex rating key of the labeled content
-     * @param labelApplied - The Plex label name that was applied
+     * @param labelsApplied - Array of all label names applied to this content
      * @returns Promise resolving to the ID of the tracking record (new or existing)
      */
-    trackPlexLabel(
+    trackPlexLabels(
       this: DatabaseService,
       watchlistId: number,
       plexRatingKey: string,
-      labelApplied: string,
+      labelsApplied: string[],
     ): Promise<number>
 
     /**

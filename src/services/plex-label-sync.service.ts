@@ -1448,71 +1448,60 @@ export class PlexLabelSyncService {
 
         // Remove obsolete tracking records
         for (const tracking of currentTracking) {
-          const trackingKey = `${tracking.watchlist_id}:${tracking.plex_rating_key}:${tracking.label_applied}`
-          if (!desiredTracking.has(trackingKey)) {
-            await this.db.untrackPlexLabel(
-              tracking.watchlist_id,
-              tracking.plex_rating_key,
-              tracking.label_applied,
-            )
-            this.log.debug('Removed obsolete tracking record', {
-              watchlistId: tracking.watchlist_id,
-              ratingKey: tracking.plex_rating_key,
-              label: tracking.label_applied,
-            })
-          }
-        }
-
-        // Add new tracking records for user labels
-        for (const user of content.users) {
-          const userLabel = `${this.config.labelPrefix}:${user.username}`
-          if (finalUserLabels.includes(userLabel)) {
-            try {
-              await this.db.trackPlexLabel(
-                user.watchlist_id,
-                plexItem.ratingKey,
-                userLabel,
+          // Check each label in the tracking record
+          for (const label of tracking.labels_applied) {
+            const trackingKey = `${tracking.watchlist_id}:${tracking.plex_rating_key}:${label}`
+            if (!desiredTracking.has(trackingKey)) {
+              await this.db.untrackPlexLabel(
+                tracking.watchlist_id,
+                tracking.plex_rating_key,
+                label,
               )
-              this.log.debug('Updated user label tracking record', {
-                watchlistId: user.watchlist_id,
-                ratingKey: plexItem.ratingKey,
-                label: userLabel,
-              })
-            } catch (error) {
-              this.log.error('Failed to track user label in database', {
-                watchlistId: user.watchlist_id,
-                ratingKey: plexItem.ratingKey,
-                label: userLabel,
-                error,
+              this.log.debug('Removed obsolete tracking record', {
+                watchlistId: tracking.watchlist_id,
+                ratingKey: tracking.plex_rating_key,
+                label: label,
               })
             }
           }
         }
 
-        // Add new tracking records for tag labels
-        if (finalTagLabels.length > 0 && content.users.length > 0) {
-          const representativeWatchlistId = content.users[0].watchlist_id
-          for (const tagLabel of finalTagLabels) {
-            if (allFinalLabels.includes(tagLabel)) {
-              try {
-                await this.db.trackPlexLabel(
-                  representativeWatchlistId,
-                  plexItem.ratingKey,
-                  tagLabel,
-                )
-                this.log.debug('Updated tag label tracking record', {
-                  watchlistId: representativeWatchlistId,
-                  ratingKey: plexItem.ratingKey,
-                  label: tagLabel,
-                })
-              } catch (error) {
-                this.log.error('Failed to track tag label in database', {
-                  watchlistId: representativeWatchlistId,
-                  ratingKey: plexItem.ratingKey,
-                  label: tagLabel,
-                  error,
-                })
-              }
+        // Update tracking records using efficient array-based approach
+        for (const user of content.users) {
+          const userLabel = `${this.config.labelPrefix}:${user.username}`
+
+          // Build complete label array for this user (user label + all tag labels)
+          const userLabelsForContent: string[] = []
+
+          // Add user label if it should be applied
+          if (finalUserLabels.includes(userLabel)) {
+            userLabelsForContent.push(userLabel)
+          }
+
+          // Add all tag labels (tags apply to all users with this content)
+          userLabelsForContent.push(...finalTagLabels)
+
+          // Only track if there are labels to track
+          if (userLabelsForContent.length > 0) {
+            try {
+              await this.db.trackPlexLabels(
+                user.watchlist_id,
+                plexItem.ratingKey,
+                userLabelsForContent,
+              )
+              this.log.debug('Updated complete label tracking record', {
+                watchlistId: user.watchlist_id,
+                ratingKey: plexItem.ratingKey,
+                labelCount: userLabelsForContent.length,
+                labels: userLabelsForContent,
+              })
+            } catch (error) {
+              this.log.error('Failed to track labels in database', {
+                watchlistId: user.watchlist_id,
+                ratingKey: plexItem.ratingKey,
+                labels: userLabelsForContent,
+                error,
+              })
             }
           }
         }
@@ -1797,7 +1786,10 @@ export class PlexLabelSyncService {
       if (this.config.cleanupOrphanedLabels) {
         try {
           progressCallback?.(95, 'Cleaning up orphaned Plex labels...')
-          const cleanupResult = await this.cleanupOrphanedPlexLabels()
+          const cleanupResult = await this.cleanupOrphanedPlexLabels(
+            radarrMoviesWithTags,
+            sonarrSeriesWithTags,
+          )
           if (cleanupResult.removed > 0 || cleanupResult.failed > 0) {
             cleanupMessage = `, cleaned up ${cleanupResult.removed} orphaned labels (${cleanupResult.failed} failed)`
             this.log.info(
@@ -2086,11 +2078,9 @@ export class PlexLabelSyncService {
         for (const user of users) {
           const userLabel = `${this.config.labelPrefix}:${user.username}`
           try {
-            await this.db.trackPlexLabel(
-              user.watchlist_id,
-              ratingKey,
+            await this.db.trackPlexLabels(user.watchlist_id, ratingKey, [
               userLabel,
-            )
+            ])
             this.log.debug('Successfully tracked label in database', {
               watchlistId: user.watchlist_id,
               ratingKey,
@@ -2738,9 +2728,11 @@ export class PlexLabelSyncService {
       // Group by rating key to batch operations
       const labelsByRatingKey = new Map<string, string[]>()
       for (const tracking of trackedLabels) {
-        const labels = labelsByRatingKey.get(tracking.plex_rating_key) || []
-        labels.push(tracking.label_applied)
-        labelsByRatingKey.set(tracking.plex_rating_key, labels)
+        const existingLabels =
+          labelsByRatingKey.get(tracking.plex_rating_key) || []
+        // Add all labels from this tracking record
+        existingLabels.push(...tracking.labels_applied)
+        labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
       }
 
       // Remove labels from Plex content
@@ -2833,9 +2825,11 @@ export class PlexLabelSyncService {
       // Group by rating key to batch operations
       const labelsByRatingKey = new Map<string, string[]>()
       for (const tracking of trackedLabels) {
-        const labels = labelsByRatingKey.get(tracking.plex_rating_key) || []
-        labels.push(tracking.label_applied)
-        labelsByRatingKey.set(tracking.plex_rating_key, labels)
+        const existingLabels =
+          labelsByRatingKey.get(tracking.plex_rating_key) || []
+        // Add all labels from this tracking record
+        existingLabels.push(...tracking.labels_applied)
+        labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
       }
 
       progressCallback?.(25, `Processing ${labelsByRatingKey.size} items`)
@@ -3066,7 +3060,10 @@ export class PlexLabelSyncService {
    *
    * @returns Promise resolving to cleanup results
    */
-  async cleanupOrphanedPlexLabels(): Promise<{
+  async cleanupOrphanedPlexLabels(
+    radarrMoviesWithTags?: RadarrMovieWithTags[],
+    sonarrSeriesWithTags?: SonarrSeriesWithTags[],
+  ): Promise<{
     removed: number
     failed: number
   }> {
@@ -3107,59 +3104,91 @@ export class PlexLabelSyncService {
       // Add tag labels if tag sync is enabled
       if (this.config.tagSync.enabled) {
         try {
-          // Get tags from Radarr instances
-          const radarrInstances =
-            await this.fastify.radarrManager.getAllInstances()
-          for (const instance of radarrInstances) {
-            try {
-              const radarrService = this.fastify.radarrManager.getRadarrService(
-                instance.id,
-              )
-              if (!radarrService) {
-                this.log.warn(
-                  `Could not get Radarr service for instance ${instance.id}`,
-                )
-                continue
-              }
+          if (radarrMoviesWithTags && sonarrSeriesWithTags) {
+            // Use pre-fetched tag data when available (called from sync)
+            this.log.debug('Using pre-fetched tag data for cleanup validation')
 
-              const tags = await radarrService.getTags()
-              for (const tag of tags) {
-                const tagLabel = `${this.config.labelPrefix}:${tag.label}`
-                validLabels.add(tagLabel.toLowerCase())
+            // Extract unique tags from Radarr movies
+            const radarrTags = new Set<string>()
+            for (const movieWithTags of radarrMoviesWithTags) {
+              for (const tag of movieWithTags.tags) {
+                radarrTags.add(tag)
               }
-            } catch (error) {
-              this.log.warn(
-                `Failed to get tags from Radarr instance ${instance.name}:`,
-                error,
-              )
             }
-          }
 
-          // Get tags from Sonarr instances
-          const sonarrInstances =
-            await this.fastify.sonarrManager.getAllInstances()
-          for (const instance of sonarrInstances) {
-            try {
-              const sonarrService = this.fastify.sonarrManager.getSonarrService(
-                instance.id,
-              )
-              if (!sonarrService) {
+            // Extract unique tags from Sonarr series
+            const sonarrTags = new Set<string>()
+            for (const seriesWithTags of sonarrSeriesWithTags) {
+              for (const tag of seriesWithTags.tags) {
+                sonarrTags.add(tag)
+              }
+            }
+
+            // Add all unique tags as valid labels
+            for (const tag of radarrTags) {
+              const tagLabel = `${this.config.labelPrefix}:${tag}`
+              validLabels.add(tagLabel.toLowerCase())
+            }
+            for (const tag of sonarrTags) {
+              const tagLabel = `${this.config.labelPrefix}:${tag}`
+              validLabels.add(tagLabel.toLowerCase())
+            }
+          } else {
+            // Fetch fresh tag data when called independently
+            this.log.debug('Fetching fresh tag data for cleanup validation')
+
+            // Get tags from Radarr instances
+            const radarrInstances =
+              await this.fastify.radarrManager.getAllInstances()
+            for (const instance of radarrInstances) {
+              try {
+                const radarrService =
+                  this.fastify.radarrManager.getRadarrService(instance.id)
+                if (!radarrService) {
+                  this.log.warn(
+                    `Could not get Radarr service for instance ${instance.id}`,
+                  )
+                  continue
+                }
+
+                const tags = await radarrService.getTags()
+                for (const tag of tags) {
+                  const tagLabel = `${this.config.labelPrefix}:${tag.label}`
+                  validLabels.add(tagLabel.toLowerCase())
+                }
+              } catch (error) {
                 this.log.warn(
-                  `Could not get Sonarr service for instance ${instance.id}`,
+                  `Failed to get tags from Radarr instance ${instance.name}:`,
+                  error,
                 )
-                continue
               }
+            }
 
-              const tags = await sonarrService.getTags()
-              for (const tag of tags) {
-                const tagLabel = `${this.config.labelPrefix}:${tag.label}`
-                validLabels.add(tagLabel.toLowerCase())
+            // Get tags from Sonarr instances
+            const sonarrInstances =
+              await this.fastify.sonarrManager.getAllInstances()
+            for (const instance of sonarrInstances) {
+              try {
+                const sonarrService =
+                  this.fastify.sonarrManager.getSonarrService(instance.id)
+                if (!sonarrService) {
+                  this.log.warn(
+                    `Could not get Sonarr service for instance ${instance.id}`,
+                  )
+                  continue
+                }
+
+                const tags = await sonarrService.getTags()
+                for (const tag of tags) {
+                  const tagLabel = `${this.config.labelPrefix}:${tag.label}`
+                  validLabels.add(tagLabel.toLowerCase())
+                }
+              } catch (error) {
+                this.log.warn(
+                  `Failed to get tags from Sonarr instance ${instance.name}:`,
+                  error,
+                )
               }
-            } catch (error) {
-              this.log.warn(
-                `Failed to get tags from Sonarr instance ${instance.name}:`,
-                error,
-              )
             }
           }
         } catch (error) {

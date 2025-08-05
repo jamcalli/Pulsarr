@@ -7,7 +7,7 @@ interface PlexLabelTrackingRow {
   id: number
   watchlist_id: number
   plex_rating_key: string
-  label_applied: string
+  labels_applied: string // JSON string that gets parsed to string[]
   synced_at: string
 }
 
@@ -18,49 +18,51 @@ export interface PlexLabelTracking {
   id: number
   watchlist_id: number
   plex_rating_key: string
-  label_applied: string
+  labels_applied: string[] // Parsed JSON array of labels
   synced_at: string
 }
 
 /**
- * Creates a new tracking record linking a Plex label to a watchlist item.
+ * Updates the tracking record with the complete set of labels for a content item.
  *
- * Inserts a record to track which Plex labels are associated with specific watchlist items.
- * This allows the system to manage label synchronization and cleanup operations.
- * Uses an upsert pattern to avoid duplicates.
+ * Creates or updates a tracking record with the complete array of labels applied
+ * to a specific piece of content for a watchlist item. This efficient approach
+ * stores all labels in a single database row, replacing any existing labels.
  *
  * @param watchlistId - The ID of the watchlist item
  * @param plexRatingKey - The Plex rating key of the labeled content
- * @param labelApplied - The Plex label name that was applied
+ * @param labelsApplied - Array of all label names applied to this content
  * @returns The ID of the tracking record (new or existing)
  */
-export async function trackPlexLabel(
+export async function trackPlexLabels(
   this: DatabaseService,
   watchlistId: number,
   plexRatingKey: string,
-  labelApplied: string,
+  labelsApplied: string[],
 ): Promise<number> {
-  // Check if record already exists to avoid duplicates
+  const labelsJson = JSON.stringify(labelsApplied.sort()) // Sort for consistency
+
+  // Check if record already exists
   const existing = await this.knex('plex_label_tracking')
     .where('watchlist_id', watchlistId)
     .where('plex_rating_key', plexRatingKey)
-    .where('label_applied', labelApplied)
     .first()
 
   if (existing) {
-    // Update the sync timestamp for existing records
-    await this.knex('plex_label_tracking')
-      .where('id', existing.id)
-      .update({ synced_at: this.timestamp })
+    // Update existing record with new complete label set
+    await this.knex('plex_label_tracking').where('id', existing.id).update({
+      labels_applied: labelsJson,
+      synced_at: this.timestamp,
+    })
     return existing.id
   }
 
-  // Insert new record
+  // Insert new record with complete label set
   const result = await this.knex('plex_label_tracking')
     .insert({
       watchlist_id: watchlistId,
       plex_rating_key: plexRatingKey,
-      label_applied: labelApplied,
+      labels_applied: labelsJson,
       synced_at: this.timestamp,
     })
     .returning('id')
@@ -85,13 +87,37 @@ export async function untrackPlexLabel(
   plexRatingKey: string,
   labelApplied: string,
 ): Promise<boolean> {
-  const deleted = await this.knex('plex_label_tracking')
+  // Get existing record
+  const existing = await this.knex('plex_label_tracking')
     .where('watchlist_id', watchlistId)
     .where('plex_rating_key', plexRatingKey)
-    .where('label_applied', labelApplied)
-    .delete()
+    .first()
 
-  return deleted > 0
+  if (!existing) {
+    return false
+  }
+
+  // Parse existing labels and remove the specified one
+  const currentLabels: string[] = JSON.parse(existing.labels_applied || '[]')
+  const updatedLabels = currentLabels.filter((label) => label !== labelApplied)
+
+  // If no labels remain, delete the record
+  if (updatedLabels.length === 0) {
+    const deleted = await this.knex('plex_label_tracking')
+      .where('id', existing.id)
+      .delete()
+    return deleted > 0
+  }
+
+  // Otherwise, update with remaining labels
+  await this.knex('plex_label_tracking')
+    .where('id', existing.id)
+    .update({
+      labels_applied: JSON.stringify(updatedLabels.sort()),
+      synced_at: this.timestamp,
+    })
+
+  return true
 }
 
 /**
@@ -116,7 +142,7 @@ export async function getTrackedLabelsForWatchlist(
     id: row.id,
     watchlist_id: row.watchlist_id,
     plex_rating_key: row.plex_rating_key,
-    label_applied: row.label_applied,
+    labels_applied: JSON.parse(row.labels_applied || '[]'),
     synced_at: row.synced_at,
   }))
 }
@@ -167,7 +193,7 @@ export async function getAllTrackedLabels(
     id: row.id,
     watchlist_id: row.watchlist_id,
     plex_rating_key: row.plex_rating_key,
-    label_applied: row.label_applied,
+    labels_applied: JSON.parse(row.labels_applied || '[]'),
     synced_at: row.synced_at,
   }))
 }
@@ -194,7 +220,7 @@ export async function getTrackedLabelsForRatingKey(
     id: row.id,
     watchlist_id: row.watchlist_id,
     plex_rating_key: row.plex_rating_key,
-    label_applied: row.label_applied,
+    labels_applied: JSON.parse(row.labels_applied || '[]'),
     synced_at: row.synced_at,
   }))
 }
@@ -242,10 +268,14 @@ export async function isLabelTracked(
   const result = await this.knex('plex_label_tracking')
     .where('watchlist_id', watchlistId)
     .where('plex_rating_key', plexRatingKey)
-    .where('label_applied', labelApplied)
     .first()
 
-  return !!result
+  if (!result) {
+    return false
+  }
+
+  const labels: string[] = JSON.parse(result.labels_applied || '[]')
+  return labels.includes(labelApplied)
 }
 
 /**
@@ -285,18 +315,42 @@ export async function removeTrackedLabel(
   plexRatingKey: string,
   labelApplied: string,
 ): Promise<number> {
-  const deleted = await this.knex('plex_label_tracking')
+  // Get all records for this rating key
+  const records = await this.knex('plex_label_tracking')
     .where('plex_rating_key', plexRatingKey)
-    .where('label_applied', labelApplied)
-    .delete()
+    .select('*')
 
-  if (deleted > 0) {
+  let totalUpdated = 0
+
+  for (const record of records) {
+    const labels: string[] = JSON.parse(record.labels_applied || '[]')
+    const updatedLabels = labels.filter((label) => label !== labelApplied)
+
+    if (updatedLabels.length !== labels.length) {
+      // Label was found and removed
+      if (updatedLabels.length === 0) {
+        // Delete record if no labels remain
+        await this.knex('plex_label_tracking').where('id', record.id).delete()
+      } else {
+        // Update with remaining labels
+        await this.knex('plex_label_tracking')
+          .where('id', record.id)
+          .update({
+            labels_applied: JSON.stringify(updatedLabels.sort()),
+            synced_at: this.timestamp,
+          })
+      }
+      totalUpdated++
+    }
+  }
+
+  if (totalUpdated > 0) {
     this.log.debug(
-      `Removed ${deleted} tracking record(s) for label "${labelApplied}" on rating key ${plexRatingKey}`,
+      `Updated ${totalUpdated} tracking record(s) to remove label "${labelApplied}" on rating key ${plexRatingKey}`,
     )
   }
 
-  return deleted
+  return totalUpdated
 }
 
 /**
@@ -316,30 +370,36 @@ export async function getOrphanedLabelTracking(
   validLabels: Set<string>,
   labelPrefix: string,
 ): Promise<Array<{ plex_rating_key: string; orphaned_labels: string[] }>> {
-  // First, get all tracking records that match our label prefix
-  const appManagedLabels = (await this.knex('plex_label_tracking')
-    .whereRaw('LOWER(label_applied) LIKE ?', [`${labelPrefix.toLowerCase()}:%`])
-    .select('plex_rating_key', 'label_applied')
-    .orderBy('plex_rating_key')) as Array<{
-    plex_rating_key: string
-    label_applied: string
-  }>
+  // Get all tracking records
+  const allRecords = await this.knex('plex_label_tracking')
+    .select('plex_rating_key', 'labels_applied')
+    .orderBy('plex_rating_key')
 
-  if (appManagedLabels.length === 0) {
+  if (allRecords.length === 0) {
     return []
   }
 
   // Group by rating key and filter for orphaned labels
   const orphanedByRatingKey = new Map<string, string[]>()
 
-  for (const record of appManagedLabels) {
-    const labelLower = record.label_applied.toLowerCase()
+  for (const record of allRecords) {
+    const labels: string[] = JSON.parse(record.labels_applied || '[]')
+    const orphanedLabels: string[] = []
 
-    // If this label is not in our valid labels set, it's orphaned
-    if (!validLabels.has(labelLower)) {
-      const existing = orphanedByRatingKey.get(record.plex_rating_key) || []
-      existing.push(record.label_applied)
-      orphanedByRatingKey.set(record.plex_rating_key, existing)
+    for (const label of labels) {
+      const labelLower = label.toLowerCase()
+
+      // Check if it's an app-managed label that's now orphaned
+      if (
+        labelLower.startsWith(`${labelPrefix.toLowerCase()}:`) &&
+        !validLabels.has(labelLower)
+      ) {
+        orphanedLabels.push(label)
+      }
+    }
+
+    if (orphanedLabels.length > 0) {
+      orphanedByRatingKey.set(record.plex_rating_key, orphanedLabels)
     }
   }
 
@@ -371,17 +431,43 @@ export async function removeOrphanedTracking(
     return 0
   }
 
-  const deleted = await this.knex('plex_label_tracking')
+  // Get all records for this rating key
+  const records = await this.knex('plex_label_tracking')
     .where('plex_rating_key', plexRatingKey)
-    .whereIn('label_applied', orphanedLabels)
-    .delete()
+    .select('*')
 
-  if (deleted > 0) {
+  let totalUpdated = 0
+
+  for (const record of records) {
+    const labels: string[] = JSON.parse(record.labels_applied || '[]')
+    const updatedLabels = labels.filter(
+      (label) => !orphanedLabels.includes(label),
+    )
+
+    if (updatedLabels.length !== labels.length) {
+      // Some orphaned labels were found and removed
+      if (updatedLabels.length === 0) {
+        // Delete record if no labels remain
+        await this.knex('plex_label_tracking').where('id', record.id).delete()
+      } else {
+        // Update with remaining labels
+        await this.knex('plex_label_tracking')
+          .where('id', record.id)
+          .update({
+            labels_applied: JSON.stringify(updatedLabels.sort()),
+            synced_at: this.timestamp,
+          })
+      }
+      totalUpdated++
+    }
+  }
+
+  if (totalUpdated > 0) {
     this.log.debug(
-      `Removed ${deleted} orphaned tracking record(s) for rating key ${plexRatingKey}`,
+      `Updated ${totalUpdated} tracking record(s) to remove orphaned labels for rating key ${plexRatingKey}`,
       { orphanedLabels },
     )
   }
 
-  return deleted
+  return totalUpdated
 }
