@@ -18,6 +18,8 @@ import type { PlexServerService } from '@utils/plex-server.js'
 import type { DatabaseService } from './database.service.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import type { WebhookPayload } from '@schemas/notifications/webhook.schema.js'
+import type { RadarrMovie } from '@root/types/radarr.types.js'
+import type { SonarrSeries } from '@root/types/sonarr.types.js'
 import pLimit from 'p-limit'
 import {
   parseGuids,
@@ -106,6 +108,54 @@ interface LabelReconciliationResult {
 }
 
 /**
+ * Radarr movie data with tags for tag sync
+ */
+interface RadarrMovieWithTags {
+  instanceId: number
+  instanceName: string
+  movie: RadarrMovie
+  tags: string[]
+}
+
+/**
+ * Sonarr series data with tags for tag sync
+ */
+interface SonarrSeriesWithTags {
+  instanceId: number
+  instanceName: string
+  series: SonarrSeries
+  tags: string[]
+  rootFolder?: string
+}
+
+/**
+ * Plex API response interfaces for type safety
+ */
+interface PlexSection {
+  key: string
+  type: string
+  title: string
+}
+
+interface PlexSectionsResponse {
+  MediaContainer: {
+    Directory?: PlexSection[]
+  }
+}
+
+interface PlexMetadataItem {
+  ratingKey: string
+  type: string
+  title: string
+}
+
+interface PlexItemsResponse {
+  MediaContainer: {
+    Metadata?: PlexMetadataItem[]
+  }
+}
+
+/**
  * Service to manage label synchronization between Pulsarr and Plex
  */
 export class PlexLabelSyncService {
@@ -145,6 +195,11 @@ export class PlexLabelSyncService {
         removedLabelPrefix: 'pulsarr:removed',
         scheduleTime: undefined,
         dayOfWeek: '*',
+        tagSync: {
+          enabled: false,
+          syncRadarrTags: true,
+          syncSonarrTags: true,
+        },
       }
     )
   }
@@ -174,6 +229,39 @@ export class PlexLabelSyncService {
   }
 
   /**
+   * Checks if a label is a user-specific label (format: prefix:user:username)
+   *
+   * @param labelName - The label to check
+   * @returns True if this is a user-specific label
+   */
+  private isUserSpecificLabel(labelName: string): boolean {
+    const userPattern = new RegExp(`^${this.config.labelPrefix}:user:`, 'i')
+    return userPattern.test(labelName)
+  }
+
+  /**
+   * Checks if a tag is managed by the user tagging system
+   *
+   * @param tagName - The tag to check
+   * @returns True if this is a user tagging system tag
+   */
+  private isUserTaggingSystemTag(tagName: string): boolean {
+    const tagPrefix = this.fastify.config.tagPrefix || 'pulsarr:user'
+    const userTagPattern = new RegExp(`^${this.escapeRegex(tagPrefix)}:`, 'i')
+    return userTagPattern.test(tagName)
+  }
+
+  /**
+   * Escapes special regex characters in a string
+   *
+   * @param string - The string to escape
+   * @returns Escaped string safe for regex
+   */
+  private escapeRegex(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+
+  /**
    * Gets the removed label string for tracking removed users
    *
    * @param itemName - The name of the content item (for logging)
@@ -188,6 +276,553 @@ export class PlexLabelSyncService {
     })
 
     return removedLabel
+  }
+
+  /**
+   * Fetches all movies from Radarr instances with their tags
+   *
+   * @returns Array of movies with tags from all Radarr instances
+   */
+  private async fetchAllRadarrMovies(): Promise<RadarrMovieWithTags[]> {
+    if (!this.config.tagSync.enabled || !this.config.tagSync.syncRadarrTags) {
+      return []
+    }
+
+    try {
+      this.log.debug(
+        'Fetching all Radarr movies for tag sync from individual services',
+      )
+      const processedMovies: RadarrMovieWithTags[] = []
+
+      const instances = await this.fastify.radarrManager.getAllInstances()
+
+      for (const instance of instances) {
+        try {
+          const radarrService = this.fastify.radarrManager.getRadarrService(
+            instance.id,
+          )
+          if (!radarrService) {
+            this.log.warn(
+              `Could not get Radarr service for instance ${instance.id}`,
+            )
+            continue
+          }
+
+          const instanceMovies = await radarrService.getAllMovies()
+          const instanceTags = await radarrService.getTags()
+
+          const tagMap = new Map(
+            instanceTags.map((tag: { id: number; label: string }) => [
+              tag.id,
+              tag.label,
+            ]),
+          )
+
+          for (const movie of instanceMovies) {
+            const tags =
+              movie.tags
+                ?.map((tagId: number) => tagMap.get(tagId))
+                .filter((tag): tag is string => Boolean(tag)) || []
+
+            processedMovies.push({
+              instanceId: instance.id,
+              instanceName: instance.name,
+              movie,
+              tags,
+            })
+          }
+
+          this.log.debug(
+            `Processed ${instanceMovies.length} movies from instance ${instance.name}`,
+          )
+        } catch (error) {
+          this.log.error(
+            `Error processing movies from instance ${instance.id} (${instance.name}):`,
+            error,
+          )
+        }
+      }
+
+      this.log.info(
+        `Processed ${processedMovies.length} total movies for tag sync`,
+      )
+      return processedMovies
+    } catch (error) {
+      this.log.error('Error fetching Radarr movies for tag sync:', error)
+      return []
+    }
+  }
+
+  /**
+   * Fetches all series from Sonarr instances with their tags
+   *
+   * @returns Array of series with tags from all Sonarr instances
+   */
+  private async fetchAllSonarrSeries(): Promise<SonarrSeriesWithTags[]> {
+    if (!this.config.tagSync.enabled || !this.config.tagSync.syncSonarrTags) {
+      return []
+    }
+
+    try {
+      this.log.debug(
+        'Fetching all Sonarr series for tag sync from individual services',
+      )
+      const processedSeries: SonarrSeriesWithTags[] = []
+
+      const instances = await this.fastify.sonarrManager.getAllInstances()
+
+      for (const instance of instances) {
+        try {
+          const sonarrService = this.fastify.sonarrManager.getSonarrService(
+            instance.id,
+          )
+          if (!sonarrService) {
+            this.log.warn(
+              `Could not get Sonarr service for instance ${instance.id}`,
+            )
+            continue
+          }
+
+          const instanceSeries = await sonarrService.getAllSeries()
+          const [instanceTags, rootFolders] = await Promise.all([
+            sonarrService.getTags(),
+            sonarrService.fetchRootFolders(),
+          ])
+
+          const tagMap = new Map(
+            instanceTags.map((tag: { id: number; label: string }) => [
+              tag.id,
+              tag.label,
+            ]),
+          )
+
+          const rootFolder =
+            rootFolders.length > 0 ? rootFolders[0].path : undefined
+
+          for (const series of instanceSeries) {
+            const tags =
+              series.tags
+                ?.map((tagId: number) => tagMap.get(tagId))
+                .filter((tag): tag is string => Boolean(tag)) || []
+
+            processedSeries.push({
+              instanceId: instance.id,
+              instanceName: instance.name,
+              series,
+              tags,
+              rootFolder,
+            })
+          }
+
+          this.log.debug(
+            `Processed ${instanceSeries.length} series from instance ${instance.name}`,
+          )
+        } catch (error) {
+          this.log.error(
+            `Error processing series from instance ${instance.id} (${instance.name}):`,
+            error,
+          )
+        }
+      }
+
+      this.log.info(
+        `Processed ${processedSeries.length} total series for tag sync`,
+      )
+      return processedSeries
+    } catch (error) {
+      this.log.error('Error fetching Sonarr series for tag sync:', error)
+      return []
+    }
+  }
+
+  /**
+   * Matches a Plex movie to a Radarr movie based on file paths
+   *
+   * @param plexItem - The Plex movie item
+   * @param radarrMovies - Array of Radarr movies with tags
+   * @returns Matched Radarr movie data or null
+   */
+  private async matchPlexMovieToRadarr(
+    plexItem: { ratingKey: string; title: string },
+    radarrMovies: RadarrMovieWithTags[],
+  ): Promise<RadarrMovieWithTags | null> {
+    try {
+      const metadata = await this.plexServer.getMetadata(plexItem.ratingKey)
+      if (!metadata?.Media) {
+        this.log.debug('No media information found for Plex movie', {
+          ratingKey: plexItem.ratingKey,
+          title: plexItem.title,
+        })
+        return null
+      }
+
+      // Extract all file paths from Plex movie
+      const plexFilePaths: string[] = []
+      for (const media of metadata.Media) {
+        for (const part of media.Part || []) {
+          if (part.file) {
+            plexFilePaths.push(part.file)
+          }
+        }
+      }
+
+      this.log.debug('Matching Plex movie to Radarr', {
+        ratingKey: plexItem.ratingKey,
+        title: plexItem.title,
+        plexFilePaths,
+        radarrMovieCount: radarrMovies.length,
+      })
+
+      // Try to match by exact file path
+      for (const radarrData of radarrMovies) {
+        const movieFilePath = radarrData.movie.movieFile?.path
+        if (!movieFilePath) {
+          continue
+        }
+
+        if (plexFilePaths.includes(movieFilePath)) {
+          this.log.debug('Found exact file path match', {
+            plexTitle: plexItem.title,
+            radarrTitle: radarrData.movie.title,
+            filePath: movieFilePath,
+            instanceName: radarrData.instanceName,
+            tags: radarrData.tags,
+          })
+          return radarrData
+        }
+      }
+
+      this.log.debug('No Radarr match found for Plex movie', {
+        ratingKey: plexItem.ratingKey,
+        title: plexItem.title,
+        plexFilePaths,
+      })
+      return null
+    } catch (error) {
+      this.log.error('Error matching Plex movie to Radarr:', error)
+      return null
+    }
+  }
+
+  /**
+   * Matches a Plex series to a Sonarr series based on folder paths
+   *
+   * @param plexItem - The Plex series item
+   * @param sonarrSeries - Array of Sonarr series with tags
+   * @returns Matched Sonarr series data or null
+   */
+  private async matchPlexSeriesToSonarr(
+    plexItem: { ratingKey: string; title: string },
+    sonarrSeries: SonarrSeriesWithTags[],
+  ): Promise<SonarrSeriesWithTags | null> {
+    try {
+      const metadata = await this.plexServer.getMetadata(plexItem.ratingKey)
+      if (!metadata) {
+        this.log.debug('No metadata found for Plex series', {
+          ratingKey: plexItem.ratingKey,
+          title: plexItem.title,
+        })
+        return null
+      }
+
+      const plexLocation = metadata.Location?.[0]?.path
+
+      this.log.debug('Matching Plex series to Sonarr', {
+        ratingKey: plexItem.ratingKey,
+        title: plexItem.title,
+        plexLocation,
+        sonarrSeriesCount: sonarrSeries.length,
+      })
+
+      // Try to match by root folder
+      if (plexLocation) {
+        for (const sonarrData of sonarrSeries) {
+          if (
+            sonarrData.rootFolder &&
+            plexLocation.startsWith(sonarrData.rootFolder)
+          ) {
+            this.log.debug('Found root folder match', {
+              plexTitle: plexItem.title,
+              sonarrTitle: sonarrData.series.title,
+              plexLocation,
+              sonarrRootFolder: sonarrData.rootFolder,
+              instanceName: sonarrData.instanceName,
+              tags: sonarrData.tags,
+            })
+            return {
+              instanceId: sonarrData.instanceId,
+              instanceName: sonarrData.instanceName,
+              series: sonarrData.series,
+              tags: sonarrData.tags,
+            }
+          }
+        }
+      }
+
+      // Try to match by exact folder path
+      if (plexLocation) {
+        for (const sonarrData of sonarrSeries) {
+          if (plexLocation === sonarrData.series.path) {
+            this.log.debug('Found exact folder path match', {
+              plexTitle: plexItem.title,
+              sonarrTitle: sonarrData.series.title,
+              plexLocation,
+              sonarrSeriesPath: sonarrData.series.path,
+              instanceName: sonarrData.instanceName,
+              tags: sonarrData.tags,
+            })
+            return {
+              instanceId: sonarrData.instanceId,
+              instanceName: sonarrData.instanceName,
+              series: sonarrData.series,
+              tags: sonarrData.tags,
+            }
+          }
+        }
+      }
+
+      // Try to match by folder name
+      if (plexLocation) {
+        for (const sonarrData of sonarrSeries) {
+          const sonarrFolderName = sonarrData.series.path?.split('/').pop()
+          if (sonarrFolderName && plexLocation.includes(sonarrFolderName)) {
+            this.log.debug('Found folder name match', {
+              plexTitle: plexItem.title,
+              sonarrTitle: sonarrData.series.title,
+              plexLocation,
+              sonarrFolderName,
+              instanceName: sonarrData.instanceName,
+              tags: sonarrData.tags,
+            })
+            return {
+              instanceId: sonarrData.instanceId,
+              instanceName: sonarrData.instanceName,
+              series: sonarrData.series,
+              tags: sonarrData.tags,
+            }
+          }
+        }
+      }
+
+      // Log available paths for debugging
+      try {
+        this.log.debug('No match found with available strategies', {
+          plexTitle: plexItem.title,
+          plexLocation,
+          availableSonarrPaths: sonarrSeries.map((s) => ({
+            instanceName: s.instanceName,
+            seriesPath: s.series.path,
+            rootFolder: s.rootFolder,
+          })),
+        })
+      } catch (error) {
+        this.log.debug('Error during folder matching fallback:', error)
+      }
+
+      this.log.debug('No Sonarr match found for Plex series', {
+        ratingKey: plexItem.ratingKey,
+        title: plexItem.title,
+        plexLocation,
+      })
+      return null
+    } catch (error) {
+      this.log.error('Error matching Plex series to Sonarr:', error)
+      return null
+    }
+  }
+
+  /**
+   * Syncs tags from Radarr/Sonarr to Plex labels
+   *
+   * @param plexItems - Array of Plex content items to process
+   * @returns Sync results
+   */
+  private async syncTagsToPlexItems(
+    plexItems: PlexContentItems[],
+  ): Promise<{ processed: number; updated: number; failed: number }> {
+    if (!this.config.tagSync.enabled) {
+      return { processed: 0, updated: 0, failed: 0 }
+    }
+
+    const result = { processed: 0, updated: 0, failed: 0 }
+
+    try {
+      this.log.info('Starting tag sync from Radarr/Sonarr to Plex labels')
+
+      // Fetch all content from Radarr/Sonarr with tags
+      const [radarrMovies, sonarrSeries] = await Promise.all([
+        this.fetchAllRadarrMovies(),
+        this.fetchAllSonarrSeries(),
+      ])
+
+      this.log.debug('Fetched *arr content for tag sync', {
+        radarrMovieCount: radarrMovies.length,
+        sonarrSeriesCount: sonarrSeries.length,
+      })
+
+      // Process each Plex content item
+      for (const plexContentItem of plexItems) {
+        const { content, plexItems: items } = plexContentItem
+
+        for (const plexItem of items) {
+          try {
+            result.processed++
+
+            let matchedTags: string[] = []
+            let instanceName = ''
+
+            if (content.type === 'movie') {
+              const match = await this.matchPlexMovieToRadarr(
+                plexItem,
+                radarrMovies,
+              )
+              if (match) {
+                matchedTags = match.tags
+                instanceName = match.instanceName
+              }
+            } else if (content.type === 'show') {
+              const match = await this.matchPlexSeriesToSonarr(
+                plexItem,
+                sonarrSeries,
+              )
+              if (match) {
+                matchedTags = match.tags
+                instanceName = match.instanceName
+              }
+            }
+
+            if (matchedTags.length === 0) {
+              this.log.debug('No tags found for Plex item', {
+                ratingKey: plexItem.ratingKey,
+                title: plexItem.title,
+                contentType: content.type,
+              })
+              continue
+            }
+
+            // Apply tags as labels to Plex item
+            const success = await this.applyTagLabelsToPlexItem(
+              plexItem.ratingKey,
+              matchedTags,
+              instanceName,
+            )
+
+            if (success) {
+              result.updated++
+              this.log.debug('Successfully applied tag labels to Plex item', {
+                ratingKey: plexItem.ratingKey,
+                title: plexItem.title,
+                tags: matchedTags,
+                instanceName,
+              })
+            } else {
+              result.failed++
+            }
+          } catch (error) {
+            this.log.error(
+              `Error processing tag sync for Plex item ${plexItem.ratingKey}:`,
+              error,
+            )
+            result.failed++
+          }
+        }
+      }
+
+      this.log.info('Completed tag sync to Plex labels', result)
+      return result
+    } catch (error) {
+      this.log.error('Error during tag sync to Plex labels:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Applies tag labels to a Plex item
+   *
+   * @param ratingKey - The Plex rating key
+   * @param tags - Array of tags to apply
+   * @param instanceName - The *arr instance name
+   * @returns True if successful
+   */
+  private async applyTagLabelsToPlexItem(
+    ratingKey: string,
+    tags: string[],
+    instanceName: string,
+  ): Promise<boolean> {
+    try {
+      // Get current labels
+      const metadata = await this.plexServer.getMetadata(ratingKey)
+      const currentLabels = metadata?.Label?.map((label) => label.tag) || []
+
+      // Filter out tags that are managed by user tagging system
+      const filteredTags = tags.filter(
+        (tag) => !this.isUserTaggingSystemTag(tag),
+      )
+
+      if (filteredTags.length === 0) {
+        this.log.debug(
+          'All tags filtered out (managed by user tagging system)',
+          {
+            ratingKey,
+            originalTags: tags,
+            instanceName,
+          },
+        )
+        return true
+      }
+
+      // Create tag labels with app prefix
+      const tagLabels = filteredTags.map(
+        (tag) => `${this.config.labelPrefix}:${tag}`,
+      )
+
+      // Preserve existing non-app labels and user-specific labels
+      const preservedLabels = currentLabels.filter(
+        (label) =>
+          !this.isAppUserLabel(label) || this.isUserSpecificLabel(label),
+      )
+
+      // Remove existing tag labels (non-user-specific app labels)
+      const existingTagLabels = currentLabels.filter(
+        (label) =>
+          this.isAppUserLabel(label) && !this.isUserSpecificLabel(label),
+      )
+
+      // Combine preserved labels with new tag labels
+      const finalLabels = [...new Set([...preservedLabels, ...tagLabels])]
+
+      this.log.debug('Applying tag labels to Plex item', {
+        ratingKey,
+        currentLabels,
+        tagLabels,
+        preservedLabels,
+        removedTagLabels: existingTagLabels,
+        finalLabels,
+        instanceName,
+      })
+
+      // Update labels in Plex
+      const success = await this.plexServer.updateLabels(ratingKey, finalLabels)
+
+      if (success) {
+        this.log.debug('Successfully applied tag labels', {
+          ratingKey,
+          appliedTags: tags,
+          instanceName,
+        })
+      } else {
+        this.log.warn('Failed to apply tag labels', {
+          ratingKey,
+          tags,
+          instanceName,
+        })
+      }
+
+      return success
+    } catch (error) {
+      this.log.error('Error applying tag labels to Plex item:', error)
+      return false
+    }
   }
 
   /**
@@ -1023,7 +1658,29 @@ export class PlexLabelSyncService {
         },
       )
 
-      // Step 7: Handle orphaned label cleanup if enabled
+      // Step 7: Handle tag sync from Radarr/Sonarr if enabled
+      let tagSyncMessage = ''
+      if (this.config.tagSync.enabled && available.length > 0) {
+        try {
+          progressCallback?.(85, 'Syncing tags from Radarr/Sonarr instances...')
+          const tagSyncResult = await this.syncTagsToPlexItems(available)
+          if (tagSyncResult.processed > 0) {
+            tagSyncMessage = `, synced tags for ${tagSyncResult.updated} items (${tagSyncResult.failed} failed)`
+            this.log.info(
+              'Completed tag sync from *arr instances',
+              tagSyncResult,
+            )
+          }
+        } catch (tagSyncError) {
+          this.log.error(
+            'Error during tag sync from *arr instances:',
+            tagSyncError,
+          )
+          tagSyncMessage = ', tag sync failed'
+        }
+      }
+
+      // Step 8: Handle orphaned label cleanup if enabled
       let cleanupMessage = ''
       if (this.config.cleanupOrphanedLabels) {
         try {
@@ -1050,7 +1707,7 @@ export class PlexLabelSyncService {
 
       progressCallback?.(
         100,
-        `Completed content-centric Plex label sync: ${result.updated} content items updated, ${result.failed} failed, ${result.pending} pending (${totalLabelsAdded} labels added, ${totalLabelsRemoved} removed)${cleanupMessage}`,
+        `Completed content-centric Plex label sync: ${result.updated} content items updated, ${result.failed} failed, ${result.pending} pending (${totalLabelsAdded} labels added, ${totalLabelsRemoved} removed)${tagSyncMessage}${cleanupMessage}`,
       )
 
       return result
@@ -2206,8 +2863,8 @@ export class PlexLabelSyncService {
   }
 
   /**
-   * Cleanup orphaned Plex labels that no longer correspond to any sync-enabled users
-   * Removes labels that no longer correspond to any sync-enabled users
+   * Cleanup orphaned Plex labels - performs FULL cleanup of ALL labels from Plex
+   * This is the complete removal implementation that clears all labels from all content
    *
    * @returns Promise resolving to cleanup results
    */
@@ -2225,174 +2882,131 @@ export class PlexLabelSyncService {
     const result = { removed: 0, failed: 0 }
 
     try {
-      this.log.info('Starting orphaned Plex label cleanup')
+      this.log.info('Starting FULL Plex label cleanup - removing ALL labels')
 
-      // Step 1: Generate valid user labels from current sync-enabled users
-      const users = await this.db
-        .knex('users')
-        .where('can_sync', true)
-        .select('id', 'name')
+      // Get Plex server URL and admin token
+      const serverUrl = await this.plexServer.getPlexServerUrl()
+      const adminToken = this.fastify.config.plexTokens?.[0] || ''
 
-      const validLabels = new Set(
-        users.map((user) => {
-          const username = user.name || `user_${user.id}`
-          return `${this.config.labelPrefix}:${username}`.toLowerCase()
-        }),
-      )
-
-      // Use the prefix directly to identify app-managed labels
-      const formatPrefix = this.config.labelPrefix
-
-      this.log.debug(
-        `Found ${users.length} sync-enabled users, will preserve ${validLabels.size} labels with prefix "${formatPrefix}"`,
-        {
-          validLabels: Array.from(validLabels).slice(0, 10), // Log first 10 for debugging
-        },
-      )
-
-      // Step 2: Use database query to identify orphaned labels efficiently
-      const orphanedTracking = await this.db.getOrphanedLabelTracking(
-        validLabels,
-        formatPrefix,
-      )
-
-      if (orphanedTracking.length === 0) {
-        this.log.info(
-          'No orphaned labels found in tracking table, cleanup complete',
-        )
-        return result
+      if (!adminToken) {
+        this.log.warn('No Plex admin token available for FULL cleanup')
+        return { removed: 0, failed: 0 }
       }
 
-      this.log.info(
-        `Found ${orphanedTracking.length} Plex items with orphaned labels (${orphanedTracking.reduce((sum, item) => sum + item.orphaned_labels.length, 0)} total orphaned labels)`,
+      // Fetch all library sections
+      const sectionsResponse = await fetch(
+        `${serverUrl}/library/sections?X-Plex-Token=${adminToken}`,
         {
-          sampleItems: orphanedTracking.slice(0, 3).map((item) => ({
-            rating_key: item.plex_rating_key,
-            orphaned_count: item.orphaned_labels.length,
-            orphaned_labels: item.orphaned_labels.slice(0, 3), // First 3 labels for debugging
-          })),
+          headers: { Accept: 'application/json' },
         },
       )
+      const sectionsData =
+        (await sectionsResponse.json()) as PlexSectionsResponse
+      const sections = sectionsData.MediaContainer.Directory || []
 
-      // Step 3: Only make Plex API calls for items that definitely have orphaned labels
-      const concurrencyLimit = this.config.concurrencyLimit || 5
-      const limit = pLimit(concurrencyLimit)
+      let totalProcessed = 0
+      let totalRemoved = 0
+      let totalFailed = 0
 
-      const cleanupResults = await Promise.allSettled(
-        orphanedTracking.map((item) =>
-          limit(async () => {
-            const {
-              plex_rating_key: ratingKey,
-              orphaned_labels: orphanedLabels,
-            } = item
-
-            try {
-              this.log.debug(
-                `Processing orphaned labels for rating key ${ratingKey}`,
-                {
-                  ratingKey,
-                  orphanedLabels,
-                },
-              )
-
-              // Get current labels from Plex to verify they still exist
-              const metadata = await this.plexServer.getMetadata(ratingKey)
-              const currentLabels =
-                metadata?.Label?.map((label) => label.tag) || []
-
-              // Filter orphaned labels to only those that actually exist in Plex
-              const actualOrphanedLabels = orphanedLabels.filter(
-                (orphanedLabel) =>
-                  currentLabels.some(
-                    (currentLabel) =>
-                      currentLabel.toLowerCase() ===
-                      orphanedLabel.toLowerCase(),
-                  ),
-              )
-
-              if (actualOrphanedLabels.length === 0) {
-                // Labels already removed from Plex, just clean up tracking
-                await this.db.removeOrphanedTracking(ratingKey, orphanedLabels)
-                this.log.debug(
-                  `Labels already removed from Plex, cleaned up tracking for ${ratingKey}`,
-                  { orphanedLabels },
-                )
-                return { removed: 0, failed: 0 }
-              }
-
-              // Remove orphaned labels while preserving others
-              const updatedLabels = currentLabels.filter(
-                (label) =>
-                  !actualOrphanedLabels.some(
-                    (orphaned) =>
-                      orphaned.toLowerCase() === label.toLowerCase(),
-                  ),
-              )
-
-              this.log.debug(
-                `Removing ${actualOrphanedLabels.length} orphaned labels from Plex content`,
-                {
-                  ratingKey,
-                  orphanedLabels: actualOrphanedLabels,
-                  remainingLabels: updatedLabels,
-                },
-              )
-
-              // Update Plex with cleaned labels
-              const success = await this.plexServer.updateLabels(
-                ratingKey,
-                updatedLabels,
-              )
-
-              if (success) {
-                // Clean up tracking records for all orphaned labels (both actual and phantom)
-                await this.db.removeOrphanedTracking(ratingKey, orphanedLabels)
-
-                this.log.debug(
-                  `Successfully removed ${actualOrphanedLabels.length} orphaned labels and cleaned tracking for ${ratingKey}`,
-                )
-                return { removed: actualOrphanedLabels.length, failed: 0 }
-              }
-
-              this.log.warn(
-                `Failed to update labels for Plex content ${ratingKey}`,
-                { orphanedLabels: actualOrphanedLabels },
-              )
-              return { removed: 0, failed: actualOrphanedLabels.length }
-            } catch (error) {
-              this.log.error(
-                `Error cleaning up orphaned labels for Plex content ${ratingKey}:`,
-                error,
-              )
-              return { removed: 0, failed: 1 }
-            }
-          }),
-        ),
-      )
-
-      // Aggregate results
-      for (const promiseResult of cleanupResults) {
-        if (promiseResult.status === 'fulfilled') {
-          const itemResult = promiseResult.value
-          result.removed += itemResult.removed
-          result.failed += itemResult.failed
-        } else {
-          this.log.error(
-            'Promise rejected during orphaned label cleanup:',
-            promiseResult.reason,
+      // Process each library section
+      for (const section of sections) {
+        if (section.type !== 'movie' && section.type !== 'show') {
+          this.log.debug(
+            `Skipping section: ${section.title} (type: ${section.type})`,
           )
-          result.failed++
+          continue
         }
+
+        this.log.info(`Processing section: ${section.title} (${section.type})`)
+
+        // Fetch all items in the section
+        const itemsResponse = await fetch(
+          `${serverUrl}/library/sections/${section.key}/all?X-Plex-Token=${adminToken}`,
+          {
+            headers: { Accept: 'application/json' },
+          },
+        )
+        const itemsData = (await itemsResponse.json()) as PlexItemsResponse
+        const items = itemsData.MediaContainer.Metadata || []
+
+        this.log.info(
+          `Found ${items.length} items in section ${section.title}, processing with ${this.config.concurrencyLimit || 5} parallel operations...`,
+        )
+
+        const concurrencyLimit = this.config.concurrencyLimit || 5
+        const limit = pLimit(concurrencyLimit)
+
+        const itemResults = await Promise.allSettled(
+          items.map((item) =>
+            limit(async () => {
+              try {
+                // Get current labels for the item
+                const metadata = await this.plexServer.getMetadata(
+                  item.ratingKey,
+                )
+                const currentLabels =
+                  metadata?.Label?.map((label) => label.tag) || []
+
+                if (currentLabels.length > 0) {
+                  this.log.debug(
+                    `Removing ALL ${currentLabels.length} labels from: ${item.title}`,
+                    {
+                      ratingKey: item.ratingKey,
+                      type: item.type,
+                      labels: currentLabels,
+                    },
+                  )
+
+                  // Remove ALL labels by setting empty array
+                  const success = await this.plexServer.updateLabels(
+                    item.ratingKey,
+                    [],
+                  )
+
+                  if (success) {
+                    return { removed: currentLabels.length, failed: 0 }
+                  }
+                  return { removed: 0, failed: currentLabels.length }
+                }
+
+                return { removed: 0, failed: 0 }
+              } catch (error) {
+                this.log.error(
+                  `Error processing item ${item.title} (${item.ratingKey}):`,
+                  error,
+                )
+                return { removed: 0, failed: 1 }
+              }
+            }),
+          ),
+        )
+
+        // Aggregate results for this section
+        for (const result of itemResults) {
+          totalProcessed++
+          if (result.status === 'fulfilled') {
+            totalRemoved += result.value.removed
+            totalFailed += result.value.failed
+          } else {
+            totalFailed++
+          }
+        }
+
+        this.log.info(
+          `Section ${section.title} completed: ${items.length} items processed`,
+        )
       }
 
-      this.log.info('Completed orphaned Plex label cleanup', {
-        ...result,
-        itemsProcessed: orphanedTracking.length,
+      this.log.info('FULL Plex label cleanup completed', {
+        totalProcessed,
+        totalRemoved,
+        totalFailed,
       })
-      return result
+
+      return { removed: totalRemoved, failed: totalFailed }
     } catch (error) {
-      this.log.error('Error during orphaned Plex label cleanup:', error)
-      throw error
+      this.log.error('Error during FULL label cleanup:', error)
+      return { removed: 0, failed: 1 }
     }
   }
 }
