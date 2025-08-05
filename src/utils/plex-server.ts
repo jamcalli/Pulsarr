@@ -166,6 +166,16 @@ interface PlexMetadata {
   Guid?: Array<{ id: string }>
   Genre?: Array<{ tag: string }>
   Label?: Array<{ tag: string }>
+  // Media information for movies and shows
+  Media?: Array<{
+    Part?: Array<{
+      file?: string
+    }>
+  }>
+  // Location information for shows/movies
+  Location?: Array<{
+    path: string
+  }>
   // Add other fields as needed
 }
 

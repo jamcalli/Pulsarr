@@ -837,6 +837,129 @@ export function PlexLabelsPage() {
                 </div>
               </div>
 
+              <Separator />
+
+              <div>
+                <h3 className="font-medium text-sm text-foreground mb-2">
+                  Tag Sync Configuration
+                </h3>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="tagSync.enabled"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-3">
+                          <FormControl>
+                            <Switch
+                              checked={field.value ?? false}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="flex items-center">
+                            <FormLabel className="text-foreground">
+                              Enable Tag Syncing
+                            </FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Enable syncing of tags from Radarr and
+                                    Sonarr instances as Plex labels. This allows
+                                    content to be labeled with metadata from
+                                    your *arr applications.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch('tagSync.enabled') && (
+                    <div className="ml-6 space-y-4 border-l-2 border-border pl-4">
+                      <FormField
+                        control={form.control}
+                        name="tagSync.syncRadarrTags"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center space-x-3">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value ?? true}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="flex items-center">
+                                <FormLabel className="text-foreground">
+                                  Sync Radarr Tags
+                                </FormLabel>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Synchronize tags from configured Radarr
+                                        instances as Plex labels on movies.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="tagSync.syncSonarrTags"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center space-x-3">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value ?? true}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="flex items-center">
+                                <FormLabel className="text-foreground">
+                                  Sync Sonarr Tags
+                                </FormLabel>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Synchronize tags from configured Sonarr
+                                        instances as Plex labels on TV shows.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Action buttons - always show, but disable save when not dirty */}
               <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
                 {form.formState.isDirty && !isSaving && !isToggling && (

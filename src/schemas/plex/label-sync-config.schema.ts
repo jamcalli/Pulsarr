@@ -2,28 +2,35 @@ import { z } from 'zod'
 
 export const PlexLabelSyncConfigSchema = z.object({
   // Enable/disable the entire label sync feature
-  enabled: z.boolean().default(false),
+  enabled: z.boolean(),
   // Prefix for label naming (e.g., "pulsarr" results in "pulsarr:username")
-  labelPrefix: z.string().default('pulsarr'),
+  labelPrefix: z.string(),
   // Maximum number of concurrent operations during processing
-  concurrencyLimit: z.number().int().positive().default(5),
+  concurrencyLimit: z.number().int().positive(),
   // Whether to clean up orphaned labels during cleanup operations
-  cleanupOrphanedLabels: z.boolean().default(false),
+  cleanupOrphanedLabels: z.boolean(),
   // How to handle label cleanup when users are removed from content
   removedLabelMode: z
     .enum(['remove', 'keep', 'special-label'])
-    .default('remove')
     .describe(
       'How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label',
     ),
   // Prefix for special "removed" labels (only used in special-label mode)
   removedLabelPrefix: z
     .string()
-    .default('pulsarr:removed')
     .describe('Prefix for special labels indicating removed users'),
   // Schedule fields for full sync automation
   scheduleTime: z.coerce.date().optional(),
-  dayOfWeek: z.string().default('*'),
+  dayOfWeek: z.string(),
+  // Tag syncing configuration
+  tagSync: z.object({
+    // Enable/disable tag syncing from Radarr/Sonarr instances
+    enabled: z.boolean(),
+    // Whether to sync tags from Radarr instances
+    syncRadarrTags: z.boolean(),
+    // Whether to sync tags from Sonarr instances
+    syncSonarrTags: z.boolean(),
+  }),
 })
 
 export const PlexLabelSyncConfigResponseSchema = z.object({

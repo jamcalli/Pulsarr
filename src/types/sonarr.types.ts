@@ -102,19 +102,30 @@ export interface SonarrEpisode {
 
 export interface SonarrSeries {
   title: string
-  imdbId?: string
-  tmdbId?: number
-  tvdbId?: number
-  id: number
+  alternateTitles?: Array<{
+    title: string
+    sceneSeasonNumber?: number
+  }>
+  sortTitle?: string
+  status?: string
   ended?: boolean
-  added?: string
-  monitored?: boolean
-  monitorNewItems?: 'all' | 'none'
-  tags?: number[]
+  overview?: string
+  network?: string
+  airTime?: string
+  images?: Array<{
+    coverType: string
+    url: string
+    remoteUrl?: string
+  }>
+  originalLanguage?: {
+    id: number
+    name: string
+  }
   seasons?: Array<{
     seasonNumber: number
     monitored: boolean
     statistics?: {
+      previousAiring?: string
       episodeFileCount?: number
       episodeCount?: number
       totalEpisodeCount?: number
@@ -123,6 +134,97 @@ export interface SonarrSeries {
       percentOfEpisodes?: number
     }
   }>
+  year?: number
+  path?: string
+  qualityProfileId?: number
+  seasonFolder?: boolean
+  monitored?: boolean
+  monitorNewItems?: 'all' | 'none'
+  useSceneNumbering?: boolean
+  runtime?: number
+  tvdbId?: number
+  tvRageId?: number
+  tvMazeId?: number
+  tmdbId?: number
+  firstAired?: string
+  lastAired?: string
+  seriesType?: 'standard' | 'anime' | 'daily'
+  cleanTitle?: string
+  imdbId?: string
+  titleSlug?: string
+  rootFolderPath?: string
+  genres?: string[]
+  tags?: number[]
+  added?: string
+  ratings?: {
+    votes: number
+    value: number
+  }
+  statistics?: {
+    seasonCount?: number
+    episodeFileCount?: number
+    episodeCount?: number
+    totalEpisodeCount?: number
+    sizeOnDisk?: number
+    releaseGroups?: string[]
+    percentOfEpisodes?: number
+  }
+  languageProfileId?: number
+  id: number
+  episodeFiles?: Array<{
+    seriesId: number
+    seasonNumber: number
+    relativePath: string
+    path: string
+    size: number
+    dateAdded: string
+    sceneName?: string
+    releaseGroup?: string
+    languages?: Array<{
+      id: number
+      name: string
+    }>
+    quality?: {
+      quality: {
+        id: number
+        name: string
+        source: string
+        resolution: number
+      }
+      revision: {
+        version: number
+        real: number
+        isRepack: boolean
+      }
+    }
+    customFormats?: Array<{
+      id: number
+      name: string
+    }>
+    customFormatScore?: number
+    indexerFlags?: number
+    releaseType?: string
+    mediaInfo?: {
+      audioBitrate?: number
+      audioChannels?: number | string
+      audioCodec?: string
+      audioLanguages?: string
+      audioStreamCount?: number
+      videoBitDepth?: number
+      videoBitrate?: number
+      videoCodec?: string
+      videoFps?: number
+      videoDynamicRange?: string
+      videoDynamicRangeType?: string
+      resolution?: string
+      runTime?: string
+      scanType?: string
+      subtitles?: string
+    }
+    qualityCutoffNotMet?: boolean
+    id: number
+  }>
+  previousAiring?: string
 }
 
 export interface WebhookNotification {
