@@ -16,7 +16,6 @@ export async function up(knex: Knex): Promise<void> {
       .notNullable()
       .references('id')
       .inTable('watchlist_items')
-      .onDelete('CASCADE')
     table.string('plex_rating_key', 50).notNullable()
     table.json('labels_applied').notNullable().defaultTo('[]')
     table.timestamp('synced_at').defaultTo(knex.fn.now())

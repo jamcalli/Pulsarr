@@ -192,6 +192,11 @@ export async function getConfig(
             removedLabelPrefix: 'pulsarr:removed',
             scheduleTime: undefined,
             dayOfWeek: '*',
+            tagSync: {
+              enabled: false,
+              syncRadarrTags: true,
+              syncSonarrTags: true,
+            },
           },
           'config.plexLabelSync',
         )
@@ -204,6 +209,11 @@ export async function getConfig(
           removedLabelPrefix: 'pulsarr:removed',
           scheduleTime: undefined,
           dayOfWeek: '*',
+          tagSync: {
+            enabled: false,
+            syncRadarrTags: true,
+            syncSonarrTags: true,
+          },
         },
     // Tag configuration
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
@@ -317,6 +327,11 @@ export async function createConfig(
               config.plexLabelSync.removedLabelPrefix || 'pulsarr:removed',
             scheduleTime: config.plexLabelSync.scheduleTime,
             dayOfWeek: config.plexLabelSync.dayOfWeek || '*',
+            tagSync: config.plexLabelSync.tagSync || {
+              enabled: false,
+              syncRadarrTags: true,
+              syncSonarrTags: true,
+            },
           })
         : null,
       // Plex Session Monitoring

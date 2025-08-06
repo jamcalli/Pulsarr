@@ -6,7 +6,7 @@
  * for later execution upon admin approval.
  */
 
-import type { ContentItem } from './router.types.js'
+import type { ContentItem } from '@root/types/router.types.js'
 
 // Database row types
 export interface UserQuotaRow {
