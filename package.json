@@ -15,7 +15,7 @@
     "fix": "biome format --write . && biome lint --write .",
     "migrate": "tsx migrations/migrate.ts",
     "migrate:make": "knex migrate:make -x ts",
-    "migrate:rollback": "knex migrate:rollback --knexfile migrations/knexfile.ts",
+    "migrate:rollback": "tsx migrations/rollback.ts",
     "migrate:sqlite-to-postgres": "tsx migrations/scripts/sqlite-to-postgresql.ts",
     "migrate:postgres-setup": "tsx migrations/migrate.ts",
     "release:beta:develop": "git checkout develop && git pull origin develop && npm version prerelease --preid=beta && git push origin develop && git push origin --tags",

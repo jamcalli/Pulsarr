@@ -7,6 +7,7 @@ interface PendingLabelSyncRow {
   id: number
   watchlist_item_id: number
   content_title: string
+  webhook_tags: string
   retry_count: number
   last_retry_at: string | null
   created_at: string
@@ -20,10 +21,29 @@ export interface PendingLabelSync {
   id: number
   watchlist_item_id: number
   content_title: string
+  webhook_tags: string[]
   retry_count: number
   last_retry_at: string | null
   created_at: string
   expires_at: string
+}
+
+/**
+ * Pending label sync record with additional watchlist item data for processing
+ */
+export interface PendingLabelSyncWithPlexKeys {
+  id: number
+  watchlist_item_id: number
+  content_title: string
+  webhook_tags: string[]
+  retry_count: number
+  last_retry_at: string | null
+  created_at: string
+  expires_at: string
+  plex_key: string | null
+  user_id: number
+  guids: string[]
+  type: string
 }
 
 /**
@@ -42,6 +62,7 @@ export async function createPendingLabelSync(
   watchlistItemId: number,
   contentTitle: string,
   expiresInMinutes = 30,
+  webhookTags: string[] = [],
 ): Promise<number> {
   const expiresAt = new Date(
     Date.now() + expiresInMinutes * 60 * 1000,
@@ -51,6 +72,7 @@ export async function createPendingLabelSync(
     .insert({
       watchlist_item_id: watchlistItemId,
       content_title: contentTitle,
+      webhook_tags: JSON.stringify(webhookTags),
       retry_count: 0,
       last_retry_at: null,
       created_at: this.timestamp,
@@ -59,6 +81,7 @@ export async function createPendingLabelSync(
     .onConflict('watchlist_item_id')
     .merge({
       content_title: contentTitle,
+      webhook_tags: JSON.stringify(webhookTags),
       retry_count: 0,
       last_retry_at: null,
       expires_at: expiresAt,
@@ -91,6 +114,11 @@ export async function getPendingLabelSyncs(
     id: row.id,
     watchlist_item_id: row.watchlist_item_id,
     content_title: row.content_title,
+    webhook_tags: this.safeJsonParse<string[]>(
+      row.webhook_tags,
+      [],
+      'pending_label_syncs.webhook_tags',
+    ),
     retry_count: row.retry_count,
     last_retry_at: row.last_retry_at,
     created_at: row.created_at,
@@ -211,21 +239,7 @@ export async function getWatchlistItemWithPlexKey(
  */
 export async function getPendingLabelSyncsWithPlexKeys(
   this: DatabaseService,
-): Promise<
-  Array<{
-    id: number
-    watchlist_item_id: number
-    content_title: string
-    retry_count: number
-    last_retry_at: string | null
-    created_at: string
-    expires_at: string
-    plex_key: string | null
-    user_id: number
-    guids: string[]
-    type: string
-  }>
-> {
+): Promise<PendingLabelSyncWithPlexKeys[]> {
   const now = new Date().toISOString()
 
   const rows = await this.knex('pending_label_syncs')
@@ -248,6 +262,11 @@ export async function getPendingLabelSyncsWithPlexKeys(
     id: row.id,
     watchlist_item_id: row.watchlist_item_id,
     content_title: row.content_title,
+    webhook_tags: this.safeJsonParse<string[]>(
+      row.webhook_tags,
+      [],
+      'pending_label_syncs.webhook_tags',
+    ),
     retry_count: row.retry_count,
     last_retry_at: row.last_retry_at,
     created_at: row.created_at,
