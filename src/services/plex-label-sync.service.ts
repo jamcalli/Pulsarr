@@ -17,6 +17,7 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexServerService } from '@utils/plex-server.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexLabelTracking } from '@services/database/methods/plex-label-tracking.js'
+import type { PendingLabelSyncWithPlexKeys } from '@services/database/methods/plex-label-sync.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import type { WebhookPayload } from '@schemas/notifications/webhook.schema.js'
 import type {
@@ -782,11 +783,13 @@ export class PlexLabelSyncService {
             {
               itemId: item.id,
               title: item.title,
+              webhookTags: webhookTags.length,
             },
           )
           await this.queuePendingLabelSyncByWatchlistId(
             Number(item.id),
             item.title,
+            webhookTags,
           )
           continue
         }
@@ -2259,16 +2262,19 @@ export class PlexLabelSyncService {
    *
    * @param watchlistItemId - The watchlist item ID
    * @param title - The content title for human readability
+   * @param webhookTags - Optional webhook tags to store for later application
    */
   private async queuePendingLabelSyncByWatchlistId(
     watchlistItemId: number,
     title: string,
+    webhookTags: string[] = [],
   ): Promise<void> {
     try {
       await this.db.createPendingLabelSync(
         watchlistItemId,
         title,
         30, // 30 minute default expiration
+        webhookTags,
       )
 
       this.log.debug('Added watchlist item to pending label sync queue', {
@@ -2666,7 +2672,8 @@ export class PlexLabelSyncService {
 
     try {
       // Get pending syncs with their watchlist items and Plex keys
-      const pendingSyncs = await this.db.getPendingLabelSyncsWithPlexKeys()
+      const pendingSyncs: PendingLabelSyncWithPlexKeys[] =
+        await this.db.getPendingLabelSyncsWithPlexKeys()
 
       // Process silently - completion will be logged by the processor service if items were updated
 
@@ -2757,6 +2764,18 @@ export class PlexLabelSyncService {
               // Apply labels to all found items
               let allSuccessful = true
               for (const plexItem of plexItems) {
+                this.log.debug(
+                  'Applying labels to Plex item from pending sync',
+                  {
+                    watchlistItemId: pendingSync.watchlist_item_id,
+                    title: pendingSync.content_title,
+                    ratingKey: plexItem.ratingKey,
+                    plexTitle: plexItem.title,
+                    hasWebhookTags: pendingSync.webhook_tags.length > 0,
+                    webhookTagCount: pendingSync.webhook_tags.length,
+                  },
+                )
+
                 const success = await this.applyLabelsToSingleItem(
                   plexItem.ratingKey,
                   [
@@ -2766,6 +2785,8 @@ export class PlexLabelSyncService {
                       watchlist_id: pendingSync.watchlist_item_id,
                     },
                   ],
+                  pendingSync.webhook_tags,
+                  pendingSync.type || 'movie',
                 )
 
                 if (!success) {
