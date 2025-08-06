@@ -734,37 +734,42 @@ export class PlexLabelSyncService {
         instanceName: webhook.instanceName,
       })
 
-      // Extract content GUID from webhook
-      const contentGuid = this.extractContentGuidFromWebhook(webhook)
-      if (!contentGuid) {
+      // Extract content GUID and type from webhook
+      const contentData = this.extractContentGuidFromWebhook(webhook)
+      if (!contentData) {
         this.log.warn('Unable to extract content GUID from webhook', {
           webhook,
         })
         return false
       }
 
+      const { guids, contentType } = contentData
+
       // Extract tag data from webhook if tag sync is enabled
       const webhookTags = this.extractTagsFromWebhook(webhook)
 
       this.log.debug('Extracted content data from webhook', {
-        guid: contentGuid,
+        guids,
+        contentType,
         instanceName: webhook.instanceName,
         tags: webhookTags,
         tagSyncEnabled: this.config.tagSync.enabled,
       })
 
-      // Get watchlist items that match this GUID
-      const watchlistItems = await this.db.getWatchlistItemsByGuid(contentGuid)
+      // Get watchlist items that match this GUID (use first GUID for database lookup)
+      const watchlistItems = await this.db.getWatchlistItemsByGuid(guids[0])
       if (watchlistItems.length === 0) {
         this.log.debug('No users have this content in their watchlist yet', {
-          guid: contentGuid,
+          guids,
+          contentType,
           note: 'Content may be downloaded before appearing in watchlists - will retry when watchlist syncs',
         })
         return true
       }
 
       this.log.debug('Found watchlist items for webhook content', {
-        guid: contentGuid,
+        guids,
+        contentType,
         itemCount: watchlistItems.length,
         items: watchlistItems.map((item) => ({
           id: item.id,
@@ -802,7 +807,8 @@ export class PlexLabelSyncService {
 
       if (allSuccessful) {
         this.log.info('Webhook label sync completed successfully', {
-          guid: contentGuid,
+          guids,
+          contentType,
           itemCount: watchlistItems.length,
           labelsApplied: true,
         })
@@ -810,7 +816,8 @@ export class PlexLabelSyncService {
         this.log.info(
           'Webhook label sync completed with some items queued for retry',
           {
-            guid: contentGuid,
+            guids,
+            contentType,
             itemCount: watchlistItems.length,
             labelsApplied: false,
             note: 'Content not yet available in Plex, queued for pending sync',
@@ -1345,16 +1352,16 @@ export class PlexLabelSyncService {
         for (const tracking of currentTracking) {
           // Check each label in the tracking record
           for (const label of tracking.labels_applied) {
-            const trackingKey = `${tracking.content_key}:${tracking.user_id}:${tracking.plex_rating_key}:${label}`
+            const trackingKey = `${tracking.content_guids.join(',')}:${tracking.user_id}:${tracking.plex_rating_key}:${label}`
             if (!desiredTracking.has(trackingKey)) {
               await this.db.untrackPlexLabel(
-                tracking.content_key,
+                tracking.content_guids,
                 tracking.user_id,
                 tracking.plex_rating_key,
                 label,
               )
               this.log.debug('Removed obsolete tracking record', {
-                contentKey: tracking.content_key,
+                contentKey: tracking.content_guids.join(','),
                 userId: tracking.user_id,
                 ratingKey: tracking.plex_rating_key,
                 label: label,
@@ -1393,7 +1400,8 @@ export class PlexLabelSyncService {
           if (userLabelsForContent.length > 0) {
             try {
               await this.db.trackPlexLabels(
-                content.primaryGuid,
+                content.allGuids,
+                content.type as 'movie' | 'show',
                 user.user_id,
                 plexItem.ratingKey,
                 userLabelsForContent,
@@ -1994,13 +2002,17 @@ export class PlexLabelSyncService {
             const watchlistItem = await this.db.getWatchlistItemById(
               user.watchlist_id,
             )
-            const contentKey = watchlistItem
-              ? parseGuids(watchlistItem.guids)[0]
-              : ratingKey
+            const contentGuids = watchlistItem
+              ? parseGuids(watchlistItem.guids)
+              : [ratingKey]
 
-            await this.db.trackPlexLabels(contentKey, user.user_id, ratingKey, [
-              userLabel,
-            ])
+            await this.db.trackPlexLabels(
+              contentGuids,
+              'movie',
+              user.user_id,
+              ratingKey,
+              [userLabel],
+            )
             this.log.debug('Successfully tracked label in database', {
               watchlistId: user.watchlist_id,
               ratingKey,
@@ -2268,12 +2280,13 @@ export class PlexLabelSyncService {
             const watchlistItem = await this.db.getWatchlistItemById(
               user.watchlist_id,
             )
-            const contentKey = watchlistItem
-              ? parseGuids(watchlistItem.guids)[0]
-              : ratingKey
+            const contentGuids = watchlistItem
+              ? parseGuids(watchlistItem.guids)
+              : [ratingKey]
 
             await this.db.trackPlexLabels(
-              contentKey,
+              contentGuids,
+              'movie',
               user.user_id,
               ratingKey,
               combinedLabels,
@@ -2575,14 +2588,14 @@ export class PlexLabelSyncService {
   }
 
   /**
-   * Extracts content GUID from webhook payload
+   * Extracts content GUID array and type from webhook payload
    *
    * @param webhook - The webhook payload
-   * @returns The content GUID or null if not extractable
+   * @returns Object containing GUID array and content type, or null if not extractable
    */
   private extractContentGuidFromWebhook(
     webhook: WebhookPayload,
-  ): string | null {
+  ): { guids: string[]; contentType: 'movie' | 'show' } | null {
     try {
       if ('eventType' in webhook && webhook.eventType === 'Test') {
         return null
@@ -2590,12 +2603,18 @@ export class PlexLabelSyncService {
 
       if ('movie' in webhook) {
         // Radarr webhook
-        return `tmdb:${webhook.movie.tmdbId}`
+        return {
+          guids: [`tmdb:${webhook.movie.tmdbId}`],
+          contentType: 'movie',
+        }
       }
 
       if ('series' in webhook) {
         // Sonarr webhook
-        return `tvdb:${webhook.series.tvdbId}`
+        return {
+          guids: [`tvdb:${webhook.series.tvdbId}`],
+          contentType: 'show',
+        }
       }
 
       return null
@@ -2993,6 +3012,8 @@ export class PlexLabelSyncService {
       title?: string
       key: string
       user_id: number
+      guids: string[]
+      contentType: 'movie' | 'show'
     }>,
   ): Promise<void> {
     if (!this.config.enabled || watchlistItems.length === 0) {
@@ -3069,7 +3090,10 @@ export class PlexLabelSyncService {
           `Getting tracked labels for primary GUID: ${primaryGuid} (was looking for raw key: ${item.key}), user_id: ${item.user_id}`,
         )
 
-        const labels = await this.db.getTrackedLabelsForContent(primaryGuid)
+        const labels = await this.db.getTrackedLabelsForContent(
+          parsedGuids,
+          fullItem.type as 'movie' | 'show',
+        )
         this.log.debug(
           `Found ${labels.length} total tracking records for primary GUID: ${primaryGuid}`,
           {
@@ -3102,7 +3126,7 @@ export class PlexLabelSyncService {
       this.log.debug(`Found ${trackedLabels.length} tracked labels to remove`, {
         trackedLabels: trackedLabels.map((t) => ({
           id: t.id,
-          content_key: t.content_key,
+          content_guids: t.content_guids,
           user_id: t.user_id,
           plex_rating_key: t.plex_rating_key,
           labels_applied: t.labels_applied,
@@ -3113,12 +3137,13 @@ export class PlexLabelSyncService {
         this.log.debug(
           'No tracked labels found for cleanup, skipping Plex API calls',
         )
-        // Still need to cleanup tracking records using primary GUIDs
+        // Still need to cleanup tracking records using full GUID arrays
         for (const item of watchlistItems) {
-          const primaryGuid = itemGuidMap.get(item.id)
-          if (primaryGuid) {
-            await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
-          }
+          await this.db.cleanupUserContentTracking(
+            item.guids,
+            item.contentType,
+            item.user_id,
+          )
         }
         return
       }
@@ -3190,12 +3215,13 @@ export class PlexLabelSyncService {
         }
       }
 
-      // Clean up tracking records from database using primary GUIDs
+      // Clean up tracking records from database using full GUID arrays
       for (const item of watchlistItems) {
-        const primaryGuid = itemGuidMap.get(item.id)
-        if (primaryGuid) {
-          await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
-        }
+        await this.db.cleanupUserContentTracking(
+          item.guids,
+          item.contentType,
+          item.user_id,
+        )
       }
 
       const cleanupDuration = Date.now() - cleanupStartTime
@@ -3235,6 +3261,10 @@ export class PlexLabelSyncService {
   ): Promise<void> {
     const specialLabelStartTime = Date.now()
     const itemGuidMap = new Map<number, string>() // Map item.id -> primaryGuid
+    const itemDataMap = new Map<
+      number,
+      { guids: string[]; contentType: 'movie' | 'show' }
+    >() // Map item.id -> full data
 
     try {
       // Get all tracked labels for these watchlist items
@@ -3269,8 +3299,15 @@ export class PlexLabelSyncService {
 
         const primaryGuid = parsedGuids[0]
         itemGuidMap.set(item.id, primaryGuid)
+        itemDataMap.set(item.id, {
+          guids: parsedGuids,
+          contentType: fullItem.type === 'show' ? 'show' : 'movie',
+        })
 
-        const labels = await this.db.getTrackedLabelsForContent(primaryGuid)
+        const labels = await this.db.getTrackedLabelsForContent(
+          parsedGuids,
+          fullItem.type === 'show' ? 'show' : 'movie',
+        )
         // Filter to only this user's labels
         const userLabels = labels.filter(
           (label) => label.user_id === item.user_id,
@@ -3281,9 +3318,13 @@ export class PlexLabelSyncService {
       if (trackedLabels.length === 0) {
         // Clean up tracking records and return
         for (const item of watchlistItems) {
-          const primaryGuid = itemGuidMap.get(item.id)
-          if (primaryGuid) {
-            await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
+          const itemData = itemDataMap.get(item.id)
+          if (itemData) {
+            await this.db.cleanupUserContentTracking(
+              itemData.guids,
+              itemData.contentType,
+              item.user_id,
+            )
           }
         }
         return
@@ -3330,7 +3371,7 @@ export class PlexLabelSyncService {
                     trackedLabels.some(
                       (t) =>
                         t.plex_rating_key === ratingKey &&
-                        t.content_key === fullItem.key &&
+                        t.content_guids.includes(fullItem.key) &&
                         t.user_id === fullItem.user_id,
                     )
                   ) {
@@ -3381,9 +3422,13 @@ export class PlexLabelSyncService {
 
       // Clean up tracking records from database using primary GUIDs
       for (const item of watchlistItems) {
-        const primaryGuid = itemGuidMap.get(item.id)
-        if (primaryGuid) {
-          await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
+        const itemData = itemDataMap.get(item.id)
+        if (itemData) {
+          await this.db.cleanupUserContentTracking(
+            itemData.guids,
+            itemData.contentType,
+            item.user_id,
+          )
         }
       }
 
@@ -3407,9 +3452,13 @@ export class PlexLabelSyncService {
       for (const item of watchlistItems) {
         try {
           // Try to use the already mapped primary GUID first
-          const primaryGuid = itemGuidMap.get(item.id)
-          if (primaryGuid) {
-            await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
+          const itemData = itemDataMap.get(item.id)
+          if (itemData) {
+            await this.db.cleanupUserContentTracking(
+              itemData.guids,
+              itemData.contentType,
+              item.user_id,
+            )
           } else {
             // Fallback: fetch item and parse GUID if not already mapped
             const fullItem = await this.db.getWatchlistItemById(item.id)
@@ -3417,7 +3466,8 @@ export class PlexLabelSyncService {
               const parsedGuids = parseGuids(fullItem.guids)
               if (parsedGuids.length > 0) {
                 await this.db.cleanupUserContentTracking(
-                  parsedGuids[0],
+                  parsedGuids,
+                  fullItem.type === 'show' ? 'show' : 'movie',
                   item.user_id,
                 )
               }

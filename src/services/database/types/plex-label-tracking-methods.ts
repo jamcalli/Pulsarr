@@ -5,7 +5,8 @@ declare module '@services/database.service.js' {
     // PLEX LABEL TRACKING MANAGEMENT
     /**
      * Updates the tracking record with the complete set of labels for a content item
-     * @param contentKey - The TMDB/Plex content identifier
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+     * @param contentType - Type of content ('movie' or 'show')
      * @param userId - The ID of the user who has labels applied
      * @param plexRatingKey - The Plex rating key of the labeled content
      * @param labelsApplied - Array of all label names applied to this content
@@ -13,7 +14,8 @@ declare module '@services/database.service.js' {
      */
     trackPlexLabels(
       this: DatabaseService,
-      contentKey: string,
+      contentGuids: string[],
+      contentType: 'movie' | 'show',
       userId: number,
       plexRatingKey: string,
       labelsApplied: string[],
@@ -21,7 +23,7 @@ declare module '@services/database.service.js' {
 
     /**
      * Removes a tracking record for a specific Plex label and user/content combination
-     * @param contentKey - The TMDB/Plex content identifier
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
      * @param userId - The ID of the user
      * @param plexRatingKey - The Plex rating key
      * @param labelApplied - The Plex label name to untrack
@@ -29,7 +31,7 @@ declare module '@services/database.service.js' {
      */
     untrackPlexLabel(
       this: DatabaseService,
-      contentKey: string,
+      contentGuids: string[],
       userId: number,
       plexRatingKey: string,
       labelApplied: string,
@@ -46,24 +48,28 @@ declare module '@services/database.service.js' {
     ): Promise<PlexLabelTracking[]>
 
     /**
-     * Retrieves all tracked Plex labels for a specific content item
-     * @param contentKey - The TMDB/Plex content identifier
+     * Retrieves all tracked Plex labels for content matching the given GUID array
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+     * @param contentType - Type of content ('movie' or 'show') for disambiguation
      * @returns Promise resolving to an array of Plex label tracking records for the content
      */
     getTrackedLabelsForContent(
       this: DatabaseService,
-      contentKey: string,
+      contentGuids: string[],
+      contentType: 'movie' | 'show',
     ): Promise<PlexLabelTracking[]>
 
     /**
      * Removes all tracking records for a specific user and content combination
-     * @param contentKey - The TMDB/Plex content identifier
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+     * @param contentType - Type of content ('movie' or 'show') for disambiguation
      * @param userId - The ID of the user
      * @returns Promise resolving to the number of tracking records that were deleted
      */
     cleanupUserContentTracking(
       this: DatabaseService,
-      contentKey: string,
+      contentGuids: string[],
+      contentType: 'movie' | 'show',
       userId: number,
     ): Promise<number>
 
@@ -102,7 +108,8 @@ declare module '@services/database.service.js' {
 
     /**
      * Checks if a specific label is already tracked for a user/content/rating key combination
-     * @param contentKey - The TMDB/Plex content identifier
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+     * @param contentType - Type of content ('movie' or 'show') for disambiguation
      * @param userId - The ID of the user
      * @param plexRatingKey - The Plex rating key
      * @param labelApplied - The label to check
@@ -110,7 +117,8 @@ declare module '@services/database.service.js' {
      */
     isLabelTracked(
       this: DatabaseService,
-      contentKey: string,
+      contentGuids: string[],
+      contentType: 'movie' | 'show',
       userId: number,
       plexRatingKey: string,
       labelApplied: string,
