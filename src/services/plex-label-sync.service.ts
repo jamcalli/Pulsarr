@@ -18,142 +18,17 @@ import type { PlexServerService } from '@utils/plex-server.js'
 import type { DatabaseService } from './database.service.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import type { WebhookPayload } from '@schemas/notifications/webhook.schema.js'
-import type { RadarrMovie } from '@root/types/radarr.types.js'
-import type { SonarrSeries } from '@root/types/sonarr.types.js'
+import type {
+  SyncResult,
+  GroupedWatchlistContent,
+  ContentWithUsers,
+  PlexContentItems,
+  LabelReconciliationResult,
+  RadarrMovieWithTags,
+  SonarrSeriesWithTags,
+} from '@root/types/plex-label-sync.types.js'
 import pLimit from 'p-limit'
-import {
-  parseGuids,
-  hasMatchingGuids,
-  normalizeGuid,
-} from '@utils/guid-handler.js'
-
-/**
- * Represents a pending label sync item
- */
-interface PendingLabelSync {
-  id?: number
-  guid: string
-  content_title: string
-  retry_count: number
-  last_retry_at?: Date | null
-  created_at: Date
-  expires_at: Date
-}
-
-/**
- * Result object for sync operations
- */
-interface SyncResult {
-  processed: number
-  updated: number
-  failed: number
-  pending: number
-}
-
-/**
- * Watchlist content grouped by GUID
- */
-interface GroupedWatchlistContent {
-  guid: string
-  title: string
-  users: Array<{
-    user_id: number
-    username: string
-    watchlist_id: number
-  }>
-}
-
-/**
- * Content item with all associated users for content-centric processing
- */
-interface ContentWithUsers {
-  /** Primary GUID identifying this content */
-  primaryGuid: string
-  /** All GUIDs associated with this content */
-  allGuids: string[]
-  /** Content title for logging */
-  title: string
-  /** Content type (movie or show) */
-  type: string
-  /** Plex key if available */
-  plexKey: string | null
-  /** All users who have this content in their watchlist */
-  users: Array<{
-    user_id: number
-    username: string
-    watchlist_id: number
-  }>
-}
-
-/**
- * Plex items found for content with their metadata */
-interface PlexContentItems {
-  /** The content being processed */
-  content: ContentWithUsers
-  /** Plex items found for this content */
-  plexItems: Array<{ ratingKey: string; title: string }>
-}
-
-/**
- * Label reconciliation result for a single content item */
-interface LabelReconciliationResult {
-  /** Whether the operation was successful */
-  success: boolean
-  /** Number of labels added */
-  labelsAdded: number
-  /** Number of labels removed */
-  labelsRemoved: number
-  /** Error message if failed */
-  error?: string
-}
-
-/**
- * Radarr movie data with tags for tag sync
- */
-interface RadarrMovieWithTags {
-  instanceId: number
-  instanceName: string
-  movie: RadarrMovie
-  tags: string[]
-}
-
-/**
- * Sonarr series data with tags for tag sync
- */
-interface SonarrSeriesWithTags {
-  instanceId: number
-  instanceName: string
-  series: SonarrSeries
-  tags: string[]
-  rootFolder?: string
-}
-
-/**
- * Plex API response interfaces for type safety
- */
-interface PlexSection {
-  key: string
-  type: string
-  title: string
-}
-
-interface PlexSectionsResponse {
-  MediaContainer: {
-    Directory?: PlexSection[]
-  }
-}
-
-interface PlexMetadataItem {
-  ratingKey: string
-  type: string
-  title: string
-}
-
-interface PlexItemsResponse {
-  MediaContainer: {
-    Metadata?: PlexMetadataItem[]
-  }
-}
+import { parseGuids } from '@utils/guid-handler.js'
 
 /**
  * Service to manage label synchronization between Pulsarr and Plex
@@ -237,6 +112,19 @@ export class PlexLabelSyncService {
   private isUserSpecificLabel(labelName: string): boolean {
     const userPattern = new RegExp(`^${this.config.labelPrefix}:user:`, 'i')
     return userPattern.test(labelName)
+  }
+
+  /**
+   * Checks if a label is a tag label managed by this app (format: prefix:tagname)
+   * Tag labels are app labels that are NOT user-specific labels
+   *
+   * @param labelName - The label to check
+   * @returns True if this is an app-managed tag label
+   */
+  private isAppTagLabel(labelName: string): boolean {
+    return (
+      this.isAppUserLabel(labelName) && !this.isUserSpecificLabel(labelName)
+    )
   }
 
   /**
@@ -853,9 +741,14 @@ export class PlexLabelSyncService {
         return false
       }
 
-      this.log.debug('Extracted content GUID from webhook', {
+      // Extract tag data from webhook if tag sync is enabled
+      const webhookTags = this.extractTagsFromWebhook(webhook)
+
+      this.log.debug('Extracted content data from webhook', {
         guid: contentGuid,
         instanceName: webhook.instanceName,
+        tags: webhookTags,
+        tagSyncEnabled: this.config.tagSync.enabled,
       })
 
       // Get watchlist items that match this GUID
@@ -897,7 +790,7 @@ export class PlexLabelSyncService {
           continue
         }
 
-        const success = await this.syncLabelForWatchlistItem(item)
+        const success = await this.syncLabelForWatchlistItem(item, webhookTags)
         if (!success) {
           allSuccessful = false
         }
@@ -949,10 +842,8 @@ export class PlexLabelSyncService {
 
     // Get all unique user IDs to fetch usernames
     const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
-    const users = await this.db
-      .knex('users')
-      .whereIn('id', userIds)
-      .select('id', 'name')
+    const allUsers = await this.db.getAllUsers()
+    const users = allUsers.filter((user) => userIds.includes(user.id))
 
     const userMap = new Map(
       users.map((user) => [user.id, user.name || `user_${user.id}`]),
@@ -1941,7 +1832,7 @@ export class PlexLabelSyncService {
 
     // Apply labels to each item
     for (const ratingKey of keys) {
-      const success = await this.applyUserLabelsToSingleItem(ratingKey, users)
+      const success = await this.applyLabelsToSingleItem(ratingKey, users)
       if (!success) {
         allSuccessful = false
       }
@@ -2117,6 +2008,267 @@ export class PlexLabelSyncService {
   }
 
   /**
+   * Applies both user and webhook tag labels to a single Plex item in one API call
+   *
+   * @param ratingKey - The Plex rating key of the item
+   * @param users - Array of users who have this content with watchlist IDs
+   * @param webhookTags - Optional array of tags from webhook payload
+   * @param contentType - The content type (movie/show) for proper instance checking
+   * @returns Promise resolving to true if successful, false otherwise
+   */
+  private async applyLabelsToSingleItem(
+    ratingKey: string,
+    users: Array<{ user_id: number; username: string; watchlist_id: number }>,
+    webhookTags?: string[],
+    contentType?: string,
+  ): Promise<boolean> {
+    try {
+      // Get current item metadata to preserve existing labels
+      let existingLabels: string[] = []
+      const metadata = await this.plexServer.getMetadata(ratingKey)
+      if (metadata?.Label) {
+        existingLabels = metadata.Label.map((label) => label.tag)
+      }
+
+      // Generate user labels based on configured prefix
+      const userLabels = users.map(
+        (user) => `${this.config.labelPrefix}:${user.username}`,
+      )
+
+      // Process webhook tag labels if available and tag sync is enabled
+      let tagLabels: string[] = []
+      if (
+        this.config.tagSync.enabled &&
+        webhookTags &&
+        webhookTags.length > 0
+      ) {
+        const isMovie = contentType === 'movie'
+        const isShow = contentType === 'show'
+
+        // Check if tag sync is enabled for this content type
+        const shouldSyncTags =
+          (isMovie && this.config.tagSync.syncRadarrTags) ||
+          (isShow && this.config.tagSync.syncSonarrTags) ||
+          (!isMovie && !isShow) // Default to true if content type unclear
+
+        if (shouldSyncTags) {
+          // Filter out tags managed by user tagging system
+          const filteredTags = webhookTags.filter(
+            (tag) => !this.isUserTaggingSystemTag(tag),
+          )
+
+          // Create tag labels with app prefix
+          tagLabels = filteredTags.map(
+            (tag) => `${this.config.labelPrefix}:${tag}`,
+          )
+
+          this.log.debug('Processed webhook tags for label sync', {
+            ratingKey,
+            contentType,
+            originalTags: webhookTags,
+            filteredTags,
+            tagLabels,
+          })
+        } else {
+          this.log.debug(
+            'Tag sync disabled for content type, skipping webhook tags',
+            {
+              ratingKey,
+              contentType,
+              tagSyncEnabled: this.config.tagSync.enabled,
+              syncRadarrTags: this.config.tagSync.syncRadarrTags,
+              syncSonarrTags: this.config.tagSync.syncSonarrTags,
+            },
+          )
+        }
+      }
+
+      // Clean up any existing "removed" labels when users are re-adding content
+      const removedLabels = existingLabels.filter((label) =>
+        label.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase()),
+      )
+
+      let cleanedExistingLabels = existingLabels
+      if (userLabels.length > 0 && removedLabels.length > 0) {
+        // Remove any "removed" labels since we're adding users back
+        cleanedExistingLabels = existingLabels.filter(
+          (label) => !removedLabels.includes(label),
+        )
+        this.log.debug('Removing obsolete "removed" labels', {
+          ratingKey,
+          removedLabels,
+        })
+      }
+
+      // Handle labels based on configured cleanup mode
+      let finalLabels: string[]
+
+      if (this.removedLabelMode === 'keep') {
+        // Simply add any missing labels (users + tags), don't remove any
+        finalLabels = [
+          ...new Set([...cleanedExistingLabels, ...userLabels, ...tagLabels]),
+        ]
+
+        this.log.debug('Using "keep" mode - preserving all existing labels', {
+          ratingKey,
+          mode: 'keep',
+          existingCount: cleanedExistingLabels.length,
+          addingUserCount: userLabels.length,
+          addingTagCount: tagLabels.length,
+        })
+      } else if (this.removedLabelMode === 'special-label') {
+        // Find which labels are non-user, non-tag labels that should be preserved
+        const nonAppLabels = cleanedExistingLabels.filter(
+          (label) => !this.isAppUserLabel(label) && !this.isAppTagLabel(label),
+        )
+
+        // Find user labels that exist but are not in the current user list
+        const existingUserLabels = cleanedExistingLabels.filter((label) =>
+          this.isAppUserLabel(label),
+        )
+        const removedUserLabels = existingUserLabels.filter(
+          (label) => !userLabels.includes(label),
+        )
+
+        // If we have labels being removed, add special "removed" label
+        if (removedUserLabels.length > 0) {
+          const itemName = metadata?.title || 'Unknown'
+          const removedLabel = await this.getRemovedLabel(itemName)
+          finalLabels = [
+            ...new Set([
+              ...nonAppLabels,
+              ...userLabels,
+              ...tagLabels,
+              removedLabel,
+            ]),
+          ]
+
+          this.log.debug('Using "special-label" mode - adding removed label', {
+            ratingKey,
+            mode: 'special-label',
+            removedUserLabels,
+            removedLabel,
+          })
+        } else {
+          finalLabels = [
+            ...new Set([...nonAppLabels, ...userLabels, ...tagLabels]),
+          ]
+
+          this.log.debug('Using "special-label" mode - no users removed', {
+            ratingKey,
+            mode: 'special-label',
+          })
+        }
+      } else {
+        // Default 'remove' mode - filter out existing app labels and add current ones
+        const nonAppLabels = cleanedExistingLabels.filter(
+          (label) => !this.isAppUserLabel(label) && !this.isAppTagLabel(label),
+        )
+        finalLabels = [
+          ...new Set([...nonAppLabels, ...userLabels, ...tagLabels]),
+        ]
+
+        this.log.debug('Using "remove" mode - replacing app labels', {
+          ratingKey,
+          mode: 'remove',
+          preservedCount: nonAppLabels.length,
+          userLabelCount: userLabels.length,
+          tagLabelCount: tagLabels.length,
+        })
+      }
+
+      this.log.debug('Applying combined labels to Plex item', {
+        ratingKey,
+        existingLabels,
+        userLabels,
+        tagLabels,
+        finalLabels,
+        mode: this.removedLabelMode,
+        hasWebhookTags: tagLabels.length > 0,
+      })
+
+      // Update the labels in Plex with single API call
+      const success = await this.plexServer.updateLabels(ratingKey, finalLabels)
+
+      if (success) {
+        this.log.debug(
+          `Successfully updated combined labels for item ${ratingKey}`,
+          {
+            totalLabels: finalLabels.length,
+            userCount: users.length,
+            tagCount: tagLabels.length,
+          },
+        )
+
+        // Track each applied user label in the database for cleanup purposes
+        let trackingErrors = 0
+        for (const user of users) {
+          const userLabel = `${this.config.labelPrefix}:${user.username}`
+          try {
+            await this.db.trackPlexLabels(user.watchlist_id, ratingKey, [
+              userLabel,
+            ])
+            this.log.debug('Successfully tracked user label in database', {
+              watchlistId: user.watchlist_id,
+              ratingKey,
+              label: userLabel,
+            })
+          } catch (error) {
+            this.log.error(
+              `Failed to track user label in database for watchlist ${user.watchlist_id}:`,
+              error,
+            )
+            trackingErrors++
+          }
+        }
+
+        // Track applied tag labels if any
+        if (tagLabels.length > 0) {
+          try {
+            // Use a placeholder watchlist_id for content-level tag labels
+            await this.db.trackPlexLabels(-1, ratingKey, tagLabels)
+            this.log.debug(
+              'Successfully tracked webhook tag labels in database',
+              {
+                ratingKey,
+                tagLabels,
+              },
+            )
+          } catch (error) {
+            this.log.warn(
+              'Failed to track webhook tag labels in database:',
+              error,
+            )
+            trackingErrors++
+          }
+        }
+
+        if (trackingErrors > 0) {
+          this.log.warn(
+            `Labels applied to Plex but ${trackingErrors} tracking records failed to save`,
+            {
+              ratingKey,
+              successfulTracks:
+                users.length + (tagLabels.length > 0 ? 1 : 0) - trackingErrors,
+              failedTracks: trackingErrors,
+            },
+          )
+        }
+      } else {
+        this.log.warn(`Failed to update combined labels for item ${ratingKey}`)
+      }
+
+      return success
+    } catch (error) {
+      this.log.error(
+        `Error applying combined labels to item ${ratingKey}:`,
+        error,
+      )
+      return false
+    }
+  }
+
+  /**
    * Adds watchlist item to the pending sync queue for later processing
    *
    * @param watchlistItemId - The watchlist item ID
@@ -2146,15 +2298,19 @@ export class PlexLabelSyncService {
    * Syncs labels for a single watchlist item by resolving GUID to rating key
    *
    * @param watchlistItem - The watchlist item with GUID part in key field
+   * @param webhookTags - Optional tags from webhook for immediate tag sync
    * @returns Promise resolving to true if successful, false otherwise
    */
-  private async syncLabelForWatchlistItem(watchlistItem: {
-    id: string | number
-    title: string
-    key: string | null
-    user_id: number
-    type?: string
-  }): Promise<boolean> {
+  private async syncLabelForWatchlistItem(
+    watchlistItem: {
+      id: string | number
+      title: string
+      key: string | null
+      user_id: number
+      type?: string
+    },
+    webhookTags?: string[],
+  ): Promise<boolean> {
     try {
       if (!watchlistItem.key) {
         this.log.warn('Watchlist item missing Plex key', {
@@ -2227,14 +2383,17 @@ export class PlexLabelSyncService {
       // Apply labels to all found items (handles multiple versions)
       let allSuccessful = true
       for (const plexItem of plexItems) {
-        this.log.debug('Applying label to Plex item', {
+        this.log.debug('Applying labels to Plex item', {
           itemId: watchlistItem.id,
           title: watchlistItem.title,
           ratingKey: plexItem.ratingKey,
           plexTitle: plexItem.title,
+          hasWebhookTags: webhookTags && webhookTags.length > 0,
+          webhookTagCount: webhookTags?.length || 0,
         })
 
-        const success = await this.applyUserLabelsToSingleItem(
+        // Apply combined user and webhook tag labels in a single API call
+        const success = await this.applyLabelsToSingleItem(
           plexItem.ratingKey,
           [
             {
@@ -2243,6 +2402,8 @@ export class PlexLabelSyncService {
               watchlist_id: Number(watchlistItem.id),
             },
           ],
+          webhookTags,
+          watchlistItem.type || 'movie',
         )
 
         if (!success) {
@@ -2333,6 +2494,35 @@ export class PlexLabelSyncService {
     }
 
     return Array.from(guidMap.values())
+  }
+
+  /**
+   * Extracts tags from webhook payload
+   *
+   * @param webhook - The webhook payload
+   * @returns Array of tags from the webhook, or empty array if none available
+   */
+  private extractTagsFromWebhook(webhook: WebhookPayload): string[] {
+    try {
+      if ('eventType' in webhook && webhook.eventType === 'Test') {
+        return []
+      }
+
+      if ('movie' in webhook && webhook.movie.tags) {
+        // Radarr webhook
+        return webhook.movie.tags
+      }
+
+      if ('series' in webhook && webhook.series.tags) {
+        // Sonarr webhook
+        return webhook.series.tags
+      }
+
+      return []
+    } catch (error) {
+      this.log.error('Error extracting tags from webhook:', error)
+      return []
+    }
   }
 
   /**
@@ -2492,10 +2682,7 @@ export class PlexLabelSyncService {
       // Get pending syncs with their watchlist items and Plex keys
       const pendingSyncs = await this.db.getPendingLabelSyncsWithPlexKeys()
 
-      // Only log if there are pending syncs to process
-      if (pendingSyncs.length > 0) {
-        this.log.info(`Processing ${pendingSyncs.length} pending label syncs`)
-      }
+      // Process silently - completion will be logged by the processor service if items were updated
 
       // Process pending syncs in parallel with configurable concurrency limit
       const concurrencyLimit = this.config.concurrencyLimit || 5
@@ -2584,7 +2771,7 @@ export class PlexLabelSyncService {
               // Apply labels to all found items
               let allSuccessful = true
               for (const plexItem of plexItems) {
-                const success = await this.applyUserLabelsToSingleItem(
+                const success = await this.applyLabelsToSingleItem(
                   plexItem.ratingKey,
                   [
                     {
@@ -2657,10 +2844,7 @@ export class PlexLabelSyncService {
         this.log.info(`Cleaned up ${expiredCount} expired pending syncs`)
       }
 
-      // Only log completion if we actually processed something
-      if (result.processed > 0) {
-        this.log.info('Completed processing pending label syncs', result)
-      }
+      // Completion will be logged by the processor service with more details
       return result
     } catch (error) {
       this.log.error('Error processing pending label syncs:', error)
@@ -2744,15 +2928,25 @@ export class PlexLabelSyncService {
         Array.from(labelsByRatingKey.entries()).map(([ratingKey, labels]) =>
           limit(async () => {
             try {
-              await this.plexServer.removeLabels(ratingKey, labels)
-              this.log.debug(
-                `Removed ${labels.length} labels from Plex content`,
-                {
-                  ratingKey,
-                  labels,
-                },
+              const success = await this.plexServer.removeSpecificLabels(
+                ratingKey,
+                labels,
               )
-              return labels.length
+              if (success) {
+                this.log.debug(
+                  `Removed ${labels.length} labels from Plex content`,
+                  {
+                    ratingKey,
+                    labels,
+                  },
+                )
+                return labels.length
+              }
+              this.log.warn(
+                `Failed to remove labels from Plex content ${ratingKey}`,
+                { labels },
+              )
+              return 0
             } catch (error) {
               this.log.warn(
                 `Failed to remove labels from Plex content ${ratingKey}:`,
@@ -2874,10 +3068,13 @@ export class PlexLabelSyncService {
                 { currentLabels, labelsToRemove: labels },
               )
 
-              // If we have current labels, filter out the ones we want to remove
+              // If we have current labels, filter out the ones we want to remove (case-insensitive)
               if (currentLabels.length > 0) {
+                const labelsToRemoveLower = labels.map((label) =>
+                  label.toLowerCase(),
+                )
                 const filteredLabels = currentLabels.filter(
-                  (label) => !labels.includes(label),
+                  (label) => !labelsToRemoveLower.includes(label.toLowerCase()),
                 )
 
                 this.log.debug(
@@ -2921,13 +3118,13 @@ export class PlexLabelSyncService {
                 }
               } else {
                 // No current labels found via API - this could be the metadata API issue
-                // Use the removeLabels method which will handle this case better
+                // Use the removeSpecificLabels method which will handle this case better
                 this.log.warn(
-                  `No current labels found via API for rating key ${ratingKey}, but tracking table indicates ${labels.length} labels should exist. Attempting removal using removeLabels method.`,
+                  `No current labels found via API for rating key ${ratingKey}, but tracking table indicates ${labels.length} labels should exist. Attempting removal using removeSpecificLabels method.`,
                   { trackedLabels: labels },
                 )
 
-                const success = await this.plexServer.removeLabels(
+                const success = await this.plexServer.removeSpecificLabels(
                   ratingKey,
                   labels,
                 )

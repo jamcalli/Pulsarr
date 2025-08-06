@@ -2,16 +2,7 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { DatabaseService } from './database.service.js'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import type { Config } from '@root/types/config.types.js'
-
-/**
- * Configuration for pending label sync processing
- */
-interface PendingLabelSyncConfig {
-  retryInterval: number // Process pending syncs every N seconds
-  maxAge: number // Keep pending syncs for max N minutes
-  cleanupInterval: number // Clean up expired syncs every N seconds
-  concurrencyLimit: number // Maximum number of concurrent sync operations
-}
+import type { PendingLabelSyncConfig } from '@root/types/pending-label-sync-processor.types.js'
 
 /**
  * Service to handle label syncs that couldn't be processed immediately.
@@ -57,7 +48,7 @@ export class PendingLabelSyncProcessorService {
   ) {
     this._config = {
       retryInterval: 30, // Default retry interval - not configurable
-      maxAge: 30, // Default max age - not configurable
+      maxAge: 10, // Default max age - not configurable
       cleanupInterval: 60, // Clean up expired syncs every minute - not configurable
       concurrencyLimit: config.plexLabelSync?.concurrencyLimit ?? 5, // Use config value
     }
