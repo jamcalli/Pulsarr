@@ -1,6 +1,7 @@
 import type {
   WatchlistItemUpdate,
   WatchlistStatus,
+  DatabaseWatchlistItem,
 } from '@root/types/watchlist-status.types.js'
 import type {
   TokenWatchlistItem,
@@ -68,7 +69,7 @@ declare module '@services/database.service.js' {
     getWatchlistItemsByKeys(
       this: DatabaseService,
       keys: string[],
-    ): Promise<WatchlistItem[]>
+    ): Promise<(WatchlistItem & { id: number })[]>
 
     /**
      * Bulk updates multiple watchlist items

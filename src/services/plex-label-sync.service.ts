@@ -1365,6 +1365,17 @@ export class PlexLabelSyncService {
         for (const user of content.users) {
           const userLabel = `${this.config.labelPrefix}:${user.username}`
 
+          // Validate user data before processing
+          if (!user.watchlist_id || typeof user.watchlist_id !== 'number') {
+            this.log.warn('Invalid watchlist_id for user, skipping tracking', {
+              userId: user.user_id,
+              username: user.username,
+              watchlistId: user.watchlist_id,
+              ratingKey: plexItem.ratingKey,
+            })
+            continue
+          }
+
           // Build complete label array for this user (user label + all tag labels)
           const userLabelsForContent: string[] = []
 
@@ -1392,10 +1403,13 @@ export class PlexLabelSyncService {
               })
             } catch (error) {
               this.log.error('Failed to track labels in database', {
+                userId: user.user_id,
+                username: user.username,
                 watchlistId: user.watchlist_id,
                 ratingKey: plexItem.ratingKey,
                 labels: userLabelsForContent,
-                error,
+                labelCount: userLabelsForContent.length,
+                error: error instanceof Error ? error.message : String(error),
               })
             }
           }
@@ -2108,9 +2122,29 @@ export class PlexLabelSyncService {
       let finalLabels: string[]
 
       if (this.removedLabelMode === 'keep') {
-        // Simply add any missing labels (users + tags), don't remove any
+        // Get all tracked labels for this rating key from the tracking table
+        const trackedLabels =
+          await this.db.getTrackedLabelsForRatingKey(ratingKey)
+        const allTrackedLabels = new Set<string>()
+
+        // Collect all labels from all tracking records
+        for (const tracking of trackedLabels) {
+          for (const label of tracking.labels_applied) {
+            allTrackedLabels.add(label)
+          }
+        }
+
+        // Combine tracked labels with new user/tag labels
         finalLabels = [
-          ...new Set([...cleanedExistingLabels, ...userLabels, ...tagLabels]),
+          ...new Set([
+            ...Array.from(allTrackedLabels),
+            ...userLabels,
+            ...tagLabels,
+            // Also preserve any non-app labels from Plex
+            ...cleanedExistingLabels.filter(
+              (label) => !this.isAppUserLabel(label),
+            ),
+          ]),
         ]
 
         this.log.debug('Using "keep" mode - preserving all existing labels', {
@@ -2121,48 +2155,55 @@ export class PlexLabelSyncService {
           addingTagCount: tagLabels.length,
         })
       } else if (this.removedLabelMode === 'special-label') {
+        // Get all tracked labels for this rating key from the tracking table
+        const trackedLabels =
+          await this.db.getTrackedLabelsForRatingKey(ratingKey)
+        const allTrackedUserLabels = new Set<string>()
+
+        // Collect all tracked user labels from tracking records
+        for (const tracking of trackedLabels) {
+          for (const label of tracking.labels_applied) {
+            if (this.isAppUserLabel(label)) {
+              allTrackedUserLabels.add(label)
+            }
+          }
+        }
+
         // Find which labels are non-user, non-tag labels that should be preserved
         const nonAppLabels = cleanedExistingLabels.filter(
           (label) => !this.isAppUserLabel(label) && !this.isAppTagLabel(label),
         )
 
-        // Find user labels that exist but are not in the current user list
-        const existingUserLabels = cleanedExistingLabels.filter((label) =>
-          this.isAppUserLabel(label),
-        )
-        const removedUserLabels = existingUserLabels.filter(
-          (label) => !userLabels.includes(label),
+        // In special-label mode, preserve all tracked user labels and add new ones
+        // Remove any existing "removed" labels since someone is adding content
+        const existingRemovedLabels = cleanedExistingLabels.filter((label) =>
+          label.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase()),
         )
 
-        // If we have labels being removed, add special "removed" label
-        if (removedUserLabels.length > 0) {
-          const itemName = metadata?.title || 'Unknown'
-          const removedLabel = await this.getRemovedLabel(itemName)
-          finalLabels = [
-            ...new Set([
-              ...nonAppLabels,
-              ...userLabels,
-              ...tagLabels,
-              removedLabel,
-            ]),
-          ]
+        finalLabels = [
+          ...new Set([
+            ...nonAppLabels.filter(
+              (label) =>
+                !label
+                  .toLowerCase()
+                  .startsWith(this.removedLabelPrefix.toLowerCase()),
+            ),
+            ...Array.from(allTrackedUserLabels),
+            ...userLabels,
+            ...tagLabels,
+          ]),
+        ]
 
-          this.log.debug('Using "special-label" mode - adding removed label', {
+        this.log.debug(
+          'Using "special-label" mode - preserving tracked labels',
+          {
             ratingKey,
             mode: 'special-label',
-            removedUserLabels,
-            removedLabel,
-          })
-        } else {
-          finalLabels = [
-            ...new Set([...nonAppLabels, ...userLabels, ...tagLabels]),
-          ]
-
-          this.log.debug('Using "special-label" mode - no users removed', {
-            ratingKey,
-            mode: 'special-label',
-          })
-        }
+            allTrackedUserLabels: Array.from(allTrackedUserLabels),
+            removedExistingRemovedLabels: existingRemovedLabels,
+            addingUserLabels: userLabels,
+          },
+        )
       } else {
         // Default 'remove' mode - filter out existing app labels and add current ones
         const nonAppLabels = cleanedExistingLabels.filter(
@@ -2264,7 +2305,7 @@ export class PlexLabelSyncService {
    * @param title - The content title for human readability
    * @param webhookTags - Optional webhook tags to store for later application
    */
-  private async queuePendingLabelSyncByWatchlistId(
+  async queuePendingLabelSyncByWatchlistId(
     watchlistItemId: number,
     title: string,
     webhookTags: string[] = [],
@@ -2276,11 +2317,6 @@ export class PlexLabelSyncService {
         30, // 30 minute default expiration
         webhookTags,
       )
-
-      this.log.debug('Added watchlist item to pending label sync queue', {
-        watchlistItemId,
-        title,
-      })
     } catch (error) {
       this.log.error('Error queuing pending label sync:', error)
     }
@@ -2367,6 +2403,7 @@ export class PlexLabelSyncService {
         await this.queuePendingLabelSyncByWatchlistId(
           Number(watchlistItem.id),
           watchlistItem.title,
+          webhookTags || [],
         )
 
         return false
@@ -2761,30 +2798,78 @@ export class PlexLabelSyncService {
                 return syncResult
               }
 
-              // Apply labels to all found items
+              // Use tracking table as source of truth for all users who should have labels
+              // This ensures consistency with "keep" and "special-label" removal modes
+              const primaryRatingKey = plexItems[0].ratingKey
+
+              // Get all tracked labels for this content from the tracking table
+              const trackedLabels =
+                await this.db.getTrackedLabelsForRatingKey(primaryRatingKey)
+
+              // Build user list from tracking records (existing labels)
+              const trackedUsers = new Map<
+                number,
+                { user_id: number; username: string; watchlist_id: number }
+              >()
+              const allUsers = await this.db.getAllUsers()
+              const userMap = new Map(allUsers.map((user) => [user.id, user]))
+
+              // Add users from existing tracking records
+              for (const tracking of trackedLabels) {
+                if (!trackedUsers.has(tracking.watchlist_id)) {
+                  // Get watchlist item to find user ID
+                  const watchlistItem = await this.db
+                    .knex('watchlist_items')
+                    .where('id', tracking.watchlist_id)
+                    .select('user_id')
+                    .first()
+
+                  if (watchlistItem) {
+                    const user = userMap.get(watchlistItem.user_id)
+                    if (user) {
+                      trackedUsers.set(tracking.watchlist_id, {
+                        user_id: user.id,
+                        username: user.name || `user_${user.id}`,
+                        watchlist_id: tracking.watchlist_id,
+                      })
+                    }
+                  }
+                }
+              }
+
+              // Add the new user from the pending sync if not already tracked
+              if (!trackedUsers.has(pendingSync.watchlist_item_id)) {
+                const newUser = userMap.get(pendingSync.user_id)
+                if (newUser) {
+                  trackedUsers.set(pendingSync.watchlist_item_id, {
+                    user_id: newUser.id,
+                    username: newUser.name || `user_${newUser.id}`,
+                    watchlist_id: pendingSync.watchlist_item_id,
+                  })
+                }
+              }
+
+              const allUsersForContent = Array.from(trackedUsers.values())
+
+              this.log.debug(
+                'Found all users for pending sync using tracking table',
+                {
+                  ratingKey: primaryRatingKey,
+                  contentKey: pendingSync.plex_key,
+                  title: pendingSync.content_title,
+                  existingTrackedLabels: trackedLabels.length,
+                  totalUsers: allUsersForContent.length,
+                  usernames: allUsersForContent.map((u) => u.username),
+                  approach: 'tracking-table-based',
+                },
+              )
+
+              // Apply labels to all found items for ALL users (content-centric approach)
               let allSuccessful = true
               for (const plexItem of plexItems) {
-                this.log.debug(
-                  'Applying labels to Plex item from pending sync',
-                  {
-                    watchlistItemId: pendingSync.watchlist_item_id,
-                    title: pendingSync.content_title,
-                    ratingKey: plexItem.ratingKey,
-                    plexTitle: plexItem.title,
-                    hasWebhookTags: pendingSync.webhook_tags.length > 0,
-                    webhookTagCount: pendingSync.webhook_tags.length,
-                  },
-                )
-
                 const success = await this.applyLabelsToSingleItem(
                   plexItem.ratingKey,
-                  [
-                    {
-                      user_id: pendingSync.user_id,
-                      username,
-                      watchlist_id: pendingSync.watchlist_item_id,
-                    },
-                  ],
+                  allUsersForContent, // Pass ALL users instead of just one
                   pendingSync.webhook_tags,
                   pendingSync.type || 'movie',
                 )
@@ -2901,15 +2986,13 @@ export class PlexLabelSyncService {
     // Check the removed label mode configuration
     if (this.removedLabelMode === 'keep') {
       this.log.debug(
-        'Label removal mode is set to "keep", skipping label cleanup for deleted watchlist items',
+        'Label removal mode is set to "keep", preserving both labels and tracking records for deleted watchlist items',
         {
           itemCount: watchlistItems.length,
         },
       )
-      // Still clean up tracking records even if we keep the labels
-      for (const item of watchlistItems) {
-        await this.db.cleanupWatchlistTracking(item.id)
-      }
+      // In "keep" mode, preserve both labels in Plex AND tracking records in database
+      // This maintains the tracking table as the source of truth and enables orphaned cleanup
       return
     }
 

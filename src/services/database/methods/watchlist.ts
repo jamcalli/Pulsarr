@@ -3,7 +3,10 @@ import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
+import type {
+  WatchlistItemUpdate,
+  DatabaseWatchlistItem,
+} from '@root/types/watchlist-status.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 
 /**
@@ -260,7 +263,7 @@ export async function getBulkWatchlistItems(
 export async function getWatchlistItemsByKeys(
   this: DatabaseService,
   keys: string[],
-): Promise<WatchlistItem[]> {
+): Promise<(WatchlistItem & { id: number })[]> {
   if (keys.length === 0) {
     return []
   }
@@ -276,6 +279,8 @@ export async function getWatchlistItemsByKeys(
 
   return items.map((item) => ({
     ...item,
+    thumb: item.thumb || undefined,
+    added: item.added || undefined,
     guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
     genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
   }))
