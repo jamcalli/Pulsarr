@@ -1990,12 +1990,17 @@ export class PlexLabelSyncService {
         for (const user of users) {
           const userLabel = `${this.config.labelPrefix}:${user.username}`
           try {
-            await this.db.trackPlexLabels(
-              'unknown-content',
-              user.user_id,
-              ratingKey,
-              [userLabel],
+            // Get the content key from the watchlist item for proper tracking
+            const watchlistItem = await this.db.getWatchlistItemById(
+              user.watchlist_id,
             )
+            const contentKey = watchlistItem
+              ? parseGuids(watchlistItem.guids)[0]
+              : ratingKey
+
+            await this.db.trackPlexLabels(contentKey, user.user_id, ratingKey, [
+              userLabel,
+            ])
             this.log.debug('Successfully tracked label in database', {
               watchlistId: user.watchlist_id,
               ratingKey,
@@ -2259,8 +2264,16 @@ export class PlexLabelSyncService {
           const combinedLabels = [userLabel, ...tagLabels]
 
           try {
+            // Get the content key from the watchlist item for proper tracking
+            const watchlistItem = await this.db.getWatchlistItemById(
+              user.watchlist_id,
+            )
+            const contentKey = watchlistItem
+              ? parseGuids(watchlistItem.guids)[0]
+              : ratingKey
+
             await this.db.trackPlexLabels(
-              'unknown-content',
+              contentKey,
               user.user_id,
               ratingKey,
               combinedLabels,
@@ -3010,6 +3023,7 @@ export class PlexLabelSyncService {
       return
     }
 
+    const cleanupStartTime = Date.now()
     this.log.debug('Starting label cleanup for deleted watchlist items', {
       itemCount: watchlistItems.length,
       items: watchlistItems.map((item) => ({
@@ -3184,11 +3198,20 @@ export class PlexLabelSyncService {
         }
       }
 
+      const cleanupDuration = Date.now() - cleanupStartTime
+      const successRate =
+        trackedLabels.length > 0
+          ? (removedCount / trackedLabels.length) * 100
+          : 100
+
       this.log.info(
         `Completed label cleanup for ${watchlistItems.length} deleted watchlist items`,
         {
           trackedLabelsRemoved: trackedLabels.length,
           plexLabelsRemoved: removedCount,
+          duration: `${cleanupDuration}ms`,
+          successRate: `${successRate.toFixed(1)}%`,
+          averageTimePerItem: `${(cleanupDuration / watchlistItems.length).toFixed(1)}ms`,
         },
       )
     } catch (error) {
@@ -3210,10 +3233,12 @@ export class PlexLabelSyncService {
       user_id: number
     }>,
   ): Promise<void> {
+    const specialLabelStartTime = Date.now()
+    const itemGuidMap = new Map<number, string>() // Map item.id -> primaryGuid
+
     try {
       // Get all tracked labels for these watchlist items
       const trackedLabels: PlexLabelTracking[] = []
-      const itemGuidMap = new Map<number, string>() // Map item.id -> primaryGuid
 
       for (const item of watchlistItems) {
         // Get the full watchlist item to access the guids
@@ -3362,11 +3387,15 @@ export class PlexLabelSyncService {
         }
       }
 
+      const specialLabelDuration = Date.now() - specialLabelStartTime
+
       this.log.info(
         `Completed special label handling for ${watchlistItems.length} deleted watchlist items`,
         {
           trackedLabelsFound: trackedLabels.length,
           contentItemsProcessed: processedCount,
+          duration: `${specialLabelDuration}ms`,
+          averageTimePerItem: `${(specialLabelDuration / watchlistItems.length).toFixed(1)}ms`,
         },
       )
     } catch (error) {
@@ -3374,15 +3403,25 @@ export class PlexLabelSyncService {
         'Error during special label handling for deleted watchlist items:',
         error,
       )
-      // Still clean up tracking records on error
+      // Still clean up tracking records on error using primary GUIDs
       for (const item of watchlistItems) {
         try {
-          const fullItem = await this.db.getWatchlistItemById(item.id)
-          if (fullItem) {
-            await this.db.cleanupUserContentTracking(
-              fullItem.key,
-              fullItem.user_id,
-            )
+          // Try to use the already mapped primary GUID first
+          const primaryGuid = itemGuidMap.get(item.id)
+          if (primaryGuid) {
+            await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
+          } else {
+            // Fallback: fetch item and parse GUID if not already mapped
+            const fullItem = await this.db.getWatchlistItemById(item.id)
+            if (fullItem?.guids) {
+              const parsedGuids = parseGuids(fullItem.guids)
+              if (parsedGuids.length > 0) {
+                await this.db.cleanupUserContentTracking(
+                  parsedGuids[0],
+                  item.user_id,
+                )
+              }
+            }
           }
         } catch (cleanupError) {
           this.log.warn(
