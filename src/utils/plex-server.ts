@@ -1622,13 +1622,33 @@ export class PlexServerService {
    */
   async getCurrentLabels(ratingKey: string): Promise<string[]> {
     try {
+      this.log.debug(`Fetching metadata for rating key ${ratingKey}`)
       const metadata = await this.getMetadata(ratingKey)
 
-      if (!metadata || !metadata.Label) {
+      if (!metadata) {
+        this.log.warn(`No metadata found for rating key ${ratingKey}`)
+        return []
+      }
+
+      if (!metadata.Label) {
+        this.log.debug(
+          `No Label field found in metadata for rating key ${ratingKey}`,
+          {
+            metadataKeys: Object.keys(metadata),
+            hasLabel: !!metadata.Label,
+          },
+        )
         return []
       }
 
       const labels = metadata.Label.map((label) => label.tag)
+      this.log.debug(
+        `Successfully retrieved ${labels.length} labels for rating key ${ratingKey}`,
+        {
+          labels,
+          labelObjects: metadata.Label,
+        },
+      )
       return labels
     } catch (error) {
       this.log.error(
@@ -1651,16 +1671,35 @@ export class PlexServerService {
     labelsToRemove: string[],
   ): Promise<boolean> {
     try {
+      this.log.debug(
+        `Starting removeSpecificLabels for rating key ${ratingKey}`,
+        {
+          labelsToRemove,
+          labelCount: labelsToRemove.length,
+        },
+      )
+
       if (labelsToRemove.length === 0) {
+        this.log.debug(`No labels to remove for rating key ${ratingKey}`)
         return true // Nothing to remove
       }
 
       // Get current labels
+      this.log.debug(`Fetching current labels for rating key ${ratingKey}`)
       const currentLabels = await this.getCurrentLabels(ratingKey)
 
+      this.log.debug(`Current labels retrieved for rating key ${ratingKey}`, {
+        currentLabels,
+        currentLabelCount: currentLabels.length,
+      })
+
       if (currentLabels.length === 0) {
-        this.log.debug(
-          `No current labels found for rating key ${ratingKey}, nothing to remove`,
+        this.log.warn(
+          `No current labels found for rating key ${ratingKey}, cannot remove labels that don't exist. This may indicate a metadata API issue or the labels have already been removed.`,
+          {
+            labelsToRemove,
+            ratingKey,
+          },
         )
         return true
       }

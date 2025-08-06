@@ -5,7 +5,8 @@ import type { DatabaseService } from '@services/database.service.js'
  */
 interface PlexLabelTrackingRow {
   id: number
-  watchlist_id: number
+  content_key: string
+  user_id: number
   plex_rating_key: string
   labels_applied: string // JSON string that gets parsed to string[]
   synced_at: string
@@ -16,7 +17,8 @@ interface PlexLabelTrackingRow {
  */
 export interface PlexLabelTracking {
   id: number
-  watchlist_id: number
+  content_key: string
+  user_id: number
   plex_rating_key: string
   labels_applied: string[] // Parsed JSON array of labels
   synced_at: string
@@ -26,17 +28,19 @@ export interface PlexLabelTracking {
  * Updates the tracking record with the complete set of labels for a content item.
  *
  * Creates or updates a tracking record with the complete array of labels applied
- * to a specific piece of content for a watchlist item. This efficient approach
- * stores all labels in a single database row, replacing any existing labels.
+ * to a specific piece of content for a user. This efficient approach stores all
+ * labels in a single database row, replacing any existing labels.
  *
- * @param watchlistId - The ID of the watchlist item
+ * @param contentKey - The TMDB/Plex content identifier
+ * @param userId - The ID of the user who has labels applied
  * @param plexRatingKey - The Plex rating key of the labeled content
  * @param labelsApplied - Array of all label names applied to this content
  * @returns The ID of the tracking record (new or existing)
  */
 export async function trackPlexLabels(
   this: DatabaseService,
-  watchlistId: number,
+  contentKey: string,
+  userId: number,
   plexRatingKey: string,
   labelsApplied: string[],
 ): Promise<number> {
@@ -44,7 +48,8 @@ export async function trackPlexLabels(
 
   // Check if record already exists
   const existing = await this.knex('plex_label_tracking')
-    .where('watchlist_id', watchlistId)
+    .where('content_key', contentKey)
+    .where('user_id', userId)
     .where('plex_rating_key', plexRatingKey)
     .first()
 
@@ -60,7 +65,8 @@ export async function trackPlexLabels(
   // Insert new record with complete label set
   const result = await this.knex('plex_label_tracking')
     .insert({
-      watchlist_id: watchlistId,
+      content_key: contentKey,
+      user_id: userId,
       plex_rating_key: plexRatingKey,
       labels_applied: labelsJson,
       synced_at: this.timestamp,
@@ -71,25 +77,28 @@ export async function trackPlexLabels(
 }
 
 /**
- * Removes a tracking record for a specific Plex label and watchlist item.
+ * Removes a tracking record for a specific Plex label and user/content combination.
  *
- * Deletes the tracking record that links a specific Plex label to a watchlist item.
+ * Deletes the tracking record that links a specific Plex label to a user's content.
  * This is typically used when labels are removed or cleaned up.
  *
- * @param watchlistId - The ID of the watchlist item
+ * @param contentKey - The TMDB/Plex content identifier
+ * @param userId - The ID of the user
  * @param plexRatingKey - The Plex rating key
  * @param labelApplied - The Plex label name to untrack
  * @returns True if a record was deleted, false if the record wasn't found
  */
 export async function untrackPlexLabel(
   this: DatabaseService,
-  watchlistId: number,
+  contentKey: string,
+  userId: number,
   plexRatingKey: string,
   labelApplied: string,
 ): Promise<boolean> {
   // Get existing record
   const existing = await this.knex('plex_label_tracking')
-    .where('watchlist_id', watchlistId)
+    .where('content_key', contentKey)
+    .where('user_id', userId)
     .where('plex_rating_key', plexRatingKey)
     .first()
 
@@ -121,26 +130,27 @@ export async function untrackPlexLabel(
 }
 
 /**
- * Retrieves all tracked Plex labels for a specific watchlist item.
+ * Retrieves all tracked Plex labels for a specific user.
  *
- * Returns all Plex labels that are currently being tracked for the specified watchlist item.
+ * Returns all Plex labels that are currently being tracked for the specified user.
  * Results are ordered by creation time (oldest first) for consistent processing.
  *
- * @param watchlistId - The ID of the watchlist item
- * @returns An array of Plex label tracking records for the watchlist item
+ * @param userId - The ID of the user
+ * @returns An array of Plex label tracking records for the user
  */
-export async function getTrackedLabelsForWatchlist(
+export async function getTrackedLabelsForUser(
   this: DatabaseService,
-  watchlistId: number,
+  userId: number,
 ): Promise<PlexLabelTracking[]> {
   const rows = (await this.knex('plex_label_tracking')
-    .where('watchlist_id', watchlistId)
+    .where('user_id', userId)
     .orderBy('synced_at', 'asc')
     .select('*')) as PlexLabelTrackingRow[]
 
   return rows.map((row) => ({
     id: row.id,
-    watchlist_id: row.watchlist_id,
+    content_key: row.content_key,
+    user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
     labels_applied: JSON.parse(row.labels_applied || '[]'),
     synced_at: row.synced_at,
@@ -148,25 +158,82 @@ export async function getTrackedLabelsForWatchlist(
 }
 
 /**
- * Removes all tracking records for a specific watchlist item.
+ * Retrieves all tracked Plex labels for a specific content item.
  *
- * Deletes all Plex label tracking records associated with a watchlist item.
- * This is typically used when a watchlist item is being deleted or when cleaning up labels.
+ * Returns all Plex labels that are currently being tracked for the specified content
+ * across all users. Useful for determining what labels are applied to a piece of content.
  *
- * @param watchlistId - The ID of the watchlist item
+ * @param contentKey - The TMDB/Plex content identifier
+ * @returns An array of Plex label tracking records for the content
+ */
+export async function getTrackedLabelsForContent(
+  this: DatabaseService,
+  contentKey: string,
+): Promise<PlexLabelTracking[]> {
+  const rows = (await this.knex('plex_label_tracking')
+    .where('content_key', contentKey)
+    .orderBy('synced_at', 'asc')
+    .select('*')) as PlexLabelTrackingRow[]
+
+  return rows.map((row) => ({
+    id: row.id,
+    content_key: row.content_key,
+    user_id: row.user_id,
+    plex_rating_key: row.plex_rating_key,
+    labels_applied: JSON.parse(row.labels_applied || '[]'),
+    synced_at: row.synced_at,
+  }))
+}
+
+/**
+ * Removes all tracking records for a specific user and content combination.
+ *
+ * Deletes all Plex label tracking records associated with a user's specific content.
+ * This is typically used when a user removes content from their watchlist.
+ *
+ * @param contentKey - The TMDB/Plex content identifier
+ * @param userId - The ID of the user
  * @returns The number of tracking records that were deleted
  */
-export async function cleanupWatchlistTracking(
+export async function cleanupUserContentTracking(
   this: DatabaseService,
-  watchlistId: number,
+  contentKey: string,
+  userId: number,
 ): Promise<number> {
   const deleted = await this.knex('plex_label_tracking')
-    .where('watchlist_id', watchlistId)
+    .where('content_key', contentKey)
+    .where('user_id', userId)
     .delete()
 
   if (deleted > 0) {
     this.log.debug(
-      `Cleaned up ${deleted} Plex label tracking records for watchlist item ${watchlistId}`,
+      `Cleaned up ${deleted} Plex label tracking records for user ${userId} content ${contentKey}`,
+    )
+  }
+
+  return deleted
+}
+
+/**
+ * Removes all tracking records for a specific user.
+ *
+ * Deletes all Plex label tracking records associated with a user.
+ * This is typically used when cleaning up labels for a user or when a user is deleted.
+ *
+ * @param userId - The ID of the user
+ * @returns The number of tracking records that were deleted
+ */
+export async function cleanupUserTracking(
+  this: DatabaseService,
+  userId: number,
+): Promise<number> {
+  const deleted = await this.knex('plex_label_tracking')
+    .where('user_id', userId)
+    .delete()
+
+  if (deleted > 0) {
+    this.log.debug(
+      `Cleaned up ${deleted} Plex label tracking records for user ${userId}`,
     )
   }
 
@@ -177,7 +244,7 @@ export async function cleanupWatchlistTracking(
  * Retrieves all Plex label tracking records from the database.
  *
  * Returns all tracking records, typically used for batch operations or system-wide
- * label management. Results are ordered by watchlist ID and creation time for
+ * label management. Results are ordered by user ID and creation time for
  * consistent processing.
  *
  * @returns An array of all Plex label tracking records
@@ -186,12 +253,13 @@ export async function getAllTrackedLabels(
   this: DatabaseService,
 ): Promise<PlexLabelTracking[]> {
   const rows = (await this.knex('plex_label_tracking')
-    .orderBy(['watchlist_id', 'synced_at'])
+    .orderBy(['user_id', 'synced_at'])
     .select('*')) as PlexLabelTrackingRow[]
 
   return rows.map((row) => ({
     id: row.id,
-    watchlist_id: row.watchlist_id,
+    content_key: row.content_key,
+    user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
     labels_applied: JSON.parse(row.labels_applied || '[]'),
     synced_at: row.synced_at,
@@ -218,7 +286,8 @@ export async function getTrackedLabelsForRatingKey(
 
   return rows.map((row) => ({
     id: row.id,
-    watchlist_id: row.watchlist_id,
+    content_key: row.content_key,
+    user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
     labels_applied: JSON.parse(row.labels_applied || '[]'),
     synced_at: row.synced_at,
@@ -252,21 +321,24 @@ export async function cleanupRatingKeyTracking(
 }
 
 /**
- * Checks if a specific label is already tracked for a watchlist item and rating key.
+ * Checks if a specific label is already tracked for a user/content/rating key combination.
  *
- * @param watchlistId - The ID of the watchlist item
+ * @param contentKey - The TMDB/Plex content identifier
+ * @param userId - The ID of the user
  * @param plexRatingKey - The Plex rating key
  * @param labelApplied - The label to check
  * @returns True if the label is already tracked, false otherwise
  */
 export async function isLabelTracked(
   this: DatabaseService,
-  watchlistId: number,
+  contentKey: string,
+  userId: number,
   plexRatingKey: string,
   labelApplied: string,
 ): Promise<boolean> {
   const result = await this.knex('plex_label_tracking')
-    .where('watchlist_id', watchlistId)
+    .where('content_key', contentKey)
+    .where('user_id', userId)
     .where('plex_rating_key', plexRatingKey)
     .first()
 

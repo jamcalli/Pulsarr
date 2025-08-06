@@ -50,6 +50,16 @@ declare module '@services/database.service.js' {
     ): Promise<WatchlistItem | undefined>
 
     /**
+     * Retrieves a watchlist item by its ID
+     * @param id - The watchlist item ID
+     * @returns The watchlist item if found, undefined otherwise
+     */
+    getWatchlistItemById(
+      this: DatabaseService,
+      id: number,
+    ): Promise<WatchlistItem | undefined>
+
+    /**
      * Retrieves watchlist items for multiple users and keys
      * @param userIds - Array of user IDs
      * @param keys - Array of watchlist item keys to filter by
