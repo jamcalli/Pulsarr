@@ -57,19 +57,14 @@ export default fp(
               return
             }
 
-            const processed =
-              await fastify.pendingLabelSyncProcessor.processPendingLabelSyncs()
-            // Only log completion if we actually processed something
-            if (processed > 0) {
-              fastify.log.info(`Processed ${processed} pending label syncs`)
-            }
+            await fastify.pendingLabelSyncProcessor.processPendingLabelSyncs()
           },
         )
 
-        // Update the schedule to run at configured interval
+        // Update the schedule to run at configured interval (match pending webhook interval)
         await fastify.db.updateSchedule('pending-label-sync-processor', {
           type: 'interval',
-          config: { seconds: 30 },
+          config: { seconds: 30 }, // Check every 30 seconds
           enabled: true,
         })
 
@@ -88,12 +83,7 @@ export default fp(
               return
             }
 
-            const cleaned =
-              await fastify.pendingLabelSyncProcessor.cleanupExpired()
-            // Only log if we actually cleaned something
-            if (cleaned > 0) {
-              fastify.log.info(`Cleaned up ${cleaned} expired label syncs`)
-            }
+            await fastify.pendingLabelSyncProcessor.cleanupExpired()
           },
         )
 
