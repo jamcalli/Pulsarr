@@ -169,6 +169,21 @@ approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationActi
 # - contentCriteriaExpirationHours: Override expiration for content criteria triggers (optional, range: 1-8760)
 # - maintenanceCronExpression: Cron expression for maintenance frequency (default: "0 */4 * * *" - every 4 hours)
 # - cleanupExpiredDays: Days to keep expired approval records (default: 30, range: 1-365)
+
+# Plex Label Sync Configuration
+plexLabelSync='{"enabled":false,"labelPrefix":"pulsarr","concurrencyLimit":5,"cleanupOrphanedLabels":false,"removedLabelMode":"remove","removedLabelPrefix":"pulsarr:removed","scheduleTime":null,"dayOfWeek":"*","tagSync":{"enabled":false,"syncRadarrTags":true,"syncSonarrTags":true}}'  # JSON config for Plex label synchronization
+# Plex Label Sync configuration (JSON format):
+# - enabled: Enable/disable Plex label synchronization feature (default: false)
+# - labelPrefix: Prefix for user labels in Plex (default: "pulsarr", results in "pulsarr:username")
+# - concurrencyLimit: Maximum concurrent operations during sync (default: 5, range: 1-20)
+# - cleanupOrphanedLabels: Remove labels for deleted users during cleanup (default: false)
+# - removedLabelMode: Handle labels when users removed: 'remove', 'keep', 'special-label' (default: remove)
+# - removedLabelPrefix: Prefix for special removal labels when using 'special-label' mode (default: "pulsarr:removed")
+# - scheduleTime: Optional scheduled sync time in ISO format (default: null)
+# - dayOfWeek: Day of week for scheduled sync, cron format (default: "*" - every day)
+# - tagSync.enabled: Enable syncing Radarr/Sonarr tags as Plex labels (default: false)
+# - tagSync.syncRadarrTags: Sync Radarr instance tags to Plex movie labels (default: true)
+# - tagSync.syncSonarrTags: Sync Sonarr instance tags to Plex show labels (default: true)
 ```
 
 ## Authentication Configuration Details
@@ -223,6 +238,7 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 - `delete*` variables - Automated deletion settings
 - `approvalNotify` - Approval system notification configuration
 - `plexSessionMonitoring` - JSON configuration for session monitoring
+- `plexLabelSync` - JSON configuration for Plex label synchronization
 - `pending*` variables - Notification queue settings
 
 ### User Management & Defaults

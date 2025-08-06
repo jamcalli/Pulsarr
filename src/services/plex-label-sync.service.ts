@@ -15,7 +15,8 @@
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexServerService } from '@utils/plex-server.js'
-import type { DatabaseService } from './database.service.js'
+import type { DatabaseService } from '@services/database.service.js'
+import type { PlexLabelTracking } from '@services/database/methods/plex-label-tracking.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import type { WebhookPayload } from '@schemas/notifications/webhook.schema.js'
 import type {
@@ -2200,43 +2201,29 @@ export class PlexLabelSyncService {
           },
         )
 
-        // Track each applied user label in the database for cleanup purposes
+        // Track combined user and tag labels in the database for each watchlist item
         let trackingErrors = 0
         for (const user of users) {
           const userLabel = `${this.config.labelPrefix}:${user.username}`
+          // Combine user label with tag labels for this watchlist item
+          const combinedLabels = [userLabel, ...tagLabels]
+
           try {
-            await this.db.trackPlexLabels(user.watchlist_id, ratingKey, [
-              userLabel,
-            ])
-            this.log.debug('Successfully tracked user label in database', {
+            await this.db.trackPlexLabels(
+              user.watchlist_id,
+              ratingKey,
+              combinedLabels,
+            )
+            this.log.debug('Successfully tracked combined labels in database', {
               watchlistId: user.watchlist_id,
               ratingKey,
-              label: userLabel,
+              userLabel,
+              tagLabels,
+              combinedLabels,
             })
           } catch (error) {
             this.log.error(
-              `Failed to track user label in database for watchlist ${user.watchlist_id}:`,
-              error,
-            )
-            trackingErrors++
-          }
-        }
-
-        // Track applied tag labels if any
-        if (tagLabels.length > 0) {
-          try {
-            // Use a placeholder watchlist_id for content-level tag labels
-            await this.db.trackPlexLabels(-1, ratingKey, tagLabels)
-            this.log.debug(
-              'Successfully tracked webhook tag labels in database',
-              {
-                ratingKey,
-                tagLabels,
-              },
-            )
-          } catch (error) {
-            this.log.warn(
-              'Failed to track webhook tag labels in database:',
+              `Failed to track combined labels in database for watchlist ${user.watchlist_id}:`,
               error,
             )
             trackingErrors++
@@ -2248,8 +2235,7 @@ export class PlexLabelSyncService {
             `Labels applied to Plex but ${trackingErrors} tracking records failed to save`,
             {
               ratingKey,
-              successfulTracks:
-                users.length + (tagLabels.length > 0 ? 1 : 0) - trackingErrors,
+              successfulTracks: users.length - trackingErrors,
               failedTracks: trackingErrors,
             },
           )
@@ -2891,6 +2877,32 @@ export class PlexLabelSyncService {
       return
     }
 
+    // Check the removed label mode configuration
+    if (this.removedLabelMode === 'keep') {
+      this.log.debug(
+        'Label removal mode is set to "keep", skipping label cleanup for deleted watchlist items',
+        {
+          itemCount: watchlistItems.length,
+        },
+      )
+      // Still clean up tracking records even if we keep the labels
+      for (const item of watchlistItems) {
+        await this.db.cleanupWatchlistTracking(item.id)
+      }
+      return
+    }
+
+    if (this.removedLabelMode === 'special-label') {
+      this.log.debug(
+        'Label removal mode is set to "special-label", applying special removed labels instead of removing labels for deleted watchlist items',
+        {
+          itemCount: watchlistItems.length,
+        },
+      )
+      await this.handleSpecialLabelModeForDeletedItems(watchlistItems)
+      return
+    }
+
     this.log.debug('Starting label cleanup for deleted watchlist items', {
       itemCount: watchlistItems.length,
       items: watchlistItems.map((item) => ({
@@ -2980,6 +2992,143 @@ export class PlexLabelSyncService {
     } catch (error) {
       this.log.error('Error during label cleanup for watchlist items:', error)
       // Don't throw - label cleanup failure shouldn't prevent item deletion
+    }
+  }
+
+  /**
+   * Handles special label mode for deleted watchlist items by replacing user labels with special "removed" labels
+   *
+   * @param watchlistItems - Array of watchlist items that are being deleted
+   */
+  private async handleSpecialLabelModeForDeletedItems(
+    watchlistItems: Array<{ id: number; title?: string }>,
+  ): Promise<void> {
+    try {
+      // Get all tracked labels for these watchlist items
+      const trackedLabels: PlexLabelTracking[] = []
+
+      for (const item of watchlistItems) {
+        const labels = await this.db.getTrackedLabelsForWatchlist(item.id)
+        trackedLabels.push(...labels)
+      }
+
+      if (trackedLabels.length === 0) {
+        // Clean up tracking records and return
+        for (const item of watchlistItems) {
+          await this.db.cleanupWatchlistTracking(item.id)
+        }
+        return
+      }
+
+      // Group by rating key to batch operations
+      const labelsByRatingKey = new Map<string, string[]>()
+      for (const tracking of trackedLabels) {
+        const existingLabels =
+          labelsByRatingKey.get(tracking.plex_rating_key) || []
+        existingLabels.push(...tracking.labels_applied)
+        labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
+      }
+
+      const concurrencyLimit = this.config.concurrencyLimit || 5
+      const limit = pLimit(concurrencyLimit)
+      let processedCount = 0
+
+      // For each rating key, replace user labels with special removed label
+      const specialLabelResults = await Promise.allSettled(
+        Array.from(labelsByRatingKey.entries()).map(([ratingKey, labels]) =>
+          limit(async () => {
+            try {
+              // Get current labels on the content
+              const currentLabels =
+                await this.plexServer.getCurrentLabels(ratingKey)
+
+              // Find user labels that need to be replaced
+              const userLabelsToRemove = labels.filter((label: string) =>
+                this.isAppUserLabel(label),
+              )
+              const nonUserLabels = currentLabels.filter(
+                (label: string) => !this.isAppUserLabel(label),
+              )
+
+              if (userLabelsToRemove.length > 0) {
+                // Get the item title for the special label
+                const itemTitle =
+                  watchlistItems.find((item) =>
+                    trackedLabels.some(
+                      (t) =>
+                        t.plex_rating_key === ratingKey &&
+                        t.watchlist_id === item.id,
+                    ),
+                  )?.title || 'Unknown'
+
+                const removedLabel = await this.getRemovedLabel(itemTitle)
+                const finalLabels = [
+                  ...new Set([...nonUserLabels, removedLabel]),
+                ]
+
+                // Apply the new label set
+                const success = await this.plexServer.updateLabels(
+                  ratingKey,
+                  finalLabels,
+                )
+                if (success) {
+                  this.log.debug(
+                    `Applied special removed label to content ${ratingKey}`,
+                    {
+                      removedLabel,
+                      userLabelsRemoved: userLabelsToRemove.length,
+                    },
+                  )
+                  return 1
+                }
+              }
+              return 0
+            } catch (error) {
+              this.log.warn(
+                `Failed to apply special removed label to content ${ratingKey}:`,
+                error,
+              )
+              return 0
+            }
+          }),
+        ),
+      )
+
+      // Count successful operations
+      for (const result of specialLabelResults) {
+        if (result.status === 'fulfilled') {
+          processedCount += result.value
+        }
+      }
+
+      // Clean up tracking records from database
+      for (const item of watchlistItems) {
+        await this.db.cleanupWatchlistTracking(item.id)
+      }
+
+      this.log.info(
+        `Completed special label handling for ${watchlistItems.length} deleted watchlist items`,
+        {
+          trackedLabelsFound: trackedLabels.length,
+          contentItemsProcessed: processedCount,
+        },
+      )
+    } catch (error) {
+      this.log.error(
+        'Error during special label handling for deleted watchlist items:',
+        error,
+      )
+      // Still clean up tracking records on error
+      for (const item of watchlistItems) {
+        try {
+          await this.db.cleanupWatchlistTracking(item.id)
+        } catch (cleanupError) {
+          this.log.warn(
+            `Failed to cleanup tracking for item ${item.id}:`,
+            cleanupError,
+          )
+        }
+      }
     }
   }
 

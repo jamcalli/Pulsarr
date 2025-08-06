@@ -243,7 +243,7 @@ export interface WebhookNotification {
   }>
 }
 
-import type { ContentItem } from './router.types.js'
+import type { ContentItem } from '@root/types/router.types.js'
 
 export interface Item extends ContentItem {
   type: 'show'
