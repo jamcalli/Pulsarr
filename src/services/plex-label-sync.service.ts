@@ -1345,15 +1345,17 @@ export class PlexLabelSyncService {
         for (const tracking of currentTracking) {
           // Check each label in the tracking record
           for (const label of tracking.labels_applied) {
-            const trackingKey = `${tracking.watchlist_id}:${tracking.plex_rating_key}:${label}`
+            const trackingKey = `${tracking.content_key}:${tracking.user_id}:${tracking.plex_rating_key}:${label}`
             if (!desiredTracking.has(trackingKey)) {
               await this.db.untrackPlexLabel(
-                tracking.watchlist_id,
+                tracking.content_key,
+                tracking.user_id,
                 tracking.plex_rating_key,
                 label,
               )
               this.log.debug('Removed obsolete tracking record', {
-                watchlistId: tracking.watchlist_id,
+                contentKey: tracking.content_key,
+                userId: tracking.user_id,
                 ratingKey: tracking.plex_rating_key,
                 label: label,
               })
@@ -1391,7 +1393,8 @@ export class PlexLabelSyncService {
           if (userLabelsForContent.length > 0) {
             try {
               await this.db.trackPlexLabels(
-                user.watchlist_id,
+                content.primaryGuid,
+                user.user_id,
                 plexItem.ratingKey,
                 userLabelsForContent,
               )
@@ -1987,9 +1990,12 @@ export class PlexLabelSyncService {
         for (const user of users) {
           const userLabel = `${this.config.labelPrefix}:${user.username}`
           try {
-            await this.db.trackPlexLabels(user.watchlist_id, ratingKey, [
-              userLabel,
-            ])
+            await this.db.trackPlexLabels(
+              'unknown-content',
+              user.user_id,
+              ratingKey,
+              [userLabel],
+            )
             this.log.debug('Successfully tracked label in database', {
               watchlistId: user.watchlist_id,
               ratingKey,
@@ -2254,7 +2260,8 @@ export class PlexLabelSyncService {
 
           try {
             await this.db.trackPlexLabels(
-              user.watchlist_id,
+              'unknown-content',
+              user.user_id,
               ratingKey,
               combinedLabels,
             )
@@ -2816,23 +2823,14 @@ export class PlexLabelSyncService {
 
               // Add users from existing tracking records
               for (const tracking of trackedLabels) {
-                if (!trackedUsers.has(tracking.watchlist_id)) {
-                  // Get watchlist item to find user ID
-                  const watchlistItem = await this.db
-                    .knex('watchlist_items')
-                    .where('id', tracking.watchlist_id)
-                    .select('user_id')
-                    .first()
-
-                  if (watchlistItem) {
-                    const user = userMap.get(watchlistItem.user_id)
-                    if (user) {
-                      trackedUsers.set(tracking.watchlist_id, {
-                        user_id: user.id,
-                        username: user.name || `user_${user.id}`,
-                        watchlist_id: tracking.watchlist_id,
-                      })
-                    }
+                if (!trackedUsers.has(tracking.user_id)) {
+                  const user = userMap.get(tracking.user_id)
+                  if (user) {
+                    trackedUsers.set(tracking.user_id, {
+                      user_id: user.id,
+                      username: user.name || `user_${user.id}`,
+                      watchlist_id: 0, // Not used in content-based tracking
+                    })
                   }
                 }
               }
@@ -2971,13 +2969,18 @@ export class PlexLabelSyncService {
    * Removes labels associated with watchlist items that are being deleted
    *
    * This method handles cleanup of Plex labels when watchlist items are removed.
-   * It fetches tracking records for the given watchlist items and removes the
-   * corresponding labels from Plex content.
+   * It uses the provided watchlist item data to clean up tracking records and
+   * remove corresponding labels from Plex content.
    *
-   * @param watchlistItems - Array of watchlist items that are being deleted
+   * @param watchlistItems - Array of watchlist items that are being deleted with full data
    */
   async cleanupLabelsForWatchlistItems(
-    watchlistItems: Array<{ id: number; title?: string }>,
+    watchlistItems: Array<{
+      id: number
+      title?: string
+      key: string
+      user_id: number
+    }>,
   ): Promise<void> {
     if (!this.config.enabled || watchlistItems.length === 0) {
       return
@@ -3016,14 +3019,95 @@ export class PlexLabelSyncService {
     })
 
     try {
+      // Convert raw item keys to primary GUIDs for tracking lookups
+      const itemGuidMap = new Map<number, string>() // Map item.id -> primaryGuid
+
       // Get all tracked labels for these watchlist items
       const trackedLabels = []
       for (const item of watchlistItems) {
-        const labels = await this.db.getTrackedLabelsForWatchlist(item.id)
-        trackedLabels.push(...labels)
+        // Get the full watchlist item to access the guids
+        const fullItem = await this.db.getWatchlistItemById(item.id)
+        if (!fullItem || !fullItem.guids) {
+          this.log.debug('Skipping item - no full item or guids found', {
+            itemId: item.id,
+            title: item.title,
+            hasFullItem: !!fullItem,
+            hasGuids: !!fullItem?.guids,
+          })
+          continue
+        }
+
+        // Parse GUIDs to get the primary GUID (same logic as label application)
+        const parsedGuids = parseGuids(fullItem.guids)
+        if (parsedGuids.length === 0) {
+          this.log.debug('Skipping item - no parsed GUIDs available', {
+            itemId: item.id,
+            title: item.title,
+            rawGuids: fullItem.guids,
+          })
+          continue
+        }
+
+        const primaryGuid = parsedGuids[0]
+        itemGuidMap.set(item.id, primaryGuid) // Store mapping for later cleanup
+
+        this.log.debug(
+          `Getting tracked labels for primary GUID: ${primaryGuid} (was looking for raw key: ${item.key}), user_id: ${item.user_id}`,
+        )
+
+        const labels = await this.db.getTrackedLabelsForContent(primaryGuid)
+        this.log.debug(
+          `Found ${labels.length} total tracking records for primary GUID: ${primaryGuid}`,
+          {
+            allTrackingRecords: labels.map((l) => ({
+              id: l.id,
+              user_id: l.user_id,
+              plex_rating_key: l.plex_rating_key,
+              labels_applied: l.labels_applied,
+            })),
+          },
+        )
+
+        // Filter to only this user's labels
+        const userLabels = labels.filter(
+          (label) => label.user_id === item.user_id,
+        )
+        this.log.debug(
+          `Found ${userLabels.length} user-specific tracking records for primary GUID: ${primaryGuid}, user_id: ${item.user_id}`,
+          {
+            userTrackingRecords: userLabels.map((l) => ({
+              id: l.id,
+              plex_rating_key: l.plex_rating_key,
+              labels_applied: l.labels_applied,
+            })),
+          },
+        )
+        trackedLabels.push(...userLabels)
       }
 
-      this.log.debug(`Found ${trackedLabels.length} tracked labels to remove`)
+      this.log.debug(`Found ${trackedLabels.length} tracked labels to remove`, {
+        trackedLabels: trackedLabels.map((t) => ({
+          id: t.id,
+          content_key: t.content_key,
+          user_id: t.user_id,
+          plex_rating_key: t.plex_rating_key,
+          labels_applied: t.labels_applied,
+        })),
+      })
+
+      if (trackedLabels.length === 0) {
+        this.log.debug(
+          'No tracked labels found for cleanup, skipping Plex API calls',
+        )
+        // Still need to cleanup tracking records using primary GUIDs
+        for (const item of watchlistItems) {
+          const primaryGuid = itemGuidMap.get(item.id)
+          if (primaryGuid) {
+            await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
+          }
+        }
+        return
+      }
 
       // Group by rating key to batch operations
       const labelsByRatingKey = new Map<string, string[]>()
@@ -3034,6 +3118,17 @@ export class PlexLabelSyncService {
         existingLabels.push(...tracking.labels_applied)
         labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
       }
+
+      this.log.debug('Grouped labels by rating key for batch removal', {
+        ratingKeys: Array.from(labelsByRatingKey.keys()),
+        labelsByRatingKey: Array.from(labelsByRatingKey.entries()).map(
+          ([ratingKey, labels]) => ({
+            ratingKey,
+            labelCount: labels.length,
+            labels,
+          }),
+        ),
+      })
 
       // Remove labels from Plex content
       const concurrencyLimit = this.config.concurrencyLimit || 5
@@ -3081,9 +3176,12 @@ export class PlexLabelSyncService {
         }
       }
 
-      // Clean up tracking records from database
+      // Clean up tracking records from database using primary GUIDs
       for (const item of watchlistItems) {
-        await this.db.cleanupWatchlistTracking(item.id)
+        const primaryGuid = itemGuidMap.get(item.id)
+        if (primaryGuid) {
+          await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
+        }
       }
 
       this.log.info(
@@ -3105,21 +3203,63 @@ export class PlexLabelSyncService {
    * @param watchlistItems - Array of watchlist items that are being deleted
    */
   private async handleSpecialLabelModeForDeletedItems(
-    watchlistItems: Array<{ id: number; title?: string }>,
+    watchlistItems: Array<{
+      id: number
+      title?: string
+      key: string
+      user_id: number
+    }>,
   ): Promise<void> {
     try {
       // Get all tracked labels for these watchlist items
       const trackedLabels: PlexLabelTracking[] = []
+      const itemGuidMap = new Map<number, string>() // Map item.id -> primaryGuid
 
       for (const item of watchlistItems) {
-        const labels = await this.db.getTrackedLabelsForWatchlist(item.id)
-        trackedLabels.push(...labels)
+        // Get the full watchlist item to access the guids
+        const fullItem = await this.db.getWatchlistItemById(item.id)
+        if (!fullItem || !fullItem.guids) {
+          this.log.debug(
+            'Skipping special label item - no full item or guids found',
+            {
+              itemId: item.id,
+              title: item.title,
+            },
+          )
+          continue
+        }
+
+        // Parse GUIDs to get the primary GUID
+        const parsedGuids = parseGuids(fullItem.guids)
+        if (parsedGuids.length === 0) {
+          this.log.debug(
+            'Skipping special label item - no parsed GUIDs available',
+            {
+              itemId: item.id,
+              title: item.title,
+            },
+          )
+          continue
+        }
+
+        const primaryGuid = parsedGuids[0]
+        itemGuidMap.set(item.id, primaryGuid)
+
+        const labels = await this.db.getTrackedLabelsForContent(primaryGuid)
+        // Filter to only this user's labels
+        const userLabels = labels.filter(
+          (label) => label.user_id === item.user_id,
+        )
+        trackedLabels.push(...userLabels)
       }
 
       if (trackedLabels.length === 0) {
         // Clean up tracking records and return
         for (const item of watchlistItems) {
-          await this.db.cleanupWatchlistTracking(item.id)
+          const primaryGuid = itemGuidMap.get(item.id)
+          if (primaryGuid) {
+            await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
+          }
         }
         return
       }
@@ -3156,14 +3296,23 @@ export class PlexLabelSyncService {
 
               if (userLabelsToRemove.length > 0) {
                 // Get the item title for the special label
-                const itemTitle =
-                  watchlistItems.find((item) =>
+                // Find the watchlist item for this content by matching the tracking record
+                let itemTitle = 'Unknown'
+                for (const item of watchlistItems) {
+                  const fullItem = await this.db.getWatchlistItemById(item.id)
+                  if (
+                    fullItem &&
                     trackedLabels.some(
                       (t) =>
                         t.plex_rating_key === ratingKey &&
-                        t.watchlist_id === item.id,
-                    ),
-                  )?.title || 'Unknown'
+                        t.content_key === fullItem.key &&
+                        t.user_id === fullItem.user_id,
+                    )
+                  ) {
+                    itemTitle = item.title || fullItem.title || 'Unknown'
+                    break
+                  }
+                }
 
                 const removedLabel = await this.getRemovedLabel(itemTitle)
                 const finalLabels = [
@@ -3205,9 +3354,12 @@ export class PlexLabelSyncService {
         }
       }
 
-      // Clean up tracking records from database
+      // Clean up tracking records from database using primary GUIDs
       for (const item of watchlistItems) {
-        await this.db.cleanupWatchlistTracking(item.id)
+        const primaryGuid = itemGuidMap.get(item.id)
+        if (primaryGuid) {
+          await this.db.cleanupUserContentTracking(primaryGuid, item.user_id)
+        }
       }
 
       this.log.info(
@@ -3225,7 +3377,13 @@ export class PlexLabelSyncService {
       // Still clean up tracking records on error
       for (const item of watchlistItems) {
         try {
-          await this.db.cleanupWatchlistTracking(item.id)
+          const fullItem = await this.db.getWatchlistItemById(item.id)
+          if (fullItem) {
+            await this.db.cleanupUserContentTracking(
+              fullItem.key,
+              fullItem.user_id,
+            )
+          }
         } catch (cleanupError) {
           this.log.warn(
             `Failed to cleanup tracking for item ${item.id}:`,

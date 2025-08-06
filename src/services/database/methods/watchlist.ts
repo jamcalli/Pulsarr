@@ -202,6 +202,27 @@ export async function getWatchlistItem(
 }
 
 /**
+ * Retrieves a watchlist item by its ID.
+ *
+ * @param id - The watchlist item ID
+ * @returns The watchlist item if found, undefined otherwise
+ */
+export async function getWatchlistItemById(
+  this: DatabaseService,
+  id: number,
+): Promise<WatchlistItem | undefined> {
+  const result = await this.knex('watchlist_items').where('id', id).first()
+
+  if (!result) return undefined
+
+  return {
+    ...result,
+    guids: this.safeJsonParse(result.guids, [], 'watchlist_item.guids'),
+    genres: this.safeJsonParse(result.genres, [], 'watchlist_item.genres'),
+  }
+}
+
+/**
  * Retrieves watchlist items for the specified users, optionally filtered by item keys.
  *
  * Parses the `guids` and `genres` fields for each item to ensure consistent data structure.

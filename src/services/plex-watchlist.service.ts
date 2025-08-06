@@ -1104,6 +1104,14 @@ export class PlexWatchlistService {
 
     for (const [user, items] of existingItemsToLink.entries()) {
       const itemArray = Array.from(items)
+      console.log(
+        `🔗 LINKING DEBUG: User "${user.username}" (ID: ${user.userId}) has ${itemArray.length} items to link:`,
+      )
+      for (const item of itemArray) {
+        console.log(
+          `  📝 Item: "${item.title}" | Key: ${item.key} | User ID: ${item.user_id}`,
+        )
+      }
       linkItems.push(...itemArray)
       userCounts[user.username] = itemArray.length
     }
@@ -1612,44 +1620,92 @@ export class PlexWatchlistService {
     currentKeys: Set<string>,
     fetchedKeys: Set<string>,
   ): Promise<void> {
-    const removedKeys = Array.from(currentKeys).filter(
-      (key) => !fetchedKeys.has(key),
-    )
-
-    if (removedKeys.length > 0) {
-      this.log.info(
-        `Detected ${removedKeys.length} removed items for user ${userId}`,
+    try {
+      console.log(
+        `🗑️ REMOVAL DEBUG: User ${userId} - checking for removed items`,
+      )
+      console.log(
+        `  📊 Current keys: ${currentKeys.size}, Fetched keys: ${fetchedKeys.size}`,
       )
 
-      // Get the watchlist items that will be deleted for label cleanup
-      if (this.plexLabelSyncService) {
-        try {
-          const itemsToDelete =
-            await this.dbService.getWatchlistItemsByKeys(removedKeys)
+      const removedKeys = Array.from(currentKeys).filter(
+        (key) => !fetchedKeys.has(key),
+      )
 
-          // Filter to only items belonging to this user
-          const userItemsToDelete = itemsToDelete.filter(
-            (item) => item.user_id === userId,
-          )
+      if (removedKeys.length > 0) {
+        console.log(`🗑️ Found ${removedKeys.length} removed keys:`, removedKeys)
 
-          if (userItemsToDelete.length > 0) {
-            await this.plexLabelSyncService.cleanupLabelsForWatchlistItems(
-              userItemsToDelete.map((item) => ({
+        this.log.info(
+          `Detected ${removedKeys.length} removed items for user ${userId}`,
+        )
+
+        // Get the watchlist items that will be deleted for label cleanup
+        if (this.plexLabelSyncService) {
+          try {
+            console.log('🔍 Looking up items to delete for keys:', removedKeys)
+            const itemsToDelete =
+              await this.dbService.getWatchlistItemsByKeys(removedKeys)
+            console.log(
+              `📋 Found ${itemsToDelete.length} database items to potentially delete`,
+            )
+
+            // Filter to only items belonging to this user
+            const userItemsToDelete = itemsToDelete.filter(
+              (item) => item.user_id === userId,
+            )
+            console.log(
+              `👤 Filtered to ${userItemsToDelete.length} items for user ${userId}`,
+            )
+
+            if (userItemsToDelete.length > 0) {
+              console.log(
+                `🏷️ Calling label cleanup for ${userItemsToDelete.length} items`,
+              )
+              const labelCleanupItems = userItemsToDelete.map((item) => ({
                 id: Number((item as WatchlistItem & { id: number }).id),
                 title: item.title,
-              })),
-            )
-          }
-        } catch (error) {
-          this.log.warn(
-            'Failed to cleanup labels for removed watchlist items:',
-            error,
-          )
-          // Continue with deletion even if label cleanup fails
-        }
-      }
+                key: item.key,
+                user_id: item.user_id,
+              }))
+              console.log('🏷️ Label cleanup items:', labelCleanupItems)
 
-      await this.dbService.deleteWatchlistItems(userId, removedKeys)
+              await this.plexLabelSyncService.cleanupLabelsForWatchlistItems(
+                labelCleanupItems,
+              )
+              console.log('✅ Label cleanup completed')
+            }
+          } catch (error) {
+            console.error('❌ ERROR in label cleanup:', error)
+            console.error(
+              'Stack:',
+              error instanceof Error ? error.stack : 'No stack',
+            )
+            this.log.error(
+              'Failed to cleanup labels for removed watchlist items:',
+              {
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+                userId,
+                removedKeys,
+              },
+            )
+            // Continue with deletion even if label cleanup fails
+          }
+        }
+
+        console.log(`🗑️ Calling deleteWatchlistItems for user ${userId}`)
+        await this.dbService.deleteWatchlistItems(userId, removedKeys)
+        console.log('✅ Successfully deleted items from database')
+      } else {
+        console.log(`✅ No removed items for user ${userId}`)
+      }
+    } catch (error) {
+      console.error(
+        `❌ CRITICAL ERROR in handleRemovedItems for user ${userId}:`,
+        error,
+      )
+      console.error('Stack:', error instanceof Error ? error.stack : 'No stack')
+      throw error // Re-throw to propagate the error properly
     }
   }
 
@@ -1664,9 +1720,26 @@ export class PlexWatchlistService {
     }
 
     try {
+      console.log(
+        `📝 HANDLE LINKED ITEMS DEBUG: Processing ${linkItems.length} linked items`,
+      )
+      for (const item of linkItems) {
+        console.log(
+          `  📄 LinkItem: "${item.title}" | Key: ${item.key} | User ID: ${item.user_id}`,
+        )
+      }
+
       // Get the database items with IDs after linking
       const keys = linkItems.map((item) => item.key)
+      console.log(`🔑 Looking up keys in database: [${keys.join(', ')}]`)
+
       const dbItems = await this.dbService.getWatchlistItemsByKeys(keys)
+      console.log(`🗄️ Database returned ${dbItems.length} items:`)
+      for (const dbItem of dbItems) {
+        console.log(
+          `  📊 DB Item: "${dbItem.title}" | Key: ${dbItem.key} | User ID: ${dbItem.user_id} | ID: ${dbItem.id}`,
+        )
+      }
 
       // Group by unique content key to avoid duplicate pending syncs
       // This mimics the content-centric approach used in full sync
@@ -1677,8 +1750,20 @@ export class PlexWatchlistService {
       const userCounts = new Map<number, number>()
 
       for (const linkItem of linkItems) {
-        const dbItem = dbItems.find((item) => item.key === linkItem.key)
-        if (dbItem?.id && linkItem.key) {
+        console.log(
+          `🔍 LABEL SYNC DEBUG: Processing linkItem "${linkItem.title}" for user ${linkItem.user_id}`,
+        )
+        // Fix: Match by BOTH key AND user_id to get the correct database record
+        const dbItem = dbItems.find(
+          (item) =>
+            item.key === linkItem.key && item.user_id === linkItem.user_id,
+        )
+        console.log(
+          `  🗄️ Found DB item: ${dbItem ? `ID=${dbItem.id}, User=${dbItem.user_id}` : 'NOT FOUND (key or user mismatch)'}`,
+        )
+
+        if (dbItem?.id && linkItem.key && typeof dbItem.id === 'number') {
+          console.log(`  ✅ Adding to contentMap with key: ${linkItem.key}`)
           // Group by content key
           if (!contentMap.has(linkItem.key)) {
             contentMap.set(linkItem.key, {
@@ -1686,18 +1771,54 @@ export class PlexWatchlistService {
               watchlistIds: [],
             })
           }
-          contentMap.get(linkItem.key)?.watchlistIds.push(dbItem.id)
+
+          const contentEntry = contentMap.get(linkItem.key)
+          if (contentEntry) {
+            contentEntry.watchlistIds.push(dbItem.id)
+            console.log(
+              `    📋 ContentMap now has ${contentEntry.watchlistIds.length} watchlist IDs for this content`,
+            )
+          } else {
+            console.error(
+              `    ⚠️ ContentMap entry disappeared unexpectedly for key: ${linkItem.key}`,
+            )
+          }
 
           // Count per user for logging
           const count = userCounts.get(linkItem.user_id) || 0
           userCounts.set(linkItem.user_id, count + 1)
+        } else {
+          console.log(
+            `  ❌ Skipping item - missing dbItem.id (${dbItem?.id}), linkItem.key (${linkItem.key}), or user mismatch`,
+          )
+          console.log(
+            '    🔍 dbItem details:',
+            dbItem
+              ? {
+                  id: dbItem.id,
+                  user_id: dbItem.user_id,
+                  title: dbItem.title,
+                  key: dbItem.key,
+                }
+              : 'null',
+          )
         }
       }
 
       // Queue one pending sync per unique content (not per watchlist item)
       // This ensures all users for the same content are processed together
       let totalQueued = 0
+      console.log(
+        `📋 QUEUEING DEBUG: Processing ${contentMap.size} unique content items:`,
+      )
       for (const [contentKey, content] of contentMap.entries()) {
+        console.log(
+          `  🎬 Content: "${content.title}" | Key: ${contentKey} | Watchlist IDs: [${content.watchlistIds.join(', ')}]`,
+        )
+        console.log(
+          `    🎯 Using representative watchlist ID: ${content.watchlistIds[0]}`,
+        )
+
         // Queue using the first watchlist ID as representative
         // The processing will find ALL users with this content when processing
         await this.plexLabelSyncService.queuePendingLabelSyncByWatchlistId(
@@ -1718,8 +1839,22 @@ export class PlexWatchlistService {
         )
       }
     } catch (error) {
-      this.log.warn('Failed to queue re-added items for label sync:', error)
-      // Continue processing even if label sync queueing fails
+      console.error('❌ ERROR in handleLinkedItemsForLabelSync:', error)
+      console.error(
+        'Stack:',
+        error instanceof Error ? error.stack : 'No stack trace',
+      )
+      this.log.error('Failed to queue re-added items for label sync:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        linkItemsCount: linkItems.length,
+        linkItemsSample: linkItems.slice(0, 3).map((item) => ({
+          title: item.title,
+          key: item.key,
+          user_id: item.user_id,
+        })),
+      })
+      throw error // Re-throw to see the full error chain
     }
   }
 
@@ -1727,13 +1862,38 @@ export class PlexWatchlistService {
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   ): Promise<void> {
     for (const [user, items] of userWatchlistMap.entries()) {
-      const currentItems = await this.dbService.getAllWatchlistItemsForUser(
-        user.userId,
-      )
-      const currentKeys = new Set(currentItems.map((item) => item.key))
-      const fetchedKeys = new Set(Array.from(items).map((item) => item.id))
+      try {
+        console.log(
+          `🔍 CHECK REMOVED DEBUG: Processing user ${user.username} (ID: ${user.userId})`,
+        )
 
-      await this.handleRemovedItems(user.userId, currentKeys, fetchedKeys)
+        const currentItems = await this.dbService.getAllWatchlistItemsForUser(
+          user.userId,
+        )
+        console.log(
+          `  📊 User ${user.userId} has ${currentItems.length} current items in database`,
+        )
+
+        const currentKeys = new Set(currentItems.map((item) => item.key))
+        const fetchedKeys = new Set(Array.from(items).map((item) => item.id))
+
+        console.log(
+          `  🔑 User ${user.userId}: ${currentKeys.size} current keys, ${fetchedKeys.size} fetched keys`,
+        )
+
+        await this.handleRemovedItems(user.userId, currentKeys, fetchedKeys)
+        console.log(`  ✅ Completed removal check for user ${user.userId}`)
+      } catch (error) {
+        console.error(
+          `❌ ERROR checking removed items for user ${user.username} (ID: ${user.userId}):`,
+          error,
+        )
+        console.error(
+          'Stack:',
+          error instanceof Error ? error.stack : 'No stack',
+        )
+        throw error // Re-throw to propagate error
+      }
     }
   }
   /**

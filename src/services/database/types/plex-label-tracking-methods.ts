@@ -5,51 +5,74 @@ declare module '@services/database.service.js' {
     // PLEX LABEL TRACKING MANAGEMENT
     /**
      * Updates the tracking record with the complete set of labels for a content item
-     * @param watchlistId - The ID of the watchlist item
+     * @param contentKey - The TMDB/Plex content identifier
+     * @param userId - The ID of the user who has labels applied
      * @param plexRatingKey - The Plex rating key of the labeled content
      * @param labelsApplied - Array of all label names applied to this content
      * @returns Promise resolving to the ID of the tracking record (new or existing)
      */
     trackPlexLabels(
       this: DatabaseService,
-      watchlistId: number,
+      contentKey: string,
+      userId: number,
       plexRatingKey: string,
       labelsApplied: string[],
     ): Promise<number>
 
     /**
-     * Removes a tracking record for a specific Plex label and watchlist item
-     * @param watchlistId - The ID of the watchlist item
+     * Removes a tracking record for a specific Plex label and user/content combination
+     * @param contentKey - The TMDB/Plex content identifier
+     * @param userId - The ID of the user
      * @param plexRatingKey - The Plex rating key
      * @param labelApplied - The Plex label name to untrack
      * @returns Promise resolving to true if a record was deleted, false if the record wasn't found
      */
     untrackPlexLabel(
       this: DatabaseService,
-      watchlistId: number,
+      contentKey: string,
+      userId: number,
       plexRatingKey: string,
       labelApplied: string,
     ): Promise<boolean>
 
     /**
-     * Retrieves all tracked Plex labels for a specific watchlist item
-     * @param watchlistId - The ID of the watchlist item
-     * @returns Promise resolving to an array of Plex label tracking records for the watchlist item
+     * Retrieves all tracked Plex labels for a specific user
+     * @param userId - The ID of the user
+     * @returns Promise resolving to an array of Plex label tracking records for the user
      */
-    getTrackedLabelsForWatchlist(
+    getTrackedLabelsForUser(
       this: DatabaseService,
-      watchlistId: number,
+      userId: number,
     ): Promise<PlexLabelTracking[]>
 
     /**
-     * Removes all tracking records for a specific watchlist item
-     * @param watchlistId - The ID of the watchlist item
+     * Retrieves all tracked Plex labels for a specific content item
+     * @param contentKey - The TMDB/Plex content identifier
+     * @returns Promise resolving to an array of Plex label tracking records for the content
+     */
+    getTrackedLabelsForContent(
+      this: DatabaseService,
+      contentKey: string,
+    ): Promise<PlexLabelTracking[]>
+
+    /**
+     * Removes all tracking records for a specific user and content combination
+     * @param contentKey - The TMDB/Plex content identifier
+     * @param userId - The ID of the user
      * @returns Promise resolving to the number of tracking records that were deleted
      */
-    cleanupWatchlistTracking(
+    cleanupUserContentTracking(
       this: DatabaseService,
-      watchlistId: number,
+      contentKey: string,
+      userId: number,
     ): Promise<number>
+
+    /**
+     * Removes all tracking records for a specific user
+     * @param userId - The ID of the user
+     * @returns Promise resolving to the number of tracking records that were deleted
+     */
+    cleanupUserTracking(this: DatabaseService, userId: number): Promise<number>
 
     /**
      * Retrieves all Plex label tracking records from the database
@@ -78,15 +101,17 @@ declare module '@services/database.service.js' {
     ): Promise<number>
 
     /**
-     * Checks if a specific label is already tracked for a watchlist item and rating key
-     * @param watchlistId - The ID of the watchlist item
+     * Checks if a specific label is already tracked for a user/content/rating key combination
+     * @param contentKey - The TMDB/Plex content identifier
+     * @param userId - The ID of the user
      * @param plexRatingKey - The Plex rating key
      * @param labelApplied - The label to check
      * @returns Promise resolving to true if the label is already tracked, false otherwise
      */
     isLabelTracked(
       this: DatabaseService,
-      watchlistId: number,
+      contentKey: string,
+      userId: number,
       plexRatingKey: string,
       labelApplied: string,
     ): Promise<boolean>
