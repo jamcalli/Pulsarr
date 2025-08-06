@@ -5,7 +5,8 @@ import type { DatabaseService } from '@services/database.service.js'
  */
 interface PlexLabelTrackingRow {
   id: number
-  content_key: string
+  content_guids: string // JSON string that gets parsed to string[]
+  content_type: 'movie' | 'show'
   user_id: number
   plex_rating_key: string
   labels_applied: string // JSON string that gets parsed to string[]
@@ -17,7 +18,8 @@ interface PlexLabelTrackingRow {
  */
 export interface PlexLabelTracking {
   id: number
-  content_key: string
+  content_guids: string[] // Parsed JSON array of GUIDs
+  content_type: 'movie' | 'show'
   user_id: number
   plex_rating_key: string
   labels_applied: string[] // Parsed JSON array of labels
@@ -29,9 +31,11 @@ export interface PlexLabelTracking {
  *
  * Creates or updates a tracking record with the complete array of labels applied
  * to a specific piece of content for a user. This efficient approach stores all
- * labels in a single database row, replacing any existing labels.
+ * labels in a single database row, replacing any existing labels. Uses full GUID
+ * arrays for proper matching and content type for disambiguation.
  *
- * @param contentKey - The TMDB/Plex content identifier
+ * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+ * @param contentType - Type of content ('movie' or 'show')
  * @param userId - The ID of the user who has labels applied
  * @param plexRatingKey - The Plex rating key of the labeled content
  * @param labelsApplied - Array of all label names applied to this content
@@ -39,23 +43,56 @@ export interface PlexLabelTracking {
  */
 export async function trackPlexLabels(
   this: DatabaseService,
-  contentKey: string,
+  contentGuids: string[],
+  contentType: 'movie' | 'show',
   userId: number,
   plexRatingKey: string,
   labelsApplied: string[],
 ): Promise<number> {
+  // Handle empty arrays
+  if (contentGuids.length === 0) {
+    throw new Error('Content GUIDs array cannot be empty')
+  }
+
+  const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+  const guidsJson = JSON.stringify(normalizedGuids.sort()) // Sort for consistency
   const labelsJson = JSON.stringify(labelsApplied.sort()) // Sort for consistency
 
-  // Check if record already exists
-  const existing = await this.knex('plex_label_tracking')
-    .where('content_key', contentKey)
-    .where('user_id', userId)
-    .where('plex_rating_key', plexRatingKey)
-    .first()
+  this.log.debug('trackPlexLabels: Looking for existing record', {
+    userId,
+    plexRatingKey,
+    normalizedGuids,
+    contentType,
+  })
+
+  // Use SQL to find existing record with overlapping GUIDs
+  const existing = this.isPostgres
+    ? await this.knex('plex_label_tracking')
+        .where('user_id', userId)
+        .where('plex_rating_key', plexRatingKey)
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
+          [normalizedGuids],
+        )
+        .first()
+    : await this.knex('plex_label_tracking')
+        .where('user_id', userId)
+        .where('plex_rating_key', plexRatingKey)
+        .where((builder) => {
+          for (const guid of normalizedGuids) {
+            builder.orWhereRaw(
+              "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+              [guid],
+            )
+          }
+        })
+        .first()
 
   if (existing) {
     // Update existing record with new complete label set
     await this.knex('plex_label_tracking').where('id', existing.id).update({
+      content_guids: guidsJson,
+      content_type: contentType,
       labels_applied: labelsJson,
       synced_at: this.timestamp,
     })
@@ -65,7 +102,8 @@ export async function trackPlexLabels(
   // Insert new record with complete label set
   const result = await this.knex('plex_label_tracking')
     .insert({
-      content_key: contentKey,
+      content_guids: guidsJson,
+      content_type: contentType,
       user_id: userId,
       plex_rating_key: plexRatingKey,
       labels_applied: labelsJson,
@@ -79,35 +117,70 @@ export async function trackPlexLabels(
 /**
  * Removes a tracking record for a specific Plex label and user/content combination.
  *
- * Deletes the tracking record that links a specific Plex label to a user's content.
- * This is typically used when labels are removed or cleaned up.
+ * Uses GUID matching to find the correct tracking record and removes the specified
+ * label. If no labels remain after removal, the entire tracking record is deleted.
  *
- * @param contentKey - The TMDB/Plex content identifier
+ * @param contentGuids - Array of GUIDs for the content
  * @param userId - The ID of the user
  * @param plexRatingKey - The Plex rating key
  * @param labelApplied - The Plex label name to untrack
- * @returns True if a record was deleted, false if the record wasn't found
+ * @returns True if a record was modified/deleted, false if no matching record found
  */
 export async function untrackPlexLabel(
   this: DatabaseService,
-  contentKey: string,
+  contentGuids: string[],
   userId: number,
   plexRatingKey: string,
   labelApplied: string,
 ): Promise<boolean> {
-  // Get existing record
-  const existing = await this.knex('plex_label_tracking')
-    .where('content_key', contentKey)
-    .where('user_id', userId)
-    .where('plex_rating_key', plexRatingKey)
-    .first()
+  // Handle empty arrays
+  if (contentGuids.length === 0) {
+    this.log.warn('untrackPlexLabel: Empty content GUIDs array provided')
+    return false
+  }
+
+  const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+
+  this.log.debug('untrackPlexLabel: Looking for existing record', {
+    userId,
+    plexRatingKey,
+    labelApplied,
+    normalizedGuids,
+  })
+
+  // Use SQL to find existing record with overlapping GUIDs
+  const existing = this.isPostgres
+    ? await this.knex('plex_label_tracking')
+        .where('user_id', userId)
+        .where('plex_rating_key', plexRatingKey)
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
+          [normalizedGuids],
+        )
+        .first()
+    : await this.knex('plex_label_tracking')
+        .where('user_id', userId)
+        .where('plex_rating_key', plexRatingKey)
+        .where((builder) => {
+          for (const guid of normalizedGuids) {
+            builder.orWhereRaw(
+              "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+              [guid],
+            )
+          }
+        })
+        .first()
 
   if (!existing) {
     return false
   }
 
   // Parse existing labels and remove the specified one
-  const currentLabels: string[] = JSON.parse(existing.labels_applied || '[]')
+  const currentLabels = this.safeJsonParse<string[]>(
+    existing.labels_applied,
+    [],
+    'plex_label_tracking.labels_applied',
+  )
   const updatedLabels = currentLabels.filter((label) => label !== labelApplied)
 
   // If no labels remain, delete the record
@@ -149,38 +222,91 @@ export async function getTrackedLabelsForUser(
 
   return rows.map((row) => ({
     id: row.id,
-    content_key: row.content_key,
+    content_guids: this.safeJsonParse<string[]>(
+      row.content_guids,
+      [],
+      'plex_label_tracking.content_guids',
+    ),
+    content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: JSON.parse(row.labels_applied || '[]'),
+    labels_applied: this.safeJsonParse<string[]>(
+      row.labels_applied,
+      [],
+      'plex_label_tracking.labels_applied',
+    ),
     synced_at: row.synced_at,
   }))
 }
 
 /**
- * Retrieves all tracked Plex labels for a specific content item.
+ * Retrieves all tracked Plex labels for content matching the given GUID array.
  *
- * Returns all Plex labels that are currently being tracked for the specified content
- * across all users. Useful for determining what labels are applied to a piece of content.
+ * Returns all Plex labels that are currently being tracked for content with matching GUIDs
+ * across all users. Uses proper GUID matching to find records with overlapping GUIDs.
  *
- * @param contentKey - The TMDB/Plex content identifier
+ * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+ * @param contentType - Type of content ('movie' or 'show') for disambiguation
  * @returns An array of Plex label tracking records for the content
  */
 export async function getTrackedLabelsForContent(
   this: DatabaseService,
-  contentKey: string,
+  contentGuids: string[],
+  contentType: 'movie' | 'show',
 ): Promise<PlexLabelTracking[]> {
-  const rows = (await this.knex('plex_label_tracking')
-    .where('content_key', contentKey)
-    .orderBy('synced_at', 'asc')
-    .select('*')) as PlexLabelTrackingRow[]
+  // Handle empty arrays
+  if (contentGuids.length === 0) {
+    this.log.warn(
+      'getTrackedLabelsForContent: Empty content GUIDs array provided',
+    )
+    return []
+  }
+
+  const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+
+  this.log.debug('getTrackedLabelsForContent: Searching for records', {
+    contentType,
+    normalizedGuids,
+  })
+
+  // Use SQL to find records with overlapping GUIDs
+  const rows = this.isPostgres
+    ? await this.knex('plex_label_tracking')
+        .where('content_type', contentType)
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
+          [normalizedGuids],
+        )
+        .orderBy('synced_at', 'asc')
+        .select('*')
+    : await this.knex('plex_label_tracking')
+        .where('content_type', contentType)
+        .where((builder) => {
+          for (const guid of normalizedGuids) {
+            builder.orWhereRaw(
+              "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+              [guid],
+            )
+          }
+        })
+        .orderBy('synced_at', 'asc')
+        .select('*')
 
   return rows.map((row) => ({
     id: row.id,
-    content_key: row.content_key,
+    content_guids: this.safeJsonParse<string[]>(
+      row.content_guids,
+      [],
+      'plex_label_tracking.content_guids',
+    ),
+    content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: JSON.parse(row.labels_applied || '[]'),
+    labels_applied: this.safeJsonParse<string[]>(
+      row.labels_applied,
+      [],
+      'plex_label_tracking.labels_applied',
+    ),
     synced_at: row.synced_at,
   }))
 }
@@ -188,26 +314,62 @@ export async function getTrackedLabelsForContent(
 /**
  * Removes all tracking records for a specific user and content combination.
  *
- * Deletes all Plex label tracking records associated with a user's specific content.
+ * Deletes all Plex label tracking records associated with a user's content matching the given GUIDs.
  * This is typically used when a user removes content from their watchlist.
  *
- * @param contentKey - The TMDB/Plex content identifier
+ * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+ * @param contentType - Type of content ('movie' or 'show') for disambiguation
  * @param userId - The ID of the user
  * @returns The number of tracking records that were deleted
  */
 export async function cleanupUserContentTracking(
   this: DatabaseService,
-  contentKey: string,
+  contentGuids: string[],
+  contentType: 'movie' | 'show',
   userId: number,
 ): Promise<number> {
-  const deleted = await this.knex('plex_label_tracking')
-    .where('content_key', contentKey)
-    .where('user_id', userId)
-    .delete()
+  // Handle empty arrays
+  if (contentGuids.length === 0) {
+    this.log.warn(
+      'cleanupUserContentTracking: Empty content GUIDs array provided',
+    )
+    return 0
+  }
+
+  const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+
+  this.log.debug('cleanupUserContentTracking: Deleting records', {
+    userId,
+    contentType,
+    normalizedGuids,
+  })
+
+  // Use SQL to delete records with overlapping GUIDs directly
+  const deleted = this.isPostgres
+    ? await this.knex('plex_label_tracking')
+        .where('user_id', userId)
+        .where('content_type', contentType)
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
+          [normalizedGuids],
+        )
+        .delete()
+    : await this.knex('plex_label_tracking')
+        .where('user_id', userId)
+        .where('content_type', contentType)
+        .where((builder) => {
+          for (const guid of normalizedGuids) {
+            builder.orWhereRaw(
+              "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+              [guid],
+            )
+          }
+        })
+        .delete()
 
   if (deleted > 0) {
     this.log.debug(
-      `Cleaned up ${deleted} Plex label tracking records for user ${userId} content ${contentKey}`,
+      `Cleaned up ${deleted} Plex label tracking records for user ${userId} content type ${contentType}`,
     )
   }
 
@@ -258,10 +420,19 @@ export async function getAllTrackedLabels(
 
   return rows.map((row) => ({
     id: row.id,
-    content_key: row.content_key,
+    content_guids: this.safeJsonParse<string[]>(
+      row.content_guids,
+      [],
+      'plex_label_tracking.content_guids',
+    ),
+    content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: JSON.parse(row.labels_applied || '[]'),
+    labels_applied: this.safeJsonParse<string[]>(
+      row.labels_applied,
+      [],
+      'plex_label_tracking.labels_applied',
+    ),
     synced_at: row.synced_at,
   }))
 }
@@ -286,10 +457,19 @@ export async function getTrackedLabelsForRatingKey(
 
   return rows.map((row) => ({
     id: row.id,
-    content_key: row.content_key,
+    content_guids: this.safeJsonParse<string[]>(
+      row.content_guids,
+      [],
+      'plex_label_tracking.content_guids',
+    ),
+    content_type: row.content_type,
     user_id: row.user_id,
     plex_rating_key: row.plex_rating_key,
-    labels_applied: JSON.parse(row.labels_applied || '[]'),
+    labels_applied: this.safeJsonParse<string[]>(
+      row.labels_applied,
+      [],
+      'plex_label_tracking.labels_applied',
+    ),
     synced_at: row.synced_at,
   }))
 }
@@ -323,7 +503,8 @@ export async function cleanupRatingKeyTracking(
 /**
  * Checks if a specific label is already tracked for a user/content/rating key combination.
  *
- * @param contentKey - The TMDB/Plex content identifier
+ * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+ * @param contentType - Type of content ('movie' or 'show') for disambiguation
  * @param userId - The ID of the user
  * @param plexRatingKey - The Plex rating key
  * @param labelApplied - The label to check
@@ -331,23 +512,62 @@ export async function cleanupRatingKeyTracking(
  */
 export async function isLabelTracked(
   this: DatabaseService,
-  contentKey: string,
+  contentGuids: string[],
+  contentType: 'movie' | 'show',
   userId: number,
   plexRatingKey: string,
   labelApplied: string,
 ): Promise<boolean> {
-  const result = await this.knex('plex_label_tracking')
-    .where('content_key', contentKey)
-    .where('user_id', userId)
-    .where('plex_rating_key', plexRatingKey)
-    .first()
-
-  if (!result) {
+  // Handle empty arrays
+  if (contentGuids.length === 0) {
+    this.log.warn('isLabelTracked: Empty content GUIDs array provided')
     return false
   }
 
-  const labels: string[] = JSON.parse(result.labels_applied || '[]')
-  return labels.includes(labelApplied)
+  const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+
+  this.log.debug('isLabelTracked: Checking label tracking', {
+    userId,
+    contentType,
+    plexRatingKey,
+    labelApplied,
+    normalizedGuids,
+  })
+
+  // Use SQL to find record with overlapping GUIDs and check if it contains the label
+  const record = this.isPostgres
+    ? await this.knex('plex_label_tracking')
+        .where('user_id', userId)
+        .where('content_type', contentType)
+        .where('plex_rating_key', plexRatingKey)
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
+          [normalizedGuids],
+        )
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) label WHERE label = ?)',
+          [labelApplied],
+        )
+        .first()
+    : await this.knex('plex_label_tracking')
+        .where('user_id', userId)
+        .where('content_type', contentType)
+        .where('plex_rating_key', plexRatingKey)
+        .where((builder) => {
+          for (const guid of normalizedGuids) {
+            builder.orWhereRaw(
+              "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+              [guid],
+            )
+          }
+        })
+        .whereRaw(
+          "EXISTS (SELECT 1 FROM json_each(labels_applied) WHERE json_each.type = 'text' AND json_each.value = ?)",
+          [labelApplied],
+        )
+        .first()
+
+  return !!record
 }
 
 /**
@@ -395,7 +615,11 @@ export async function removeTrackedLabel(
   let totalUpdated = 0
 
   for (const record of records) {
-    const labels: string[] = JSON.parse(record.labels_applied || '[]')
+    const labels = this.safeJsonParse<string[]>(
+      record.labels_applied,
+      [],
+      'plex_label_tracking.labels_applied',
+    )
     const updatedLabels = labels.filter((label) => label !== labelApplied)
 
     if (updatedLabels.length !== labels.length) {
@@ -455,7 +679,11 @@ export async function getOrphanedLabelTracking(
   const orphanedByRatingKey = new Map<string, string[]>()
 
   for (const record of allRecords) {
-    const labels: string[] = JSON.parse(record.labels_applied || '[]')
+    const labels = this.safeJsonParse<string[]>(
+      record.labels_applied,
+      [],
+      'plex_label_tracking.labels_applied',
+    )
     const orphanedLabels: string[] = []
 
     for (const label of labels) {
@@ -511,7 +739,11 @@ export async function removeOrphanedTracking(
   let totalUpdated = 0
 
   for (const record of records) {
-    const labels: string[] = JSON.parse(record.labels_applied || '[]')
+    const labels = this.safeJsonParse<string[]>(
+      record.labels_applied,
+      [],
+      'plex_label_tracking.labels_applied',
+    )
     const updatedLabels = labels.filter(
       (label) => !orphanedLabels.includes(label),
     )

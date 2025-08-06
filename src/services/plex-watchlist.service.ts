@@ -1612,55 +1612,55 @@ export class PlexWatchlistService {
     currentKeys: Set<string>,
     fetchedKeys: Set<string>,
   ): Promise<void> {
-    try {
-      const removedKeys = Array.from(currentKeys).filter(
-        (key) => !fetchedKeys.has(key),
+    const removedKeys = Array.from(currentKeys).filter(
+      (key) => !fetchedKeys.has(key),
+    )
+
+    if (removedKeys.length > 0) {
+      this.log.info(
+        `Detected ${removedKeys.length} removed items for user ${userId}`,
       )
 
-      if (removedKeys.length > 0) {
-        this.log.info(
-          `Detected ${removedKeys.length} removed items for user ${userId}`,
-        )
+      // Get the watchlist items that will be deleted for label cleanup
+      if (this.plexLabelSyncService) {
+        try {
+          const itemsToDelete =
+            await this.dbService.getWatchlistItemsByKeys(removedKeys)
+          // Filter to only items belonging to this user
+          const userItemsToDelete = itemsToDelete.filter(
+            (item) => item.user_id === userId,
+          )
 
-        // Get the watchlist items that will be deleted for label cleanup
-        if (this.plexLabelSyncService) {
-          try {
-            const itemsToDelete =
-              await this.dbService.getWatchlistItemsByKeys(removedKeys)
-            // Filter to only items belonging to this user
-            const userItemsToDelete = itemsToDelete.filter(
-              (item) => item.user_id === userId,
+          if (userItemsToDelete.length > 0) {
+            const labelCleanupItems = userItemsToDelete.map((item) => ({
+              id: Number((item as WatchlistItem & { id: number }).id),
+              title: item.title,
+              key: item.key,
+              user_id: item.user_id,
+              guids: parseGuids(item.guids), // Add GUID array
+              contentType: (item.type === 'show' ? 'show' : 'movie') as
+                | 'movie'
+                | 'show', // Add content type
+            }))
+            await this.plexLabelSyncService.cleanupLabelsForWatchlistItems(
+              labelCleanupItems,
             )
-
-            if (userItemsToDelete.length > 0) {
-              const labelCleanupItems = userItemsToDelete.map((item) => ({
-                id: Number((item as WatchlistItem & { id: number }).id),
-                title: item.title,
-                key: item.key,
-                user_id: item.user_id,
-              }))
-              await this.plexLabelSyncService.cleanupLabelsForWatchlistItems(
-                labelCleanupItems,
-              )
-            }
-          } catch (error) {
-            this.log.error(
-              'Failed to cleanup labels for removed watchlist items:',
-              {
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-                userId,
-                removedKeys,
-              },
-            )
-            // Continue with deletion even if label cleanup fails
           }
+        } catch (error) {
+          this.log.error(
+            'Failed to cleanup labels for removed watchlist items:',
+            {
+              error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined,
+              userId,
+              removedKeys,
+            },
+          )
+          // Continue with deletion even if label cleanup fails
         }
-
-        await this.dbService.deleteWatchlistItems(userId, removedKeys)
       }
-    } catch (error) {
-      throw error // Re-throw to propagate the error properly
+
+      await this.dbService.deleteWatchlistItems(userId, removedKeys)
     }
   }
 
@@ -1757,18 +1757,14 @@ export class PlexWatchlistService {
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   ): Promise<void> {
     for (const [user, items] of userWatchlistMap.entries()) {
-      try {
-        const currentItems = await this.dbService.getAllWatchlistItemsForUser(
-          user.userId,
-        )
+      const currentItems = await this.dbService.getAllWatchlistItemsForUser(
+        user.userId,
+      )
 
-        const currentKeys = new Set(currentItems.map((item) => item.key))
-        const fetchedKeys = new Set(Array.from(items).map((item) => item.id))
+      const currentKeys = new Set(currentItems.map((item) => item.key))
+      const fetchedKeys = new Set(Array.from(items).map((item) => item.id))
 
-        await this.handleRemovedItems(user.userId, currentKeys, fetchedKeys)
-      } catch (error) {
-        throw error // Re-throw to propagate error
-      }
+      await this.handleRemovedItems(user.userId, currentKeys, fetchedKeys)
     }
   }
   /**
