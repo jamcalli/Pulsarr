@@ -1136,6 +1136,9 @@ export class PlexWatchlistService {
       this.log.info(
         `Successfully linked ${linkItems.length} existing items to new users`,
       )
+
+      // Queue re-added items for label synchronization
+      await this.handleLinkedItemsForLabelSync(linkItems)
     } catch (error) {
       this.log.error('Error linking existing items', {
         error: error instanceof Error ? error.message : String(error),
@@ -1647,6 +1650,76 @@ export class PlexWatchlistService {
       }
 
       await this.dbService.deleteWatchlistItems(userId, removedKeys)
+    }
+  }
+
+  /**
+   * Handles items that were just linked to users by queuing them for label sync
+   */
+  private async handleLinkedItemsForLabelSync(
+    linkItems: WatchlistItem[],
+  ): Promise<void> {
+    if (!this.plexLabelSyncService || linkItems.length === 0) {
+      return
+    }
+
+    try {
+      // Get the database items with IDs after linking
+      const keys = linkItems.map((item) => item.key)
+      const dbItems = await this.dbService.getWatchlistItemsByKeys(keys)
+
+      // Group by unique content key to avoid duplicate pending syncs
+      // This mimics the content-centric approach used in full sync
+      const contentMap = new Map<
+        string,
+        { title: string; watchlistIds: number[] }
+      >()
+      const userCounts = new Map<number, number>()
+
+      for (const linkItem of linkItems) {
+        const dbItem = dbItems.find((item) => item.key === linkItem.key)
+        if (dbItem?.id && linkItem.key) {
+          // Group by content key
+          if (!contentMap.has(linkItem.key)) {
+            contentMap.set(linkItem.key, {
+              title: linkItem.title,
+              watchlistIds: [],
+            })
+          }
+          contentMap.get(linkItem.key)?.watchlistIds.push(dbItem.id)
+
+          // Count per user for logging
+          const count = userCounts.get(linkItem.user_id) || 0
+          userCounts.set(linkItem.user_id, count + 1)
+        }
+      }
+
+      // Queue one pending sync per unique content (not per watchlist item)
+      // This ensures all users for the same content are processed together
+      let totalQueued = 0
+      for (const [contentKey, content] of contentMap.entries()) {
+        // Queue using the first watchlist ID as representative
+        // The processing will find ALL users with this content when processing
+        await this.plexLabelSyncService.queuePendingLabelSyncByWatchlistId(
+          content.watchlistIds[0],
+          content.title,
+        )
+        totalQueued++
+      }
+
+      // Log per user
+      for (const [userId, count] of userCounts.entries()) {
+        this.log.info(`Detected ${count} re-added items for user ${userId}`)
+      }
+
+      if (totalQueued > 0) {
+        this.log.info(
+          `Queued ${totalQueued} unique content items for label synchronization (grouped from ${linkItems.length} re-added items)`,
+        )
+      }
+    } catch (error) {
+      this.log.warn('Failed to queue re-added items for label sync:', error)
+      // Continue processing even if label sync queueing fails
     }
   }
 
