@@ -140,15 +140,24 @@ export class PlexLabelSyncService {
   }
 
   /**
-   * Checks if a tag is managed by the user tagging system
+   * Checks if a tag is managed by the user tagging system or is a special removal tag
    *
    * @param tagName - The tag to check
-   * @returns True if this is a user tagging system tag
+   * @returns True if this is a user tagging system tag or special removal tag
    */
   private isUserTaggingSystemTag(tagName: string): boolean {
     const tagPrefix = this.fastify.config.tagPrefix || 'pulsarr:user'
     const userTagPattern = new RegExp(`^${this.escapeRegex(tagPrefix)}:`, 'i')
-    return userTagPattern.test(tagName)
+
+    // Also filter out special removal tags from user tag service
+    const removedTagPrefix =
+      this.fastify.config.removedTagPrefix || 'pulsarr:removed'
+    const removedTagPattern = new RegExp(
+      `^${this.escapeRegex(removedTagPrefix)}`,
+      'i',
+    )
+
+    return userTagPattern.test(tagName) || removedTagPattern.test(tagName)
   }
 
   /**
