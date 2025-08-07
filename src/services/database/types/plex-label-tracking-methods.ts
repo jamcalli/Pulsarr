@@ -1,55 +1,109 @@
-import type { PlexLabelTracking } from '../methods/plex-label-tracking.js'
+import type {
+  PlexLabelTracking,
+  TrackPlexLabelsOperation,
+  UntrackPlexLabelOperation,
+  BulkOperationResult,
+} from '../methods/plex-label-tracking.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
     // PLEX LABEL TRACKING MANAGEMENT
     /**
-     * Creates a new tracking record linking a Plex label to a watchlist item
-     * @param watchlistId - The ID of the watchlist item
+     * Updates the tracking record with the complete set of labels for a content item
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+     * @param contentType - Type of content ('movie' or 'show')
+     * @param userId - The ID of the user who has labels applied
      * @param plexRatingKey - The Plex rating key of the labeled content
-     * @param labelApplied - The Plex label name that was applied
+     * @param labelsApplied - Array of all label names applied to this content
      * @returns Promise resolving to the ID of the tracking record (new or existing)
      */
-    trackPlexLabel(
+    trackPlexLabels(
       this: DatabaseService,
-      watchlistId: number,
+      contentGuids: string[],
+      contentType: 'movie' | 'show',
+      userId: number,
       plexRatingKey: string,
-      labelApplied: string,
+      labelsApplied: string[],
     ): Promise<number>
 
     /**
-     * Removes a tracking record for a specific Plex label and watchlist item
-     * @param watchlistId - The ID of the watchlist item
+     * Processes multiple tracking operations for Plex labels in bulk
+     * @param operations - Array of tracking operations
+     * @returns Promise resolving to object with processedCount and failedIds
+     */
+    trackPlexLabelsBulk(
+      this: DatabaseService,
+      operations: TrackPlexLabelsOperation[],
+    ): Promise<BulkOperationResult>
+
+    /**
+     * Removes a tracking record for a specific Plex label and user/content combination
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+     * @param userId - The ID of the user
      * @param plexRatingKey - The Plex rating key
      * @param labelApplied - The Plex label name to untrack
      * @returns Promise resolving to true if a record was deleted, false if the record wasn't found
      */
     untrackPlexLabel(
       this: DatabaseService,
-      watchlistId: number,
+      contentGuids: string[],
+      userId: number,
       plexRatingKey: string,
       labelApplied: string,
     ): Promise<boolean>
 
     /**
-     * Retrieves all tracked Plex labels for a specific watchlist item
-     * @param watchlistId - The ID of the watchlist item
-     * @returns Promise resolving to an array of Plex label tracking records for the watchlist item
+     * Processes multiple untracking operations for Plex labels in bulk
+     * @param operations - Array of untracking operations
+     * @returns Promise resolving to object with processedCount and failedIds
      */
-    getTrackedLabelsForWatchlist(
+    untrackPlexLabelBulk(
       this: DatabaseService,
-      watchlistId: number,
+      operations: UntrackPlexLabelOperation[],
+    ): Promise<BulkOperationResult>
+
+    /**
+     * Retrieves all tracked Plex labels for a specific user
+     * @param userId - The ID of the user
+     * @returns Promise resolving to an array of Plex label tracking records for the user
+     */
+    getTrackedLabelsForUser(
+      this: DatabaseService,
+      userId: number,
     ): Promise<PlexLabelTracking[]>
 
     /**
-     * Removes all tracking records for a specific watchlist item
-     * @param watchlistId - The ID of the watchlist item
+     * Retrieves all tracked Plex labels for content matching the given GUID array
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+     * @param contentType - Type of content ('movie' or 'show') for disambiguation
+     * @returns Promise resolving to an array of Plex label tracking records for the content
+     */
+    getTrackedLabelsForContent(
+      this: DatabaseService,
+      contentGuids: string[],
+      contentType: 'movie' | 'show',
+    ): Promise<PlexLabelTracking[]>
+
+    /**
+     * Removes all tracking records for a specific user and content combination
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+     * @param contentType - Type of content ('movie' or 'show') for disambiguation
+     * @param userId - The ID of the user
      * @returns Promise resolving to the number of tracking records that were deleted
      */
-    cleanupWatchlistTracking(
+    cleanupUserContentTracking(
       this: DatabaseService,
-      watchlistId: number,
+      contentGuids: string[],
+      contentType: 'movie' | 'show',
+      userId: number,
     ): Promise<number>
+
+    /**
+     * Removes all tracking records for a specific user
+     * @param userId - The ID of the user
+     * @returns Promise resolving to the number of tracking records that were deleted
+     */
+    cleanupUserTracking(this: DatabaseService, userId: number): Promise<number>
 
     /**
      * Retrieves all Plex label tracking records from the database
@@ -78,15 +132,19 @@ declare module '@services/database.service.js' {
     ): Promise<number>
 
     /**
-     * Checks if a specific label is already tracked for a watchlist item and rating key
-     * @param watchlistId - The ID of the watchlist item
+     * Checks if a specific label is already tracked for a user/content/rating key combination
+     * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
+     * @param contentType - Type of content ('movie' or 'show') for disambiguation
+     * @param userId - The ID of the user
      * @param plexRatingKey - The Plex rating key
      * @param labelApplied - The label to check
      * @returns Promise resolving to true if the label is already tracked, false otherwise
      */
     isLabelTracked(
       this: DatabaseService,
-      watchlistId: number,
+      contentGuids: string[],
+      contentType: 'movie' | 'show',
+      userId: number,
       plexRatingKey: string,
       labelApplied: string,
     ): Promise<boolean>
@@ -96,6 +154,20 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the number of tracking records that were deleted
      */
     clearAllLabelTracking(this: DatabaseService): Promise<number>
+
+    /**
+     * Removes tracking records for specific labels on multiple Plex rating keys in bulk
+     * @param operations - Array of operations, each containing plexRatingKey and labelsToRemove
+     * @returns Promise resolving to object with processedCount, failedIds, and totalUpdatedCount
+     */
+    removeTrackedLabels(
+      this: DatabaseService,
+      operations: Array<{ plexRatingKey: string; labelsToRemove: string[] }>,
+    ): Promise<{
+      processedCount: number
+      failedIds: string[]
+      totalUpdatedCount: number
+    }>
 
     /**
      * Removes tracking records for a specific label on a specific Plex rating key
@@ -120,6 +192,20 @@ declare module '@services/database.service.js' {
       validLabels: Set<string>,
       labelPrefix: string,
     ): Promise<Array<{ plex_rating_key: string; orphaned_labels: string[] }>>
+
+    /**
+     * Remove multiple tracking records in bulk operations for orphaned labels
+     * @param operations - Array of operations, each containing plexRatingKey and orphanedLabels
+     * @returns Promise resolving to object with processedCount, failedIds, and totalUpdatedCount
+     */
+    removeOrphanedTrackingBulk(
+      this: DatabaseService,
+      operations: Array<{ plexRatingKey: string; orphanedLabels: string[] }>,
+    ): Promise<{
+      processedCount: number
+      failedIds: string[]
+      totalUpdatedCount: number
+    }>
 
     /**
      * Remove multiple tracking records in a batch operation

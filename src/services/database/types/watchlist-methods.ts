@@ -1,6 +1,7 @@
 import type {
   WatchlistItemUpdate,
   WatchlistStatus,
+  DatabaseWatchlistItem,
 } from '@root/types/watchlist-status.types.js'
 import type {
   TokenWatchlistItem,
@@ -49,6 +50,16 @@ declare module '@services/database.service.js' {
     ): Promise<WatchlistItem | undefined>
 
     /**
+     * Retrieves a watchlist item by its ID
+     * @param id - The watchlist item ID
+     * @returns The watchlist item if found, undefined otherwise
+     */
+    getWatchlistItemById(
+      this: DatabaseService,
+      id: number,
+    ): Promise<WatchlistItem | undefined>
+
+    /**
      * Retrieves watchlist items for multiple users and keys
      * @param userIds - Array of user IDs
      * @param keys - Array of watchlist item keys to filter by
@@ -68,7 +79,7 @@ declare module '@services/database.service.js' {
     getWatchlistItemsByKeys(
       this: DatabaseService,
       keys: string[],
-    ): Promise<WatchlistItem[]>
+    ): Promise<(WatchlistItem & { id: number })[]>
 
     /**
      * Bulk updates multiple watchlist items
@@ -194,13 +205,13 @@ declare module '@services/database.service.js' {
      * Creates multiple watchlist items
      * @param items - Array of watchlist items to create
      * @param options - Configuration options for how to handle conflicts
-     * @returns Promise resolving to void when complete
+     * @returns Promise resolving to array of inserted IDs
      */
     createWatchlistItems(
       this: DatabaseService,
       items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
       options?: { onConflict?: 'ignore' | 'merge' },
-    ): Promise<void>
+    ): Promise<{ id: number; key: string }[]>
 
     /**
      * Creates temporary RSS items for processing

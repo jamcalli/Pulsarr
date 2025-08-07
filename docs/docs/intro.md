@@ -45,6 +45,12 @@ Enjoy all the benefits of other content discovery systems without requiring user
   - Tag-based tracking for user content requests
   - Automatic multi-user watchlist monitoring
 
+- **Plex Label Sync**:
+  - Automatically syncs user labels to Plex content based on watchlists
+  - Supports tag integration from Radarr/Sonarr instances
+  - Configurable label behavior and cleanup options
+  - Helps organize and identify content by user preferences
+
 - **Intelligent Content Lifecycle**:
   - Automatic configuration of webhook endpoints
   - Smart deletion of content when removed from watchlists

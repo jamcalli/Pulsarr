@@ -18,24 +18,12 @@ declare module 'fastify' {
 
 export default fp(
   async function plexLabelSync(fastify: FastifyInstance) {
-    // Use the nested plexLabelSync configuration object
-    const labelSyncConfig = fastify.config.plexLabelSync || {
-      enabled: false,
-      labelPrefix: 'pulsarr',
-      concurrencyLimit: 5, // Default concurrency limit
-      cleanupOrphanedLabels: false,
-      removedLabelMode: 'remove' as const,
-      removedLabelPrefix: 'pulsarr:removed',
-      scheduleTime: undefined,
-      dayOfWeek: '*',
-    }
-
     // Create the Plex label sync service
     const plexLabelSyncService = new PlexLabelSyncService(
       fastify.log,
       fastify.plexServerService,
       fastify.db,
-      labelSyncConfig,
+      fastify,
     )
 
     // Create the pending sync processor service
@@ -69,19 +57,14 @@ export default fp(
               return
             }
 
-            const processed =
-              await fastify.pendingLabelSyncProcessor.processPendingLabelSyncs()
-            // Only log completion if we actually processed something
-            if (processed > 0) {
-              fastify.log.info(`Processed ${processed} pending label syncs`)
-            }
+            await fastify.pendingLabelSyncProcessor.processPendingLabelSyncs()
           },
         )
 
-        // Update the schedule to run at configured interval
+        // Update the schedule to run at configured interval (match pending webhook interval)
         await fastify.db.updateSchedule('pending-label-sync-processor', {
           type: 'interval',
-          config: { seconds: 30 },
+          config: { seconds: 30 }, // Check every 30 seconds
           enabled: true,
         })
 
@@ -100,12 +83,7 @@ export default fp(
               return
             }
 
-            const cleaned =
-              await fastify.pendingLabelSyncProcessor.cleanupExpired()
-            // Only log if we actually cleaned something
-            if (cleaned > 0) {
-              fastify.log.info(`Cleaned up ${cleaned} expired label syncs`)
-            }
+            await fastify.pendingLabelSyncProcessor.cleanupExpired()
           },
         )
 
@@ -166,6 +144,7 @@ export default fp(
               return
             }
 
+            // Sync will automatically reset if autoResetOnScheduledSync is enabled in config
             await fastify.plexLabelSyncService.syncAllLabels()
           },
         )
@@ -184,6 +163,13 @@ export default fp(
   },
   {
     name: 'plex-label-sync',
-    dependencies: ['database', 'config', 'plex-server', 'scheduler'],
+    dependencies: [
+      'database',
+      'config',
+      'plex-server',
+      'scheduler',
+      'radarr-manager',
+      'sonarr-manager',
+    ],
   },
 )

@@ -17,7 +17,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       schema: {
         summary: 'Sync plex labels',
         operationId: 'syncPlexLabels',
-        description: 'Synchronize plex labels for all watchlist content',
+        description:
+          'Synchronize plex labels for all watchlist content. Will automatically reset labels first if enabled in configuration.',
         response: {
           200: SyncPlexLabelsResponseSchema,
           500: ErrorSchema,
@@ -86,7 +87,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         try {
-          // Proceed with sync operation
+          // Proceed with sync operation - will auto-reset if configured
           const results =
             await fastify.plexLabelSyncService.syncAllLabels(progressCallback)
 

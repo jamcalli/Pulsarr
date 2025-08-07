@@ -408,7 +408,7 @@ export class UserTagService {
           // Get ALL series details with tags - only if not already included
           let seriesDetailsMap: Map<
             number,
-            (SonarrItem & { id: number }) | (SonarrSeries & { tags: number[] })
+            (SonarrItem & { id: number }) | SonarrSeries
           >
 
           if (hasTagsInData) {
@@ -423,9 +423,7 @@ export class UserTagService {
           } else {
             // Fetch complete data from API
             const allSeriesDetails =
-              await sonarrService.getFromSonarr<
-                Array<SonarrSeries & { tags: number[] }>
-              >('series')
+              await sonarrService.getFromSonarr<Array<SonarrSeries>>('series')
             seriesDetailsMap = new Map(allSeriesDetails.map((s) => [s.id, s]))
           }
 
@@ -731,7 +729,7 @@ export class UserTagService {
           // Get ALL movie details with tags - only if not already included
           let movieDetailsMap: Map<
             number,
-            (RadarrItem & { id: number }) | (RadarrMovie & { tags: number[] })
+            (RadarrItem & { id: number }) | RadarrMovie
           >
 
           if (hasTagsInData) {
@@ -746,9 +744,7 @@ export class UserTagService {
           } else {
             // Fetch complete data from API
             const allMovieDetails =
-              await radarrService.getFromRadarr<
-                Array<RadarrMovie & { tags: number[] }>
-              >('movie')
+              await radarrService.getFromRadarr<Array<RadarrMovie>>('movie')
             movieDetailsMap = new Map(allMovieDetails.map((m) => [m.id, m]))
           }
 
@@ -2054,9 +2050,7 @@ export class UserTagService {
 
         // Get all series with their tags in one bulk call
         const allSeriesDetails =
-          await sonarrService.getFromSonarr<
-            Array<SonarrSeries & { tags: number[] }>
-          >('series')
+          await sonarrService.getFromSonarr<Array<SonarrSeries>>('series')
 
         // Orphaned tag IDs for quick lookup
         const orphanedTagIds = new Set(orphanedTags.map((t) => t.id))
@@ -2204,9 +2198,7 @@ export class UserTagService {
 
         // Get all movies with their tags in one bulk call
         const allMovieDetails =
-          await radarrService.getFromRadarr<
-            Array<RadarrMovie & { tags: number[] }>
-          >('movie')
+          await radarrService.getFromRadarr<Array<RadarrMovie>>('movie')
 
         // Orphaned tag IDs for quick lookup
         const orphanedTagIds = new Set(orphanedTags.map((t) => t.id))

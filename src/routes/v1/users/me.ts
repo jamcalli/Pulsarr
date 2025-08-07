@@ -49,11 +49,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             // Use the first available Plex token
             const plexToken = config.plexTokens[0]
             plexConnected = true
-            avatar = await fetchPlexAvatar(plexToken)
+            avatar = await fetchPlexAvatar(plexToken, fastify.log)
           }
         } catch (error) {
           // Don't fail the entire request if Plex avatar fetch fails
-          console.warn('Failed to fetch Plex token or avatar:', error)
+          fastify.log.warn('Failed to fetch Plex token or avatar:', error)
         }
 
         return {
@@ -69,7 +69,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        console.error('Error in /me endpoint:', error)
+        fastify.log.error('Error in /me endpoint:', error)
         reply.status(500)
         return {
           success: false,
