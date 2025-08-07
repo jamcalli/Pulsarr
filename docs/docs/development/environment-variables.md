@@ -171,7 +171,7 @@ approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationActi
 # - cleanupExpiredDays: Days to keep expired approval records (default: 30, range: 1-365)
 
 # Plex Label Sync Configuration
-plexLabelSync='{"enabled":false,"labelPrefix":"pulsarr","concurrencyLimit":5,"cleanupOrphanedLabels":false,"removedLabelMode":"remove","removedLabelPrefix":"pulsarr:removed","scheduleTime":null,"dayOfWeek":"*","tagSync":{"enabled":false,"syncRadarrTags":true,"syncSonarrTags":true}}'  # JSON config for Plex label synchronization
+plexLabelSync='{"enabled":false,"labelPrefix":"pulsarr","concurrencyLimit":5,"cleanupOrphanedLabels":false,"removedLabelMode":"remove","removedLabelPrefix":"pulsarr:removed","autoResetOnScheduledSync":false,"scheduleTime":null,"dayOfWeek":"*","tagSync":{"enabled":false,"syncRadarrTags":true,"syncSonarrTags":true}}'  # JSON config for Plex label synchronization
 # Plex Label Sync configuration (JSON format):
 # - enabled: Enable/disable Plex label synchronization feature (default: false)
 # - labelPrefix: Prefix for user labels in Plex (default: "pulsarr", results in "pulsarr:username")
@@ -179,6 +179,7 @@ plexLabelSync='{"enabled":false,"labelPrefix":"pulsarr","concurrencyLimit":5,"cl
 # - cleanupOrphanedLabels: Remove labels for deleted users during cleanup (default: false)
 # - removedLabelMode: Handle labels when users removed: 'remove', 'keep', 'special-label' (default: remove)
 # - removedLabelPrefix: Prefix for special removal labels when using 'special-label' mode (default: "pulsarr:removed")
+# - autoResetOnScheduledSync: Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode (default: false)
 # - scheduleTime: Optional scheduled sync time in ISO format (default: null)
 # - dayOfWeek: Day of week for scheduled sync, cron format (default: "*" - every day)
 # - tagSync.enabled: Enable syncing Radarr/Sonarr tags as Plex labels (default: false)

@@ -88,6 +88,15 @@ export default function DocFeatureExample() {
                   Sends personalized notifications via Discord and Apprise
                 </p>
               </div>
+
+              <div className="feature-item">
+                <h3 className="text-foreground">Plex Label Sync</h3>
+                <p className="text-foreground">
+                  Automatic user label syncing to Plex content based on
+                  watchlists, tag integration from Radarr/Sonarr, and
+                  configurable label behavior
+                </p>
+              </div>
             </div>
           </div>
         </DocFeature>
