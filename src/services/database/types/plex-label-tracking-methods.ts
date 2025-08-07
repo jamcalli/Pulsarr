@@ -1,4 +1,9 @@
-import type { PlexLabelTracking } from '../methods/plex-label-tracking.js'
+import type {
+  PlexLabelTracking,
+  TrackPlexLabelsOperation,
+  UntrackPlexLabelOperation,
+  BulkOperationResult,
+} from '../methods/plex-label-tracking.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -22,6 +27,16 @@ declare module '@services/database.service.js' {
     ): Promise<number>
 
     /**
+     * Processes multiple tracking operations for Plex labels in bulk
+     * @param operations - Array of tracking operations
+     * @returns Promise resolving to object with processedCount and failedIds
+     */
+    trackPlexLabelsBulk(
+      this: DatabaseService,
+      operations: TrackPlexLabelsOperation[],
+    ): Promise<BulkOperationResult>
+
+    /**
      * Removes a tracking record for a specific Plex label and user/content combination
      * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
      * @param userId - The ID of the user
@@ -36,6 +51,16 @@ declare module '@services/database.service.js' {
       plexRatingKey: string,
       labelApplied: string,
     ): Promise<boolean>
+
+    /**
+     * Processes multiple untracking operations for Plex labels in bulk
+     * @param operations - Array of untracking operations
+     * @returns Promise resolving to object with processedCount and failedIds
+     */
+    untrackPlexLabelBulk(
+      this: DatabaseService,
+      operations: UntrackPlexLabelOperation[],
+    ): Promise<BulkOperationResult>
 
     /**
      * Retrieves all tracked Plex labels for a specific user
@@ -131,6 +156,16 @@ declare module '@services/database.service.js' {
     clearAllLabelTracking(this: DatabaseService): Promise<number>
 
     /**
+     * Removes tracking records for specific labels on multiple Plex rating keys in bulk
+     * @param operations - Array of operations, each containing plexRatingKey and labelsToRemove
+     * @returns Promise resolving to object with processedCount and failedIds
+     */
+    removeTrackedLabels(
+      this: DatabaseService,
+      operations: Array<{ plexRatingKey: string; labelsToRemove: string[] }>,
+    ): Promise<{ processedCount: number; failedIds: string[] }>
+
+    /**
      * Removes tracking records for a specific label on a specific Plex rating key
      * @param plexRatingKey - The Plex rating key
      * @param labelApplied - The label to remove tracking for
@@ -153,6 +188,16 @@ declare module '@services/database.service.js' {
       validLabels: Set<string>,
       labelPrefix: string,
     ): Promise<Array<{ plex_rating_key: string; orphaned_labels: string[] }>>
+
+    /**
+     * Remove multiple tracking records in bulk operations for orphaned labels
+     * @param operations - Array of operations, each containing plexRatingKey and orphanedLabels
+     * @returns Promise resolving to object with processedCount and failedIds
+     */
+    removeOrphanedTrackingBulk(
+      this: DatabaseService,
+      operations: Array<{ plexRatingKey: string; orphanedLabels: string[] }>,
+    ): Promise<{ processedCount: number; failedIds: string[] }>
 
     /**
      * Remove multiple tracking records in a batch operation

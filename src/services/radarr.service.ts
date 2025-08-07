@@ -1346,9 +1346,7 @@ export class RadarrService {
   async updateMovieTags(movieId: number, tagIds: number[]): Promise<void> {
     try {
       // First get the current movie to preserve all fields
-      const movie = await this.getFromRadarr<RadarrMovie & { tags: number[] }>(
-        `movie/${movieId}`,
-      )
+      const movie = await this.getFromRadarr<RadarrMovie>(`movie/${movieId}`)
 
       // Use Set to deduplicate tags
       movie.tags = [...new Set(tagIds)]

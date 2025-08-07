@@ -13,12 +13,25 @@ export async function up(knex: Knex): Promise<void> {
   // Check if we're using PostgreSQL or SQLite
   const isPostgres = knex.client.config.client === 'pg'
 
+  // Create content_type enum for PostgreSQL if it doesn't exist
+  if (isPostgres) {
+    await knex.raw(`
+      CREATE TYPE IF NOT EXISTS plex_content_type AS ENUM ('movie', 'show');
+    `)
+  }
+
   await knex.schema.createTable('plex_label_tracking', (table) => {
     table.increments('id').primary()
 
     // Track by content GUIDs + user instead of watchlist_id to avoid FK constraints
     table.json('content_guids').notNullable() // Full GUID array for proper matching
-    table.string('content_type', 10).notNullable() // 'movie' or 'show' for disambiguation
+
+    // Constrain content_type to only allow 'movie' or 'show'
+    if (isPostgres) {
+      table.specificType('content_type', 'plex_content_type').notNullable()
+    } else {
+      table.enum('content_type', ['movie', 'show']).notNullable()
+    }
     table
       .integer('user_id')
       .notNullable()
@@ -67,4 +80,11 @@ export async function down(knex: Knex): Promise<void> {
   }
 
   await knex.schema.dropTableIfExists('plex_label_tracking')
+
+  // Clean up the enum type for PostgreSQL
+  if (isPostgres) {
+    await knex.raw(`
+      DROP TYPE IF EXISTS plex_content_type CASCADE;
+    `)
+  }
 }

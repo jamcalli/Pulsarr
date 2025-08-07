@@ -2347,7 +2347,7 @@ export class PlexLabelSyncService {
       await this.db.createPendingLabelSync(
         watchlistItemId,
         title,
-        30, // 30 minute default expiration
+        10, // 10 minute default expiration
         webhookTags,
       )
     } catch (error) {

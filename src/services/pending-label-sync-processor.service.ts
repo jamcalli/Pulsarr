@@ -20,7 +20,7 @@ import type { PendingLabelSyncConfig } from '@root/types/pending-label-sync-proc
  * - concurrencyLimit: Maximum number of simultaneous sync operations (default: 5)
  * - retryInterval: How often to process pending syncs in seconds (default: 30)
  * - cleanupInterval: How often to clean expired syncs in seconds (default: 60)
- * - maxAge: Maximum age for pending syncs before expiration in minutes (default: 30)
+ * - maxAge: Maximum age for pending syncs before expiration in minutes (default: 10)
  *
  * Performance Improvements:
  * - Uses watchlist_item_id instead of GUID for direct database access
