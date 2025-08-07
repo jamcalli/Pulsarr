@@ -3229,6 +3229,10 @@
                               "type": "string",
                               "description": "Prefix for special labels indicating removed users"
                             },
+                            "autoResetOnScheduledSync": {
+                              "type": "boolean",
+                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+                            },
                             "scheduleTime": {
                               "type": "string",
                               "format": "date-time"
@@ -3264,6 +3268,7 @@
                             "cleanupOrphanedLabels",
                             "removedLabelMode",
                             "removedLabelPrefix",
+                            "autoResetOnScheduledSync",
                             "dayOfWeek",
                             "tagSync"
                           ],
@@ -3771,6 +3776,10 @@
                         "type": "string",
                         "description": "Prefix for special labels indicating removed users"
                       },
+                      "autoResetOnScheduledSync": {
+                        "type": "boolean",
+                        "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+                      },
                       "scheduleTime": {
                         "type": "string",
                         "format": "date-time"
@@ -3806,6 +3815,7 @@
                       "cleanupOrphanedLabels",
                       "removedLabelMode",
                       "removedLabelPrefix",
+                      "autoResetOnScheduledSync",
                       "dayOfWeek",
                       "tagSync"
                     ],
@@ -4255,6 +4265,10 @@
                               "type": "string",
                               "description": "Prefix for special labels indicating removed users"
                             },
+                            "autoResetOnScheduledSync": {
+                              "type": "boolean",
+                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+                            },
                             "scheduleTime": {
                               "type": "string",
                               "format": "date-time"
@@ -4290,6 +4304,7 @@
                             "cleanupOrphanedLabels",
                             "removedLabelMode",
                             "removedLabelPrefix",
+                            "autoResetOnScheduledSync",
                             "dayOfWeek",
                             "tagSync"
                           ],
@@ -8713,7 +8728,7 @@
         "operationId": "syncPlexLabels",
         "summary": "Sync plex labels",
         "tags": ["Labels"],
-        "description": "Synchronize plex labels for all watchlist content",
+        "description": "Synchronize plex labels for all watchlist content. Will automatically reset labels first if enabled in configuration.",
         "responses": {
           "200": {
             "description": "Default Response",

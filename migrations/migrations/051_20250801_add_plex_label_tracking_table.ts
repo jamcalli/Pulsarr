@@ -49,13 +49,16 @@ export async function up(knex: Knex): Promise<void> {
       .onDelete('CASCADE') // When user deleted, remove their label tracking
 
     table.string('plex_rating_key', 50).notNullable()
-    
+
     if (isPostgres) {
-      table.specificType('labels_applied', 'jsonb').notNullable().defaultTo(knex.raw("'[]'::jsonb"))
+      table
+        .specificType('labels_applied', 'jsonb')
+        .notNullable()
+        .defaultTo(knex.raw("'[]'::jsonb"))
     } else {
       table.json('labels_applied').notNullable().defaultTo('[]')
     }
-    
+
     table.timestamp('synced_at').defaultTo(knex.fn.now())
 
     // Indexes for efficient lookups
