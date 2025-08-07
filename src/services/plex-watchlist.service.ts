@@ -892,10 +892,10 @@ export class PlexWatchlistService {
         ) {
           try {
             this.log.info(
-              `Queueing immediate Plex labeling for ${insertedIds.length} newly added items`,
+              `Syncing immediate Plex labeling with tag fetching for ${insertedIds.length} newly added items`,
             )
 
-            // Queue each newly inserted item for labeling
+            // Sync each newly inserted item immediately with tag fetching
             for (
               let i = 0;
               i < insertedIds.length && i < itemsToInsert.length;
@@ -904,15 +904,16 @@ export class PlexWatchlistService {
               const insertedId = insertedIds[i]
               const item = itemsToInsert[i]
 
-              await this.plexLabelSyncService.queuePendingLabelSyncByWatchlistId(
+              // Use the new method that fetches tags and attempts immediate sync
+              await this.plexLabelSyncService.syncLabelForNewWatchlistItem(
                 insertedId,
                 item.title,
-                [], // No webhook tags for manual sync
+                true, // Enable tag fetching
               )
             }
           } catch (error) {
             this.log.warn(
-              'Failed to queue immediate Plex labeling for newly inserted items',
+              'Failed to sync immediate Plex labeling for newly inserted items',
               { error },
             )
           }

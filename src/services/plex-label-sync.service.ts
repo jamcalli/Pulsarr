@@ -34,7 +34,12 @@ import type {
   SonarrSeriesWithTags,
 } from '@root/types/plex-label-sync.types.js'
 import pLimit from 'p-limit'
-import { parseGuids, getGuidMatchScore } from '@utils/guid-handler.js'
+import {
+  parseGuids,
+  getGuidMatchScore,
+  extractTmdbId,
+  extractTvdbId,
+} from '@utils/guid-handler.js'
 
 /**
  * Service to manage label synchronization between Pulsarr and Plex
@@ -2450,6 +2455,330 @@ export class PlexLabelSyncService {
       )
     } catch (error) {
       this.log.error('Error queuing pending label sync:', error)
+    }
+  }
+
+  /**
+   * Fetches tags for a specific watchlist item from the appropriate *arr instances
+   * using targeted API calls instead of fetching all content from all instances
+   *
+   * @param watchlistItem - The watchlist item with GUID and content info
+   * @returns Array of tags found for this content, or empty array if no match
+   */
+  async fetchTagsForWatchlistItem(watchlistItem: {
+    id: string | number
+    title: string
+    key: string | null
+    type?: string
+    guids?: string[]
+    tmdbId?: number
+    tvdbId?: number
+  }): Promise<string[]> {
+    if (!this.config.tagSync.enabled) {
+      return []
+    }
+
+    try {
+      const contentType = watchlistItem.type || 'movie'
+
+      this.log.debug(
+        'Fetching tags for watchlist item using all-instances approach',
+        {
+          itemId: watchlistItem.id,
+          title: watchlistItem.title,
+          contentType,
+          tmdbId: watchlistItem.tmdbId,
+          tvdbId: watchlistItem.tvdbId,
+        },
+      )
+
+      let tags: string[] = []
+
+      if (contentType === 'movie' && this.config.tagSync.syncRadarrTags) {
+        // Get ALL Radarr instances like the main workflow does
+        const allRadarrInstances =
+          await this.fastify.radarrManager.getAllInstances()
+        const allInstanceIds = allRadarrInstances.map((instance) => instance.id)
+
+        if (allInstanceIds.length > 0 && watchlistItem.tmdbId) {
+          tags = await this.fetchRadarrTagsForItem(
+            allInstanceIds,
+            watchlistItem.tmdbId,
+            watchlistItem.title,
+          )
+        }
+      } else if (contentType === 'show' && this.config.tagSync.syncSonarrTags) {
+        // Get ALL Sonarr instances like the main workflow does
+        const allSonarrInstances =
+          await this.fastify.sonarrManager.getAllInstances()
+        const allInstanceIds = allSonarrInstances.map((instance) => instance.id)
+
+        if (allInstanceIds.length > 0 && watchlistItem.tvdbId) {
+          tags = await this.fetchSonarrTagsForItem(
+            allInstanceIds,
+            watchlistItem.tvdbId,
+            watchlistItem.title,
+          )
+        }
+      }
+
+      this.log.debug('Successfully fetched tags using targeted approach', {
+        itemId: watchlistItem.id,
+        title: watchlistItem.title,
+        tagsFound: tags.length,
+        tags,
+      })
+
+      return tags
+    } catch (error) {
+      this.log.error('Error fetching tags for watchlist item:', {
+        error,
+        itemId: watchlistItem.id,
+        title: watchlistItem.title,
+      })
+      return []
+    }
+  }
+
+  /**
+   * Fetches tags for a specific movie from targeted Radarr instances using TMDB ID lookup
+   *
+   * @param instanceIds - Array of Radarr instance IDs to check
+   * @param tmdbId - TMDB ID of the movie
+   * @param title - Movie title for logging
+   * @returns Array of tag names found for this movie
+   */
+  private async fetchRadarrTagsForItem(
+    instanceIds: number[],
+    tmdbId: number,
+    title: string,
+  ): Promise<string[]> {
+    for (const instanceId of instanceIds) {
+      try {
+        const radarrService =
+          this.fastify.radarrManager.getRadarrService(instanceId)
+        if (!radarrService) {
+          this.log.warn(
+            `Could not get Radarr service for instance ${instanceId}`,
+          )
+          continue
+        }
+
+        // Use the targeted lookup to find the movie
+        const movies = await radarrService.getFromRadarr<
+          Array<{ id: number; title: string; tags?: number[] }>
+        >(`movie/lookup?term=tmdb:${tmdbId}`)
+
+        if (movies.length > 0 && movies[0].id > 0) {
+          const movie = movies[0]
+
+          if (movie.tags && movie.tags.length > 0) {
+            // Fetch tag definitions to convert IDs to names
+            const tagDefinitions = await radarrService.getTags()
+            const tagMap = new Map(
+              tagDefinitions.map((tag) => [tag.id, tag.label]),
+            )
+
+            const tagNames = movie.tags
+              .map((tagId: number) => tagMap.get(tagId))
+              .filter((tag: string | undefined) => Boolean(tag)) as string[]
+
+            // Filter out user tagging system tags
+            const filteredTags = tagNames.filter(
+              (tag) => !this.isUserTaggingSystemTag(tag),
+            )
+
+            this.log.debug(
+              'Found Radarr tags for movie using targeted lookup',
+              {
+                instanceId,
+                tmdbId,
+                title,
+                movieTitle: movie.title,
+                tagIds: movie.tags,
+                tagNames: filteredTags,
+              },
+            )
+
+            return filteredTags
+          }
+        }
+      } catch (error) {
+        this.log.warn(
+          `Error fetching tags from Radarr instance ${instanceId}:`,
+          error,
+        )
+      }
+    }
+
+    return []
+  }
+
+  /**
+   * Fetches tags for a specific series from targeted Sonarr instances using TVDB ID lookup
+   *
+   * @param instanceIds - Array of Sonarr instance IDs to check
+   * @param tvdbId - TVDB ID of the series
+   * @param title - Series title for logging
+   * @returns Array of tag names found for this series
+   */
+  private async fetchSonarrTagsForItem(
+    instanceIds: number[],
+    tvdbId: number,
+    title: string,
+  ): Promise<string[]> {
+    for (const instanceId of instanceIds) {
+      try {
+        const sonarrService =
+          this.fastify.sonarrManager.getSonarrService(instanceId)
+        if (!sonarrService) {
+          this.log.warn(
+            `Could not get Sonarr service for instance ${instanceId}`,
+          )
+          continue
+        }
+
+        // Use the targeted lookup to find the series
+        const series = await sonarrService.getFromSonarr<
+          Array<{ id: number; title: string; tags?: number[] }>
+        >(`series/lookup?term=tvdb:${tvdbId}`)
+
+        if (series.length > 0 && series[0].id > 0) {
+          const show = series[0]
+
+          if (show.tags && show.tags.length > 0) {
+            // Fetch tag definitions to convert IDs to names
+            const tagDefinitions = await sonarrService.getTags()
+            const tagMap = new Map(
+              tagDefinitions.map((tag) => [tag.id, tag.label]),
+            )
+
+            const tagNames = show.tags
+              .map((tagId: number) => tagMap.get(tagId))
+              .filter((tag: string | undefined) => Boolean(tag)) as string[]
+
+            // Filter out user tagging system tags
+            const filteredTags = tagNames.filter(
+              (tag) => !this.isUserTaggingSystemTag(tag),
+            )
+
+            this.log.debug(
+              'Found Sonarr tags for series using targeted lookup',
+              {
+                instanceId,
+                tvdbId,
+                title,
+                seriesTitle: show.title,
+                tagIds: show.tags,
+                tagNames: filteredTags,
+              },
+            )
+
+            return filteredTags
+          }
+        }
+      } catch (error) {
+        this.log.warn(
+          `Error fetching tags from Sonarr instance ${instanceId}:`,
+          error,
+        )
+      }
+    }
+
+    return []
+  }
+
+  /**
+   * Immediately syncs labels for a newly added watchlist item with tag fetching
+   * This method attempts to fetch tags from *arr instances and apply them immediately
+   *
+   * @param watchlistItemId - The watchlist item ID
+   * @param title - The content title
+   * @param fetchTags - Whether to fetch tags from *arr instances
+   * @returns Promise resolving to true if successful, false otherwise (queues for later if not found)
+   */
+  async syncLabelForNewWatchlistItem(
+    watchlistItemId: number,
+    title: string,
+    fetchTags = true,
+  ): Promise<boolean> {
+    try {
+      // Get the watchlist item details including GUIDs for targeted lookup
+      const watchlistItem = await this.db
+        .knex('watchlist_items')
+        .where('id', watchlistItemId)
+        .select('id', 'title', 'key', 'user_id', 'type', 'guids')
+        .first()
+
+      if (!watchlistItem) {
+        this.log.warn('Watchlist item not found for immediate sync', {
+          watchlistItemId,
+          title,
+        })
+        return false
+      }
+
+      // Fetch tags if requested and tag sync is enabled
+      let tags: string[] = []
+      if (fetchTags && this.config.tagSync.enabled) {
+        // Use existing GUID utility helpers to extract TMDB/TVDB IDs for targeted lookup
+        const tmdbId = extractTmdbId(watchlistItem.guids) || undefined
+        const tvdbId = extractTvdbId(watchlistItem.guids) || undefined
+        const parsedGuids = parseGuids(watchlistItem.guids)
+
+        // Create enhanced watchlist item object for targeted tag fetching
+        const enhancedWatchlistItem = {
+          ...watchlistItem,
+          guids: parsedGuids,
+          tmdbId,
+          tvdbId,
+        }
+
+        tags = await this.fetchTagsForWatchlistItem(enhancedWatchlistItem)
+        this.log.debug(
+          'Fetched tags for new watchlist item using targeted approach',
+          {
+            watchlistItemId,
+            title,
+            tmdbId,
+            tvdbId,
+            tagsFound: tags.length,
+            tags,
+          },
+        )
+      }
+
+      // Attempt immediate sync with fetched tags
+      const success = await this.syncLabelForWatchlistItem(watchlistItem, tags)
+
+      if (!success) {
+        // If immediate sync failed, queue for later with the fetched tags
+        await this.queuePendingLabelSyncByWatchlistId(
+          watchlistItemId,
+          title,
+          tags,
+        )
+        this.log.debug(
+          'Queued watchlist item with fetched tags for later sync',
+          {
+            watchlistItemId,
+            title,
+            tagsQueued: tags.length,
+          },
+        )
+      }
+
+      return success
+    } catch (error) {
+      this.log.error('Error in immediate sync for new watchlist item:', {
+        error,
+        watchlistItemId,
+        title,
+      })
+
+      // Fallback to queuing without tags
+      await this.queuePendingLabelSyncByWatchlistId(watchlistItemId, title, [])
+      return false
     }
   }
 
