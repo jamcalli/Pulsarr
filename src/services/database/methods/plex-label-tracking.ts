@@ -302,11 +302,6 @@ export async function trackPlexLabelsBulk(
     }
   }
 
-  this.log.info(
-    `Bulk tracked labels for ${processedCount} operations, ${failedIds.length} failed`,
-    { processedCount, failedCount: failedIds.length },
-  )
-
   return { processedCount, failedIds }
 }
 
@@ -638,11 +633,6 @@ export async function untrackPlexLabelBulk(
       failedIds: operations.map((op) => op.plexRatingKey),
     }
   }
-
-  this.log.info(
-    `Bulk untracked labels for ${processedCount} operations, ${failedIds.length} failed`,
-    { processedCount, failedCount: failedIds.length },
-  )
 
   return { processedCount, failedIds }
 }
@@ -1288,10 +1278,6 @@ export async function removeTrackedLabels(
     }
   }
 
-  this.log.info(
-    `Bulk removed labels for ${processedCount} rating keys, ${failedIds.length} failed`,
-    { processedCount, failedCount: failedIds.length },
-  )
 
   return { processedCount, failedIds }
 }
@@ -1734,11 +1720,6 @@ export async function removeOrphanedTrackingBulk(
       failedIds: operations.map((op) => op.plexRatingKey),
     }
   }
-
-  this.log.info(
-    `Bulk removed orphaned tracking for ${processedCount} rating keys, ${failedIds.length} failed`,
-    { processedCount, failedCount: failedIds.length },
-  )
 
   return { processedCount, failedIds }
 }
