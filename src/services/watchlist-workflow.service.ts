@@ -298,6 +298,9 @@ export class WatchlistWorkflowService {
         // Update last successful sync time after initial sync
         this.lastSuccessfulSyncTime = Date.now()
         this.log.debug('Set initial last successful sync time')
+
+        // Schedule first periodic reconciliation for +20 minutes
+        await this.schedulePendingReconciliation()
       } catch (syncError) {
         this.log.error('Error during initial watchlist synchronization', {
           error: syncError,
@@ -305,6 +308,17 @@ export class WatchlistWorkflowService {
             syncError instanceof Error ? syncError.message : String(syncError),
           errorStack: syncError instanceof Error ? syncError.stack : undefined,
         })
+
+        // Ensure failsafe is still scheduled even after initial sync failure
+        try {
+          await this.schedulePendingReconciliation()
+        } catch (scheduleError) {
+          this.log.error(
+            'Failed to schedule failsafe after initial sync error:',
+            scheduleError,
+          )
+        }
+
         throw new Error('Failed during initial watchlist synchronization', {
           cause: syncError,
         })
@@ -409,6 +423,9 @@ export class WatchlistWorkflowService {
    */
   async fetchWatchlists(): Promise<void> {
     this.log.info('Refreshing watchlists')
+
+    // Unschedule pending reconciliation since sync is starting
+    await this.unschedulePendingReconciliation()
 
     try {
       // Fetch both self and friends watchlists in parallel
@@ -801,6 +818,9 @@ export class WatchlistWorkflowService {
         `Added ${items.size} changed items to queue from ${source} RSS feed`,
       )
       this.log.debug(`Queue timer updated: lastQueueItemTime=${now}`)
+
+      // Unschedule pending reconciliation since sync will happen via queue processing
+      await this.unschedulePendingReconciliation()
 
       try {
         await this.plexService.storeRssWatchlistItems(items, source)
@@ -1564,6 +1584,9 @@ export class WatchlistWorkflowService {
             this.log.debug(
               'Reset deferral timer after queue processing to prevent immediate periodic reconciliation overlap',
             )
+
+            // Schedule next reconciliation after full sync completion
+            await this.schedulePendingReconciliation()
           } else {
             this.log.info('Performing standard watchlist refresh')
             await this.fetchWatchlists()
@@ -1579,6 +1602,9 @@ export class WatchlistWorkflowService {
             this.log.debug(
               'Reset deferral timer after queue processing to prevent immediate periodic reconciliation overlap',
             )
+
+            // Schedule next reconciliation after watchlist refresh completion
+            await this.schedulePendingReconciliation()
           }
 
           this.log.info(`Queue processing completed for ${queueSize} items`)
@@ -1591,6 +1617,17 @@ export class WatchlistWorkflowService {
               error instanceof Error ? error.message : String(error),
             errorStack: error instanceof Error ? error.stack : undefined,
           })
+
+          // Ensure failsafe is scheduled even after queue processing failure
+          try {
+            await this.schedulePendingReconciliation()
+          } catch (scheduleError) {
+            this.log.error(
+              'Failed to schedule failsafe after queue processing error:',
+              scheduleError,
+            )
+          }
+
           throw error
         } finally {
           this.isRefreshing = false
@@ -1699,100 +1736,38 @@ export class WatchlistWorkflowService {
   }
 
   private async setupPeriodicReconciliation(): Promise<void> {
-    // Note: We don't clear RSS interval here anymore since this runs in both modes
     try {
+      // Create the periodic job with simple sync logic - no conditional checks
       await this.fastify.scheduler.scheduleJob(
         this.MANUAL_SYNC_JOB_NAME,
         async (_jobName: string) => {
-          let reconciliationPerformed = false
-          let forcedSyncPerformed = false
-
           try {
-            // Avoid concurrent processing with any workflow operations
-            if (this.isRefreshing || this.isProcessingWorkflow) {
-              this.log.debug(
-                'Skipping periodic reconciliation - concurrent workflow operation is active',
-              )
-              return
-            }
+            this.log.info('Periodic reconciliation triggered - performing sync')
 
-            // Check if queue processing is about to run with improved buffer calculation
-            const timeSinceLastQueueItem = Date.now() - this.lastQueueItemTime
-            const bufferTime = Math.max(15000, this.queueProcessDelayMs * 0.25) // 15 seconds or 25% of queue delay, whichever is larger
-            const queueWillProcessSoon =
-              this.changeQueue.size > 0 &&
-              timeSinceLastQueueItem >= this.queueProcessDelayMs - bufferTime
+            // Unschedule this job to prevent concurrent execution
+            await this.unschedulePendingReconciliation()
 
-            if (queueWillProcessSoon) {
-              this.log.debug(
-                `Skipping periodic reconciliation - queue processing will run in ${Math.max(0, this.queueProcessDelayMs - timeSinceLastQueueItem) / 1000}s (buffer: ${bufferTime / 1000}s)`,
-              )
-              return
-            }
+            // Set flags to prevent concurrent operations
+            this.isRefreshing = true
+            this.isProcessingWorkflow = true
 
-            // Check if 20 minutes have passed without a sync
-            const timeSinceLastSync = Math.max(
-              0,
-              Date.now() - this.lastSuccessfulSyncTime,
-            )
-            const twentyMinutesInMs = 20 * 60 * 1000 // 20 minutes threshold
-            const timingBuffer = 1000 // 1 second buffer for timing precision
+            try {
+              // Perform the sync
+              await this.fetchWatchlists()
+              await this.syncWatchlistItems()
 
-            if (timeSinceLastSync >= twentyMinutesInMs - timingBuffer) {
-              this.log.warn(
-                `No sync performed for ${Math.floor(timeSinceLastSync / 1000 / 60)} minutes, forcing full sync`,
-              )
-              // Set both flags to prevent concurrent operations
-              this.isRefreshing = true
-              this.isProcessingWorkflow = true
-              try {
-                // Force a full sync
-                await this.fetchWatchlists()
-                await this.syncWatchlistItems()
-                const now = Date.now()
-                this.lastSuccessfulSyncTime = now
-                // Reset deferral timer to prevent immediate queue processing after forced sync
-                this.lastQueueItemTime = now
-                forcedSyncPerformed = true
-                this.log.info('Forced sync completed successfully')
-                this.log.debug(
-                  'Reset deferral timer after forced sync to prevent immediate queue processing overlap',
-                )
-              } finally {
-                this.isRefreshing = false
-                this.isProcessingWorkflow = false
-              }
-            } else {
-              // Normal reconciliation check
-              const shouldDefer = await this.shouldDeferProcessing()
-              if (shouldDefer) {
-                // Set both flags to prevent concurrent operations
-                this.isRefreshing = true
-                this.isProcessingWorkflow = true
-                try {
-                  await this.fetchWatchlists()
-                  await this.syncWatchlistItems()
-                  const now = Date.now()
-                  this.lastSuccessfulSyncTime = now
-                  // Reset deferral timer to prevent immediate queue processing after reconciliation
-                  this.lastQueueItemTime = now
-                  reconciliationPerformed = true
-                  this.log.debug(
-                    'Reset deferral timer after reconciliation to prevent immediate queue processing overlap',
-                  )
-                } finally {
-                  this.isRefreshing = false
-                  this.isProcessingWorkflow = false
-                }
-              }
-            }
+              // Update timing trackers
+              const now = Date.now()
+              this.lastSuccessfulSyncTime = now
+              this.lastQueueItemTime = now
 
-            if (reconciliationPerformed) {
-              this.log.info('Periodic watchlist reconciliation completed')
-            } else if (!forcedSyncPerformed) {
-              this.log.debug(
-                `Periodic reconciliation check: No action needed. Last sync was ${Math.floor(timeSinceLastSync / 1000 / 60)} minutes ago`,
-              )
+              this.log.info('Periodic reconciliation completed successfully')
+            } finally {
+              this.isRefreshing = false
+              this.isProcessingWorkflow = false
+
+              // Always reschedule for +20 minutes after sync completion
+              await this.schedulePendingReconciliation()
             }
           } catch (error) {
             this.log.error('Error in periodic watchlist reconciliation:', {
@@ -1800,20 +1775,22 @@ export class WatchlistWorkflowService {
               errorMessage:
                 error instanceof Error ? error.message : String(error),
             })
+
+            // Still try to reschedule even after error
+            try {
+              await this.schedulePendingReconciliation()
+            } catch (scheduleError) {
+              this.log.error(
+                'Failed to reschedule after reconciliation error:',
+                scheduleError,
+              )
+            }
           }
         },
       )
 
-      await this.fastify.scheduler.updateJobSchedule(
-        this.MANUAL_SYNC_JOB_NAME,
-        {
-          minutes: 20,
-        } as IntervalConfig,
-        true,
-      )
-
       this.log.info(
-        'Periodic watchlist reconciliation scheduled for every 20 minutes',
+        'Periodic watchlist reconciliation job created (will be dynamically scheduled)',
       )
     } catch (error) {
       this.log.error('Error setting up periodic reconciliation:', {
@@ -1850,6 +1827,56 @@ export class WatchlistWorkflowService {
         },
       )
       throw error
+    }
+  }
+
+  /**
+   * Schedule the next periodic reconciliation to run in 20 minutes
+   */
+  private async schedulePendingReconciliation(): Promise<void> {
+    try {
+      const scheduleTime = new Date(Date.now() + 20 * 60 * 1000) // +20 minutes
+
+      await this.fastify.scheduler.updateJobSchedule(
+        this.MANUAL_SYNC_JOB_NAME,
+        {
+          minutes: 20,
+          runImmediately: false,
+        },
+        true,
+      )
+
+      this.log.info('Scheduled next periodic reconciliation for', {
+        scheduleTime: scheduleTime.toISOString(),
+      })
+    } catch (error) {
+      this.log.error('Error scheduling pending reconciliation:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      })
+      throw error
+    }
+  }
+
+  /**
+   * Cancel any pending periodic reconciliation job
+   */
+  private async unschedulePendingReconciliation(): Promise<void> {
+    try {
+      // Simply disable the job - scheduler handles existence check internally
+      await this.fastify.scheduler.updateJobSchedule(
+        this.MANUAL_SYNC_JOB_NAME,
+        null,
+        false,
+      )
+
+      this.log.debug('Unscheduled pending periodic reconciliation')
+    } catch (error) {
+      this.log.error('Error unscheduling pending reconciliation:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      })
+      // Don't throw here - this is called during sync start and shouldn't block sync
     }
   }
 }
