@@ -190,6 +190,7 @@ export async function getConfig(
             cleanupOrphanedLabels: false,
             removedLabelMode: 'remove' as const,
             removedLabelPrefix: 'pulsarr:removed',
+            autoResetOnScheduledSync: false,
             scheduleTime: undefined,
             dayOfWeek: '*',
             tagSync: {
@@ -207,6 +208,7 @@ export async function getConfig(
           cleanupOrphanedLabels: false,
           removedLabelMode: 'remove' as const,
           removedLabelPrefix: 'pulsarr:removed',
+          autoResetOnScheduledSync: false,
           scheduleTime: undefined,
           dayOfWeek: '*',
           tagSync: {
@@ -325,6 +327,8 @@ export async function createConfig(
             removedLabelMode: config.plexLabelSync.removedLabelMode || 'remove',
             removedLabelPrefix:
               config.plexLabelSync.removedLabelPrefix || 'pulsarr:removed',
+            autoResetOnScheduledSync:
+              config.plexLabelSync.autoResetOnScheduledSync ?? false,
             scheduleTime: config.plexLabelSync.scheduleTime,
             dayOfWeek: config.plexLabelSync.dayOfWeek || '*',
             tagSync: config.plexLabelSync.tagSync || {

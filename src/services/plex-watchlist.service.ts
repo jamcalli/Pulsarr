@@ -875,13 +875,48 @@ export class PlexWatchlistService {
           })
         }
 
-        await this.dbService.createWatchlistItems(
+        const insertedIds = await this.dbService.createWatchlistItems(
           itemsToInsert,
           isMetadataRefresh
             ? { onConflict: 'merge' }
             : { onConflict: 'ignore' },
         )
         await this.dbService.syncGenresFromWatchlist()
+
+        // Queue newly inserted items for immediate Plex labeling if enabled
+        if (
+          this.plexLabelSyncService &&
+          this.config.plexLabelSync?.enabled &&
+          insertedIds &&
+          insertedIds.length > 0
+        ) {
+          try {
+            this.log.info(
+              `Queueing immediate Plex labeling for ${insertedIds.length} newly added items`,
+            )
+
+            // Queue each newly inserted item for labeling
+            for (
+              let i = 0;
+              i < insertedIds.length && i < itemsToInsert.length;
+              i++
+            ) {
+              const insertedId = insertedIds[i]
+              const item = itemsToInsert[i]
+
+              await this.plexLabelSyncService.queuePendingLabelSyncByWatchlistId(
+                insertedId,
+                item.title,
+                [], // No webhook tags for manual sync
+              )
+            }
+          } catch (error) {
+            this.log.warn(
+              'Failed to queue immediate Plex labeling for newly inserted items',
+              { error },
+            )
+          }
+        }
 
         this.log.info(`Processed ${itemsToInsert.length} new items`)
 
@@ -1127,7 +1162,7 @@ export class PlexWatchlistService {
     })
 
     try {
-      await this.dbService.createWatchlistItems(linkItems, {
+      const linkedIds = await this.dbService.createWatchlistItems(linkItems, {
         onConflict: 'merge',
       })
 

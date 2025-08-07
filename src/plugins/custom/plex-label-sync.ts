@@ -144,6 +144,7 @@ export default fp(
               return
             }
 
+            // Sync will automatically reset if autoResetOnScheduledSync is enabled in config
             await fastify.plexLabelSyncService.syncAllLabels()
           },
         )

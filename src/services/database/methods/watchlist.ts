@@ -904,7 +904,9 @@ export async function createWatchlistItems(
   this: DatabaseService,
   items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
   options: { onConflict?: 'ignore' | 'merge' } = { onConflict: 'ignore' },
-): Promise<void> {
+): Promise<number[]> {
+  const insertedIds: number[] = []
+
   await this.knex.transaction(async (trx) => {
     const chunks = this.chunkArray(items, 250)
 
@@ -929,14 +931,22 @@ export async function createWatchlistItems(
       const query = trx('watchlist_items').insert(itemsToInsert)
 
       if (options.onConflict === 'merge') {
-        query.onConflict(['user_id', 'key']).merge()
+        const results = await query
+          .onConflict(['user_id', 'key'])
+          .merge()
+          .returning('id')
+        insertedIds.push(...results.map((r) => r.id))
       } else {
-        query.onConflict(['user_id', 'key']).ignore()
+        const results = await query
+          .onConflict(['user_id', 'key'])
+          .ignore()
+          .returning('id')
+        insertedIds.push(...results.map((r) => r.id))
       }
-
-      await query
     }
   })
+
+  return insertedIds
 }
 
 /**

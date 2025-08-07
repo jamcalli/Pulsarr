@@ -205,13 +205,13 @@ declare module '@services/database.service.js' {
      * Creates multiple watchlist items
      * @param items - Array of watchlist items to create
      * @param options - Configuration options for how to handle conflicts
-     * @returns Promise resolving to void when complete
+     * @returns Promise resolving to array of inserted IDs
      */
     createWatchlistItems(
       this: DatabaseService,
       items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
       options?: { onConflict?: 'ignore' | 'merge' },
-    ): Promise<void>
+    ): Promise<number[]>
 
     /**
      * Creates temporary RSS items for processing
