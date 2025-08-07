@@ -10,7 +10,7 @@ declare module '@services/database.service.js' {
      * Creates a new pending label sync record for content that needs label synchronization
      * @param watchlistItemId - The watchlist item ID that contains the Plex key
      * @param contentTitle - Human-readable title of the content for logging/debugging
-     * @param expiresInMinutes - Number of minutes until this sync attempt expires (defaults to 30)
+     * @param expiresInMinutes - Number of minutes until this sync attempt expires (defaults to 10)
      * @param webhookTags - Array of tag strings from the webhook to be applied during sync
      * @returns Promise resolving to the ID of the newly created pending sync record
      */

@@ -54,14 +54,14 @@ export interface PendingLabelSyncWithPlexKeys {
  *
  * @param watchlistItemId - The watchlist item ID that contains the Plex key
  * @param contentTitle - Human-readable title of the content for logging/debugging
- * @param expiresInMinutes - Number of minutes until this sync attempt expires (defaults to 30)
+ * @param expiresInMinutes - Number of minutes until this sync attempt expires (defaults to 10)
  * @returns The ID of the newly created pending sync record
  */
 export async function createPendingLabelSync(
   this: DatabaseService,
   watchlistItemId: number,
   contentTitle: string,
-  expiresInMinutes = 30,
+  expiresInMinutes = 10,
   webhookTags: string[] = [],
 ): Promise<number> {
   const expiresAt = new Date(
