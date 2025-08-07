@@ -16,7 +16,12 @@ export async function up(knex: Knex): Promise<void> {
   // Create content_type enum for PostgreSQL if it doesn't exist
   if (isPostgres) {
     await knex.raw(`
-      CREATE TYPE IF NOT EXISTS plex_content_type AS ENUM ('movie', 'show');
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'plex_content_type') THEN
+          CREATE TYPE plex_content_type AS ENUM ('movie', 'show');
+        END IF;
+      END$$;
     `)
   }
 
@@ -24,7 +29,11 @@ export async function up(knex: Knex): Promise<void> {
     table.increments('id').primary()
 
     // Track by content GUIDs + user instead of watchlist_id to avoid FK constraints
-    table.json('content_guids').notNullable() // Full GUID array for proper matching
+    if (isPostgres) {
+      table.specificType('content_guids', 'jsonb').notNullable()
+    } else {
+      table.json('content_guids').notNullable()
+    }
 
     // Constrain content_type to only allow 'movie' or 'show'
     if (isPostgres) {
@@ -40,7 +49,13 @@ export async function up(knex: Knex): Promise<void> {
       .onDelete('CASCADE') // When user deleted, remove their label tracking
 
     table.string('plex_rating_key', 50).notNullable()
-    table.json('labels_applied').notNullable().defaultTo('[]')
+    
+    if (isPostgres) {
+      table.specificType('labels_applied', 'jsonb').notNullable().defaultTo(knex.raw("'[]'::jsonb"))
+    } else {
+      table.json('labels_applied').notNullable().defaultTo('[]')
+    }
+    
     table.timestamp('synced_at').defaultTo(knex.fn.now())
 
     // Indexes for efficient lookups
