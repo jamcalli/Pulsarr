@@ -105,7 +105,7 @@ export async function trackPlexLabelsBulk(
                 }
 
                 const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
-                const guidsJson = JSON.stringify(normalizedGuids.sort())
+                const guidsJson = JSON.stringify(normalizedGuids)
                 const labelsJson = JSON.stringify(labelsApplied.sort())
 
                 // Use PostgreSQL-specific upsert with GUID matching
@@ -217,7 +217,7 @@ export async function trackPlexLabelsBulk(
                 }
 
                 const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
-                const guidsJson = JSON.stringify(normalizedGuids.sort())
+                const guidsJson = JSON.stringify(normalizedGuids)
                 const labelsJson = JSON.stringify(labelsApplied.sort())
 
                 // Find existing record with overlapping GUIDs
@@ -1277,7 +1277,6 @@ export async function removeTrackedLabels(
       failedIds: operations.map((op) => op.plexRatingKey),
     }
   }
-
 
   return { processedCount, failedIds }
 }

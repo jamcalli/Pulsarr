@@ -883,23 +883,24 @@ export class PlexLabelSyncService {
         continue
       }
 
-      // Use the first GUID as the primary identifier for grouping
-      const primaryGuid = parsedGuids[0]
+      // Create content-type-aware grouping key using sorted GUIDs for consistent grouping
+      const sortedGuids = [...parsedGuids].sort()
+      const contentKey = `${item.type}-${JSON.stringify(sortedGuids)}`
       const username = userMap.get(item.user_id) || `user_${item.user_id}`
 
-      const existingContentItem = contentMap.get(primaryGuid)
+      const existingContentItem = contentMap.get(contentKey)
       let contentItem: ContentWithUsers
 
       if (!existingContentItem) {
         contentItem = {
-          primaryGuid,
+          primaryGuid: contentKey, // Use content-type-aware key as primary identifier
           allGuids: parsedGuids,
           title: item.title,
           type: item.type || 'movie',
           plexKey: item.key,
           users: [],
         }
-        contentMap.set(primaryGuid, contentItem)
+        contentMap.set(contentKey, contentItem)
       } else {
         // Merge GUIDs from additional items for the same content
         const newGuids = parsedGuids.filter(
@@ -2548,73 +2549,6 @@ export class PlexLabelSyncService {
   }
 
   /**
-   * Groups watchlist items by content GUID to avoid duplicate processing
-   * This method is now deprecated - use getUsersWithContent() instead for proper username resolution
-   *
-   * @param watchlistItems - Array of watchlist items from database
-   * @returns Array of grouped content with associated users
-   * @deprecated Use getUsersWithContent() for proper username resolution
-   */
-  private async groupByContentGuid(
-    watchlistItems: Array<{
-      id: string | number
-      user_id: number
-      guids?: string[] | string
-      title: string
-    }>,
-  ): Promise<GroupedWatchlistContent[]> {
-    const guidMap = new Map<string, GroupedWatchlistContent>()
-
-    // Get all unique user IDs
-    const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
-
-    // Fetch actual usernames
-    const users = await this.db
-      .knex('users')
-      .whereIn('id', userIds)
-      .select('id', 'name')
-
-    const userMap = new Map(
-      users.map((user) => [user.id, user.name || `user_${user.id}`]),
-    )
-
-    for (const item of watchlistItems) {
-      // Skip items without GUIDs
-      if (!item.guids) {
-        continue
-      }
-
-      const parsedGuids = parseGuids(item.guids)
-
-      // Use the first GUID as the primary identifier
-      if (parsedGuids.length > 0) {
-        const primaryGuid = parsedGuids[0]
-
-        if (!guidMap.has(primaryGuid)) {
-          guidMap.set(primaryGuid, {
-            guid: primaryGuid,
-            title: item.title,
-            users: [],
-          })
-        }
-
-        const group = guidMap.get(primaryGuid)
-        if (!group) {
-          continue
-        }
-
-        group.users.push({
-          user_id: item.user_id,
-          username: userMap.get(item.user_id) || `user_${item.user_id}`,
-          watchlist_id: Number(item.id),
-        })
-      }
-    }
-
-    return Array.from(guidMap.values())
-  }
-
-  /**
    * Extracts tags from webhook payload
    *
    * @param webhook - The webhook payload
@@ -3139,11 +3073,12 @@ export class PlexLabelSyncService {
           continue
         }
 
-        const primaryGuid = parsedGuids[0]
-        itemGuidMap.set(item.id, primaryGuid) // Store mapping for later cleanup
+        const sortedGuids = [...parsedGuids].sort()
+        const contentKey = `${fullItem.type}-${JSON.stringify(sortedGuids)}`
+        itemGuidMap.set(item.id, contentKey) // Store mapping for later cleanup
 
         this.log.debug(
-          `Getting tracked labels for primary GUID: ${primaryGuid} (was looking for raw key: ${item.key}), user_id: ${item.user_id}`,
+          `Getting tracked labels for content key: ${contentKey} (was looking for raw key: ${item.key}), user_id: ${item.user_id}`,
         )
 
         const labels = await this.db.getTrackedLabelsForContent(
@@ -3151,7 +3086,7 @@ export class PlexLabelSyncService {
           fullItem.type as 'movie' | 'show',
         )
         this.log.debug(
-          `Found ${labels.length} total tracking records for primary GUID: ${primaryGuid}`,
+          `Found ${labels.length} total tracking records for content key: ${contentKey}`,
           {
             allTrackingRecords: labels.map((l) => ({
               id: l.id,
@@ -3167,7 +3102,7 @@ export class PlexLabelSyncService {
           (label) => label.user_id === item.user_id,
         )
         this.log.debug(
-          `Found ${userLabels.length} user-specific tracking records for primary GUID: ${primaryGuid}, user_id: ${item.user_id}`,
+          `Found ${userLabels.length} user-specific tracking records for content key: ${contentKey}, user_id: ${item.user_id}`,
           {
             userTrackingRecords: userLabels.map((l) => ({
               id: l.id,
@@ -3353,8 +3288,9 @@ export class PlexLabelSyncService {
           continue
         }
 
-        const primaryGuid = parsedGuids[0]
-        itemGuidMap.set(item.id, primaryGuid)
+        const sortedGuids = [...parsedGuids].sort()
+        const contentKey = `${fullItem.type}-${JSON.stringify(sortedGuids)}`
+        itemGuidMap.set(item.id, contentKey)
         itemDataMap.set(item.id, {
           guids: parsedGuids,
           contentType: fullItem.type === 'show' ? 'show' : 'movie',
