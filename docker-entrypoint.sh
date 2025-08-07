@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e  # Exit immediately if any command fails
 
 # Run migrations
 echo "Running database migrations..."

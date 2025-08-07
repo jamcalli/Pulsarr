@@ -1736,8 +1736,9 @@ export class WatchlistWorkflowService {
               Date.now() - this.lastSuccessfulSyncTime,
             )
             const twentyMinutesInMs = 20 * 60 * 1000 // 20 minutes threshold
+            const timingBuffer = 1000 // 1 second buffer for timing precision
 
-            if (timeSinceLastSync >= twentyMinutesInMs) {
+            if (timeSinceLastSync >= twentyMinutesInMs - timingBuffer) {
               this.log.warn(
                 `No sync performed for ${Math.floor(timeSinceLastSync / 1000 / 60)} minutes, forcing full sync`,
               )

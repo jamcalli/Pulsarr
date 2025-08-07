@@ -64,6 +64,11 @@ import {
 const data = {
   navMain: [
     {
+      title: 'Dashboard',
+      url: '/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
       title: 'Approvals',
       url: '#',
       icon: CheckCircle,
@@ -81,11 +86,6 @@ const data = {
           url: '/approvals/quota-settings',
         },
       ],
-    },
-    {
-      title: 'Dashboard',
-      url: '/dashboard',
-      icon: LayoutDashboard,
     },
     {
       title: 'Notifications',

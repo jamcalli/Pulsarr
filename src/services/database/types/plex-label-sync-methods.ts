@@ -1,4 +1,7 @@
-import type { PendingLabelSync } from '../methods/plex-label-sync.js'
+import type {
+  PendingLabelSync,
+  PendingLabelSyncWithPlexKeys,
+} from '@services/database/methods/plex-label-sync.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -7,7 +10,8 @@ declare module '@services/database.service.js' {
      * Creates a new pending label sync record for content that needs label synchronization
      * @param watchlistItemId - The watchlist item ID that contains the Plex key
      * @param contentTitle - Human-readable title of the content for logging/debugging
-     * @param expiresInMinutes - Number of minutes until this sync attempt expires (defaults to 30)
+     * @param expiresInMinutes - Number of minutes until this sync attempt expires (defaults to 10)
+     * @param webhookTags - Array of tag strings from the webhook to be applied during sync
      * @returns Promise resolving to the ID of the newly created pending sync record
      */
     createPendingLabelSync(
@@ -15,6 +19,7 @@ declare module '@services/database.service.js' {
       watchlistItemId: number,
       contentTitle: string,
       expiresInMinutes?: number,
+      webhookTags?: string[],
     ): Promise<number>
 
     /**
@@ -66,20 +71,8 @@ declare module '@services/database.service.js' {
      * Gets all pending label syncs with their associated watchlist items and GUID parts
      * @returns Promise resolving to array of pending syncs with watchlist item data
      */
-    getPendingLabelSyncsWithPlexKeys(this: DatabaseService): Promise<
-      Array<{
-        id: number
-        watchlist_item_id: number
-        content_title: string
-        retry_count: number
-        last_retry_at: string | null
-        created_at: string
-        expires_at: string
-        plex_key: string | null
-        user_id: number
-        guids: string[]
-        type: string
-      }>
-    >
+    getPendingLabelSyncsWithPlexKeys(
+      this: DatabaseService,
+    ): Promise<PendingLabelSyncWithPlexKeys[]>
   }
 }

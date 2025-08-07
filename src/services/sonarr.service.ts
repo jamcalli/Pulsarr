@@ -1298,9 +1298,9 @@ export class SonarrService {
   async updateSeriesTags(seriesId: number, tagIds: number[]): Promise<void> {
     try {
       // First get the current series to preserve all fields
-      const series = await this.getFromSonarr<
-        SonarrSeries & { tags: number[] }
-      >(`series/${seriesId}`)
+      const series = await this.getFromSonarr<SonarrSeries>(
+        `series/${seriesId}`,
+      )
 
       // Use Set to deduplicate tags
       series.tags = [...new Set(tagIds)]

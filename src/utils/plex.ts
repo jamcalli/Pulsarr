@@ -1398,9 +1398,13 @@ export const fetchWatchlistFromRss = async (
 /**
  * Attempts to fetch user avatar from Plex API
  * @param token - User's Plex token
+ * @param log - Logger instance
  * @returns Avatar URL or null if failed
  */
-export async function fetchPlexAvatar(token: string): Promise<string | null> {
+export async function fetchPlexAvatar(
+  token: string,
+  log?: FastifyBaseLogger,
+): Promise<string | null> {
   try {
     // Create AbortController for timeout
     const controller = new AbortController()
@@ -1431,7 +1435,9 @@ export async function fetchPlexAvatar(token: string): Promise<string | null> {
     return null
   } catch (error) {
     // Log error but don't throw - we want graceful fallback
-    console.warn('Failed to fetch Plex avatar:', error)
+    if (log) {
+      log.warn('Failed to fetch Plex avatar:', error)
+    }
     return null
   }
 }

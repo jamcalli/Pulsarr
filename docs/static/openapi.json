@@ -3207,20 +3207,71 @@
                           "type": "object",
                           "properties": {
                             "enabled": {
-                              "type": "boolean",
-                              "default": false
+                              "type": "boolean"
                             },
-                            "labelFormat": {
-                              "type": "string",
-                              "default": "pulsarr:{username}"
+                            "labelPrefix": {
+                              "type": "string"
                             },
                             "concurrencyLimit": {
                               "type": "integer",
                               "exclusiveMinimum": true,
-                              "minimum": 0,
-                              "default": 5
+                              "minimum": 0
+                            },
+                            "cleanupOrphanedLabels": {
+                              "type": "boolean"
+                            },
+                            "removedLabelMode": {
+                              "type": "string",
+                              "enum": ["remove", "keep", "special-label"],
+                              "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
+                            },
+                            "removedLabelPrefix": {
+                              "type": "string",
+                              "description": "Prefix for special labels indicating removed users"
+                            },
+                            "autoResetOnScheduledSync": {
+                              "type": "boolean",
+                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+                            },
+                            "scheduleTime": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "dayOfWeek": {
+                              "type": "string"
+                            },
+                            "tagSync": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "syncRadarrTags": {
+                                  "type": "boolean"
+                                },
+                                "syncSonarrTags": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "enabled",
+                                "syncRadarrTags",
+                                "syncSonarrTags"
+                              ],
+                              "additionalProperties": false
                             }
                           },
+                          "required": [
+                            "enabled",
+                            "labelPrefix",
+                            "concurrencyLimit",
+                            "cleanupOrphanedLabels",
+                            "removedLabelMode",
+                            "removedLabelPrefix",
+                            "autoResetOnScheduledSync",
+                            "dayOfWeek",
+                            "tagSync"
+                          ],
                           "additionalProperties": false
                         },
                         "selfRss": {
@@ -3416,6 +3467,18 @@
                           "type": "string",
                           "minLength": 2,
                           "maxLength": 2
+                        },
+                        "tagUsersInSonarr": {
+                          "type": "boolean"
+                        },
+                        "tagUsersInRadarr": {
+                          "type": "boolean"
+                        },
+                        "cleanupOrphanedTags": {
+                          "type": "boolean"
+                        },
+                        "tagPrefix": {
+                          "type": "string"
                         }
                       },
                       "additionalProperties": false
@@ -3691,20 +3754,71 @@
                     "type": "object",
                     "properties": {
                       "enabled": {
-                        "type": "boolean",
-                        "default": false
+                        "type": "boolean"
                       },
-                      "labelFormat": {
-                        "type": "string",
-                        "default": "pulsarr:{username}"
+                      "labelPrefix": {
+                        "type": "string"
                       },
                       "concurrencyLimit": {
                         "type": "integer",
                         "exclusiveMinimum": true,
-                        "minimum": 0,
-                        "default": 5
+                        "minimum": 0
+                      },
+                      "cleanupOrphanedLabels": {
+                        "type": "boolean"
+                      },
+                      "removedLabelMode": {
+                        "type": "string",
+                        "enum": ["remove", "keep", "special-label"],
+                        "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
+                      },
+                      "removedLabelPrefix": {
+                        "type": "string",
+                        "description": "Prefix for special labels indicating removed users"
+                      },
+                      "autoResetOnScheduledSync": {
+                        "type": "boolean",
+                        "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+                      },
+                      "scheduleTime": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "dayOfWeek": {
+                        "type": "string"
+                      },
+                      "tagSync": {
+                        "type": "object",
+                        "properties": {
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "syncRadarrTags": {
+                            "type": "boolean"
+                          },
+                          "syncSonarrTags": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "enabled",
+                          "syncRadarrTags",
+                          "syncSonarrTags"
+                        ],
+                        "additionalProperties": false
                       }
                     },
+                    "required": [
+                      "enabled",
+                      "labelPrefix",
+                      "concurrencyLimit",
+                      "cleanupOrphanedLabels",
+                      "removedLabelMode",
+                      "removedLabelPrefix",
+                      "autoResetOnScheduledSync",
+                      "dayOfWeek",
+                      "tagSync"
+                    ],
                     "additionalProperties": false
                   },
                   "selfRss": {
@@ -3896,6 +4010,18 @@
                     "type": "string",
                     "minLength": 2,
                     "maxLength": 2
+                  },
+                  "tagUsersInSonarr": {
+                    "type": "boolean"
+                  },
+                  "tagUsersInRadarr": {
+                    "type": "boolean"
+                  },
+                  "cleanupOrphanedTags": {
+                    "type": "boolean"
+                  },
+                  "tagPrefix": {
+                    "type": "string"
                   }
                 },
                 "additionalProperties": false
@@ -4117,20 +4243,71 @@
                           "type": "object",
                           "properties": {
                             "enabled": {
-                              "type": "boolean",
-                              "default": false
+                              "type": "boolean"
                             },
-                            "labelFormat": {
-                              "type": "string",
-                              "default": "pulsarr:{username}"
+                            "labelPrefix": {
+                              "type": "string"
                             },
                             "concurrencyLimit": {
                               "type": "integer",
                               "exclusiveMinimum": true,
-                              "minimum": 0,
-                              "default": 5
+                              "minimum": 0
+                            },
+                            "cleanupOrphanedLabels": {
+                              "type": "boolean"
+                            },
+                            "removedLabelMode": {
+                              "type": "string",
+                              "enum": ["remove", "keep", "special-label"],
+                              "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
+                            },
+                            "removedLabelPrefix": {
+                              "type": "string",
+                              "description": "Prefix for special labels indicating removed users"
+                            },
+                            "autoResetOnScheduledSync": {
+                              "type": "boolean",
+                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+                            },
+                            "scheduleTime": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "dayOfWeek": {
+                              "type": "string"
+                            },
+                            "tagSync": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "syncRadarrTags": {
+                                  "type": "boolean"
+                                },
+                                "syncSonarrTags": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "enabled",
+                                "syncRadarrTags",
+                                "syncSonarrTags"
+                              ],
+                              "additionalProperties": false
                             }
                           },
+                          "required": [
+                            "enabled",
+                            "labelPrefix",
+                            "concurrencyLimit",
+                            "cleanupOrphanedLabels",
+                            "removedLabelMode",
+                            "removedLabelPrefix",
+                            "autoResetOnScheduledSync",
+                            "dayOfWeek",
+                            "tagSync"
+                          ],
                           "additionalProperties": false
                         },
                         "selfRss": {
@@ -4326,6 +4503,18 @@
                           "type": "string",
                           "minLength": 2,
                           "maxLength": 2
+                        },
+                        "tagUsersInSonarr": {
+                          "type": "boolean"
+                        },
+                        "tagUsersInRadarr": {
+                          "type": "boolean"
+                        },
+                        "cleanupOrphanedTags": {
+                          "type": "boolean"
+                        },
+                        "tagPrefix": {
+                          "type": "string"
                         }
                       },
                       "additionalProperties": false
@@ -8534,253 +8723,12 @@
         }
       }
     },
-    "/v1/labels/status": {
-      "get": {
-        "operationId": "getPlexLabelingStatus",
-        "summary": "Get plex labeling status",
-        "tags": ["Labels"],
-        "description": "Retrieve the current plex labeling configuration status",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "config": {
-                      "type": "object",
-                      "properties": {
-                        "enabled": {
-                          "type": "boolean"
-                        },
-                        "labelFormat": {
-                          "type": "string"
-                        },
-                        "concurrencyLimit": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "enabled",
-                        "labelFormat",
-                        "concurrencyLimit"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": ["success", "message", "config"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/labels/config": {
-      "get": {
-        "operationId": "getPlexLabelingConfig",
-        "summary": "Get plex labeling config",
-        "tags": ["Labels"],
-        "description": "Retrieve the current plex labeling configuration",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "config": {
-                      "type": "object",
-                      "properties": {
-                        "enabled": {
-                          "type": "boolean"
-                        },
-                        "labelFormat": {
-                          "type": "string"
-                        },
-                        "concurrencyLimit": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "enabled",
-                        "labelFormat",
-                        "concurrencyLimit"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": ["success", "message", "config"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "operationId": "updatePlexLabelingConfig",
-        "summary": "Update plex labeling config",
-        "tags": ["Labels"],
-        "description": "Update the plex labeling configuration settings",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "labelFormat": {
-                    "type": "string"
-                  },
-                  "concurrencyLimit": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 20
-                  }
-                },
-                "required": ["enabled", "labelFormat"],
-                "additionalProperties": false
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "config": {
-                      "type": "object",
-                      "properties": {
-                        "enabled": {
-                          "type": "boolean"
-                        },
-                        "labelFormat": {
-                          "type": "string"
-                        },
-                        "concurrencyLimit": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "enabled",
-                        "labelFormat",
-                        "concurrencyLimit"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": ["success", "message", "config"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/labels/sync": {
       "post": {
         "operationId": "syncPlexLabels",
         "summary": "Sync plex labels",
         "tags": ["Labels"],
-        "description": "Synchronize plex labels for all watchlist content",
+        "description": "Synchronize plex labels for all watchlist content. Will automatically reset labels first if enabled in configuration.",
         "responses": {
           "200": {
             "description": "Default Response",
@@ -9368,6 +9316,12 @@
                               },
                               "tvdbId": {
                                 "type": "number"
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
                               }
                             },
                             "required": ["title", "tvdbId"],
@@ -9462,6 +9416,12 @@
                               },
                               "tvdbId": {
                                 "type": "number"
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
                               }
                             },
                             "required": ["title", "tvdbId"],
@@ -9572,6 +9532,12 @@
                           },
                           "tmdbId": {
                             "type": "number"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           }
                         },
                         "required": ["title", "tmdbId"],
@@ -17364,227 +17330,6 @@
                     }
                   },
                   "required": ["radarr", "sonarr", "message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/tags/status": {
-      "get": {
-        "operationId": "getTaggingStatus",
-        "summary": "Get tagging status",
-        "tags": ["Tags"],
-        "description": "Retrieve the current user tagging configuration status",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "config": {
-                      "type": "object",
-                      "properties": {
-                        "tagUsersInSonarr": {
-                          "type": "boolean"
-                        },
-                        "tagUsersInRadarr": {
-                          "type": "boolean"
-                        },
-                        "cleanupOrphanedTags": {
-                          "type": "boolean"
-                        },
-                        "removedTagMode": {
-                          "type": "string",
-                          "enum": ["remove", "keep", "special-tag"],
-                          "default": "remove"
-                        },
-                        "removedTagPrefix": {
-                          "type": "string",
-                          "default": "pulsarr:removed"
-                        },
-                        "tagPrefix": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "tagUsersInSonarr",
-                        "tagUsersInRadarr",
-                        "cleanupOrphanedTags",
-                        "tagPrefix"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": ["success", "message", "config"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/tags/config": {
-      "put": {
-        "operationId": "updateTaggingConfig",
-        "summary": "Update tagging config",
-        "tags": ["Tags"],
-        "description": "Update the user tagging configuration settings",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "tagUsersInSonarr": {
-                    "type": "boolean"
-                  },
-                  "tagUsersInRadarr": {
-                    "type": "boolean"
-                  },
-                  "cleanupOrphanedTags": {
-                    "type": "boolean"
-                  },
-                  "removedTagMode": {
-                    "type": "string",
-                    "enum": ["remove", "keep", "special-tag"],
-                    "default": "remove"
-                  },
-                  "removedTagPrefix": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "^[a-zA-Z0-9_\\-:.]+$",
-                    "default": "pulsarr:removed"
-                  },
-                  "tagPrefix": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-                  }
-                },
-                "required": [
-                  "tagUsersInSonarr",
-                  "tagUsersInRadarr",
-                  "cleanupOrphanedTags",
-                  "tagPrefix"
-                ],
-                "additionalProperties": false
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "config": {
-                      "type": "object",
-                      "properties": {
-                        "tagUsersInSonarr": {
-                          "type": "boolean"
-                        },
-                        "tagUsersInRadarr": {
-                          "type": "boolean"
-                        },
-                        "cleanupOrphanedTags": {
-                          "type": "boolean"
-                        },
-                        "removedTagMode": {
-                          "type": "string",
-                          "enum": ["remove", "keep", "special-tag"],
-                          "default": "remove"
-                        },
-                        "removedTagPrefix": {
-                          "type": "string",
-                          "default": "pulsarr:removed"
-                        },
-                        "tagPrefix": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "tagUsersInSonarr",
-                        "tagUsersInRadarr",
-                        "cleanupOrphanedTags",
-                        "tagPrefix"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": ["success", "message", "config"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
                   "additionalProperties": false
                 }
               }

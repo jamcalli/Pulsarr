@@ -143,8 +143,14 @@ export function usePlexLabels() {
       cleanupOrphanedLabels: false,
       removedLabelMode: 'remove',
       removedLabelPrefix: 'pulsarr:removed',
+      autoResetOnScheduledSync: false,
       scheduleTime: undefined,
       dayOfWeek: '*',
+      tagSync: {
+        enabled: false,
+        syncRadarrTags: true,
+        syncSonarrTags: true,
+      },
     },
   })
 
@@ -160,8 +166,15 @@ export function usePlexLabels() {
         removedLabelMode: plexLabelSyncConfig.removedLabelMode || 'remove',
         removedLabelPrefix:
           plexLabelSyncConfig.removedLabelPrefix || 'pulsarr:removed',
+        autoResetOnScheduledSync:
+          plexLabelSyncConfig.autoResetOnScheduledSync || false,
         scheduleTime: scheduleTime,
         dayOfWeek: dayOfWeek,
+        tagSync: {
+          enabled: plexLabelSyncConfig.tagSync?.enabled || false,
+          syncRadarrTags: plexLabelSyncConfig.tagSync?.syncRadarrTags !== false,
+          syncSonarrTags: plexLabelSyncConfig.tagSync?.syncSonarrTags !== false,
+        },
       })
     },
     [form, scheduleTime, dayOfWeek],

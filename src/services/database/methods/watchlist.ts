@@ -3,7 +3,10 @@ import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
+import type {
+  WatchlistItemUpdate,
+  DatabaseWatchlistItem,
+} from '@root/types/watchlist-status.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 
 /**
@@ -199,6 +202,27 @@ export async function getWatchlistItem(
 }
 
 /**
+ * Retrieves a watchlist item by its ID.
+ *
+ * @param id - The watchlist item ID
+ * @returns The watchlist item if found, undefined otherwise
+ */
+export async function getWatchlistItemById(
+  this: DatabaseService,
+  id: number,
+): Promise<WatchlistItem | undefined> {
+  const result = await this.knex('watchlist_items').where('id', id).first()
+
+  if (!result) return undefined
+
+  return {
+    ...result,
+    guids: this.safeJsonParse(result.guids, [], 'watchlist_item.guids'),
+    genres: this.safeJsonParse(result.genres, [], 'watchlist_item.genres'),
+  }
+}
+
+/**
  * Retrieves watchlist items for the specified users, optionally filtered by item keys.
  *
  * Parses the `guids` and `genres` fields for each item to ensure consistent data structure.
@@ -260,7 +284,7 @@ export async function getBulkWatchlistItems(
 export async function getWatchlistItemsByKeys(
   this: DatabaseService,
   keys: string[],
-): Promise<WatchlistItem[]> {
+): Promise<(WatchlistItem & { id: number })[]> {
   if (keys.length === 0) {
     return []
   }
@@ -276,6 +300,8 @@ export async function getWatchlistItemsByKeys(
 
   return items.map((item) => ({
     ...item,
+    thumb: item.thumb || undefined,
+    added: item.added || undefined,
     guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
     genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
   }))
@@ -873,12 +899,15 @@ export async function getAllMovieWatchlistItems(
  *
  * @param items - The watchlist items to insert, excluding creation and update timestamps
  * @param options - Optional settings for conflict resolution: 'ignore' to skip duplicates or 'merge' to update existing entries
+ * @returns Array of inserted item IDs and keys. Note: When using 'ignore' mode, the returned array may be shorter than the input if duplicates are skipped.
  */
 export async function createWatchlistItems(
   this: DatabaseService,
   items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
   options: { onConflict?: 'ignore' | 'merge' } = { onConflict: 'ignore' },
-): Promise<void> {
+): Promise<{ id: number; key: string }[]> {
+  const insertedIds: { id: number; key: string }[] = []
+
   await this.knex.transaction(async (trx) => {
     const chunks = this.chunkArray(items, 250)
 
@@ -903,14 +932,22 @@ export async function createWatchlistItems(
       const query = trx('watchlist_items').insert(itemsToInsert)
 
       if (options.onConflict === 'merge') {
-        query.onConflict(['user_id', 'key']).merge()
+        const results = await query
+          .onConflict(['user_id', 'key'])
+          .merge()
+          .returning(['id', 'key'])
+        insertedIds.push(...results)
       } else {
-        query.onConflict(['user_id', 'key']).ignore()
+        const results = await query
+          .onConflict(['user_id', 'key'])
+          .ignore()
+          .returning(['id', 'key'])
+        insertedIds.push(...results)
       }
-
-      await query
     }
   })
+
+  return insertedIds
 }
 
 /**
