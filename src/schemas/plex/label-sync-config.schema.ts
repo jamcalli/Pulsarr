@@ -19,6 +19,12 @@ export const PlexLabelSyncConfigSchema = z.object({
   removedLabelPrefix: z
     .string()
     .describe('Prefix for special labels indicating removed users'),
+  // Whether to automatically reset labels before syncs
+  autoResetOnScheduledSync: z
+    .boolean()
+    .describe(
+      'Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode',
+    ),
   // Schedule fields for full sync automation
   scheduleTime: z.coerce.date().optional(),
   dayOfWeek: z.string(),

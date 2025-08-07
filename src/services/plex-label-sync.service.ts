@@ -34,7 +34,7 @@ import type {
   SonarrSeriesWithTags,
 } from '@root/types/plex-label-sync.types.js'
 import pLimit from 'p-limit'
-import { parseGuids } from '@utils/guid-handler.js'
+import { parseGuids, getGuidMatchScore } from '@utils/guid-handler.js'
 
 /**
  * Service to manage label synchronization between Pulsarr and Plex
@@ -74,6 +74,7 @@ export class PlexLabelSyncService {
         cleanupOrphanedLabels: false,
         removedLabelMode: 'remove' as const,
         removedLabelPrefix: 'pulsarr:removed',
+        autoResetOnScheduledSync: false,
         scheduleTime: undefined,
         dayOfWeek: '*',
         tagSync: {
@@ -1535,6 +1536,7 @@ export class PlexLabelSyncService {
   /**
    * Synchronizes all labels for all content in batch mode using content-centric approach.
    * Each unique content item is processed exactly once with complete user set visibility.
+   * Automatically resets dangling labels at the start based on current removal mode.
    *
    * @param progressCallback - Optional callback to report progress for SSE
    * @returns Promise resolving to sync results
@@ -1559,8 +1561,47 @@ export class PlexLabelSyncService {
     }
 
     try {
+      // Reset labels if auto-reset is enabled - this handles dangling entries from mode changes
+      if (this.config.autoResetOnScheduledSync) {
+        this.log.info('Performing automatic label reset before sync', {
+          currentMode: this.removedLabelMode,
+        })
+        progressCallback?.(
+          0,
+          'Resetting existing labels based on current removal mode...',
+        )
+
+        try {
+          await this.resetLabels(undefined, (progress, message) => {
+            // Map reset progress to first 15% of overall progress
+            progressCallback?.(progress * 0.15, `Reset: ${message}`)
+          })
+          progressCallback?.(15, 'Reset complete, starting sync...')
+          this.log.info('Label reset completed successfully')
+        } catch (resetError) {
+          this.log.error('Error during label reset:', resetError)
+          // Continue with sync even if reset fails
+          progressCallback?.(15, 'Reset failed, continuing with sync...')
+        }
+      }
+
       this.log.debug('Beginning label sync process')
-      progressCallback?.(0, 'Starting Plex label synchronization...')
+
+      // Adjust progress callback based on whether reset was performed
+      const baseProgress = this.config.autoResetOnScheduledSync ? 15 : 0
+      const progressMultiplier = this.config.autoResetOnScheduledSync
+        ? 0.85
+        : 1.0
+      const adjustedProgressCallback = progressCallback
+        ? (progress: number, message: string) => {
+            progressCallback(
+              baseProgress + progress * progressMultiplier,
+              message,
+            )
+          }
+        : undefined
+
+      adjustedProgressCallback?.(0, 'Starting Plex label synchronization...')
 
       // Step 1: Get all active watchlist items from database
       this.log.debug('Fetching watchlist items from database...')
@@ -1583,7 +1624,7 @@ export class PlexLabelSyncService {
         this.log.warn(
           'No watchlist items found in database - this might indicate an empty watchlist table',
         )
-        progressCallback?.(100, 'No content found to label')
+        adjustedProgressCallback?.(100, 'No content found to label')
         return result
       }
 
@@ -1625,11 +1666,11 @@ export class PlexLabelSyncService {
 
       if (contentItems.length === 0) {
         this.log.warn('No valid content items found after grouping')
-        progressCallback?.(100, 'No valid content found to process')
+        adjustedProgressCallback?.(100, 'No valid content found to process')
         return result
       }
 
-      progressCallback?.(
+      adjustedProgressCallback?.(
         25,
         `Resolving ${contentItems.length} unique content items to Plex items...`,
       )
@@ -1649,14 +1690,14 @@ export class PlexLabelSyncService {
 
       if (available.length === 0) {
         this.log.warn('No content available in Plex for processing')
-        progressCallback?.(
+        adjustedProgressCallback?.(
           100,
           'No content available in Plex - all items queued for pending sync',
         )
         return result
       }
 
-      progressCallback?.(
+      adjustedProgressCallback?.(
         40,
         `Processing ${available.length} content items with content-centric reconciliation...`,
       )
@@ -1762,7 +1803,7 @@ export class PlexLabelSyncService {
       let cleanupMessage = ''
       if (this.config.cleanupOrphanedLabels) {
         try {
-          progressCallback?.(95, 'Cleaning up orphaned Plex labels...')
+          adjustedProgressCallback?.(95, 'Cleaning up orphaned Plex labels...')
           const cleanupResult = await this.cleanupOrphanedPlexLabels(
             radarrMoviesWithTags,
             sonarrSeriesWithTags,
@@ -1786,7 +1827,7 @@ export class PlexLabelSyncService {
         totalLabelsRemoved,
       })
 
-      progressCallback?.(
+      adjustedProgressCallback?.(
         100,
         `Completed consolidated Plex label sync (user + tags): ${result.updated} content items updated, ${result.failed} failed, ${result.pending} pending (${totalLabelsAdded} labels added, ${totalLabelsRemoved} removed)${cleanupMessage}`,
       )
@@ -4067,6 +4108,242 @@ export class PlexLabelSyncService {
     } catch (error) {
       this.log.error('Error during orphaned label cleanup:', error)
       return { removed: 0, failed: 1 }
+    }
+  }
+
+  /**
+   * Reset Plex labels and tracking table based on current removal mode settings.
+   * Accepts watchlist items as parameter OR compiles existing watchlist if called standalone.
+   * Reuses existing cleanup logic to handle all removal modes (remove/keep/special-label).
+   *
+   * @param watchlistItems - Optional array of watchlist items to process. If not provided, all watchlist items are fetched.
+   * @param progressCallback - Optional callback to report progress
+   * @returns Promise resolving to processing results
+   */
+  async resetLabels(
+    watchlistItems?: Array<{
+      id: string | number
+      user_id: number
+      guids?: string[] | string
+      title: string
+      type?: string
+      key: string | null
+    }>,
+    progressCallback?: (progress: number, message: string) => void,
+  ): Promise<{ processed: number; updated: number; failed: number }> {
+    if (!this.config.enabled) {
+      this.log.warn('Plex label sync is disabled, skipping label reset')
+      return { processed: 0, updated: 0, failed: 0 }
+    }
+
+    try {
+      this.log.info('Starting Plex label reset based on current removal mode', {
+        mode: this.removedLabelMode,
+        providedItems: watchlistItems?.length || 0,
+      })
+      progressCallback?.(0, 'Starting Plex label reset...')
+
+      // Step 1: Get watchlist items (compile if not provided, same pattern as syncAllLabels)
+      let items = watchlistItems
+      if (!items) {
+        progressCallback?.(10, 'Fetching all watchlist items...')
+        const [movieItems, showItems] = await Promise.all([
+          this.db.getAllMovieWatchlistItems(),
+          this.db.getAllShowWatchlistItems(),
+        ])
+        items = [...movieItems, ...showItems]
+        this.log.info(`Compiled ${items.length} watchlist items for reset`)
+      }
+
+      if (items.length === 0) {
+        this.log.info('No watchlist items to process for reset')
+        return { processed: 0, updated: 0, failed: 0 }
+      }
+
+      progressCallback?.(
+        25,
+        `Processing ${items.length} watchlist items with mode: ${this.removedLabelMode}...`,
+      )
+
+      // Step 2: Find orphaned tracking entries (tracking entries without corresponding watchlist items)
+      progressCallback?.(30, 'Finding orphaned tracking entries...')
+
+      // Get all tracking entries using the proper database method
+      const allTrackingEntries = await this.db.getAllTrackedLabels()
+
+      // Find orphaned tracking entries using weighted GUID matching
+      const orphanedEntries = []
+      for (const trackingEntry of allTrackingEntries) {
+        let foundMatch = false
+
+        // Check if this tracking entry matches any current watchlist item
+        for (const watchlistItem of items) {
+          // Only compare items from the same user and content type
+          if (trackingEntry.user_id !== watchlistItem.user_id) {
+            continue
+          }
+
+          const watchlistItemType = watchlistItem.type || 'movie'
+          if (trackingEntry.content_type !== watchlistItemType) {
+            continue
+          }
+
+          const watchlistGuids = parseGuids(watchlistItem.guids)
+          const trackingGuids = trackingEntry.content_guids
+
+          // Check if tracking entry contains real content GUIDs or just rating key
+          const trackingContainsRealGuids = trackingGuids.some((guid) =>
+            guid.includes(':'),
+          )
+
+          let matchScore = 0
+
+          if (trackingContainsRealGuids) {
+            // Use weighted GUID matching for real GUIDs
+            matchScore = getGuidMatchScore(trackingGuids, watchlistGuids)
+          } else {
+            // Tracking entry only has rating key, check if watchlist item has the same key
+            if (
+              watchlistItem.key &&
+              trackingGuids.includes(watchlistItem.key)
+            ) {
+              // This is a fallback match - assign score of 1
+              matchScore = 1
+            }
+          }
+
+          if (matchScore > 0) {
+            foundMatch = true
+            this.log.debug(
+              `Tracking entry matched watchlist item "${watchlistItem.title}" (score: ${matchScore}, method: ${trackingContainsRealGuids ? 'GUID' : 'rating-key'})`,
+              {
+                trackingId: trackingEntry.id,
+                ratingKey: trackingEntry.plex_rating_key,
+                trackingGuids,
+                watchlistGuids,
+                trackingContainsRealGuids,
+              },
+            )
+            break
+          }
+        }
+
+        // If no match found, this tracking entry is orphaned
+        if (!foundMatch) {
+          orphanedEntries.push({
+            id: trackingEntry.id, // This will be unused but required by interface
+            title: 'Orphaned Item', // Title is not available in tracking table
+            key: '', // Key is not needed for cleanup
+            user_id: trackingEntry.user_id,
+            guids: trackingEntry.content_guids,
+            contentType: trackingEntry.content_type as 'movie' | 'show',
+            trackingId: trackingEntry.id, // Keep reference to tracking entry ID
+            plexRatingKey: trackingEntry.plex_rating_key,
+            labelsApplied: trackingEntry.labels_applied,
+          })
+        }
+      }
+
+      if (orphanedEntries.length === 0) {
+        this.log.info('No orphaned tracking entries found')
+        progressCallback?.(100, 'Reset complete - no orphaned entries found')
+        return { processed: items.length, updated: 0, failed: 0 }
+      }
+
+      this.log.info(
+        `Found ${orphanedEntries.length} orphaned tracking entries to clean up`,
+      )
+      progressCallback?.(
+        50,
+        `Cleaning up ${orphanedEntries.length} orphaned entries...`,
+      )
+
+      // Step 3: Process orphaned entries based on removal mode
+      let processedCount = 0
+      let failedCount = 0
+
+      if (this.removedLabelMode === 'keep') {
+        this.log.info(
+          'Removal mode is "keep", preserving orphaned labels and tracking entries',
+        )
+        // In keep mode, we don't remove anything
+        processedCount = orphanedEntries.length
+      } else if (this.removedLabelMode === 'remove') {
+        // Remove labels from Plex and delete tracking entries
+        for (const entry of orphanedEntries) {
+          try {
+            // Remove labels from Plex
+            if (entry.labelsApplied.length > 0) {
+              await this.plexServer.removeSpecificLabels(
+                entry.plexRatingKey,
+                entry.labelsApplied,
+              )
+            }
+
+            // Delete tracking entry using proper database method
+            await this.db.cleanupUserContentTracking(
+              entry.guids,
+              entry.contentType,
+              entry.user_id,
+            )
+
+            processedCount++
+          } catch (error) {
+            this.log.error(
+              `Failed to clean up orphaned entry for rating key ${entry.plexRatingKey}:`,
+              error,
+            )
+            failedCount++
+          }
+        }
+      } else if (this.removedLabelMode === 'special-label') {
+        // Replace existing labels with special "removed" label
+        for (const entry of orphanedEntries) {
+          try {
+            // Remove existing labels and apply special removed label
+            const removedLabel = this.removedLabelPrefix || 'pulsarr:removed'
+            await this.plexServer.updateLabels(entry.plexRatingKey, [
+              removedLabel,
+            ])
+
+            // Update tracking entry using proper database method
+            await this.db.trackPlexLabels(
+              entry.guids,
+              entry.contentType,
+              entry.user_id,
+              entry.plexRatingKey,
+              [removedLabel],
+            )
+
+            processedCount++
+          } catch (error) {
+            this.log.error(
+              `Failed to apply special label to orphaned entry for rating key ${entry.plexRatingKey}:`,
+              error,
+            )
+            failedCount++
+          }
+        }
+      }
+
+      progressCallback?.(100, 'Reset complete')
+
+      this.log.info('Plex label reset completed successfully', {
+        mode: this.removedLabelMode,
+        orphanedEntriesFound: orphanedEntries.length,
+        orphanedEntriesProcessed: processedCount,
+        orphanedEntriesFailed: failedCount,
+      })
+
+      return {
+        processed: orphanedEntries.length,
+        updated: processedCount,
+        failed: failedCount,
+      }
+    } catch (error) {
+      this.log.error('Error during Plex label reset:', error)
+      progressCallback?.(100, 'Reset failed')
+      throw error
     }
   }
 }

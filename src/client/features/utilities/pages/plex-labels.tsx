@@ -716,6 +716,56 @@ export function PlexLabelsPage() {
 
                   <FormField
                     control={form.control}
+                    name="autoResetOnScheduledSync"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-3">
+                          <FormControl>
+                            <Switch
+                              checked={field.value ?? false}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="flex items-center">
+                            <FormLabel className="text-foreground">
+                              Auto-Reset Before Sync
+                            </FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="max-w-xs space-y-2">
+                                    <p>
+                                      Automatically reset labels before ALL sync
+                                      operations to clean up dangling entries
+                                      based on current removal mode settings.
+                                    </p>
+                                    <p>
+                                      This helps maintain label consistency when
+                                      switching between removal modes or when
+                                      dangling entries accumulate from "keep"
+                                      mode.
+                                    </p>
+                                    <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                      <strong>Note:</strong> Applies to both
+                                      manual and scheduled sync operations when
+                                      enabled.
+                                    </p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="removedLabelMode"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
