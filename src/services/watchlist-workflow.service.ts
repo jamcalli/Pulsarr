@@ -1846,9 +1846,9 @@ export class WatchlistWorkflowService {
         true,
       )
 
-      this.log.info('Scheduled next periodic reconciliation for', {
-        scheduleTime: scheduleTime.toISOString(),
-      })
+      this.log.info(
+        `Scheduled next periodic reconciliation for ${scheduleTime.toISOString()}`,
+      )
     } catch (error) {
       this.log.error('Error scheduling pending reconciliation:', {
         error,
@@ -1870,7 +1870,7 @@ export class WatchlistWorkflowService {
         false,
       )
 
-      this.log.debug('Unscheduled pending periodic reconciliation')
+      this.log.info('Unscheduled pending periodic reconciliation')
     } catch (error) {
       this.log.error('Error unscheduling pending reconciliation:', {
         error,
