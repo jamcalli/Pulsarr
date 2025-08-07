@@ -16,7 +16,11 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexServerService } from '@utils/plex-server.js'
 import type { DatabaseService } from '@services/database.service.js'
-import type { PlexLabelTracking } from '@services/database/methods/plex-label-tracking.js'
+import type {
+  PlexLabelTracking,
+  TrackPlexLabelsOperation,
+  UntrackPlexLabelOperation,
+} from '@services/database/methods/plex-label-tracking.js'
 import type { PendingLabelSyncWithPlexKeys } from '@services/database/methods/plex-label-sync.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import type { WebhookPayload } from '@schemas/notifications/webhook.schema.js'
@@ -1295,6 +1299,7 @@ export class PlexLabelSyncService {
   /**
    * Updates the tracking table to reflect the final state after label reconciliation.
    * Removes obsolete tracking records and adds new ones as needed.
+   * Implements true batching by collecting operations and executing in bulk.
    *
    * @param content - The content being processed
    * @param plexItems - The Plex items for this content
@@ -1315,6 +1320,10 @@ export class PlexLabelSyncService {
         plexItemCount: plexItems.length,
         finalUserLabels,
       })
+
+      // Collect operations for bulk processing
+      const untrackOperations: UntrackPlexLabelOperation[] = []
+      const trackOperations: TrackPlexLabelsOperation[] = []
 
       // Process each Plex item
       for (const plexItem of plexItems) {
@@ -1348,19 +1357,19 @@ export class PlexLabelSyncService {
           }
         }
 
-        // Remove obsolete tracking records
+        // Collect obsolete tracking records for bulk removal
         for (const tracking of currentTracking) {
           // Check each label in the tracking record
           for (const label of tracking.labels_applied) {
             const trackingKey = `${tracking.content_guids.join(',')}:${tracking.user_id}:${tracking.plex_rating_key}:${label}`
             if (!desiredTracking.has(trackingKey)) {
-              await this.db.untrackPlexLabel(
-                tracking.content_guids,
-                tracking.user_id,
-                tracking.plex_rating_key,
-                label,
-              )
-              this.log.debug('Removed obsolete tracking record', {
+              untrackOperations.push({
+                contentGuids: tracking.content_guids,
+                userId: tracking.user_id,
+                plexRatingKey: tracking.plex_rating_key,
+                labelApplied: label,
+              })
+              this.log.debug('Queued obsolete tracking record for removal', {
                 contentKey: tracking.content_guids.join(','),
                 userId: tracking.user_id,
                 ratingKey: tracking.plex_rating_key,
@@ -1370,7 +1379,7 @@ export class PlexLabelSyncService {
           }
         }
 
-        // Update tracking records using efficient array-based approach
+        // Collect tracking operations using efficient array-based approach
         for (const user of content.users) {
           const userLabel = `${this.config.labelPrefix}:${user.username}`
 
@@ -1396,40 +1405,87 @@ export class PlexLabelSyncService {
           // Add all tag labels (tags apply to all users with this content)
           userLabelsForContent.push(...finalTagLabels)
 
-          // Only track if there are labels to track
+          // Only queue tracking if there are labels to track
           if (userLabelsForContent.length > 0) {
-            try {
-              await this.db.trackPlexLabels(
-                content.allGuids,
-                content.type as 'movie' | 'show',
-                user.user_id,
-                plexItem.ratingKey,
-                userLabelsForContent,
-              )
-              this.log.debug('Updated complete label tracking record', {
-                watchlistId: user.watchlist_id,
-                ratingKey: plexItem.ratingKey,
-                labelCount: userLabelsForContent.length,
-                labels: userLabelsForContent,
-              })
-            } catch (error) {
-              this.log.error('Failed to track labels in database', {
-                userId: user.user_id,
-                username: user.username,
-                watchlistId: user.watchlist_id,
-                ratingKey: plexItem.ratingKey,
-                labels: userLabelsForContent,
-                labelCount: userLabelsForContent.length,
-                error: error instanceof Error ? error.message : String(error),
-              })
-            }
+            trackOperations.push({
+              contentGuids: content.allGuids,
+              contentType: content.type as 'movie' | 'show',
+              userId: user.user_id,
+              plexRatingKey: plexItem.ratingKey,
+              labelsApplied: userLabelsForContent,
+            })
+            this.log.debug('Queued complete label tracking operation', {
+              watchlistId: user.watchlist_id,
+              ratingKey: plexItem.ratingKey,
+              labelCount: userLabelsForContent.length,
+              labels: userLabelsForContent,
+            })
           }
+        }
+      }
+
+      // Execute bulk operations
+      let totalUntracked = 0
+      let totalTracked = 0
+      let totalFailures = 0
+
+      // Process bulk untracking
+      if (untrackOperations.length > 0) {
+        this.log.debug('Executing bulk untrack operations', {
+          operationCount: untrackOperations.length,
+        })
+        try {
+          const untrackResult =
+            await this.db.untrackPlexLabelBulk(untrackOperations)
+          totalUntracked = untrackResult.processedCount
+          if (untrackResult.failedIds.length > 0) {
+            totalFailures += untrackResult.failedIds.length
+            this.log.warn('Some untrack operations failed', {
+              failedCount: untrackResult.failedIds.length,
+              failedIds: untrackResult.failedIds,
+            })
+          }
+        } catch (error) {
+          this.log.error('Failed to execute bulk untrack operations', {
+            operationCount: untrackOperations.length,
+            error: error instanceof Error ? error.message : String(error),
+          })
+          totalFailures += untrackOperations.length
+        }
+      }
+
+      // Process bulk tracking
+      if (trackOperations.length > 0) {
+        this.log.debug('Executing bulk track operations', {
+          operationCount: trackOperations.length,
+        })
+        try {
+          const trackResult = await this.db.trackPlexLabelsBulk(trackOperations)
+          totalTracked = trackResult.processedCount
+          if (trackResult.failedIds.length > 0) {
+            totalFailures += trackResult.failedIds.length
+            this.log.warn('Some track operations failed', {
+              failedCount: trackResult.failedIds.length,
+              failedIds: trackResult.failedIds,
+            })
+          }
+        } catch (error) {
+          this.log.error('Failed to execute bulk track operations', {
+            operationCount: trackOperations.length,
+            error: error instanceof Error ? error.message : String(error),
+          })
+          totalFailures += trackOperations.length
         }
       }
 
       this.log.debug('Completed tracking table update for content', {
         primaryGuid: content.primaryGuid,
         title: content.title,
+        untrackOperations: untrackOperations.length,
+        trackOperations: trackOperations.length,
+        totalUntracked,
+        totalTracked,
+        totalFailures,
       })
     } catch (error) {
       this.log.error('Error updating tracking table for content', {
@@ -3533,6 +3589,10 @@ export class PlexLabelSyncService {
       const limit = pLimit(concurrencyLimit)
       let processedCount = 0
       const ratingKeyEntries = Array.from(labelsByRatingKey.entries())
+      const successfulCleanupOperations: Array<{
+        plexRatingKey: string
+        labelsToRemove: string[]
+      }> = []
 
       const labelRemovalResults = await Promise.allSettled(
         ratingKeyEntries.map(([ratingKey, labels]) =>
@@ -3590,17 +3650,11 @@ export class PlexLabelSyncService {
                 if (success) {
                   itemResult.removed += labels.length
 
-                  // Clean up tracking records for successfully removed labels
-                  for (const label of labels) {
-                    try {
-                      await this.db.removeTrackedLabel(ratingKey, label)
-                    } catch (trackingError) {
-                      this.log.warn(
-                        `Failed to clean up tracking record for label "${label}" on rating key ${ratingKey}:`,
-                        trackingError,
-                      )
-                    }
-                  }
+                  // Collect successful operations for bulk cleanup
+                  successfulCleanupOperations.push({
+                    plexRatingKey: ratingKey,
+                    labelsToRemove: labels,
+                  })
 
                   this.log.debug(
                     `Successfully removed ${labels.length} Pulsarr labels from Plex content`,
@@ -3632,17 +3686,11 @@ export class PlexLabelSyncService {
                 if (success) {
                   itemResult.removed += labels.length
 
-                  // Clean up tracking records for successfully removed labels
-                  for (const label of labels) {
-                    try {
-                      await this.db.removeTrackedLabel(ratingKey, label)
-                    } catch (trackingError) {
-                      this.log.warn(
-                        `Failed to clean up tracking record for label "${label}" on rating key ${ratingKey}:`,
-                        trackingError,
-                      )
-                    }
-                  }
+                  // Collect successful operations for bulk cleanup
+                  successfulCleanupOperations.push({
+                    plexRatingKey: ratingKey,
+                    labelsToRemove: labels,
+                  })
 
                   this.log.debug(
                     `Successfully removed ${labels.length} tracked labels using fallback method`,
@@ -3685,6 +3733,32 @@ export class PlexLabelSyncService {
             promiseResult.reason,
           )
           result.failed++
+        }
+      }
+
+      // Execute bulk cleanup for successfully removed labels
+      if (successfulCleanupOperations.length > 0) {
+        this.log.debug(
+          `Executing bulk cleanup for ${successfulCleanupOperations.length} operations`,
+        )
+        try {
+          const cleanupResult = await this.db.removeTrackedLabels(
+            successfulCleanupOperations,
+          )
+          this.log.debug(
+            `Bulk cleanup completed: ${cleanupResult.processedCount} successful, ${cleanupResult.failedIds.length} failed`,
+            {
+              successfulCount: cleanupResult.processedCount,
+              failedIds: cleanupResult.failedIds,
+            },
+          )
+          if (cleanupResult.failedIds.length > 0) {
+            this.log.warn(
+              `Some tracking cleanup operations failed for rating keys: ${cleanupResult.failedIds.join(', ')}`,
+            )
+          }
+        } catch (cleanupError) {
+          this.log.warn('Bulk tracking cleanup failed:', cleanupError)
         }
       }
 
@@ -3926,6 +4000,10 @@ export class PlexLabelSyncService {
       // Step 4: Remove orphaned labels from Plex content
       const concurrencyLimit = this.config.concurrencyLimit || 5
       const limit = pLimit(concurrencyLimit)
+      const successfulOrphanedOperations: Array<{
+        plexRatingKey: string
+        orphanedLabels: string[]
+      }> = []
 
       const cleanupResults = await Promise.allSettled(
         orphanedLabelGroups.map((group) =>
@@ -3940,11 +4018,11 @@ export class PlexLabelSyncService {
                 metadata?.Label?.map((label) => label.tag) || []
 
               if (currentLabels.length === 0) {
-                // No labels exist, just clean up tracking
-                await this.db.removeOrphanedTracking(
-                  plex_rating_key,
-                  orphaned_labels,
-                )
+                // No labels exist, collect tracking cleanup operation
+                successfulOrphanedOperations.push({
+                  plexRatingKey: plex_rating_key,
+                  orphanedLabels: orphaned_labels,
+                })
                 return { removed: 0, failed: 0 }
               }
 
@@ -3961,11 +4039,11 @@ export class PlexLabelSyncService {
                 )
 
                 if (success) {
-                  // Clean up tracking table for removed labels
-                  await this.db.removeOrphanedTracking(
-                    plex_rating_key,
-                    orphaned_labels,
-                  )
+                  // Collect successful operations for bulk cleanup
+                  successfulOrphanedOperations.push({
+                    plexRatingKey: plex_rating_key,
+                    orphanedLabels: orphaned_labels,
+                  })
 
                   const removedCount =
                     currentLabels.length - filteredLabels.length
@@ -3986,11 +4064,11 @@ export class PlexLabelSyncService {
                 )
                 return { removed: 0, failed: orphaned_labels.length }
               }
-              // Labels were already removed externally, just clean up tracking
-              await this.db.removeOrphanedTracking(
-                plex_rating_key,
-                orphaned_labels,
-              )
+              // Labels were already removed externally, collect tracking cleanup operation
+              successfulOrphanedOperations.push({
+                plexRatingKey: plex_rating_key,
+                orphanedLabels: orphaned_labels,
+              })
               return { removed: 0, failed: 0 }
             } catch (error) {
               this.log.error(
@@ -4010,6 +4088,36 @@ export class PlexLabelSyncService {
           result.failed += cleanupResult.value.failed
         } else {
           result.failed++
+        }
+      }
+
+      // Execute bulk orphaned tracking cleanup for successful operations
+      if (successfulOrphanedOperations.length > 0) {
+        this.log.debug(
+          `Executing bulk orphaned tracking cleanup for ${successfulOrphanedOperations.length} operations`,
+        )
+        try {
+          const orphanedCleanupResult =
+            await this.db.removeOrphanedTrackingBulk(
+              successfulOrphanedOperations,
+            )
+          this.log.debug(
+            `Bulk orphaned tracking cleanup completed: ${orphanedCleanupResult.processedCount} successful, ${orphanedCleanupResult.failedIds.length} failed`,
+            {
+              successfulCount: orphanedCleanupResult.processedCount,
+              failedIds: orphanedCleanupResult.failedIds,
+            },
+          )
+          if (orphanedCleanupResult.failedIds.length > 0) {
+            this.log.warn(
+              `Some orphaned tracking cleanup operations failed for rating keys: ${orphanedCleanupResult.failedIds.join(', ')}`,
+            )
+          }
+        } catch (orphanedCleanupError) {
+          this.log.warn(
+            'Bulk orphaned tracking cleanup failed:',
+            orphanedCleanupError,
+          )
         }
       }
 
