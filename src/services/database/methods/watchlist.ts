@@ -899,13 +899,14 @@ export async function getAllMovieWatchlistItems(
  *
  * @param items - The watchlist items to insert, excluding creation and update timestamps
  * @param options - Optional settings for conflict resolution: 'ignore' to skip duplicates or 'merge' to update existing entries
+ * @returns Array of inserted item IDs and keys. Note: When using 'ignore' mode, the returned array may be shorter than the input if duplicates are skipped.
  */
 export async function createWatchlistItems(
   this: DatabaseService,
   items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
   options: { onConflict?: 'ignore' | 'merge' } = { onConflict: 'ignore' },
-): Promise<number[]> {
-  const insertedIds: number[] = []
+): Promise<{ id: number; key: string }[]> {
+  const insertedIds: { id: number; key: string }[] = []
 
   await this.knex.transaction(async (trx) => {
     const chunks = this.chunkArray(items, 250)
@@ -934,14 +935,14 @@ export async function createWatchlistItems(
         const results = await query
           .onConflict(['user_id', 'key'])
           .merge()
-          .returning('id')
-        insertedIds.push(...results.map((r) => r.id))
+          .returning(['id', 'key'])
+        insertedIds.push(...results)
       } else {
         const results = await query
           .onConflict(['user_id', 'key'])
           .ignore()
-          .returning('id')
-        insertedIds.push(...results.map((r) => r.id))
+          .returning(['id', 'key'])
+        insertedIds.push(...results)
       }
     }
   })

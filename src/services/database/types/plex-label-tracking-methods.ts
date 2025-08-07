@@ -158,12 +158,16 @@ declare module '@services/database.service.js' {
     /**
      * Removes tracking records for specific labels on multiple Plex rating keys in bulk
      * @param operations - Array of operations, each containing plexRatingKey and labelsToRemove
-     * @returns Promise resolving to object with processedCount and failedIds
+     * @returns Promise resolving to object with processedCount, failedIds, and totalUpdatedCount
      */
     removeTrackedLabels(
       this: DatabaseService,
       operations: Array<{ plexRatingKey: string; labelsToRemove: string[] }>,
-    ): Promise<{ processedCount: number; failedIds: string[] }>
+    ): Promise<{
+      processedCount: number
+      failedIds: string[]
+      totalUpdatedCount: number
+    }>
 
     /**
      * Removes tracking records for a specific label on a specific Plex rating key
@@ -192,12 +196,16 @@ declare module '@services/database.service.js' {
     /**
      * Remove multiple tracking records in bulk operations for orphaned labels
      * @param operations - Array of operations, each containing plexRatingKey and orphanedLabels
-     * @returns Promise resolving to object with processedCount and failedIds
+     * @returns Promise resolving to object with processedCount, failedIds, and totalUpdatedCount
      */
     removeOrphanedTrackingBulk(
       this: DatabaseService,
       operations: Array<{ plexRatingKey: string; orphanedLabels: string[] }>,
-    ): Promise<{ processedCount: number; failedIds: string[] }>
+    ): Promise<{
+      processedCount: number
+      failedIds: string[]
+      totalUpdatedCount: number
+    }>
 
     /**
      * Remove multiple tracking records in a batch operation
