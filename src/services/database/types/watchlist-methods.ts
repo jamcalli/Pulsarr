@@ -211,7 +211,7 @@ declare module '@services/database.service.js' {
       this: DatabaseService,
       items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
       options?: { onConflict?: 'ignore' | 'merge' },
-    ): Promise<number[]>
+    ): Promise<{ id: number; key: string }[]>
 
     /**
      * Creates temporary RSS items for processing

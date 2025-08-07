@@ -1,6 +1,11 @@
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
+ * Batch chunk size for processing operations in chunks to avoid overwhelming the database
+ */
+const BATCH_CHUNK_SIZE = 50
+
+/**
  * Database row representation for plex_label_tracking table
  */
 interface PlexLabelTrackingRow {
@@ -84,7 +89,7 @@ export async function trackPlexLabelsBulk(
   try {
     if (this.isPostgres) {
       // PostgreSQL: Process operations in chunks with efficient CTEs
-      const chunks = this.chunkArray(operations, 50)
+      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -196,7 +201,7 @@ export async function trackPlexLabelsBulk(
       }
     } else {
       // SQLite: Use chunked operations with individual upserts
-      const chunks = this.chunkArray(operations, 50)
+      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -405,7 +410,7 @@ export async function untrackPlexLabelBulk(
   try {
     if (this.isPostgres) {
       // PostgreSQL: Process operations in chunks with efficient CTEs
-      const chunks = this.chunkArray(operations, 50)
+      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -417,11 +422,7 @@ export async function untrackPlexLabelBulk(
 
                 // Handle empty arrays
                 if (contentGuids.length === 0) {
-                  this.log.warn(
-                    'untrackPlexLabelBulk: Empty content GUIDs array provided',
-                    { operation },
-                  )
-                  return { plexRatingKey, success: false }
+                  throw new Error('Content GUIDs array cannot be empty')
                 }
 
                 const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
@@ -525,7 +526,7 @@ export async function untrackPlexLabelBulk(
       }
     } else {
       // SQLite: Use chunked operations with individual label processing
-      const chunks = this.chunkArray(operations, 50)
+      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -537,11 +538,7 @@ export async function untrackPlexLabelBulk(
 
                 // Handle empty arrays
                 if (contentGuids.length === 0) {
-                  this.log.warn(
-                    'untrackPlexLabelBulk: Empty content GUIDs array provided',
-                    { operation },
-                  )
-                  return { plexRatingKey, success: false }
+                  throw new Error('Content GUIDs array cannot be empty')
                 }
 
                 const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
@@ -1072,12 +1069,17 @@ export async function clearAllLabelTracking(
 export async function removeTrackedLabels(
   this: DatabaseService,
   operations: Array<{ plexRatingKey: string; labelsToRemove: string[] }>,
-): Promise<{ processedCount: number; failedIds: string[] }> {
+): Promise<{
+  processedCount: number
+  failedIds: string[]
+  totalUpdatedCount: number
+}> {
   const failedIds: string[] = []
   let processedCount = 0
+  let totalUpdatedCount = 0
 
   if (operations.length === 0) {
-    return { processedCount: 0, failedIds: [] }
+    return { processedCount: 0, failedIds: [], totalUpdatedCount: 0 }
   }
 
   this.log.debug(
@@ -1085,12 +1087,10 @@ export async function removeTrackedLabels(
     { operationsCount: operations.length },
   )
 
-  const isPostgres = this.knex.client.config.client === 'pg'
-
   try {
-    if (isPostgres) {
+    if (this.isPostgres) {
       // PostgreSQL: Process operations individually with efficient queries
-      const chunks = this.chunkArray(operations, 50)
+      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1170,6 +1170,7 @@ export async function removeTrackedLabels(
           for (const result of chunkResults) {
             if (result.success) {
               processedCount++
+              totalUpdatedCount += result.updatedCount
               if (result.updatedCount > 0) {
                 this.log.debug(
                   `Updated ${result.updatedCount} tracking record(s) for rating key ${result.plexRatingKey}`,
@@ -1183,7 +1184,7 @@ export async function removeTrackedLabels(
       }
     } else {
       // SQLite: Use chunked operations with Promise.all for better performance
-      const chunks = this.chunkArray(operations, 50)
+      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1258,6 +1259,7 @@ export async function removeTrackedLabels(
           for (const result of chunkResults) {
             if (result.success) {
               processedCount++
+              totalUpdatedCount += result.updatedCount
               if (result.updatedCount > 0) {
                 this.log.debug(
                   `Updated ${result.updatedCount} tracking record(s) for rating key ${result.plexRatingKey}`,
@@ -1275,10 +1277,11 @@ export async function removeTrackedLabels(
     return {
       processedCount: 0,
       failedIds: operations.map((op) => op.plexRatingKey),
+      totalUpdatedCount: 0,
     }
   }
 
-  return { processedCount, failedIds }
+  return { processedCount, failedIds, totalUpdatedCount }
 }
 
 /**
@@ -1308,126 +1311,14 @@ export async function removeTrackedLabel(
     return 0
   }
 
-  // For backward compatibility, we need to return the actual count of updated records
-  // Since we can't get that from the bulk operation result, we'll do a simple check
-  const isPostgres = this.knex.client.config.client === 'pg'
-
-  if (isPostgres) {
-    const result = await this.knex.raw(
-      `
-      WITH updated_records AS (
-        UPDATE plex_label_tracking 
-        SET 
-          labels_applied = (
-            SELECT jsonb_agg(elem ORDER BY elem)
-            FROM jsonb_array_elements_text(labels_applied) elem
-            WHERE elem != ?
-          ),
-          synced_at = ?
-        WHERE plex_rating_key = ?
-          AND labels_applied ? ?
-          AND jsonb_array_length(
-            (SELECT jsonb_agg(elem ORDER BY elem)
-             FROM jsonb_array_elements_text(labels_applied) elem
-             WHERE elem != ?)
-          ) > 0
-        RETURNING id
-      ),
-      deleted_records AS (
-        DELETE FROM plex_label_tracking
-        WHERE plex_rating_key = ?
-          AND labels_applied ? ?
-          AND jsonb_array_length(
-            (SELECT jsonb_agg(elem ORDER BY elem)
-             FROM jsonb_array_elements_text(labels_applied) elem
-             WHERE elem != ?)
-          ) = 0
-        RETURNING id
-      )
-      SELECT 
-        (SELECT COUNT(*) FROM updated_records) as updated_count,
-        (SELECT COUNT(*) FROM deleted_records) as deleted_count
-    `,
-      [
-        labelApplied,
-        this.timestamp,
-        plexRatingKey,
-        labelApplied,
-        labelApplied,
-        plexRatingKey,
-        labelApplied,
-        labelApplied,
-      ],
-    )
-
-    const totalUpdated =
-      (result.rows[0]?.updated_count || 0) +
-      (result.rows[0]?.deleted_count || 0)
-
-    if (totalUpdated > 0) {
-      this.log.debug(
-        `Updated ${totalUpdated} tracking record(s) to remove label "${labelApplied}" on rating key ${plexRatingKey}`,
-      )
-    }
-
-    return totalUpdated
-  }
-
-  // SQLite: Use the original approach (JSON operations are more limited)
-  const records = await this.knex('plex_label_tracking')
-    .where('plex_rating_key', plexRatingKey)
-    .select('*')
-
-  const toUpdate: Array<{ id: number; labels: string[] }> = []
-  const toDelete: number[] = []
-
-  for (const record of records) {
-    const labels = this.safeJsonParse<string[]>(
-      record.labels_applied,
-      [],
-      'plex_label_tracking.labels_applied',
-    )
-    const updatedLabels = labels.filter((label) => label !== labelApplied)
-
-    if (updatedLabels.length !== labels.length) {
-      // Label was found and removed
-      if (updatedLabels.length === 0) {
-        toDelete.push(record.id)
-      } else {
-        toUpdate.push({ id: record.id, labels: updatedLabels })
-      }
-    }
-  }
-
-  // Batch operations for SQLite
-  let totalUpdated = 0
-
-  if (toUpdate.length > 0) {
-    await this.knex.transaction(async (trx) => {
-      for (const item of toUpdate) {
-        await trx('plex_label_tracking')
-          .where('id', item.id)
-          .update({
-            labels_applied: JSON.stringify(item.labels.sort()),
-            synced_at: this.timestamp,
-          })
-      }
-    })
-    totalUpdated += toUpdate.length
-  }
-
-  if (toDelete.length > 0) {
-    await this.knex('plex_label_tracking').whereIn('id', toDelete).delete()
-    totalUpdated += toDelete.length
-  }
-
-  if (totalUpdated > 0) {
+  // Use the count information from the bulk operation result
+  if (result.totalUpdatedCount > 0) {
     this.log.debug(
-      `Updated ${totalUpdated} tracking record(s) to remove label "${labelApplied}" on rating key ${plexRatingKey}`,
+      `Updated ${result.totalUpdatedCount} tracking record(s) to remove label "${labelApplied}" on rating key ${plexRatingKey}`,
     )
   }
 
-  return totalUpdated
+  return result.totalUpdatedCount
 }
 
 /**
@@ -1506,12 +1397,17 @@ export async function getOrphanedLabelTracking(
 export async function removeOrphanedTrackingBulk(
   this: DatabaseService,
   operations: Array<{ plexRatingKey: string; orphanedLabels: string[] }>,
-): Promise<{ processedCount: number; failedIds: string[] }> {
+): Promise<{
+  processedCount: number
+  failedIds: string[]
+  totalUpdatedCount: number
+}> {
   const failedIds: string[] = []
   let processedCount = 0
+  let totalUpdatedCount = 0
 
   if (operations.length === 0) {
-    return { processedCount: 0, failedIds: [] }
+    return { processedCount: 0, failedIds: [], totalUpdatedCount: 0 }
   }
 
   this.log.debug(
@@ -1519,12 +1415,10 @@ export async function removeOrphanedTrackingBulk(
     { operationsCount: operations.length },
   )
 
-  const isPostgres = this.knex.client.config.client === 'pg'
-
   try {
-    if (isPostgres) {
+    if (this.isPostgres) {
       // PostgreSQL: Process operations in chunks with efficient queries
-      const chunks = this.chunkArray(operations, 50)
+      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1606,6 +1500,7 @@ export async function removeOrphanedTrackingBulk(
           for (const result of chunkResults) {
             if (result.success) {
               processedCount++
+              totalUpdatedCount += result.updatedCount
               if (result.updatedCount > 0) {
                 this.log.debug(
                   `Updated ${result.updatedCount} tracking record(s) to remove orphaned labels for rating key ${result.plexRatingKey}`,
@@ -1619,7 +1514,7 @@ export async function removeOrphanedTrackingBulk(
       }
     } else {
       // SQLite: Use chunked operations with Promise.all for better performance
-      const chunks = this.chunkArray(operations, 50)
+      const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
@@ -1698,6 +1593,7 @@ export async function removeOrphanedTrackingBulk(
           for (const result of chunkResults) {
             if (result.success) {
               processedCount++
+              totalUpdatedCount += result.updatedCount
               if (result.updatedCount > 0) {
                 this.log.debug(
                   `Updated ${result.updatedCount} tracking record(s) to remove orphaned labels for rating key ${result.plexRatingKey}`,
@@ -1717,10 +1613,11 @@ export async function removeOrphanedTrackingBulk(
     return {
       processedCount: 0,
       failedIds: operations.map((op) => op.plexRatingKey),
+      totalUpdatedCount: 0,
     }
   }
 
-  return { processedCount, failedIds }
+  return { processedCount, failedIds, totalUpdatedCount }
 }
 
 /**
@@ -1743,129 +1640,25 @@ export async function removeOrphanedTracking(
     return 0
   }
 
-  const isPostgres = this.knex.client.config.client === 'pg'
+  const result = await this.removeOrphanedTrackingBulk([
+    { plexRatingKey, orphanedLabels },
+  ])
 
-  if (isPostgres) {
-    // PostgreSQL: Use efficient JSON operations in a single query
-    const orphanedArray = JSON.stringify(orphanedLabels)
-
-    const result = await this.knex.raw(
-      `
-      WITH updated_records AS (
-        UPDATE plex_label_tracking 
-        SET 
-          labels_applied = (
-            SELECT jsonb_agg(elem ORDER BY elem)
-            FROM jsonb_array_elements_text(labels_applied) elem
-            WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))
-          ),
-          synced_at = ?
-        WHERE plex_rating_key = ?
-          AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
-          AND jsonb_array_length(
-            (SELECT jsonb_agg(elem ORDER BY elem)
-             FROM jsonb_array_elements_text(labels_applied) elem
-             WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb))))
-          ) > 0
-        RETURNING id
-      ),
-      deleted_records AS (
-        DELETE FROM plex_label_tracking
-        WHERE plex_rating_key = ?
-          AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
-          AND jsonb_array_length(
-            (SELECT jsonb_agg(elem ORDER BY elem)
-             FROM jsonb_array_elements_text(labels_applied) elem
-             WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb))))
-          ) = 0
-        RETURNING id
-      )
-      SELECT 
-        (SELECT COUNT(*) FROM updated_records) as updated_count,
-        (SELECT COUNT(*) FROM deleted_records) as deleted_count
-    `,
-      [
-        orphanedArray,
-        this.timestamp,
-        plexRatingKey,
-        orphanedArray,
-        orphanedArray,
-        plexRatingKey,
-        orphanedArray,
-        orphanedArray,
-      ],
+  if (result.failedIds.length > 0) {
+    this.log.warn(
+      `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
+      { orphanedLabels },
     )
-
-    const totalUpdated =
-      (result.rows[0]?.updated_count || 0) +
-      (result.rows[0]?.deleted_count || 0)
-
-    if (totalUpdated > 0) {
-      this.log.debug(
-        `Updated ${totalUpdated} tracking record(s) to remove orphaned labels for rating key ${plexRatingKey}`,
-        { orphanedLabels },
-      )
-    }
-
-    return totalUpdated
+    return 0
   }
 
-  // SQLite: Use batched approach (JSON operations are more limited)
-  const records = await this.knex('plex_label_tracking')
-    .where('plex_rating_key', plexRatingKey)
-    .select('*')
-
-  const toUpdate: Array<{ id: number; labels: string[] }> = []
-  const toDelete: number[] = []
-
-  for (const record of records) {
-    const labels = this.safeJsonParse<string[]>(
-      record.labels_applied,
-      [],
-      'plex_label_tracking.labels_applied',
-    )
-    const updatedLabels = labels.filter(
-      (label) => !orphanedLabels.includes(label),
-    )
-
-    if (updatedLabels.length !== labels.length) {
-      // Some orphaned labels were found and removed
-      if (updatedLabels.length === 0) {
-        toDelete.push(record.id)
-      } else {
-        toUpdate.push({ id: record.id, labels: updatedLabels })
-      }
-    }
-  }
-
-  // Batch operations for SQLite
-  let totalUpdated = 0
-
-  if (toUpdate.length > 0) {
-    await this.knex.transaction(async (trx) => {
-      for (const item of toUpdate) {
-        await trx('plex_label_tracking')
-          .where('id', item.id)
-          .update({
-            labels_applied: JSON.stringify(item.labels.sort()),
-            synced_at: this.timestamp,
-          })
-      }
-    })
-    totalUpdated += toUpdate.length
-  }
-
-  if (toDelete.length > 0) {
-    await this.knex('plex_label_tracking').whereIn('id', toDelete).delete()
-    totalUpdated += toDelete.length
-  }
-
-  if (totalUpdated > 0) {
+  // Use the count information from the bulk operation result
+  if (result.totalUpdatedCount > 0) {
     this.log.debug(
-      `Updated ${totalUpdated} tracking record(s) to remove orphaned labels for rating key ${plexRatingKey}`,
+      `Updated ${result.totalUpdatedCount} tracking record(s) to remove orphaned labels for rating key ${plexRatingKey}`,
       { orphanedLabels },
     )
   }
 
-  return totalUpdated
+  return result.totalUpdatedCount
 }

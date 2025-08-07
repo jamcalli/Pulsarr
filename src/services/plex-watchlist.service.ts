@@ -875,7 +875,7 @@ export class PlexWatchlistService {
           })
         }
 
-        const insertedIds = await this.dbService.createWatchlistItems(
+        const insertedResults = await this.dbService.createWatchlistItems(
           itemsToInsert,
           isMetadataRefresh
             ? { onConflict: 'merge' }
@@ -887,29 +887,29 @@ export class PlexWatchlistService {
         if (
           this.plexLabelSyncService &&
           this.config.plexLabelSync?.enabled &&
-          insertedIds &&
-          insertedIds.length > 0
+          insertedResults &&
+          insertedResults.length > 0
         ) {
           try {
             this.log.info(
-              `Syncing immediate Plex labeling with tag fetching for ${insertedIds.length} newly added items`,
+              `Syncing immediate Plex labeling with tag fetching for ${insertedResults.length} newly added items`,
             )
 
-            // Sync each newly inserted item immediately with tag fetching
-            for (
-              let i = 0;
-              i < insertedIds.length && i < itemsToInsert.length;
-              i++
-            ) {
-              const insertedId = insertedIds[i]
-              const item = itemsToInsert[i]
+            // Create a map of key -> item for efficient lookup
+            const itemMap = new Map(
+              itemsToInsert.map((item) => [item.key, item]),
+            )
 
-              // Use the new method that fetches tags and attempts immediate sync
-              await this.plexLabelSyncService.syncLabelForNewWatchlistItem(
-                insertedId,
-                item.title,
-                true, // Enable tag fetching
-              )
+            // Process each inserted item using the key to match back to original data
+            for (const { id, key } of insertedResults) {
+              const originalItem = itemMap.get(key)
+              if (originalItem) {
+                await this.plexLabelSyncService.syncLabelForNewWatchlistItem(
+                  id,
+                  originalItem.title,
+                  true, // Enable tag fetching
+                )
+              }
             }
           } catch (error) {
             this.log.warn(
