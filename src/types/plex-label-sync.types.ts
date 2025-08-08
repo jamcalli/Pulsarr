@@ -44,8 +44,8 @@ export interface ContentWithUsers {
   allGuids: string[]
   /** Content title for logging */
   title: string
-  /** Content type (movie or show) */
-  type: string
+  /** Content type */
+  type: 'movie' | 'show'
   /** Plex key if available */
   plexKey: string | null
   /** All users who have this content in their watchlist */

@@ -1302,6 +1302,18 @@ export class SonarrService {
         `series/${seriesId}`,
       )
 
+      // Normalize both tag arrays for comparison
+      const currentTags = [...new Set(series.tags || [])].sort()
+      const newTags = [...new Set(tagIds)].sort()
+
+      // Skip update if tags are already correct
+      if (JSON.stringify(currentTags) === JSON.stringify(newTags)) {
+        this.log.debug(
+          `Tags already correct for series ID ${seriesId}, skipping update`,
+        )
+        return
+      }
+
       // Use Set to deduplicate tags
       series.tags = [...new Set(tagIds)]
 

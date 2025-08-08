@@ -195,7 +195,7 @@ export class PendingWebhooksService {
                   await this.fastify.db.getWatchlistItemsByGuid(webhook.guid)
 
                 // Process notifications (separate from label sync)
-                const { matchedCount } = await processContentNotifications(
+                await processContentNotifications(
                   this.fastify,
                   mediaInfo,
                   false,
@@ -276,7 +276,7 @@ export class PendingWebhooksService {
                     await this.fastify.db.getWatchlistItemsByGuid(webhook.guid)
 
                   // Process notifications (separate from label sync)
-                  const { matchedCount } = await processContentNotifications(
+                  await processContentNotifications(
                     this.fastify,
                     mediaInfo,
                     payload.episodes.length > 1,

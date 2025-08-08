@@ -11,7 +11,7 @@ import type { PendingLabelSyncConfig } from '@root/types/pending-label-sync-proc
  * Features:
  * - Direct Plex key access (no GUID searching required)
  * - Batch processing of pending syncs with rate limiting
- * - Automatic retry with exponential backoff for failed syncs
+ * - Scheduled retry for failed syncs
  * - Scheduled cleanup of expired sync requests
  * - Integration with scheduler service for reliable job execution
  *

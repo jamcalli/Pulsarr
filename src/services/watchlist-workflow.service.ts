@@ -314,8 +314,8 @@ export class WatchlistWorkflowService {
           await this.schedulePendingReconciliation()
         } catch (scheduleError) {
           this.log.error(
-            'Failed to schedule failsafe after initial sync error:',
             scheduleError,
+            'Failed to schedule failsafe after initial sync error',
           )
         }
 
@@ -573,7 +573,7 @@ export class WatchlistWorkflowService {
         const results = await this.plexService.processRssWatchlists()
         await this.processRssResults(results)
       } catch (error) {
-        this.log.error('Error checking RSS feeds:', error)
+        this.log.error(error, 'Error checking RSS feeds')
       }
     }, this.rssCheckIntervalMs)
   }
@@ -1623,8 +1623,8 @@ export class WatchlistWorkflowService {
             await this.schedulePendingReconciliation()
           } catch (scheduleError) {
             this.log.error(
-              'Failed to schedule failsafe after queue processing error:',
               scheduleError,
+              'Failed to schedule failsafe after queue processing error',
             )
           }
 
@@ -1789,8 +1789,8 @@ export class WatchlistWorkflowService {
               await this.schedulePendingReconciliation()
             } catch (scheduleError) {
               this.log.error(
-                'Failed to reschedule after reconciliation error:',
                 scheduleError,
+                'Failed to reschedule after reconciliation error',
               )
             }
           }

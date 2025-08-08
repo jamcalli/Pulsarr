@@ -900,7 +900,8 @@ export class PlexLabelSyncService {
           primaryGuid: contentKey, // Use content-type-aware key as primary identifier
           allGuids: parsedGuids,
           title: item.title,
-          type: item.type || 'movie',
+          type:
+            item.type === 'movie' || item.type === 'show' ? item.type : 'movie',
           plexKey: item.key,
           users: [],
         }

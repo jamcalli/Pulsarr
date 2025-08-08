@@ -13,6 +13,7 @@ export function useInitializeWithMinDuration(
   const initializationStartTime = useRef<number | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     const initializeWithMinDuration = async () => {
       setIsInitializing(true)
       initializationStartTime.current = Date.now()
@@ -25,12 +26,17 @@ export function useInitializeWithMinDuration(
         const remaining = Math.max(0, minDuration - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
       } finally {
-        setIsInitializing(false)
-        initializationStartTime.current = null
+        if (!cancelled) {
+          setIsInitializing(false)
+          initializationStartTime.current = null
+        }
       }
     }
 
     initializeWithMinDuration()
+    return () => {
+      cancelled = true
+    }
   }, [initializeFn, minDuration])
 
   return isInitializing

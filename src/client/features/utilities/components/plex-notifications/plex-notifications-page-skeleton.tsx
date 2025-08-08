@@ -16,7 +16,6 @@ export function PlexNotificationsPageSkeleton() {
       <UtilitySectionHeader
         title="Plex Notifications"
         description="Configure Sonarr and Radarr to notify Plex of content added, removed, or modified"
-        status="unknown"
       />
 
       <div className="space-y-6">

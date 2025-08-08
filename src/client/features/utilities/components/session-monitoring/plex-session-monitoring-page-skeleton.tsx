@@ -13,7 +13,6 @@ export function PlexSessionMonitoringPageSkeleton() {
       <UtilitySectionHeader
         title="Plex Session Monitoring"
         description="Monitor Plex viewing sessions and automatically expand Sonarr monitoring"
-        status="unknown"
       />
 
       <div className="space-y-6">

@@ -46,6 +46,10 @@ export function useDeleteSyncSchedule() {
       )
       setScheduleTime(parsedTime)
       setDayOfWeek(parsedDay)
+    } else {
+      // Reset to defaults when not a cron job or no expression is present
+      setScheduleTime(undefined)
+      setDayOfWeek('*')
     }
   }, [deleteSyncJob])
 

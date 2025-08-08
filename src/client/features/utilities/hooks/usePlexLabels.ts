@@ -551,7 +551,7 @@ export function usePlexLabels() {
     form,
     // Use saveStatus instead of loading.plexLabels to match the DeleteSyncForm pattern
     isSaving: saveStatus === 'loading',
-    isToggling: saveStatus === 'loading',
+    isToggling: saveStatus === 'loading' || isTogglingFullSyncStatus,
     isLoading,
     isSyncingLabels: loading.syncPlexLabels,
     isCleaningLabels: loading.cleanupPlexLabels,
