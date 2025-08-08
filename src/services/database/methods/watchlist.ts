@@ -169,13 +169,13 @@ export async function updateWatchlistItemByGuid(
 }
 
 /**
- * Retrieves a single watchlist item for a user by key.
+ * Retrieves a watchlist item for a user by its unique key.
  *
- * Parses the item's GUIDs and genres fields from JSON. Returns undefined if no matching item is found.
+ * Parses the item's GUIDs and genres fields from JSON. Returns undefined if no matching item exists.
  *
- * @param userId - The user's ID
+ * @param userId - The user's numeric ID
  * @param key - The unique key identifying the watchlist item
- * @returns The watchlist item if found, or undefined if not found
+ * @returns The watchlist item if found, or undefined otherwise
  */
 export async function getWatchlistItem(
   this: DatabaseService,
@@ -202,10 +202,10 @@ export async function getWatchlistItem(
 }
 
 /**
- * Retrieves a watchlist item by its ID.
+ * Retrieves a watchlist item by its numeric ID, parsing its `guids` and `genres` fields.
  *
- * @param id - The watchlist item ID
- * @returns The watchlist item if found, undefined otherwise
+ * @param id - The numeric ID of the watchlist item
+ * @returns The watchlist item with parsed fields if found; otherwise, undefined
  */
 export async function getWatchlistItemById(
   this: DatabaseService,
@@ -275,11 +275,10 @@ export async function getBulkWatchlistItems(
 
 /**
  * Retrieves watchlist items matching the specified keys.
- *
- * Parses the `guids` and `genres` fields from JSON for each returned item.
- *
- * @param keys - The keys identifying the watchlist items to retrieve
- * @returns An array of watchlist items corresponding to the provided keys
+ * 
+ * Returns an empty array if no keys are provided. Parses JSON fields for `guids` and `genres` safely.
+ * 
+ * @returns Array of watchlist items with parsed JSON fields and numeric ID
  */
 export async function getWatchlistItemsByKeys(
   this: DatabaseService,
@@ -895,11 +894,13 @@ export async function getAllMovieWatchlistItems(
 }
 
 /**
- * Inserts multiple watchlist items into the database in bulk, with configurable conflict handling.
+ * Inserts multiple watchlist items into the database in bulk, returning the IDs and keys of inserted items.
+ *
+ * Supports conflict handling: use 'ignore' to skip duplicates or 'merge' to update existing entries. When 'ignore' is used, the returned array may be shorter than the input if duplicates are skipped.
  *
  * @param items - The watchlist items to insert, excluding creation and update timestamps
- * @param options - Optional settings for conflict resolution: 'ignore' to skip duplicates or 'merge' to update existing entries
- * @returns Array of inserted item IDs and keys. Note: When using 'ignore' mode, the returned array may be shorter than the input if duplicates are skipped.
+ * @param options - Optional conflict resolution mode: 'ignore' (default) or 'merge'
+ * @returns Array of objects containing the IDs and keys of inserted items
  */
 export async function createWatchlistItems(
   this: DatabaseService,
@@ -1135,12 +1136,12 @@ export async function getWatchlistItemsByGuid(
 }
 
 /**
- * Retrieves all unique GUIDs from watchlist items that contain a TVDB GUID matching the specified TVDB ID.
+ * Retrieves all unique GUIDs from watchlist items containing a TVDB GUID matching the specified TVDB ID.
  *
- * Searches for watchlist items whose GUIDs array includes a GUID in the format `tvdb:{tvdbId}` (case-insensitive), then aggregates and returns all unique GUIDs from those items.
+ * Searches for watchlist items whose `guids` array includes a GUID in the format `tvdb:{tvdbId}` (case-insensitive), then aggregates and returns all unique GUIDs from those items.
  *
- * @param tvdbId - The TVDB ID to search for within GUIDs
- * @returns An array of unique GUID strings found in matching watchlist items
+ * @param tvdbId - The TVDB ID to match within GUIDs
+ * @returns An array of unique GUID strings from matching watchlist items
  */
 export async function getAllGuidsByTvdbId(
   this: DatabaseService,
@@ -1183,13 +1184,12 @@ export async function getAllGuidsByTvdbId(
 }
 
 /**
- * Retrieves all users who have a specific content item in their watchlist, identified by GUID.
+ * Returns a list of users who have a watchlist item containing the specified GUID.
  *
- * Searches for all watchlist items containing the specified GUID and returns the associated
- * user information including username and user ID. GUID matching is case-insensitive.
+ * Performs a case-insensitive search for the GUID within all watchlist items and retrieves distinct user IDs, usernames, and watchlist IDs for matching users.
  *
- * @param guid - The GUID to search for within watchlist items
- * @returns An array of objects containing user information for users who have the content in their watchlist
+ * @param guid - The GUID to search for in users' watchlist items
+ * @returns An array of user objects with `id`, `username`, and `watchlist_id` for each user who has the content in their watchlist
  */
 export async function getWatchlistUsersByGuid(
   this: DatabaseService,
@@ -1224,12 +1224,12 @@ export async function getWatchlistUsersByGuid(
 }
 
 /**
- * Retrieves all watchlist items containing any of the specified GUIDs, including associated user information.
+ * Retrieves all watchlist items that contain any of the specified GUIDs, including associated user information.
  *
- * Returns an array of watchlist items joined with user data, where each item's GUIDs array contains at least one of the provided GUIDs. GUID matching is case-insensitive.
+ * GUID matching is case-insensitive. Returns an array of objects where each object includes watchlist item fields and user fields for items whose GUIDs array contains at least one of the provided GUIDs.
  *
- * @param guids - The list of GUIDs to match against watchlist items
- * @returns An array of objects representing watchlist items with user fields included
+ * @param guids - List of GUIDs to search for in watchlist items
+ * @returns Array of watchlist items with user information included
  */
 export async function getWatchlistItemsWithUsersByGuids(
   this: DatabaseService,

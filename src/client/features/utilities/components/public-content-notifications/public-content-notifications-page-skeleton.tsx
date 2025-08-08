@@ -3,9 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Renders a skeleton placeholder for the Public Content Notifications page layout.
+ * Displays a static skeleton UI for the Public Content Notifications page while data is loading.
  *
- * Displays static skeleton elements that mimic the structure of the page, including headers, action buttons, informational sections, and configuration forms for Discord Webhook and Apprise integrations. Intended to provide a visual loading state while actual content is being fetched.
+ * Mimics the layout of the page with placeholder elements for headers, actions, informational sections, and configuration forms.
  */
 export function PublicContentNotificationsPageSkeleton() {
   return (

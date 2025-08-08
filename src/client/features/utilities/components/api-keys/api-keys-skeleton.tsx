@@ -3,9 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Renders a static skeleton interface for the API Keys management page during loading.
+ * Displays a skeleton UI for the API Keys management page while content is loading.
  *
- * Displays placeholder elements for all major sections—header, actions, current status, API key creation form, and existing API keys—to visually represent the page layout while data is being fetched.
+ * Renders placeholder elements for all major sections, including actions, current status, API key creation, and existing API keys, to indicate the page structure during data fetch operations.
  */
 export function ApiKeysSkeleton() {
   return (

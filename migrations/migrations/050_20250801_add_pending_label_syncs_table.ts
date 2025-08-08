@@ -1,12 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Creates the `pending_label_syncs` table to track content waiting for label synchronization.
+ * Creates the `pending_label_syncs` table for tracking content items awaiting label synchronization.
  *
- * The table references watchlist_item_id directly to enable efficient Plex key lookup,
- * eliminating the need for GUID-based searching. Includes retry tracking and expiration
- * management with foreign key constraints for data integrity. Also stores webhook tags
- * to ensure they are preserved during pending processing.
+ * The table enforces uniqueness on `watchlist_item_id`, maintains retry and expiration metadata, and stores webhook tags as a JSON array. It references the `watchlist_items` table with cascade delete for referential integrity and optimizes lookups with indexes on relevant columns.
  */
 export async function up(knex: Knex): Promise<void> {
   // Detect Postgres to use jsonb and typed default
@@ -46,7 +43,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the `pending_label_syncs` table from the database if it exists.
+ * Removes the `pending_label_syncs` table from the database if it exists.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('pending_label_syncs')
