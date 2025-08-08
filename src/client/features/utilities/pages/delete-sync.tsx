@@ -48,9 +48,9 @@ import { DeleteSyncPageSkeleton } from '@/features/utilities/components/delete-s
 import { formatScheduleDisplay } from '@/lib/utils'
 
 /**
- * Renders the Delete Sync page, providing a comprehensive interface for configuring and managing the delete synchronization job.
+ * Displays the Delete Sync page, allowing users to configure, schedule, and manage automated deletion of media content based on watchlist or tag criteria.
  *
- * Users can set deletion criteria, schedule jobs, define safety thresholds, configure notifications, and control job execution. The page includes contextual tooltips, validation feedback, confirmation modals, and adapts responsively for mobile devices.
+ * Provides controls for setting deletion modes, scheduling jobs, defining safety and notification settings, and running or previewing deletion jobs. Includes responsive layout, contextual tooltips, validation feedback, and confirmation modals for critical actions.
  */
 export default function DeleteSyncPage() {
   const isMobile = useMediaQuery('(max-width: 768px)')

@@ -2,8 +2,13 @@ import { useState, useRef, useEffect } from 'react'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**
- * Custom hook for initializing components with a minimum loading duration
- * to provide consistent UX across utility pages
+ * React hook that manages asynchronous initialization with a guaranteed minimum loading duration.
+ *
+ * Ensures that the initialization process takes at least the specified minimum time, providing a consistent loading experience.
+ *
+ * @param initializeFn - An asynchronous function representing the initialization logic
+ * @param minDuration - Optional minimum loading duration in milliseconds; defaults to a predefined constant
+ * @returns A boolean indicating whether initialization is currently in progress
  */
 export function useInitializeWithMinDuration(
   initializeFn: () => Promise<void>,

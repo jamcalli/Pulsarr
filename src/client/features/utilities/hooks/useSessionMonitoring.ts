@@ -13,13 +13,11 @@ import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * React hook for managing Plex session monitoring configuration and operations.
+ * React hook that manages Plex session monitoring configuration, schedules, and related operations.
  *
- * Provides form state and validation for session monitoring settings, handles schedule updates,
- * manages rolling shows data, and exposes handlers for all session monitoring operations.
- * Integrates with external stores for state management and displays toast notifications.
+ * Provides form state and validation for session monitoring settings, synchronizes with global configuration, manages schedule enablement and intervals, and exposes handlers for running the session monitor, resetting or deleting shows, and resetting inactive shows. Integrates with external stores for state management and displays toast notifications for user feedback.
  *
- * @returns Object containing form instance, operation states, data, and handler functions
+ * @returns An object containing the form instance, save status, schedule data, rolling and inactive shows, loading and error states, active action ID, computed enabled state, and handler functions for all session monitoring operations.
  */
 export function useSessionMonitoring() {
   const { config, updateConfig } = useConfigStore()
