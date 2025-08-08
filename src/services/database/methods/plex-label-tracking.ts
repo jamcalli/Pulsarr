@@ -61,14 +61,12 @@ export interface BulkOperationResult {
 }
 
 /**
- * Processes multiple tracking operations for Plex labels in bulk.
+ * Performs bulk creation or update of Plex label tracking records for multiple operations.
  *
- * Efficiently creates or updates multiple tracking records with complete label sets.
- * For PostgreSQL, uses optimized CTEs and bulk upserts. For SQLite, uses chunked
- * transaction-based processing with proper error handling.
+ * Efficiently processes an array of label tracking operations, ensuring each operation either creates a new record or updates an existing one with the provided label set. Handles both PostgreSQL and SQLite backends with optimized queries and chunked transactions. Returns the number of successfully processed operations and a list of rating keys that failed.
  *
- * @param operations - Array of tracking operations
- * @returns Object with processedCount and failedIds
+ * @param operations - Array of label tracking operations to process in bulk
+ * @returns An object containing the count of successfully processed operations and an array of failed Plex rating keys
  */
 export async function trackPlexLabelsBulk(
   this: DatabaseService,
@@ -314,19 +312,16 @@ export async function trackPlexLabelsBulk(
 }
 
 /**
- * Updates the tracking record with the complete set of labels for a content item.
+ * Tracks all labels applied to a specific content item for a user, creating or updating the tracking record as needed.
  *
- * Creates or updates a tracking record with the complete array of labels applied
- * to a specific piece of content for a user. This efficient approach stores all
- * labels in a single database row, replacing any existing labels. Uses full GUID
- * arrays for proper matching and content type for disambiguation.
+ * Replaces any existing labels for the content and user with the provided set. Returns the ID of the tracking record.
  *
- * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
- * @param contentType - Type of content ('movie' or 'show')
- * @param userId - The ID of the user who has labels applied
- * @param plexRatingKey - The Plex rating key of the labeled content
- * @param labelsApplied - Array of all label names applied to this content
- * @returns The ID of the tracking record (new or existing)
+ * @param contentGuids - GUIDs identifying the content item
+ * @param contentType - The type of content ('movie' or 'show')
+ * @param userId - The user ID for whom labels are tracked
+ * @param plexRatingKey - The Plex rating key of the content
+ * @param labelsApplied - All labels to associate with this content for the user
+ * @returns The ID of the created or updated tracking record
  */
 export async function trackPlexLabels(
   this: DatabaseService,
@@ -385,14 +380,12 @@ export async function trackPlexLabels(
 }
 
 /**
- * Processes multiple untracking operations for Plex labels in bulk.
+ * Removes specified labels from multiple Plex label tracking records in bulk.
  *
- * Efficiently removes specified labels from multiple tracking records.
- * For PostgreSQL, uses optimized CTEs with JSON filtering. For SQLite, uses
- * chunked transaction-based processing with proper error handling.
+ * Efficiently processes an array of untracking operations, removing the given label from each matching record. If a record has no labels remaining after removal, it is deleted. Supports both PostgreSQL and SQLite with optimized queries and chunked transactions.
  *
- * @param operations - Array of untracking operations
- * @returns Object with processedCount and failedIds
+ * @param operations - The list of untracking operations to process
+ * @returns An object containing the number of successfully processed operations and an array of rating keys for which untracking failed
  */
 export async function untrackPlexLabelBulk(
   this: DatabaseService,
@@ -638,16 +631,15 @@ export async function untrackPlexLabelBulk(
 }
 
 /**
- * Removes a tracking record for a specific Plex label and user/content combination.
+ * Untracks a specific Plex label for a user and content combination.
  *
- * Uses GUID matching to find the correct tracking record and removes the specified
- * label. If no labels remain after removal, the entire tracking record is deleted.
+ * Removes the specified label from the tracking record matching the provided content GUIDs, user ID, and Plex rating key. Deletes the record if no labels remain after removal.
  *
- * @param contentGuids - Array of GUIDs for the content
- * @param userId - The ID of the user
- * @param plexRatingKey - The Plex rating key
- * @param labelApplied - The Plex label name to untrack
- * @returns True if a record was modified/deleted, false if no matching record found
+ * @param contentGuids - GUIDs identifying the content to untrack the label from
+ * @param userId - ID of the user whose label tracking is being updated
+ * @param plexRatingKey - Plex rating key associated with the content
+ * @param labelApplied - The label to remove from tracking
+ * @returns True if a tracking record was updated or deleted; false if no matching record was found
  */
 export async function untrackPlexLabel(
   this: DatabaseService,
@@ -670,13 +662,10 @@ export async function untrackPlexLabel(
 }
 
 /**
- * Retrieves all tracked Plex labels for a specific user.
+ * Retrieves all Plex label tracking records for a specific user, ordered by synchronization time.
  *
- * Returns all Plex labels that are currently being tracked for the specified user.
- * Results are ordered by creation time (oldest first) for consistent processing.
- *
- * @param userId - The ID of the user
- * @returns An array of Plex label tracking records for the user
+ * @param userId - The user ID whose tracked labels are to be retrieved
+ * @returns An array of PlexLabelTracking records associated with the user
  */
 export async function getTrackedLabelsForUser(
   this: DatabaseService,
@@ -707,14 +696,13 @@ export async function getTrackedLabelsForUser(
 }
 
 /**
- * Retrieves all tracked Plex labels for content matching the given GUID array.
+ * Retrieves all Plex label tracking records for content matching any of the provided GUIDs and content type.
  *
- * Returns all Plex labels that are currently being tracked for content with matching GUIDs
- * across all users. Uses proper GUID matching to find records with overlapping GUIDs.
+ * Returns an array of tracking records across all users where the content GUIDs overlap with the specified list and match the given content type. If the GUID array is empty, returns an empty array.
  *
- * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
- * @param contentType - Type of content ('movie' or 'show') for disambiguation
- * @returns An array of Plex label tracking records for the content
+ * @param contentGuids - List of content GUIDs to match against tracked records
+ * @param contentType - The type of content ('movie' or 'show')
+ * @returns Array of Plex label tracking records for the specified content
  */
 export async function getTrackedLabelsForContent(
   this: DatabaseService,
@@ -779,15 +767,14 @@ export async function getTrackedLabelsForContent(
 }
 
 /**
- * Removes all tracking records for a specific user and content combination.
+ * Deletes all Plex label tracking records for a user and specified content GUIDs of a given type.
  *
- * Deletes all Plex label tracking records associated with a user's content matching the given GUIDs.
- * This is typically used when a user removes content from their watchlist.
+ * Typically used when a user removes content from their watchlist. If the content GUIDs array is empty, no records are deleted.
  *
- * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
- * @param contentType - Type of content ('movie' or 'show') for disambiguation
- * @param userId - The ID of the user
- * @returns The number of tracking records that were deleted
+ * @param contentGuids - Array of content GUIDs to match for deletion
+ * @param contentType - Content type ('movie' or 'show') to disambiguate records
+ * @param userId - User ID whose tracking records should be deleted
+ * @returns The number of tracking records deleted
  */
 export async function cleanupUserContentTracking(
   this: DatabaseService,
@@ -844,13 +831,12 @@ export async function cleanupUserContentTracking(
 }
 
 /**
- * Removes all tracking records for a specific user.
+ * Deletes all Plex label tracking records for the specified user.
  *
- * Deletes all Plex label tracking records associated with a user.
- * This is typically used when cleaning up labels for a user or when a user is deleted.
+ * Typically used to remove all label tracking data when a user is deleted or reset.
  *
- * @param userId - The ID of the user
- * @returns The number of tracking records that were deleted
+ * @param userId - The user ID whose tracking records will be deleted
+ * @returns The number of records deleted
  */
 export async function cleanupUserTracking(
   this: DatabaseService,
@@ -870,11 +856,9 @@ export async function cleanupUserTracking(
 }
 
 /**
- * Retrieves all Plex label tracking records from the database.
+ * Retrieves all Plex label tracking records in the database.
  *
- * Returns all tracking records, typically used for batch operations or system-wide
- * label management. Results are ordered by user ID and creation time for
- * consistent processing.
+ * Returns every tracking record, ordered by user ID and synchronization time, with JSON fields parsed into arrays.
  *
  * @returns An array of all Plex label tracking records
  */
@@ -905,13 +889,10 @@ export async function getAllTrackedLabels(
 }
 
 /**
- * Gets all tracked labels for a specific Plex rating key.
+ * Retrieves all label tracking records for a given Plex rating key.
  *
- * Returns all labels that are currently being tracked for the specified Plex content.
- * Useful for determining what labels are already applied to a piece of content.
- *
- * @param plexRatingKey - The Plex rating key
- * @returns An array of Plex label tracking records for the rating key
+ * @param plexRatingKey - The Plex rating key to query
+ * @returns An array of Plex label tracking records associated with the rating key
  */
 export async function getTrackedLabelsForRatingKey(
   this: DatabaseService,
@@ -942,13 +923,12 @@ export async function getTrackedLabelsForRatingKey(
 }
 
 /**
- * Removes all tracking records for a specific Plex rating key.
+ * Deletes all Plex label tracking records for a given rating key.
  *
- * Deletes all tracking records associated with a specific piece of Plex content.
- * This is typically used when content is removed from Plex or during cleanup.
+ * Removes all tracking entries associated with the specified Plex rating key, typically used when content is removed or during data cleanup.
  *
- * @param plexRatingKey - The Plex rating key
- * @returns The number of tracking records that were deleted
+ * @param plexRatingKey - The Plex rating key to remove tracking records for
+ * @returns The number of records deleted
  */
 export async function cleanupRatingKeyTracking(
   this: DatabaseService,
@@ -968,14 +948,16 @@ export async function cleanupRatingKeyTracking(
 }
 
 /**
- * Checks if a specific label is already tracked for a user/content/rating key combination.
+ * Determines whether a specific label is currently tracked for a given user, content GUIDs, content type, and Plex rating key.
  *
- * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
- * @param contentType - Type of content ('movie' or 'show') for disambiguation
- * @param userId - The ID of the user
- * @param plexRatingKey - The Plex rating key
- * @param labelApplied - The label to check
- * @returns True if the label is already tracked, false otherwise
+ * Returns `true` if a tracking record exists that matches the user, content type, rating key, and contains both any of the provided content GUIDs and the specified label; otherwise, returns `false`.
+ *
+ * @param contentGuids - The list of content GUIDs to check for label tracking
+ * @param contentType - The type of content ('movie' or 'show')
+ * @param userId - The user ID to check tracking for
+ * @param plexRatingKey - The Plex rating key associated with the content
+ * @param labelApplied - The label to check for tracking
+ * @returns True if the label is tracked for the specified user/content/rating key, false otherwise
  */
 export async function isLabelTracked(
   this: DatabaseService,
@@ -1038,12 +1020,11 @@ export async function isLabelTracked(
 }
 
 /**
- * Removes all Plex label tracking records from the database.
+ * Deletes all Plex label tracking records from the database.
  *
- * Deletes every tracking record in the system, typically used during bulk label removal
- * or system resets. Use with caution as this will remove all tracking information.
+ * Removes every tracking record, erasing all label tracking information for all users and content.
  *
- * @returns The number of tracking records that were deleted
+ * @returns The number of records deleted
  */
 export async function clearAllLabelTracking(
   this: DatabaseService,
@@ -1060,14 +1041,12 @@ export async function clearAllLabelTracking(
 }
 
 /**
- * Removes tracking records for specific labels on multiple Plex rating keys in bulk.
+ * Removes specified labels from tracking records for multiple Plex rating keys in bulk.
  *
- * Efficiently processes multiple label removal operations in batches. For PostgreSQL,
- * uses optimized CTE-based queries. For SQLite, processes operations within chunked
- * transactions for better performance.
+ * Processes each operation to remove one or more labels from the tracked labels of the given rating key. If all labels are removed from a record, the record is deleted. Supports efficient batch processing for both PostgreSQL and SQLite databases.
  *
- * @param operations - Array of operations, each containing plexRatingKey and labelsToRemove
- * @returns Object with processedCount (successful operations) and failedIds (failed rating keys)
+ * @param operations - List of operations, each specifying a Plex rating key and the labels to remove from its tracking record.
+ * @returns An object containing the number of successfully processed operations, a list of rating keys for which removal failed, and the total number of records updated or deleted.
  */
 export async function removeTrackedLabels(
   this: DatabaseService,
@@ -1288,15 +1267,13 @@ export async function removeTrackedLabels(
 }
 
 /**
- * Removes tracking records for a specific label on a specific Plex rating key.
+ * Removes tracking records for a specific label from a given Plex rating key.
  *
- * Backward-compatible wrapper for removeTrackedLabels that processes a single operation.
- * Deletes all tracking records that match the given rating key and label,
- * regardless of watchlist item. This is useful for orphaned label cleanup.
+ * Calls the bulk label removal method for a single label and rating key, deleting all matching tracking records. Returns the number of records updated or deleted.
  *
- * @param plexRatingKey - The Plex rating key
- * @param labelApplied - The label to remove tracking for
- * @returns The number of tracking records that were deleted
+ * @param plexRatingKey - The Plex rating key to remove the label from
+ * @param labelApplied - The label to be removed
+ * @returns The number of tracking records updated or deleted
  */
 export async function removeTrackedLabel(
   this: DatabaseService,
@@ -1325,16 +1302,11 @@ export async function removeTrackedLabel(
 }
 
 /**
- * Find orphaned tracking records where the applied label doesn't match any current valid user labels.
+ * Identifies tracking records containing labels with the specified prefix that are no longer present in the set of valid labels.
  *
- * Uses SQL queries to efficiently identify tracking records that should be cleaned up because:
- * - The label doesn't match the current label prefix for any sync-enabled user
- * - The watchlist item references a user who no longer has sync enabled
- * - The label prefix has changed and old labels are now orphaned
- *
- * @param validLabels - Set of currently valid user labels (lowercase)
- * @param labelPrefix - The prefix from the label configuration (e.g., "pulsarr")
- * @returns Array of tracking records with orphaned labels grouped by rating key
+ * @param validLabels - Set of currently valid user labels (in lowercase)
+ * @param labelPrefix - Prefix used to identify app-managed labels (e.g., "pulsarr")
+ * @returns Array of objects, each containing a Plex rating key and its associated orphaned labels
  */
 export async function getOrphanedLabelTracking(
   this: DatabaseService,
@@ -1388,14 +1360,12 @@ export async function getOrphanedLabelTracking(
 }
 
 /**
- * Remove multiple tracking records in bulk operations for orphaned labels.
+ * Removes orphaned labels from multiple Plex label tracking records in bulk.
  *
- * Efficiently processes multiple orphaned label cleanup operations in batches.
- * For PostgreSQL, uses optimized CTE-based queries. For SQLite, processes operations
- * within chunked transactions for better performance.
+ * Processes an array of operations, each specifying a Plex rating key and a list of orphaned labels to remove. Efficiently updates or deletes records as needed, using optimized queries for PostgreSQL and chunked transactions for SQLite.
  *
- * @param operations - Array of operations, each containing plexRatingKey and orphanedLabels
- * @returns Object with processedCount (successful operations) and failedIds (failed rating keys)
+ * @param operations - List of operations, each containing a Plex rating key and orphaned labels to remove
+ * @returns An object with the number of successfully processed operations, an array of failed rating keys, and the total number of records updated or deleted
  */
 export async function removeOrphanedTrackingBulk(
   this: DatabaseService,
@@ -1624,15 +1594,13 @@ export async function removeOrphanedTrackingBulk(
 }
 
 /**
- * Remove multiple tracking records in a batch operation.
+ * Removes orphaned labels from a tracking record for a specific Plex rating key.
  *
- * Backward-compatible wrapper for removeOrphanedTrackingBulk that processes a single operation.
- * Efficiently removes tracking records for multiple orphaned labels on a rating key.
- * Uses a single delete query with WHERE IN clause for optimal performance.
+ * Calls the bulk orphaned label removal method for a single rating key and returns the number of records updated or deleted. Returns 0 if no orphaned labels are provided or if the operation fails.
  *
- * @param plexRatingKey - The Plex rating key
- * @param orphanedLabels - Array of label names to remove tracking for
- * @returns The number of tracking records that were deleted
+ * @param plexRatingKey - The Plex rating key to update
+ * @param orphanedLabels - The orphaned label names to remove
+ * @returns The number of tracking records updated or deleted
  */
 export async function removeOrphanedTracking(
   this: DatabaseService,

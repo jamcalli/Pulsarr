@@ -28,9 +28,9 @@ import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { useConfigStore } from '@/stores/configStore'
 
 /**
- * Plex Notifications utility page - provides a form for configuring Plex notifications across all Radarr and Sonarr instances, including Plex server discovery and management.
+ * Displays a page for configuring Plex notifications across all Radarr and Sonarr instances, including Plex server discovery, connection settings, and notification management.
  *
- * Users can enter Plex connection details, discover and select available Plex servers using a Plex token, and manage notification settings for all connected Radarr and Sonarr instances. The form provides real-time status feedback for each instance and allows removal of all Plex notifications with confirmation.
+ * Users can enter Plex connection details, discover and select available Plex servers using a Plex token, view the status of notifications for each Radarr and Sonarr instance, and remove all Plex notifications with confirmation. The page provides real-time feedback on configuration status and supports safe, validated updates.
  */
 export default function PlexNotificationsPage() {
   const initialize = useConfigStore((state) => state.initialize)

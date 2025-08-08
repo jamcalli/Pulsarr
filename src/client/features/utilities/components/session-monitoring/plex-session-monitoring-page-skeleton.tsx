@@ -3,9 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a skeleton loader that mimics the layout of the Plex Session Monitoring page while data is loading.
+ * Renders a skeleton UI that visually represents the Plex Session Monitoring page during data loading.
  *
- * This component provides placeholder elements for all major sections of the page, including headers, configuration inputs, user filtering, auto-reset settings, status displays, informational text, and action buttons.
+ * This component displays placeholder elements for all major sections of the page, including headers, configuration inputs, user filtering, auto-reset settings, status and management panels, informational text, and action buttons.
  */
 export function PlexSessionMonitoringPageSkeleton() {
   return (
