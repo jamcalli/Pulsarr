@@ -10,7 +10,21 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    base_branches:
+      - "develop"
+      - "main"
+      - "master"
   path_filters:
     - "!docs/**"
+    - "!assets/**"
+    - "!src/**/assets/**"
+    - "!src/**/images/**"
+    - "!**/__snapshots__/**"
+    - "!**/*.snap"
+    - "!**/*.map"
+    - "!**/*.{png,jpg,jpeg,gif,svg,webp,ico,woff,woff2}"
+    - "!**/package-lock.json"
+    - "!**/yarn.lock"
+    - "!**/pnpm-lock.yaml"
 chat:
   auto_reply: true
