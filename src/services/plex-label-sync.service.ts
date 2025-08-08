@@ -112,7 +112,9 @@ export class PlexLabelSyncService {
    * @returns True if this is an app-managed user label
    */
   private isAppUserLabel(labelName: string): boolean {
-    return labelName.toLowerCase().startsWith(`${this.config.labelPrefix}:`)
+    return labelName
+      .toLowerCase()
+      .startsWith(`${this.config.labelPrefix.toLowerCase()}:`)
   }
 
   /**
@@ -122,7 +124,9 @@ export class PlexLabelSyncService {
    * @returns True if this is a user-specific label
    */
   private isUserSpecificLabel(labelName: string): boolean {
-    return labelName.toLowerCase().startsWith(`${this.config.labelPrefix}:`)
+    return labelName
+      .toLowerCase()
+      .startsWith(`${this.config.labelPrefix.toLowerCase()}:`)
   }
 
   /**
@@ -150,7 +154,7 @@ export class PlexLabelSyncService {
       this.fastify.config.removedTagPrefix || 'pulsarr:removed'
 
     return (
-      tagName.toLowerCase().startsWith(`${tagPrefix}:`.toLowerCase()) ||
+      tagName.toLowerCase().startsWith(`${tagPrefix.toLowerCase()}:`) ||
       tagName.toLowerCase().startsWith(removedTagPrefix.toLowerCase())
     )
   }

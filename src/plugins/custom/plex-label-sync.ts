@@ -188,6 +188,7 @@ export default fp(
       'scheduler',
       'radarr-manager',
       'sonarr-manager',
+      'progress',
     ],
   },
 )

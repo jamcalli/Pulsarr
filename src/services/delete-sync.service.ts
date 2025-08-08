@@ -782,8 +782,17 @@ export class DeleteSyncService {
       )
 
       // Prevent mass deletion if percentage is too high
-      const MAX_DELETION_PERCENTAGE = this.config.maxDeletionPrevention
-
+      const MAX_DELETION_PERCENTAGE = Number(
+        this.config.maxDeletionPrevention ?? 10,
+      )
+      if (
+        Number.isNaN(MAX_DELETION_PERCENTAGE) ||
+        MAX_DELETION_PERCENTAGE <= 0
+      ) {
+        throw new Error(
+          `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage > 0.`,
+        )
+      }
       if (taggedPercentage > MAX_DELETION_PERCENTAGE) {
         return this.createSafetyTriggeredResult(
           `Safety check failed: Would delete ${totalTaggedItems} out of ${totalItems} items (${taggedPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,

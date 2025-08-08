@@ -332,7 +332,7 @@ export function useUserTags() {
         setLocalRemoveResults(result)
 
         // Only if delete tag definitions was selected and operation is complete
-        if (deleteTagDefinitions && !loading.removeUserTags) {
+        if (deleteTagDefinitions) {
           setIsTagDeletionComplete(true)
           setTagDefinitionsDeleted(true)
         } else {
@@ -350,7 +350,7 @@ export function useUserTags() {
         )
       }
     },
-    [removeUserTags, loading.removeUserTags],
+    [removeUserTags],
   )
 
   return {
