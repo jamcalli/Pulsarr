@@ -1918,7 +1918,7 @@ export class UserTagService {
    * @returns True if this is an application user tag
    */
   private isAppUserTag(tagLabel: string): boolean {
-    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix}:`)
+    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix.toLowerCase()}:`)
   }
 
   /**

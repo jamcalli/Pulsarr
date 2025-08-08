@@ -68,7 +68,7 @@ interface WebhookFieldProps {
   testResult?: boolean | null
   showTestError?: boolean
   onClear: () => void
-  value?: string
+  value?: string | string[]
   disabled?: boolean
   form: ReturnType<typeof usePublicContentNotifications>['form']
 }
@@ -131,7 +131,12 @@ function WebhookField({
                       <Button
                         type="button"
                         onClick={testHandler}
-                        disabled={disabled || !field.value}
+                        disabled={
+                          disabled ||
+                          !(Array.isArray(field.value)
+                            ? field.value.length > 0
+                            : Boolean(field.value))
+                        }
                         size="icon"
                         variant="noShadow"
                         className="shrink-0"
@@ -153,7 +158,7 @@ function WebhookField({
                   </Tooltip>
                 </TooltipProvider>
               )}
-              {value && (
+              {(Array.isArray(value) ? value.length > 0 : Boolean(value)) && (
                 <Button
                   type="button"
                   variant="error"
