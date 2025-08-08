@@ -122,8 +122,10 @@ export function TagCreationDialog({
       const errorSchema = instanceType === 'sonarr' ? SonarrErrorSchema : RadarrErrorSchema
       
       const data = response.ok
-        ? (parsed ? responseSchema.safeParse(parsed) : { success: false as const })
-        : errorSchema.safeParse(parsed || { message: response.statusText })
+        ? (response.status === 204 
+            ? { success: true, data: undefined } as const
+            : responseSchema.safeParse(parsed))
+        : errorSchema.safeParse(parsed ?? { message: response.statusText })
       
       if (response.ok) {
         if (data.success) {
@@ -146,9 +148,10 @@ export function TagCreationDialog({
           throw new Error('Invalid response format')
         }
       } else {
-        const message = data.success && 'data' in data && data.data && typeof data.data === 'object' && 'message' in data.data && typeof data.data.message === 'string'
-          ? data.data.message
-          : response.statusText || 'Failed to create tag'
+        const message =
+          data.success && data.data && 'message' in data.data && typeof data.data.message === 'string'
+            ? data.data.message
+            : response.statusText || 'Failed to create tag'
         throw new Error(message)
       }
     } catch (error) {

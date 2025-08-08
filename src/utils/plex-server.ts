@@ -1769,11 +1769,11 @@ export class PlexServerService {
 
       const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
 
-      // Handle empty labels array - this means we want to clear all labels
-      // Use the proper Plex API syntax for clearing array fields
+      // Handle empty labels array — clear all labels
+      // Use the proper Plex API syntax for array-clears
       if (labels.length === 0) {
-        // Use the - operator to clear all labels from the array field
-        // Format: label[].tag.tag- (with encoded square brackets, no equals sign)
+        // Use the - operator to clear all labels from the array field.
+        // Format: label[].tag.tag- with an empty value (URLSearchParams encodes as label%5B%5D.tag.tag-=)
         url.searchParams.append('label[].tag.tag-', '')
         // Lock the labels field to prevent Plex from modifying during metadata refreshes
         url.searchParams.append('label.locked', '1')
@@ -1781,8 +1781,12 @@ export class PlexServerService {
           `Clearing all labels for rating key ${ratingKey} using - operator with lock`,
         )
       } else {
-        // Add each label as a separate parameter - this is the format Plex expects
-        for (const label of labels) {
+        // Add each label as a separate parameter — this is the format Plex expects.
+        // Sanitize and de-duplicate to avoid sending blanks/duplicates to Plex.
+        const sanitized = [
+          ...new Set(labels.map((l) => l.trim()).filter((l) => l.length > 0)),
+        ]
+        for (const label of sanitized) {
           url.searchParams.append('label[].tag.tag', label)
         }
         // Lock the labels field to prevent Plex from modifying during metadata refreshes

@@ -623,52 +623,20 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       updateSessionMonitorSchedule: async (
         scheduleName: string,
         intervalMinutes: number,
-      ) => {
-        try {
-          const data = await apiRequest<{ success: boolean }, ScheduleUpdate>({
-            url: `/v1/scheduler/schedules/${scheduleName}`,
-            method: 'PUT',
-            body: {
-              type: 'interval',
-              config: {
-                minutes: intervalMinutes,
-              },
-            },
-            loadingKey: 'updateSchedule',
-            errorKey: 'updateSchedule',
-            defaultErrorMessage: `Failed to update session monitor schedule ${scheduleName}`,
-          })
-
-          return data.success
-        } catch (err) {
-          return false
-        }
-      },
+      ) =>
+        get().updateSchedule(scheduleName, {
+          type: 'interval',
+          config: { minutes: intervalMinutes },
+        }),
 
       updateAutoResetSchedule: async (
         scheduleName: string,
         intervalHours: number,
-      ) => {
-        try {
-          const data = await apiRequest<{ success: boolean }, ScheduleUpdate>({
-            url: `/v1/scheduler/schedules/${scheduleName}`,
-            method: 'PUT',
-            body: {
-              type: 'interval',
-              config: {
-                hours: intervalHours,
-              },
-            },
-            loadingKey: 'updateSchedule',
-            errorKey: 'updateSchedule',
-            defaultErrorMessage: `Failed to update auto-reset schedule ${scheduleName}`,
-          })
-
-          return data.success
-        } catch (err) {
-          return false
-        }
-      },
+      ) =>
+        get().updateSchedule(scheduleName, {
+          type: 'interval',
+          config: { hours: intervalHours },
+        }),
 
       fetchRollingShows: async () => {
         return apiRequest<{ success: boolean; shows: RollingMonitoredShow[] }>({

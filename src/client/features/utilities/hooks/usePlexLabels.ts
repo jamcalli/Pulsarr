@@ -183,7 +183,12 @@ export function usePlexLabels() {
 
   // Initialize form values from config when available
   useEffect(() => {
-    if (config?.plexLabelSync && initialLoadRef.current) {
+    if (
+      config?.plexLabelSync &&
+      (initialLoadRef.current ||
+        scheduleTime !== undefined ||
+        dayOfWeek !== '*')
+    ) {
       // Add minimum 500ms display time for initial loading
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, 500),
@@ -214,7 +219,24 @@ export function usePlexLabels() {
         }, 0)
       })
     }
-  }, [config?.plexLabelSync, updateFormValues, form])
+  }, [config?.plexLabelSync, scheduleTime, dayOfWeek, updateFormValues, form])
+
+  // Fallback effect to clear loading state if config fails to load
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      const fallbackTimer = setTimeout(() => {
+        if (initialLoadRef.current) {
+          initialLoadRef.current = false
+          useUtilitiesStore.setState((state) => ({
+            ...state,
+            loading: { ...state.loading, plexLabels: false },
+          }))
+        }
+      }, 3000) // 3 second fallback timeout
+
+      return () => clearTimeout(fallbackTimer)
+    }
+  }, [])
 
   // Full sync schedule state
   const [isTogglingFullSyncStatus, setIsTogglingFullSyncStatus] =
@@ -328,7 +350,7 @@ export function usePlexLabels() {
           plexLabelSync: formDataCopy,
         })
 
-        // Handle schedule update if scheduleTime is provided
+        // Handle schedule update based on scheduleTime
         let scheduleUpdatePromise = Promise.resolve()
         if (data.scheduleTime) {
           const hours = data.scheduleTime.getHours()
@@ -347,6 +369,18 @@ export function usePlexLabels() {
             if (!success) {
               throw new Error(
                 'Failed to update sync schedule. Configuration was saved but schedule was not updated.',
+              )
+            }
+          })
+        } else {
+          // Disable the cron job when scheduleTime is cleared
+          scheduleUpdatePromise = toggleScheduleStatus(
+            'plex-label-full-sync',
+            false,
+          ).then((success) => {
+            if (!success) {
+              throw new Error(
+                'Failed to disable sync schedule. Configuration was saved but schedule was not disabled.',
               )
             }
           })
@@ -400,6 +434,7 @@ export function usePlexLabels() {
       form,
       updateConfig,
       updateSchedule,
+      toggleScheduleStatus,
       setLoadingWithMinDuration,
       fetchSchedules,
     ],

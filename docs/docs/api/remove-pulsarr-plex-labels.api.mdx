@@ -1,0 +1,63 @@
+---
+id: remove-pulsarr-plex-labels
+title: "Remove Pulsarr labels from Plex content"
+description: "Remove all Pulsarr-created labels from Plex content while preserving other labels"
+sidebar_label: "Remove Pulsarr labels from Plex content"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vktv2zgQ/ivEnFpAXjlt96Kb0eRgNAcj6S4WCHygqbHFhiJVcuTEEPTfF0NKflVBdw/tSQJn5pvXN0N24Br0krSzyxIK8Fi7Pa5aE6T3K4Ov93KDJkAGJHcBiicYDtYZlBiU1w3bQgEP0VJIY8RgPlMeJWEpTDQRW+9qwZhCOUtoSbxU2qBoPAb0e213wlGFftCHDDyGxtmAAYoOPszn/Ln0eotb2RoSD4MmZDCAs65sGqNVzC7/Ftigg6AqrCX/0aFBKMBtvqEiyKDxXAvSyV1olcIQzhQ3zhmUFvoMagxB7vBMGMhru4syV04IMkDb1lzAVGJY9zG/1lD4eTCNdxwMlmeqtq036CHCMOK0bCu1mRRFu++t9ix9OvNwwjtarzOQZam5jtKsziLbShPwGmqs3KlMQ1FOCf8MkCE/zT/9zn6/2dIMam3v0e6oguLmOtnR7L9k9OfvZfAvzygOAlWOF0eJBomDbySjQr6/ydMc5wPhM+ApR89bpIPWGyiga7wjp5zpizzvKheoL7rGeeq7jQy4klT1cL1pPreBXC0eIxpksJdey405TkoE5P9x4iqiBrL4GRZXLDkUo+QS/2vFOynBiDZgKcgJ5eq6tdwKFC+aKkEVipQQjxmHnno7QhunpInHU/gssLJG4bxYroQsS48hCLeNuMMCPcPnmlzif5zPP06H7jwJZ3m5quoIpYPwrbXDjhqLewk5Cceqgpsq3untiCE2WGlbCik8cktjwV4PqTJRufG41a/vgVkydjs2oMjzg2v9rBkuCW0DSavwD+XqHwJYeV1Lfxh7/T+gisn63GqPigY4sYh7SrxLUTtP7688FHl+bOM04P0ongRbM+dV6zUdIullo7/gYdFy4Z/W7CtgCNrZ49GZxSOPeSL1ud1xmNMhZKA5kAplGaeBWQUF/DNbrJazpHAZ8mK1FM94ELKlCi0N20W0gft6NBMDYJ9dxviGe+Xcs8aT+6ElPzh/TFgzZlU5HUKCCvGG0nbrok9NhmFHNi9Wy8m8SqfaGi0lvK3zR/7PhExvjxdJqjI6kNCWcOdPqo/Osqa0pXiQZYqeyZ3g/75JcxiolnEND5kO757Rz1tvnetwu9OW/yVPp6FLhK+UN0bq+GyJzO6GFf0E+xvI4Oyxld4l4zJ7gi4u4b+86Xs+/t6iZx6vTys30XgkH1P8GQ/cC6WwobibTZvYcnWPMdOPl8ft3f3d1zvo+38B+Veyrg==
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Remove Pulsarr labels from Plex content"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/labels/remove"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove all Pulsarr-created labels from Plex content while preserving other labels
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"mode":{"type":"string","enum":["remove"]},"results":{"type":"object","properties":{"processed":{"type":"number"},"removed":{"type":"number"},"failed":{"type":"number"}},"required":["processed","removed","failed"],"additionalProperties":false}},"required":["success","message","mode","results"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","minLength":1}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","minLength":1}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
