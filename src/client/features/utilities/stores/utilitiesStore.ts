@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware'
 import type {
   JobStatus,
   DeleteSyncResult,
+  ScheduleUpdate,
 } from '@root/schemas/scheduler/scheduler.schema'
 import {
   CreateTaggingResponseSchema,
@@ -15,6 +16,10 @@ import {
   CleanupPlexLabelsResponseSchema,
   RemovePlexLabelsResponseSchema,
 } from '@root/schemas/labels/plex-labels.schema'
+import type {
+  RollingMonitoredShow,
+  SessionMonitoringResult,
+} from '@root/schemas/session-monitoring/session-monitoring.schema'
 import { z } from 'zod'
 
 // Use the existing schema type for the return type
@@ -34,6 +39,9 @@ export interface UtilitiesState {
   showDeleteTagsConfirmation: boolean
   removePlexLabelsResults: PlexLabelRemovalResult | null
   showDeletePlexLabelsConfirmation: boolean
+  rollingShows: RollingMonitoredShow[] | null
+  inactiveShows: RollingMonitoredShow[] | null
+  sessionMonitoringResults: SessionMonitoringResult | null
   loading: {
     schedules: boolean
     deleteSyncDryRun: boolean
@@ -49,6 +57,13 @@ export interface UtilitiesState {
     syncPlexLabels: boolean
     cleanupPlexLabels: boolean
     removePlexLabels: boolean
+    rollingShows: boolean
+    inactiveShows: boolean
+    sessionMonitor: boolean
+    resetShow: boolean
+    deleteShow: boolean
+    resetInactiveShows: boolean
+    updateSchedule: boolean
   }
   error: {
     schedules: string | null
@@ -65,6 +80,13 @@ export interface UtilitiesState {
     syncPlexLabels: string | null
     cleanupPlexLabels: string | null
     removePlexLabels: string | null
+    rollingShows: string | null
+    inactiveShows: string | null
+    sessionMonitor: string | null
+    resetShow: string | null
+    deleteShow: string | null
+    resetInactiveShows: string | null
+    updateSchedule: string | null
   }
   hasLoadedSchedules: boolean
 
@@ -76,6 +98,10 @@ export interface UtilitiesState {
   runDryDeleteSync: () => Promise<void>
   runScheduleNow: (name: string) => Promise<boolean>
   toggleScheduleStatus: (name: string, enabled: boolean) => Promise<boolean>
+  updateSchedule: (
+    name: string,
+    scheduleUpdate: ScheduleUpdate,
+  ) => Promise<boolean>
   resetErrors: () => void
 
   // User tags functions
@@ -92,6 +118,24 @@ export interface UtilitiesState {
   >
   setShowDeletePlexLabelsConfirmation: (show: boolean) => void
   removePlexLabels: () => Promise<PlexLabelRemovalResult>
+
+  // Session monitoring functions
+  updateSessionMonitorSchedule: (
+    scheduleName: string,
+    intervalMinutes: number,
+  ) => Promise<boolean>
+  updateAutoResetSchedule: (
+    scheduleName: string,
+    intervalHours: number,
+  ) => Promise<boolean>
+  fetchRollingShows: () => Promise<void>
+  fetchInactiveShows: (inactivityDays: number) => Promise<void>
+  runSessionMonitor: () => Promise<SessionMonitoringResult>
+  resetShow: (id: number) => Promise<{ success: boolean; message: string }>
+  deleteShow: (id: number) => Promise<{ success: boolean; message: string }>
+  resetInactiveShows: (
+    inactivityDays: number,
+  ) => Promise<{ success: boolean; message: string; resetCount: number }>
 }
 
 // Enhanced helper function to handle API responses with Zod schema validation
@@ -239,6 +283,9 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       showDeleteTagsConfirmation: false,
       removePlexLabelsResults: null,
       showDeletePlexLabelsConfirmation: false,
+      rollingShows: null,
+      inactiveShows: null,
+      sessionMonitoringResults: null,
       loading: {
         schedules: false,
         deleteSyncDryRun: false,
@@ -254,6 +301,13 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         syncPlexLabels: false,
         cleanupPlexLabels: false,
         removePlexLabels: false,
+        rollingShows: false,
+        inactiveShows: false,
+        sessionMonitor: false,
+        resetShow: false,
+        deleteShow: false,
+        resetInactiveShows: false,
+        updateSchedule: false,
       },
       error: {
         schedules: null,
@@ -270,6 +324,13 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         syncPlexLabels: null,
         cleanupPlexLabels: null,
         removePlexLabels: null,
+        rollingShows: null,
+        inactiveShows: null,
+        sessionMonitor: null,
+        resetShow: null,
+        deleteShow: null,
+        resetInactiveShows: null,
+        updateSchedule: null,
       },
 
       // Loading state management that mimics your pattern in other components
@@ -311,6 +372,13 @@ export const useUtilitiesStore = create<UtilitiesState>()(
             syncPlexLabels: null,
             cleanupPlexLabels: null,
             removePlexLabels: null,
+            rollingShows: null,
+            inactiveShows: null,
+            sessionMonitor: null,
+            resetShow: null,
+            deleteShow: null,
+            resetInactiveShows: null,
+            updateSchedule: null,
           },
         }))
       },
@@ -449,6 +517,27 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         }
       },
 
+      updateSchedule: async (name: string, scheduleUpdate: ScheduleUpdate) => {
+        try {
+          const data = await apiRequest<{ success: boolean }, ScheduleUpdate>({
+            url: `/v1/scheduler/schedules/${name}`,
+            method: 'PUT',
+            body: scheduleUpdate,
+            schema: null, // No schema validation needed for response
+            loadingKey: 'updateSchedule',
+            errorKey: 'updateSchedule',
+            defaultErrorMessage: `Failed to update schedule ${name}`,
+          })
+
+          // Refresh schedules after updating
+          await get().fetchSchedules()
+
+          return data.success
+        } catch (err) {
+          return false
+        }
+      },
+
       // User Tags methods
 
       createUserTags: async () => {
@@ -513,10 +602,9 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       },
 
       removePlexLabels: async () => {
-        return apiRequest<PlexLabelRemovalResult, Record<string, never>>({
+        return apiRequest<PlexLabelRemovalResult>({
           url: '/v1/labels/remove',
           method: 'DELETE',
-          body: {},
           schema: RemovePlexLabelsResponseSchema,
           loadingKey: 'removePlexLabels',
           errorKey: 'removePlexLabels',
@@ -526,6 +614,160 @@ export const useUtilitiesStore = create<UtilitiesState>()(
               ...state,
               removePlexLabelsResults: data,
             }))
+          },
+        })
+      },
+
+      // Session Monitoring methods
+
+      updateSessionMonitorSchedule: async (
+        scheduleName: string,
+        intervalMinutes: number,
+      ) => {
+        try {
+          const data = await apiRequest<{ success: boolean }, ScheduleUpdate>({
+            url: `/v1/scheduler/schedules/${scheduleName}`,
+            method: 'PUT',
+            body: {
+              type: 'interval',
+              config: {
+                minutes: intervalMinutes,
+              },
+            },
+            loadingKey: 'toggleSchedule',
+            errorKey: 'toggleSchedule',
+            defaultErrorMessage: `Failed to update session monitor schedule ${scheduleName}`,
+          })
+
+          return data.success
+        } catch (err) {
+          return false
+        }
+      },
+
+      updateAutoResetSchedule: async (
+        scheduleName: string,
+        intervalHours: number,
+      ) => {
+        try {
+          const data = await apiRequest<{ success: boolean }, ScheduleUpdate>({
+            url: `/v1/scheduler/schedules/${scheduleName}`,
+            method: 'PUT',
+            body: {
+              type: 'interval',
+              config: {
+                hours: intervalHours,
+              },
+            },
+            loadingKey: 'toggleSchedule',
+            errorKey: 'toggleSchedule',
+            defaultErrorMessage: `Failed to update auto-reset schedule ${scheduleName}`,
+          })
+
+          return data.success
+        } catch (err) {
+          return false
+        }
+      },
+
+      fetchRollingShows: async () => {
+        return apiRequest<{ success: boolean; shows: RollingMonitoredShow[] }>({
+          url: '/v1/plex-session-monitor/rolling',
+          method: 'GET',
+          loadingKey: 'rollingShows',
+          errorKey: 'rollingShows',
+          defaultErrorMessage: 'Failed to fetch rolling shows',
+          onSuccess: (data) => {
+            set((state) => ({
+              ...state,
+              rollingShows: data.shows,
+            }))
+          },
+        })
+      },
+
+      fetchInactiveShows: async (inactivityDays: number) => {
+        return apiRequest<{
+          success: boolean
+          shows: RollingMonitoredShow[]
+          inactivityDays: number
+        }>({
+          url: `/v1/plex-session-monitor/rolling/inactive?inactivityDays=${inactivityDays}`,
+          method: 'GET',
+          loadingKey: 'inactiveShows',
+          errorKey: 'inactiveShows',
+          defaultErrorMessage: 'Failed to fetch inactive shows',
+          onSuccess: (data) => {
+            set((state) => ({
+              ...state,
+              inactiveShows: data.shows,
+            }))
+          },
+        })
+      },
+
+      runSessionMonitor: async () => {
+        return apiRequest<{
+          success: boolean
+          result: SessionMonitoringResult
+        }>({
+          url: '/v1/plex-session-monitor/run',
+          method: 'POST',
+          loadingKey: 'sessionMonitor',
+          errorKey: 'sessionMonitor',
+          defaultErrorMessage: 'Failed to run session monitor',
+          onSuccess: (data) => {
+            set((state) => ({
+              ...state,
+              sessionMonitoringResults: data.result,
+            }))
+          },
+        }).then((response) => response.result)
+      },
+
+      resetShow: async (id: number) => {
+        return apiRequest<{ success: boolean; message: string }>({
+          url: `/v1/plex-session-monitor/rolling/${id}/reset`,
+          method: 'POST',
+          loadingKey: 'resetShow',
+          errorKey: 'resetShow',
+          defaultErrorMessage: 'Failed to reset show',
+          onSuccess: () => {
+            // Refresh rolling shows after reset
+            get().fetchRollingShows()
+          },
+        })
+      },
+
+      deleteShow: async (id: number) => {
+        return apiRequest<{ success: boolean; message: string }>({
+          url: `/v1/plex-session-monitor/rolling/${id}`,
+          method: 'DELETE',
+          loadingKey: 'deleteShow',
+          errorKey: 'deleteShow',
+          defaultErrorMessage: 'Failed to delete show',
+          onSuccess: () => {
+            // Refresh rolling shows after deletion
+            get().fetchRollingShows()
+          },
+        })
+      },
+
+      resetInactiveShows: async (inactivityDays: number) => {
+        return apiRequest<
+          { success: boolean; message: string; resetCount: number },
+          { inactivityDays: number }
+        >({
+          url: '/v1/plex-session-monitor/rolling/reset-inactive',
+          method: 'POST',
+          body: { inactivityDays },
+          loadingKey: 'resetInactiveShows',
+          errorKey: 'resetInactiveShows',
+          defaultErrorMessage: 'Failed to reset inactive shows',
+          onSuccess: () => {
+            // Refresh both rolling and inactive shows after reset
+            get().fetchRollingShows()
+            get().fetchInactiveShows(inactivityDays)
           },
         })
       },

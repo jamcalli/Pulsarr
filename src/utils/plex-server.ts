@@ -1721,45 +1721,12 @@ export class PlexServerService {
         },
       )
 
-      // Handle the case where all labels would be removed
+      // Handle the case where all labels would be removed via the canonical path
       if (filteredLabels.length === 0) {
         this.log.debug(
-          `All labels will be removed from rating key ${ratingKey}. Using - operator approach.`,
+          `All labels will be removed from rating key ${ratingKey}. Delegating to updateLabels([]).`,
         )
-
-        // For removing all labels, use the proper Plex API - operator approach
-        const serverUrl = await this.getPlexServerUrl()
-        const adminToken = this.config.plexTokens?.[0] || ''
-
-        if (!adminToken) {
-          this.log.warn('No Plex admin token available for label removal')
-          return false
-        }
-
-        // Clear all labels using the - operator (proper Plex API syntax for clearing arrays)
-        const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
-        url.searchParams.append('label[].tag.tag-', '') // Use - operator to clear all labels
-        url.searchParams.append('label.locked', '1') // Lock to prevent Plex from modifying labels
-
-        const response = await fetch(url.toString(), {
-          method: 'PUT',
-          headers: {
-            'X-Plex-Token': adminToken,
-            'X-Plex-Client-Identifier': 'Pulsarr',
-          },
-          signal: AbortSignal.timeout(8000),
-        })
-
-        if (response.ok) {
-          this.log.debug(
-            `Successfully cleared all labels from rating key ${ratingKey}`,
-          )
-          return true
-        }
-        this.log.warn(
-          `Failed to clear all labels from rating key ${ratingKey}: ${response.status} ${response.statusText}`,
-        )
-        return false
+        return this.updateLabels(ratingKey, [])
       }
 
       // Use updateLabels with the filtered list (some labels remain)

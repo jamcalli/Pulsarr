@@ -22,7 +22,7 @@ export type InstanceInfo = z.infer<typeof InstanceInfoSchema>
 export type QualityProfilesResponse = z.infer<
   typeof QualityProfilesResponseSchema
 >
-export type Error = z.infer<typeof ErrorSchema>
+export type GetQualityProfilesError = z.infer<typeof ErrorSchema>
 
 // Re-export shared schemas
 export { ErrorSchema }

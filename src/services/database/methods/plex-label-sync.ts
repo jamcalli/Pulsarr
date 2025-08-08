@@ -85,7 +85,7 @@ export async function createPendingLabelSync(
       retry_count: 0,
       last_retry_at: null,
       expires_at: expiresAt,
-      created_at: this.timestamp,
+      // Preserve original created_at on upsert
     })
     .returning('id')
 
@@ -225,7 +225,7 @@ export async function getWatchlistItemWithPlexKey(
     user_id: row.user_id,
     title: row.title,
     plex_key: row.plex_key,
-    guids: Array.isArray(row.guids) ? row.guids : [],
+    guids: this.safeJsonParse(row.guids, [], 'watchlist_items.guids'),
   }
 }
 
@@ -273,7 +273,7 @@ export async function getPendingLabelSyncsWithPlexKeys(
     expires_at: row.expires_at,
     plex_key: row.plex_key,
     user_id: row.user_id,
-    guids: Array.isArray(row.guids) ? row.guids : [],
+    guids: this.safeJsonParse(row.guids, [], 'watchlist_items.guids'),
     type: row.type,
   }))
 }

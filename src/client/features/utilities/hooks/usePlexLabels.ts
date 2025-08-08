@@ -97,6 +97,7 @@ export function usePlexLabels() {
     setShowDeletePlexLabelsConfirmation,
     removePlexLabels,
     toggleScheduleStatus,
+    updateSchedule,
     fetchSchedules,
     schedules,
     setLoadingWithMinDuration, // Important - this is used in DeleteSyncForm
@@ -296,10 +297,14 @@ export function usePlexLabels() {
             : 'Failed to toggle full sync status'
         toast.error(errorMessage)
       } finally {
+        // Refresh schedules to update UI state regardless of success/failure
+        await fetchSchedules().catch((fetchErr) => {
+          console.error('Failed to refresh schedules after toggle:', fetchErr)
+        })
         setIsTogglingFullSyncStatus(false)
       }
     },
-    [toggleScheduleStatus],
+    [toggleScheduleStatus, fetchSchedules],
   )
 
   // Handle form submission - using main config system
@@ -324,7 +329,7 @@ export function usePlexLabels() {
         })
 
         // Handle schedule update if scheduleTime is provided
-        let scheduleUpdate = Promise.resolve()
+        let scheduleUpdatePromise = Promise.resolve()
         if (data.scheduleTime) {
           const hours = data.scheduleTime.getHours()
           const minutes = data.scheduleTime.getMinutes()
@@ -333,22 +338,13 @@ export function usePlexLabels() {
           // Create cron expression (seconds minutes hours day month weekday)
           const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`
 
-          scheduleUpdate = fetch(
-            '/v1/scheduler/schedules/plex-label-full-sync',
-            {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                type: 'cron',
-                config: {
-                  expression: cronExpression,
-                },
-              }),
+          scheduleUpdatePromise = updateSchedule('plex-label-full-sync', {
+            type: 'cron',
+            config: {
+              expression: cronExpression,
             },
-          ).then((response) => {
-            if (!response.ok) {
+          }).then((success) => {
+            if (!success) {
               throw new Error(
                 'Failed to update sync schedule. Configuration was saved but schedule was not updated.',
               )
@@ -359,7 +355,7 @@ export function usePlexLabels() {
         // Wait for all processes to complete (exactly like DeleteSyncForm)
         await Promise.all([
           updateConfigPromise,
-          scheduleUpdate,
+          scheduleUpdatePromise,
           minimumLoadingTime,
         ])
 
@@ -400,7 +396,13 @@ export function usePlexLabels() {
         setLoadingWithMinDuration(false)
       }
     },
-    [form, updateConfig, setLoadingWithMinDuration, fetchSchedules],
+    [
+      form,
+      updateConfig,
+      updateSchedule,
+      setLoadingWithMinDuration,
+      fetchSchedules,
+    ],
   )
 
   // Handle form cancellation
