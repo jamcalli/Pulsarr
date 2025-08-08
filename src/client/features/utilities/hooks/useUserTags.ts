@@ -118,7 +118,12 @@ export function useUserTags() {
       }))
     }
   }, [])
-  const { config, updateConfig, fetchConfig } = useConfigStore()
+  const {
+    config,
+    updateConfig,
+    fetchConfig,
+    error: configError,
+  } = useConfigStore()
 
   // Update local remove results when store results change
   useEffect(() => {
@@ -182,6 +187,18 @@ export function useUserTags() {
       updateFormValues()
     }
   }, [config, updateFormValues])
+
+  // Handle config loading errors - clear loading state if config fetch fails
+  useEffect(() => {
+    if (configError && initialLoadRef.current) {
+      console.warn('Config fetch failed, clearing loading state:', configError)
+      initialLoadRef.current = false
+      useUtilitiesStore.setState((state) => ({
+        ...state,
+        loading: { ...state.loading, userTags: false },
+      }))
+    }
+  }, [configError])
 
   // Handle form submission - mimicking DeleteSyncForm exactly
   const onSubmit = useCallback(
