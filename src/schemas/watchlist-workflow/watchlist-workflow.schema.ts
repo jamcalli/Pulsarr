@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ErrorSchema } from '@schemas/common/error.schema.js'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 // Schema for Watchlist workflow status responses
 export const WatchlistWorkflowResponseSchema = z.object({

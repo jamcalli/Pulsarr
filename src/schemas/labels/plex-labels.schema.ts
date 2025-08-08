@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ErrorSchema } from '@schemas/common/error.schema.js'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 // Base response schema with common fields
 const BaseResponseSchema = z.object({

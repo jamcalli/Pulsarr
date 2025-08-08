@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ErrorSchema } from '@schemas/common/error.schema.js'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 export const SyncInstanceResultSchema = z.object({
   itemsCopied: z.number(),
@@ -31,6 +31,8 @@ export const InstanceIdParamsSchema = z.object({
 export const InstanceTypeQuerySchema = z.object({
   type: z.enum(['radarr', 'sonarr']),
 })
+
+export type Error = z.infer<typeof ErrorSchema>
 
 // Re-export shared schemas
 export { ErrorSchema }

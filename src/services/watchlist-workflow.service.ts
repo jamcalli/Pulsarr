@@ -1742,6 +1742,14 @@ export class WatchlistWorkflowService {
         this.MANUAL_SYNC_JOB_NAME,
         async (_jobName: string) => {
           try {
+            // Skip if workflow is not running
+            if (this.status !== 'running') {
+              this.log.debug(
+                'Skipping periodic reconciliation - workflow not running',
+              )
+              return
+            }
+
             this.log.info('Periodic reconciliation triggered - performing sync')
 
             // Unschedule this job to prevent concurrent execution

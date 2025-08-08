@@ -11,8 +11,7 @@
     "paths": {
       "@/*": ["./*"],
       "@app/*": ["./*"],
-      "@root/*": ["../../src/*"],
-      "@schemas/*": ["../../src/schemas/*"]
+      "@root/*": ["../../src/*"]
     },
 
     /* Bundler mode */

@@ -1,5 +1,9 @@
 import { z } from 'zod'
 import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
+import {
+  TagPrefixSchema,
+  RemovedTagPrefixSchema,
+} from '@root/schemas/shared/prefix-validation.schema.js'
 
 const LogLevelEnum = z.enum([
   'fatal',
@@ -111,7 +115,7 @@ export const ConfigSchema = z.object({
   maxDeletionPrevention: z.number().optional(),
   // Deletion mode
   deletionMode: DeletionModeEnum.optional(),
-  removedTagPrefix: z.string().optional(),
+  removedTagPrefix: RemovedTagPrefixSchema.optional(),
   // Tag removal mode
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
   // Plex Playlist Protection
@@ -214,7 +218,7 @@ export const ConfigSchema = z.object({
   tagUsersInSonarr: z.boolean().optional(),
   tagUsersInRadarr: z.boolean().optional(),
   cleanupOrphanedTags: z.boolean().optional(),
-  tagPrefix: z.string().optional(),
+  tagPrefix: TagPrefixSchema.optional(),
   // Note: removedTagMode and removedTagPrefix already exist above for delete sync compatibility
 })
 
