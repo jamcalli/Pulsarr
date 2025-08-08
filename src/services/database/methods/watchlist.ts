@@ -275,9 +275,9 @@ export async function getBulkWatchlistItems(
 
 /**
  * Retrieves watchlist items matching the specified keys.
- * 
+ *
  * Returns an empty array if no keys are provided. Parses JSON fields for `guids` and `genres` safely.
- * 
+ *
  * @returns Array of watchlist items with parsed JSON fields and numeric ID
  */
 export async function getWatchlistItemsByKeys(
