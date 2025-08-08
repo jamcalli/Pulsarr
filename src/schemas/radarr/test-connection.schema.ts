@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 
 export const TestConnectionBodySchema = z.object({
   baseUrl: z.string().url('Invalid URL format'),
@@ -10,11 +11,11 @@ export const TestConnectionResponseSchema = z.object({
   message: z.string(),
 })
 
-export const ErrorSchema = z.object({
-  message: z.string(),
-})
-
 export type TestConnectionBody = z.infer<typeof TestConnectionBodySchema>
 export type TestConnectionResponse = z.infer<
   typeof TestConnectionResponseSchema
 >
+export type Error = z.infer<typeof ErrorSchema>
+
+// Re-export shared schemas
+export { ErrorSchema }

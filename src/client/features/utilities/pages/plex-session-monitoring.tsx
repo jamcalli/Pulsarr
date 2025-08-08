@@ -27,6 +27,7 @@ import { SessionMonitoringResetSettings } from '@/features/utilities/components/
 import { SessionMonitoringStatus } from '@/features/utilities/components/session-monitoring/session-monitoring-status'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { PlexSessionMonitoringPageSkeleton } from '@/features/utilities/components/session-monitoring/plex-session-monitoring-page-skeleton'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 
 /**
  * Plex Session Monitoring utility page - provides a comprehensive interface for configuring Plex session monitoring and rolling monitoring reset options.
@@ -46,30 +47,7 @@ export default function PlexSessionMonitoringPage() {
   const [inactivityDays, setInactivityDays] = useState(
     config?.plexSessionMonitoring?.inactivityResetDays || 7,
   )
-  const [isInitializing, setIsInitializing] = useState(true)
-  const initializationStartTime = useRef<number | null>(null)
-
-  // Initialize store on mount with minimum loading duration
-  useEffect(() => {
-    const initializeWithMinDuration = async () => {
-      setIsInitializing(true)
-      initializationStartTime.current = Date.now()
-
-      try {
-        await initialize()
-
-        // Ensure minimum loading time for better UX
-        const elapsed = Date.now() - (initializationStartTime.current || 0)
-        const remaining = Math.max(0, 800 - elapsed) // Slightly longer than other utilities
-        await new Promise((resolve) => setTimeout(resolve, remaining))
-      } finally {
-        setIsInitializing(false)
-        initializationStartTime.current = null
-      }
-    }
-
-    initializeWithMinDuration()
-  }, [initialize])
+  const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {
     rollingShows,

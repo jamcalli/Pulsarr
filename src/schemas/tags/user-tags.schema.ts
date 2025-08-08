@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 
 // Configuration schema for user tagging
 export const TaggingConfigSchema = z.object({
@@ -22,11 +23,6 @@ export const TaggingConfigSchema = z.object({
       message:
         'Tag prefix can only contain letters, numbers, underscores, hyphens, colons, and dots',
     }),
-})
-
-// Generic error schema
-export const ErrorSchema = z.object({
-  message: z.string(),
 })
 
 // Status response schema - REMOVED: Configuration data is now available through main config system only
@@ -127,3 +123,6 @@ export const CleanupResponseSchema = BaseResponseSchema.extend({
     instances: z.number(),
   }),
 })
+
+// Re-export shared schemas
+export { ErrorSchema }

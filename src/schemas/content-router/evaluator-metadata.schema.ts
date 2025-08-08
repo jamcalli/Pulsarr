@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 
 // Schema for field information
 export const FieldInfoSchema = z.object({
@@ -33,10 +34,8 @@ export const EvaluatorMetadataResponseSchema = z.object({
   evaluators: z.array(EvaluatorMetadataSchema),
 })
 
-// Error schema (reusing the existing error schema pattern)
-export const EvaluatorMetadataErrorSchema = z.object({
-  message: z.string(),
-})
+// Re-export shared error schema
+export { ErrorSchema as EvaluatorMetadataErrorSchema }
 
 // Export types
 export type FieldInfo = z.infer<typeof FieldInfoSchema>
@@ -45,6 +44,4 @@ export type EvaluatorMetadata = z.infer<typeof EvaluatorMetadataSchema>
 export type EvaluatorMetadataResponse = z.infer<
   typeof EvaluatorMetadataResponseSchema
 >
-export type EvaluatorMetadataError = z.infer<
-  typeof EvaluatorMetadataErrorSchema
->
+export type EvaluatorMetadataError = z.infer<typeof ErrorSchema>

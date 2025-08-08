@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 
 // Schema for Watchlist workflow status responses
 export const WatchlistWorkflowResponseSchema = z.object({
@@ -7,13 +8,11 @@ export const WatchlistWorkflowResponseSchema = z.object({
   message: z.string().optional(),
 })
 
-// Common error schema
-export const ErrorSchema = z.object({
-  message: z.string(),
-})
-
 // Type exports
 export type WatchlistWorkflowResponse = z.infer<
   typeof WatchlistWorkflowResponseSchema
 >
 export type Error = z.infer<typeof ErrorSchema>
+
+// Re-export shared schemas
+export { ErrorSchema }
