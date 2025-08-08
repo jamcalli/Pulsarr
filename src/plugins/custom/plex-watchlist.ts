@@ -1,10 +1,12 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance } from 'fastify'
 import { PlexWatchlistService } from '@services/plex-watchlist.service.js'
+import type { PlexLabelSyncService } from '@services/plex-label-sync.service.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
     plexWatchlist: PlexWatchlistService
+    plexLabelSyncService: PlexLabelSyncService
   }
 }
 

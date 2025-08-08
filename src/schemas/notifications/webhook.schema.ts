@@ -4,7 +4,10 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 export const RadarrMovieSchema = z.object({
   title: z.string(),
   tmdbId: z.number(),
-  tags: z.array(z.string()).optional(),
+  tags: z
+    .array(z.union([z.number(), z.string().regex(/^\d+$/)]))
+    .transform((arr) => arr.map((v) => (typeof v === 'number' ? v : Number(v))))
+    .optional(),
 })
 
 export const SonarrEpisodeFileSchema = z.object({
@@ -26,7 +29,10 @@ export const SonarrEpisodeSchema = z.object({
 export const SonarrSeriesSchema = z.object({
   title: z.string(),
   tvdbId: z.number(),
-  tags: z.array(z.string()).optional(),
+  tags: z
+    .array(z.union([z.number(), z.string().regex(/^\d+$/)]))
+    .transform((arr) => arr.map((v) => (typeof v === 'number' ? v : Number(v))))
+    .optional(),
 })
 
 export const WebhookTestPayloadSchema = z.object({

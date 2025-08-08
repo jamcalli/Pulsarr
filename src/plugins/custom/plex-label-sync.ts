@@ -46,18 +46,25 @@ export default fp(
         await fastify.scheduler.scheduleJob(
           'pending-label-sync-processor',
           async (jobName) => {
-            // Check if the schedule itself is enabled
-            const schedule = await fastify.db.getScheduleByName(jobName)
-            if (!schedule || !schedule.enabled) {
-              return
-            }
+            try {
+              // Check if the schedule itself is enabled
+              const schedule = await fastify.db.getScheduleByName(jobName)
+              if (!schedule || !schedule.enabled) {
+                return
+              }
 
-            // Check if the plex label sync feature is enabled using cached config
-            if (!fastify.config?.plexLabelSync?.enabled) {
-              return
-            }
+              // Check if the plex label sync feature is enabled using cached config
+              if (!fastify.config?.plexLabelSync?.enabled) {
+                return
+              }
 
-            await fastify.pendingLabelSyncProcessor.processPendingLabelSyncs()
+              await fastify.pendingLabelSyncProcessor.processPendingLabelSyncs()
+            } catch (error) {
+              fastify.log.error(
+                { error },
+                'pending-label-sync-processor job failed',
+              )
+            }
           },
         )
 
@@ -72,18 +79,25 @@ export default fp(
         await fastify.scheduler.scheduleJob(
           'pending-label-sync-cleanup',
           async (jobName) => {
-            // Check if the schedule itself is enabled
-            const schedule = await fastify.db.getScheduleByName(jobName)
-            if (!schedule || !schedule.enabled) {
-              return
-            }
+            try {
+              // Check if the schedule itself is enabled
+              const schedule = await fastify.db.getScheduleByName(jobName)
+              if (!schedule || !schedule.enabled) {
+                return
+              }
 
-            // Check if the plex label sync feature is enabled using cached config
-            if (!fastify.config?.plexLabelSync?.enabled) {
-              return
-            }
+              // Check if the plex label sync feature is enabled using cached config
+              if (!fastify.config?.plexLabelSync?.enabled) {
+                return
+              }
 
-            await fastify.pendingLabelSyncProcessor.cleanupExpired()
+              await fastify.pendingLabelSyncProcessor.cleanupExpired()
+            } catch (error) {
+              fastify.log.error(
+                { error },
+                'pending-label-sync-cleanup job failed',
+              )
+            }
           },
         )
 
@@ -135,17 +149,21 @@ export default fp(
         await fastify.scheduler.scheduleJob(
           'plex-label-full-sync',
           async (jobName) => {
-            const schedule = await fastify.db.getScheduleByName(jobName)
-            if (!schedule || !schedule.enabled) {
-              return
-            }
+            try {
+              const schedule = await fastify.db.getScheduleByName(jobName)
+              if (!schedule || !schedule.enabled) {
+                return
+              }
 
-            if (!fastify.config?.plexLabelSync?.enabled) {
-              return
-            }
+              if (!fastify.config?.plexLabelSync?.enabled) {
+                return
+              }
 
-            // Sync will automatically reset if autoResetOnScheduledSync is enabled in config
-            await fastify.plexLabelSyncService.syncAllLabels()
+              // Sync will automatically reset if autoResetOnScheduledSync is enabled in config
+              await fastify.plexLabelSyncService.syncAllLabels()
+            } catch (error) {
+              fastify.log.error({ error }, 'plex-label-full-sync job failed')
+            }
           },
         )
 

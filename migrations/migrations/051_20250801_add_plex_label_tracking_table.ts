@@ -71,14 +71,16 @@ export async function up(knex: Knex): Promise<void> {
   // Handle unique constraint - PostgreSQL cannot create unique constraints on JSON columns directly
   if (isPostgres) {
     // PostgreSQL: Use functional index with MD5 hash of JSON content
+    // Include content_type to distinguish between movies and shows with same GUIDs
     await knex.raw(`
       CREATE UNIQUE INDEX plex_label_tracking_content_unique 
-      ON plex_label_tracking(md5(content_guids::text), user_id, plex_rating_key)
+      ON plex_label_tracking(md5(content_guids::text), user_id, content_type)
     `)
   } else {
     // SQLite: Can handle unique constraint on JSON columns directly
+    // Include content_type to distinguish between movies and shows with same GUIDs
     await knex.schema.alterTable('plex_label_tracking', (table) => {
-      table.unique(['content_guids', 'user_id', 'plex_rating_key'])
+      table.unique(['content_guids', 'user_id', 'content_type'])
     })
   }
 }

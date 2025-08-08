@@ -64,15 +64,21 @@ export class PendingWebhooksService {
       return
     }
 
-    // Validate it's a proper webhook payload
-    if (!('instanceName' in payload)) {
-      return
-    }
-
+    // Validate webhook payload using schema
     try {
-      await this.fastify.plexLabelSyncService.syncLabelsOnWebhook(
-        payload as WebhookPayload,
+      const { WebhookPayloadSchema } = await import(
+        '@root/schemas/notifications/webhook.schema.js'
       )
+      const parsed = WebhookPayloadSchema.safeParse(payload)
+      if (!parsed.success) {
+        this.log.debug(
+          `Skipping invalid webhook payload for ${mediaType} webhook ${webhookId}:`,
+          parsed.error.issues,
+        )
+        return
+      }
+
+      await this.fastify.plexLabelSyncService.syncLabelsOnWebhook(parsed.data)
     } catch (labelError) {
       this.log.error(
         `Error syncing labels for pending ${mediaType} webhook ${webhookId}:`,

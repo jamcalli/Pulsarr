@@ -19,7 +19,7 @@ export function DeleteSyncPageSkeleton() {
         status="unknown"
       />
 
-      <div className="mt-6 space-y-6">
+      <div className="space-y-6">
         {/* Actions section */}
         <div>
           <h3 className="font-medium text-foreground mb-2">Actions</h3>

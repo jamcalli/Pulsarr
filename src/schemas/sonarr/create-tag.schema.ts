@@ -13,7 +13,7 @@ export const CreateTagResponseSchema = z.object({
 
 export type CreateTagBody = z.infer<typeof CreateTagBodySchema>
 export type CreateTagResponse = z.infer<typeof CreateTagResponseSchema>
-export type Error = z.infer<typeof ErrorSchema>
+export type CreateTagError = z.infer<typeof ErrorSchema>
 
 // Re-export shared schemas
 export { ErrorSchema }

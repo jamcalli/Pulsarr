@@ -21,6 +21,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           'Synchronize plex labels for all watchlist content. Will automatically reset labels first if enabled in configuration.',
         response: {
           200: SyncPlexLabelsResponseSchema,
+          404: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Labels'],
@@ -34,8 +35,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Check config first to see if labeling is enabled
-        const config = await fastify.db.getConfig()
-        if (!config || !config.plexLabelSync?.enabled) {
+        const { plexLabelSync } = fastify.config
+        if (!plexLabelSync?.enabled) {
           return {
             success: false,
             message: 'Plex label synchronization is disabled in configuration',
@@ -89,6 +90,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         description: 'Clean up orphaned plex labels and expired pending syncs',
         response: {
           200: CleanupPlexLabelsResponseSchema,
+          404: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Labels'],
@@ -102,8 +104,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Check if cleanup is enabled
-        const config = await fastify.db.getConfig()
-        if (!config || !config.plexLabelSync?.enabled) {
+        const { plexLabelSync } = fastify.config
+        if (!plexLabelSync?.enabled) {
           return {
             success: false,
             message: 'Plex label cleanup is disabled in configuration',
@@ -123,7 +125,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Clean up orphaned labels if enabled in configuration
         let orphanedResult = { removed: 0, failed: 0 }
-        if (config.plexLabelSync?.cleanupOrphanedLabels) {
+        if (plexLabelSync?.cleanupOrphanedLabels) {
           try {
             orphanedResult =
               await fastify.plexLabelSyncService.cleanupOrphanedPlexLabels()
@@ -138,7 +140,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         let message: string
         if (expiredPendingCount === 0 && orphanedResult.removed === 0) {
-          if (!config.plexLabelSync?.cleanupOrphanedLabels) {
+          if (!plexLabelSync?.cleanupOrphanedLabels) {
             message =
               'No expired pending syncs found to clean up. Orphaned label cleanup is disabled in configuration.'
           } else {
@@ -195,8 +197,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Check config first to see if labeling is enabled
-        const config = await fastify.db.getConfig()
-        if (!config || !config.plexLabelSync?.enabled) {
+        const { plexLabelSync } = fastify.config
+        if (!plexLabelSync?.enabled) {
           return {
             success: false,
             message: 'Plex label removal is disabled in configuration',

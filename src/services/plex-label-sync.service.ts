@@ -3014,12 +3014,12 @@ export class PlexLabelSyncService {
 
       if ('movie' in webhook && webhook.movie.tags) {
         // Radarr webhook
-        return webhook.movie.tags
+        return webhook.movie.tags.map(String)
       }
 
       if ('series' in webhook && webhook.series.tags) {
         // Sonarr webhook
-        return webhook.series.tags
+        return webhook.series.tags.map(String)
       }
 
       return []

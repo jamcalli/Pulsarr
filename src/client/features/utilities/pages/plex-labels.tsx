@@ -189,6 +189,8 @@ export function PlexLabelsPage() {
                 onClick={handleSyncLabels}
                 disabled={
                   isSyncingLabels ||
+                  isCleaningLabels ||
+                  isRemovingLabels ||
                   isToggling ||
                   !isEnabled ||
                   form.formState.isDirty
@@ -209,7 +211,9 @@ export function PlexLabelsPage() {
                 size="sm"
                 onClick={handleCleanupLabels}
                 disabled={
+                  isSyncingLabels ||
                   isCleaningLabels ||
+                  isRemovingLabels ||
                   isToggling ||
                   !isEnabled ||
                   !form.watch('cleanupOrphanedLabels') ||
@@ -231,6 +235,8 @@ export function PlexLabelsPage() {
                 size="sm"
                 onClick={initiateRemoveLabels}
                 disabled={
+                  isSyncingLabels ||
+                  isCleaningLabels ||
                   isRemovingLabels ||
                   isToggling ||
                   !isEnabled ||
