@@ -268,7 +268,7 @@ export function usePlexLabels() {
 
   // Toggle full sync status directly (no confirmation)
   const handleToggleFullSyncStatus = useCallback(
-    async (enabled: boolean) => {
+    async (currentlyEnabled: boolean) => {
       setIsTogglingFullSyncStatus(true)
 
       try {
@@ -279,13 +279,13 @@ export function usePlexLabels() {
 
         // Run operations in parallel and wait for both
         const [success] = await Promise.all([
-          toggleScheduleStatus('plex-label-full-sync', !enabled),
+          toggleScheduleStatus('plex-label-full-sync', !currentlyEnabled),
           minimumLoadingTime,
         ])
 
         if (success) {
           toast.success(
-            `Plex label full sync ${enabled ? 'disabled' : 'enabled'} successfully`,
+            `Plex label full sync ${currentlyEnabled ? 'disabled' : 'enabled'} successfully`,
           )
         } else {
           throw new Error('Failed to toggle full sync status')

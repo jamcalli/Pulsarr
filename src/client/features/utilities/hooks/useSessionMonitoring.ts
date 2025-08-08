@@ -267,7 +267,8 @@ export function useSessionMonitoring() {
         remainingEpisodes: config.plexSessionMonitoring.remainingEpisodes || 2,
         filterUsers: config.plexSessionMonitoring.filterUsers || [],
         enableAutoReset: config.plexSessionMonitoring.enableAutoReset ?? true,
-        inactivityDays: config.plexSessionMonitoring.inactivityResetDays || 7,
+        inactivityResetDays:
+          config.plexSessionMonitoring.inactivityResetDays || 7,
         autoResetIntervalHours:
           config.plexSessionMonitoring.autoResetIntervalHours || 24,
         enableProgressiveCleanup:

@@ -91,12 +91,8 @@ const validateDayOfWeek = (value: string | undefined): string => {
  */
 export function useDeleteSyncForm() {
   const { config, updateConfig } = useConfigStore()
-  const {
-    schedules,
-    fetchSchedules,
-    setLoadingWithMinDuration,
-    updateSchedule,
-  } = useUtilitiesStore()
+  const { schedules, setLoadingWithMinDuration, updateSchedule } =
+    useUtilitiesStore()
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
     useState<DeleteSyncFormValues | null>(null)
@@ -280,9 +276,6 @@ export function useDeleteSyncForm() {
         scheduleUpdate,
         minimumLoadingTime,
       ])
-
-      // Refresh schedules
-      await fetchSchedules()
 
       // Set success state
       setSaveStatus('success')
