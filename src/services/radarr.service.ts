@@ -1348,6 +1348,18 @@ export class RadarrService {
       // First get the current movie to preserve all fields
       const movie = await this.getFromRadarr<RadarrMovie>(`movie/${movieId}`)
 
+      // Normalize both tag arrays for comparison
+      const currentTags = [...new Set(movie.tags || [])].sort()
+      const newTags = [...new Set(tagIds)].sort()
+
+      // Skip update if tags are already correct
+      if (JSON.stringify(currentTags) === JSON.stringify(newTags)) {
+        this.log.debug(
+          `Tags already correct for movie ID ${movieId}, skipping update`,
+        )
+        return
+      }
+
       // Use Set to deduplicate tags
       movie.tags = [...new Set(tagIds)]
 

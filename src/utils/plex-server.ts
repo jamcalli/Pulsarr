@@ -1026,13 +1026,20 @@ export class PlexServerService {
 
         // Add current batch of items to our result set
         for (const item of items) {
-          allItems.add({
-            guid: item.guid,
-            grandparentGuid: item.grandparentGuid,
-            parentGuid: item.parentGuid,
-            type: item.type,
-            title: item.grandparentTitle || item.title,
-          })
+          // Only include movies, shows, and episodes in playlist protection checks
+          if (
+            item.type === 'movie' ||
+            item.type === 'show' ||
+            item.type === 'episode'
+          ) {
+            allItems.add({
+              guid: item.guid,
+              grandparentGuid: item.grandparentGuid,
+              parentGuid: item.parentGuid,
+              type: item.type,
+              title: item.grandparentTitle || item.title,
+            })
+          }
         }
 
         // Check if we need to fetch more items

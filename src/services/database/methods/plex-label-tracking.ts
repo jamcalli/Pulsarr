@@ -223,7 +223,10 @@ export async function trackPlexLabelsBulk(
 
                 const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
                 const guidsJson = JSON.stringify(normalizedGuids)
-                const labelsJson = JSON.stringify(labelsApplied.sort())
+                const normalizedLabels = labelsApplied.map((l) =>
+                  l.toLowerCase(),
+                )
+                const labelsJson = JSON.stringify(normalizedLabels.sort())
 
                 // Find existing record with overlapping GUIDs
                 const existing = await trx('plex_label_tracking')

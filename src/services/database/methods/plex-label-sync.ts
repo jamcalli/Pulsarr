@@ -139,8 +139,11 @@ export async function updatePendingLabelSyncRetry(
   this: DatabaseService,
   id: number,
 ): Promise<boolean> {
+  const now = new Date().toISOString()
+
   const updated = await this.knex('pending_label_syncs')
     .where('id', id)
+    .where('expires_at', '>', now) // Only update if not expired
     .update({
       retry_count: this.knex.raw('retry_count + 1'),
       last_retry_at: this.timestamp,

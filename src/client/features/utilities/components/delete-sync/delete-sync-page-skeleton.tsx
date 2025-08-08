@@ -16,7 +16,6 @@ export function DeleteSyncPageSkeleton() {
       <UtilitySectionHeader
         title="Delete Sync"
         description="Automatically removes content when it's no longer on any watchlists"
-        status="unknown"
       />
 
       <div className="space-y-6">

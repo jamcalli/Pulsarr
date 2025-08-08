@@ -53,7 +53,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         } catch (error) {
           // Don't fail the entire request if Plex avatar fetch fails
-          fastify.log.warn('Failed to fetch Plex token or avatar:', error)
+          fastify.log.warn(error, 'Failed to fetch Plex token or avatar')
         }
 
         return {
@@ -69,7 +69,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error in /me endpoint:', error)
+        fastify.log.error(error, 'Error in /me endpoint')
         reply.status(500)
         return {
           success: false,

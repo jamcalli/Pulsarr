@@ -1398,7 +1398,7 @@ export const fetchWatchlistFromRss = async (
 /**
  * Attempts to fetch user avatar from Plex API
  * @param token - User's Plex token
- * @param log - Logger instance
+ * @param log - Optional logger instance
  * @returns Avatar URL or null if failed
  */
 export async function fetchPlexAvatar(

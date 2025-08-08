@@ -5,7 +5,7 @@ export interface PlexPlaylistResponse {
       ratingKey: string
       key: string
       guid: string
-      type: string
+      type: 'playlist'
       title: string
       summary?: string
       smart?: boolean
@@ -26,7 +26,7 @@ export interface PlexPlaylistItemsResponse {
       ratingKey: string
       key: string
       guid: string
-      type: string
+      type: 'movie' | 'show' | 'episode' | 'season'
       title: string
       grandparentTitle?: string
       grandparentGuid?: string
@@ -44,7 +44,7 @@ export interface PlexPlaylistItem {
   guid: string // Full format: "plex://movie/5d776832a091de001f2e780f" or "plex://episode/5ea3e26f382f910042f103d0"
   grandparentGuid?: string // For TV shows: "plex://show/5eb6b5ffac1f29003f4a737b"
   parentGuid?: string // For TV episodes: "plex://season/602e7aa091bd55002cf9cc73"
-  type: string // "movie", "show", "episode"
+  type: 'movie' | 'show' | 'episode'
   title: string // For logging only
 }
 
@@ -126,7 +126,7 @@ export interface PlexMetadata {
   ratingKey: string
   key: string
   guid: string
-  type: string
+  type: 'movie' | 'show' | 'episode' | 'season' | 'artist' | 'album' | 'track'
   title: string
   summary?: string
   year?: number

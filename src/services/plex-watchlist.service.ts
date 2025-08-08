@@ -1188,7 +1188,7 @@ export class PlexWatchlistService {
     })
 
     try {
-      const linkedIds = await this.dbService.createWatchlistItems(linkItems, {
+      await this.dbService.createWatchlistItems(linkItems, {
         onConflict: 'merge',
       })
 

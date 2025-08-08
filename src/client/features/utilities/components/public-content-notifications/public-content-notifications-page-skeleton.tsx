@@ -13,7 +13,6 @@ export function PublicContentNotificationsPageSkeleton() {
       <UtilitySectionHeader
         title="Public Content Notifications"
         description="Broadcast ALL content availability to public Discord channels and shared Apprise endpoints"
-        status="unknown"
       />
 
       <div className="space-y-6">
