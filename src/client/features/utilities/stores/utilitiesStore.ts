@@ -634,8 +634,8 @@ export const useUtilitiesStore = create<UtilitiesState>()(
                 minutes: intervalMinutes,
               },
             },
-            loadingKey: 'toggleSchedule',
-            errorKey: 'toggleSchedule',
+            loadingKey: 'updateSchedule',
+            errorKey: 'updateSchedule',
             defaultErrorMessage: `Failed to update session monitor schedule ${scheduleName}`,
           })
 
@@ -659,8 +659,8 @@ export const useUtilitiesStore = create<UtilitiesState>()(
                 hours: intervalHours,
               },
             },
-            loadingKey: 'toggleSchedule',
-            errorKey: 'toggleSchedule',
+            loadingKey: 'updateSchedule',
+            errorKey: 'updateSchedule',
             defaultErrorMessage: `Failed to update auto-reset schedule ${scheduleName}`,
           })
 
@@ -672,7 +672,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       fetchRollingShows: async () => {
         return apiRequest<{ success: boolean; shows: RollingMonitoredShow[] }>({
-          url: '/v1/plex-session-monitor/rolling',
+          url: '/v1/session-monitoring/rolling-monitored',
           method: 'GET',
           loadingKey: 'rollingShows',
           errorKey: 'rollingShows',
@@ -692,7 +692,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           shows: RollingMonitoredShow[]
           inactivityDays: number
         }>({
-          url: `/v1/plex-session-monitor/rolling/inactive?inactivityDays=${inactivityDays}`,
+          url: `/v1/session-monitoring/rolling-monitored/inactive?inactivityDays=${inactivityDays}`,
           method: 'GET',
           loadingKey: 'inactiveShows',
           errorKey: 'inactiveShows',
@@ -711,7 +711,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           success: boolean
           result: SessionMonitoringResult
         }>({
-          url: '/v1/plex-session-monitor/run',
+          url: '/v1/session-monitoring/run',
           method: 'POST',
           loadingKey: 'sessionMonitor',
           errorKey: 'sessionMonitor',
@@ -727,7 +727,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       resetShow: async (id: number) => {
         return apiRequest<{ success: boolean; message: string }>({
-          url: `/v1/plex-session-monitor/rolling/${id}/reset`,
+          url: `/v1/session-monitoring/rolling-monitored/${id}/reset`,
           method: 'POST',
           loadingKey: 'resetShow',
           errorKey: 'resetShow',
@@ -741,7 +741,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       deleteShow: async (id: number) => {
         return apiRequest<{ success: boolean; message: string }>({
-          url: `/v1/plex-session-monitor/rolling/${id}`,
+          url: `/v1/session-monitoring/rolling-monitored/${id}`,
           method: 'DELETE',
           loadingKey: 'deleteShow',
           errorKey: 'deleteShow',
@@ -758,7 +758,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           { success: boolean; message: string; resetCount: number },
           { inactivityDays: number }
         >({
-          url: '/v1/plex-session-monitor/rolling/reset-inactive',
+          url: '/v1/session-monitoring/rolling-monitored/reset-inactive',
           method: 'POST',
           body: { inactivityDays },
           loadingKey: 'resetInactiveShows',

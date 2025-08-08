@@ -32,7 +32,6 @@ export default fp(
       fastify.db,
       plexLabelSyncService,
       fastify,
-      fastify.config,
     )
 
     // Decorate fastify instance with services

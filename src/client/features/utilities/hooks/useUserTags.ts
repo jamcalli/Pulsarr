@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
@@ -8,8 +9,8 @@ import type {
   SyncTaggingResponseSchema,
   CleanupResponseSchema,
   RemoveTagsResponseSchema,
-  TaggingConfigSchema,
 } from '@root/schemas/tags/user-tags.schema'
+import { TaggingConfigSchema } from '@root/schemas/tags/user-tags.schema'
 import type { z } from 'zod'
 
 export type UserTagsFormValues = z.infer<typeof TaggingConfigSchema>
@@ -133,6 +134,7 @@ export function useUserTags() {
 
   // Initialize form with default values
   const form = useForm<UserTagsFormValues>({
+    resolver: zodResolver(TaggingConfigSchema),
     defaultValues: {
       tagUsersInSonarr: false,
       tagUsersInRadarr: false,

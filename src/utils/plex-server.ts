@@ -1648,7 +1648,9 @@ export class PlexServerService {
         return []
       }
 
-      const labels = metadata.Label.map((label) => label.tag)
+      const labels = metadata.Label.map((label) => label.tag).filter(
+        (tag): tag is string => typeof tag === 'string' && tag.length > 0,
+      )
       this.log.debug(
         `Successfully retrieved ${labels.length} labels for rating key ${ratingKey}`,
         {

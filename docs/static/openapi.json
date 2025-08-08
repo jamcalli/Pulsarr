@@ -10365,11 +10365,12 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": {
-                      "type": "string"
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
-                  "required": ["error"],
+                  "required": ["message"],
                   "additionalProperties": false
                 }
               }
@@ -10382,11 +10383,12 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": {
-                      "type": "string"
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
-                  "required": ["error"],
+                  "required": ["message"],
                   "additionalProperties": false
                 }
               }
