@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useConfigStore } from '@/stores/configStore'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, AlertTriangle, Loader2 } from 'lucide-react'
@@ -47,14 +47,12 @@ export function ApiKeysPage() {
     fetchApiKeys,
   } = useApiKeys()
 
-  // Initialize stores on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
+  // Initialize config store with minimum duration for consistent UX
+  const isInitializing = useInitializeWithMinDuration(initialize)
 
   const totalKeysCount = apiKeys.length
 
-  if (!isInitialized || isLoading) {
+  if (isInitializing || !isInitialized || isLoading) {
     return <ApiKeysSkeleton />
   }
 

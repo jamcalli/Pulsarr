@@ -26,7 +26,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Labels'],
       },
     },
-    async (request, reply) => {
+    async (_request, reply) => {
       try {
         // Check if plex label sync service is available
         if (!fastify.plexLabelSyncService) {
@@ -49,90 +49,26 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        // Set up SSE progress reporting
-        const operationId = `plex-label-sync-${Date.now()}`
-        const emitProgress = fastify?.progress?.hasActiveConnections() || false
+        // Call service directly - it handles its own progress emission
+        const results = await fastify.plexLabelSyncService.syncAllLabels()
 
-        const progressCallback = emitProgress
-          ? (progress: number, message: string) => {
-              // Determine phase based on progress
-              let phase = 'start'
-              if (progress > 0 && progress < 15) {
-                phase = 'fetching-data'
-              } else if (progress >= 15 && progress < 90) {
-                phase = 'processing-content'
-              } else if (progress >= 90) {
-                phase = 'complete'
-              }
-
-              fastify.progress.emit({
-                operationId,
-                type: 'plex-label-sync',
-                phase,
-                progress,
-                message,
-              })
-            }
-          : undefined
-
-        // Emit start event
-        if (emitProgress) {
-          fastify.progress.emit({
-            operationId,
-            type: 'plex-label-sync',
-            phase: 'start',
-            progress: 0,
-            message: 'Starting Plex label synchronization...',
-          })
+        let message: string
+        if (results.processed === 0) {
+          message = 'No content found to label (check if watchlist items exist)'
+        } else {
+          message = `Synchronized labels for ${results.updated} of ${results.processed} items`
         }
 
-        try {
-          // Proceed with sync operation - will auto-reset if configured
-          const results =
-            await fastify.plexLabelSyncService.syncAllLabels(progressCallback)
-
-          // Emit completion event
-          if (emitProgress) {
-            fastify.progress.emit({
-              operationId,
-              type: 'plex-label-sync',
-              phase: 'complete',
-              progress: 100,
-              message: `Completed Plex label sync: updated ${results.updated} items, failed ${results.failed}, pending ${results.pending}`,
-            })
-          }
-
-          let message: string
-          if (results.processed === 0) {
-            message =
-              'No content found to label (check if watchlist items exist)'
-          } else {
-            message = `Synchronized labels for ${results.updated} of ${results.processed} items`
-          }
-
-          return {
-            success: true,
-            message,
-            mode: 'sync' as const,
-            results: {
-              processed: results.processed,
-              updated: results.updated,
-              failed: results.failed,
-              pending: results.pending,
-            },
-          }
-        } catch (syncError) {
-          // Emit error event
-          if (emitProgress) {
-            fastify.progress.emit({
-              operationId,
-              type: 'plex-label-sync',
-              phase: 'error',
-              progress: 100,
-              message: `Error syncing Plex labels: ${syncError}`,
-            })
-          }
-          throw syncError
+        return {
+          success: true,
+          message,
+          mode: 'sync' as const,
+          results: {
+            processed: results.processed,
+            updated: results.updated,
+            failed: results.failed,
+            pending: results.pending,
+          },
         }
       } catch (err) {
         fastify.log.error('Error syncing plex labels:', err)
@@ -158,7 +94,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Labels'],
       },
     },
-    async (request, reply) => {
+    async (_request, reply) => {
       try {
         // Check if plex label sync service is available
         if (!fastify.plexLabelSyncService) {
@@ -251,7 +187,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Labels'],
       },
     },
-    async (request, reply) => {
+    async (_request, reply) => {
       try {
         // Check if plex label sync service is available
         if (!fastify.plexLabelSyncService) {
@@ -273,89 +209,25 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        // Set up SSE progress reporting
-        const operationId = `plex-label-removal-${Date.now()}`
-        const emitProgress = fastify?.progress?.hasActiveConnections() || false
+        // Call service directly - it handles its own progress emission
+        const results = await fastify.plexLabelSyncService.removeAllLabels()
 
-        // Emit start event
-        if (emitProgress) {
-          fastify.progress.emit({
-            operationId,
-            type: 'plex-label-removal',
-            phase: 'start',
-            progress: 0,
-            message: 'Starting Plex label removal...',
-          })
+        let message: string
+        if (results.processed === 0) {
+          message = 'No Pulsarr labels found to remove'
+        } else {
+          message = `Removed ${results.removed} Pulsarr labels from ${results.processed} items`
         }
 
-        try {
-          // Set up progress callback
-          const progressCallback = emitProgress
-            ? (progress: number, message: string) => {
-                // Determine phase based on progress
-                let phase = 'start'
-                if (progress >= 5 && progress < 25) {
-                  phase = 'fetching-data'
-                } else if (progress >= 25 && progress < 90) {
-                  phase = 'processing-content'
-                } else if (progress >= 90) {
-                  phase = 'complete'
-                }
-
-                fastify.progress.emit({
-                  operationId,
-                  type: 'plex-label-removal',
-                  phase,
-                  progress,
-                  message,
-                })
-              }
-            : undefined
-
-          // Call the service method to remove Pulsarr labels
-          const results =
-            await fastify.plexLabelSyncService.removeAllLabels(progressCallback)
-
-          // Emit completion event
-          if (emitProgress) {
-            fastify.progress.emit({
-              operationId,
-              type: 'plex-label-removal',
-              phase: 'complete',
-              progress: 100,
-              message: `Completed Plex label removal: removed ${results.removed} labels from ${results.processed} items, ${results.failed} failed`,
-            })
-          }
-
-          let message: string
-          if (results.processed === 0) {
-            message = 'No Pulsarr labels found to remove'
-          } else {
-            message = `Removed ${results.removed} Pulsarr labels from ${results.processed} items`
-          }
-
-          return {
-            success: true,
-            message,
-            mode: 'remove' as const,
-            results: {
-              processed: results.processed,
-              removed: results.removed,
-              failed: results.failed,
-            },
-          }
-        } catch (removeError) {
-          // Emit error event
-          if (emitProgress) {
-            fastify.progress.emit({
-              operationId,
-              type: 'plex-label-removal',
-              phase: 'error',
-              progress: 100,
-              message: `Error removing Plex labels: ${removeError}`,
-            })
-          }
-          throw removeError
+        return {
+          success: true,
+          message,
+          mode: 'remove' as const,
+          results: {
+            processed: results.processed,
+            removed: results.removed,
+            failed: results.failed,
+          },
         }
       } catch (err) {
         fastify.log.error('Error removing plex labels:', err)

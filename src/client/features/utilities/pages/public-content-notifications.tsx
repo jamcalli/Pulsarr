@@ -22,6 +22,7 @@ import { PublicContentClearAlert } from '@/features/utilities/components/public-
 import { useConfigStore } from '@/stores/configStore'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { PublicContentNotificationsPageSkeleton } from '@/features/utilities/components/public-content-notifications/public-content-notifications-page-skeleton'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 
 // Type for string URL fields only (excludes boolean 'enabled' field)
 type WebhookFieldName =
@@ -180,30 +181,7 @@ function WebhookField({
  */
 export default function PublicContentNotificationsPage() {
   const { initialize, isInitialized } = useConfigStore()
-  const [isInitializing, setIsInitializing] = React.useState(true)
-  const initializationStartTime = React.useRef<number | null>(null)
-
-  // Initialize store on mount with minimum loading duration
-  React.useEffect(() => {
-    const initializeWithMinDuration = async () => {
-      setIsInitializing(true)
-      initializationStartTime.current = Date.now()
-
-      try {
-        await initialize()
-
-        // Ensure minimum loading time for better UX
-        const elapsed = Date.now() - (initializationStartTime.current || 0)
-        const remaining = Math.max(0, 800 - elapsed) // Slightly longer than other utilities
-        await new Promise((resolve) => setTimeout(resolve, remaining))
-      } finally {
-        setIsInitializing(false)
-        initializationStartTime.current = null
-      }
-    }
-
-    initializeWithMinDuration()
-  }, [initialize])
+  const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {
     form,

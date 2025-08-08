@@ -1,13 +1,12 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 export const CreateAdminResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
 })
 
-export const CreateAdminErrorSchema = z.object({
-  message: z.string(),
-})
+export { ErrorSchema as CreateAdminErrorSchema }
 
 export const CreateAdminSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -16,5 +15,5 @@ export const CreateAdminSchema = z.object({
 })
 
 export type CreateAdminResponse = z.infer<typeof CreateAdminResponseSchema>
-export type CreateAdminError = z.infer<typeof CreateAdminErrorSchema>
+export type CreateAdminError = z.infer<typeof ErrorSchema>
 export type CreateAdmin = z.infer<typeof CreateAdminSchema>

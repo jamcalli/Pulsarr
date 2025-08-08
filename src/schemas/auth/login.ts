@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 export const LoginResponseSchema = z.object({
   success: z.boolean(),
@@ -7,9 +8,7 @@ export const LoginResponseSchema = z.object({
   redirectTo: z.string().optional(),
 })
 
-export const LoginErrorSchema = z.object({
-  message: z.string(),
-})
+export { ErrorSchema as LoginErrorSchema }
 
 export const PasswordSchema = z
   .string()
@@ -21,5 +20,5 @@ export const CredentialsSchema = z.object({
 })
 
 export type LoginResponse = z.infer<typeof LoginResponseSchema>
-export type LoginError = z.infer<typeof LoginErrorSchema>
+export type LoginError = z.infer<typeof ErrorSchema>
 export type Credentials = z.infer<typeof CredentialsSchema>

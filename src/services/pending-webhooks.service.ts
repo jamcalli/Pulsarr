@@ -47,6 +47,41 @@ export class PendingWebhooksService {
   }
 
   /**
+   * Helper method to trigger label sync for content after webhooks are processed
+   */
+  private async triggerLabelSync(
+    webhookId: number | undefined,
+    payload: unknown,
+    mediaType: 'movie' | 'show',
+  ): Promise<void> {
+    if (
+      !this.fastify.config.plexLabelSync?.enabled ||
+      !this.fastify.plexLabelSyncService ||
+      !payload ||
+      typeof payload !== 'object' ||
+      Array.isArray(payload)
+    ) {
+      return
+    }
+
+    // Validate it's a proper webhook payload
+    if (!('instanceName' in payload)) {
+      return
+    }
+
+    try {
+      await this.fastify.plexLabelSyncService.syncLabelsOnWebhook(
+        payload as WebhookPayload,
+      )
+    } catch (labelError) {
+      this.log.error(
+        `Error syncing labels for pending ${mediaType} webhook ${webhookId}:`,
+        labelError,
+      )
+    }
+  }
+
+  /**
    * Initialize the pending webhooks service
    */
   async initialize(): Promise<void> {
@@ -165,24 +200,7 @@ export class PendingWebhooksService {
 
                 if (watchlistItems.length > 0) {
                   // Also trigger label sync for the content now that we found watchlist items
-                  if (
-                    this.fastify.config.plexLabelSync?.enabled &&
-                    this.fastify.plexLabelSyncService &&
-                    moviePayload &&
-                    typeof moviePayload === 'object' &&
-                    !Array.isArray(moviePayload)
-                  ) {
-                    try {
-                      await this.fastify.plexLabelSyncService.syncLabelsOnWebhook(
-                        moviePayload as WebhookPayload,
-                      )
-                    } catch (labelError) {
-                      this.log.error(
-                        `Error syncing labels for pending webhook ${webhook.id}:`,
-                        labelError,
-                      )
-                    }
-                  }
+                  await this.triggerLabelSync(webhook.id, moviePayload, 'movie')
 
                   this.log.info(
                     `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
@@ -263,21 +281,7 @@ export class PendingWebhooksService {
 
                   if (watchlistItems.length > 0) {
                     // Also trigger label sync for the content now that we found watchlist items
-                    if (
-                      this.fastify.config.plexLabelSync?.enabled &&
-                      this.fastify.plexLabelSyncService
-                    ) {
-                      try {
-                        await this.fastify.plexLabelSyncService.syncLabelsOnWebhook(
-                          body as WebhookPayload,
-                        )
-                      } catch (labelError) {
-                        this.log.error(
-                          `Error syncing labels for pending webhook ${webhook.id}:`,
-                          labelError,
-                        )
-                      }
-                    }
+                    await this.triggerLabelSync(webhook.id, payload, 'show')
 
                     this.log.info(
                       `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,

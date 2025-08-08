@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 // Common schemas for statistics
 export const GenreStatSchema = z.object({
@@ -147,11 +148,6 @@ export const DashboardStatsSchema = z.object({
   instance_content_breakdown: z.array(InstanceBreakdownSchema).optional(),
 })
 
-// Common error schema
-export const ErrorSchema = z.object({
-  message: z.string(),
-})
-
 // Type exports
 export type GenreStat = z.infer<typeof GenreStatSchema>
 export type ContentStat = z.infer<typeof ContentStatSchema>
@@ -175,3 +171,6 @@ export type InstanceContentBreakdown = z.infer<
   typeof InstanceContentBreakdownSchema
 >
 export type Error = z.infer<typeof ErrorSchema>
+
+// Re-export shared schemas
+export { ErrorSchema }
