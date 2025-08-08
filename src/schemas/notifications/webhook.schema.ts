@@ -84,7 +84,7 @@ export const WebhookResponseSchema = z.object({
 export type WebhookQuery = z.infer<typeof WebhookQuerySchema>
 export type WebhookPayload = z.infer<typeof WebhookPayloadSchema>
 export type WebhookResponse = z.infer<typeof WebhookResponseSchema>
-export type Error = z.infer<typeof ErrorSchema>
+export type WebhookError = z.infer<typeof ErrorSchema>
 
 // Re-export shared schemas
 export { ErrorSchema }

@@ -15,12 +15,12 @@ import { toast } from 'sonner'
 import type {
   CreateTagBody as RadarrCreateTagBody,
   CreateTagResponse as RadarrCreateTagResponse,
-  Error as RadarrError
+  CreateTagError as RadarrError
 } from '@root/schemas/radarr/create-tag.schema'
 import type {
   CreateTagBody as SonarrCreateTagBody,
   CreateTagResponse as SonarrCreateTagResponse,
-  Error as SonarrError
+  CreateTagError as SonarrError
 } from '@root/schemas/sonarr/create-tag.schema'
 
 // Status type for tracking the dialog state

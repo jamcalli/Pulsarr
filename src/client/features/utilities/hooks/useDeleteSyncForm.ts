@@ -91,8 +91,12 @@ const validateDayOfWeek = (value: string | undefined): string => {
  */
 export function useDeleteSyncForm() {
   const { config, updateConfig } = useConfigStore()
-  const { schedules, fetchSchedules, setLoadingWithMinDuration } =
-    useUtilitiesStore()
+  const {
+    schedules,
+    fetchSchedules,
+    setLoadingWithMinDuration,
+    updateSchedule,
+  } = useUtilitiesStore()
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
     useState<DeleteSyncFormValues | null>(null)
@@ -258,22 +262,15 @@ export function useDeleteSyncForm() {
         // Create cron expression (seconds minutes hours day month weekday)
         const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`
 
-        scheduleUpdate = fetch('/v1/scheduler/schedules/delete-sync', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
+        scheduleUpdate = updateSchedule('delete-sync', {
+          type: 'cron',
+          config: {
+            expression: cronExpression,
           },
-          body: JSON.stringify({
-            type: 'cron',
-            config: {
-              expression: cronExpression,
-            },
-          }),
-        }).then((response) => {
-          if (!response.ok) {
+        }).then((success) => {
+          if (!success) {
             throw new Error('Failed to update schedule')
           }
-          return
         })
       }
 

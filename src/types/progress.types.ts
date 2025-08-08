@@ -47,5 +47,6 @@ export interface ProgressService {
 export interface ProgressOptions {
   progress: ProgressService
   operationId: string
-  type: 'self-watchlist' | 'others-watchlist' | 'rss-feed'
+  /** must match one of the ProgressEvent.type values */
+  type: ProgressEvent['type']
 }

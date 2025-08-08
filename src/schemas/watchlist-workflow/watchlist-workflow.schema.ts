@@ -12,7 +12,7 @@ export const WatchlistWorkflowResponseSchema = z.object({
 export type WatchlistWorkflowResponse = z.infer<
   typeof WatchlistWorkflowResponseSchema
 >
-export type Error = z.infer<typeof ErrorSchema>
+export type WatchlistWorkflowError = z.infer<typeof ErrorSchema>
 
 // Re-export shared schemas
 export { ErrorSchema }

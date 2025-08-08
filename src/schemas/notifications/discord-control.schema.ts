@@ -37,7 +37,7 @@ export type WebhookValidationRequest = z.infer<
 export type WebhookValidationResponse = z.infer<
   typeof WebhookValidationResponseSchema
 >
-export type Error = z.infer<typeof ErrorSchema>
+export type DiscordControlError = z.infer<typeof ErrorSchema>
 
 // Re-export shared schemas
 export { ErrorSchema }

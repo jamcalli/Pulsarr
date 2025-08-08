@@ -48,4 +48,4 @@ export type PlexNotificationResponse = z.infer<
   typeof PlexNotificationResponseSchema
 >
 export type PlexInstanceResult = z.infer<typeof PlexInstanceResultSchema>
-export type Error = z.infer<typeof ErrorSchema>
+export type PlexConfigurationError = z.infer<typeof ErrorSchema>

@@ -1,5 +1,6 @@
 import type { FastifyBaseLogger } from 'fastify'
 import type { FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
 import {
   getOthersWatchlist,
   processWatchlistItems,
@@ -900,16 +901,40 @@ export class PlexWatchlistService {
               itemsToInsert.map((item) => [item.key, item]),
             )
 
-            // Process each inserted item using the key to match back to original data
-            for (const { id, key } of insertedResults) {
-              const originalItem = itemMap.get(key)
-              if (originalItem) {
-                await this.plexLabelSyncService.syncLabelForNewWatchlistItem(
-                  id,
-                  originalItem.title,
-                  true, // Enable tag fetching
-                )
-              }
+            // Process inserted items with bounded concurrency to avoid overwhelming *arr services
+            const concurrencyLimit =
+              this.config.plexLabelSync?.concurrencyLimit || 5
+            const limit = pLimit(concurrencyLimit)
+
+            const syncResults = await Promise.allSettled(
+              insertedResults.map(({ id, key }) =>
+                limit(async () => {
+                  const originalItem = itemMap.get(key)
+                  if (!originalItem || !this.plexLabelSyncService) {
+                    return false
+                  }
+
+                  return await this.plexLabelSyncService.syncLabelForNewWatchlistItem(
+                    id,
+                    originalItem.title,
+                    true, // Enable tag fetching
+                  )
+                }),
+              ),
+            )
+
+            // Log any failures
+            const failed = syncResults
+              .filter((result) => result.status === 'rejected')
+              .map((result) => (result as PromiseRejectedResult).reason)
+
+            if (failed.length > 0) {
+              this.log.warn(
+                `${failed.length} of ${insertedResults.length} Plex label sync operations failed`,
+                {
+                  failures: failed,
+                },
+              )
             }
           } catch (error) {
             this.log.warn(
@@ -1716,6 +1741,21 @@ export class PlexWatchlistService {
 
       const dbItems = await this.dbService.getWatchlistItemsByKeys(keys)
 
+      // Create composite key index for O(1) lookups instead of O(n) Array.find
+      const byKeyUser = new Map<string, { id: number; title: string }>()
+      for (const item of dbItems) {
+        if (
+          item.key &&
+          typeof item.user_id === 'number' &&
+          typeof item.id === 'number'
+        ) {
+          byKeyUser.set(`${item.key}:${item.user_id}`, {
+            id: item.id,
+            title: item.title,
+          })
+        }
+      }
+
       // Group by unique content key to avoid duplicate pending syncs
       // This mimics the content-centric approach used in full sync
       const contentMap = new Map<
@@ -1725,11 +1765,8 @@ export class PlexWatchlistService {
       const userCounts = new Map<number, number>()
 
       for (const linkItem of linkItems) {
-        // Fix: Match by BOTH key AND user_id to get the correct database record
-        const dbItem = dbItems.find(
-          (item) =>
-            item.key === linkItem.key && item.user_id === linkItem.user_id,
-        )
+        // O(1) lookup using composite key instead of O(n) Array.find
+        const dbItem = byKeyUser.get(`${linkItem.key}:${linkItem.user_id}`)
 
         if (dbItem?.id && linkItem.key && typeof dbItem.id === 'number') {
           // Group by content key
