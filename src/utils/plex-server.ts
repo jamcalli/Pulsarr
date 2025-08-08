@@ -1793,7 +1793,7 @@ export class PlexServerService {
         url.searchParams.append('label.locked', '1')
 
         this.log.debug(
-          `Updating labels for rating key ${ratingKey}: [${labels.join(', ')}] with lock`,
+          `Updating labels for rating key ${ratingKey}: [${sanitized.join(', ')}] with lock`,
         )
       }
 

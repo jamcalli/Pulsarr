@@ -122,3 +122,14 @@ export const CleanupResponseSchema = BaseResponseSchema.extend({
 
 // Re-export shared schemas
 export { ErrorSchema }
+
+// Exported TypeScript types
+export type TaggingConfig = z.infer<typeof TaggingConfigSchema>
+export type CreateTaggingResponse = z.infer<typeof CreateTaggingResponseSchema>
+export type SyncTaggingResponse = z.infer<typeof SyncTaggingResponseSchema>
+export type RemoveTagsResponse = z.infer<typeof RemoveTagsResponseSchema>
+export type RemoveTagsRequest = z.infer<typeof RemoveTagsRequestSchema>
+export type TaggingOperationResponse = z.infer<
+  typeof TaggingOperationResponseSchema
+>
+export type CleanupResponse = z.infer<typeof CleanupResponseSchema>

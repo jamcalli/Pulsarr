@@ -55,3 +55,17 @@ export const PlexLabelingOperationResponseSchema = z.discriminatedUnion(
 
 // Re-export shared schemas
 export { ErrorSchema }
+
+// Exported TypeScript types
+export type SyncPlexLabelsResponse = z.infer<
+  typeof SyncPlexLabelsResponseSchema
+>
+export type CleanupPlexLabelsResponse = z.infer<
+  typeof CleanupPlexLabelsResponseSchema
+>
+export type RemovePlexLabelsResponse = z.infer<
+  typeof RemovePlexLabelsResponseSchema
+>
+export type PlexLabelingOperationResponse = z.infer<
+  typeof PlexLabelingOperationResponseSchema
+>

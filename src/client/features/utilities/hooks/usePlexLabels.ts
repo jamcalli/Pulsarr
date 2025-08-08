@@ -7,9 +7,9 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 import type {
-  SyncPlexLabelsResponseSchema,
-  CleanupPlexLabelsResponseSchema,
-  RemovePlexLabelsResponseSchema,
+  SyncPlexLabelsResponse,
+  CleanupPlexLabelsResponse,
+  RemovePlexLabelsResponse,
 } from '@root/schemas/labels/plex-labels.schema'
 import {
   PlexLabelSyncConfigSchema,
@@ -22,9 +22,9 @@ export type PlexLabelsFormValues = z.infer<typeof PlexLabelSyncConfigSchema>
 
 // Union type for action results
 type ActionResult =
-  | z.infer<typeof SyncPlexLabelsResponseSchema>
-  | z.infer<typeof CleanupPlexLabelsResponseSchema>
-  | z.infer<typeof RemovePlexLabelsResponseSchema>
+  | SyncPlexLabelsResponse
+  | CleanupPlexLabelsResponse
+  | RemovePlexLabelsResponse
 
 /**
  * Checks whether the provided action result represents a sync labels response.
@@ -33,7 +33,7 @@ type ActionResult =
  */
 export function isSyncLabelsResponse(
   response: ActionResult,
-): response is z.infer<typeof SyncPlexLabelsResponseSchema> {
+): response is SyncPlexLabelsResponse {
   return 'mode' in response && response.mode === 'sync'
 }
 
@@ -44,7 +44,7 @@ export function isSyncLabelsResponse(
  */
 export function isCleanupLabelsResponse(
   response: ActionResult,
-): response is z.infer<typeof CleanupPlexLabelsResponseSchema> {
+): response is CleanupPlexLabelsResponse {
   // CleanupLabelsResponse doesn't have a mode property, but it has specific structure
   return (
     'pending' in response && 'orphaned' in response && !('mode' in response)
@@ -58,7 +58,7 @@ export function isCleanupLabelsResponse(
  */
 export function isRemoveLabelsResponse(
   response: ActionResult,
-): response is z.infer<typeof RemovePlexLabelsResponseSchema> {
+): response is RemovePlexLabelsResponse {
   return 'mode' in response && response.mode === 'remove'
 }
 
@@ -74,9 +74,8 @@ export function isRemoveLabelsResponse(
 export function usePlexLabels() {
   const [lastActionResults, setLastActionResults] =
     useState<ActionResult | null>(null)
-  const [localRemoveResults, setLocalRemoveResults] = useState<z.infer<
-    typeof RemovePlexLabelsResponseSchema
-  > | null>(null)
+  const [localRemoveResults, setLocalRemoveResults] =
+    useState<RemovePlexLabelsResponse | null>(null)
   const [labelDefinitionsDeleted, setLabelDefinitionsDeleted] = useState(false)
   // Track when label deletion is complete
   const [isLabelDeletionComplete, setIsLabelDeletionComplete] = useState(false)
@@ -500,9 +499,7 @@ export function usePlexLabels() {
       setLocalRemoveResults(result)
 
       // Mark operation as complete
-      if (!loading.removePlexLabels) {
-        setIsLabelDeletionComplete(true)
-      }
+      setIsLabelDeletionComplete(true)
 
       setLabelDefinitionsDeleted(true)
 
@@ -516,7 +513,7 @@ export function usePlexLabels() {
         err instanceof Error ? err.message : 'Failed to remove Pulsarr labels',
       )
     }
-  }, [removePlexLabels, loading.removePlexLabels])
+  }, [removePlexLabels])
 
   // Handle toggle enable/disable with consistent loading patterns
   const handleToggle = useCallback(
