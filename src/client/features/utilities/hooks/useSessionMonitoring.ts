@@ -88,18 +88,18 @@ export function useSessionMonitoring() {
       formInitializedRef.current = true
 
       const formValues = {
-        enabled: config.plexSessionMonitoring.enabled || false,
+        enabled: config.plexSessionMonitoring.enabled ?? false,
         pollingIntervalMinutes:
-          config.plexSessionMonitoring.pollingIntervalMinutes || 15,
-        remainingEpisodes: config.plexSessionMonitoring.remainingEpisodes || 2,
-        filterUsers: config.plexSessionMonitoring.filterUsers || [],
+          config.plexSessionMonitoring.pollingIntervalMinutes ?? 15,
+        remainingEpisodes: config.plexSessionMonitoring.remainingEpisodes ?? 2,
+        filterUsers: config.plexSessionMonitoring.filterUsers ?? [],
         enableAutoReset: config.plexSessionMonitoring.enableAutoReset ?? true,
         inactivityResetDays:
-          config.plexSessionMonitoring.inactivityResetDays || 7,
+          config.plexSessionMonitoring.inactivityResetDays ?? 7,
         autoResetIntervalHours:
-          config.plexSessionMonitoring.autoResetIntervalHours || 24,
+          config.plexSessionMonitoring.autoResetIntervalHours ?? 24,
         enableProgressiveCleanup:
-          config.plexSessionMonitoring.enableProgressiveCleanup || false,
+          config.plexSessionMonitoring.enableProgressiveCleanup ?? false,
       }
 
       form.reset(formValues, { keepDirty: false })
@@ -261,18 +261,18 @@ export function useSessionMonitoring() {
   const handleCancel = useCallback(() => {
     if (config?.plexSessionMonitoring) {
       const formValues = {
-        enabled: config.plexSessionMonitoring.enabled || false,
+        enabled: config.plexSessionMonitoring.enabled ?? false,
         pollingIntervalMinutes:
-          config.plexSessionMonitoring.pollingIntervalMinutes || 15,
-        remainingEpisodes: config.plexSessionMonitoring.remainingEpisodes || 2,
-        filterUsers: config.plexSessionMonitoring.filterUsers || [],
+          config.plexSessionMonitoring.pollingIntervalMinutes ?? 15,
+        remainingEpisodes: config.plexSessionMonitoring.remainingEpisodes ?? 2,
+        filterUsers: config.plexSessionMonitoring.filterUsers ?? [],
         enableAutoReset: config.plexSessionMonitoring.enableAutoReset ?? true,
         inactivityResetDays:
-          config.plexSessionMonitoring.inactivityResetDays || 7,
+          config.plexSessionMonitoring.inactivityResetDays ?? 7,
         autoResetIntervalHours:
-          config.plexSessionMonitoring.autoResetIntervalHours || 24,
+          config.plexSessionMonitoring.autoResetIntervalHours ?? 24,
         enableProgressiveCleanup:
-          config.plexSessionMonitoring.enableProgressiveCleanup || false,
+          config.plexSessionMonitoring.enableProgressiveCleanup ?? false,
       }
       form.reset(formValues)
       setInactivityDays(config.plexSessionMonitoring.inactivityResetDays || 7)

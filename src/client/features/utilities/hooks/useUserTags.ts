@@ -167,10 +167,8 @@ export function useUserTags() {
         setTimeout(resolve, 500),
       )
 
-      Promise.all([
-        updateFormValues(), // Existing logic
-        minimumLoadingTime, // New timing enforcement
-      ]).then(() => {
+      updateFormValues()
+      minimumLoadingTime.then(() => {
         initialLoadRef.current = false
 
         // Reset tag definitions deleted state if there are active tags
