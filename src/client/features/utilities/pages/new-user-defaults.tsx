@@ -50,9 +50,9 @@ const newUserDefaultsSchema = z.object({
 type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
 
 /**
- * Displays a configuration page for setting default options applied to newly discovered Plex users.
+ * Renders a configuration page for administrators to set default options for newly discovered Plex users.
  *
- * Allows administrators to define default behaviors for new users, including sync enablement, manual approval requirements, and quota limits for movies and shows. The page provides a real-time summary of the current defaults, a form for updating settings, and explicit save/cancel controls. Changes are validated and persisted to the configuration store.
+ * Provides a validated form and real-time status summary for configuring default sync behavior, manual approval requirements, and quota limits for movies and shows. Changes are validated and saved to the configuration store, with explicit save and cancel controls and user feedback on success or failure.
  */
 export default function NewUserDefaultsPage() {
   const { config, updateConfig, isInitialized, initialize } = useConfigStore()

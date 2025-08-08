@@ -1,13 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Creates the `plex_label_tracking` table to track label synchronization between users and Plex content.
+ * Creates the `plex_label_tracking` table for tracking label synchronization between users and Plex content.
  *
- * The table maintains associations between users and their labeled Plex content, tracking all
- * labels applied to each content item as a JSON array. Uses full GUID arrays for proper matching
- * and content type for disambiguation. This content-based approach allows watchlist items to be
- * deleted without affecting label tracking, supporting "keep" mode where labels persist even
- * after users remove content from their watchlist.
+ * Adapts schema and constraints for PostgreSQL and SQLite, including enum types, JSON column handling, and unique constraints. The table stores associations between users and Plex content items using GUID arrays, content type, and applied labels, supporting persistent label tracking even after content removal from a user's watchlist.
  */
 export async function up(knex: Knex): Promise<void> {
   // Check if we're using PostgreSQL or SQLite
@@ -86,7 +82,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the `plex_label_tracking` table from the database if it exists.
+ * Reverts the migration by dropping the `plex_label_tracking` table and associated database objects.
+ *
+ * For PostgreSQL, also removes the unique functional index and the custom enum type used by the table.
  */
 export async function down(knex: Knex): Promise<void> {
   // Check if we're using PostgreSQL or SQLite

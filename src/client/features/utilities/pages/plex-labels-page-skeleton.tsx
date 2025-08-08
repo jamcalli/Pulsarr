@@ -3,12 +3,11 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Skeleton loading component for the Plex Labels page.
+ * Displays a skeleton UI that mimics the layout of the Plex Labels page while content is loading.
  *
- * Shows placeholder content while the Plex Labels page loads, including action buttons,
- * configuration switches, and form elements with proper responsive design.
+ * Renders placeholder elements for all major sections of the Plex Labels page, including headers, action buttons, status indicators, configuration forms, and settings, to provide users with a visual structure during data fetch operations.
  *
- * @returns A JSX element showing skeleton placeholders for the Plex Labels page.
+ * @returns A JSX element containing skeleton placeholders for the entire Plex Labels page.
  */
 export function PlexLabelsPageSkeleton() {
   const statusInfo = 'unknown' as const

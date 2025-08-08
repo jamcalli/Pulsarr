@@ -3,9 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a skeleton loader for the New User Defaults page, providing a visual placeholder that mimics the page's structure during loading.
+ * Renders a skeleton UI for the New User Defaults page, serving as a placeholder while the actual page content is loading.
  *
- * Use this component to indicate loading states while the actual content for configuring default settings for new Plex users is being prepared.
+ * Use this component to visually indicate loading states for the configuration of default settings for new Plex users.
  */
 export function NewUserDefaultsPageSkeleton() {
   return (
