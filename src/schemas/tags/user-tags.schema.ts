@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { ErrorSchema } from '@schemas/common/error.schema.js'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import {
+  TagPrefixSchema,
+  RemovedTagPrefixSchema,
+} from '@root/schemas/shared/prefix-validation.schema.js'
 
 // Configuration schema for user tagging
 export const TaggingConfigSchema = z.object({
@@ -8,21 +12,8 @@ export const TaggingConfigSchema = z.object({
   cleanupOrphanedTags: z.boolean(),
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
   // Despite the name, this is the complete tag label, not just a prefix
-  removedTagPrefix: z
-    .string()
-    .min(1, { message: 'Removed tag label cannot be empty' })
-    .regex(/^[a-zA-Z0-9_\-:.]+$/, {
-      message:
-        'Removed tag label can only contain letters, numbers, underscores, hyphens, colons, and dots',
-    })
-    .default('pulsarr:removed'),
-  tagPrefix: z
-    .string()
-    .min(1, { message: 'Tag prefix cannot be empty' })
-    .regex(/^[a-zA-Z0-9_\-:.]+$/, {
-      message:
-        'Tag prefix can only contain letters, numbers, underscores, hyphens, colons, and dots',
-    }),
+  removedTagPrefix: RemovedTagPrefixSchema.default('pulsarr:removed'),
+  tagPrefix: TagPrefixSchema,
 })
 
 // Status response schema - REMOVED: Configuration data is now available through main config system only
