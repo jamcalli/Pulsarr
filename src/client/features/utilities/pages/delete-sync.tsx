@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { Button } from '@/components/ui/button'
 import {
   Loader2,
@@ -89,10 +89,8 @@ export default function DeleteSyncPage() {
 
   const navigate = useNavigate()
 
-  // Initialize config store on mount
-  useEffect(() => {
-    configInitialize()
-  }, [configInitialize])
+  // Initialize config store with minimum duration for consistent UX
+  const isInitializing = useInitializeWithMinDuration(configInitialize)
 
   // Determine status based on job state
   const getStatus = () => {
@@ -118,7 +116,7 @@ export default function DeleteSyncPage() {
     )
   }
 
-  if (!deleteSyncJob) {
+  if (isInitializing || !deleteSyncJob) {
     return <DeleteSyncPageSkeleton />
   }
 

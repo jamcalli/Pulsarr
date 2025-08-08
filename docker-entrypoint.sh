@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e  # Exit immediately if any command fails
+set -euo pipefail  # Fail on unset vars and pipeline errors, too
 
 # Run migrations
 echo "Running database migrations..."

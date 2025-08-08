@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useConfigStore } from '@/stores/configStore'
 import { Button } from '@/components/ui/button'
 import {
@@ -82,10 +83,8 @@ export function UserTagsPage() {
   const sonarrRemovalProgress = useTaggingProgress('sonarr-tag-removal')
   const radarrRemovalProgress = useTaggingProgress('radarr-tag-removal')
 
-  // Initialize config store on mount
-  useEffect(() => {
-    configInitialize()
-  }, [configInitialize])
+  // Initialize config store with minimum duration for consistent UX
+  const isInitializing = useInitializeWithMinDuration(configInitialize)
 
   // Initialize progress connection
   useEffect(() => {
@@ -105,7 +104,7 @@ export function UserTagsPage() {
   // Determine if tag settings can be edited
   const canEditTagSettings = isTagDeletionComplete && tagDefinitionsDeleted
 
-  if (isLoading || !config) {
+  if (isInitializing || isLoading || !config) {
     return <UserTagsPageSkeleton />
   }
 
