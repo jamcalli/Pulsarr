@@ -5,10 +5,10 @@ import { toast } from 'sonner'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 import type {
-  CreateTaggingResponseSchema,
-  SyncTaggingResponseSchema,
-  CleanupResponseSchema,
-  RemoveTagsResponseSchema,
+  CreateTaggingResponse,
+  SyncTaggingResponse,
+  CleanupResponse,
+  RemoveTagsResponse,
 } from '@root/schemas/tags/user-tags.schema'
 import { TaggingConfigSchema } from '@root/schemas/tags/user-tags.schema'
 import type { z } from 'zod'
@@ -17,10 +17,10 @@ export type UserTagsFormValues = z.infer<typeof TaggingConfigSchema>
 
 // Union type for action results
 type ActionResult =
-  | z.infer<typeof CreateTaggingResponseSchema>
-  | z.infer<typeof SyncTaggingResponseSchema>
-  | z.infer<typeof CleanupResponseSchema>
-  | z.infer<typeof RemoveTagsResponseSchema>
+  | CreateTaggingResponse
+  | SyncTaggingResponse
+  | CleanupResponse
+  | RemoveTagsResponse
 
 /**
  * Checks whether the provided action result represents a create tag response.
@@ -29,10 +29,8 @@ type ActionResult =
  */
 export function isCreateTagResponse(
   response: ActionResult,
-): response is z.infer<typeof CreateTaggingResponseSchema> {
-  return (
-    (response as z.infer<typeof CreateTaggingResponseSchema>).mode === 'create'
-  )
+): response is CreateTaggingResponse {
+  return (response as CreateTaggingResponse).mode === 'create'
 }
 
 /**
@@ -43,8 +41,8 @@ export function isCreateTagResponse(
  */
 export function isSyncTagResponse(
   response: ActionResult,
-): response is z.infer<typeof SyncTaggingResponseSchema> {
-  return (response as z.infer<typeof SyncTaggingResponseSchema>).mode === 'sync'
+): response is SyncTaggingResponse {
+  return (response as SyncTaggingResponse).mode === 'sync'
 }
 
 /**
@@ -54,7 +52,7 @@ export function isSyncTagResponse(
  */
 export function isCleanupTagResponse(
   response: ActionResult,
-): response is z.infer<typeof CleanupResponseSchema> {
+): response is CleanupResponse {
   // CleanupTagResponse doesn't have a mode property, but it has specific structure
   return (
     'radarr' in response &&
@@ -70,10 +68,8 @@ export function isCleanupTagResponse(
  */
 export function isRemoveTagsResponse(
   response: ActionResult,
-): response is z.infer<typeof RemoveTagsResponseSchema> {
-  return (
-    (response as z.infer<typeof RemoveTagsResponseSchema>).mode === 'remove'
-  )
+): response is RemoveTagsResponse {
+  return (response as RemoveTagsResponse).mode === 'remove'
 }
 
 /**
@@ -88,9 +84,8 @@ export function isRemoveTagsResponse(
 export function useUserTags() {
   const [lastActionResults, setLastActionResults] =
     useState<ActionResult | null>(null)
-  const [localRemoveResults, setLocalRemoveResults] = useState<z.infer<
-    typeof RemoveTagsResponseSchema
-  > | null>(null)
+  const [localRemoveResults, setLocalRemoveResults] =
+    useState<RemoveTagsResponse | null>(null)
   const [tagDefinitionsDeleted, setTagDefinitionsDeleted] = useState(false)
   // Track when tag deletion is complete
   const [isTagDeletionComplete, setIsTagDeletionComplete] = useState(false)

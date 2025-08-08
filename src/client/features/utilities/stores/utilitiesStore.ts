@@ -163,6 +163,12 @@ const handleApiResponse = async <T>(
     throw new Error(errorMessage)
   }
 
+  if (response.status === 204) {
+    // No content to parse, assume caller only cares about ok/error status
+    // Cast to unknown as caller decides the expected void type
+    return undefined as unknown as T
+  }
+
   try {
     const json = await response.json()
 
