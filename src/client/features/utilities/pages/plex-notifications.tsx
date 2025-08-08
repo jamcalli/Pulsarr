@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { Button } from '@/components/ui/button'
 import { Loader2, Save, Trash2, X, Search, ServerIcon } from 'lucide-react'
 import {
@@ -34,10 +35,8 @@ import { useConfigStore } from '@/stores/configStore'
 export default function PlexNotificationsPage() {
   const initialize = useConfigStore((state) => state.initialize)
 
-  // Initialize store on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
+  // Initialize config store with minimum duration for consistent UX
+  const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {
     form,
@@ -60,7 +59,7 @@ export default function PlexNotificationsPage() {
     return 'disabled'
   }
 
-  if (isLoading) {
+  if (isInitializing || isLoading) {
     return <PlexNotificationsPageSkeleton />
   }
 

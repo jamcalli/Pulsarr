@@ -36,9 +36,12 @@ export function formatDayOfWeek(dayOfWeek: string): string {
   }
 
   const dayIndex = Number.parseInt(dayOfWeek, 10)
+  if (Number.isNaN(dayIndex) || dayIndex < 0 || dayIndex > 6) {
+    return 'Unknown day'
+  }
   const dayName = DAYS_OF_WEEK[dayIndex]
 
-  return dayName ? `on ${dayName}` : 'Unknown day'
+  return `on ${dayName}`
 }
 
 /**

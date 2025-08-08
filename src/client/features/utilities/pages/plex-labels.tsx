@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useConfigStore } from '@/stores/configStore'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { Button } from '@/components/ui/button'
 import {
   Loader2,
@@ -59,6 +60,7 @@ import { formatScheduleDisplay } from '@/lib/utils'
  */
 export function PlexLabelsPage() {
   const { config, initialize: configInitialize } = useConfigStore()
+  const isInitializing = useInitializeWithMinDuration(configInitialize)
 
   const {
     form,
@@ -98,11 +100,6 @@ export function PlexLabelsPage() {
   const plexLabelSyncProgress = useLabelingProgress('plex-label-sync')
   const plexLabelRemovalProgress = useLabelingProgress('plex-label-removal')
 
-  // Initialize config store on mount
-  useEffect(() => {
-    configInitialize()
-  }, [configInitialize])
-
   // Initialize progress connection
   useEffect(() => {
     const progressStore = useProgressStore.getState()
@@ -137,7 +134,7 @@ export function PlexLabelsPage() {
     return formatScheduleDisplay(currentTime, currentDay)
   }
 
-  if (isLoading || !config?.plexLabelSync) {
+  if (isInitializing || isLoading || !config?.plexLabelSync) {
     return <PlexLabelsPageSkeleton />
   }
 
@@ -165,10 +162,7 @@ export function PlexLabelsPage() {
               <Button
                 type="button"
                 size="sm"
-                onClick={async () => {
-                  const newEnabledState = !isEnabled
-                  await handleToggle(newEnabledState)
-                }}
+                onClick={() => handleToggle(!isEnabled)}
                 disabled={isSaving || isToggling || form.formState.isDirty}
                 variant={isEnabled ? 'error' : 'noShadow'}
                 className="h-8"

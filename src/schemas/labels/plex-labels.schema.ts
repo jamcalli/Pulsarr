@@ -1,9 +1,5 @@
 import { z } from 'zod'
-
-// Generic error schema
-export const ErrorSchema = z.object({
-  message: z.string(),
-})
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 // Base response schema with common fields
 const BaseResponseSchema = z.object({
@@ -56,3 +52,6 @@ export const PlexLabelingOperationResponseSchema = z.discriminatedUnion(
   'mode',
   [SyncPlexLabelsResponseSchema, RemovePlexLabelsResponseSchema],
 )
+
+// Re-export shared schemas
+export { ErrorSchema }
