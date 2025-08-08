@@ -16,7 +16,7 @@ export function NewUserDefaultsPageSkeleton() {
         showStatus={false}
       />
 
-      <div className="mt-6 space-y-6">
+      <div className="space-y-6">
         {/* Current Status section */}
         <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
           <h3 className="font-medium text-foreground mb-2">Current Status</h3>

@@ -211,13 +211,21 @@ export class DatabaseService {
       webhookMethods,
     ]
 
+    const bound = new Set<string>()
     for (const module of methodModules) {
       for (const [methodName, methodFunction] of Object.entries(module)) {
-        if (typeof methodFunction === 'function') {
-          // Bind each method to this DatabaseService instance
-          ;(this as Record<string, unknown>)[methodName] =
-            methodFunction.bind(this)
+        if (methodName === 'default' || typeof methodFunction !== 'function') {
+          continue
         }
+        if (bound.has(methodName)) {
+          this.log.warn(
+            `Overwriting database method '${methodName}' from a later module`,
+          )
+        }
+        // Bind each method to this DatabaseService instance
+        ;(this as Record<string, unknown>)[methodName] =
+          methodFunction.bind(this)
+        bound.add(methodName)
       }
     }
   }

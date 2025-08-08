@@ -10,17 +10,17 @@ import type { PendingLabelSyncConfig } from '@root/types/pending-label-sync-proc
  *
  * Features:
  * - Direct Plex key access (no GUID searching required)
- * - Configurable concurrency limits to prevent overwhelming Plex API
  * - Batch processing of pending syncs with rate limiting
  * - Automatic retry with exponential backoff for failed syncs
  * - Scheduled cleanup of expired sync requests
  * - Integration with scheduler service for reliable job execution
  *
  * Configuration:
- * - concurrencyLimit: Maximum number of simultaneous sync operations (default: 5)
  * - retryInterval: How often to process pending syncs in seconds (default: 30)
  * - cleanupInterval: How often to clean expired syncs in seconds (default: 60)
  * - maxAge: Maximum age for pending syncs before expiration in minutes (default: 10)
+ *
+ * Note: Concurrency control is handled by the PlexLabelSyncService using config.plexLabelSync.concurrencyLimit
  *
  * Performance Improvements:
  * - Uses watchlist_item_id instead of GUID for direct database access
@@ -50,7 +50,6 @@ export class PendingLabelSyncProcessorService {
       retryInterval: 30, // Default retry interval - not configurable
       maxAge: 10, // Default max age - not configurable
       cleanupInterval: 60, // Clean up expired syncs every minute - not configurable
-      concurrencyLimit: config.plexLabelSync?.concurrencyLimit ?? 5, // Use config value
     }
   }
 

@@ -6,15 +6,20 @@ import {
 } from '@root/schemas/shared/prefix-validation.schema.js'
 
 // Configuration schema for user tagging
-export const TaggingConfigSchema = z.object({
-  tagUsersInSonarr: z.boolean(),
-  tagUsersInRadarr: z.boolean(),
-  cleanupOrphanedTags: z.boolean(),
-  removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
-  // Despite the name, this is the complete tag label, not just a prefix
-  removedTagPrefix: RemovedTagPrefixSchema.default('pulsarr:removed'),
-  tagPrefix: TagPrefixSchema,
-})
+export const TaggingConfigSchema = z
+  .object({
+    tagUsersInSonarr: z.boolean(),
+    tagUsersInRadarr: z.boolean(),
+    cleanupOrphanedTags: z.boolean(),
+    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
+    // Despite the name, this is the complete tag label, not just a prefix
+    removedTagPrefix:
+      RemovedTagPrefixSchema.optional().default('pulsarr:removed'),
+    tagPrefix: TagPrefixSchema,
+  })
+  .refine((v) => v.removedTagMode !== 'special-tag' || v.removedTagPrefix, {
+    message: 'removedTagPrefix required when removedTagMode is "special-tag"',
+  })
 
 // Status response schema - REMOVED: Configuration data is now available through main config system only
 

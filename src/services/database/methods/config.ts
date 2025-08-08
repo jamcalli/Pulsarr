@@ -331,10 +331,12 @@ export async function createConfig(
               config.plexLabelSync.autoResetOnScheduledSync ?? false,
             scheduleTime: config.plexLabelSync.scheduleTime,
             dayOfWeek: config.plexLabelSync.dayOfWeek || '*',
-            tagSync: config.plexLabelSync.tagSync || {
-              enabled: false,
-              syncRadarrTags: true,
-              syncSonarrTags: true,
+            tagSync: {
+              enabled: config.plexLabelSync.tagSync?.enabled ?? false,
+              syncRadarrTags:
+                config.plexLabelSync.tagSync?.syncRadarrTags ?? true,
+              syncSonarrTags:
+                config.plexLabelSync.tagSync?.syncSonarrTags ?? true,
             },
           })
         : null,

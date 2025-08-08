@@ -170,7 +170,7 @@ export type InstanceBreakdown = z.infer<typeof InstanceBreakdownSchema>
 export type InstanceContentBreakdown = z.infer<
   typeof InstanceContentBreakdownSchema
 >
-export type Error = z.infer<typeof ErrorSchema>
+export type StatsError = z.infer<typeof ErrorSchema>
 
 // Re-export shared schemas
 export { ErrorSchema }

@@ -9,6 +9,9 @@ import type { Knex } from 'knex'
  * to ensure they are preserved during pending processing.
  */
 export async function up(knex: Knex): Promise<void> {
+  // Detect Postgres to use jsonb and typed default
+  const isPostgres = knex.client.config.client === 'pg'
+
   await knex.schema.createTable('pending_label_syncs', (table) => {
     table.increments('id').primary()
     table
@@ -18,7 +21,16 @@ export async function up(knex: Knex): Promise<void> {
       .inTable('watchlist_items')
       .onDelete('CASCADE')
     table.string('content_title', 255).notNullable() // Human readable title for logging
-    table.json('webhook_tags').notNullable().defaultTo('[]') // Store webhook tags as JSON array
+
+    if (isPostgres) {
+      table
+        .specificType('webhook_tags', 'jsonb')
+        .notNullable()
+        .defaultTo(knex.raw("'[]'::jsonb"))
+    } else {
+      table.json('webhook_tags').notNullable().defaultTo('[]') // SQLite
+    }
+
     table.integer('retry_count').defaultTo(0)
     table.timestamp('last_retry_at').nullable()
     table.timestamp('created_at').defaultTo(knex.fn.now())

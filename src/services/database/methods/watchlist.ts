@@ -1276,7 +1276,7 @@ export async function getWatchlistItemsWithUsersByGuids(
           'wi.guids',
           'wi.genres',
           'wi.status',
-          'u.username',
+          'u.name as username',
           'u.watchlist_id',
         )
     : await this.knex('watchlist_items as wi')
@@ -1300,7 +1300,7 @@ export async function getWatchlistItemsWithUsersByGuids(
           'wi.guids',
           'wi.genres',
           'wi.status',
-          'u.username',
+          'u.name as username',
           'u.watchlist_id',
         )
 

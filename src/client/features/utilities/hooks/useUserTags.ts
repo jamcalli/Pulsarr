@@ -8,17 +8,11 @@ import type {
   SyncTaggingResponseSchema,
   CleanupResponseSchema,
   RemoveTagsResponseSchema,
+  TaggingConfigSchema,
 } from '@root/schemas/tags/user-tags.schema'
 import type { z } from 'zod'
 
-export interface UserTagsFormValues {
-  tagUsersInSonarr: boolean
-  tagUsersInRadarr: boolean
-  cleanupOrphanedTags: boolean
-  removedTagMode: 'remove' | 'keep' | 'special-tag'
-  removedTagPrefix: string
-  tagPrefix: string
-}
+export type UserTagsFormValues = z.infer<typeof TaggingConfigSchema>
 
 // Union type for action results
 type ActionResult =

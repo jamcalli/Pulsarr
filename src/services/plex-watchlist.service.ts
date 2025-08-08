@@ -1669,7 +1669,7 @@ export class PlexWatchlistService {
 
           if (userItemsToDelete.length > 0) {
             const labelCleanupItems = userItemsToDelete.map((item) => ({
-              id: Number((item as WatchlistItem & { id: number }).id),
+              id: item.id, // Already typed correctly by getWatchlistItemsByKeys
               title: item.title,
               key: item.key,
               user_id: item.user_id,

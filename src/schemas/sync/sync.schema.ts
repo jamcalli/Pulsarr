@@ -32,7 +32,7 @@ export const InstanceTypeQuerySchema = z.object({
   type: z.enum(['radarr', 'sonarr']),
 })
 
-export type Error = z.infer<typeof ErrorSchema>
+export type SyncError = z.infer<typeof ErrorSchema>
 
 // Re-export shared schemas
 export { ErrorSchema }
