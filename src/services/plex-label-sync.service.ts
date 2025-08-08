@@ -1552,12 +1552,9 @@ export class PlexLabelSyncService {
    * Each unique content item is processed exactly once with complete user set visibility.
    * Automatically resets dangling labels at the start based on current removal mode.
    *
-   * @param progressCallback - Optional callback to report progress for SSE
    * @returns Promise resolving to sync results
    */
-  async syncAllLabels(
-    progressCallback?: (progress: number, message: string) => void,
-  ): Promise<SyncResult> {
+  async syncAllLabels(): Promise<SyncResult> {
     this.log.info('Starting Plex label synchronization')
 
     if (!this.config.enabled) {
@@ -1567,6 +1564,9 @@ export class PlexLabelSyncService {
       return { processed: 0, updated: 0, failed: 0, pending: 0 }
     }
 
+    const operationId = `plex-label-sync-${Date.now()}`
+    const emitProgress = this.fastify.progress.hasActiveConnections()
+
     const result: SyncResult = {
       processed: 0,
       updated: 0,
@@ -1575,47 +1575,62 @@ export class PlexLabelSyncService {
     }
 
     try {
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'start',
+          progress: 5,
+          message: 'Starting Plex label synchronization...',
+        })
+      }
       // Reset labels if auto-reset is enabled - this handles dangling entries from mode changes
       if (this.config.autoResetOnScheduledSync) {
         this.log.info('Performing automatic label reset before sync', {
           currentMode: this.removedLabelMode,
         })
-        progressCallback?.(
-          0,
-          'Resetting existing labels based on current removal mode...',
-        )
+        if (emitProgress) {
+          this.fastify.progress.emit({
+            operationId,
+            type: 'plex-label-sync',
+            phase: 'resetting-labels',
+            progress: 0,
+            message:
+              'Resetting existing labels based on current removal mode...',
+          })
+        }
 
         try {
-          await this.resetLabels(undefined, (progress, message) => {
-            // Map reset progress to first 15% of overall progress
-            progressCallback?.(progress * 0.15, `Reset: ${message}`)
-          })
-          progressCallback?.(15, 'Reset complete, starting sync...')
+          await this.resetLabels()
+          if (emitProgress) {
+            this.fastify.progress.emit({
+              operationId,
+              type: 'plex-label-sync',
+              phase: 'reset-complete',
+              progress: 15,
+              message: 'Reset complete, starting sync...',
+            })
+          }
           this.log.info('Label reset completed successfully')
         } catch (resetError) {
           this.log.error('Error during label reset:', resetError)
           // Continue with sync even if reset fails
-          progressCallback?.(15, 'Reset failed, continuing with sync...')
+          if (emitProgress) {
+            this.fastify.progress.emit({
+              operationId,
+              type: 'plex-label-sync',
+              phase: 'reset-failed',
+              progress: 15,
+              message: 'Reset failed, continuing with sync...',
+            })
+          }
         }
       }
 
       this.log.debug('Beginning label sync process')
 
-      // Adjust progress callback based on whether reset was performed
+      // Adjust progress based on whether reset was performed
       const baseProgress = this.config.autoResetOnScheduledSync ? 15 : 0
-      const progressMultiplier = this.config.autoResetOnScheduledSync
-        ? 0.85
-        : 1.0
-      const adjustedProgressCallback = progressCallback
-        ? (progress: number, message: string) => {
-            progressCallback(
-              baseProgress + progress * progressMultiplier,
-              message,
-            )
-          }
-        : undefined
-
-      adjustedProgressCallback?.(0, 'Starting Plex label synchronization...')
 
       // Step 1: Get all active watchlist items from database
       this.log.debug('Fetching watchlist items from database...')
@@ -1638,7 +1653,15 @@ export class PlexLabelSyncService {
         this.log.warn(
           'No watchlist items found in database - this might indicate an empty watchlist table',
         )
-        adjustedProgressCallback?.(100, 'No content found to label')
+        if (emitProgress) {
+          this.fastify.progress.emit({
+            operationId,
+            type: 'plex-label-sync',
+            phase: 'complete',
+            progress: 100,
+            message: 'No content found to label',
+          })
+        }
         return result
       }
 
@@ -1647,10 +1670,15 @@ export class PlexLabelSyncService {
       let sonarrSeriesWithTags: SonarrSeriesWithTags[] = []
 
       if (this.config.tagSync.enabled) {
-        progressCallback?.(
-          10,
-          'Fetching tag data from Radarr/Sonarr instances...',
-        )
+        if (emitProgress) {
+          this.fastify.progress.emit({
+            operationId,
+            type: 'plex-label-sync',
+            phase: 'fetching-tags',
+            progress: baseProgress + 10,
+            message: 'Fetching tag data from Radarr/Sonarr instances...',
+          })
+        }
         this.log.debug(
           'Fetching tag data from *arr instances for consolidated processing',
         )
@@ -1669,10 +1697,15 @@ export class PlexLabelSyncService {
         })
       }
 
-      progressCallback?.(
-        15,
-        `Grouping ${watchlistItems.length} watchlist items by content...`,
-      )
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'processing-content',
+          progress: baseProgress + 15,
+          message: `Grouping ${watchlistItems.length} watchlist items by content...`,
+        })
+      }
 
       // Step 3: Group watchlist items by unique content (content-centric approach)
       const contentItems =
@@ -1680,14 +1713,27 @@ export class PlexLabelSyncService {
 
       if (contentItems.length === 0) {
         this.log.warn('No valid content items found after grouping')
-        adjustedProgressCallback?.(100, 'No valid content found to process')
+        if (emitProgress) {
+          this.fastify.progress.emit({
+            operationId,
+            type: 'plex-label-sync',
+            phase: 'complete',
+            progress: 100,
+            message: 'No valid content found to process',
+          })
+        }
         return result
       }
 
-      adjustedProgressCallback?.(
-        25,
-        `Resolving ${contentItems.length} unique content items to Plex items...`,
-      )
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'processing-content',
+          progress: baseProgress + 25,
+          message: `Resolving ${contentItems.length} unique content items to Plex items...`,
+        })
+      }
 
       // Step 4: Resolve content items to actual Plex items
       const { available, unavailable } =
@@ -1704,17 +1750,28 @@ export class PlexLabelSyncService {
 
       if (available.length === 0) {
         this.log.warn('No content available in Plex for processing')
-        adjustedProgressCallback?.(
-          100,
-          'No content available in Plex - all items queued for pending sync',
-        )
+        if (emitProgress) {
+          this.fastify.progress.emit({
+            operationId,
+            type: 'plex-label-sync',
+            phase: 'complete',
+            progress: 100,
+            message:
+              'No content available in Plex - all items queued for pending sync',
+          })
+        }
         return result
       }
 
-      adjustedProgressCallback?.(
-        40,
-        `Processing ${available.length} content items with content-centric reconciliation...`,
-      )
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'processing-content',
+          progress: baseProgress + 40,
+          message: `Processing ${available.length} content items with content-centric reconciliation...`,
+        })
+      }
 
       // Step 6: Process available content
       const concurrencyLimit = this.config.concurrencyLimit || 5
@@ -1730,12 +1787,19 @@ export class PlexLabelSyncService {
               processedContentCount++
 
               // Report progress during processing
-              const processProgress =
-                40 + Math.floor((processedContentCount / available.length) * 50)
-              progressCallback?.(
-                processProgress,
-                `Processing content ${processedContentCount}/${available.length}`,
-              )
+              if (emitProgress) {
+                const processProgress =
+                  baseProgress +
+                  40 +
+                  Math.floor((processedContentCount / available.length) * 50)
+                this.fastify.progress.emit({
+                  operationId,
+                  type: 'plex-label-sync',
+                  phase: 'processing-content',
+                  progress: processProgress,
+                  message: `Processing content ${processedContentCount}/${available.length}`,
+                })
+              }
 
               // Perform complete label reconciliation for this content (user + tag labels)
               const reconciliationResult = await this.reconcileLabelsForContent(
@@ -1817,7 +1881,15 @@ export class PlexLabelSyncService {
       let cleanupMessage = ''
       if (this.config.cleanupOrphanedLabels) {
         try {
-          adjustedProgressCallback?.(95, 'Cleaning up orphaned Plex labels...')
+          if (emitProgress) {
+            this.fastify.progress.emit({
+              operationId,
+              type: 'plex-label-sync',
+              phase: 'cleanup',
+              progress: baseProgress + 95,
+              message: 'Cleaning up orphaned Plex labels...',
+            })
+          }
           const cleanupResult = await this.cleanupOrphanedPlexLabels(
             radarrMoviesWithTags,
             sonarrSeriesWithTags,
@@ -1841,10 +1913,15 @@ export class PlexLabelSyncService {
         totalLabelsRemoved,
       })
 
-      adjustedProgressCallback?.(
-        100,
-        `Completed consolidated Plex label sync (user + tags): ${result.updated} content items updated, ${result.failed} failed, ${result.pending} pending (${totalLabelsAdded} labels added, ${totalLabelsRemoved} removed)${cleanupMessage}`,
-      )
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'complete',
+          progress: 100,
+          message: `Completed Plex label sync: updated ${result.updated} items, failed ${result.failed}, pending ${result.pending}`,
+        })
+      }
 
       return result
     } catch (error) {
@@ -1852,6 +1929,17 @@ export class PlexLabelSyncService {
         'Error in content-centric batch label synchronization:',
         error,
       )
+
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'error',
+          progress: 100,
+          message: `Error syncing Plex labels: ${error}`,
+        })
+      }
+
       throw error
     }
   }
@@ -3858,16 +3946,20 @@ export class PlexLabelSyncService {
    * Removes all Pulsarr-created labels from Plex content items that are tracked in the database.
    * This preserves any other labels that were not created by Pulsarr.
    *
-   * @param progressCallback - Optional callback to report progress for SSE
    * @returns Promise resolving to removal results
    */
-  async removeAllLabels(
-    progressCallback?: (progress: number, message: string) => void,
-  ): Promise<{ processed: number; removed: number; failed: number }> {
+  async removeAllLabels(): Promise<{
+    processed: number
+    removed: number
+    failed: number
+  }> {
     if (!this.config.enabled) {
       this.log.debug('Plex label sync is disabled, skipping label removal')
       return { processed: 0, removed: 0, failed: 0 }
     }
+
+    const operationId = `plex-label-removal-${Date.now()}`
+    const emitProgress = this.fastify.progress.hasActiveConnections()
 
     const result = {
       processed: 0,
@@ -3877,15 +3969,30 @@ export class PlexLabelSyncService {
 
     try {
       this.log.info('Starting bulk Plex label removal')
-      progressCallback?.(5, 'Starting Plex label removal...')
+
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-removal',
+          phase: 'start',
+          progress: 5,
+          message: 'Starting Plex label removal...',
+        })
+      }
 
       // Get all tracked labels from database
       const trackedLabels = await this.db.getAllTrackedLabels()
       this.log.info(`Found ${trackedLabels.length} tracked labels to process`)
-      progressCallback?.(
-        15,
-        `Found ${trackedLabels.length} tracked labels to process`,
-      )
+
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-removal',
+          phase: 'fetching-data',
+          progress: 15,
+          message: `Found ${trackedLabels.length} tracked labels to process`,
+        })
+      }
 
       // Group by rating key to batch operations
       const labelsByRatingKey = new Map<string, string[]>()
@@ -3897,7 +4004,15 @@ export class PlexLabelSyncService {
         labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
       }
 
-      progressCallback?.(25, `Processing ${labelsByRatingKey.size} items`)
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-removal',
+          phase: 'processing-content',
+          progress: 25,
+          message: `Processing ${labelsByRatingKey.size} items`,
+        })
+      }
 
       // Process label removal in parallel with configurable concurrency limit
       const concurrencyLimit = this.config.concurrencyLimit || 5
@@ -3923,14 +4038,17 @@ export class PlexLabelSyncService {
               processedCount++
 
               // Report progress during processing
-              if (ratingKeyEntries.length > 0) {
+              if (emitProgress && ratingKeyEntries.length > 0) {
                 const processProgress =
                   25 +
                   Math.floor((processedCount / ratingKeyEntries.length) * 65)
-                progressCallback?.(
-                  processProgress,
-                  `Processing item ${processedCount}/${ratingKeyEntries.length}`,
-                )
+                this.fastify.progress.emit({
+                  operationId,
+                  type: 'plex-label-removal',
+                  phase: 'processing-content',
+                  progress: processProgress,
+                  message: `Processing item ${processedCount}/${ratingKeyEntries.length}`,
+                })
               }
 
               // Get current labels and remove only Pulsarr-created labels
@@ -4081,13 +4199,31 @@ export class PlexLabelSyncService {
       await this.db.clearAllLabelTracking()
 
       this.log.info('Bulk Plex label removal completed', result)
-      progressCallback?.(
-        100,
-        `Completed Plex label removal: removed ${result.removed} labels from ${result.processed} items, ${result.failed} failed`,
-      )
+
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-removal',
+          phase: 'complete',
+          progress: 100,
+          message: `Completed Plex label removal: removed ${result.removed} labels from ${result.processed} items, ${result.failed} failed`,
+        })
+      }
+
       return result
     } catch (error) {
       this.log.error('Error in bulk Plex label removal:', error)
+
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-removal',
+          phase: 'error',
+          progress: 100,
+          message: `Error removing Plex labels: ${error}`,
+        })
+      }
+
       throw error
     }
   }
@@ -4455,7 +4591,6 @@ export class PlexLabelSyncService {
    * Reuses existing cleanup logic to handle all removal modes (remove/keep/special-label).
    *
    * @param watchlistItems - Optional array of watchlist items to process. If not provided, all watchlist items are fetched.
-   * @param progressCallback - Optional callback to report progress
    * @returns Promise resolving to processing results
    */
   async resetLabels(
@@ -4467,24 +4602,43 @@ export class PlexLabelSyncService {
       type?: string
       key: string | null
     }>,
-    progressCallback?: (progress: number, message: string) => void,
   ): Promise<{ processed: number; updated: number; failed: number }> {
     if (!this.config.enabled) {
       this.log.warn('Plex label sync is disabled, skipping label reset')
       return { processed: 0, updated: 0, failed: 0 }
     }
 
+    const operationId = `plex-label-reset-${Date.now()}`
+    const emitProgress = this.fastify.progress.hasActiveConnections()
+
     try {
       this.log.info('Starting Plex label reset based on current removal mode', {
         mode: this.removedLabelMode,
         providedItems: watchlistItems?.length || 0,
       })
-      progressCallback?.(0, 'Starting Plex label reset...')
+
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'start',
+          progress: 5,
+          message: 'Starting Plex label reset...',
+        })
+      }
 
       // Step 1: Get watchlist items (compile if not provided, same pattern as syncAllLabels)
       let items = watchlistItems
       if (!items) {
-        progressCallback?.(10, 'Fetching all watchlist items...')
+        if (emitProgress) {
+          this.fastify.progress.emit({
+            operationId,
+            type: 'plex-label-sync',
+            phase: 'fetching-data',
+            progress: 10,
+            message: 'Fetching all watchlist items...',
+          })
+        }
         const [movieItems, showItems] = await Promise.all([
           this.db.getAllMovieWatchlistItems(),
           this.db.getAllShowWatchlistItems(),
@@ -4498,13 +4652,26 @@ export class PlexLabelSyncService {
         return { processed: 0, updated: 0, failed: 0 }
       }
 
-      progressCallback?.(
-        25,
-        `Processing ${items.length} watchlist items with mode: ${this.removedLabelMode}...`,
-      )
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'processing-content',
+          progress: 25,
+          message: `Processing ${items.length} watchlist items with mode: ${this.removedLabelMode}...`,
+        })
+      }
 
       // Step 2: Find orphaned tracking entries (tracking entries without corresponding watchlist items)
-      progressCallback?.(30, 'Finding orphaned tracking entries...')
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'processing-content',
+          progress: 30,
+          message: 'Finding orphaned tracking entries...',
+        })
+      }
 
       // Get all tracking entries using the proper database method
       const allTrackingEntries = await this.db.getAllTrackedLabels()
@@ -4584,17 +4751,30 @@ export class PlexLabelSyncService {
 
       if (orphanedEntries.length === 0) {
         this.log.info('No orphaned tracking entries found')
-        progressCallback?.(100, 'Reset complete - no orphaned entries found')
+        if (emitProgress) {
+          this.fastify.progress.emit({
+            operationId,
+            type: 'plex-label-sync',
+            phase: 'complete',
+            progress: 100,
+            message: 'Reset complete - no orphaned entries found',
+          })
+        }
         return { processed: items.length, updated: 0, failed: 0 }
       }
 
       this.log.info(
         `Found ${orphanedEntries.length} orphaned tracking entries to clean up`,
       )
-      progressCallback?.(
-        50,
-        `Cleaning up ${orphanedEntries.length} orphaned entries...`,
-      )
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'cleanup',
+          progress: 50,
+          message: `Cleaning up ${orphanedEntries.length} orphaned entries...`,
+        })
+      }
 
       // Step 3: Process orphaned entries based on removal mode
       let processedCount = 0
@@ -4664,7 +4844,15 @@ export class PlexLabelSyncService {
         }
       }
 
-      progressCallback?.(100, 'Reset complete')
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'complete',
+          progress: 100,
+          message: 'Reset complete',
+        })
+      }
 
       this.log.info('Plex label reset completed successfully', {
         mode: this.removedLabelMode,
@@ -4680,7 +4868,15 @@ export class PlexLabelSyncService {
       }
     } catch (error) {
       this.log.error('Error during Plex label reset:', error)
-      progressCallback?.(100, 'Reset failed')
+      if (emitProgress) {
+        this.fastify.progress.emit({
+          operationId,
+          type: 'plex-label-sync',
+          phase: 'error',
+          progress: 100,
+          message: 'Reset failed',
+        })
+      }
       throw error
     }
   }
