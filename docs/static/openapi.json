@@ -3188,7 +3188,9 @@
                           "enum": ["watchlist", "tag-based"]
                         },
                         "removedTagPrefix": {
-                          "type": "string"
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                         },
                         "removedTagMode": {
                           "type": "string",
@@ -3210,7 +3212,9 @@
                               "type": "boolean"
                             },
                             "labelPrefix": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                             },
                             "concurrencyLimit": {
                               "type": "integer",
@@ -3227,6 +3231,8 @@
                             },
                             "removedLabelPrefix": {
                               "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[a-zA-Z0-9_\\-:.]+$",
                               "description": "Prefix for special labels indicating removed users"
                             },
                             "autoResetOnScheduledSync": {
@@ -3478,7 +3484,9 @@
                           "type": "boolean"
                         },
                         "tagPrefix": {
-                          "type": "string"
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                         }
                       },
                       "additionalProperties": false
@@ -3735,7 +3743,9 @@
                     "enum": ["watchlist", "tag-based"]
                   },
                   "removedTagPrefix": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                   },
                   "removedTagMode": {
                     "type": "string",
@@ -3757,7 +3767,9 @@
                         "type": "boolean"
                       },
                       "labelPrefix": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                       },
                       "concurrencyLimit": {
                         "type": "integer",
@@ -3774,6 +3786,8 @@
                       },
                       "removedLabelPrefix": {
                         "type": "string",
+                        "minLength": 1,
+                        "pattern": "^[a-zA-Z0-9_\\-:.]+$",
                         "description": "Prefix for special labels indicating removed users"
                       },
                       "autoResetOnScheduledSync": {
@@ -4021,7 +4035,9 @@
                     "type": "boolean"
                   },
                   "tagPrefix": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                   }
                 },
                 "additionalProperties": false
@@ -4224,7 +4240,9 @@
                           "enum": ["watchlist", "tag-based"]
                         },
                         "removedTagPrefix": {
-                          "type": "string"
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                         },
                         "removedTagMode": {
                           "type": "string",
@@ -4246,7 +4264,9 @@
                               "type": "boolean"
                             },
                             "labelPrefix": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                             },
                             "concurrencyLimit": {
                               "type": "integer",
@@ -4263,6 +4283,8 @@
                             },
                             "removedLabelPrefix": {
                               "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[a-zA-Z0-9_\\-:.]+$",
                               "description": "Prefix for special labels indicating removed users"
                             },
                             "autoResetOnScheduledSync": {
@@ -4514,7 +4536,9 @@
                           "type": "boolean"
                         },
                         "tagPrefix": {
-                          "type": "string"
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                         }
                       },
                       "additionalProperties": false
