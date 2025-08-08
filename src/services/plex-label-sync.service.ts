@@ -122,8 +122,7 @@ export class PlexLabelSyncService {
    * @returns True if this is a user-specific label
    */
   private isUserSpecificLabel(labelName: string): boolean {
-    const userPattern = new RegExp(`^${this.config.labelPrefix}:user:`, 'i')
-    return userPattern.test(labelName)
+    return labelName.toLowerCase().startsWith(`${this.config.labelPrefix}:`)
   }
 
   /**
@@ -147,27 +146,13 @@ export class PlexLabelSyncService {
    */
   private isUserTaggingSystemTag(tagName: string): boolean {
     const tagPrefix = this.fastify.config.tagPrefix || 'pulsarr:user'
-    const userTagPattern = new RegExp(`^${this.escapeRegex(tagPrefix)}:`, 'i')
-
-    // Also filter out special removal tags from user tag service
     const removedTagPrefix =
       this.fastify.config.removedTagPrefix || 'pulsarr:removed'
-    const removedTagPattern = new RegExp(
-      `^${this.escapeRegex(removedTagPrefix)}`,
-      'i',
+
+    return (
+      tagName.toLowerCase().startsWith(`${tagPrefix}:`.toLowerCase()) ||
+      tagName.toLowerCase().startsWith(removedTagPrefix.toLowerCase())
     )
-
-    return userTagPattern.test(tagName) || removedTagPattern.test(tagName)
-  }
-
-  /**
-   * Escapes special regex characters in a string
-   *
-   * @param string - The string to escape
-   * @returns Escaped string safe for regex
-   */
-  private escapeRegex(string: string): string {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   }
 
   /**
