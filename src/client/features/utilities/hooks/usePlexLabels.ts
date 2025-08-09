@@ -517,6 +517,19 @@ export function usePlexLabels() {
     }
   }, [removePlexLabels])
 
+  // Memoize lastResults to avoid referential churn
+  const lastResults = useMemo(
+    () =>
+      config?.plexLabelSync
+        ? {
+            success: true,
+            message: 'Configuration loaded',
+            config: config.plexLabelSync,
+          }
+        : null,
+    [config?.plexLabelSync],
+  )
+
   // Handle toggle enable/disable with consistent loading patterns
   const handleToggle = useCallback(
     async (newEnabledState: boolean) => {
@@ -590,13 +603,7 @@ export function usePlexLabels() {
     isSyncingLabels: loading.syncPlexLabels,
     isCleaningLabels: loading.cleanupPlexLabels,
     error: error.plexLabels,
-    lastResults: config?.plexLabelSync
-      ? {
-          success: true,
-          message: 'Configuration loaded',
-          config: config.plexLabelSync,
-        }
-      : null,
+    lastResults,
     lastActionResults,
     lastRemoveResults: localRemoveResults,
     labelDefinitionsDeleted,
