@@ -455,7 +455,7 @@ export async function untrackPlexLabelBulk(
                         SELECT 1 FROM jsonb_array_elements_text(content_guids) elem 
                         WHERE lower(elem) = ANY(?)
                       )
-                      AND labels_applied ? ?
+                      AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) label WHERE lower(label) = ?)
                       AND jsonb_array_length(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
@@ -474,7 +474,7 @@ export async function untrackPlexLabelBulk(
                         SELECT 1 FROM jsonb_array_elements_text(content_guids) elem 
                         WHERE lower(elem) = ANY(?)
                       )
-                      AND labels_applied ? ?
+                      AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) label WHERE lower(label) = ?)
                       AND jsonb_array_length(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
@@ -496,11 +496,9 @@ export async function untrackPlexLabelBulk(
                   plexRatingKey,
                   normalizedGuids,
                   labelLower,
-                  labelLower,
                   userId,
                   plexRatingKey,
                   normalizedGuids,
-                  labelLower,
                   labelLower,
                 ],
               )
