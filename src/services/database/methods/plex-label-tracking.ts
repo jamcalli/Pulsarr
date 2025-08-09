@@ -442,10 +442,11 @@ export async function untrackPlexLabelBulk(
                   WITH updated_records AS (
                     UPDATE plex_label_tracking 
                     SET 
-                      labels_applied = (
-                        SELECT jsonb_agg(elem ORDER BY elem)
-                        FROM jsonb_array_elements_text(labels_applied) elem
-                        WHERE elem != ?
+                      labels_applied = COALESCE(
+                        (SELECT jsonb_agg(elem ORDER BY elem)
+                         FROM jsonb_array_elements_text(labels_applied) elem
+                         WHERE elem != ?),
+                        '[]'::jsonb
                       ),
                       synced_at = ?
                     WHERE user_id = ?
@@ -456,9 +457,12 @@ export async function untrackPlexLabelBulk(
                       )
                       AND labels_applied ? ?
                       AND jsonb_array_length(
-                        (SELECT jsonb_agg(elem ORDER BY elem)
-                         FROM jsonb_array_elements_text(labels_applied) elem
-                         WHERE elem != ?)
+                        COALESCE(
+                          (SELECT jsonb_agg(elem ORDER BY elem)
+                           FROM jsonb_array_elements_text(labels_applied) elem
+                           WHERE elem != ?),
+                          '[]'::jsonb
+                        )
                       ) > 0
                     RETURNING id
                   ),
@@ -472,9 +476,12 @@ export async function untrackPlexLabelBulk(
                       )
                       AND labels_applied ? ?
                       AND jsonb_array_length(
-                        (SELECT jsonb_agg(elem ORDER BY elem)
-                         FROM jsonb_array_elements_text(labels_applied) elem
-                         WHERE elem != ?)
+                        COALESCE(
+                          (SELECT jsonb_agg(elem ORDER BY elem)
+                           FROM jsonb_array_elements_text(labels_applied) elem
+                           WHERE elem != ?),
+                          '[]'::jsonb
+                        )
                       ) = 0
                     RETURNING id
                   )
@@ -498,9 +505,9 @@ export async function untrackPlexLabelBulk(
                   ],
                 )
 
-                const totalUpdated =
-                  (result.rows[0]?.updated_count || 0) +
-                  (result.rows[0]?.deleted_count || 0)
+                const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
+                const deletedCount = Number(result.rows[0]?.deleted_count ?? 0)
+                const totalUpdated = updatedCount + deletedCount
 
                 return {
                   plexRatingKey,
@@ -1102,18 +1109,22 @@ export async function removeTrackedLabels(
                     WITH updated_records AS (
                       UPDATE plex_label_tracking 
                       SET 
-                        labels_applied = (
-                          SELECT jsonb_agg(elem ORDER BY elem)
-                          FROM jsonb_array_elements_text(labels_applied) elem
-                          WHERE elem != ?
+                        labels_applied = COALESCE(
+                          (SELECT jsonb_agg(elem ORDER BY elem)
+                           FROM jsonb_array_elements_text(labels_applied) elem
+                           WHERE elem != ?),
+                          '[]'::jsonb
                         ),
                         synced_at = ?
                       WHERE plex_rating_key = ?
                         AND labels_applied ? ?
                         AND jsonb_array_length(
-                          (SELECT jsonb_agg(elem ORDER BY elem)
-                           FROM jsonb_array_elements_text(labels_applied) elem
-                           WHERE elem != ?)
+                          COALESCE(
+                            (SELECT jsonb_agg(elem ORDER BY elem)
+                             FROM jsonb_array_elements_text(labels_applied) elem
+                             WHERE elem != ?),
+                            '[]'::jsonb
+                          )
                         ) > 0
                       RETURNING id
                     ),
@@ -1122,9 +1133,12 @@ export async function removeTrackedLabels(
                       WHERE plex_rating_key = ?
                         AND labels_applied ? ?
                         AND jsonb_array_length(
-                          (SELECT jsonb_agg(elem ORDER BY elem)
-                           FROM jsonb_array_elements_text(labels_applied) elem
-                           WHERE elem != ?)
+                          COALESCE(
+                            (SELECT jsonb_agg(elem ORDER BY elem)
+                             FROM jsonb_array_elements_text(labels_applied) elem
+                             WHERE elem != ?),
+                            '[]'::jsonb
+                          )
                         ) = 0
                       RETURNING id
                     )
@@ -1144,9 +1158,13 @@ export async function removeTrackedLabels(
                     ],
                   )
 
-                  totalUpdated +=
-                    (result.rows[0]?.updated_count || 0) +
-                    (result.rows[0]?.deleted_count || 0)
+                  const updatedCount = Number(
+                    result.rows[0]?.updated_count ?? 0,
+                  )
+                  const deletedCount = Number(
+                    result.rows[0]?.deleted_count ?? 0,
+                  )
+                  totalUpdated += updatedCount + deletedCount
                 }
 
                 return {
@@ -1429,18 +1447,22 @@ export async function removeOrphanedTrackingBulk(
                   WITH updated_records AS (
                     UPDATE plex_label_tracking 
                     SET 
-                      labels_applied = (
-                        SELECT jsonb_agg(elem ORDER BY elem)
-                        FROM jsonb_array_elements_text(labels_applied) elem
-                        WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))
+                      labels_applied = COALESCE(
+                        (SELECT jsonb_agg(elem ORDER BY elem)
+                         FROM jsonb_array_elements_text(labels_applied) elem
+                         WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                        '[]'::jsonb
                       ),
                       synced_at = ?
                     WHERE plex_rating_key = ?
                       AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
                       AND jsonb_array_length(
-                        (SELECT jsonb_agg(elem ORDER BY elem)
-                         FROM jsonb_array_elements_text(labels_applied) elem
-                         WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb))))
+                        COALESCE(
+                          (SELECT jsonb_agg(elem ORDER BY elem)
+                           FROM jsonb_array_elements_text(labels_applied) elem
+                           WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                          '[]'::jsonb
+                        )
                       ) > 0
                     RETURNING id
                   ),
@@ -1449,9 +1471,12 @@ export async function removeOrphanedTrackingBulk(
                     WHERE plex_rating_key = ?
                       AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
                       AND jsonb_array_length(
-                        (SELECT jsonb_agg(elem ORDER BY elem)
-                         FROM jsonb_array_elements_text(labels_applied) elem
-                         WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb))))
+                        COALESCE(
+                          (SELECT jsonb_agg(elem ORDER BY elem)
+                           FROM jsonb_array_elements_text(labels_applied) elem
+                           WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                          '[]'::jsonb
+                        )
                       ) = 0
                     RETURNING id
                   )
@@ -1471,9 +1496,9 @@ export async function removeOrphanedTrackingBulk(
                   ],
                 )
 
-                const totalUpdated =
-                  (result.rows[0]?.updated_count || 0) +
-                  (result.rows[0]?.deleted_count || 0)
+                const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
+                const deletedCount = Number(result.rows[0]?.deleted_count ?? 0)
+                const totalUpdated = updatedCount + deletedCount
 
                 return {
                   plexRatingKey,
