@@ -23,9 +23,9 @@ type ActionResult =
   | RemoveTagsResponse
 
 /**
- * Determines if the given action result is a create tag response.
+ * Checks whether the provided action result represents a create tag response.
  *
- * @returns True if the response has a `mode` property set to `'create'`; otherwise, false.
+ * @returns True if the response has a `mode` property equal to `'create'`; otherwise, false.
  */
 export function isCreateTagResponse(
   response: ActionResult,
@@ -34,10 +34,12 @@ export function isCreateTagResponse(
 }
 
 /**
- * Determines whether the given action result is a sync tagging response.
+ * Checks if the provided action result represents a sync tagging response.
  *
- * @param response - The action result to check.
- * @returns True if the response has a `mode` property set to `'sync'`; otherwise, false.
+ * Returns true if the response object has a `mode` property equal to `'sync'`.
+ *
+ * @param response - The action result to evaluate
+ * @returns True if the response is a sync tagging response; otherwise, false
  */
 export function isSyncTagResponse(
   response: ActionResult,
@@ -46,9 +48,9 @@ export function isSyncTagResponse(
 }
 
 /**
- * Determines whether the given action result is a cleanup tag response.
+ * Checks if the provided action result is a cleanup tag response.
  *
- * Returns true if the response contains a `radarr` property with a `removed` field and does not include a `mode` property.
+ * Returns true if the response object contains a `radarr` property with a nested `removed` field and does not have a `mode` property, indicating it matches the structure of a cleanup operation result.
  */
 export function isCleanupTagResponse(
   response: ActionResult,
@@ -75,9 +77,9 @@ export function isRemoveTagsResponse(
 /**
  * React hook for managing user tagging configuration and actions for Sonarr and Radarr.
  *
- * Provides form state, validation, and handler functions for configuring user tagging, creating, syncing, cleaning up, and removing user tags. Integrates with external stores for state management, synchronizes configuration, and displays toast notifications for operation results. Also manages UI state for tag deletion confirmation and tracks the status of tag deletion operations.
+ * Provides form state, validation, and handler functions for configuring user tagging, as well as operations to create, sync, clean up, and remove user tags. Integrates with external stores for configuration and utility state management, synchronizes form values with the global configuration, and manages UI state for tag deletion confirmation. Displays toast notifications for operation results and tracks the status of tag deletion operations.
  *
- * @returns An object containing the form instance, operation state flags, results of the latest actions, tag deletion status, and handler functions for all user tag management operations.
+ * @returns An object containing the form instance, flags for operation states, results of the latest actions, tag deletion status, and handler functions for all user tag management operations.
  */
 export function useUserTags() {
   const [lastActionResults, setLastActionResults] =
