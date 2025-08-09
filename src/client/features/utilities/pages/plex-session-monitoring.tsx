@@ -17,9 +17,9 @@ import { PlexSessionMonitoringPageSkeleton } from '@/features/utilities/componen
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 
 /**
- * Displays the Plex Session Monitoring utility page, allowing users to configure, manage, and monitor Plex session tracking and rolling monitoring reset options.
+ * Renders the Plex Session Monitoring utility page for configuring, managing, and monitoring Plex session tracking and rolling monitoring reset options.
  *
- * Provides a comprehensive interface for enabling or disabling session monitoring, adjusting monitoring and polling settings, filtering users, configuring automatic reset and cleanup for rolling monitored shows, and viewing real-time status of rolling and inactive shows. Integrates with schedule management and offers controls for running monitoring actions and managing monitored shows.
+ * Provides an interface to enable or disable session monitoring, adjust monitoring and polling settings, filter users, configure automatic reset and cleanup for rolling monitored shows, and view real-time status of rolling and inactive shows. Includes controls for running monitoring actions and managing monitored shows.
  */
 export default function PlexSessionMonitoringPage() {
   const { initialize, isInitialized } = useConfigStore()

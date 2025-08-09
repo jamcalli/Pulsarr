@@ -2,9 +2,9 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { Config } from '@root/types/config.types.js'
 
 /**
- * Retrieves and normalizes the application configuration from the database.
+ * Retrieves the application configuration from the database, normalizing all fields and applying defaults as needed.
  *
- * Fetches the configuration record with `id: 1` from the `configs` table. All JSON fields are safely parsed with fallback defaults, and optional or boolean fields are normalized with appropriate default values. The returned configuration object includes all expected properties, including the nested `plexLabelSync` configuration, with defaults applied for any missing or malformed fields.
+ * Fetches the configuration record with `id: 1` from the `configs` table. All JSON fields are safely parsed with fallback defaults, and optional or boolean fields are normalized to ensure a complete and consistent configuration object. The returned configuration includes all expected properties, such as nested objects like `plexLabelSync`, with defaults applied for any missing or malformed fields.
  *
  * @returns The fully normalized application configuration object if found, otherwise `undefined`.
  */
@@ -232,9 +232,9 @@ export async function getConfig(
 }
 
 /**
- * Creates a new configuration record in the database, ensuring only one configuration entry exists.
+ * Creates a new configuration record in the database, enforcing that only one configuration entry exists.
  *
- * Throws an error if a configuration already exists. Serializes all JSON fields, including `plexLabelSync`, and applies default values for optional properties such as TMDB region and new user defaults. Returns the ID of the newly created configuration.
+ * Throws an error if a configuration already exists. Serializes all JSON fields, including `plexLabelSync`, and applies default values for optional properties such as TMDB region, new user defaults, and notification settings. Returns the ID of the newly created configuration.
  *
  * @param config - The configuration data to insert, excluding `id`, `created_at`, and `updated_at`
  * @returns The ID of the newly created configuration

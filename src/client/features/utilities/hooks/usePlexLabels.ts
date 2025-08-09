@@ -40,9 +40,9 @@ export function isSyncLabelsResponse(
 }
 
 /**
- * Determines whether the given action result is a cleanup labels response.
+ * Checks if the provided action result matches the structure of a cleanup labels response.
  *
- * Returns true if the response contains `pending` and `orphaned` properties and lacks a `mode` property, indicating it matches the cleanup labels response structure.
+ * Returns true if the response contains both `pending` and `orphaned` properties and does not include a `mode` property.
  *
  * @returns True if the response is a cleanup labels response; otherwise, false.
  */
@@ -56,9 +56,9 @@ export function isCleanupLabelsResponse(
 }
 
 /**
- * Determines whether the provided action result represents a remove labels response.
+ * Checks if the given action result is a remove labels response.
  *
- * @returns True if the response has a `mode` property set to `'remove'`; otherwise, false.
+ * Returns true if the response object contains a `mode` property with the value `'remove'`.
  */
 export function isRemoveLabelsResponse(
   response: ActionResult,
@@ -67,11 +67,11 @@ export function isRemoveLabelsResponse(
 }
 
 /**
- * React hook for managing Plex label synchronization configuration, scheduling, and related actions.
+ * Provides state and handlers for managing Plex label synchronization configuration, scheduling, and related actions in a React application.
  *
- * Provides a form instance with validation for Plex labeling settings, synchronizes configuration and schedule state with external stores, and exposes handlers for updating, syncing, cleaning, and removing Plex labels. Handles loading and error states, manages label deletion status, and formats schedule run times for display. Returns all relevant state, flags, and handler functions for use in UI components.
+ * This hook integrates with external stores to synchronize Plex label sync settings, manage schedules, and perform actions such as syncing, cleaning, and removing Plex labels. It exposes a validated form instance, state flags for loading and operation status, last operation results, label deletion status, schedule data, and handler functions for all supported operations. Designed for use in UI components that configure or control Plex label synchronization.
  *
- * @returns An object containing the form instance, operation state flags, last operation results, label deletion status, schedule data, and handler functions for Plex label configuration and actions.
+ * @returns An object containing the form instance, state flags, last operation results, label deletion status, schedule information, and handler functions for Plex label configuration and actions.
  */
 export function usePlexLabels() {
   const [lastActionResults, setLastActionResults] =
