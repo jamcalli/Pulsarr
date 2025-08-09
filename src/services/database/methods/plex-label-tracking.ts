@@ -496,9 +496,11 @@ export async function untrackPlexLabelBulk(
                   plexRatingKey,
                   normalizedGuids,
                   labelLower,
+                  labelLower,
                   userId,
                   plexRatingKey,
                   normalizedGuids,
+                  labelLower,
                   labelLower,
                 ],
               )
@@ -1120,7 +1122,10 @@ export async function removeTrackedLabels(
                       ),
                       synced_at = ?
                     WHERE plex_rating_key = ?
-                      AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
+                      AND EXISTS (
+                        SELECT 1 FROM jsonb_array_elements_text(labels_applied) label
+                        WHERE lower(label) = ANY(SELECT lower(elem) FROM jsonb_array_elements_text(?::jsonb) elem)
+                      )
                       AND jsonb_array_length(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
@@ -1134,7 +1139,10 @@ export async function removeTrackedLabels(
                   deleted_records AS (
                     DELETE FROM plex_label_tracking
                     WHERE plex_rating_key = ?
-                      AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
+                      AND EXISTS (
+                        SELECT 1 FROM jsonb_array_elements_text(labels_applied) label
+                        WHERE lower(label) = ANY(SELECT lower(elem) FROM jsonb_array_elements_text(?::jsonb) elem)
+                      )
                       AND jsonb_array_length(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
@@ -1478,7 +1486,10 @@ export async function removeOrphanedTrackingBulk(
                       ),
                       synced_at = ?
                     WHERE plex_rating_key = ?
-                      AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
+                      AND EXISTS (
+                        SELECT 1 FROM jsonb_array_elements_text(labels_applied) label
+                        WHERE lower(label) = ANY(SELECT lower(elem) FROM jsonb_array_elements_text(?::jsonb) elem)
+                      )
                       AND jsonb_array_length(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
@@ -1492,7 +1503,10 @@ export async function removeOrphanedTrackingBulk(
                   deleted_records AS (
                     DELETE FROM plex_label_tracking
                     WHERE plex_rating_key = ?
-                      AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
+                      AND EXISTS (
+                        SELECT 1 FROM jsonb_array_elements_text(labels_applied) label
+                        WHERE lower(label) = ANY(SELECT lower(elem) FROM jsonb_array_elements_text(?::jsonb) elem)
+                      )
                       AND jsonb_array_length(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
