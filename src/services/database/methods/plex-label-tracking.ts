@@ -91,35 +91,35 @@ export async function trackPlexLabelsBulk(
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
-          const chunkResults = await Promise.all(
-            chunk.map(async (operation) => {
-              try {
-                const {
-                  contentGuids,
-                  contentType,
-                  userId,
-                  plexRatingKey,
-                  labelsApplied,
-                } = operation
+          const chunkResults = []
+          for (const operation of chunk) {
+            try {
+              const {
+                contentGuids,
+                contentType,
+                userId,
+                plexRatingKey,
+                labelsApplied,
+              } = operation
 
-                // Handle empty arrays
-                if (contentGuids.length === 0) {
-                  throw new Error('Content GUIDs array cannot be empty')
-                }
+              // Handle empty arrays
+              if (contentGuids.length === 0) {
+                throw new Error('Content GUIDs array cannot be empty')
+              }
 
-                const normalizedGuids = Array.from(
-                  new Set(contentGuids.map((g) => g.toLowerCase())),
-                )
-                const guidsJson = JSON.stringify(normalizedGuids)
-                const labelsJson = JSON.stringify(
-                  Array.from(
-                    new Set(labelsApplied.map((l) => l.toLowerCase())),
-                  ).sort(),
-                )
+              const normalizedGuids = Array.from(
+                new Set(contentGuids.map((g) => g.toLowerCase())),
+              )
+              const guidsJson = JSON.stringify(normalizedGuids)
+              const labelsJson = JSON.stringify(
+                Array.from(
+                  new Set(labelsApplied.map((l) => l.toLowerCase())),
+                ).sort(),
+              )
 
-                // Use PostgreSQL-specific upsert with GUID matching
-                const result = await trx.raw(
-                  `
+              // Use PostgreSQL-specific upsert with GUID matching
+              const result = await trx.raw(
+                `
                   WITH matched_record AS (
                     SELECT id FROM plex_label_tracking
                     WHERE user_id = ?
@@ -155,40 +155,40 @@ export async function trackPlexLabelsBulk(
                     (SELECT id FROM updated)
                   ) as record_id
                   `,
-                  [
-                    userId,
-                    plexRatingKey,
-                    normalizedGuids,
-                    guidsJson,
-                    contentType,
-                    userId,
-                    plexRatingKey,
-                    labelsJson,
-                    this.timestamp,
-                    guidsJson,
-                    contentType,
-                    labelsJson,
-                    this.timestamp,
-                  ],
-                )
-
-                return {
+                [
+                  userId,
                   plexRatingKey,
-                  success: true,
-                  recordId: result.rows[0]?.record_id || null,
-                }
-              } catch (error) {
-                this.log.error('Failed to track labels for operation', {
-                  error,
-                  operation,
-                })
-                return {
-                  plexRatingKey: operation.plexRatingKey,
-                  success: false,
-                }
-              }
-            }),
-          )
+                  normalizedGuids,
+                  guidsJson,
+                  contentType,
+                  userId,
+                  plexRatingKey,
+                  labelsJson,
+                  this.timestamp,
+                  guidsJson,
+                  contentType,
+                  labelsJson,
+                  this.timestamp,
+                ],
+              )
+
+              chunkResults.push({
+                plexRatingKey,
+                success: true,
+                recordId: result.rows[0]?.record_id || null,
+              })
+            } catch (error) {
+              this.log.error('Failed to track labels for operation', {
+                error,
+                operation,
+              })
+              chunkResults.push({
+                plexRatingKey: operation.plexRatingKey,
+                success: false,
+                recordId: null,
+              })
+            }
+          }
 
           for (const result of chunkResults) {
             if (result.success) {
@@ -209,90 +209,90 @@ export async function trackPlexLabelsBulk(
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
-          const chunkResults = await Promise.all(
-            chunk.map(async (operation) => {
-              try {
-                const {
-                  contentGuids,
-                  contentType,
-                  userId,
-                  plexRatingKey,
-                  labelsApplied,
-                } = operation
+          const chunkResults = []
+          for (const operation of chunk) {
+            try {
+              const {
+                contentGuids,
+                contentType,
+                userId,
+                plexRatingKey,
+                labelsApplied,
+              } = operation
 
-                // Handle empty arrays
-                if (contentGuids.length === 0) {
-                  throw new Error('Content GUIDs array cannot be empty')
-                }
-
-                const normalizedGuids = Array.from(
-                  new Set(contentGuids.map((g) => g.toLowerCase())),
-                )
-                const guidsJson = JSON.stringify(normalizedGuids)
-                const normalizedLabels = Array.from(
-                  new Set(labelsApplied.map((l) => l.toLowerCase())),
-                )
-                const labelsJson = JSON.stringify(normalizedLabels.sort())
-
-                // Find existing record with overlapping GUIDs
-                const existing = await trx('plex_label_tracking')
-                  .where('user_id', userId)
-                  .where('plex_rating_key', plexRatingKey)
-                  .where((builder) => {
-                    for (const guid of normalizedGuids) {
-                      builder.orWhereRaw(
-                        "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-                        [guid],
-                      )
-                    }
-                  })
-                  .first()
-
-                let recordId: number
-
-                if (existing) {
-                  // Update existing record with new complete label set
-                  await trx('plex_label_tracking')
-                    .where('id', existing.id)
-                    .update({
-                      content_guids: guidsJson,
-                      content_type: contentType,
-                      labels_applied: labelsJson,
-                      synced_at: this.timestamp,
-                    })
-                  recordId = existing.id
-                } else {
-                  // Insert new record with complete label set
-                  const result = await trx('plex_label_tracking')
-                    .insert({
-                      content_guids: guidsJson,
-                      content_type: contentType,
-                      user_id: userId,
-                      plex_rating_key: plexRatingKey,
-                      labels_applied: labelsJson,
-                      synced_at: this.timestamp,
-                    })
-                    .returning('id')
-                  recordId = this.extractId(result)
-                }
-
-                return {
-                  plexRatingKey,
-                  success: true,
-                  recordId,
-                }
-              } catch (error) {
-                this.log.error('Failed to track labels for operation', {
-                  error,
-                  operation,
-                })
-                return {
-                  plexRatingKey: operation.plexRatingKey,
-                  success: false,
-                }
+              // Handle empty arrays
+              if (contentGuids.length === 0) {
+                throw new Error('Content GUIDs array cannot be empty')
               }
-            }),
-          )
+
+              const normalizedGuids = Array.from(
+                new Set(contentGuids.map((g) => g.toLowerCase())),
+              )
+              const guidsJson = JSON.stringify(normalizedGuids)
+              const normalizedLabels = Array.from(
+                new Set(labelsApplied.map((l) => l.toLowerCase())),
+              )
+              const labelsJson = JSON.stringify(normalizedLabels.sort())
+
+              // Find existing record with overlapping GUIDs
+              const existing = await trx('plex_label_tracking')
+                .where('user_id', userId)
+                .where('plex_rating_key', plexRatingKey)
+                .where((builder) => {
+                  for (const guid of normalizedGuids) {
+                    builder.orWhereRaw(
+                      "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+                      [guid],
+                    )
+                  }
+                })
+                .first()
+
+              let recordId: number
+
+              if (existing) {
+                // Update existing record with new complete label set
+                await trx('plex_label_tracking')
+                  .where('id', existing.id)
+                  .update({
+                    content_guids: guidsJson,
+                    content_type: contentType,
+                    labels_applied: labelsJson,
+                    synced_at: this.timestamp,
+                  })
+                recordId = existing.id
+              } else {
+                // Insert new record with complete label set
+                const result = await trx('plex_label_tracking')
+                  .insert({
+                    content_guids: guidsJson,
+                    content_type: contentType,
+                    user_id: userId,
+                    plex_rating_key: plexRatingKey,
+                    labels_applied: labelsJson,
+                    synced_at: this.timestamp,
+                  })
+                  .returning('id')
+                recordId = this.extractId(result)
+              }
+
+              chunkResults.push({
+                plexRatingKey,
+                success: true,
+                recordId,
+              })
+            } catch (error) {
+              this.log.error('Failed to track labels for operation', {
+                error,
+                operation,
+              })
+              chunkResults.push({
+                plexRatingKey: operation.plexRatingKey,
+                success: false,
+                recordId: null,
+              })
+            }
+          }
 
           for (const result of chunkResults) {
             if (result.success) {
@@ -422,23 +422,23 @@ export async function untrackPlexLabelBulk(
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
-          const chunkResults = await Promise.all(
-            chunk.map(async (operation) => {
-              try {
-                const { contentGuids, userId, plexRatingKey, labelApplied } =
-                  operation
-                const labelLower = labelApplied.toLowerCase()
+          const chunkResults = []
+          for (const operation of chunk) {
+            try {
+              const { contentGuids, userId, plexRatingKey, labelApplied } =
+                operation
+              const labelLower = labelApplied.toLowerCase()
 
-                // Handle empty arrays
-                if (contentGuids.length === 0) {
-                  throw new Error('Content GUIDs array cannot be empty')
-                }
+              // Handle empty arrays
+              if (contentGuids.length === 0) {
+                throw new Error('Content GUIDs array cannot be empty')
+              }
 
-                const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+              const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
 
-                // Use PostgreSQL CTE to handle label removal with JSON operations
-                const result = await trx.raw(
-                  `
+              // Use PostgreSQL CTE to handle label removal with JSON operations
+              const result = await trx.raw(
+                `
                   WITH updated_records AS (
                     UPDATE plex_label_tracking 
                     SET 
@@ -489,43 +489,43 @@ export async function untrackPlexLabelBulk(
                     (SELECT COUNT(*) FROM updated_records) as updated_count,
                     (SELECT COUNT(*) FROM deleted_records) as deleted_count
                   `,
-                  [
-                    labelLower,
-                    this.timestamp,
-                    userId,
-                    plexRatingKey,
-                    normalizedGuids,
-                    labelLower,
-                    labelLower,
-                    userId,
-                    plexRatingKey,
-                    normalizedGuids,
-                    labelLower,
-                    labelLower,
-                  ],
-                )
-
-                const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
-                const deletedCount = Number(result.rows[0]?.deleted_count ?? 0)
-                const totalUpdated = updatedCount + deletedCount
-
-                return {
+                [
+                  labelLower,
+                  this.timestamp,
+                  userId,
                   plexRatingKey,
-                  success: true,
-                  updatedCount: totalUpdated,
-                }
-              } catch (error) {
-                this.log.error('Failed to untrack label for operation', {
-                  error,
-                  operation,
-                })
-                return {
-                  plexRatingKey: operation.plexRatingKey,
-                  success: false,
-                }
-              }
-            }),
-          )
+                  normalizedGuids,
+                  labelLower,
+                  labelLower,
+                  userId,
+                  plexRatingKey,
+                  normalizedGuids,
+                  labelLower,
+                  labelLower,
+                ],
+              )
+
+              const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
+              const deletedCount = Number(result.rows[0]?.deleted_count ?? 0)
+              const totalUpdated = updatedCount + deletedCount
+
+              chunkResults.push({
+                plexRatingKey,
+                success: true,
+                updatedCount: totalUpdated,
+              })
+            } catch (error) {
+              this.log.error('Failed to untrack label for operation', {
+                error,
+                operation,
+              })
+              chunkResults.push({
+                plexRatingKey: operation.plexRatingKey,
+                success: false,
+                updatedCount: 0,
+              })
+            }
+          }
 
           for (const result of chunkResults) {
             if (result.success) {
@@ -546,85 +546,85 @@ export async function untrackPlexLabelBulk(
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
-          const chunkResults = await Promise.all(
-            chunk.map(async (operation) => {
-              try {
-                const { contentGuids, userId, plexRatingKey, labelApplied } =
-                  operation
-                const labelLower = labelApplied.toLowerCase()
+          const chunkResults = []
+          for (const operation of chunk) {
+            try {
+              const { contentGuids, userId, plexRatingKey, labelApplied } =
+                operation
+              const labelLower = labelApplied.toLowerCase()
 
-                // Handle empty arrays
-                if (contentGuids.length === 0) {
-                  throw new Error('Content GUIDs array cannot be empty')
-                }
+              // Handle empty arrays
+              if (contentGuids.length === 0) {
+                throw new Error('Content GUIDs array cannot be empty')
+              }
 
-                const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+              const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
 
-                // Find existing record with overlapping GUIDs
-                const existing = await trx('plex_label_tracking')
-                  .where('user_id', userId)
-                  .where('plex_rating_key', plexRatingKey)
-                  .where((builder) => {
-                    for (const guid of normalizedGuids) {
-                      builder.orWhereRaw(
-                        "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
-                        [guid],
-                      )
-                    }
-                  })
-                  .first()
-
-                if (!existing) {
-                  return { plexRatingKey, success: false }
-                }
-
-                // Parse existing labels and remove the specified one
-                const currentLabels = this.safeJsonParse<string[]>(
-                  existing.labels_applied,
-                  [],
-                  'plex_label_tracking.labels_applied',
-                )
-                const updatedLabels = currentLabels.filter(
-                  (label) => label !== labelLower,
-                )
-
-                // If no labels remain, delete the record
-                if (updatedLabels.length === 0) {
-                  const deleted = await trx('plex_label_tracking')
-                    .where('id', existing.id)
-                    .delete()
-                  return {
-                    plexRatingKey,
-                    success: true,
-                    updatedCount: deleted,
+              // Find existing record with overlapping GUIDs
+              const existing = await trx('plex_label_tracking')
+                .where('user_id', userId)
+                .where('plex_rating_key', plexRatingKey)
+                .where((builder) => {
+                  for (const guid of normalizedGuids) {
+                    builder.orWhereRaw(
+                      "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+                      [guid],
+                    )
                   }
-                }
+                })
+                .first()
 
-                // Otherwise, update with remaining labels
-                await trx('plex_label_tracking')
+              if (!existing) {
+                return { plexRatingKey, success: false }
+              }
+
+              // Parse existing labels and remove the specified one
+              const currentLabels = this.safeJsonParse<string[]>(
+                existing.labels_applied,
+                [],
+                'plex_label_tracking.labels_applied',
+              )
+              const updatedLabels = currentLabels.filter(
+                (label) => label !== labelLower,
+              )
+
+              // If no labels remain, delete the record
+              if (updatedLabels.length === 0) {
+                const deleted = await trx('plex_label_tracking')
                   .where('id', existing.id)
-                  .update({
-                    labels_applied: JSON.stringify(updatedLabels.sort()),
-                    synced_at: this.timestamp,
-                  })
-
+                  .delete()
                 return {
                   plexRatingKey,
                   success: true,
-                  updatedCount: 1,
-                }
-              } catch (error) {
-                this.log.error('Failed to untrack label for operation', {
-                  error,
-                  operation,
-                })
-                return {
-                  plexRatingKey: operation.plexRatingKey,
-                  success: false,
+                  updatedCount: deleted,
                 }
               }
-            }),
-          )
+
+              // Otherwise, update with remaining labels
+              await trx('plex_label_tracking')
+                .where('id', existing.id)
+                .update({
+                  labels_applied: JSON.stringify(updatedLabels.sort()),
+                  synced_at: this.timestamp,
+                })
+
+              chunkResults.push({
+                plexRatingKey,
+                success: true,
+                updatedCount: 1,
+              })
+            } catch (error) {
+              this.log.error('Failed to untrack label for operation', {
+                error,
+                operation,
+              })
+              chunkResults.push({
+                plexRatingKey: operation.plexRatingKey,
+                success: false,
+                updatedCount: 0,
+              })
+            }
+          }
 
           for (const result of chunkResults) {
             if (result.success) {
@@ -1097,90 +1097,89 @@ export async function removeTrackedLabels(
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
-          const chunkResults = await Promise.all(
-            chunk.map(async ({ plexRatingKey, labelsToRemove }) => {
-              try {
-                let totalUpdated = 0
+          const chunkResults = []
+          for (const { plexRatingKey, labelsToRemove } of chunk) {
+            try {
+              // Convert labels to remove to JSON for bulk processing
+              const labelsJson = JSON.stringify(
+                labelsToRemove.map((l) => l.toLowerCase()),
+              )
 
-                for (const _label of labelsToRemove) {
-                  const label = _label.toLowerCase()
-                  const result = await trx.raw(
-                    `
-                    WITH updated_records AS (
-                      UPDATE plex_label_tracking 
-                      SET 
-                        labels_applied = COALESCE(
+              const result = await trx.raw(
+                `
+                  WITH updated_records AS (
+                    UPDATE plex_label_tracking
+                    SET
+                      labels_applied = COALESCE(
+                        (SELECT jsonb_agg(elem ORDER BY elem)
+                         FROM jsonb_array_elements_text(labels_applied) elem
+                         WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                        '[]'::jsonb
+                      ),
+                      synced_at = ?
+                    WHERE plex_rating_key = ?
+                      AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
+                      AND jsonb_array_length(
+                        COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
                            FROM jsonb_array_elements_text(labels_applied) elem
-                           WHERE elem != ?),
+                           WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
                           '[]'::jsonb
-                        ),
-                        synced_at = ?
-                      WHERE plex_rating_key = ?
-                        AND labels_applied ? ?
-                        AND jsonb_array_length(
-                          COALESCE(
-                            (SELECT jsonb_agg(elem ORDER BY elem)
-                             FROM jsonb_array_elements_text(labels_applied) elem
-                             WHERE elem != ?),
-                            '[]'::jsonb
-                          )
-                        ) > 0
-                      RETURNING id
-                    ),
-                    deleted_records AS (
-                      DELETE FROM plex_label_tracking
-                      WHERE plex_rating_key = ?
-                        AND labels_applied ? ?
-                        AND jsonb_array_length(
-                          COALESCE(
-                            (SELECT jsonb_agg(elem ORDER BY elem)
-                             FROM jsonb_array_elements_text(labels_applied) elem
-                             WHERE elem != ?),
-                            '[]'::jsonb
-                          )
-                        ) = 0
-                      RETURNING id
-                    )
-                    SELECT 
-                      (SELECT COUNT(*) FROM updated_records) as updated_count,
-                      (SELECT COUNT(*) FROM deleted_records) as deleted_count
-                    `,
-                    [
-                      label,
-                      this.timestamp,
-                      plexRatingKey,
-                      label,
-                      label,
-                      plexRatingKey,
-                      label,
-                      label,
-                    ],
+                        )
+                      ) > 0
+                    RETURNING id
+                  ),
+                  deleted_records AS (
+                    DELETE FROM plex_label_tracking
+                    WHERE plex_rating_key = ?
+                      AND labels_applied ?| array(SELECT jsonb_array_elements_text(?::jsonb))
+                      AND jsonb_array_length(
+                        COALESCE(
+                          (SELECT jsonb_agg(elem ORDER BY elem)
+                           FROM jsonb_array_elements_text(labels_applied) elem
+                           WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                          '[]'::jsonb
+                        )
+                      ) = 0
+                    RETURNING id
                   )
-
-                  const updatedCount = Number(
-                    result.rows[0]?.updated_count ?? 0,
-                  )
-                  const deletedCount = Number(
-                    result.rows[0]?.deleted_count ?? 0,
-                  )
-                  totalUpdated += updatedCount + deletedCount
-                }
-
-                return {
+                  SELECT 
+                    (SELECT COUNT(*) FROM updated_records) as updated_count,
+                    (SELECT COUNT(*) FROM deleted_records) as deleted_count
+                  `,
+                [
+                  labelsJson,
+                  this.timestamp,
                   plexRatingKey,
-                  success: true,
-                  updatedCount: totalUpdated,
-                }
-              } catch (error) {
-                this.log.error(
-                  `Failed to remove labels for rating key ${plexRatingKey}`,
-                  { error, plexRatingKey, labelsToRemove },
-                )
-                return { plexRatingKey, success: false, updatedCount: 0 }
-              }
-            }),
-          )
+                  labelsJson,
+                  labelsJson,
+                  plexRatingKey,
+                  labelsJson,
+                  labelsJson,
+                ],
+              )
+
+              const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
+              const deletedCount = Number(result.rows[0]?.deleted_count ?? 0)
+              const totalUpdated = updatedCount + deletedCount
+
+              chunkResults.push({
+                plexRatingKey,
+                success: true,
+                updatedCount: totalUpdated,
+              })
+            } catch (error) {
+              this.log.error(
+                `Failed to remove labels for rating key ${plexRatingKey}`,
+                { error, plexRatingKey, labelsToRemove },
+              )
+              chunkResults.push({
+                plexRatingKey,
+                success: false,
+                updatedCount: 0,
+              })
+            }
+          }
 
           for (const result of chunkResults) {
             if (result.success) {
@@ -1198,81 +1197,82 @@ export async function removeTrackedLabels(
         })
       }
     } else {
-      // SQLite: Use chunked operations with Promise.all for better performance
+      // SQLite: Use chunked operations with serial processing for transaction consistency
       const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
-          const chunkResults = await Promise.all(
-            chunk.map(async ({ plexRatingKey, labelsToRemove }) => {
-              try {
-                const records = await trx('plex_label_tracking')
-                  .where('plex_rating_key', plexRatingKey)
-                  .select('*')
-                const toRemove = new Set(
-                  labelsToRemove.map((l) => l.toLowerCase()),
+          const chunkResults = []
+          for (const { plexRatingKey, labelsToRemove } of chunk) {
+            try {
+              const records = await trx('plex_label_tracking')
+                .where('plex_rating_key', plexRatingKey)
+                .select('*')
+              const toRemove = new Set(
+                labelsToRemove.map((l) => l.toLowerCase()),
+              )
+
+              const toUpdate: Array<{ id: number; labels: string[] }> = []
+              const toDelete: number[] = []
+
+              for (const record of records) {
+                const labels = this.safeJsonParse<string[]>(
+                  record.labels_applied,
+                  [],
+                  'plex_label_tracking.labels_applied',
+                )
+                const updatedLabels = labels.filter(
+                  (label) => !toRemove.has(label),
                 )
 
-                const toUpdate: Array<{ id: number; labels: string[] }> = []
-                const toDelete: number[] = []
-
-                for (const record of records) {
-                  const labels = this.safeJsonParse<string[]>(
-                    record.labels_applied,
-                    [],
-                    'plex_label_tracking.labels_applied',
-                  )
-                  const updatedLabels = labels.filter(
-                    (label) => !toRemove.has(label),
-                  )
-
-                  if (updatedLabels.length !== labels.length) {
-                    if (updatedLabels.length === 0) {
-                      toDelete.push(record.id)
-                    } else {
-                      toUpdate.push({ id: record.id, labels: updatedLabels })
-                    }
+                if (updatedLabels.length !== labels.length) {
+                  if (updatedLabels.length === 0) {
+                    toDelete.push(record.id)
+                  } else {
+                    toUpdate.push({ id: record.id, labels: updatedLabels })
                   }
                 }
-
-                let totalUpdated = 0
-
-                // Process updates in parallel
-                if (toUpdate.length > 0) {
-                  await Promise.all(
-                    toUpdate.map((item) =>
-                      trx('plex_label_tracking')
-                        .where('id', item.id)
-                        .update({
-                          labels_applied: JSON.stringify(item.labels.sort()),
-                          synced_at: this.timestamp,
-                        }),
-                    ),
-                  )
-                  totalUpdated += toUpdate.length
-                }
-
-                if (toDelete.length > 0) {
-                  await trx('plex_label_tracking')
-                    .whereIn('id', toDelete)
-                    .delete()
-                  totalUpdated += toDelete.length
-                }
-
-                return {
-                  plexRatingKey,
-                  success: true,
-                  updatedCount: totalUpdated,
-                }
-              } catch (error) {
-                this.log.error(
-                  `Failed to remove labels for rating key ${plexRatingKey}`,
-                  { error, plexRatingKey, labelsToRemove },
-                )
-                return { plexRatingKey, success: false, updatedCount: 0 }
               }
-            }),
-          )
+
+              let totalUpdated = 0
+
+              // Process updates serially
+              if (toUpdate.length > 0) {
+                for (const item of toUpdate) {
+                  await trx('plex_label_tracking')
+                    .where('id', item.id)
+                    .update({
+                      labels_applied: JSON.stringify(item.labels.sort()),
+                      synced_at: this.timestamp,
+                    })
+                }
+                totalUpdated += toUpdate.length
+              }
+
+              if (toDelete.length > 0) {
+                await trx('plex_label_tracking')
+                  .whereIn('id', toDelete)
+                  .delete()
+                totalUpdated += toDelete.length
+              }
+
+              chunkResults.push({
+                plexRatingKey,
+                success: true,
+                updatedCount: totalUpdated,
+              })
+            } catch (error) {
+              this.log.error(
+                `Failed to remove labels for rating key ${plexRatingKey}`,
+                { error, plexRatingKey, labelsToRemove },
+              )
+              chunkResults.push({
+                plexRatingKey,
+                success: false,
+                updatedCount: 0,
+              })
+            }
+          }
 
           for (const result of chunkResults) {
             if (result.success) {
@@ -1349,19 +1349,33 @@ export async function getOrphanedLabelTracking(
   validLabels: Set<string>,
   labelPrefix: string,
 ): Promise<Array<{ plex_rating_key: string; orphaned_labels: string[] }>> {
-  // Get all tracking records
-  const allRecords = await this.knex('plex_label_tracking')
-    .select('plex_rating_key', 'labels_applied')
-    .orderBy('plex_rating_key')
+  // Pre-filter records to only those that have labels with our prefix
+  const prefix = `${labelPrefix.toLowerCase()}:%`
 
-  if (allRecords.length === 0) {
+  const filteredRecords = this.isPostgres
+    ? await this.knex('plex_label_tracking')
+        .select('plex_rating_key', 'labels_applied')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) l WHERE l ILIKE ?)',
+          [prefix],
+        )
+        .orderBy('plex_rating_key')
+    : await this.knex('plex_label_tracking')
+        .select('plex_rating_key', 'labels_applied')
+        .whereRaw(
+          "EXISTS (SELECT 1 FROM json_each(labels_applied) WHERE json_each.type='text' AND lower(json_each.value) LIKE ?)",
+          [prefix],
+        )
+        .orderBy('plex_rating_key')
+
+  if (filteredRecords.length === 0) {
     return []
   }
 
   // Group by rating key and filter for orphaned labels
   const orphanedByRatingKey = new Map<string, string[]>()
 
-  for (const record of allRecords) {
+  for (const record of filteredRecords) {
     const labels = this.safeJsonParse<string[]>(
       record.labels_applied,
       [],
@@ -1431,19 +1445,19 @@ export async function removeOrphanedTrackingBulk(
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
-          const chunkResults = await Promise.all(
-            chunk.map(async ({ plexRatingKey, orphanedLabels }) => {
-              try {
-                if (orphanedLabels.length === 0) {
-                  return { plexRatingKey, success: true, updatedCount: 0 }
-                }
+          const chunkResults = []
+          for (const { plexRatingKey, orphanedLabels } of chunk) {
+            try {
+              if (orphanedLabels.length === 0) {
+                return { plexRatingKey, success: true, updatedCount: 0 }
+              }
 
-                const orphanedArray = JSON.stringify(
-                  orphanedLabels.map((l) => l.toLowerCase()),
-                )
+              const orphanedArray = JSON.stringify(
+                orphanedLabels.map((l) => l.toLowerCase()),
+              )
 
-                const result = await trx.raw(
-                  `
+              const result = await trx.raw(
+                `
                   WITH updated_records AS (
                     UPDATE plex_label_tracking 
                     SET 
@@ -1484,36 +1498,39 @@ export async function removeOrphanedTrackingBulk(
                     (SELECT COUNT(*) FROM updated_records) as updated_count,
                     (SELECT COUNT(*) FROM deleted_records) as deleted_count
                   `,
-                  [
-                    orphanedArray,
-                    this.timestamp,
-                    plexRatingKey,
-                    orphanedArray,
-                    orphanedArray,
-                    plexRatingKey,
-                    orphanedArray,
-                    orphanedArray,
-                  ],
-                )
-
-                const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
-                const deletedCount = Number(result.rows[0]?.deleted_count ?? 0)
-                const totalUpdated = updatedCount + deletedCount
-
-                return {
+                [
+                  orphanedArray,
+                  this.timestamp,
                   plexRatingKey,
-                  success: true,
-                  updatedCount: totalUpdated,
-                }
-              } catch (error) {
-                this.log.error(
-                  `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
-                  { error, plexRatingKey, orphanedLabels },
-                )
-                return { plexRatingKey, success: false, updatedCount: 0 }
-              }
-            }),
-          )
+                  orphanedArray,
+                  orphanedArray,
+                  plexRatingKey,
+                  orphanedArray,
+                  orphanedArray,
+                ],
+              )
+
+              const updatedCount = Number(result.rows[0]?.updated_count ?? 0)
+              const deletedCount = Number(result.rows[0]?.deleted_count ?? 0)
+              const totalUpdated = updatedCount + deletedCount
+
+              chunkResults.push({
+                plexRatingKey,
+                success: true,
+                updatedCount: totalUpdated,
+              })
+            } catch (error) {
+              this.log.error(
+                `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
+                { error, plexRatingKey, orphanedLabels },
+              )
+              chunkResults.push({
+                plexRatingKey,
+                success: false,
+                updatedCount: 0,
+              })
+            }
+          }
 
           for (const result of chunkResults) {
             if (result.success) {
@@ -1531,85 +1548,86 @@ export async function removeOrphanedTrackingBulk(
         })
       }
     } else {
-      // SQLite: Use chunked operations with Promise.all for better performance
+      // SQLite: Use chunked operations with serial processing for transaction consistency
       const chunks = this.chunkArray(operations, BATCH_CHUNK_SIZE)
 
       for (const chunk of chunks) {
         await this.knex.transaction(async (trx) => {
-          const chunkResults = await Promise.all(
-            chunk.map(async ({ plexRatingKey, orphanedLabels }) => {
-              try {
-                if (orphanedLabels.length === 0) {
-                  return { plexRatingKey, success: true, updatedCount: 0 }
-                }
+          const chunkResults = []
+          for (const { plexRatingKey, orphanedLabels } of chunk) {
+            try {
+              if (orphanedLabels.length === 0) {
+                return { plexRatingKey, success: true, updatedCount: 0 }
+              }
 
-                const records = await trx('plex_label_tracking')
-                  .where('plex_rating_key', plexRatingKey)
-                  .select('*')
-                const toRemove = new Set(
-                  orphanedLabels.map((l) => l.toLowerCase()),
+              const records = await trx('plex_label_tracking')
+                .where('plex_rating_key', plexRatingKey)
+                .select('*')
+              const toRemove = new Set(
+                orphanedLabels.map((l) => l.toLowerCase()),
+              )
+
+              const toUpdate: Array<{ id: number; labels: string[] }> = []
+              const toDelete: number[] = []
+
+              for (const record of records) {
+                const labels = this.safeJsonParse<string[]>(
+                  record.labels_applied,
+                  [],
+                  'plex_label_tracking.labels_applied',
+                )
+                const updatedLabels = labels.filter(
+                  (label) => !toRemove.has(label),
                 )
 
-                const toUpdate: Array<{ id: number; labels: string[] }> = []
-                const toDelete: number[] = []
-
-                for (const record of records) {
-                  const labels = this.safeJsonParse<string[]>(
-                    record.labels_applied,
-                    [],
-                    'plex_label_tracking.labels_applied',
-                  )
-                  const updatedLabels = labels.filter(
-                    (label) => !toRemove.has(label),
-                  )
-
-                  if (updatedLabels.length !== labels.length) {
-                    if (updatedLabels.length === 0) {
-                      toDelete.push(record.id)
-                    } else {
-                      toUpdate.push({ id: record.id, labels: updatedLabels })
-                    }
+                if (updatedLabels.length !== labels.length) {
+                  if (updatedLabels.length === 0) {
+                    toDelete.push(record.id)
+                  } else {
+                    toUpdate.push({ id: record.id, labels: updatedLabels })
                   }
                 }
-
-                let totalUpdated = 0
-
-                // Process updates in parallel
-                if (toUpdate.length > 0) {
-                  await Promise.all(
-                    toUpdate.map((item) =>
-                      trx('plex_label_tracking')
-                        .where('id', item.id)
-                        .update({
-                          labels_applied: JSON.stringify(item.labels.sort()),
-                          synced_at: this.timestamp,
-                        }),
-                    ),
-                  )
-                  totalUpdated += toUpdate.length
-                }
-
-                if (toDelete.length > 0) {
-                  await trx('plex_label_tracking')
-                    .whereIn('id', toDelete)
-                    .delete()
-                  totalUpdated += toDelete.length
-                }
-
-                return {
-                  plexRatingKey,
-                  success: true,
-                  updatedCount: totalUpdated,
-                }
-              } catch (error) {
-                this.log.error(
-                  `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
-                  { error, plexRatingKey, orphanedLabels },
-                )
-                return { plexRatingKey, success: false, updatedCount: 0 }
               }
-            }),
-          )
+
+              let totalUpdated = 0
+
+              // Process updates serially
+              if (toUpdate.length > 0) {
+                for (const item of toUpdate) {
+                  await trx('plex_label_tracking')
+                    .where('id', item.id)
+                    .update({
+                      labels_applied: JSON.stringify(item.labels.sort()),
+                      synced_at: this.timestamp,
+                    })
+                }
+                totalUpdated += toUpdate.length
+              }
+
+              if (toDelete.length > 0) {
+                await trx('plex_label_tracking')
+                  .whereIn('id', toDelete)
+                  .delete()
+                totalUpdated += toDelete.length
+              }
+
+              chunkResults.push({
+                plexRatingKey,
+                success: true,
+                updatedCount: totalUpdated,
+              })
+            } catch (error) {
+              this.log.error(
+                `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
+                { error, plexRatingKey, orphanedLabels },
+              )
+              chunkResults.push({
+                plexRatingKey,
+                success: false,
+                updatedCount: 0,
+              })
+            }
+          }
 
           for (const result of chunkResults) {
             if (result.success) {
