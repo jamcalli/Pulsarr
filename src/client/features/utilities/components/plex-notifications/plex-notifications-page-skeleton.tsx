@@ -1,32 +1,22 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a skeleton loader mimicking the Plex Notifications page layout while content is loading.
+ * Displays a responsive skeleton loader that mimics the layout of the Plex Notifications page during data loading.
  *
- * Renders placeholder elements for all major sections of the page, including the header, actions, current status, and Plex connection settings. The layout adapts responsively for mobile and desktop viewports.
+ * Shows placeholder elements for the header, actions, current status, and Plex connection settings, adapting the layout for mobile and desktop screens.
  */
 export function PlexNotificationsPageSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      {/* Header with title and badge */}
-      <div className="mb-6">
-        <div className="flex items-center">
-          <h2 className="text-2xl font-bold text-foreground">
-            Plex Notifications
-          </h2>
-          <div className="ml-2 inline-flex items-center gap-2 h-full">
-            <Skeleton className="h-7 w-20 rounded-full" />
-          </div>
-        </div>
-        <p className="text-sm text-foreground mt-1">
-          Configure Sonarr and Radarr to notify Plex of content added, removed,
-          or modified
-        </p>
-      </div>
+      <UtilitySectionHeader
+        title="Plex Notifications"
+        description="Configure Sonarr and Radarr to notify Plex of content added, removed, or modified"
+      />
 
       <div className="space-y-6">
         {/* Actions section */}

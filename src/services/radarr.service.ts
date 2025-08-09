@@ -474,6 +474,15 @@ export class RadarrService {
     }
   }
 
+  async getAllMovies(): Promise<RadarrMovie[]> {
+    try {
+      return await this.getFromRadarr<RadarrMovie[]>('movie')
+    } catch (error) {
+      this.log.error('Error fetching all movies:', error)
+      throw error
+    }
+  }
+
   async fetchMovies(bypass = false): Promise<Set<Item>> {
     try {
       const movies = await this.getFromRadarr<RadarrMovie[]>('movie')
@@ -1337,9 +1346,19 @@ export class RadarrService {
   async updateMovieTags(movieId: number, tagIds: number[]): Promise<void> {
     try {
       // First get the current movie to preserve all fields
-      const movie = await this.getFromRadarr<RadarrMovie & { tags: number[] }>(
-        `movie/${movieId}`,
-      )
+      const movie = await this.getFromRadarr<RadarrMovie>(`movie/${movieId}`)
+
+      // Normalize both tag arrays for comparison
+      const currentTags = [...new Set(movie.tags || [])].sort()
+      const newTags = [...new Set(tagIds)].sort()
+
+      // Skip update if tags are already correct
+      if (JSON.stringify(currentTags) === JSON.stringify(newTags)) {
+        this.log.debug(
+          `Tags already correct for movie ID ${movieId}, skipping update`,
+        )
+        return
+      }
 
       // Use Set to deduplicate tags
       movie.tags = [...new Set(tagIds)]

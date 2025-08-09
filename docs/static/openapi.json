@@ -3188,7 +3188,9 @@
                           "enum": ["watchlist", "tag-based"]
                         },
                         "removedTagPrefix": {
-                          "type": "string"
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                         },
                         "removedTagMode": {
                           "type": "string",
@@ -3202,6 +3204,81 @@
                         },
                         "plexServerUrl": {
                           "type": "string"
+                        },
+                        "plexLabelSync": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "labelPrefix": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                            },
+                            "concurrencyLimit": {
+                              "type": "integer",
+                              "exclusiveMinimum": true,
+                              "minimum": 0
+                            },
+                            "cleanupOrphanedLabels": {
+                              "type": "boolean"
+                            },
+                            "removedLabelMode": {
+                              "type": "string",
+                              "enum": ["remove", "keep", "special-label"],
+                              "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
+                            },
+                            "removedLabelPrefix": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[a-zA-Z0-9_\\-:.]+$",
+                              "default": "pulsarr:removed",
+                              "description": "Prefix for special labels indicating removed users"
+                            },
+                            "autoResetOnScheduledSync": {
+                              "type": "boolean",
+                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+                            },
+                            "scheduleTime": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "dayOfWeek": {
+                              "type": "string"
+                            },
+                            "tagSync": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "syncRadarrTags": {
+                                  "type": "boolean"
+                                },
+                                "syncSonarrTags": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "enabled",
+                                "syncRadarrTags",
+                                "syncSonarrTags"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "labelPrefix",
+                            "concurrencyLimit",
+                            "cleanupOrphanedLabels",
+                            "removedLabelMode",
+                            "autoResetOnScheduledSync",
+                            "dayOfWeek",
+                            "tagSync"
+                          ],
+                          "additionalProperties": false
                         },
                         "selfRss": {
                           "type": "string"
@@ -3396,6 +3473,20 @@
                           "type": "string",
                           "minLength": 2,
                           "maxLength": 2
+                        },
+                        "tagUsersInSonarr": {
+                          "type": "boolean"
+                        },
+                        "tagUsersInRadarr": {
+                          "type": "boolean"
+                        },
+                        "cleanupOrphanedTags": {
+                          "type": "boolean"
+                        },
+                        "tagPrefix": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                         }
                       },
                       "additionalProperties": false
@@ -3652,7 +3743,9 @@
                     "enum": ["watchlist", "tag-based"]
                   },
                   "removedTagPrefix": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                   },
                   "removedTagMode": {
                     "type": "string",
@@ -3666,6 +3759,81 @@
                   },
                   "plexServerUrl": {
                     "type": "string"
+                  },
+                  "plexLabelSync": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "labelPrefix": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                      },
+                      "concurrencyLimit": {
+                        "type": "integer",
+                        "exclusiveMinimum": true,
+                        "minimum": 0
+                      },
+                      "cleanupOrphanedLabels": {
+                        "type": "boolean"
+                      },
+                      "removedLabelMode": {
+                        "type": "string",
+                        "enum": ["remove", "keep", "special-label"],
+                        "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
+                      },
+                      "removedLabelPrefix": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "^[a-zA-Z0-9_\\-:.]+$",
+                        "default": "pulsarr:removed",
+                        "description": "Prefix for special labels indicating removed users"
+                      },
+                      "autoResetOnScheduledSync": {
+                        "type": "boolean",
+                        "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+                      },
+                      "scheduleTime": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "dayOfWeek": {
+                        "type": "string"
+                      },
+                      "tagSync": {
+                        "type": "object",
+                        "properties": {
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "syncRadarrTags": {
+                            "type": "boolean"
+                          },
+                          "syncSonarrTags": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "enabled",
+                          "syncRadarrTags",
+                          "syncSonarrTags"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "labelPrefix",
+                      "concurrencyLimit",
+                      "cleanupOrphanedLabels",
+                      "removedLabelMode",
+                      "autoResetOnScheduledSync",
+                      "dayOfWeek",
+                      "tagSync"
+                    ],
+                    "additionalProperties": false
                   },
                   "selfRss": {
                     "type": "string"
@@ -3856,6 +4024,20 @@
                     "type": "string",
                     "minLength": 2,
                     "maxLength": 2
+                  },
+                  "tagUsersInSonarr": {
+                    "type": "boolean"
+                  },
+                  "tagUsersInRadarr": {
+                    "type": "boolean"
+                  },
+                  "cleanupOrphanedTags": {
+                    "type": "boolean"
+                  },
+                  "tagPrefix": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                   }
                 },
                 "additionalProperties": false
@@ -4058,7 +4240,9 @@
                           "enum": ["watchlist", "tag-based"]
                         },
                         "removedTagPrefix": {
-                          "type": "string"
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                         },
                         "removedTagMode": {
                           "type": "string",
@@ -4072,6 +4256,81 @@
                         },
                         "plexServerUrl": {
                           "type": "string"
+                        },
+                        "plexLabelSync": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "labelPrefix": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                            },
+                            "concurrencyLimit": {
+                              "type": "integer",
+                              "exclusiveMinimum": true,
+                              "minimum": 0
+                            },
+                            "cleanupOrphanedLabels": {
+                              "type": "boolean"
+                            },
+                            "removedLabelMode": {
+                              "type": "string",
+                              "enum": ["remove", "keep", "special-label"],
+                              "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
+                            },
+                            "removedLabelPrefix": {
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "^[a-zA-Z0-9_\\-:.]+$",
+                              "default": "pulsarr:removed",
+                              "description": "Prefix for special labels indicating removed users"
+                            },
+                            "autoResetOnScheduledSync": {
+                              "type": "boolean",
+                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
+                            },
+                            "scheduleTime": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "dayOfWeek": {
+                              "type": "string"
+                            },
+                            "tagSync": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "syncRadarrTags": {
+                                  "type": "boolean"
+                                },
+                                "syncSonarrTags": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "enabled",
+                                "syncRadarrTags",
+                                "syncSonarrTags"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "labelPrefix",
+                            "concurrencyLimit",
+                            "cleanupOrphanedLabels",
+                            "removedLabelMode",
+                            "autoResetOnScheduledSync",
+                            "dayOfWeek",
+                            "tagSync"
+                          ],
+                          "additionalProperties": false
                         },
                         "selfRss": {
                           "type": "string"
@@ -4266,6 +4525,20 @@
                           "type": "string",
                           "minLength": 2,
                           "maxLength": 2
+                        },
+                        "tagUsersInSonarr": {
+                          "type": "boolean"
+                        },
+                        "tagUsersInRadarr": {
+                          "type": "boolean"
+                        },
+                        "cleanupOrphanedTags": {
+                          "type": "boolean"
+                        },
+                        "tagPrefix": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                         }
                       },
                       "additionalProperties": false
@@ -8462,7 +8735,275 @@
                   "type": "object",
                   "properties": {
                     "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/labels/sync": {
+      "post": {
+        "operationId": "syncPlexLabels",
+        "summary": "Sync plex labels",
+        "tags": ["Labels"],
+        "description": "Synchronize plex labels for all watchlist content. Will automatically reset labels first if enabled in configuration.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
                       "type": "string"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": ["sync"]
+                    },
+                    "results": {
+                      "type": "object",
+                      "properties": {
+                        "processed": {
+                          "type": "number"
+                        },
+                        "updated": {
+                          "type": "number"
+                        },
+                        "failed": {
+                          "type": "number"
+                        },
+                        "pending": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["processed", "updated", "failed", "pending"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["success", "message", "mode", "results"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/labels/cleanup": {
+      "post": {
+        "operationId": "cleanupOrphanedPlexLabels",
+        "summary": "Cleanup orphaned plex labels",
+        "tags": ["Labels"],
+        "description": "Clean up orphaned plex labels and expired pending syncs",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "pending": {
+                      "type": "object",
+                      "properties": {
+                        "removed": {
+                          "type": "number"
+                        },
+                        "failed": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["removed", "failed"],
+                      "additionalProperties": false
+                    },
+                    "orphaned": {
+                      "type": "object",
+                      "properties": {
+                        "removed": {
+                          "type": "number"
+                        },
+                        "failed": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["removed", "failed"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["success", "message", "pending", "orphaned"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/labels/remove": {
+      "delete": {
+        "operationId": "removePulsarrPlexLabels",
+        "summary": "Remove Pulsarr labels from Plex content",
+        "tags": ["Labels"],
+        "description": "Remove all Pulsarr-created labels from Plex content while preserving other labels",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": ["remove"]
+                    },
+                    "results": {
+                      "type": "object",
+                      "properties": {
+                        "processed": {
+                          "type": "number"
+                        },
+                        "removed": {
+                          "type": "number"
+                        },
+                        "failed": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["processed", "removed", "failed"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["success", "message", "mode", "results"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -8585,7 +9126,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -8602,7 +9144,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -8659,7 +9202,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -8676,7 +9220,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -8766,7 +9311,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -8783,7 +9329,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -8840,6 +9387,12 @@
                               },
                               "tvdbId": {
                                 "type": "number"
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
                               }
                             },
                             "required": ["title", "tvdbId"],
@@ -8934,6 +9487,12 @@
                               },
                               "tvdbId": {
                                 "type": "number"
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
                               }
                             },
                             "required": ["title", "tvdbId"],
@@ -9044,6 +9603,12 @@
                           },
                           "tmdbId": {
                             "type": "number"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           }
                         },
                         "required": ["title", "tmdbId"],
@@ -9094,7 +9659,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -9111,7 +9677,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -9798,11 +10365,12 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": {
-                      "type": "string"
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
-                  "required": ["error"],
+                  "required": ["message"],
                   "additionalProperties": false
                 }
               }
@@ -9815,11 +10383,12 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": {
-                      "type": "string"
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
-                  "required": ["error"],
+                  "required": ["message"],
                   "additionalProperties": false
                 }
               }
@@ -11886,7 +12455,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -11903,7 +12473,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -11920,7 +12491,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -11993,7 +12565,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -12010,7 +12583,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -12027,7 +12601,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -12477,7 +13052,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -12494,7 +13070,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -12511,7 +13088,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -12597,7 +13175,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -12614,7 +13193,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -12631,7 +13211,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -12700,7 +13281,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -14542,7 +15124,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -14559,7 +15142,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -14576,7 +15160,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -14649,7 +15234,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -14666,7 +15252,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -14683,7 +15270,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -14756,7 +15344,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -14773,7 +15362,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -14790,7 +15380,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -15292,7 +15883,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -15309,7 +15901,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -15326,7 +15919,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -15395,7 +15989,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -15884,7 +16479,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -15994,7 +16590,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16057,7 +16654,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16124,7 +16722,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16191,7 +16790,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16254,7 +16854,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16321,7 +16922,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16386,7 +16988,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16451,7 +17054,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16524,7 +17128,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16589,7 +17194,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16699,7 +17305,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16767,7 +17374,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -16849,228 +17457,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/tags/status": {
-      "get": {
-        "operationId": "getTaggingStatus",
-        "summary": "Get tagging status",
-        "tags": ["Tags"],
-        "description": "Retrieve the current user tagging configuration status",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "config": {
-                      "type": "object",
-                      "properties": {
-                        "tagUsersInSonarr": {
-                          "type": "boolean"
-                        },
-                        "tagUsersInRadarr": {
-                          "type": "boolean"
-                        },
-                        "cleanupOrphanedTags": {
-                          "type": "boolean"
-                        },
-                        "removedTagMode": {
-                          "type": "string",
-                          "enum": ["remove", "keep", "special-tag"],
-                          "default": "remove"
-                        },
-                        "removedTagPrefix": {
-                          "type": "string",
-                          "default": "pulsarr:removed"
-                        },
-                        "tagPrefix": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "tagUsersInSonarr",
-                        "tagUsersInRadarr",
-                        "cleanupOrphanedTags",
-                        "tagPrefix"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": ["success", "message", "config"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/tags/config": {
-      "put": {
-        "operationId": "updateTaggingConfig",
-        "summary": "Update tagging config",
-        "tags": ["Tags"],
-        "description": "Update the user tagging configuration settings",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "tagUsersInSonarr": {
-                    "type": "boolean"
-                  },
-                  "tagUsersInRadarr": {
-                    "type": "boolean"
-                  },
-                  "cleanupOrphanedTags": {
-                    "type": "boolean"
-                  },
-                  "removedTagMode": {
-                    "type": "string",
-                    "enum": ["remove", "keep", "special-tag"],
-                    "default": "remove"
-                  },
-                  "removedTagPrefix": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "^[a-zA-Z0-9_\\-:.]+$",
-                    "default": "pulsarr:removed"
-                  },
-                  "tagPrefix": {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-                  }
-                },
-                "required": [
-                  "tagUsersInSonarr",
-                  "tagUsersInRadarr",
-                  "cleanupOrphanedTags",
-                  "tagPrefix"
-                ],
-                "additionalProperties": false
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "config": {
-                      "type": "object",
-                      "properties": {
-                        "tagUsersInSonarr": {
-                          "type": "boolean"
-                        },
-                        "tagUsersInRadarr": {
-                          "type": "boolean"
-                        },
-                        "cleanupOrphanedTags": {
-                          "type": "boolean"
-                        },
-                        "removedTagMode": {
-                          "type": "string",
-                          "enum": ["remove", "keep", "special-tag"],
-                          "default": "remove"
-                        },
-                        "removedTagPrefix": {
-                          "type": "string",
-                          "default": "pulsarr:removed"
-                        },
-                        "tagPrefix": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "tagUsersInSonarr",
-                        "tagUsersInRadarr",
-                        "cleanupOrphanedTags",
-                        "tagPrefix"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": ["success", "message", "config"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["message"],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -17165,7 +17553,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -17309,7 +17698,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -17394,7 +17784,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -17531,7 +17922,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -21340,7 +21732,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -21416,7 +21809,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -22535,7 +22929,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -22552,7 +22947,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -22603,7 +22999,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -22620,7 +23017,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -22671,7 +23069,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": ["message"],
@@ -22749,6 +23148,10 @@
     {
       "name": "Content Router",
       "description": "Content routing and rule management endpoints"
+    },
+    {
+      "name": "Labels",
+      "description": "Plex label synchronization and management endpoints"
     },
     {
       "name": "Metadata",

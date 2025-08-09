@@ -48,6 +48,23 @@ const DEFAULT_APPROVAL_EXPIRATION = {
   cleanupExpiredDays: 30,
 }
 
+const DEFAULT_PLEX_LABEL_SYNC = {
+  enabled: false,
+  labelPrefix: 'pulsarr',
+  concurrencyLimit: 5,
+  cleanupOrphanedLabels: false,
+  removedLabelMode: 'remove' as const,
+  removedLabelPrefix: 'pulsarr:removed',
+  autoResetOnScheduledSync: false,
+  scheduleTime: undefined,
+  dayOfWeek: '*',
+  tagSync: {
+    enabled: false,
+    syncRadarrTags: true,
+    syncSonarrTags: true,
+  },
+}
+
 const schema = {
   type: 'object',
   required: ['port'],
@@ -443,6 +460,11 @@ const schema = {
       type: 'string',
       default: JSON.stringify(DEFAULT_APPROVAL_EXPIRATION),
     },
+    // Plex Label Sync Configuration - nested object following complex config pattern
+    plexLabelSync: {
+      type: 'string',
+      default: JSON.stringify(DEFAULT_PLEX_LABEL_SYNC),
+    },
   },
 }
 
@@ -524,6 +546,13 @@ export default fp(
             'approvalExpiration',
           )
         : DEFAULT_APPROVAL_EXPIRATION,
+      plexLabelSync: rawConfig.plexLabelSync
+        ? safeJsonParse(
+            rawConfig.plexLabelSync as string,
+            DEFAULT_PLEX_LABEL_SYNC,
+            'plexLabelSync',
+          )
+        : DEFAULT_PLEX_LABEL_SYNC,
       _isReady: false,
     }
 

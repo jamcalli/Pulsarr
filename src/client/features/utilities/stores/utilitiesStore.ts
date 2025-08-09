@@ -3,25 +3,30 @@ import { devtools } from 'zustand/middleware'
 import type {
   JobStatus,
   DeleteSyncResult,
+  ScheduleUpdate,
 } from '@root/schemas/scheduler/scheduler.schema'
 import {
-  type TaggingConfigSchema,
-  TaggingStatusResponseSchema,
   CreateTaggingResponseSchema,
   SyncTaggingResponseSchema,
   CleanupResponseSchema,
   RemoveTagsResponseSchema,
 } from '@root/schemas/tags/user-tags.schema'
+import {
+  SyncPlexLabelsResponseSchema,
+  CleanupPlexLabelsResponseSchema,
+  RemovePlexLabelsResponseSchema,
+} from '@root/schemas/labels/plex-labels.schema'
+import type {
+  RollingMonitoredShow,
+  SessionMonitoringResult,
+} from '@root/schemas/session-monitoring/session-monitoring.schema'
 import { z } from 'zod'
-
-// Single type alias needed for the function parameter
-type TaggingConfig = z.infer<typeof TaggingConfigSchema>
-
-// Use inferred type from the schema for better type safety
-type TaggingStatusResponse = z.infer<typeof TaggingStatusResponseSchema>
 
 // Use the existing schema type for the return type
 export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>
+export type PlexLabelRemovalResult = z.infer<
+  typeof RemovePlexLabelsResponseSchema
+>
 
 // Minimum loading delay for consistent UX
 const MIN_LOADING_DELAY = 500
@@ -32,6 +37,11 @@ export interface UtilitiesState {
   isLoadingRef: boolean
   removeTagsResults: TagRemovalResult | null
   showDeleteTagsConfirmation: boolean
+  removePlexLabelsResults: PlexLabelRemovalResult | null
+  showDeletePlexLabelsConfirmation: boolean
+  rollingShows: RollingMonitoredShow[] | null
+  inactiveShows: RollingMonitoredShow[] | null
+  sessionMonitoringResults: SessionMonitoringResult | null
   loading: {
     schedules: boolean
     deleteSyncDryRun: boolean
@@ -43,6 +53,17 @@ export interface UtilitiesState {
     syncUserTags: boolean
     cleanupUserTags: boolean
     removeUserTags: boolean
+    plexLabels: boolean
+    syncPlexLabels: boolean
+    cleanupPlexLabels: boolean
+    removePlexLabels: boolean
+    rollingShows: boolean
+    inactiveShows: boolean
+    sessionMonitor: boolean
+    resetShow: boolean
+    deleteShow: boolean
+    resetInactiveShows: boolean
+    updateSchedule: boolean
   }
   error: {
     schedules: string | null
@@ -55,6 +76,17 @@ export interface UtilitiesState {
     syncUserTags: string | null
     cleanupUserTags: string | null
     removeUserTags: string | null
+    plexLabels: string | null
+    syncPlexLabels: string | null
+    cleanupPlexLabels: string | null
+    removePlexLabels: string | null
+    rollingShows: string | null
+    inactiveShows: string | null
+    sessionMonitor: string | null
+    resetShow: string | null
+    deleteShow: string | null
+    resetInactiveShows: string | null
+    updateSchedule: string | null
   }
   hasLoadedSchedules: boolean
 
@@ -66,18 +98,44 @@ export interface UtilitiesState {
   runDryDeleteSync: () => Promise<void>
   runScheduleNow: (name: string) => Promise<boolean>
   toggleScheduleStatus: (name: string, enabled: boolean) => Promise<boolean>
+  updateSchedule: (
+    name: string,
+    scheduleUpdate: ScheduleUpdate,
+  ) => Promise<boolean>
   resetErrors: () => void
 
   // User tags functions
-  fetchUserTagsConfig: () => Promise<TaggingStatusResponse>
-  updateUserTagsConfig: (
-    config: TaggingConfig,
-  ) => Promise<TaggingStatusResponse>
   createUserTags: () => Promise<z.infer<typeof CreateTaggingResponseSchema>>
   syncUserTags: () => Promise<z.infer<typeof SyncTaggingResponseSchema>>
   cleanupUserTags: () => Promise<z.infer<typeof CleanupResponseSchema>>
   setShowDeleteTagsConfirmation: (show: boolean) => void
   removeUserTags: (deleteTagDefinitions: boolean) => Promise<TagRemovalResult>
+
+  // Plex labels functions
+  syncPlexLabels: () => Promise<z.infer<typeof SyncPlexLabelsResponseSchema>>
+  cleanupPlexLabels: () => Promise<
+    z.infer<typeof CleanupPlexLabelsResponseSchema>
+  >
+  setShowDeletePlexLabelsConfirmation: (show: boolean) => void
+  removePlexLabels: () => Promise<PlexLabelRemovalResult>
+
+  // Session monitoring functions
+  updateSessionMonitorSchedule: (
+    scheduleName: string,
+    intervalMinutes: number,
+  ) => Promise<boolean>
+  updateAutoResetSchedule: (
+    scheduleName: string,
+    intervalHours: number,
+  ) => Promise<boolean>
+  fetchRollingShows: () => Promise<void>
+  fetchInactiveShows: (inactivityDays: number) => Promise<void>
+  runSessionMonitor: () => Promise<SessionMonitoringResult>
+  resetShow: (id: number) => Promise<{ success: boolean; message: string }>
+  deleteShow: (id: number) => Promise<{ success: boolean; message: string }>
+  resetInactiveShows: (
+    inactivityDays: number,
+  ) => Promise<{ success: boolean; message: string; resetCount: number }>
 }
 
 // Enhanced helper function to handle API responses with Zod schema validation
@@ -103,6 +161,12 @@ const handleApiResponse = async <T>(
       }
     }
     throw new Error(errorMessage)
+  }
+
+  if (response.status === 204) {
+    // No content to parse, assume caller only cares about ok/error status
+    // Cast to unknown as caller decides the expected void type
+    return undefined as unknown as T
   }
 
   try {
@@ -223,6 +287,11 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       isLoadingRef: false,
       removeTagsResults: null,
       showDeleteTagsConfirmation: false,
+      removePlexLabelsResults: null,
+      showDeletePlexLabelsConfirmation: false,
+      rollingShows: null,
+      inactiveShows: null,
+      sessionMonitoringResults: null,
       loading: {
         schedules: false,
         deleteSyncDryRun: false,
@@ -234,6 +303,17 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         syncUserTags: false,
         cleanupUserTags: false,
         removeUserTags: false,
+        plexLabels: false,
+        syncPlexLabels: false,
+        cleanupPlexLabels: false,
+        removePlexLabels: false,
+        rollingShows: false,
+        inactiveShows: false,
+        sessionMonitor: false,
+        resetShow: false,
+        deleteShow: false,
+        resetInactiveShows: false,
+        updateSchedule: false,
       },
       error: {
         schedules: null,
@@ -246,6 +326,17 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         syncUserTags: null,
         cleanupUserTags: null,
         removeUserTags: null,
+        plexLabels: null,
+        syncPlexLabels: null,
+        cleanupPlexLabels: null,
+        removePlexLabels: null,
+        rollingShows: null,
+        inactiveShows: null,
+        sessionMonitor: null,
+        resetShow: null,
+        deleteShow: null,
+        resetInactiveShows: null,
+        updateSchedule: null,
       },
 
       // Loading state management that mimics your pattern in other components
@@ -283,6 +374,17 @@ export const useUtilitiesStore = create<UtilitiesState>()(
             syncUserTags: null,
             cleanupUserTags: null,
             removeUserTags: null,
+            plexLabels: null,
+            syncPlexLabels: null,
+            cleanupPlexLabels: null,
+            removePlexLabels: null,
+            rollingShows: null,
+            inactiveShows: null,
+            sessionMonitor: null,
+            resetShow: null,
+            deleteShow: null,
+            resetInactiveShows: null,
+            updateSchedule: null,
           },
         }))
       },
@@ -421,34 +523,28 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         }
       },
 
-      // User Tags methods
-      fetchUserTagsConfig: async () => {
-        return apiRequest<TaggingStatusResponse>({
-          url: '/v1/tags/status',
-          // Use type assertion to handle type discrepancy with default values.
-          // This is needed because Zod schemas with .default() can cause TypeScript
-          // to infer optional properties when they will actually always be present
-          // in the runtime object after validation.
-          schema:
-            TaggingStatusResponseSchema as z.ZodType<TaggingStatusResponse>,
-          loadingKey: 'userTags',
-          errorKey: 'userTags',
-          defaultErrorMessage: 'Failed to fetch user tags configuration',
-        })
+      updateSchedule: async (name: string, scheduleUpdate: ScheduleUpdate) => {
+        try {
+          const data = await apiRequest<{ success: boolean }, ScheduleUpdate>({
+            url: `/v1/scheduler/schedules/${name}`,
+            method: 'PUT',
+            body: scheduleUpdate,
+            schema: null, // No schema validation needed for response
+            loadingKey: 'updateSchedule',
+            errorKey: 'updateSchedule',
+            defaultErrorMessage: `Failed to update schedule ${name}`,
+          })
+
+          // Refresh schedules after updating
+          await get().fetchSchedules()
+
+          return data.success
+        } catch (err) {
+          return false
+        }
       },
 
-      updateUserTagsConfig: async (config: TaggingConfig) => {
-        return apiRequest<TaggingStatusResponse, TaggingConfig>({
-          url: '/v1/tags/config',
-          method: 'PUT',
-          body: config,
-          schema:
-            TaggingStatusResponseSchema as z.ZodType<TaggingStatusResponse>,
-          loadingKey: 'userTags',
-          errorKey: 'userTags',
-          defaultErrorMessage: 'Failed to update user tags configuration',
-        })
-      },
+      // User Tags methods
 
       createUserTags: async () => {
         return apiRequest<z.infer<typeof CreateTaggingResponseSchema>>({
@@ -480,6 +576,173 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           loadingKey: 'cleanupUserTags',
           errorKey: 'cleanupUserTags',
           defaultErrorMessage: 'Failed to clean up user tags',
+        })
+      },
+
+      setShowDeletePlexLabelsConfirmation: (show: boolean) => {
+        set({ showDeletePlexLabelsConfirmation: show })
+      },
+
+      // Plex Labels methods
+
+      syncPlexLabels: async () => {
+        return apiRequest<z.infer<typeof SyncPlexLabelsResponseSchema>>({
+          url: '/v1/labels/sync',
+          method: 'POST',
+          schema: SyncPlexLabelsResponseSchema,
+          loadingKey: 'syncPlexLabels',
+          errorKey: 'syncPlexLabels',
+          defaultErrorMessage: 'Failed to sync plex labels',
+        })
+      },
+
+      cleanupPlexLabels: async () => {
+        return apiRequest<z.infer<typeof CleanupPlexLabelsResponseSchema>>({
+          url: '/v1/labels/cleanup',
+          method: 'POST',
+          schema: CleanupPlexLabelsResponseSchema,
+          loadingKey: 'cleanupPlexLabels',
+          errorKey: 'cleanupPlexLabels',
+          defaultErrorMessage: 'Failed to clean up plex labels',
+        })
+      },
+
+      removePlexLabels: async () => {
+        return apiRequest<PlexLabelRemovalResult>({
+          url: '/v1/labels/remove',
+          method: 'DELETE',
+          schema: RemovePlexLabelsResponseSchema,
+          loadingKey: 'removePlexLabels',
+          errorKey: 'removePlexLabels',
+          defaultErrorMessage: 'Failed to remove Pulsarr labels',
+          onSuccess: (data) => {
+            set((state) => ({
+              ...state,
+              removePlexLabelsResults: data,
+            }))
+          },
+        })
+      },
+
+      // Session Monitoring methods
+
+      updateSessionMonitorSchedule: async (
+        scheduleName: string,
+        intervalMinutes: number,
+      ) =>
+        get().updateSchedule(scheduleName, {
+          type: 'interval',
+          config: { minutes: intervalMinutes },
+        }),
+
+      updateAutoResetSchedule: async (
+        scheduleName: string,
+        intervalHours: number,
+      ) =>
+        get().updateSchedule(scheduleName, {
+          type: 'interval',
+          config: { hours: intervalHours },
+        }),
+
+      fetchRollingShows: async () => {
+        return apiRequest<{ success: boolean; shows: RollingMonitoredShow[] }>({
+          url: '/v1/session-monitoring/rolling-monitored',
+          method: 'GET',
+          loadingKey: 'rollingShows',
+          errorKey: 'rollingShows',
+          defaultErrorMessage: 'Failed to fetch rolling shows',
+          onSuccess: (data) => {
+            set((state) => ({
+              ...state,
+              rollingShows: data.shows,
+            }))
+          },
+        })
+      },
+
+      fetchInactiveShows: async (inactivityDays: number) => {
+        return apiRequest<{
+          success: boolean
+          shows: RollingMonitoredShow[]
+          inactivityDays: number
+        }>({
+          url: `/v1/session-monitoring/rolling-monitored/inactive?inactivityDays=${inactivityDays}`,
+          method: 'GET',
+          loadingKey: 'inactiveShows',
+          errorKey: 'inactiveShows',
+          defaultErrorMessage: 'Failed to fetch inactive shows',
+          onSuccess: (data) => {
+            set((state) => ({
+              ...state,
+              inactiveShows: data.shows,
+            }))
+          },
+        })
+      },
+
+      runSessionMonitor: async () => {
+        return apiRequest<{
+          success: boolean
+          result: SessionMonitoringResult
+        }>({
+          url: '/v1/session-monitoring/run',
+          method: 'POST',
+          loadingKey: 'sessionMonitor',
+          errorKey: 'sessionMonitor',
+          defaultErrorMessage: 'Failed to run session monitor',
+          onSuccess: (data) => {
+            set((state) => ({
+              ...state,
+              sessionMonitoringResults: data.result,
+            }))
+          },
+        }).then((response) => response.result)
+      },
+
+      resetShow: async (id: number) => {
+        return apiRequest<{ success: boolean; message: string }>({
+          url: `/v1/session-monitoring/rolling-monitored/${id}/reset`,
+          method: 'POST',
+          loadingKey: 'resetShow',
+          errorKey: 'resetShow',
+          defaultErrorMessage: 'Failed to reset show',
+          onSuccess: () => {
+            // Refresh rolling shows after reset
+            get().fetchRollingShows()
+          },
+        })
+      },
+
+      deleteShow: async (id: number) => {
+        return apiRequest<{ success: boolean; message: string }>({
+          url: `/v1/session-monitoring/rolling-monitored/${id}`,
+          method: 'DELETE',
+          loadingKey: 'deleteShow',
+          errorKey: 'deleteShow',
+          defaultErrorMessage: 'Failed to delete show',
+          onSuccess: () => {
+            // Refresh rolling shows after deletion
+            get().fetchRollingShows()
+          },
+        })
+      },
+
+      resetInactiveShows: async (inactivityDays: number) => {
+        return apiRequest<
+          { success: boolean; message: string; resetCount: number },
+          { inactivityDays: number }
+        >({
+          url: '/v1/session-monitoring/rolling-monitored/reset-inactive',
+          method: 'POST',
+          body: { inactivityDays },
+          loadingKey: 'resetInactiveShows',
+          errorKey: 'resetInactiveShows',
+          defaultErrorMessage: 'Failed to reset inactive shows',
+          onSuccess: () => {
+            // Refresh both rolling and inactive shows after reset
+            get().fetchRollingShows()
+            get().fetchInactiveShows(inactivityDays)
+          },
         })
       },
     }

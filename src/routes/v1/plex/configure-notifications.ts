@@ -16,7 +16,7 @@ export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
         if (!plexToken || !plexHost) {
           return reply
             .code(400)
-            .send({ error: 'Plex token and host are required' })
+            .send({ message: 'Plex token and host are required' })
         }
 
         // Get all Radarr instances
@@ -27,7 +27,7 @@ export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
         if (radarrInstances.length === 0 && sonarrInstances.length === 0) {
           return reply
             .code(400)
-            .send({ error: 'No Radarr or Sonarr instances configured' })
+            .send({ message: 'No Radarr or Sonarr instances configured' })
         }
 
         const results = {
@@ -182,7 +182,7 @@ export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
         fastify.log.error(err)
         return reply
           .code(500)
-          .send({ error: 'Unable to configure Plex notifications' })
+          .send({ message: 'Unable to configure Plex notifications' })
       }
     },
   })

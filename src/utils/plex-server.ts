@@ -5,7 +5,7 @@
  * Provides connection management, user operations, and playlist protection functionality.
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { parseGuids } from '@utils/guid-handler.js'
+import { parseGuids, normalizeGuid } from '@utils/guid-handler.js'
 import { toItemsSingle } from '@utils/plex.js'
 import type { Item } from '@root/types/plex.types.js'
 import { XMLParser } from 'fast-xml-parser'
@@ -15,130 +15,18 @@ import type {
   PlexShowMetadata,
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
-
-/**
- * Specialized Plex playlist response structure
- */
-interface PlexPlaylistResponse {
-  MediaContainer: {
-    size?: number
-    Metadata: Array<{
-      ratingKey: string
-      key: string
-      guid: string
-      type: string
-      title: string
-      summary?: string
-      smart?: boolean
-      playlistType?: string
-    }>
-  }
-}
-
-/**
- * Specialized Plex playlist items response structure
- */
-interface PlexPlaylistItemsResponse {
-  MediaContainer: {
-    size: number
-    offset?: number
-    totalSize?: number
-    Metadata: Array<{
-      ratingKey: string
-      key: string
-      guid: string
-      type: string
-      title: string
-      grandparentTitle?: string
-      grandparentGuid?: string
-      parentGuid?: string
-      parentRatingKey?: string
-      grandparentRatingKey?: string
-    }>
-  }
-}
-
-/**
- * Simplified Plex playlist item for protection checks
- */
-export interface PlexPlaylistItem {
-  guid: string // Full format: "plex://movie/5d776832a091de001f2e780f" or "plex://episode/5ea3e26f382f910042f103d0"
-  grandparentGuid?: string // For TV shows: "plex://show/5eb6b5ffac1f29003f4a737b"
-  parentGuid?: string // For TV episodes: "plex://season/602e7aa091bd55002cf9cc73"
-  type: string // "movie", "show", "episode"
-  title: string // For logging only
-}
-
-/**
- * Connection details for a Plex server
- */
-export interface PlexServerConnectionInfo {
-  url: string
-  local: boolean
-  relay: boolean
-  isDefault: boolean
-}
-
-/**
- * Plex user information
- */
-interface PlexUser {
-  id: string
-  username: string
-  title: string
-  email?: string
-}
-
-/**
- * Plex shared server information with user access tokens
- */
-interface PlexSharedServerInfo {
-  id: string
-  username: string
-  email: string
-  userID: string
-  accessToken: string
-  // Other fields available but not needed for our primary use case
-}
-
-/**
- * Plex API Resource interface for server identification
- * Based on the actual response from /api/v2/resources endpoint
- */
-interface PlexResource {
-  name: string
-  product: string
-  productVersion: string
-  platform: string
-  platformVersion: string
-  device: string
-  clientIdentifier: string
-  createdAt: string
-  lastSeenAt: string
-  provides: string
-  ownerId: string | null
-  sourceTitle: string | null
-  publicAddress: string
-  accessToken: string
-  owned: boolean
-  home: boolean
-  synced: boolean
-  relay: boolean
-  presence: boolean
-  httpsRequired: boolean
-  publicAddressMatches: boolean
-  dnsRebindingProtection: boolean
-  natLoopbackSupported: boolean
-  connections: Array<{
-    protocol: string
-    address: string
-    port: number
-    uri: string
-    local: boolean
-    relay: boolean
-    IPv6: boolean
-  }>
-}
+import type {
+  PlexPlaylistResponse,
+  PlexPlaylistItemsResponse,
+  PlexPlaylistItem,
+  PlexServerConnectionInfo,
+  PlexUser,
+  PlexSharedServerInfo,
+  PlexResource,
+  PlexMetadata,
+  PlexSearchResponse,
+  PlexMetadataResponse,
+} from '@root/types/plex-server.types.js'
 
 /**
  * PlexServerService class for maintaining state and providing Plex operations
@@ -1138,13 +1026,20 @@ export class PlexServerService {
 
         // Add current batch of items to our result set
         for (const item of items) {
-          allItems.add({
-            guid: item.guid,
-            grandparentGuid: item.grandparentGuid,
-            parentGuid: item.parentGuid,
-            type: item.type,
-            title: item.grandparentTitle || item.title,
-          })
+          // Only include movies, shows, and episodes in playlist protection checks
+          if (
+            item.type === 'movie' ||
+            item.type === 'show' ||
+            item.type === 'episode'
+          ) {
+            allItems.add({
+              guid: item.guid,
+              grandparentGuid: item.grandparentGuid,
+              parentGuid: item.parentGuid,
+              type: item.type,
+              title: item.grandparentTitle || item.title,
+            })
+          }
         }
 
         // Check if we need to fetch more items
@@ -1607,6 +1502,332 @@ export class PlexServerService {
         error,
       )
       return null
+    }
+  }
+
+  /**
+   * Searches for content in the Plex library by GUID
+   *
+   * @param guid - The GUID to search for (will be normalized)
+   * @returns Promise resolving to array of matching PlexMetadata items
+   */
+  async searchByGuid(guid: string): Promise<PlexMetadata[]> {
+    try {
+      const serverUrl = await this.getPlexServerUrl()
+      const adminToken = this.config.plexTokens?.[0] || ''
+
+      if (!adminToken) {
+        this.log.warn('No Plex admin token available for library search')
+        return []
+      }
+
+      // Don't normalize plex:// GUIDs as they're internal Plex identifiers
+      // Only normalize external provider GUIDs (tmdb://, tvdb://, etc.)
+      const normalizedGuid = guid.startsWith('plex://')
+        ? guid
+        : normalizeGuid(guid)
+
+      const url = new URL('/library/all', serverUrl)
+      url.searchParams.append('guid', normalizedGuid)
+
+      this.log.debug(`Searching Plex library for GUID: ${normalizedGuid}`)
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          Accept: 'application/json',
+          'X-Plex-Token': adminToken,
+          'X-Plex-Client-Identifier': 'Pulsarr',
+        },
+        signal: AbortSignal.timeout(8000),
+      })
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to search library by GUID: ${response.status} ${response.statusText}`,
+        )
+      }
+
+      const data = (await response.json()) as PlexSearchResponse
+      const results = data.MediaContainer.Metadata || []
+
+      this.log.debug(
+        `Found ${results.length} results for GUID: ${normalizedGuid}`,
+        {
+          normalizedGuid,
+          originalGuid: guid,
+          hasMetadata: !!data.MediaContainer.Metadata,
+          containerSize: data.MediaContainer.size,
+          fullUrl: url.toString(),
+        },
+      )
+      return results
+    } catch (error) {
+      this.log.error(`Error searching library by GUID "${guid}":`, error)
+      return []
+    }
+  }
+
+  /**
+   * Retrieves detailed metadata for a specific item by rating key
+   *
+   * @param ratingKey - The Plex rating key of the item
+   * @returns Promise resolving to metadata or null if not found
+   */
+  async getMetadata(ratingKey: string): Promise<PlexMetadata | null> {
+    try {
+      const serverUrl = await this.getPlexServerUrl()
+      const adminToken = this.config.plexTokens?.[0] || ''
+
+      if (!adminToken) {
+        this.log.warn('No Plex admin token available for metadata retrieval')
+        return null
+      }
+
+      const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
+
+      this.log.debug(`Fetching metadata for rating key: ${ratingKey}`)
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          Accept: 'application/json',
+          'X-Plex-Token': adminToken,
+          'X-Plex-Client-Identifier': 'Pulsarr',
+        },
+        signal: AbortSignal.timeout(8000),
+      })
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch metadata: ${response.status} ${response.statusText}`,
+        )
+      }
+
+      const data = (await response.json()) as PlexMetadataResponse
+      const metadata = data.MediaContainer.Metadata?.[0] || null
+
+      if (!metadata) {
+        this.log.warn(`No metadata found for rating key: ${ratingKey}`)
+        return null
+      }
+
+      this.log.debug(`Retrieved metadata for: ${metadata.title}`)
+      return metadata
+    } catch (error) {
+      this.log.error(
+        `Error fetching metadata for rating key "${ratingKey}":`,
+        error,
+      )
+      return null
+    }
+  }
+
+  /**
+   * Gets current labels for a specific Plex item
+   *
+   * @param ratingKey - The Plex rating key of the item
+   * @returns Promise resolving to array of current label strings, or empty array if none found
+   */
+  async getCurrentLabels(ratingKey: string): Promise<string[]> {
+    try {
+      this.log.debug(`Fetching metadata for rating key ${ratingKey}`)
+      const metadata = await this.getMetadata(ratingKey)
+
+      if (!metadata) {
+        this.log.warn(`No metadata found for rating key ${ratingKey}`)
+        return []
+      }
+
+      if (!metadata.Label) {
+        this.log.debug(
+          `No Label field found in metadata for rating key ${ratingKey}`,
+          {
+            metadataKeys: Object.keys(metadata),
+            hasLabel: !!metadata.Label,
+          },
+        )
+        return []
+      }
+
+      const labels = metadata.Label.map((label) => label.tag).filter(
+        (tag): tag is string => typeof tag === 'string' && tag.length > 0,
+      )
+      this.log.debug(
+        `Successfully retrieved ${labels.length} labels for rating key ${ratingKey}`,
+        {
+          labels,
+          labelObjects: metadata.Label,
+        },
+      )
+      return labels
+    } catch (error) {
+      this.log.error(
+        `Error getting current labels for rating key "${ratingKey}":`,
+        error,
+      )
+      return []
+    }
+  }
+
+  /**
+   * Removes specific labels from a Plex item by updating with filtered labels
+   *
+   * @param ratingKey - The Plex rating key of the item
+   * @param labelsToRemove - Array of label strings to remove from the item
+   * @returns Promise resolving to true if successful, false otherwise
+   */
+  async removeSpecificLabels(
+    ratingKey: string,
+    labelsToRemove: string[],
+  ): Promise<boolean> {
+    try {
+      this.log.debug(
+        `Starting removeSpecificLabels for rating key ${ratingKey}`,
+        {
+          labelsToRemove,
+          labelCount: labelsToRemove.length,
+        },
+      )
+
+      if (labelsToRemove.length === 0) {
+        this.log.debug(`No labels to remove for rating key ${ratingKey}`)
+        return true // Nothing to remove
+      }
+
+      // Get current labels
+      this.log.debug(`Fetching current labels for rating key ${ratingKey}`)
+      const currentLabels = await this.getCurrentLabels(ratingKey)
+
+      this.log.debug(`Current labels retrieved for rating key ${ratingKey}`, {
+        currentLabels,
+        currentLabelCount: currentLabels.length,
+      })
+
+      if (currentLabels.length === 0) {
+        this.log.warn(
+          `No current labels found for rating key ${ratingKey}, cannot remove labels that don't exist. This may indicate a metadata API issue or the labels have already been removed.`,
+          {
+            labelsToRemove,
+            ratingKey,
+          },
+        )
+        return true
+      }
+
+      // Filter out labels to remove (case-insensitive comparison)
+      const labelsToRemoveLower = labelsToRemove.map((label) =>
+        label.toLowerCase(),
+      )
+      const filteredLabels = currentLabels.filter(
+        (label) => !labelsToRemoveLower.includes(label.toLowerCase()),
+      )
+
+      this.log.debug(
+        `Removing labels from rating key ${ratingKey}: ${currentLabels.length} -> ${filteredLabels.length}`,
+        {
+          currentLabels,
+          labelsToRemove,
+          filteredLabels,
+        },
+      )
+
+      // Handle the case where all labels would be removed via the canonical path
+      if (filteredLabels.length === 0) {
+        this.log.debug(
+          `All labels will be removed from rating key ${ratingKey}. Delegating to updateLabels([]).`,
+        )
+        return this.updateLabels(ratingKey, [])
+      }
+
+      // Use updateLabels with the filtered list (some labels remain)
+      const result = await this.updateLabels(ratingKey, filteredLabels)
+      return result
+    } catch (error) {
+      this.log.error(
+        `Error removing specific labels from rating key "${ratingKey}":`,
+        error,
+      )
+      return false
+    }
+  }
+
+  /**
+   * Updates the labels for a specific Plex item
+   *
+   * @param ratingKey - The Plex rating key of the item to update
+   * @param labels - Array of label strings to set on the item
+   * @returns Promise resolving to true if successful, false otherwise
+   */
+  async updateLabels(ratingKey: string, labels: string[]): Promise<boolean> {
+    try {
+      const serverUrl = await this.getPlexServerUrl()
+      const adminToken = this.config.plexTokens?.[0] || ''
+
+      if (!adminToken) {
+        this.log.warn('No Plex admin token available for label update')
+        return false
+      }
+
+      const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
+
+      // Handle empty labels array — clear all labels
+      // Use the proper Plex API syntax for array-clears
+      if (labels.length === 0) {
+        // Use the - operator to clear all labels from the array field.
+        // Format: label[].tag.tag- with an empty value (URLSearchParams encodes as label%5B%5D.tag.tag-=)
+        url.searchParams.append('label[].tag.tag-', '')
+        // Lock the labels field to prevent Plex from modifying during metadata refreshes
+        url.searchParams.append('label.locked', '1')
+        this.log.debug(
+          `Clearing all labels for rating key ${ratingKey} using - operator with lock`,
+        )
+      } else {
+        // Add each label as a separate parameter — this is the format Plex expects.
+        // Sanitize and de-duplicate to avoid sending blanks/duplicates to Plex.
+        const sanitized = [
+          ...new Set(labels.map((l) => l.trim()).filter((l) => l.length > 0)),
+        ]
+        for (const label of sanitized) {
+          url.searchParams.append('label[].tag.tag', label)
+        }
+        // Lock the labels field to prevent Plex from modifying during metadata refreshes
+        url.searchParams.append('label.locked', '1')
+
+        this.log.debug(
+          `Updating labels for rating key ${ratingKey}: [${sanitized.join(', ')}] with lock`,
+        )
+      }
+
+      const response = await fetch(url.toString(), {
+        method: 'PUT',
+        headers: {
+          'X-Plex-Token': adminToken,
+          'X-Plex-Client-Identifier': 'Pulsarr',
+        },
+        signal: AbortSignal.timeout(8000),
+      })
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to update labels: ${response.status} ${response.statusText}`,
+        )
+      }
+
+      if (labels.length === 0) {
+        this.log.debug(
+          `Successfully removed all labels from rating key ${ratingKey}`,
+        )
+      } else {
+        this.log.debug(
+          `Successfully updated labels for rating key ${ratingKey}`,
+        )
+      }
+      return true
+    } catch (error) {
+      this.log.error(
+        `Error updating labels for rating key "${ratingKey}":`,
+        error,
+      )
+      return false
     }
   }
 }

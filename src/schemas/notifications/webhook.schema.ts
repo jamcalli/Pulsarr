@@ -1,8 +1,10 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 export const RadarrMovieSchema = z.object({
   title: z.string(),
   tmdbId: z.number(),
+  tags: z.array(z.string()).optional(),
 })
 
 export const SonarrEpisodeFileSchema = z.object({
@@ -24,6 +26,7 @@ export const SonarrEpisodeSchema = z.object({
 export const SonarrSeriesSchema = z.object({
   title: z.string(),
   tvdbId: z.number(),
+  tags: z.array(z.string()).optional(),
 })
 
 export const WebhookTestPayloadSchema = z.object({
@@ -37,10 +40,7 @@ export const WebhookQuerySchema = z.object({
 
 export const RadarrWebhookPayloadSchema = z.object({
   instanceName: z.string(),
-  movie: z.object({
-    title: z.string(),
-    tmdbId: z.number(),
-  }),
+  movie: RadarrMovieSchema,
 })
 
 const BaseSonarrWebhookSchema = z.object({
@@ -75,11 +75,10 @@ export const WebhookResponseSchema = z.object({
   success: z.boolean(),
 })
 
-export const ErrorSchema = z.object({
-  message: z.string(),
-})
-
 export type WebhookQuery = z.infer<typeof WebhookQuerySchema>
 export type WebhookPayload = z.infer<typeof WebhookPayloadSchema>
 export type WebhookResponse = z.infer<typeof WebhookResponseSchema>
-export type Error = z.infer<typeof ErrorSchema>
+export type WebhookError = z.infer<typeof ErrorSchema>
+
+// Re-export shared schemas
+export { ErrorSchema }

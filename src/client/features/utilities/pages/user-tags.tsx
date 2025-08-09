@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useConfigStore } from '@/stores/configStore'
 import { Button } from '@/components/ui/button'
 import {
@@ -43,14 +44,14 @@ import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { UserTagsPageSkeleton } from '@/features/utilities/pages/user-tags-page-skeleton'
 
 /**
- * Standalone User Tags page for managing user-based tagging in Sonarr and Radarr.
+ * Displays the administrative page for configuring and managing user-based tagging in Sonarr and Radarr.
  *
- * Provides administrators with controls to enable or disable user tagging, set tag prefixes, define tag removal behavior, and clean up orphaned tags. Includes actions for creating, synchronizing, cleaning up, and removing user tags, with real-time progress indicators, operation results, and error feedback. Safeguards prevent conflicting actions and accidental destructive operations.
+ * Provides controls for enabling user tagging, setting tag prefixes, defining tag removal behavior, and cleaning up orphaned tags. Includes actions for creating, synchronizing, cleaning up, and removing user tags, with real-time progress indicators, operation results, and error feedback. Safeguards prevent conflicting or destructive actions, and confirmation dialogs are shown for tag removal.
  *
- * @returns A React element containing the user tag management page.
+ * @returns The React element representing the user tag management interface.
  */
 export function UserTagsPage() {
-  const { isInitialized, initialize } = useConfigStore()
+  const { config, initialize: configInitialize } = useConfigStore()
 
   const {
     form,
@@ -59,8 +60,8 @@ export function UserTagsPage() {
     isSyncingTags,
     isCleaningTags,
     isRemovingTags,
+    isLoading,
     error,
-    lastResults,
     lastActionResults,
     lastRemoveResults,
     tagDefinitionsDeleted,
@@ -82,10 +83,8 @@ export function UserTagsPage() {
   const sonarrRemovalProgress = useTaggingProgress('sonarr-tag-removal')
   const radarrRemovalProgress = useTaggingProgress('radarr-tag-removal')
 
-  // Initialize stores on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
+  // Initialize config store with minimum duration for consistent UX
+  const isInitializing = useInitializeWithMinDuration(configInitialize)
 
   // Initialize progress connection
   useEffect(() => {
@@ -103,10 +102,9 @@ export function UserTagsPage() {
   const status = isEnabled ? 'enabled' : 'disabled'
 
   // Determine if tag settings can be edited
-  const canEditTagSettings =
-    (isTagDeletionComplete && tagDefinitionsDeleted) || !lastResults?.success
+  const canEditTagSettings = isTagDeletionComplete && tagDefinitionsDeleted
 
-  if (!isInitialized) {
+  if (isInitializing || isLoading || !config) {
     return <UserTagsPageSkeleton />
   }
 
@@ -137,10 +135,7 @@ export function UserTagsPage() {
                 onClick={handleCreateTags}
                 disabled={
                   isCreatingTags ||
-                  !(
-                    lastResults?.config?.tagUsersInSonarr ||
-                    lastResults?.config?.tagUsersInRadarr
-                  ) ||
+                  !(config?.tagUsersInSonarr || config?.tagUsersInRadarr) ||
                   form.formState.isDirty
                 }
                 variant="noShadow"
@@ -160,10 +155,7 @@ export function UserTagsPage() {
                 onClick={handleSyncTags}
                 disabled={
                   isSyncingTags ||
-                  !(
-                    lastResults?.config?.tagUsersInSonarr ||
-                    lastResults?.config?.tagUsersInRadarr
-                  ) ||
+                  !(config?.tagUsersInSonarr || config?.tagUsersInRadarr) ||
                   form.formState.isDirty
                 }
                 variant="noShadow"
@@ -183,7 +175,7 @@ export function UserTagsPage() {
                 onClick={handleCleanupTags}
                 disabled={
                   isCleaningTags ||
-                  !lastResults?.config?.cleanupOrphanedTags ||
+                  !config?.cleanupOrphanedTags ||
                   form.formState.isDirty
                 }
                 variant="noShadow"
@@ -203,10 +195,7 @@ export function UserTagsPage() {
                 onClick={initiateRemoveTags}
                 disabled={
                   isRemovingTags ||
-                  !(
-                    lastResults?.config?.tagUsersInSonarr ||
-                    lastResults?.config?.tagUsersInRadarr
-                  ) ||
+                  !(config?.tagUsersInSonarr || config?.tagUsersInRadarr) ||
                   form.formState.isDirty
                 }
                 variant="error"
@@ -234,7 +223,6 @@ export function UserTagsPage() {
 
           {/* Status section - displays last action results if available */}
           {(lastActionResults ||
-            lastResults ||
             lastRemoveResults ||
             isSyncingTags ||
             isRemovingTags) && (
@@ -246,7 +234,6 @@ export function UserTagsPage() {
                   <p className="text-sm text-foreground">
                     {lastRemoveResults?.message ||
                       lastActionResults?.message ||
-                      lastResults?.message ||
                       'Configuration status'}
                   </p>
                 )}
@@ -724,10 +711,10 @@ export function UserTagsPage() {
                             />
                           </FormControl>
                           <FormMessage />
-                          {lastResults?.success &&
+                          {config &&
                             form.watch('removedTagMode') === 'special-tag' &&
-                            (lastResults.config?.tagUsersInSonarr ||
-                              lastResults.config?.tagUsersInRadarr) &&
+                            (config.tagUsersInSonarr ||
+                              config.tagUsersInRadarr) &&
                             !canEditTagSettings && (
                               <p className="text-xs text-gray-500 mt-1">
                                 You must remove existing tags with "Delete Tag
@@ -804,9 +791,9 @@ export function UserTagsPage() {
                             disabled={!canEditTagSettings}
                           />
                         </FormControl>
-                        {lastResults?.success &&
-                          (lastResults.config?.tagUsersInSonarr ||
-                            lastResults.config?.tagUsersInRadarr) &&
+                        {config &&
+                          (config.tagUsersInSonarr ||
+                            config.tagUsersInRadarr) &&
                           !canEditTagSettings && (
                             <p className="text-xs text-gray-500 mt-1">
                               You must remove existing tags with "Delete Tag

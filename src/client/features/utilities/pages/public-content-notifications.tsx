@@ -22,6 +22,7 @@ import { PublicContentClearAlert } from '@/features/utilities/components/public-
 import { useConfigStore } from '@/stores/configStore'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { PublicContentNotificationsPageSkeleton } from '@/features/utilities/components/public-content-notifications/public-content-notifications-page-skeleton'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 
 // Type for string URL fields only (excludes boolean 'enabled' field)
 type WebhookFieldName =
@@ -67,17 +68,31 @@ interface WebhookFieldProps {
   testResult?: boolean | null
   showTestError?: boolean
   onClear: () => void
-  value?: string
+  value?: string | string[]
   disabled?: boolean
   form: ReturnType<typeof usePublicContentNotifications>['form']
 }
 
 /**
- * Renders an input field for one or more webhook URLs with label, tooltip, help text, validation, and optional test and clear actions.
+ * Renders a form field for entering up to five webhook URLs, with support for labels, tooltips, validation, and optional test and clear actions.
  *
- * Displays a multi-input field allowing up to five URLs, with optional buttons to test the webhook connection and clear the field. Shows loading and result states for testing, and disables actions as needed.
+ * Provides input for multiple webhook URLs, displays a test button for testable fields, and allows clearing all values. Shows loading and result indicators for testing, and disables actions based on the field state.
  *
- * @remark For Discord webhook fields, basic URL validation is enforced to match the expected Discord webhook URL pattern.
+ * For Discord webhook fields, enforces basic URL validation to match the expected Discord webhook URL pattern.
+ *
+ * @param name - The unique field name used for form binding
+ * @param label - The label displayed above the input field
+ * @param placeholder - Placeholder text shown in the input
+ * @param tooltip - Additional information displayed in a tooltip
+ * @param isTestable - Whether to display a test button for webhook validation
+ * @param testHandler - Function to trigger webhook testing
+ * @param isTestLoading - Indicates if the test action is currently loading
+ * @param testResult - The result of the most recent test, if any
+ * @param showTestError - Whether to display an error tooltip for the test button
+ * @param onClear - Function to clear the field value(s)
+ * @param value - The current value(s) of the field
+ * @param disabled - Whether the field and its actions are disabled
+ * @param form - The form control object managing field state
  */
 function WebhookField({
   name,
@@ -130,7 +145,12 @@ function WebhookField({
                       <Button
                         type="button"
                         onClick={testHandler}
-                        disabled={disabled || !field.value}
+                        disabled={
+                          disabled ||
+                          !(Array.isArray(field.value)
+                            ? field.value.length > 0
+                            : Boolean(field.value))
+                        }
                         size="icon"
                         variant="noShadow"
                         className="shrink-0"
@@ -152,7 +172,7 @@ function WebhookField({
                   </Tooltip>
                 </TooltipProvider>
               )}
-              {value && (
+              {(Array.isArray(value) ? value.length > 0 : Boolean(value)) && (
                 <Button
                   type="button"
                   variant="error"
@@ -174,17 +194,15 @@ function WebhookField({
 }
 
 /**
- * Public Content Notifications utility page - provides configuration for broadcasting content availability to public Discord channels and Apprise endpoints.
+ * Displays the configuration page for managing public content notifications, enabling users to set up, test, and clear Discord and Apprise webhook endpoints for broadcasting content availability.
  *
- * Users can manage general, movie-specific, and show-specific webhook URLs for both Discord and Apprise. Discord webhook fields support connection testing and require successful tests before changes can be saved. The form supports enabling/disabling the feature, clearing individual webhook fields with confirmation, and managing multiple endpoints per category.
+ * Users can enable or disable public notifications, configure webhook URLs for general, movie, and show categories, test Discord webhook connections (with enforced successful tests before saving), and clear individual fields with confirmation dialogs. The form provides real-time feedback on connection status and configuration changes.
+ *
+ * @returns The React element representing the public content notifications settings page.
  */
 export default function PublicContentNotificationsPage() {
   const { initialize, isInitialized } = useConfigStore()
-
-  // Initialize store on mount
-  React.useEffect(() => {
-    initialize()
-  }, [initialize])
+  const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {
     form,
@@ -308,11 +326,11 @@ export default function PublicContentNotificationsPage() {
 
   // Determine status based on configuration state
   const getStatus = () => {
-    if (!isInitialized) return 'unknown'
+    if (!isInitialized || isInitializing) return 'unknown'
     return isEnabled ? 'enabled' : 'disabled'
   }
 
-  if (!isInitialized) {
+  if (!isInitialized || isInitializing) {
     return <PublicContentNotificationsPageSkeleton />
   }
 

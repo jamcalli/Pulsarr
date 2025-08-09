@@ -1,29 +1,22 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a skeleton loader mimicking the Delete Sync page layout while content is loading.
+ * Displays a skeleton loader that mimics the structure of the Delete Sync page while content is loading.
  *
- * Renders placeholder elements for all major sections of the Delete Sync page, including header, actions, status, schedule, deletion mode, safety settings, and action buttons. Layout adapts responsively for mobile and desktop viewports.
+ * Renders placeholder elements for all major sections of the Delete Sync page, including the header, actions, status, schedule, deletion mode, safety settings, and action buttons. The layout adjusts responsively for mobile and desktop viewports.
  */
 export function DeleteSyncPageSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      {/* Header with title and badge */}
-      <div className="mb-6">
-        <div className="flex items-center">
-          <h2 className="text-2xl font-bold text-foreground">Delete Sync</h2>
-          <div className="ml-2 inline-flex items-center gap-2 h-full">
-            <Skeleton className="h-7 w-20 rounded-full" />
-          </div>
-        </div>
-        <p className="text-sm text-foreground mt-1">
-          Automatically removes content when it's no longer on any watchlists
-        </p>
-      </div>
+      <UtilitySectionHeader
+        title="Delete Sync"
+        description="Automatically removes content when it's no longer on any watchlists"
+      />
 
       <div className="space-y-6">
         {/* Actions section */}

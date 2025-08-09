@@ -37,4 +37,4 @@ export type PlexRemoveNotificationResponse = z.infer<
   typeof PlexRemoveNotificationResponseSchema
 >
 export type PlexInstanceResult = z.infer<typeof PlexInstanceResultSchema>
-export type Error = z.infer<typeof ErrorSchema>
+export type PlexRemoveNotificationError = z.infer<typeof ErrorSchema>

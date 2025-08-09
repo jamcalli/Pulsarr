@@ -32,6 +32,7 @@ import { useConfigStore } from '@/stores/configStore'
 import { toast } from 'sonner'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { NewUserDefaultsPageSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-page-skeleton'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 
 const newUserDefaultsSchema = z.object({
   canSync: z.boolean(),
@@ -49,19 +50,15 @@ const newUserDefaultsSchema = z.object({
 type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
 
 /**
- * Displays a configuration page for setting default options applied to newly discovered Plex users.
+ * Displays an administrative page for configuring default settings applied to newly discovered Plex users.
  *
- * Allows administrators to define default behaviors for new users, including sync enablement, manual approval requirements, and quota limits for movies and shows. The page provides a real-time summary of the current defaults, a form for updating settings, and explicit save/cancel controls. Changes are validated and persisted to the configuration store.
+ * Provides a validated form and real-time status summary for setting default sync behavior, manual approval requirements, and quota limits for movies and shows. Allows administrators to save or cancel changes, with user feedback on success or failure.
  */
 export default function NewUserDefaultsPage() {
   const { config, updateConfig, isInitialized, initialize } = useConfigStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingStartTime = useRef<number | null>(null)
-
-  // Initialize store on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
+  const isInitializing = useInitializeWithMinDuration(initialize)
 
   const form = useForm<NewUserDefaultsFormData>({
     resolver: zodResolver(newUserDefaultsSchema),
@@ -143,7 +140,7 @@ export default function NewUserDefaultsPage() {
 
   // No status needed for header - we'll show detailed status in the body
 
-  if (!isInitialized) {
+  if (!isInitialized || isInitializing) {
     return <NewUserDefaultsPageSkeleton />
   }
 

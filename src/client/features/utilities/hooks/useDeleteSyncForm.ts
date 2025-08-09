@@ -83,15 +83,15 @@ const validateDayOfWeek = (value: string | undefined): string => {
 }
 
 /**
- * React hook for managing the deletion synchronization form, handling state, validation, and submission.
+ * React hook for managing the deletion synchronization form, including state, validation, and submission logic.
  *
- * Initializes form values from global configuration and schedule data, validates input using a Zod schema, and provides handlers for submitting changes, canceling edits, and updating scheduled deletion times. On submission, updates configuration and schedule settings, refreshes schedules, and manages submission status with user feedback.
+ * Initializes form values from global configuration and schedule data, validates input using a Zod schema, and provides handlers for submitting changes, canceling edits, and updating scheduled deletion times. On submission, updates configuration and schedule settings, manages submission status, and provides user feedback.
  *
  * @returns An object containing the form instance, current save status, a flag indicating if saving is in progress, the last submitted values, and handler functions for form submission, cancellation, and schedule time changes.
  */
 export function useDeleteSyncForm() {
   const { config, updateConfig } = useConfigStore()
-  const { schedules, fetchSchedules, setLoadingWithMinDuration } =
+  const { schedules, setLoadingWithMinDuration, updateSchedule } =
     useUtilitiesStore()
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
@@ -258,22 +258,15 @@ export function useDeleteSyncForm() {
         // Create cron expression (seconds minutes hours day month weekday)
         const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`
 
-        scheduleUpdate = fetch('/v1/scheduler/schedules/delete-sync', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
+        scheduleUpdate = updateSchedule('delete-sync', {
+          type: 'cron',
+          config: {
+            expression: cronExpression,
           },
-          body: JSON.stringify({
-            type: 'cron',
-            config: {
-              expression: cronExpression,
-            },
-          }),
-        }).then((response) => {
-          if (!response.ok) {
+        }).then((success) => {
+          if (!success) {
             throw new Error('Failed to update schedule')
           }
-          return
         })
       }
 
@@ -283,9 +276,6 @@ export function useDeleteSyncForm() {
         scheduleUpdate,
         minimumLoadingTime,
       ])
-
-      // Refresh schedules
-      await fetchSchedules()
 
       // Set success state
       setSaveStatus('success')

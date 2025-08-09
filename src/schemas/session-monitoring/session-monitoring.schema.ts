@@ -165,3 +165,9 @@ export const getInactiveRollingMonitoredSchema = {
     }),
   },
 }
+
+// Export inferred types following established patterns
+export type RollingMonitoredShow = z.infer<typeof RollingMonitoredShowSchema>
+export type SessionMonitoringResult = z.infer<
+  typeof SessionMonitoringResultSchema
+>

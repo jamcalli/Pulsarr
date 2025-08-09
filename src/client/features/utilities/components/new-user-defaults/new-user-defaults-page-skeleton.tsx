@@ -1,23 +1,20 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a skeleton loader for the New User Defaults page, providing a visual placeholder that mimics the page's structure during loading.
+ * Displays a skeleton placeholder for the New User Defaults page to indicate loading while configuration data is being fetched.
  *
- * Use this component to indicate loading states while the actual content for configuring default settings for new Plex users is being prepared.
+ * This component visually represents the structure of the page, including current status sections and form fields, using skeleton elements to improve perceived performance during data loading.
  */
 export function NewUserDefaultsPageSkeleton() {
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      {/* Header without badge */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground">
-          New User Defaults
-        </h2>
-        <p className="text-sm text-foreground mt-1">
-          Configure default settings for newly discovered Plex users
-        </p>
-      </div>
+      <UtilitySectionHeader
+        title="New User Defaults"
+        description="Configure default settings for newly discovered Plex users"
+        showStatus={false}
+      />
 
       <div className="space-y-6">
         {/* Current Status section */}
@@ -110,6 +107,11 @@ export function NewUserDefaultsPageSkeleton() {
               <Skeleton className="h-20 w-full" />
               <Skeleton className="h-20 w-full" />
             </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
+            <Skeleton className="h-10 w-32" />
           </div>
         </div>
       </div>

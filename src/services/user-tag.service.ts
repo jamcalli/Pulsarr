@@ -8,7 +8,6 @@ import {
 } from '@utils/guid-handler.js'
 import type { SonarrItem, SonarrSeries } from '@root/types/sonarr.types.js'
 import type { RadarrItem, RadarrMovie } from '@root/types/radarr.types.js'
-import type { ProgressEvent } from '@root/types/progress.types.js'
 import type { User } from '@root/types/config.types.js'
 
 /**
@@ -113,22 +112,6 @@ export class UserTagService {
    */
   private get removedTagPrefix(): string {
     return this.fastify.config.removedTagPrefix || 'pulsarr:removed'
-  }
-
-  /**
-   * Check if progress reporting is available and has active connections
-   */
-  private hasActiveProgressConnections(): boolean {
-    return this.fastify?.progress?.hasActiveConnections() || false
-  }
-
-  /**
-   * Emit a progress event if progress reporting is available
-   */
-  private emitProgress(progressData: ProgressEvent): void {
-    if (this.fastify?.progress) {
-      this.fastify.progress.emit(progressData)
-    }
   }
 
   /**
@@ -408,7 +391,7 @@ export class UserTagService {
           // Get ALL series details with tags - only if not already included
           let seriesDetailsMap: Map<
             number,
-            (SonarrItem & { id: number }) | (SonarrSeries & { tags: number[] })
+            (SonarrItem & { id: number }) | SonarrSeries
           >
 
           if (hasTagsInData) {
@@ -423,9 +406,7 @@ export class UserTagService {
           } else {
             // Fetch complete data from API
             const allSeriesDetails =
-              await sonarrService.getFromSonarr<
-                Array<SonarrSeries & { tags: number[] }>
-              >('series')
+              await sonarrService.getFromSonarr<Array<SonarrSeries>>('series')
             seriesDetailsMap = new Map(allSeriesDetails.map((s) => [s.id, s]))
           }
 
@@ -731,7 +712,7 @@ export class UserTagService {
           // Get ALL movie details with tags - only if not already included
           let movieDetailsMap: Map<
             number,
-            (RadarrItem & { id: number }) | (RadarrMovie & { tags: number[] })
+            (RadarrItem & { id: number }) | RadarrMovie
           >
 
           if (hasTagsInData) {
@@ -746,9 +727,7 @@ export class UserTagService {
           } else {
             // Fetch complete data from API
             const allMovieDetails =
-              await radarrService.getFromRadarr<
-                Array<RadarrMovie & { tags: number[] }>
-              >('movie')
+              await radarrService.getFromRadarr<Array<RadarrMovie>>('movie')
             movieDetailsMap = new Map(allMovieDetails.map((m) => [m.id, m]))
           }
 
@@ -1006,11 +985,11 @@ export class UserTagService {
     }
 
     const operationId = `sonarr-tagging-${Date.now()}`
-    const emitProgress = this.hasActiveProgressConnections()
+    const emitProgress = this.fastify.progress.hasActiveConnections()
 
     try {
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'sonarr-tagging',
           phase: 'start',
@@ -1039,7 +1018,7 @@ export class UserTagService {
 
       // Update progress to completion
       if (emitProgress && totalSeries > 0) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'sonarr-tagging',
           phase: 'tagging-series',
@@ -1054,7 +1033,7 @@ export class UserTagService {
       )
 
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'sonarr-tagging',
           phase: 'complete',
@@ -1068,7 +1047,7 @@ export class UserTagService {
       this.log.error('Error syncing Sonarr tags:', error)
 
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'sonarr-tagging',
           phase: 'error',
@@ -1094,11 +1073,11 @@ export class UserTagService {
     }
 
     const operationId = `radarr-tagging-${Date.now()}`
-    const emitProgress = this.hasActiveProgressConnections()
+    const emitProgress = this.fastify.progress.hasActiveConnections()
 
     try {
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'radarr-tagging',
           phase: 'start',
@@ -1127,7 +1106,7 @@ export class UserTagService {
 
       // Update progress to completion
       if (emitProgress && totalMovies > 0) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'radarr-tagging',
           phase: 'tagging-movies',
@@ -1142,7 +1121,7 @@ export class UserTagService {
       )
 
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'radarr-tagging',
           phase: 'complete',
@@ -1156,7 +1135,7 @@ export class UserTagService {
       this.log.error('Error syncing Radarr tags:', error)
 
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'radarr-tagging',
           phase: 'error',
@@ -1323,11 +1302,11 @@ export class UserTagService {
     }
 
     const operationId = `sonarr-tag-removal-${Date.now()}`
-    const emitProgress = this.hasActiveProgressConnections()
+    const emitProgress = this.fastify.progress.hasActiveConnections()
 
     try {
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'sonarr-tag-removal',
           phase: 'start',
@@ -1495,7 +1474,7 @@ export class UserTagService {
           if (emitProgress && totalSeries > 0) {
             const progress =
               5 + Math.floor((totalProcessedSeries / totalSeries) * 85)
-            this.emitProgress({
+            this.fastify.progress.emit({
               operationId,
               type: 'sonarr-tag-removal',
               phase: 'processing-series',
@@ -1514,7 +1493,7 @@ export class UserTagService {
         // Delete tag definitions if requested
         if (deleteTagDefinitions && userTags.length > 0) {
           if (emitProgress) {
-            this.emitProgress({
+            this.fastify.progress.emit({
               operationId,
               type: 'sonarr-tag-removal',
               phase: 'deleting-tags',
@@ -1539,7 +1518,7 @@ export class UserTagService {
       }
 
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'sonarr-tag-removal',
           phase: 'complete',
@@ -1553,7 +1532,7 @@ export class UserTagService {
       this.log.error('Error removing Sonarr user tags:', error)
 
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'sonarr-tag-removal',
           phase: 'error',
@@ -1602,11 +1581,11 @@ export class UserTagService {
     }
 
     const operationId = `radarr-tag-removal-${Date.now()}`
-    const emitProgress = this.hasActiveProgressConnections()
+    const emitProgress = this.fastify.progress.hasActiveConnections()
 
     try {
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'radarr-tag-removal',
           phase: 'start',
@@ -1776,7 +1755,7 @@ export class UserTagService {
           if (emitProgress && totalMovies > 0) {
             const progress =
               5 + Math.floor((totalProcessedMovies / totalMovies) * 85)
-            this.emitProgress({
+            this.fastify.progress.emit({
               operationId,
               type: 'radarr-tag-removal',
               phase: 'processing-movies',
@@ -1795,7 +1774,7 @@ export class UserTagService {
         // Delete tag definitions if requested
         if (deleteTagDefinitions && userTags.length > 0) {
           if (emitProgress) {
-            this.emitProgress({
+            this.fastify.progress.emit({
               operationId,
               type: 'radarr-tag-removal',
               phase: 'deleting-tags',
@@ -1820,7 +1799,7 @@ export class UserTagService {
       }
 
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'radarr-tag-removal',
           phase: 'complete',
@@ -1834,7 +1813,7 @@ export class UserTagService {
       this.log.error('Error removing Radarr user tags:', error)
 
       if (emitProgress) {
-        this.emitProgress({
+        this.fastify.progress.emit({
           operationId,
           type: 'radarr-tag-removal',
           phase: 'error',
@@ -1939,7 +1918,7 @@ export class UserTagService {
    * @returns True if this is an application user tag
    */
   private isAppUserTag(tagLabel: string): boolean {
-    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix}:`)
+    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix.toLowerCase()}:`)
   }
 
   /**
@@ -2054,9 +2033,7 @@ export class UserTagService {
 
         // Get all series with their tags in one bulk call
         const allSeriesDetails =
-          await sonarrService.getFromSonarr<
-            Array<SonarrSeries & { tags: number[] }>
-          >('series')
+          await sonarrService.getFromSonarr<Array<SonarrSeries>>('series')
 
         // Orphaned tag IDs for quick lookup
         const orphanedTagIds = new Set(orphanedTags.map((t) => t.id))
@@ -2204,9 +2181,7 @@ export class UserTagService {
 
         // Get all movies with their tags in one bulk call
         const allMovieDetails =
-          await radarrService.getFromRadarr<
-            Array<RadarrMovie & { tags: number[] }>
-          >('movie')
+          await radarrService.getFromRadarr<Array<RadarrMovie>>('movie')
 
         // Orphaned tag IDs for quick lookup
         const orphanedTagIds = new Set(orphanedTags.map((t) => t.id))

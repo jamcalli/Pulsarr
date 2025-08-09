@@ -1,29 +1,19 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a skeleton loader that mimics the layout of the Plex Session Monitoring page while data is loading.
+ * Displays a skeleton placeholder for the Plex Session Monitoring page while data is loading.
  *
- * This component provides placeholder elements for all major sections of the page, including headers, configuration inputs, user filtering, auto-reset settings, status displays, informational text, and action buttons.
+ * This component visually represents all major sections of the page—including headers, configuration inputs, user filtering, auto-reset settings, status panels, informational content, and action buttons—using skeleton elements to indicate loading state.
  */
 export function PlexSessionMonitoringPageSkeleton() {
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      {/* Header with title and badge */}
-      <div className="mb-6">
-        <div className="flex items-center">
-          <h2 className="text-2xl font-bold text-foreground">
-            Plex Session Monitoring
-          </h2>
-          <div className="ml-2 inline-flex items-center gap-2 h-full">
-            <Skeleton className="h-7 w-20 rounded-full" />
-          </div>
-        </div>
-        <p className="text-sm text-foreground mt-1">
-          Monitor Plex viewing sessions and automatically expand Sonarr
-          monitoring
-        </p>
-      </div>
+      <UtilitySectionHeader
+        title="Plex Session Monitoring"
+        description="Monitor Plex viewing sessions and automatically expand Sonarr monitoring"
+      />
 
       <div className="space-y-6">
         {/* Actions section */}

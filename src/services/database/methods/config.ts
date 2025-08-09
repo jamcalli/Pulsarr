@@ -2,11 +2,11 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { Config } from '@root/types/config.types.js'
 
 /**
- * Retrieves and normalizes the application configuration from the database.
+ * Retrieves the application configuration from the database, normalizing all fields and applying defaults as needed.
  *
- * Fetches the configuration record with `id: 1` from the `configs` table. Safely parses all JSON fields with fallback defaults, normalizes optional and boolean fields, and applies default values for missing properties, including the `tmdbRegion` (defaulting to `'US'`). Returns a fully constructed `Config` object if found, or `undefined` if no configuration exists.
+ * Fetches the configuration record with `id: 1` from the `configs` table. All JSON fields are safely parsed with fallback defaults, and optional or boolean fields are normalized to ensure a complete and consistent configuration object. The returned configuration includes all expected properties, such as nested objects like `plexLabelSync`, with defaults applied for any missing or malformed fields.
  *
- * @returns The normalized application configuration object if found, otherwise `undefined`.
+ * @returns The fully normalized application configuration object if found, otherwise `undefined`.
  */
 export async function getConfig(
   this: DatabaseService,
@@ -179,6 +179,44 @@ export async function getConfig(
     plexProtectionPlaylistName:
       config.plexProtectionPlaylistName || 'Do Not Delete',
     plexServerUrl: config.plexServerUrl || undefined,
+    // Plex Label Sync configuration - nested object following complex config pattern
+    plexLabelSync: config.plexLabelSync
+      ? this.safeJsonParse(
+          config.plexLabelSync,
+          {
+            enabled: false,
+            labelPrefix: 'pulsarr',
+            concurrencyLimit: 5,
+            cleanupOrphanedLabels: false,
+            removedLabelMode: 'remove' as const,
+            removedLabelPrefix: 'pulsarr:removed',
+            autoResetOnScheduledSync: false,
+            scheduleTime: undefined,
+            dayOfWeek: '*',
+            tagSync: {
+              enabled: false,
+              syncRadarrTags: true,
+              syncSonarrTags: true,
+            },
+          },
+          'config.plexLabelSync',
+        )
+      : {
+          enabled: false,
+          labelPrefix: 'pulsarr',
+          concurrencyLimit: 5,
+          cleanupOrphanedLabels: false,
+          removedLabelMode: 'remove' as const,
+          removedLabelPrefix: 'pulsarr:removed',
+          autoResetOnScheduledSync: false,
+          scheduleTime: undefined,
+          dayOfWeek: '*',
+          tagSync: {
+            enabled: false,
+            syncRadarrTags: true,
+            syncSonarrTags: true,
+          },
+        },
     // Tag configuration
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
     tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
@@ -194,9 +232,9 @@ export async function getConfig(
 }
 
 /**
- * Inserts a new configuration record into the database, enforcing that only one configuration entry exists.
+ * Creates a new configuration record in the database, enforcing that only one configuration entry exists.
  *
- * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties, including TMDB region and new user defaults. Returns the ID of the newly created configuration.
+ * Throws an error if a configuration already exists. Serializes all JSON fields, including `plexLabelSync`, and applies default values for optional properties such as TMDB region, new user defaults, and notification settings. Returns the ID of the newly created configuration.
  *
  * @param config - The configuration data to insert, excluding `id`, `created_at`, and `updated_at`
  * @returns The ID of the newly created configuration
@@ -278,6 +316,30 @@ export async function createConfig(
       removedTagMode: config.removedTagMode || 'remove',
       removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
       deletionMode: config.deletionMode || 'watchlist',
+      // Plex Label Sync Configuration - only include actual schema fields
+      plexLabelSync: config.plexLabelSync
+        ? JSON.stringify({
+            enabled: config.plexLabelSync.enabled ?? false,
+            labelPrefix: config.plexLabelSync.labelPrefix || 'pulsarr',
+            concurrencyLimit: config.plexLabelSync.concurrencyLimit ?? 5,
+            cleanupOrphanedLabels:
+              config.plexLabelSync.cleanupOrphanedLabels ?? false,
+            removedLabelMode: config.plexLabelSync.removedLabelMode || 'remove',
+            removedLabelPrefix:
+              config.plexLabelSync.removedLabelPrefix || 'pulsarr:removed',
+            autoResetOnScheduledSync:
+              config.plexLabelSync.autoResetOnScheduledSync ?? false,
+            scheduleTime: config.plexLabelSync.scheduleTime,
+            dayOfWeek: config.plexLabelSync.dayOfWeek || '*',
+            tagSync: {
+              enabled: config.plexLabelSync.tagSync?.enabled ?? false,
+              syncRadarrTags:
+                config.plexLabelSync.tagSync?.syncRadarrTags ?? true,
+              syncSonarrTags:
+                config.plexLabelSync.tagSync?.syncSonarrTags ?? true,
+            },
+          })
+        : null,
       // Plex Session Monitoring
       plexSessionMonitoring: config.plexSessionMonitoring
         ? JSON.stringify(config.plexSessionMonitoring)
@@ -435,6 +497,9 @@ const ALLOWED_COLUMNS = new Set([
   'removedTagMode',
   'removedTagPrefix',
 
+  // Plex label sync configuration (JSON column)
+  'plexLabelSync',
+
   // Plex session monitoring (JSON column)
   'plexSessionMonitoring',
 
@@ -467,6 +532,7 @@ const JSON_COLUMNS = new Set([
   'plexSessionMonitoring',
   'quotaSettings',
   'approvalExpiration',
+  'plexLabelSync',
 ])
 
 /**

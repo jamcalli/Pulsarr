@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { Button } from '@/components/ui/button'
 import {
   Loader2,
@@ -45,11 +45,12 @@ import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sy
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { DeleteSyncPageSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-page-skeleton'
+import { formatScheduleDisplay } from '@/lib/utils'
 
 /**
- * Renders the Delete Sync page, providing a comprehensive interface for configuring and managing the delete synchronization job.
+ * Renders the Delete Sync page, providing a user interface to configure, schedule, and manage automated deletion of media content based on watchlist or tag criteria.
  *
- * Users can set deletion criteria, schedule jobs, define safety thresholds, configure notifications, and control job execution. The page includes contextual tooltips, validation feedback, confirmation modals, and adapts responsively for mobile devices.
+ * Users can enable or disable the deletion sync job, set scheduling options, define deletion and safety preferences, configure notification settings, and perform immediate or dry-run executions. The component includes responsive design, contextual tooltips, validation feedback, and confirmation modals for critical actions. Error and loading states are handled with appropriate UI feedback.
  */
 export default function DeleteSyncPage() {
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -88,10 +89,8 @@ export default function DeleteSyncPage() {
 
   const navigate = useNavigate()
 
-  // Initialize config store on mount
-  useEffect(() => {
-    configInitialize()
-  }, [configInitialize])
+  // Initialize config store with minimum duration for consistent UX
+  const isInitializing = useInitializeWithMinDuration(configInitialize)
 
   // Determine status based on job state
   const getStatus = () => {
@@ -117,7 +116,7 @@ export default function DeleteSyncPage() {
     )
   }
 
-  if (!deleteSyncJob) {
+  if (isInitializing || !deleteSyncJob) {
     return <DeleteSyncPageSkeleton />
   }
 
@@ -260,7 +259,7 @@ export default function DeleteSyncPage() {
             render={({ field }) => (
               <div className="shrink-0">
                 <TimeSelector
-                  value={field.value}
+                  value={field.value || scheduleTime}
                   onChange={handleTimeChange}
                   dayOfWeek={form.watch('dayOfWeek')}
                   className={
@@ -281,31 +280,16 @@ export default function DeleteSyncPage() {
                   Current schedule:{' '}
                   {deleteSyncJob.config.expression === '0 0 * * * *'
                     ? 'Every hour'
-                    : `${
+                    : formatScheduleDisplay(
                         isSaving &&
-                        submittedValues &&
-                        submittedValues.scheduleTime
-                          ? new Intl.DateTimeFormat('en-US', {
-                              hour: 'numeric',
-                              minute: 'numeric',
-                              hour12: true,
-                            }).format(submittedValues.scheduleTime)
-                          : scheduleTime
-                            ? new Intl.DateTimeFormat('en-US', {
-                                hour: 'numeric',
-                                minute: 'numeric',
-                                hour12: true,
-                              }).format(scheduleTime)
-                            : ''
-                      } ${
+                          submittedValues &&
+                          submittedValues.scheduleTime
+                          ? submittedValues.scheduleTime
+                          : scheduleTime,
                         isSaving && submittedValues && submittedValues.dayOfWeek
-                          ? submittedValues.dayOfWeek === '*'
-                            ? 'every day'
-                            : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(submittedValues.dayOfWeek)]}`
-                          : dayOfWeek === '*'
-                            ? 'every day'
-                            : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(dayOfWeek)]}`
-                      }`}
+                          ? submittedValues.dayOfWeek
+                          : dayOfWeek,
+                      )}
                 </p>
               </div>
             )}

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 export const CreateTagBodySchema = z.object({
   instanceId: z.number().int().positive('Instance ID is required'),
@@ -10,10 +11,9 @@ export const CreateTagResponseSchema = z.object({
   label: z.string(),
 })
 
-export const ErrorSchema = z.object({
-  message: z.string(),
-})
-
 export type CreateTagBody = z.infer<typeof CreateTagBodySchema>
 export type CreateTagResponse = z.infer<typeof CreateTagResponseSchema>
-export type Error = z.infer<typeof ErrorSchema>
+export type CreateTagError = z.infer<typeof ErrorSchema>
+
+// Re-export shared schemas
+export { ErrorSchema }

@@ -3,20 +3,20 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Renders a static skeleton interface for the API Keys management page during loading.
+ * Renders a skeleton placeholder for the API Keys management page during loading.
  *
- * Displays placeholder elements for all major sections—header, actions, current status, API key creation form, and existing API keys—to visually represent the page layout while data is being fetched.
+ * Displays non-interactive skeleton elements for all major sections of the API Keys page, including actions, current status, API key creation, and existing API keys, to visually indicate the page layout while data is being fetched.
  */
 export function ApiKeysSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
       <UtilitySectionHeader
         title="API Keys"
         description="Manage API keys for external access to your Pulsarr instance"
         showStatus={false}
       />
 
-      <div className="mt-6 space-y-6">
+      <div className="space-y-6">
         {/* Actions section skeleton */}
         <div>
           <h3 className="font-medium text-foreground mb-2">Actions</h3>

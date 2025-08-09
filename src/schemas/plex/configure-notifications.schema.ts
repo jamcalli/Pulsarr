@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema as CommonErrorSchema } from '@root/schemas/common/error.schema.js'
 
 const PlexNotificationConfigSchema = z.object({
   plexToken: z.string().min(1, 'Plex token is required'),
@@ -23,10 +24,6 @@ const PlexNotificationResponseSchema = z.object({
   }),
 })
 
-const ErrorSchema = z.object({
-  error: z.string(),
-})
-
 export const plexConfigNotificationSchema = {
   summary: 'Configure Plex notifications',
   operationId: 'configurePlexNotifications',
@@ -36,8 +33,8 @@ export const plexConfigNotificationSchema = {
   body: PlexNotificationConfigSchema,
   response: {
     200: PlexNotificationResponseSchema,
-    400: ErrorSchema,
-    500: ErrorSchema,
+    400: CommonErrorSchema,
+    500: CommonErrorSchema,
   },
 }
 
@@ -48,4 +45,4 @@ export type PlexNotificationResponse = z.infer<
   typeof PlexNotificationResponseSchema
 >
 export type PlexInstanceResult = z.infer<typeof PlexInstanceResultSchema>
-export type Error = z.infer<typeof ErrorSchema>
+export type PlexConfigurationError = z.infer<typeof CommonErrorSchema>

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { Button } from '@/components/ui/button'
 import { Loader2, Save, Trash2, X, Search, ServerIcon } from 'lucide-react'
 import {
@@ -27,17 +28,15 @@ import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { useConfigStore } from '@/stores/configStore'
 
 /**
- * Plex Notifications utility page - provides a form for configuring Plex notifications across all Radarr and Sonarr instances, including Plex server discovery and management.
+ * Renders the Plex Notifications configuration page, allowing users to manage Plex notification integration for all Radarr and Sonarr instances.
  *
- * Users can enter Plex connection details, discover and select available Plex servers using a Plex token, and manage notification settings for all connected Radarr and Sonarr instances. The form provides real-time status feedback for each instance and allows removal of all Plex notifications with confirmation.
+ * Users can enter Plex connection details, discover and select available Plex servers, view the status of notifications for each Radarr and Sonarr instance, and remove all Plex notifications with confirmation. The page provides real-time feedback on configuration status and supports safe, validated updates.
  */
 export default function PlexNotificationsPage() {
   const initialize = useConfigStore((state) => state.initialize)
 
-  // Initialize store on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
+  // Initialize config store with minimum duration for consistent UX
+  const isInitializing = useInitializeWithMinDuration(initialize)
 
   const {
     form,
@@ -60,7 +59,7 @@ export default function PlexNotificationsPage() {
     return 'disabled'
   }
 
-  if (isLoading) {
+  if (isInitializing || isLoading) {
     return <PlexNotificationsPageSkeleton />
   }
 

@@ -14,7 +14,7 @@ const userTagPlugin: FastifyPluginAsync = async (fastify, opts) => {
 
 export default fp(userTagPlugin, {
   name: 'user-tag',
-  dependencies: ['database', 'sonarr-manager', 'radarr-manager'],
+  dependencies: ['database', 'sonarr-manager', 'radarr-manager', 'progress'],
 })
 
 // Add type definitions

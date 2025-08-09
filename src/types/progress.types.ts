@@ -30,6 +30,8 @@ export interface ProgressEvent {
     | 'radarr-tagging'
     | 'sonarr-tag-removal'
     | 'radarr-tag-removal'
+    | 'plex-label-sync'
+    | 'plex-label-removal'
     | 'approval'
   phase: string
   progress: number
@@ -45,5 +47,6 @@ export interface ProgressService {
 export interface ProgressOptions {
   progress: ProgressService
   operationId: string
-  type: 'self-watchlist' | 'others-watchlist' | 'rss-feed'
+  /** must match one of the ProgressEvent.type values */
+  type: ProgressEvent['type']
 }
