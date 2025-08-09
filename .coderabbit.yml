@@ -26,5 +26,14 @@ reviews:
     - "!**/package-lock.json"
     - "!**/yarn.lock"
     - "!**/pnpm-lock.yaml"
+code_generation:
+  docstrings:
+    path_instructions:
+      - path: "src/client/**/*"
+        instructions: |
+          Skip docstring generation for all client files.
+      - path: "src/**/*"
+        instructions: |
+          Generate comprehensive docstrings for backend files.
 chat:
   auto_reply: true
