@@ -11,7 +11,10 @@ export function UserTagsPageSkeleton() {
   const statusInfo = 'unknown' as const
 
   return (
-    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+    <div
+      className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]"
+      aria-busy="true"
+    >
       <UtilitySectionHeader
         title="User Tags"
         description="Configure user-based tagging for Sonarr and Radarr content"
@@ -24,7 +27,7 @@ export function UserTagsPageSkeleton() {
           <h3 className="font-medium text-foreground mb-2">Actions</h3>
           <div className="flex flex-wrap items-center gap-4">
             <Skeleton className="h-8 w-24" />
-            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-22" />
             <Skeleton className="h-8 w-20" />
             <Skeleton className="h-8 w-24" />
           </div>
@@ -33,7 +36,7 @@ export function UserTagsPageSkeleton() {
         <Separator />
 
         {/* Status section skeleton */}
-        <div>
+        <output aria-live="polite" aria-atomic="true">
           <h3 className="font-medium text-foreground mb-2">Status</h3>
           <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
             <Skeleton className="h-4 w-3/4 mb-3" />
@@ -59,7 +62,7 @@ export function UserTagsPageSkeleton() {
               </div>
             </div>
           </div>
-        </div>
+        </output>
 
         <Separator />
 

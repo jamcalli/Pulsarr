@@ -324,21 +324,18 @@ export function useSessionMonitoring() {
 
   const handleResetInactiveShows = useCallback(async () => {
     try {
-      const result = await resetInactiveShows(inactivityDays)
+      // Use current form value to stay in sync with UI, fallback to default if undefined
+      const currentInactivityDays = form.getValues('inactivityResetDays') ?? 7
+      const result = await resetInactiveShows(currentInactivityDays)
       toast.success(`${result.message} (${result.resetCount} shows reset)`)
 
-      // Refresh both rolling and inactive shows
+      // Refresh both rolling and inactive shows using current form value
       await fetchRollingShows()
-      await fetchInactiveShows(inactivityDays)
+      await fetchInactiveShows(currentInactivityDays)
     } catch (err) {
       // Error handling is done in the store
     }
-  }, [
-    resetInactiveShows,
-    inactivityDays,
-    fetchRollingShows,
-    fetchInactiveShows,
-  ])
+  }, [resetInactiveShows, fetchRollingShows, fetchInactiveShows, form])
 
   return {
     // Form state
