@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-features/plex-label-sync" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.8.1">
+<title data-rh="true">Plex Label Sync | Pulsarr</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://jamcalli.github.io/Pulsarr/img/pulsarr-social-card.png"><meta data-rh="true" name="twitter:image" content="https://jamcalli.github.io/Pulsarr/img/pulsarr-social-card.png"><meta data-rh="true" property="og:url" content="https://jamcalli.github.io/Pulsarr/docs/features/plex-label-sync"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Plex Label Sync | Pulsarr"><meta data-rh="true" name="description" content="Automatically synchronize Plex labels based on user watchlists and content requests. This powerful feature bridges Pulsarr&#x27;s user management with Plex&#x27;s labeling system, providing seamless content organization and tracking directly in your Plex library."><meta data-rh="true" property="og:description" content="Automatically synchronize Plex labels based on user watchlists and content requests. This powerful feature bridges Pulsarr&#x27;s user management with Plex&#x27;s labeling system, providing seamless content organization and tracking directly in your Plex library."><link data-rh="true" rel="icon" href="/Pulsarr/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://jamcalli.github.io/Pulsarr/docs/features/plex-label-sync"><link data-rh="true" rel="alternate" href="https://jamcalli.github.io/Pulsarr/docs/features/plex-label-sync" hreflang="en"><link data-rh="true" rel="alternate" href="https://jamcalli.github.io/Pulsarr/docs/features/plex-label-sync" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://W6AJSESFCJ-dsn.algolia.net" crossorigin="anonymous"><link rel="search" type="application/opensearchdescription+xml" title="Pulsarr" href="/Pulsarr/opensearch.xml"><link rel="stylesheet" href="/Pulsarr/assets/css/styles.bfc1498f.css">
+<script src="/Pulsarr/assets/js/runtime~main.a9232c33.js" defer="defer"></script>
+<script src="/Pulsarr/assets/js/main.4be20951.js" defer="defer"></script>
+</head>
+<body class="navigation-with-keyboard">
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")),document.documentElement.setAttribute("data-theme-choice",t||"system")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/Pulsarr/img/logo.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_fXgn" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="navbar navbar--fixed-top" style="background-color:#48a9a6;border-bottom:4px solid #000"><div class="navbar__inner"><div class="navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/Pulsarr/"><div class="navbar__logo"><img src="/Pulsarr/img/logo.svg" alt="Pulsarr Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src="/Pulsarr/img/logo.svg" alt="Pulsarr Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">Pulsarr</b></a><a class="navbar__item navbar__link" type="docSidebar" href="/Pulsarr/docs/intro">Documentation</a></div><div class="navbar__items navbar__items--right"><div class="navbar__item"><div id="github-stats-button"></div></div><div class="colorModeToggle_x44X"><button type="button" style="display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;border-radius:5px;font-size:0.875rem;font-weight:500;height:2.5rem;width:2.5rem;border:2px solid #000;background-color:#212121;color:#e6e6e6;position:relative;cursor:pointer;transition:all 0.2s ease" class=""><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" style="position:absolute;opacity:0;transform:rotate(-90deg) scale(0);transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);color:#e6e6e6" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" style="position:absolute;opacity:1;transform:rotate(0) scale(1);transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);color:#e6e6e6" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg><span class="sr-only">Switch to <!-- -->light<!-- --> mode</span></button></div><div class="navbarSearchContainer_dCNk"><div style="display:none" id="default-search-container"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Command+K)"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M14.386 14.386l4.0877 4.0877-4.0877-4.0877c-2.9418 2.9419-7.7115 2.9419-10.6533 0-2.9419-2.9418-2.9419-7.7115 0-10.6533 2.9418-2.9419 7.7115-2.9419 10.6533 0 2.9419 2.9418 2.9419 7.7115 0 10.6533z" stroke="currentColor" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div><div style="display:none"><div id="default-search-container"></div></div><button type="button" style="display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;border-radius:5px;font-size:0.875rem;font-weight:500;height:2.5rem;min-width:2.5rem;padding:0 0.75rem;border:2px solid #000;background-color:#4a94b5;color:#000 !important;position:relative;cursor:pointer;transition:all 0.2s ease;gap:0.5rem" class="custom-search-button"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg><span class="hidden lg:inline">Search</span><span class="sr-only">Search documentation</span></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_z2l0"><div class="docsWrapper_hBAB"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type="button"></button><div class="docRoot_UBD9"><main class="docMainContainer_TBSr docMainContainerEnhanced_lQrH"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_xLCN"><div class="docItemContainer_jfFK"><article><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type="button" class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><div class="row"><div class="col col--12 markdown"><header><h1>Plex Label Sync</h1></header>
+<p>Automatically synchronize Plex labels based on user watchlists and content requests. This powerful feature bridges Pulsarr&#x27;s user management with Plex&#x27;s labeling system, providing seamless content organization and tracking directly in your Plex library.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="key-features">Key Features<a href="#key-features" class="hash-link" aria-label="Direct link to Key Features" title="Direct link to Key Features">​</a></h2>
+<ul>
+<li><strong>Real-time Label Updates</strong>: Webhook-triggered synchronization from Radarr/Sonarr for instant label updates</li>
+<li><strong>User-based Labels</strong>: Automatically label content with usernames who requested it</li>
+<li><strong>Radarr/Sonarr Tag Integration</strong>: Sync tags from your Arr instances directly to Plex labels</li>
+<li><strong>Intelligent Pending Queue</strong>: Queue content for labeling when it&#x27;s not yet available in Plex</li>
+<li><strong>Flexible Label Management</strong>: Configurable label formats, prefixes, and cleanup behaviors</li>
+<li><strong>Batch Operations</strong>: Full library synchronization with progress tracking</li>
+<li><strong>Orphaned Label Cleanup</strong>: Remove labels for deleted users and expired content</li>
+<li><strong>Performance Optimized</strong>: Configurable concurrency limits and efficient processing</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="how-it-works">How It Works<a href="#how-it-works" class="hash-link" aria-label="Direct link to How It Works" title="Direct link to How It Works">​</a></h2>
+<ol>
+<li><strong>Content Added</strong>: User adds content to their Plex watchlist</li>
+<li><strong>Content Acquired</strong>: Radarr/Sonarr downloads and imports the content, then sends webhook notification</li>
+<li><strong>Real-time Sync</strong>: Webhook triggers label update in Plex</li>
+<li><strong>User Labeling</strong>: Content is labeled with requesting user&#x27;s name</li>
+<li><strong>Tag Integration</strong>: Radarr/Sonarr tags are optionally synced as Plex labels</li>
+<li><strong>Queue Processing</strong>: Pending items are processed when they become available</li>
+</ol>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="label-types">Label Types<a href="#label-types" class="hash-link" aria-label="Direct link to Label Types" title="Direct link to Label Types">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="user-labels">User Labels<a href="#user-labels" class="hash-link" aria-label="Direct link to User Labels" title="Direct link to User Labels">​</a></h3>
+<p>Labels that track which users requested specific content:</p>
+<ul>
+<li><strong>Format</strong>: <code>{labelPrefix}:{username}</code> (e.g., &quot;pulsarr<!-- -->:john<!-- -->&quot;, &quot;pulsarr<!-- -->:sarah<!-- -->&quot;)</li>
+<li><strong>Multi-User Support</strong>: Content can have multiple user labels if requested by multiple users</li>
+<li><strong>Dynamic Updates</strong>: Labels are added/removed as users add/remove content from watchlists</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="tag-labels">Tag Labels<a href="#tag-labels" class="hash-link" aria-label="Direct link to Tag Labels" title="Direct link to Tag Labels">​</a></h3>
+<p>Labels synchronized from Radarr/Sonarr tags:</p>
+<ul>
+<li><strong>Radarr Tags</strong>: Movie tags synced to Plex movie labels</li>
+<li><strong>Sonarr Tags</strong>: Series tags synced to Plex show labels</li>
+<li><strong>Webhook Triggered</strong>: Real-time updates when tags change in Arr instances</li>
+<li><strong>Selective Sync</strong>: Configure which Arr instances to sync tags from</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="removed-user-labels">Removed User Labels<a href="#removed-user-labels" class="hash-link" aria-label="Direct link to Removed User Labels" title="Direct link to Removed User Labels">​</a></h3>
+<p>Special handling for users who are removed from content:</p>
+<ul>
+<li><strong>Remove Mode</strong>: Delete the user label completely</li>
+<li><strong>Keep Mode</strong>: Preserve the label for historical tracking</li>
+<li><strong>Special Label Mode</strong>: Replace with a &quot;removed&quot; label (e.g., &quot;pulsarr:removed<!-- -->:john<!-- -->&quot;)</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="configuration">Configuration<a href="#configuration" class="hash-link" aria-label="Direct link to Configuration" title="Direct link to Configuration">​</a></h2>
+<p>Navigate to <strong>Utilities</strong> section to configure Plex Label Sync:</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="basic-settings">Basic Settings<a href="#basic-settings" class="hash-link" aria-label="Direct link to Basic Settings" title="Direct link to Basic Settings">​</a></h3>
+<ul>
+<li><strong>Enable Label Sync</strong>: Toggle the entire feature on/off</li>
+<li><strong>Label Prefix</strong>: Customize the prefix for user labels (default: &quot;pulsarr&quot;)</li>
+<li><strong>Concurrency Limit</strong>: Control processing speed (1-20, default: 5)</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="label-management">Label Management<a href="#label-management" class="hash-link" aria-label="Direct link to Label Management" title="Direct link to Label Management">​</a></h3>
+<ul>
+<li>
+<p><strong>Cleanup Orphaned Labels</strong>: Remove labels for deleted users during sync operations</p>
+</li>
+<li>
+<p><strong>Removed Label Mode</strong>: How to handle labels when users are removed from content:</p>
+<ul>
+<li><strong>Remove</strong>: Delete the label completely</li>
+<li><strong>Keep</strong>: Preserve for historical tracking</li>
+<li><strong>Special Label</strong>: Replace with removal-specific label</li>
+</ul>
+</li>
+<li>
+<p><strong>Removed Label Prefix</strong>: Custom prefix for removed user labels (default: &quot;pulsarr<!-- -->:removed<!-- -->&quot;)</p>
+</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="tag-synchronization">Tag Synchronization<a href="#tag-synchronization" class="hash-link" aria-label="Direct link to Tag Synchronization" title="Direct link to Tag Synchronization">​</a></h3>
+<ul>
+<li><strong>Enable Tag Sync</strong>: Sync Radarr/Sonarr tags to Plex labels</li>
+<li><strong>Sync Radarr Tags</strong>: Include movie tags from Radarr instances</li>
+<li><strong>Sync Sonarr Tags</strong>: Include series tags from Sonarr instances</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="scheduling-optional">Scheduling (Optional)<a href="#scheduling-optional" class="hash-link" aria-label="Direct link to Scheduling (Optional)" title="Direct link to Scheduling (Optional)">​</a></h3>
+<ul>
+<li><strong>Schedule Time</strong>: Automatically run full sync at specific time</li>
+<li><strong>Day of Week</strong>: Choose which days to run scheduled sync</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="webhook-integration">Webhook Integration<a href="#webhook-integration" class="hash-link" aria-label="Direct link to Webhook Integration" title="Direct link to Webhook Integration">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="real-time-updates">Real-time Updates<a href="#real-time-updates" class="hash-link" aria-label="Direct link to Real-time Updates" title="Direct link to Real-time Updates">​</a></h3>
+<p>Plex Label Sync integrates with Radarr/Sonarr webhooks for instant label updates:</p>
+<ol>
+<li><strong>Radarr/Sonarr Webhook</strong>: Triggers on movie/episode import</li>
+<li><strong>Content Identification</strong>: Matches imported content to Plex library</li>
+<li><strong>Label Application</strong>: Adds user and tag labels to newly imported content</li>
+<li><strong>Queue Processing</strong>: Updates any pending sync items</li>
+</ol>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="supported-webhook-events">Supported Webhook Events<a href="#supported-webhook-events" class="hash-link" aria-label="Direct link to Supported Webhook Events" title="Direct link to Supported Webhook Events">​</a></h3>
+<ul>
+<li><strong>On Import</strong>: Content successfully imported to library</li>
+<li><strong>On Upgrade</strong>: Content quality upgraded</li>
+<li><strong>On Rename</strong>: Content files renamed or moved</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="performance-optimization">Performance Optimization<a href="#performance-optimization" class="hash-link" aria-label="Direct link to Performance Optimization" title="Direct link to Performance Optimization">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="concurrency-control">Concurrency Control<a href="#concurrency-control" class="hash-link" aria-label="Direct link to Concurrency Control" title="Direct link to Concurrency Control">​</a></h3>
+<ul>
+<li><strong>Configurable Limits</strong>: Adjust concurrent operations (1-20)</li>
+<li><strong>Optimal Settings</strong>: Default of 5 works well for most setups</li>
+<li><strong>Large Libraries</strong>: Consider increasing for faster processing</li>
+<li><strong>Resource Constraints</strong>: Reduce if experiencing performance issues</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="efficient-processing">Efficient Processing<a href="#efficient-processing" class="hash-link" aria-label="Direct link to Efficient Processing" title="Direct link to Efficient Processing">​</a></h3>
+<ul>
+<li><strong>Delta Updates</strong>: Only processes changed content during routine syncs</li>
+<li><strong>Batch Operations</strong>: Groups multiple label changes for efficiency</li>
+<li><strong>Smart Caching</strong>: Reduces redundant Plex API calls</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="troubleshooting">Troubleshooting<a href="#troubleshooting" class="hash-link" aria-label="Direct link to Troubleshooting" title="Direct link to Troubleshooting">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="common-issues">Common Issues<a href="#common-issues" class="hash-link" aria-label="Direct link to Common Issues" title="Direct link to Common Issues">​</a></h3>
+<p><strong>Labels not appearing in Plex</strong>:</p>
+<ul>
+<li>Verify Plex server connection and permissions</li>
+<li>Check that content exists in Plex library</li>
+<li>Confirm label prefix configuration</li>
+</ul>
+<p><strong>Webhook updates not working</strong>:</p>
+<ul>
+<li>Verify Radarr/Sonarr webhook configuration</li>
+<li>Check webhook endpoint URL in Arr instance settings</li>
+<li>Review logs for webhook processing errors</li>
+</ul>
+<p><strong>High memory usage during sync</strong>:</p>
+<ul>
+<li>Reduce concurrency limit in configuration</li>
+<li>Process libraries in smaller batches</li>
+<li>Consider running sync during off-peak hours</li>
+</ul>
+<p><strong>Pending items not processing</strong>:</p>
+<ul>
+<li>Check if content actually exists in Plex</li>
+<li>Verify GUID matching between Plex and Arr instances</li>
+<li>Review pending sync queue in database</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="performance-tuning">Performance Tuning<a href="#performance-tuning" class="hash-link" aria-label="Direct link to Performance Tuning" title="Direct link to Performance Tuning">​</a></h3>
+<p><strong>For Large Libraries</strong> (&gt;10,000 items):</p>
+<ul>
+<li>Increase concurrency limit to 8-10</li>
+<li>Enable orphaned label cleanup</li>
+<li>Schedule regular maintenance during off-hours</li>
+</ul>
+<p><strong>For Resource-Limited Systems</strong>:</p>
+<ul>
+<li>Set concurrency limit to 2-3</li>
+<li>Disable tag sync if not needed</li>
+<li>Use &quot;keep&quot; mode for removed labels to reduce processing</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="integration-examples">Integration Examples<a href="#integration-examples" class="hash-link" aria-label="Direct link to Integration Examples" title="Direct link to Integration Examples">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="content-organization-workflows">Content Organization Workflows<a href="#content-organization-workflows" class="hash-link" aria-label="Direct link to Content Organization Workflows" title="Direct link to Content Organization Workflows">​</a></h3>
+<p><strong>User-based Collections</strong>:</p>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#F8F8F2;--prism-background-color:#282A36"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#F8F8F2;background-color:#282A36"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#F8F8F2"><span class="token plain">Filter: Label contains &quot;pulsarr:username&quot;</span><br></span><span class="token-line" style="color:#F8F8F2"><span class="token plain">Result: All content requested by specific user</span><br></span></code></pre></div></div>
+<p><strong>Department/Family Sections</strong>:</p>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#F8F8F2;--prism-background-color:#282A36"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#F8F8F2;background-color:#282A36"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#F8F8F2"><span class="token plain">Filter: Label contains &quot;pulsarr:kids&quot; OR &quot;pulsarr:adults&quot;</span><br></span><span class="token-line" style="color:#F8F8F2"><span class="token plain">Result: Content separated by target audience</span><br></span></code></pre></div></div>
+<p><strong>Request Tracking</strong>:</p>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#F8F8F2;--prism-background-color:#282A36"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#F8F8F2;background-color:#282A36"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#F8F8F2"><span class="token plain">Filter: Label contains &quot;pulsarr:removed:&quot;</span><br></span><span class="token-line" style="color:#F8F8F2"><span class="token plain">Result: Previously requested content for cleanup consideration</span><br></span></code></pre></div></div>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="advanced-tag-usage">Advanced Tag Usage<a href="#advanced-tag-usage" class="hash-link" aria-label="Direct link to Advanced Tag Usage" title="Direct link to Advanced Tag Usage">​</a></h3>
+<p><strong>Quality Profiles</strong>:</p>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#F8F8F2;--prism-background-color:#282A36"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#F8F8F2;background-color:#282A36"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#F8F8F2"><span class="token plain">Radarr Tag: &quot;4k-only&quot; → Plex Label: &quot;4k-only&quot;</span><br></span><span class="token-line" style="color:#F8F8F2"><span class="token plain">Result: Easy identification of high-quality content</span><br></span></code></pre></div></div>
+<p><strong>Content Categories</strong>:</p>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#F8F8F2;--prism-background-color:#282A36"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#F8F8F2;background-color:#282A36"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#F8F8F2"><span class="token plain">Sonarr Tags: &quot;anime&quot;, &quot;documentary&quot; → Plex Labels: &quot;anime&quot;, &quot;documentary&quot;</span><br></span><span class="token-line" style="color:#F8F8F2"><span class="token plain">Result: Enhanced content discovery and filtering</span><br></span></code></pre></div></div>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="best-practices">Best Practices<a href="#best-practices" class="hash-link" aria-label="Direct link to Best Practices" title="Direct link to Best Practices">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="label-management-1">Label Management<a href="#label-management-1" class="hash-link" aria-label="Direct link to Label Management" title="Direct link to Label Management">​</a></h3>
+<ul>
+<li>Use descriptive label prefixes that align with your organization system</li>
+<li>Enable orphaned label cleanup to maintain database hygiene</li>
+<li>Choose appropriate removed label mode based on your tracking needs</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="performance">Performance<a href="#performance" class="hash-link" aria-label="Direct link to Performance" title="Direct link to Performance">​</a></h3>
+<ul>
+<li>Start with default concurrency settings and adjust based on performance</li>
+<li>Schedule full syncs during low-usage periods</li>
+<li>Monitor system resources during initial large library syncs</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="integration">Integration<a href="#integration" class="hash-link" aria-label="Direct link to Integration" title="Direct link to Integration">​</a></h3>
+<ul>
+<li>Configure webhooks in all Radarr/Sonarr instances for real-time updates</li>
+<li>Use consistent tagging strategies across Arr instances</li>
+<li>Consider label-based smart collections for enhanced Plex organization</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="maintenance">Maintenance<a href="#maintenance" class="hash-link" aria-label="Direct link to Maintenance" title="Direct link to Maintenance">​</a></h3>
+<ul>
+<li>Run periodic cleanup operations to remove orphaned labels</li>
+<li>Review pending sync queue regularly to identify processing issues</li>
+<li>Monitor logs for webhook processing errors and connectivity issues</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="environment-configuration">Environment Configuration<a href="#environment-configuration" class="hash-link" aria-label="Direct link to Environment Configuration" title="Direct link to Environment Configuration">​</a></h2>
+<p>The Plex Label Sync feature can be configured via environment variables for advanced deployments. See the <a href="/Pulsarr/docs/development/environment-variables#plex-label-sync-configuration">Environment Variables</a> reference for detailed configuration options.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="api-reference">API Reference<a href="#api-reference" class="hash-link" aria-label="Direct link to API Reference" title="Direct link to API Reference">​</a></h2>
+<p>Complete API documentation for label operations is available in the <a href="/Pulsarr/docs/api/labels">Labels API</a> reference.</p></div></div></div><div class="row"><div class="col col--12"><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col"><a href="https://github.com/jamcalli/pulsarr/edit/main/docs/docs/features/plex-label-sync.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"></div></div></footer></div></div></article><div class="row"><div class="col col--12"><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"></nav></div></div></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#key-features" class="table-of-contents__link toc-highlight">Key Features</a></li><li><a href="#how-it-works" class="table-of-contents__link toc-highlight">How It Works</a></li><li><a href="#label-types" class="table-of-contents__link toc-highlight">Label Types</a><ul><li><a href="#user-labels" class="table-of-contents__link toc-highlight">User Labels</a></li><li><a href="#tag-labels" class="table-of-contents__link toc-highlight">Tag Labels</a></li><li><a href="#removed-user-labels" class="table-of-contents__link toc-highlight">Removed User Labels</a></li></ul></li><li><a href="#configuration" class="table-of-contents__link toc-highlight">Configuration</a><ul><li><a href="#basic-settings" class="table-of-contents__link toc-highlight">Basic Settings</a></li><li><a href="#label-management" class="table-of-contents__link toc-highlight">Label Management</a></li><li><a href="#tag-synchronization" class="table-of-contents__link toc-highlight">Tag Synchronization</a></li><li><a href="#scheduling-optional" class="table-of-contents__link toc-highlight">Scheduling (Optional)</a></li></ul></li><li><a href="#webhook-integration" class="table-of-contents__link toc-highlight">Webhook Integration</a><ul><li><a href="#real-time-updates" class="table-of-contents__link toc-highlight">Real-time Updates</a></li><li><a href="#supported-webhook-events" class="table-of-contents__link toc-highlight">Supported Webhook Events</a></li></ul></li><li><a href="#performance-optimization" class="table-of-contents__link toc-highlight">Performance Optimization</a><ul><li><a href="#concurrency-control" class="table-of-contents__link toc-highlight">Concurrency Control</a></li><li><a href="#efficient-processing" class="table-of-contents__link toc-highlight">Efficient Processing</a></li></ul></li><li><a href="#troubleshooting" class="table-of-contents__link toc-highlight">Troubleshooting</a><ul><li><a href="#common-issues" class="table-of-contents__link toc-highlight">Common Issues</a></li><li><a href="#performance-tuning" class="table-of-contents__link toc-highlight">Performance Tuning</a></li></ul></li><li><a href="#integration-examples" class="table-of-contents__link toc-highlight">Integration Examples</a><ul><li><a href="#content-organization-workflows" class="table-of-contents__link toc-highlight">Content Organization Workflows</a></li><li><a href="#advanced-tag-usage" class="table-of-contents__link toc-highlight">Advanced Tag Usage</a></li></ul></li><li><a href="#best-practices" class="table-of-contents__link toc-highlight">Best Practices</a><ul><li><a href="#label-management-1" class="table-of-contents__link toc-highlight">Label Management</a></li><li><a href="#performance" class="table-of-contents__link toc-highlight">Performance</a></li><li><a href="#integration" class="table-of-contents__link toc-highlight">Integration</a></li><li><a href="#maintenance" class="table-of-contents__link toc-highlight">Maintenance</a></li></ul></li><li><a href="#environment-configuration" class="table-of-contents__link toc-highlight">Environment Configuration</a></li><li><a href="#api-reference" class="table-of-contents__link toc-highlight">API Reference</a></li></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/Pulsarr/docs/intro">Getting Started</a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Community</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://github.com/jamcalli/pulsarr" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub<svg width="13.5" height="13.5" aria-hidden="true" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://github.com/jamcalli/pulsarr/issues" target="_blank" rel="noopener noreferrer" class="footer__link-item">Issues<svg width="13.5" height="13.5" aria-hidden="true" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://github.com/jamcalli/pulsarr" target="_blank" rel="noopener noreferrer" class="footer__link-item">Pulsarr App<svg width="13.5" height="13.5" aria-hidden="true" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://github.com/jamcalli/pulsarr/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="footer__link-item">License (GPL)<svg width="13.5" height="13.5" aria-hidden="true" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div></div></div></footer></div>
+</body>
+</html>
