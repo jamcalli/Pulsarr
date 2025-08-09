@@ -107,10 +107,14 @@ export async function trackPlexLabelsBulk(
                   throw new Error('Content GUIDs array cannot be empty')
                 }
 
-                const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+                const normalizedGuids = Array.from(
+                  new Set(contentGuids.map((g) => g.toLowerCase())),
+                )
                 const guidsJson = JSON.stringify(normalizedGuids)
                 const labelsJson = JSON.stringify(
-                  labelsApplied.map((l) => l.toLowerCase()).sort(),
+                  Array.from(
+                    new Set(labelsApplied.map((l) => l.toLowerCase())),
+                  ).sort(),
                 )
 
                 // Use PostgreSQL-specific upsert with GUID matching
@@ -221,10 +225,12 @@ export async function trackPlexLabelsBulk(
                   throw new Error('Content GUIDs array cannot be empty')
                 }
 
-                const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+                const normalizedGuids = Array.from(
+                  new Set(contentGuids.map((g) => g.toLowerCase())),
+                )
                 const guidsJson = JSON.stringify(normalizedGuids)
-                const normalizedLabels = labelsApplied.map((l) =>
-                  l.toLowerCase(),
+                const normalizedLabels = Array.from(
+                  new Set(labelsApplied.map((l) => l.toLowerCase())),
                 )
                 const labelsJson = JSON.stringify(normalizedLabels.sort())
 
@@ -350,11 +356,14 @@ export async function trackPlexLabels(
   // For backward compatibility, we need to return the record ID
   // Since we can't get that from the bulk operation result in a clean way,
   // we'll query for it
-  const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
+  const normalizedGuids = Array.from(
+    new Set(contentGuids.map((g) => g.toLowerCase())),
+  )
 
   const record = this.isPostgres
     ? await this.knex('plex_label_tracking')
         .where('user_id', userId)
+        .where('content_type', contentType)
         .where('plex_rating_key', plexRatingKey)
         .whereRaw(
           'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids) elem WHERE lower(elem) = ANY(?))',
@@ -363,6 +372,7 @@ export async function trackPlexLabels(
         .first()
     : await this.knex('plex_label_tracking')
         .where('user_id', userId)
+        .where('content_type', contentType)
         .where('plex_rating_key', plexRatingKey)
         .where((builder) => {
           for (const guid of normalizedGuids) {
@@ -417,6 +427,7 @@ export async function untrackPlexLabelBulk(
               try {
                 const { contentGuids, userId, plexRatingKey, labelApplied } =
                   operation
+                const labelLower = labelApplied.toLowerCase()
 
                 // Handle empty arrays
                 if (contentGuids.length === 0) {
@@ -472,18 +483,18 @@ export async function untrackPlexLabelBulk(
                     (SELECT COUNT(*) FROM deleted_records) as deleted_count
                   `,
                   [
-                    labelApplied,
+                    labelLower,
                     this.timestamp,
                     userId,
                     plexRatingKey,
                     normalizedGuids,
-                    labelApplied,
-                    labelApplied,
+                    labelLower,
+                    labelLower,
                     userId,
                     plexRatingKey,
                     normalizedGuids,
-                    labelApplied,
-                    labelApplied,
+                    labelLower,
+                    labelLower,
                   ],
                 )
 
@@ -533,6 +544,7 @@ export async function untrackPlexLabelBulk(
               try {
                 const { contentGuids, userId, plexRatingKey, labelApplied } =
                   operation
+                const labelLower = labelApplied.toLowerCase()
 
                 // Handle empty arrays
                 if (contentGuids.length === 0) {
@@ -566,7 +578,7 @@ export async function untrackPlexLabelBulk(
                   'plex_label_tracking.labels_applied',
                 )
                 const updatedLabels = currentLabels.filter(
-                  (label) => label !== labelApplied,
+                  (label) => label !== labelLower,
                 )
 
                 // If no labels remain, delete the record
@@ -1083,7 +1095,8 @@ export async function removeTrackedLabels(
               try {
                 let totalUpdated = 0
 
-                for (const label of labelsToRemove) {
+                for (const _label of labelsToRemove) {
+                  const label = _label.toLowerCase()
                   const result = await trx.raw(
                     `
                     WITH updated_records AS (
@@ -1178,6 +1191,9 @@ export async function removeTrackedLabels(
                 const records = await trx('plex_label_tracking')
                   .where('plex_rating_key', plexRatingKey)
                   .select('*')
+                const toRemove = new Set(
+                  labelsToRemove.map((l) => l.toLowerCase()),
+                )
 
                 const toUpdate: Array<{ id: number; labels: string[] }> = []
                 const toDelete: number[] = []
@@ -1189,7 +1205,7 @@ export async function removeTrackedLabels(
                     'plex_label_tracking.labels_applied',
                   )
                   const updatedLabels = labels.filter(
-                    (label) => !labelsToRemove.includes(label),
+                    (label) => !toRemove.has(label),
                   )
 
                   if (updatedLabels.length !== labels.length) {
@@ -1404,7 +1420,9 @@ export async function removeOrphanedTrackingBulk(
                   return { plexRatingKey, success: true, updatedCount: 0 }
                 }
 
-                const orphanedArray = JSON.stringify(orphanedLabels)
+                const orphanedArray = JSON.stringify(
+                  orphanedLabels.map((l) => l.toLowerCase()),
+                )
 
                 const result = await trx.raw(
                   `
@@ -1503,6 +1521,9 @@ export async function removeOrphanedTrackingBulk(
                 const records = await trx('plex_label_tracking')
                   .where('plex_rating_key', plexRatingKey)
                   .select('*')
+                const toRemove = new Set(
+                  orphanedLabels.map((l) => l.toLowerCase()),
+                )
 
                 const toUpdate: Array<{ id: number; labels: string[] }> = []
                 const toDelete: number[] = []
@@ -1514,7 +1535,7 @@ export async function removeOrphanedTrackingBulk(
                     'plex_label_tracking.labels_applied',
                   )
                   const updatedLabels = labels.filter(
-                    (label) => !orphanedLabels.includes(label),
+                    (label) => !toRemove.has(label),
                   )
 
                   if (updatedLabels.length !== labels.length) {
