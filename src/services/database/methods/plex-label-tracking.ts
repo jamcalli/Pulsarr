@@ -511,7 +511,7 @@ export async function untrackPlexLabelBulk(
 
                 return {
                   plexRatingKey,
-                  success: totalUpdated > 0,
+                  success: true,
                   updatedCount: totalUpdated,
                 }
               } catch (error) {
@@ -595,7 +595,7 @@ export async function untrackPlexLabelBulk(
                     .delete()
                   return {
                     plexRatingKey,
-                    success: deleted > 0,
+                    success: true,
                     updatedCount: deleted,
                   }
                 }
