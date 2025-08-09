@@ -575,7 +575,12 @@ export async function untrackPlexLabelBulk(
                 .first()
 
               if (!existing) {
-                return { plexRatingKey, success: false }
+                chunkResults.push({
+                  plexRatingKey,
+                  success: false,
+                  updatedCount: 0,
+                })
+                continue
               }
 
               // Parse existing labels and remove the specified one
@@ -593,11 +598,12 @@ export async function untrackPlexLabelBulk(
                 const deleted = await trx('plex_label_tracking')
                   .where('id', existing.id)
                   .delete()
-                return {
+                chunkResults.push({
                   plexRatingKey,
                   success: true,
                   updatedCount: deleted,
-                }
+                })
+                continue
               }
 
               // Otherwise, update with remaining labels
@@ -1449,7 +1455,12 @@ export async function removeOrphanedTrackingBulk(
           for (const { plexRatingKey, orphanedLabels } of chunk) {
             try {
               if (orphanedLabels.length === 0) {
-                return { plexRatingKey, success: true, updatedCount: 0 }
+                chunkResults.push({
+                  plexRatingKey,
+                  success: true,
+                  updatedCount: 0,
+                })
+                continue
               }
 
               const orphanedArray = JSON.stringify(
@@ -1557,7 +1568,12 @@ export async function removeOrphanedTrackingBulk(
           for (const { plexRatingKey, orphanedLabels } of chunk) {
             try {
               if (orphanedLabels.length === 0) {
-                return { plexRatingKey, success: true, updatedCount: 0 }
+                chunkResults.push({
+                  plexRatingKey,
+                  success: true,
+                  updatedCount: 0,
+                })
+                continue
               }
 
               const records = await trx('plex_label_tracking')
