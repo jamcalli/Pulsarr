@@ -117,60 +117,50 @@ export async function trackPlexLabelsBulk(
                 ).sort(),
               )
 
-              // Use PostgreSQL-specific upsert with GUID matching
+              // Use PostgreSQL-specific atomic upsert with unique constraint
+              this.log.debug('Executing PostgreSQL upsert', {
+                guidsJson,
+                contentType,
+                userId,
+                plexRatingKey,
+                labelsJson,
+                timestamp: this.timestamp,
+              })
+
               const result = await trx.raw(
                 `
-                  WITH matched_record AS (
-                    SELECT id FROM plex_label_tracking
-                    WHERE user_id = ?
-                      AND plex_rating_key = ?
-                      AND EXISTS (
-                        SELECT 1 FROM jsonb_array_elements_text(content_guids) elem 
-                        WHERE lower(elem) = ANY(?)
-                      )
-                    LIMIT 1
-                  ),
-                  upserted AS (
-                    INSERT INTO plex_label_tracking (
-                      content_guids, content_type, user_id, plex_rating_key, 
-                      labels_applied, synced_at
-                    )
-                    SELECT ?::jsonb, ?, ?, ?, ?::jsonb, ?
-                    WHERE NOT EXISTS (SELECT 1 FROM matched_record)
-                    RETURNING id
-                  ),
-                  updated AS (
-                    UPDATE plex_label_tracking
-                    SET 
-                      content_guids = ?::jsonb,
-                      content_type = ?,
-                      labels_applied = ?::jsonb,
-                      synced_at = ?
-                    FROM matched_record
-                    WHERE plex_label_tracking.id = matched_record.id
-                    RETURNING plex_label_tracking.id
+                  INSERT INTO plex_label_tracking (
+                    content_guids,
+                    content_type,
+                    user_id,
+                    plex_rating_key,
+                    labels_applied,
+                    synced_at
                   )
-                  SELECT COALESCE(
-                    (SELECT id FROM upserted),
-                    (SELECT id FROM updated)
-                  ) as record_id
-                  `,
+                  VALUES (?::jsonb, ?, ?, ?, ?::jsonb, ?)
+                  ON CONFLICT (md5(content_guids::text), user_id, content_type)
+                  DO UPDATE SET
+                    content_guids = excluded.content_guids,
+                    plex_rating_key = excluded.plex_rating_key,
+                    labels_applied = excluded.labels_applied,
+                    synced_at = excluded.synced_at
+                  RETURNING id AS record_id
+                `,
                 [
-                  userId,
-                  plexRatingKey,
-                  normalizedGuids,
                   guidsJson,
                   contentType,
                   userId,
                   plexRatingKey,
-                  labelsJson,
-                  this.timestamp,
-                  guidsJson,
-                  contentType,
                   labelsJson,
                   this.timestamp,
                 ],
               )
+
+              this.log.debug('PostgreSQL upsert result', {
+                rows: result.rows,
+                rowCount: result.rowCount,
+                recordId: result.rows[0]?.record_id,
+              })
 
               chunkResults.push({
                 plexRatingKey,
@@ -445,7 +435,7 @@ export async function untrackPlexLabelBulk(
                       labels_applied = COALESCE(
                         (SELECT jsonb_agg(elem ORDER BY elem)
                          FROM jsonb_array_elements_text(labels_applied) elem
-                         WHERE elem != ?),
+                         WHERE lower(elem) != ?),
                         '[]'::jsonb
                       ),
                       synced_at = ?
@@ -460,7 +450,7 @@ export async function untrackPlexLabelBulk(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
                            FROM jsonb_array_elements_text(labels_applied) elem
-                           WHERE elem != ?),
+                           WHERE lower(elem) != ?),
                           '[]'::jsonb
                         )
                       ) > 0
@@ -479,7 +469,7 @@ export async function untrackPlexLabelBulk(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
                            FROM jsonb_array_elements_text(labels_applied) elem
-                           WHERE elem != ?),
+                           WHERE lower(elem) != ?),
                           '[]'::jsonb
                         )
                       ) = 0
@@ -590,7 +580,7 @@ export async function untrackPlexLabelBulk(
                 'plex_label_tracking.labels_applied',
               )
               const updatedLabels = currentLabels.filter(
-                (label) => label !== labelLower,
+                (label) => label.toLowerCase() !== labelLower,
               )
 
               // If no labels remain, delete the record
@@ -1117,7 +1107,7 @@ export async function removeTrackedLabels(
                       labels_applied = COALESCE(
                         (SELECT jsonb_agg(elem ORDER BY elem)
                          FROM jsonb_array_elements_text(labels_applied) elem
-                         WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                         WHERE NOT (lower(elem) = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
                         '[]'::jsonb
                       ),
                       synced_at = ?
@@ -1130,7 +1120,7 @@ export async function removeTrackedLabels(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
                            FROM jsonb_array_elements_text(labels_applied) elem
-                           WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                           WHERE NOT (lower(elem) = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
                           '[]'::jsonb
                         )
                       ) > 0
@@ -1147,7 +1137,7 @@ export async function removeTrackedLabels(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
                            FROM jsonb_array_elements_text(labels_applied) elem
-                           WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                           WHERE NOT (lower(elem) = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
                           '[]'::jsonb
                         )
                       ) = 0
@@ -1232,7 +1222,7 @@ export async function removeTrackedLabels(
                   'plex_label_tracking.labels_applied',
                 )
                 const updatedLabels = labels.filter(
-                  (label) => !toRemove.has(label),
+                  (label) => !toRemove.has(label.toLowerCase()),
                 )
 
                 if (updatedLabels.length !== labels.length) {
@@ -1481,7 +1471,7 @@ export async function removeOrphanedTrackingBulk(
                       labels_applied = COALESCE(
                         (SELECT jsonb_agg(elem ORDER BY elem)
                          FROM jsonb_array_elements_text(labels_applied) elem
-                         WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                         WHERE NOT (lower(elem) = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
                         '[]'::jsonb
                       ),
                       synced_at = ?
@@ -1494,7 +1484,7 @@ export async function removeOrphanedTrackingBulk(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
                            FROM jsonb_array_elements_text(labels_applied) elem
-                           WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                           WHERE NOT (lower(elem) = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
                           '[]'::jsonb
                         )
                       ) > 0
@@ -1511,7 +1501,7 @@ export async function removeOrphanedTrackingBulk(
                         COALESCE(
                           (SELECT jsonb_agg(elem ORDER BY elem)
                            FROM jsonb_array_elements_text(labels_applied) elem
-                           WHERE NOT (elem = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
+                           WHERE NOT (lower(elem) = ANY(SELECT jsonb_array_elements_text(?::jsonb)))),
                           '[]'::jsonb
                         )
                       ) = 0
@@ -1605,7 +1595,7 @@ export async function removeOrphanedTrackingBulk(
                   'plex_label_tracking.labels_applied',
                 )
                 const updatedLabels = labels.filter(
-                  (label) => !toRemove.has(label),
+                  (label) => !toRemove.has(label.toLowerCase()),
                 )
 
                 if (updatedLabels.length !== labels.length) {
