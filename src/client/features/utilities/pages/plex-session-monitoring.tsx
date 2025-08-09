@@ -136,6 +136,7 @@ export default function PlexSessionMonitoringPage() {
                   type="button"
                   variant="cancel"
                   onClick={handleCancel}
+                  disabled={isSaving}
                   className="flex items-center gap-1"
                 >
                   <X className="h-4 w-4" />
