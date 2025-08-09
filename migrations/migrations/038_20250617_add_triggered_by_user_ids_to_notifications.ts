@@ -96,10 +96,7 @@ export async function up(knex: Knex): Promise<void> {
           -- Remove the user from triggered_by_user_ids array
           UPDATE notifications 
           SET triggered_by_user_ids = (
-              SELECT CASE 
-                  WHEN jsonb_array_length(jsonb_agg(elem)) = 0 THEN NULL
-                  ELSE jsonb_agg(elem)
-              END
+              SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
               FROM jsonb_array_elements(triggered_by_user_ids) AS elem
               WHERE elem != to_jsonb(OLD.user_id)
           )
