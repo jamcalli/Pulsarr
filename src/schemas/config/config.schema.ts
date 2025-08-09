@@ -1,4 +1,9 @@
 import { z } from 'zod'
+import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
+import {
+  TagPrefixSchema,
+  RemovedTagPrefixSchema,
+} from '@root/schemas/shared/prefix-validation.schema.js'
 
 const LogLevelEnum = z.enum([
   'fatal',
@@ -110,13 +115,15 @@ export const ConfigSchema = z.object({
   maxDeletionPrevention: z.number().optional(),
   // Deletion mode
   deletionMode: DeletionModeEnum.optional(),
-  removedTagPrefix: z.string().optional(),
+  removedTagPrefix: RemovedTagPrefixSchema.optional(),
   // Tag removal mode
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
   // Plex Playlist Protection
   enablePlexPlaylistProtection: z.boolean().optional(),
   plexProtectionPlaylistName: z.string().optional(),
   plexServerUrl: z.string().optional(),
+  // Plex Label Sync Configuration - nested object following complex config pattern
+  plexLabelSync: PlexLabelSyncConfigSchema.optional(),
   // RSS and other settings
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
@@ -207,6 +214,12 @@ export const ConfigSchema = z.object({
     .string()
     .length(2, 'Region must be a 2-letter country code')
     .optional(),
+  // User Tags Configuration - flat properties following new pattern
+  tagUsersInSonarr: z.boolean().optional(),
+  tagUsersInRadarr: z.boolean().optional(),
+  cleanupOrphanedTags: z.boolean().optional(),
+  tagPrefix: TagPrefixSchema.optional(),
+  // Note: removedTagMode and removedTagPrefix already exist above for delete sync compatibility
 })
 
 export const ConfigResponseSchema = z.object({

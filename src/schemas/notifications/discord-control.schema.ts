@@ -1,5 +1,6 @@
 // File: src/schemas/notifications/discord-control.schema.ts
 import { z } from 'zod'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 // Schema for Discord bot status responses
 export const DiscordBotResponseSchema = z.object({
@@ -28,11 +29,6 @@ export const WebhookValidationResponseSchema = z.object({
   message: z.string().optional(),
 })
 
-// Common error schema
-export const ErrorSchema = z.object({
-  message: z.string(),
-})
-
 // Type exports
 export type DiscordBotResponse = z.infer<typeof DiscordBotResponseSchema>
 export type WebhookValidationRequest = z.infer<
@@ -41,4 +37,7 @@ export type WebhookValidationRequest = z.infer<
 export type WebhookValidationResponse = z.infer<
   typeof WebhookValidationResponseSchema
 >
-export type Error = z.infer<typeof ErrorSchema>
+export type DiscordControlError = z.infer<typeof ErrorSchema>
+
+// Re-export shared schemas
+export { ErrorSchema }

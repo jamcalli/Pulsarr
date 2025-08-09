@@ -1,6 +1,6 @@
 {
   "name": "pulsarr",
-  "version": "0.4.17",
+  "version": "0.4.18-beta.2",
   "description": "Plex watchlist tracker and notification center that integrates with the Arr stack",
   "main": "build/server.js",
   "type": "module",
@@ -15,7 +15,7 @@
     "fix": "biome format --write . && biome lint --write .",
     "migrate": "tsx migrations/migrate.ts",
     "migrate:make": "knex migrate:make -x ts",
-    "migrate:rollback": "knex migrate:rollback --knexfile migrations/knexfile.ts",
+    "migrate:rollback": "tsx migrations/rollback.ts",
     "migrate:sqlite-to-postgres": "tsx migrations/scripts/sqlite-to-postgresql.ts",
     "migrate:postgres-setup": "tsx migrations/migrate.ts",
     "release:beta:develop": "git checkout develop && git pull origin develop && npm version prerelease --preid=beta && git push origin develop && git push origin --tags",

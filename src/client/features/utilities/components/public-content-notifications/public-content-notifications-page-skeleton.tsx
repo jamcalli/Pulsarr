@@ -1,29 +1,19 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Renders a skeleton placeholder for the Public Content Notifications page layout.
+ * Renders a static skeleton placeholder for the Public Content Notifications page during loading.
  *
- * Displays static skeleton elements that mimic the structure of the page, including headers, action buttons, informational sections, and configuration forms for Discord Webhook and Apprise integrations. Intended to provide a visual loading state while actual content is being fetched.
+ * This component visually simulates the final page layout with placeholder elements for headers, actions, informational sections, configuration forms, and action buttons.
  */
 export function PublicContentNotificationsPageSkeleton() {
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      {/* Header with title and badge */}
-      <div className="mb-6">
-        <div className="flex items-center">
-          <h2 className="text-2xl font-bold text-foreground">
-            Public Content Notifications
-          </h2>
-          <div className="ml-2 inline-flex items-center gap-2 h-full">
-            <Skeleton className="h-7 w-20 rounded-full" />
-          </div>
-        </div>
-        <p className="text-sm text-foreground mt-1">
-          Broadcast ALL content availability to public Discord channels and
-          shared Apprise endpoints
-        </p>
-      </div>
+      <UtilitySectionHeader
+        title="Public Content Notifications"
+        description="Broadcast ALL content availability to public Discord channels and shared Apprise endpoints"
+      />
 
       <div className="space-y-6">
         {/* Actions section */}
@@ -50,115 +40,25 @@ export function PublicContentNotificationsPageSkeleton() {
 
         <Separator />
 
-        {/* Configuration form - conditional skeleton (showing enabled state) */}
+        {/* Configuration form placeholder (shows loading state) */}
         <div className="space-y-6">
-          {/* Discord Webhook Configuration */}
-          <div>
-            <h3 className="font-medium text-foreground mb-4">
-              Discord Webhook Configuration
-            </h3>
-            <div className="space-y-4">
-              {/* General Discord Webhook URLs */}
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <span className="text-sm text-foreground">
-                    General Discord Webhook URLs
-                  </span>
-                  <Skeleton className="h-4 w-4 ml-2" />
-                </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-10 flex-1" />
-                  <Skeleton className="h-10 w-10" />
-                  <Skeleton className="h-10 w-10" />
-                </div>
-              </div>
-
-              {/* Movie-specific Discord Webhook URLs */}
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <span className="text-sm text-foreground">
-                    Movie-specific Discord Webhook URLs
-                  </span>
-                  <Skeleton className="h-4 w-4 ml-2" />
-                </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-10 flex-1" />
-                  <Skeleton className="h-10 w-10" />
-                  <Skeleton className="h-10 w-10" />
-                </div>
-              </div>
-
-              {/* Show-specific Discord Webhook URLs */}
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <span className="text-sm text-foreground">
-                    Show-specific Discord Webhook URLs
-                  </span>
-                  <Skeleton className="h-4 w-4 ml-2" />
-                </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-10 flex-1" />
-                  <Skeleton className="h-10 w-10" />
-                  <Skeleton className="h-10 w-10" />
-                </div>
-              </div>
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-64" />
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
           </div>
 
           <Separator />
 
-          {/* Apprise Configuration */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <h3 className="font-medium text-foreground">
-                Apprise Configuration
-              </h3>
-              <span className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-xs">
-                Apprise is disabled
-              </span>
-            </div>
-            <div className="space-y-4">
-              {/* General Apprise URLs */}
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <span className="text-sm text-foreground">
-                    General Apprise URLs
-                  </span>
-                  <Skeleton className="h-4 w-4 ml-2" />
-                </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-10 flex-1" />
-                  <Skeleton className="h-10 w-10" />
-                </div>
-              </div>
-
-              {/* Movie-specific Apprise URLs */}
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <span className="text-sm text-foreground">
-                    Movie-specific Apprise URLs
-                  </span>
-                  <Skeleton className="h-4 w-4 ml-2" />
-                </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-10 flex-1" />
-                  <Skeleton className="h-10 w-10" />
-                </div>
-              </div>
-
-              {/* Show-specific Apprise URLs */}
-              <div className="space-y-1">
-                <div className="flex items-center">
-                  <span className="text-sm text-foreground">
-                    Show-specific Apprise URLs
-                  </span>
-                  <Skeleton className="h-4 w-4 ml-2" />
-                </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-10 flex-1" />
-                  <Skeleton className="h-10 w-10" />
-                </div>
-              </div>
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-48" />
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
           </div>
 

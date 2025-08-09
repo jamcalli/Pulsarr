@@ -1,4 +1,4 @@
-import type { User } from './config.types.js'
+import type { User } from '@root/types/config.types.js'
 
 export interface TautulliConfig {
   url: string

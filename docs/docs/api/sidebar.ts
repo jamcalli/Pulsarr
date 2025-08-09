@@ -244,6 +244,34 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Labels',
+      link: {
+        type: 'doc',
+        id: 'api/labels',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/sync-plex-labels',
+          label: 'Sync plex labels',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/cleanup-orphaned-plex-labels',
+          label: 'Cleanup orphaned plex labels',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/remove-pulsarr-plex-labels',
+          label: 'Remove Pulsarr labels from Plex content',
+          className: 'api-method delete',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Metadata',
       link: {
         type: 'doc',
@@ -810,18 +838,6 @@ const sidebar: SidebarsConfig = {
         id: 'api/tags',
       },
       items: [
-        {
-          type: 'doc',
-          id: 'api/get-tagging-status',
-          label: 'Get tagging status',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/update-tagging-config',
-          label: 'Update tagging config',
-          className: 'api-method put',
-        },
         {
           type: 'doc',
           id: 'api/create-user-tags',

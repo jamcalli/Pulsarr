@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 export const QuerystringSchema = z.object({
   instanceId: z.string(),
@@ -16,13 +17,12 @@ export const QualityProfilesResponseSchema = z.object({
   qualityProfiles: z.array(z.any()),
 })
 
-export const ErrorSchema = z.object({
-  message: z.string(),
-})
-
 export type Querystring = z.infer<typeof QuerystringSchema>
 export type InstanceInfo = z.infer<typeof InstanceInfoSchema>
 export type QualityProfilesResponse = z.infer<
   typeof QualityProfilesResponseSchema
 >
-export type Error = z.infer<typeof ErrorSchema>
+export type GetQualityProfilesError = z.infer<typeof ErrorSchema>
+
+// Re-export shared schemas
+export { ErrorSchema }

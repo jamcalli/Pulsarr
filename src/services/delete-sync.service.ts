@@ -20,8 +20,14 @@
  * await fastify.deleteSync.run();
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type {
+  Item as SonarrItem,
+  SonarrSeries,
+} from '@root/types/sonarr.types.js'
+import type {
+  Item as RadarrItem,
+  RadarrMovie,
+} from '@root/types/radarr.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import { PlexServerService } from '@utils/plex-server.js'
 import {
@@ -776,8 +782,17 @@ export class DeleteSyncService {
       )
 
       // Prevent mass deletion if percentage is too high
-      const MAX_DELETION_PERCENTAGE = this.config.maxDeletionPrevention
-
+      const MAX_DELETION_PERCENTAGE = Number(
+        this.config.maxDeletionPrevention ?? 10,
+      )
+      if (
+        Number.isNaN(MAX_DELETION_PERCENTAGE) ||
+        MAX_DELETION_PERCENTAGE <= 0
+      ) {
+        throw new Error(
+          `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage > 0.`,
+        )
+      }
       if (taggedPercentage > MAX_DELETION_PERCENTAGE) {
         return this.createSafetyTriggeredResult(
           `Safety check failed: Would delete ${totalTaggedItems} out of ${totalItems} items (${taggedPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
@@ -840,9 +855,9 @@ export class DeleteSyncService {
           }
 
           // Get full movie details to check for tags
-          const movieDetails = await service.getFromRadarr<
-            RadarrItem & { tags: number[] }
-          >(`movie/${radarrId}`)
+          const movieDetails = await service.getFromRadarr<RadarrMovie>(
+            `movie/${radarrId}`,
+          )
 
           // Check if the movie has our removal tag
           const hasRemovalTag = await this.hasRemovalTag(
@@ -1036,9 +1051,9 @@ export class DeleteSyncService {
           }
 
           // Get full series details to check for tags
-          const seriesDetails = await service.getFromSonarr<
-            SonarrItem & { tags: number[] }
-          >(`series/${sonarrId}`)
+          const seriesDetails = await service.getFromSonarr<SonarrSeries>(
+            `series/${sonarrId}`,
+          )
 
           // Check if the series has our removal tag
           const hasRemovalTag = await this.hasRemovalTag(
@@ -1375,9 +1390,9 @@ export class DeleteSyncService {
                 return false
               }
 
-              const seriesDetails = await service.getFromSonarr<
-                SonarrItem & { tags: number[] }
-              >(`series/${sonarrId}`)
+              const seriesDetails = await service.getFromSonarr<SonarrSeries>(
+                `series/${sonarrId}`,
+              )
 
               return removedTagIds.some((id) =>
                 (seriesDetails.tags || []).includes(id),
@@ -1467,9 +1482,9 @@ export class DeleteSyncService {
                 return false
               }
 
-              const movieDetails = await service.getFromRadarr<
-                RadarrItem & { tags: number[] }
-              >(`movie/${radarrId}`)
+              const movieDetails = await service.getFromRadarr<RadarrMovie>(
+                `movie/${radarrId}`,
+              )
 
               return removedTagIds.some((id) =>
                 (movieDetails.tags || []).includes(id),

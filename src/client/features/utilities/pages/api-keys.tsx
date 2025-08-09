@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useConfigStore } from '@/stores/configStore'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, AlertTriangle, Loader2 } from 'lucide-react'
@@ -20,9 +20,9 @@ const getUserFriendlyErrorMessage = (error: string) => {
 }
 
 /**
- * Renders the API Keys management page, enabling administrators to create, view, refresh, and revoke API keys for external access.
+ * Renders the administrator interface for managing API keys, including creation, viewing, refreshing, and revocation.
  *
- * The interface provides secure key display, copy functionality, and confirmation dialogs for key revocation. It manages loading, error, and refreshing states to ensure a responsive user experience.
+ * Provides secure controls for key visibility, copy functionality, and confirmation dialogs for revoking keys. Handles loading, error, and refreshing states to ensure a responsive and consistent user experience.
  *
  * @returns The API keys management page as a React element.
  */
@@ -47,19 +47,13 @@ export function ApiKeysPage() {
     fetchApiKeys,
   } = useApiKeys()
 
-  // Initialize stores on mount
-  useEffect(() => {
-    initialize()
-  }, [initialize])
+  // Initialize config store with minimum duration for consistent UX
+  const isInitializing = useInitializeWithMinDuration(initialize)
 
   const totalKeysCount = apiKeys.length
 
-  if (!isInitialized || (isLoading && !apiKeys.length)) {
-    return (
-      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-        <ApiKeysSkeleton />
-      </div>
-    )
+  if (isInitializing || !isInitialized || isLoading) {
+    return <ApiKeysSkeleton />
   }
 
   const selectedApiKey = apiKeys.find(

@@ -1,3 +1,5 @@
+import type { PlexLabelSyncConfig } from '@root/schemas/plex/label-sync-config.schema.js'
+
 export interface User {
   id: number
   name: string
@@ -50,6 +52,8 @@ export type DeleteSyncNotifyOption =
   | 'discord-both' // Both Discord webhook and DMs, no Apprise
 
 export type RemovedTagMode = 'remove' | 'keep' | 'special-tag'
+
+export type RemovedLabelMode = 'remove' | 'keep' | 'special-label'
 
 export type DeletionMode = 'watchlist' | 'tag-based'
 
@@ -171,6 +175,8 @@ export interface Config {
   enablePlexPlaylistProtection: boolean
   plexProtectionPlaylistName: string
   plexServerUrl?: string // Optional: Only set this if automatic discovery fails, URL is auto-detected in most cases
+  // Plex Label Sync Configuration - nested object following complex config pattern
+  plexLabelSync?: PlexLabelSyncConfig
   // RSS Config
   selfRss?: string
   friendsRss?: string
@@ -255,5 +261,7 @@ export type RawConfig = {
           ? string
           : K extends 'approvalExpiration'
             ? string
-            : Config[K]
+            : K extends 'plexLabelSync'
+              ? string
+              : Config[K]
 }

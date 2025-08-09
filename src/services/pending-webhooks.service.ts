@@ -47,6 +47,47 @@ export class PendingWebhooksService {
   }
 
   /**
+   * Helper method to trigger label sync for content after webhooks are processed
+   */
+  private async triggerLabelSync(
+    webhookId: number | undefined,
+    payload: unknown,
+    mediaType: 'movie' | 'show',
+  ): Promise<void> {
+    if (
+      !this.fastify.config.plexLabelSync?.enabled ||
+      !this.fastify.plexLabelSyncService ||
+      !payload ||
+      typeof payload !== 'object' ||
+      Array.isArray(payload)
+    ) {
+      return
+    }
+
+    // Validate webhook payload using schema
+    try {
+      const { WebhookPayloadSchema } = await import(
+        '@root/schemas/notifications/webhook.schema.js'
+      )
+      const parsed = WebhookPayloadSchema.safeParse(payload)
+      if (!parsed.success) {
+        this.log.debug(
+          `Skipping invalid webhook payload for ${mediaType} webhook ${webhookId}:`,
+          parsed.error.issues,
+        )
+        return
+      }
+
+      await this.fastify.plexLabelSyncService.syncLabelsOnWebhook(parsed.data)
+    } catch (labelError) {
+      this.log.error(
+        `Error syncing labels for pending ${mediaType} webhook ${webhookId}:`,
+        labelError,
+      )
+    }
+  }
+
+  /**
    * Initialize the pending webhooks service
    */
   async initialize(): Promise<void> {
@@ -128,14 +169,33 @@ export class PendingWebhooksService {
             try {
               // Process based on instance type
               if (webhook.media_type === 'movie') {
-                // For movies, we don't need to parse the payload
+                // Parse the payload to get the full webhook data for label sync
+                let moviePayload: WebhookPayload | unknown
+                try {
+                  moviePayload =
+                    typeof webhook.payload === 'string'
+                      ? JSON.parse(webhook.payload)
+                      : webhook.payload
+                } catch (parseError) {
+                  this.log.error(
+                    `Failed to parse payload for movie webhook ${webhook.id}:`,
+                    parseError,
+                  )
+                  return await this.deleteWebhookAndCount(webhook.id)
+                }
+
                 const mediaInfo = {
                   type: 'movie' as const,
                   guid: webhook.guid,
                   title: webhook.title,
                 }
 
-                const { matchedCount } = await processContentNotifications(
+                // Check for watchlist items directly (independent of notification settings)
+                const watchlistItems =
+                  await this.fastify.db.getWatchlistItemsByGuid(webhook.guid)
+
+                // Process notifications (separate from label sync)
+                await processContentNotifications(
                   this.fastify,
                   mediaInfo,
                   false,
@@ -144,9 +204,12 @@ export class PendingWebhooksService {
                   },
                 )
 
-                if (matchedCount > 0) {
+                if (watchlistItems.length > 0) {
+                  // Also trigger label sync for the content now that we found watchlist items
+                  await this.triggerLabelSync(webhook.id, moviePayload, 'movie')
+
                   this.log.info(
-                    `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
+                    `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
                   )
                   // Delete the processed webhook
                   return await this.deleteWebhookAndCount(webhook.id)
@@ -208,7 +271,12 @@ export class PendingWebhooksService {
                     episodes: payload.episodes,
                   }
 
-                  const { matchedCount } = await processContentNotifications(
+                  // Check for watchlist items directly (independent of notification settings)
+                  const watchlistItems =
+                    await this.fastify.db.getWatchlistItemsByGuid(webhook.guid)
+
+                  // Process notifications (separate from label sync)
+                  await processContentNotifications(
                     this.fastify,
                     mediaInfo,
                     payload.episodes.length > 1,
@@ -217,9 +285,12 @@ export class PendingWebhooksService {
                     },
                   )
 
-                  if (matchedCount > 0) {
+                  if (watchlistItems.length > 0) {
+                    // Also trigger label sync for the content now that we found watchlist items
+                    await this.triggerLabelSync(webhook.id, payload, 'show')
+
                     this.log.info(
-                      `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
+                      `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
                     )
                     // Delete the processed webhook
                     return await this.deleteWebhookAndCount(webhook.id)

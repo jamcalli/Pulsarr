@@ -123,11 +123,11 @@ export async function updateWatchlistItem(
 }
 
 /**
- * Updates all watchlist items containing the specified GUID in their GUIDs array.
+ * Updates all watchlist items whose GUIDs array contains the specified GUID.
  *
- * @param guid - The GUID to match within each item's GUIDs array
- * @param updates - The fields to update on each matching watchlist item
- * @returns The number of watchlist items updated
+ * @param guid - The GUID to search for within each item's GUIDs array
+ * @param updates - The fields to apply to each matching watchlist item
+ * @returns The number of watchlist items that were updated
  */
 export async function updateWatchlistItemByGuid(
   this: DatabaseService,
@@ -154,10 +154,12 @@ export async function updateWatchlistItemByGuid(
     return 0
   }
 
+  // Remove syncing field as it only exists in junction tables, not watchlist_items
+  const { syncing, ...validUpdates } = updates
   const updateCount = await this.knex('watchlist_items')
     .whereIn('id', matchingIds)
     .update({
-      ...updates,
+      ...validUpdates,
       updated_at: this.timestamp,
     })
 
@@ -166,13 +168,13 @@ export async function updateWatchlistItemByGuid(
 }
 
 /**
- * Retrieves a single watchlist item for a user by key.
+ * Retrieves a single watchlist item for a user by its unique key.
  *
- * Parses the item's GUIDs and genres fields from JSON. Returns undefined if no matching item is found.
+ * Parses the item's GUIDs and genres fields from JSON before returning. Returns undefined if no matching item is found.
  *
- * @param userId - The user's ID
+ * @param userId - The numeric ID of the user
  * @param key - The unique key identifying the watchlist item
- * @returns The watchlist item if found, or undefined if not found
+ * @returns The watchlist item if found, or undefined otherwise
  */
 export async function getWatchlistItem(
   this: DatabaseService,
@@ -188,6 +190,27 @@ export async function getWatchlistItem(
       key,
     })
     .first()
+
+  if (!result) return undefined
+
+  return {
+    ...result,
+    guids: this.safeJsonParse(result.guids, [], 'watchlist_item.guids'),
+    genres: this.safeJsonParse(result.genres, [], 'watchlist_item.genres'),
+  }
+}
+
+/**
+ * Retrieves a watchlist item by its numeric ID, returning the item with parsed `guids` and `genres` fields.
+ *
+ * @param id - The numeric ID of the watchlist item
+ * @returns The watchlist item with parsed fields if found; otherwise, undefined
+ */
+export async function getWatchlistItemById(
+  this: DatabaseService,
+  id: number,
+): Promise<WatchlistItem | undefined> {
+  const result = await this.knex('watchlist_items').where('id', id).first()
 
   if (!result) return undefined
 
@@ -250,17 +273,16 @@ export async function getBulkWatchlistItems(
 }
 
 /**
- * Retrieves watchlist items matching the specified keys.
+ * Retrieves all watchlist items matching the given keys, returning each with its numeric ID and parsed `guids` and `genres` fields.
  *
- * Parses the `guids` and `genres` fields from JSON for each returned item.
+ * Returns an empty array if no keys are provided. The `thumb` and `added` fields are set to `undefined` if falsy.
  *
- * @param keys - The keys identifying the watchlist items to retrieve
- * @returns An array of watchlist items corresponding to the provided keys
+ * @returns Array of watchlist items with numeric IDs and safely parsed JSON fields
  */
 export async function getWatchlistItemsByKeys(
   this: DatabaseService,
   keys: string[],
-): Promise<WatchlistItem[]> {
+): Promise<(WatchlistItem & { id: number })[]> {
   if (keys.length === 0) {
     return []
   }
@@ -276,6 +298,8 @@ export async function getWatchlistItemsByKeys(
 
   return items.map((item) => ({
     ...item,
+    thumb: item.thumb || undefined,
+    added: item.added || undefined,
     guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
     genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
   }))
@@ -843,9 +867,9 @@ export async function getAllShowWatchlistItems(
 }
 
 /**
- * Retrieves all watchlist items of type 'movie', parsing GUIDs and genres for each item.
+ * Retrieves all watchlist items of type 'movie', returning each with normalized string IDs, parsed GUIDs, and genres.
  *
- * @returns An array of movie watchlist items with normalized IDs, GUIDs, and genres.
+ * @returns An array of movie watchlist items with IDs as strings and parsed GUID and genre arrays.
  */
 export async function getAllMovieWatchlistItems(
   this: DatabaseService,
@@ -869,16 +893,21 @@ export async function getAllMovieWatchlistItems(
 }
 
 /**
- * Inserts multiple watchlist items into the database in bulk, with configurable conflict handling.
+ * Inserts multiple watchlist items in bulk and returns their database IDs and keys.
+ *
+ * Supports conflict resolution: use 'ignore' (default) to skip duplicates or 'merge' to update existing entries. The returned array contains only the successfully inserted or merged items.
  *
  * @param items - The watchlist items to insert, excluding creation and update timestamps
- * @param options - Optional settings for conflict resolution: 'ignore' to skip duplicates or 'merge' to update existing entries
+ * @param options - Optional conflict resolution mode: 'ignore' (default) or 'merge'
+ * @returns Array of objects with the IDs and keys of inserted or merged items
  */
 export async function createWatchlistItems(
   this: DatabaseService,
   items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
   options: { onConflict?: 'ignore' | 'merge' } = { onConflict: 'ignore' },
-): Promise<void> {
+): Promise<{ id: number; key: string }[]> {
+  const insertedIds: { id: number; key: string }[] = []
+
   await this.knex.transaction(async (trx) => {
     const chunks = this.chunkArray(items, 250)
 
@@ -903,14 +932,22 @@ export async function createWatchlistItems(
       const query = trx('watchlist_items').insert(itemsToInsert)
 
       if (options.onConflict === 'merge') {
-        query.onConflict(['user_id', 'key']).merge()
+        const results = await query
+          .onConflict(['user_id', 'key'])
+          .merge()
+          .returning(['id', 'key'])
+        insertedIds.push(...results)
       } else {
-        query.onConflict(['user_id', 'key']).ignore()
+        const results = await query
+          .onConflict(['user_id', 'key'])
+          .ignore()
+          .returning(['id', 'key'])
+        insertedIds.push(...results)
       }
-
-      await query
     }
   })
+
+  return insertedIds
 }
 
 /**
@@ -1059,9 +1096,9 @@ export async function getAllWatchlistItemsForUser(
 }
 
 /**
- * Retrieves all watchlist items whose GUIDs array contains the specified GUID, using case-insensitive matching.
+ * Retrieves all watchlist items containing the specified GUID in their GUIDs array, using case-insensitive matching.
  *
- * Each returned item has its `id` normalized to a string, and its `guids` and `genres` fields parsed as arrays.
+ * Each returned item has its `id` converted to a string, and its `guids` and `genres` fields parsed as arrays.
  *
  * @param guid - The GUID to search for within each item's GUIDs array
  * @returns An array of matching watchlist items with normalized and parsed fields
@@ -1098,12 +1135,12 @@ export async function getWatchlistItemsByGuid(
 }
 
 /**
- * Retrieves all unique GUIDs from watchlist items that contain a TVDB GUID matching the specified TVDB ID.
+ * Retrieves all unique GUIDs from watchlist items that include a TVDB GUID matching the specified TVDB ID.
  *
- * Searches for watchlist items whose GUIDs array includes a GUID in the format `tvdb:{tvdbId}` (case-insensitive), then aggregates and returns all unique GUIDs from those items.
+ * Searches for watchlist items whose `guids` array contains a GUID in the format `tvdb:{tvdbId}` (case-insensitive), then aggregates and returns all unique GUIDs from those items.
  *
  * @param tvdbId - The TVDB ID to search for within GUIDs
- * @returns An array of unique GUID strings found in matching watchlist items
+ * @returns An array of unique GUID strings from matching watchlist items
  */
 export async function getAllGuidsByTvdbId(
   this: DatabaseService,
@@ -1146,12 +1183,52 @@ export async function getAllGuidsByTvdbId(
 }
 
 /**
- * Retrieves all watchlist items containing any of the specified GUIDs, including associated user information.
+ * Retrieves all users who have a watchlist item containing the specified GUID.
  *
- * Returns an array of watchlist items joined with user data, where each item's GUIDs array contains at least one of the provided GUIDs. GUID matching is case-insensitive.
+ * Performs a case-insensitive search for the GUID within all watchlist items and returns a distinct list of users, including their IDs, usernames, and watchlist IDs.
  *
- * @param guids - The list of GUIDs to match against watchlist items
- * @returns An array of objects representing watchlist items with user fields included
+ * @param guid - The GUID to search for in users' watchlist items
+ * @returns An array of objects, each containing the user's `id`, `username`, and `watchlist_id`
+ */
+export async function getWatchlistUsersByGuid(
+  this: DatabaseService,
+  guid: string,
+): Promise<
+  Array<{
+    id: number
+    username: string
+    watchlist_id: string
+  }>
+> {
+  // Use database-specific JSON functions to efficiently find items containing the GUID
+  const users = this.isPostgres
+    ? await this.knex('watchlist_items as wi')
+        .join('users as u', 'wi.user_id', 'u.id')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(wi.guids) elem WHERE lower(elem) = lower(?))',
+          [guid],
+        )
+        .select('u.id', 'u.name as username', 'u.watchlist_id')
+        .distinct()
+    : await this.knex('watchlist_items as wi')
+        .join('users as u', 'wi.user_id', 'u.id')
+        .whereRaw(
+          "EXISTS (SELECT 1 FROM json_each(wi.guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
+          [guid],
+        )
+        .select('u.id', 'u.name as username', 'u.watchlist_id')
+        .distinct()
+
+  return users
+}
+
+/**
+ * Retrieves all watchlist items that contain any of the specified GUIDs, including associated user information.
+ *
+ * GUID matching is case-insensitive. Each result includes watchlist item fields and the corresponding user's username and watchlist ID for items whose GUIDs array contains at least one of the provided GUIDs.
+ *
+ * @param guids - List of GUIDs to search for in watchlist items
+ * @returns Array of objects containing watchlist item data and associated user information
  */
 export async function getWatchlistItemsWithUsersByGuids(
   this: DatabaseService,
@@ -1198,7 +1275,7 @@ export async function getWatchlistItemsWithUsersByGuids(
           'wi.guids',
           'wi.genres',
           'wi.status',
-          'u.username',
+          'u.name as username',
           'u.watchlist_id',
         )
     : await this.knex('watchlist_items as wi')
@@ -1222,7 +1299,7 @@ export async function getWatchlistItemsWithUsersByGuids(
           'wi.guids',
           'wi.genres',
           'wi.status',
-          'u.username',
+          'u.name as username',
           'u.watchlist_id',
         )
 
