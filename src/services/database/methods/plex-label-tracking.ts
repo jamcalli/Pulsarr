@@ -109,7 +109,9 @@ export async function trackPlexLabelsBulk(
 
                 const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
                 const guidsJson = JSON.stringify(normalizedGuids)
-                const labelsJson = JSON.stringify(labelsApplied.sort())
+                const labelsJson = JSON.stringify(
+                  labelsApplied.map((l) => l.toLowerCase()).sort(),
+                )
 
                 // Use PostgreSQL-specific upsert with GUID matching
                 const result = await trx.raw(
@@ -994,8 +996,8 @@ export async function isLabelTracked(
           [normalizedGuids],
         )
         .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) label WHERE label = ?)',
-          [labelApplied],
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(labels_applied) label WHERE lower(label) = ?)',
+          [labelApplied.toLowerCase()],
         )
         .first()
     : await this.knex('plex_label_tracking')
@@ -1011,8 +1013,8 @@ export async function isLabelTracked(
           }
         })
         .whereRaw(
-          "EXISTS (SELECT 1 FROM json_each(labels_applied) WHERE json_each.type = 'text' AND json_each.value = ?)",
-          [labelApplied],
+          "EXISTS (SELECT 1 FROM json_each(labels_applied) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+          [labelApplied.toLowerCase()],
         )
         .first()
 
