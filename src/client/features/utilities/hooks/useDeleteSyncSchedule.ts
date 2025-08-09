@@ -5,9 +5,9 @@ import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 import { parseCronExpression } from '@/lib/utils'
 
 /**
- * React hook that provides schedule details and formatting utilities for the "delete-sync" job.
+ * React hook that provides scheduling details and formatting helpers for the "delete-sync" job.
  *
- * Retrieves the "delete-sync" job from the utilities store, parses its cron expression to extract the scheduled time and day of the week, and exposes helper functions to format the last and next run times as human-readable strings. Automatically fetches schedules if they are not already loaded.
+ * Retrieves the "delete-sync" job from the utilities store, parses its cron expression to determine the scheduled execution time and day of the week, and exposes functions to format the last and next run times as human-readable strings. Automatically fetches schedules if they are not already loaded.
  *
  * @returns An object containing:
  * - scheduleTime: The scheduled execution time as a Date, or undefined if unavailable.

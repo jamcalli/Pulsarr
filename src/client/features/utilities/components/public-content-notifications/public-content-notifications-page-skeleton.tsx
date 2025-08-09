@@ -3,9 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a static skeleton UI for the Public Content Notifications page while data is loading.
+ * Renders a skeleton UI representing the loading state of the Public Content Notifications page.
  *
- * Mimics the layout of the page with placeholder elements for headers, actions, informational sections, and configuration forms.
+ * This component visually mimics the structure of the page using placeholder elements for headers, actions, informational sections, and configuration forms, providing users with a preview of the layout while content is loading.
  */
 export function PublicContentNotificationsPageSkeleton() {
   return (

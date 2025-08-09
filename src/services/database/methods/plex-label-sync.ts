@@ -47,13 +47,14 @@ export interface PendingLabelSyncWithPlexKeys {
 }
 
 /**
- * Creates or updates a pending label sync record for a watchlist item that requires label synchronization.
+ * Creates or updates a pending label sync record for a watchlist item, resetting retry state and updating expiration.
  *
- * If a record for the given watchlist item already exists, it is updated with the new content title, webhook tags, and expiration. The record tracks content that cannot be labeled immediately, typically due to Plex indexing delays.
+ * If a record already exists for the specified watchlist item, its content title, webhook tags, and expiration are updated, and retry tracking is reset.
  *
- * @param watchlistItemId - The ID of the watchlist item requiring label sync
- * @param contentTitle - The title of the content for reference
- * @param expiresInMinutes - Minutes until the sync attempt expires (default: 10)
+ * @param watchlistItemId - The ID of the watchlist item to synchronize
+ * @param contentTitle - The title of the content associated with the sync
+ * @param expiresInMinutes - Number of minutes until the sync attempt expires (default: 10)
+ * @param webhookTags - Tags to associate with the sync attempt
  * @returns The ID of the created or updated pending label sync record
  */
 export async function createPendingLabelSync(
@@ -92,11 +93,11 @@ export async function createPendingLabelSync(
 }
 
 /**
- * Retrieves all non-expired pending label sync records ordered by creation time.
+ * Retrieves all pending label sync records that have not expired, ordered by creation time.
  *
- * Returns only records whose expiration timestamp is in the future, ensuring that only active syncs are processed. The results are sorted in ascending order of creation time.
+ * Only records with an expiration timestamp later than the current time are returned. The `webhook_tags` field is parsed from JSON into a string array for each record.
  *
- * @returns An array of pending label sync records that have not expired
+ * @returns An array of active pending label sync records
  */
 export async function getPendingLabelSyncs(
   this: DatabaseService,
@@ -125,10 +126,10 @@ export async function getPendingLabelSyncs(
 }
 
 /**
- * Increments the retry count and updates the last retry timestamp for a non-expired pending label sync record.
+ * Increments the retry count and updates the last retry timestamp for a pending label sync record if it is not expired.
  *
- * @param id - The ID of the pending label sync record to update
- * @returns True if the record was updated; false if not found or expired
+ * @param id - The unique identifier of the pending label sync record
+ * @returns True if the record was updated; false if the record was not found or is expired
  */
 export async function updatePendingLabelSyncRetry(
   this: DatabaseService,
@@ -148,10 +149,10 @@ export async function updatePendingLabelSyncRetry(
 }
 
 /**
- * Deletes a pending label sync record by its ID.
+ * Removes a pending label sync record identified by its ID.
  *
- * @param id - The ID of the pending label sync record to remove
- * @returns True if a record was deleted; false if no matching record was found
+ * @param id - The unique identifier of the pending label sync record to delete
+ * @returns True if a record was deleted; false if no matching record existed
  */
 export async function deletePendingLabelSync(
   this: DatabaseService,
@@ -167,7 +168,7 @@ export async function deletePendingLabelSync(
 /**
  * Deletes all expired pending label sync records from the database.
  *
- * Removes records from the `pending_label_syncs` table whose expiration time has passed, ensuring that only active sync tasks remain.
+ * Removes records from the `pending_label_syncs` table where the expiration timestamp is less than or equal to the current time.
  *
  * @returns The number of expired records deleted
  */
@@ -188,12 +189,10 @@ export async function expirePendingLabelSyncs(
 }
 
 /**
- * Retrieves a watchlist item by ID, including its Plex key and GUIDs.
+ * Retrieves a watchlist item by its ID, including its Plex key and GUIDs.
  *
- * Returns the watchlist item's ID, user ID, title, Plex key (if available), and an array of GUIDs. Returns null if the item does not exist.
- *
- * @param watchlistItemId - The ID of the watchlist item to retrieve
- * @returns An object containing the watchlist item's metadata and Plex key, or null if not found
+ * @param watchlistItemId - The unique identifier of the watchlist item to fetch
+ * @returns An object containing the item's ID, user ID, title, Plex key (if available), and an array of GUIDs, or null if the item does not exist
  */
 export async function getWatchlistItemWithPlexKey(
   this: DatabaseService,

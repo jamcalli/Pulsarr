@@ -52,11 +52,11 @@ import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-p
 import { formatScheduleDisplay } from '@/lib/utils'
 
 /**
- * Renders the Plex Labels management page for administrators to configure and control user-based labeling in Plex.
+ * Displays an administrative interface for configuring and managing Plex user-based labeling.
  *
- * This page provides controls to enable or disable Plex labeling, adjust label prefix and concurrency settings, manage cleanup and removal behaviors, and configure tag synchronization with Radarr and Sonarr. Administrators can trigger label synchronization, cleanup, and removal actions, view real-time progress and operation results, and manage a scheduled full sync with time and day selection. The UI includes safeguards against conflicting actions and accidental destructive operations, and displays detailed status and error feedback.
+ * Provides controls to enable or disable Plex labeling, adjust label prefix and concurrency, manage cleanup and removal behaviors, and configure tag synchronization with Radarr and Sonarr. Administrators can trigger label synchronization, cleanup, and removal actions, monitor real-time progress and results, and manage a scheduled full sync with time and day selection. The interface includes safeguards against conflicting actions and accidental destructive operations, and displays detailed status and error feedback.
  *
- * @returns A React element representing the Plex label management interface.
+ * @returns A React element representing the Plex label management page.
  */
 export function PlexLabelsPage() {
   const { config, initialize: configInitialize } = useConfigStore()

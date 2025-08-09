@@ -3,12 +3,12 @@ import { useProgressStore } from '@/stores/progressStore'
 import type { ProgressEvent } from '@root/types/progress.types.js'
 
 /**
- * React hook that provides live progress percentage and status message for a specified labeling event type.
+ * React hook that returns real-time progress and status message for a given labeling event type.
  *
- * Subscribes to updates for the given event type and returns the latest progress and message, updating in real time as events occur.
+ * Subscribes to progress updates for the specified event type and updates the returned object as new events occur.
  *
- * @param type - The labeling event type to monitor.
- * @returns An object with the current progress value and status message.
+ * @param type - The labeling event type to track.
+ * @returns An object containing the current progress percentage and status message.
  */
 export function useLabelingProgress(type: ProgressEvent['type']) {
   const [progress, setProgress] = useState({ progress: 0, message: '' })

@@ -3,9 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a skeleton UI that mimics the layout of the Plex Labels page while content is loading.
+ * Renders a skeleton placeholder for the Plex Labels page layout during loading states.
  *
- * Renders placeholder elements for all major sections of the Plex Labels page, including headers, action buttons, status indicators, configuration forms, and settings, to provide users with a visual structure during data fetch operations.
+ * Displays static skeleton elements that visually represent all major sections of the Plex Labels page, including headers, action buttons, status indicators, configuration forms, and settings. This provides users with a preview of the page structure while data is being fetched.
  *
  * @returns A JSX element containing skeleton placeholders for the entire Plex Labels page.
  */

@@ -19,9 +19,14 @@ interface PlexLabelsDeleteConfirmationModalProps {
 }
 
 /**
- * Displays a modal dialog for confirming the removal of Pulsarr-created labels from Plex server content.
+ * Renders a modal dialog prompting the user to confirm removal of Pulsarr-created labels from Plex server content.
  *
- * Provides options to cancel or confirm the removal. The confirm button shows a processing state and is disabled while the removal action is in progress.
+ * The modal provides options to cancel or confirm the removal. The confirm button displays a processing state and is disabled while the removal is in progress.
+ *
+ * @param open - Whether the modal is visible
+ * @param onOpenChange - Callback to update the modal's open state
+ * @param onConfirm - Callback invoked to perform the label removal action
+ * @param isSubmitting - Optional flag indicating if the removal action is currently processing
  */
 export function PlexLabelsDeleteConfirmationModal({
   open,

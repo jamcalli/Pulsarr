@@ -4,9 +4,9 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Renders a skeleton loader that visually represents the Plex Notifications page while its content is loading.
+ * Displays a skeleton placeholder for the Plex Notifications page layout during content loading.
  *
- * Displays placeholder elements for all major sections, including the header, actions, current status, and Plex connection settings. The layout adjusts responsively for mobile and desktop viewports.
+ * Renders visual placeholders for all major sections, including the header, actions, current status, and Plex connection settings. The layout adapts responsively for mobile and desktop viewports.
  */
 export function PlexNotificationsPageSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')

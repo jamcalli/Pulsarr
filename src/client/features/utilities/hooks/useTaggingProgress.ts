@@ -3,12 +3,12 @@ import { useProgressStore } from '@/stores/progressStore'
 import type { ProgressEvent } from '@root/types/progress.types.js'
 
 /**
- * React hook that provides real-time progress and status messages for a specified tagging event type.
+ * React hook that tracks and returns real-time progress and status messages for a given tagging event type.
  *
- * Subscribes to updates for the given event type and returns the latest progress percentage and message.
+ * Subscribes to progress updates for the specified event type and provides the latest progress percentage and message.
  *
- * @param type - The tagging event type to monitor.
- * @returns An object with the current progress value and status message.
+ * @param type - The tagging event type to track.
+ * @returns An object containing the current progress value and status message.
  */
 export function useTaggingProgress(type: ProgressEvent['type']) {
   const [progress, setProgress] = useState({ progress: 0, message: '' })

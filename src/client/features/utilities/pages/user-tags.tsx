@@ -44,11 +44,11 @@ import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { UserTagsPageSkeleton } from '@/features/utilities/pages/user-tags-page-skeleton'
 
 /**
- * Renders the administrative interface for configuring and managing user-based tagging in Sonarr and Radarr.
+ * Displays the administrative page for configuring and managing user-based tagging in Sonarr and Radarr.
  *
- * Allows administrators to enable or disable user tagging, set tag prefixes, define tag removal behavior, and clean up orphaned tags. Provides actions for creating, synchronizing, cleaning up, and removing user tags, with real-time progress indicators, operation results, and error feedback. Prevents conflicting actions and accidental destructive operations through safeguards and confirmation dialogs.
+ * Provides controls for enabling user tagging, setting tag prefixes, defining tag removal behavior, and cleaning up orphaned tags. Includes actions for creating, synchronizing, cleaning up, and removing user tags, with real-time progress indicators, operation results, and error feedback. Safeguards prevent conflicting or destructive actions, and confirmation dialogs are shown for tag removal.
  *
- * @returns The user tag management page as a React element.
+ * @returns The user tag management interface as a React element.
  */
 export function UserTagsPage() {
   const { config, initialize: configInitialize } = useConfigStore()

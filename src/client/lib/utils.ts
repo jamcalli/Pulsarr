@@ -2,9 +2,9 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
 /**
- * Merges multiple class name values into a single string, resolving Tailwind CSS class conflicts.
+ * Combines multiple class name values into a single string, resolving Tailwind CSS class conflicts.
  *
- * Accepts any combination of strings, arrays, or objects as class values.
+ * Accepts any combination of strings, arrays, or objects as class values and merges them into a deduplicated class string suitable for use with Tailwind CSS.
  * @returns The merged class name string.
  */
 export function cn(...inputs: ClassValue[]) {
@@ -23,10 +23,10 @@ const DAYS_OF_WEEK = [
 ]
 
 /**
- * Formats a Date object into a 12-hour US locale time string with hours and minutes.
+ * Formats a Date object as a 12-hour time string with hours and minutes in US locale.
  *
  * @param date - The date to format
- * @returns The formatted time string (e.g., "3:45 PM")
+ * @returns The formatted time string, such as "3:45 PM"
  */
 export function formatTime(date: Date): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -59,9 +59,9 @@ export function formatDayOfWeek(dayOfWeek: string): string {
 }
 
 /**
- * Returns a human-readable string combining the formatted schedule time and day of week.
+ * Formats a schedule's time and day of week into a single human-readable string.
  *
- * If `scheduleTime` is invalid or undefined, "Not set" is used for the time portion.
+ * If the provided time is invalid or undefined, "Not set" is used for the time portion. The day of week is converted from a cron-style string to a descriptive phrase.
  *
  * @param scheduleTime - The scheduled time as a Date object, or undefined if not set
  * @param dayOfWeek - The cron-style day of week string (e.g., "0", "1", "*")
@@ -84,12 +84,12 @@ export function formatScheduleDisplay(
 // Cron parsing utilities
 
 /**
- * Parses a cron expression to extract the scheduled time and day of week.
+ * Extracts the scheduled time and day of week from a cron expression.
  *
- * Supports both 5-part and 6-part cron formats. Returns a tuple containing a Date object set to the parsed hour and minute (with seconds and milliseconds zeroed), and the day of week string. If parsing fails or the cron format is invalid, returns `[undefined, '*']`.
+ * Supports both 5-part and 6-part cron formats. Returns a tuple where the first element is a Date object set to the parsed hour and minute (with seconds and milliseconds zeroed), or `undefined` if parsing fails, and the second element is the day of week string (or '*' if invalid).
  *
  * @param cronExpression - The cron expression to parse
- * @returns A tuple where the first element is the scheduled time as a Date (or `undefined` if invalid), and the second element is the day of week string
+ * @returns A tuple containing the scheduled time as a Date (or `undefined` if invalid) and the day of week string
  */
 export function parseCronExpression(
   cronExpression: string,
