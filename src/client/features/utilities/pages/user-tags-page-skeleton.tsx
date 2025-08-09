@@ -3,9 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Displays a skeleton UI for the User Tags page, providing placeholder elements for actions, status, and tag configuration sections while content is loading.
+ * Renders a skeleton placeholder for the User Tags page, simulating the layout of actions, status, and tag configuration sections while data is loading.
  *
- * @returns A JSX element containing skeleton placeholders that mimic the layout of the User Tags page.
+ * @returns A JSX element containing skeleton components that visually represent the structure of the User Tags page during loading.
  */
 export function UserTagsPageSkeleton() {
   const statusInfo = 'unknown' as const

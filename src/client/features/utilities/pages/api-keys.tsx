@@ -20,11 +20,11 @@ const getUserFriendlyErrorMessage = (error: string) => {
 }
 
 /**
- * Displays the API keys management interface for administrators, allowing creation, viewing, refreshing, and revocation of API keys.
+ * Renders the administrator interface for managing API keys, including creation, viewing, refreshing, and revocation.
  *
- * Provides secure key visibility controls, copy functionality, and confirmation dialogs for key revocation. Handles loading, error, and refreshing states to ensure a responsive user experience.
+ * Provides secure controls for key visibility, copy functionality, and confirmation dialogs for revoking keys. Handles loading, error, and refreshing states to ensure a responsive and consistent user experience.
  *
- * @returns The rendered API keys management page as a React element.
+ * @returns The API keys management page as a React element.
  */
 export function ApiKeysPage() {
   const { isInitialized, initialize } = useConfigStore()

@@ -126,11 +126,11 @@ export async function updateWatchlistItem(
 }
 
 /**
- * Updates all watchlist items containing the specified GUID in their GUIDs array.
+ * Updates all watchlist items whose GUIDs array contains the specified GUID.
  *
- * @param guid - The GUID to match within each item's GUIDs array
- * @param updates - The fields to update on each matching watchlist item
- * @returns The number of watchlist items updated
+ * @param guid - The GUID to search for within each item's GUIDs array
+ * @param updates - The fields to apply to each matching watchlist item
+ * @returns The number of watchlist items that were updated
  */
 export async function updateWatchlistItemByGuid(
   this: DatabaseService,
@@ -169,11 +169,11 @@ export async function updateWatchlistItemByGuid(
 }
 
 /**
- * Retrieves a watchlist item for a user by its unique key.
+ * Retrieves a single watchlist item for a user by its unique key.
  *
- * Parses the item's GUIDs and genres fields from JSON. Returns undefined if no matching item exists.
+ * Parses the item's GUIDs and genres fields from JSON before returning. Returns undefined if no matching item is found.
  *
- * @param userId - The user's numeric ID
+ * @param userId - The numeric ID of the user
  * @param key - The unique key identifying the watchlist item
  * @returns The watchlist item if found, or undefined otherwise
  */
@@ -202,7 +202,7 @@ export async function getWatchlistItem(
 }
 
 /**
- * Retrieves a watchlist item by its numeric ID, parsing its `guids` and `genres` fields.
+ * Retrieves a watchlist item by its numeric ID, returning the item with parsed `guids` and `genres` fields.
  *
  * @param id - The numeric ID of the watchlist item
  * @returns The watchlist item with parsed fields if found; otherwise, undefined
@@ -274,11 +274,11 @@ export async function getBulkWatchlistItems(
 }
 
 /**
- * Retrieves watchlist items matching the specified keys.
+ * Retrieves all watchlist items matching the given keys, returning each with its numeric ID and parsed `guids` and `genres` fields.
  *
- * Returns an empty array if no keys are provided. Parses JSON fields for `guids` and `genres` safely.
+ * Returns an empty array if no keys are provided. The `thumb` and `added` fields are set to `undefined` if falsy.
  *
- * @returns Array of watchlist items with parsed JSON fields and numeric ID
+ * @returns Array of watchlist items with numeric IDs and safely parsed JSON fields
  */
 export async function getWatchlistItemsByKeys(
   this: DatabaseService,
@@ -868,9 +868,9 @@ export async function getAllShowWatchlistItems(
 }
 
 /**
- * Retrieves all watchlist items of type 'movie', parsing GUIDs and genres for each item.
+ * Retrieves all watchlist items of type 'movie', returning each with normalized string IDs, parsed GUIDs, and genres.
  *
- * @returns An array of movie watchlist items with normalized IDs, GUIDs, and genres.
+ * @returns An array of movie watchlist items with IDs as strings and parsed GUID and genre arrays.
  */
 export async function getAllMovieWatchlistItems(
   this: DatabaseService,
@@ -894,13 +894,13 @@ export async function getAllMovieWatchlistItems(
 }
 
 /**
- * Inserts multiple watchlist items into the database in bulk, returning the IDs and keys of inserted items.
+ * Inserts multiple watchlist items in bulk and returns their database IDs and keys.
  *
- * Supports conflict handling: use 'ignore' to skip duplicates or 'merge' to update existing entries. When 'ignore' is used, the returned array may be shorter than the input if duplicates are skipped.
+ * Supports conflict resolution: use 'ignore' (default) to skip duplicates or 'merge' to update existing entries. The returned array contains only the successfully inserted or merged items.
  *
  * @param items - The watchlist items to insert, excluding creation and update timestamps
  * @param options - Optional conflict resolution mode: 'ignore' (default) or 'merge'
- * @returns Array of objects containing the IDs and keys of inserted items
+ * @returns Array of objects with the IDs and keys of inserted or merged items
  */
 export async function createWatchlistItems(
   this: DatabaseService,
@@ -1097,9 +1097,9 @@ export async function getAllWatchlistItemsForUser(
 }
 
 /**
- * Retrieves all watchlist items whose GUIDs array contains the specified GUID, using case-insensitive matching.
+ * Retrieves all watchlist items containing the specified GUID in their GUIDs array, using case-insensitive matching.
  *
- * Each returned item has its `id` normalized to a string, and its `guids` and `genres` fields parsed as arrays.
+ * Each returned item has its `id` converted to a string, and its `guids` and `genres` fields parsed as arrays.
  *
  * @param guid - The GUID to search for within each item's GUIDs array
  * @returns An array of matching watchlist items with normalized and parsed fields
@@ -1136,11 +1136,11 @@ export async function getWatchlistItemsByGuid(
 }
 
 /**
- * Retrieves all unique GUIDs from watchlist items containing a TVDB GUID matching the specified TVDB ID.
+ * Retrieves all unique GUIDs from watchlist items that include a TVDB GUID matching the specified TVDB ID.
  *
- * Searches for watchlist items whose `guids` array includes a GUID in the format `tvdb:{tvdbId}` (case-insensitive), then aggregates and returns all unique GUIDs from those items.
+ * Searches for watchlist items whose `guids` array contains a GUID in the format `tvdb:{tvdbId}` (case-insensitive), then aggregates and returns all unique GUIDs from those items.
  *
- * @param tvdbId - The TVDB ID to match within GUIDs
+ * @param tvdbId - The TVDB ID to search for within GUIDs
  * @returns An array of unique GUID strings from matching watchlist items
  */
 export async function getAllGuidsByTvdbId(
@@ -1184,12 +1184,12 @@ export async function getAllGuidsByTvdbId(
 }
 
 /**
- * Returns a list of users who have a watchlist item containing the specified GUID.
+ * Retrieves all users who have a watchlist item containing the specified GUID.
  *
- * Performs a case-insensitive search for the GUID within all watchlist items and retrieves distinct user IDs, usernames, and watchlist IDs for matching users.
+ * Performs a case-insensitive search for the GUID within all watchlist items and returns a distinct list of users, including their IDs, usernames, and watchlist IDs.
  *
  * @param guid - The GUID to search for in users' watchlist items
- * @returns An array of user objects with `id`, `username`, and `watchlist_id` for each user who has the content in their watchlist
+ * @returns An array of objects, each containing the user's `id`, `username`, and `watchlist_id`
  */
 export async function getWatchlistUsersByGuid(
   this: DatabaseService,
@@ -1226,10 +1226,10 @@ export async function getWatchlistUsersByGuid(
 /**
  * Retrieves all watchlist items that contain any of the specified GUIDs, including associated user information.
  *
- * GUID matching is case-insensitive. Returns an array of objects where each object includes watchlist item fields and user fields for items whose GUIDs array contains at least one of the provided GUIDs.
+ * GUID matching is case-insensitive. Each result includes watchlist item fields and the corresponding user's username and watchlist ID for items whose GUIDs array contains at least one of the provided GUIDs.
  *
  * @param guids - List of GUIDs to search for in watchlist items
- * @returns Array of watchlist items with user information included
+ * @returns Array of objects containing watchlist item data and associated user information
  */
 export async function getWatchlistItemsWithUsersByGuids(
   this: DatabaseService,

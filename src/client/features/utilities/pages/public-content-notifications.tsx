@@ -74,26 +74,25 @@ interface WebhookFieldProps {
 }
 
 /**
- * Renders a form field for entering one or more webhook URLs, supporting labels, tooltips, validation, and optional test and clear actions.
+ * Renders a form field for entering up to five webhook URLs, with support for labels, tooltips, validation, and optional test and clear actions.
  *
- * Allows users to input up to five webhook URLs, with optional buttons to test the webhook connection (for testable fields) and to clear all values. Displays loading and result indicators for testing, and disables actions based on the field state.
+ * Provides input for multiple webhook URLs, displays a test button for testable fields, and allows clearing all values. Shows loading and result indicators for testing, and disables actions based on the field state.
  *
- * @param name - The unique field name for form binding
+ * For Discord webhook fields, enforces basic URL validation to match the expected Discord webhook URL pattern.
+ *
+ * @param name - The unique field name used for form binding
  * @param label - The label displayed above the input field
- * @param placeholder - Placeholder text for the input
- * @param tooltip - Tooltip text providing additional information about the field
- * @param isTestable - Whether to show a test button for webhook validation
- * @param testHandler - Handler function to trigger webhook testing
- * @param isTestLoading - Whether the test action is currently loading
+ * @param placeholder - Placeholder text shown in the input
+ * @param tooltip - Additional information displayed in a tooltip
+ * @param isTestable - Whether to display a test button for webhook validation
+ * @param testHandler - Function to trigger webhook testing
+ * @param isTestLoading - Indicates if the test action is currently loading
  * @param testResult - The result of the most recent test, if any
  * @param showTestError - Whether to display an error tooltip for the test button
- * @param onClear - Handler function to clear the field value(s)
+ * @param onClear - Function to clear the field value(s)
  * @param value - The current value(s) of the field
  * @param disabled - Whether the field and its actions are disabled
- * @param form - The form control object for managing field state
- *
- * @remarks
- * For Discord webhook fields, basic URL validation is enforced to match the expected Discord webhook URL pattern.
+ * @param form - The form control object managing field state
  */
 function WebhookField({
   name,
@@ -195,11 +194,11 @@ function WebhookField({
 }
 
 /**
- * Renders the Public Content Notifications configuration page, allowing users to manage and test Discord and Apprise webhook endpoints for broadcasting content availability.
+ * Displays the configuration page for managing public content notifications, enabling users to set up, test, and clear Discord and Apprise webhook endpoints for broadcasting content availability.
  *
- * Users can enable or disable public notifications, add or remove webhook URLs for general, movie, and show categories, test Discord webhook connections, and clear individual fields with confirmation. The form enforces successful Discord webhook tests before saving changes and provides feedback on configuration and connection status.
+ * Users can enable or disable public notifications, configure webhook URLs for general, movie, and show categories, test Discord webhook connections (with enforced successful tests before saving), and clear individual fields with confirmation dialogs. The form provides real-time feedback on connection status and configuration changes.
  *
- * @returns The React element for the public content notifications settings page.
+ * @returns The React element representing the public content notifications settings page.
  */
 export default function PublicContentNotificationsPage() {
   const { initialize, isInitialized } = useConfigStore()
