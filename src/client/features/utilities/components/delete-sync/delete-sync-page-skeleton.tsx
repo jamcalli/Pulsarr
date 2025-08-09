@@ -4,9 +4,9 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Renders a skeleton loader that visually represents the Delete Sync page layout during data loading.
+ * Displays a skeleton loader that mimics the structure of the Delete Sync page while content is loading.
  *
- * Displays placeholder elements for all major sections of the Delete Sync page, including the header, actions, status, schedule, deletion mode, safety settings, and action buttons. The layout adapts responsively for mobile and desktop viewports.
+ * Renders placeholder elements for all major sections of the Delete Sync page, including the header, actions, status, schedule, deletion mode, safety settings, and action buttons. The layout adjusts responsively for mobile and desktop viewports.
  */
 export function DeleteSyncPageSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')
