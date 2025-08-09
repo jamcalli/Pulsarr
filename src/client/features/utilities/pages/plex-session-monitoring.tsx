@@ -136,7 +136,6 @@ export default function PlexSessionMonitoringPage() {
                   type="button"
                   variant="cancel"
                   onClick={handleCancel}
-                  disabled={isSaving}
                   className="flex items-center gap-1"
                 >
                   <X className="h-4 w-4" />
@@ -149,6 +148,7 @@ export default function PlexSessionMonitoringPage() {
                 disabled={isSaving || !form.formState.isDirty}
                 className="flex items-center gap-2"
                 variant="blue"
+                aria-busy={isSaving}
               >
                 {isSaving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
