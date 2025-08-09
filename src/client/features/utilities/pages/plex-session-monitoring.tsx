@@ -106,12 +106,8 @@ export default function PlexSessionMonitoringPage() {
                 await handleRunSessionMonitor()
                 return null // Component expects this signature
               }}
-              resetShow={async (id: number) => {
-                await handleResetShow(id)
-              }}
-              deleteShow={async (id: number) => {
-                await handleDeleteShow(id)
-              }}
+              resetShow={handleResetShow}
+              deleteShow={handleDeleteShow}
               resetInactiveShows={handleResetInactiveShows}
               fetchRollingShows={fetchRollingShows}
               fetchInactiveShows={fetchInactiveShows}

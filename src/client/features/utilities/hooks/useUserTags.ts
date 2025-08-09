@@ -30,7 +30,7 @@ type ActionResult =
 export function isCreateTagResponse(
   response: ActionResult,
 ): response is CreateTaggingResponse {
-  return (response as CreateTaggingResponse).mode === 'create'
+  return 'mode' in response && response.mode === 'create'
 }
 
 /**
@@ -44,7 +44,7 @@ export function isCreateTagResponse(
 export function isSyncTagResponse(
   response: ActionResult,
 ): response is SyncTaggingResponse {
-  return (response as SyncTaggingResponse).mode === 'sync'
+  return 'mode' in response && response.mode === 'sync'
 }
 
 /**
@@ -71,7 +71,7 @@ export function isCleanupTagResponse(
 export function isRemoveTagsResponse(
   response: ActionResult,
 ): response is RemoveTagsResponse {
-  return (response as RemoveTagsResponse).mode === 'remove'
+  return 'mode' in response && response.mode === 'remove'
 }
 
 /**
@@ -163,12 +163,10 @@ export function useUserTags() {
   useEffect(() => {
     if (config && initialLoadRef.current) {
       // Add minimum 500ms display time for initial loading
-      const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
+      let timer: ReturnType<typeof setTimeout> | null = null
 
       updateFormValues()
-      minimumLoadingTime.then(() => {
+      timer = setTimeout(() => {
         initialLoadRef.current = false
 
         // Reset tag definitions deleted state if there are active tags
@@ -182,8 +180,14 @@ export function useUserTags() {
           ...state,
           loading: { ...state.loading, userTags: false },
         }))
-      })
-    } else if (config) {
+      }, 500)
+
+      return () => {
+        if (timer) clearTimeout(timer)
+      }
+    }
+
+    if (config) {
       updateFormValues()
     }
   }, [config, updateFormValues])
