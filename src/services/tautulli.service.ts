@@ -1047,7 +1047,9 @@ export class TautulliService {
       }
 
       // Normalize GUIDs for comparison
-      const itemGuids = item.guids.map((g) => normalizeGuid(g))
+      const itemGuids = Array.isArray(item.guids)
+        ? item.guids.map((g) => normalizeGuid(g))
+        : []
 
       // For movies, match by Plex GUID since guids array is empty
       if (notification.mediaType === 'movie' && item.guid) {
