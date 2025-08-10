@@ -22,6 +22,13 @@ export class TautulliService {
   private readonly PLEXMOBILEAPP_AGENT_ID = 26 // Plex mobile app agent ID
 
   /**
+   * Check if Tautulli service is active (initialized and enabled)
+   */
+  private get isActive(): boolean {
+    return this.isInitialized && this.config.enabled
+  }
+
+  /**
    * Safely parse season and episode numbers from Tautulli API response
    *
    * @param item - The Tautulli recently added item
@@ -110,7 +117,6 @@ export class TautulliService {
 
     if (!this.config.url || !this.config.apiKey) {
       this.fastify.log.warn('Tautulli URL or API key not configured')
-      this.config.enabled = false
       return
     }
 
@@ -136,7 +142,7 @@ export class TautulliService {
             { error },
             'Failed to initialize Tautulli integration after all retries',
           )
-          this.config.enabled = false
+          // No-op: config is not mutable; rely on isInitialized=false gates
         } else {
           this.fastify.log.warn(
             { error, attempt, maxRetries },
@@ -238,7 +244,7 @@ export class TautulliService {
    * Create or update notification agents for all Plex users
    */
   async syncUserNotifiers(): Promise<void> {
-    if (!this.config.enabled) return
+    if (!this.isActive) return
 
     try {
       // Get all Plex users with watchlist sync enabled
@@ -536,7 +542,7 @@ export class TautulliService {
    * Get media metadata from Tautulli
    */
   async getMetadata(ratingKey: string): Promise<TautulliMetadata | null> {
-    if (!this.config.enabled) return null
+    if (!this.isActive) return null
 
     try {
       const response = await this.apiCall<TautulliMetadata>('get_metadata', {
@@ -557,7 +563,7 @@ export class TautulliService {
    * Search for media by GUID
    */
   async searchByGuid(guid: string): Promise<TautulliMetadata | null> {
-    if (!this.config.enabled) return null
+    if (!this.isActive) return null
 
     try {
       const response = await this.apiCall<{ results: TautulliMetadata[] }>(
@@ -616,7 +622,7 @@ export class TautulliService {
       episodeNumber?: number
     },
   ): Promise<void> {
-    if (!this.config.enabled || interestedUsers.length === 0) {
+    if (!this.isActive || interestedUsers.length === 0) {
       return
     }
 
@@ -846,7 +852,7 @@ export class TautulliService {
    * Start the polling mechanism
    */
   private startPolling(): void {
-    if (this.pollInterval || !this.config.enabled) {
+    if (this.pollInterval || !this.isActive) {
       return
     }
 
@@ -1022,6 +1028,18 @@ export class TautulliService {
     notification: PendingNotification,
     recentItems: RecentlyAddedItem[],
   ): Promise<RecentlyAddedItem | null> {
+    // Cache to avoid repeated API calls for the same parent/grandparent metadata
+    const metadataCache = new Map<string, TautulliMetadata | null>()
+    const getCachedMetadata = async (
+      key: string,
+    ): Promise<TautulliMetadata | null> => {
+      if (!key) return null
+      if (metadataCache.has(key)) return metadataCache.get(key) ?? null
+      const metadata = await this.getMetadata(key)
+      metadataCache.set(key, metadata)
+      return metadata
+    }
+
     for (const item of recentItems) {
       // Check if media type matches
       if (!this.isMediaTypeMatch(notification.mediaType, item.media_type)) {
@@ -1104,7 +1122,7 @@ export class TautulliService {
       ) {
         try {
           // Fetch the parent show's metadata
-          const parentMetadata = await this.getMetadata(item.parent_rating_key)
+          const parentMetadata = await getCachedMetadata(item.parent_rating_key)
 
           // First try to match by Plex key (more reliable)
           if (parentMetadata?.guid && notification.watchlistItemKey) {
@@ -1163,7 +1181,7 @@ export class TautulliService {
       ) {
         try {
           // Fetch the parent show's metadata
-          const parentMetadata = await this.getMetadata(item.parent_rating_key)
+          const parentMetadata = await getCachedMetadata(item.parent_rating_key)
 
           // First try to match by Plex key (more reliable)
           if (parentMetadata?.guid && notification.watchlistItemKey) {
@@ -1222,7 +1240,7 @@ export class TautulliService {
       ) {
         try {
           // Fetch the grandparent show's metadata
-          const grandparentMetadata = await this.getMetadata(
+          const grandparentMetadata = await getCachedMetadata(
             item.grandparent_rating_key,
           )
 
@@ -1448,7 +1466,7 @@ export class TautulliService {
     guid?: string,
     watchlistItemKey?: string,
   ): Promise<boolean> {
-    if (!this.config.enabled || !watchlistItemId) {
+    if (!this.isActive || !watchlistItemId) {
       return false
     }
 
@@ -1518,7 +1536,7 @@ export class TautulliService {
     },
     _watchlistItemId: number,
   ): Promise<{ success: number; failed: number }> {
-    if (!this.config.enabled) {
+    if (!this.isActive) {
       return { success: 0, failed: users.length }
     }
 

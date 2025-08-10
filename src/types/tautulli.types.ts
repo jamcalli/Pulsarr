@@ -67,6 +67,10 @@ export interface TautulliUser extends User {
   tautulliNotificationsEnabled?: boolean
 }
 
+/**
+ * DB-projected user shape (snake_case aligns with DB columns).
+ * Prefer TautulliUser for camelCase domain usage.
+ */
 export interface TautulliEnabledUser {
   id: number
   username: string
@@ -77,7 +81,7 @@ export interface PendingNotification {
   guid: string
   mediaType: 'movie' | 'show' | 'episode'
   watchlistItemId: number
-  watchlistItemKey?: string // Plex key for matching movies
+  watchlistItemKey?: string // Plex key used for matching movies/shows/episodes
   interestedUsers: Array<{
     userId: number
     username: string
