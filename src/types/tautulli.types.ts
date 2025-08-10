@@ -104,7 +104,7 @@ export interface RecentlyAddedItem {
   parent_title?: string
   grandparent_title?: string
   guid?: string // Single GUID from Tautulli
-  guids: string[] // Array of GUIDs (often empty)
+  guids: (string | { id: string })[] // Array of GUIDs (often empty)
   section_id: number
   library_name: string
   added_at: string

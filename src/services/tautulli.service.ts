@@ -710,10 +710,13 @@ export class TautulliService {
     const immediateResults: Array<{ username: string; success: boolean }> = []
     const usersNeedingQueue: typeof validUsers = []
 
+    // Fetch once to avoid N calls
+    const recentItems50 = await this.getRecentlyAdded(50)
+
     for (const user of validUsers) {
       // Try to find the content immediately in Tautulli's recently added
       try {
-        const recentItems = await this.getRecentlyAdded(50)
+        const recentItems = recentItems50
         const mockNotification: PendingNotification = {
           guid: normalizeGuid(guid),
           mediaType,
@@ -859,11 +862,11 @@ export class TautulliService {
     this.log.debug('Starting Tautulli notification polling')
 
     // Process immediately
-    this.processPendingNotifications()
+    void this.processPendingNotifications()
 
     // Then set up interval
     this.pollInterval = setInterval(() => {
-      this.processPendingNotifications()
+      void this.processPendingNotifications()
     }, this.POLL_INTERVAL_MS)
   }
 
@@ -1046,9 +1049,17 @@ export class TautulliService {
         continue
       }
 
-      // Normalize GUIDs for comparison
+      // Normalize GUIDs for comparison (handle string[] or { id: string }[])
       const itemGuids = Array.isArray(item.guids)
-        ? item.guids.map((g) => normalizeGuid(g))
+        ? item.guids
+            .map((g: string | { id: string }) =>
+              typeof g === 'string'
+                ? normalizeGuid(g)
+                : g && typeof g.id === 'string'
+                  ? normalizeGuid(g.id)
+                  : null,
+            )
+            .filter((v): v is string => Boolean(v))
         : []
 
       // For movies, match by Plex GUID since guids array is empty
@@ -1711,7 +1722,7 @@ export class TautulliService {
    */
   getStatus(): 'running' | 'disabled' {
     // Tautulli is running if it's initialized and enabled
-    if (this.isInitialized && this.config.enabled) {
+    if (this.isActive) {
       return 'running'
     }
     return 'disabled'
