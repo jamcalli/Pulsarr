@@ -66,3 +66,46 @@ export interface TautulliUser extends User {
   tautulliNotifierId?: number | null
   tautulliNotificationsEnabled?: boolean
 }
+
+export interface TautulliEnabledUser {
+  id: number
+  username: string
+  tautulli_notifier_id: number | null
+}
+
+export interface PendingNotification {
+  guid: string
+  mediaType: 'movie' | 'show' | 'episode'
+  watchlistItemId: number
+  watchlistItemKey?: string // Plex key for matching movies
+  interestedUsers: Array<{
+    userId: number
+    username: string
+    notifierId: number
+  }>
+  title: string
+  seasonNumber?: number
+  episodeNumber?: number
+  addedAt: number // timestamp
+  attempts: number
+  maxAttempts: number
+}
+
+export interface RecentlyAddedItem {
+  media_type: 'movie' | 'show' | 'season' | 'episode'
+  rating_key: string
+  parent_rating_key?: string
+  grandparent_rating_key?: string
+  title: string
+  parent_title?: string
+  grandparent_title?: string
+  guid?: string // Single GUID from Tautulli
+  guids: string[] // Array of GUIDs (often empty)
+  section_id: number
+  library_name: string
+  added_at: string
+  media_index?: string // Episode number as string
+  parent_media_index?: string // Season number as string
+  season?: number // Deprecated, use parent_media_index
+  episode?: number // Deprecated, use media_index
+}
