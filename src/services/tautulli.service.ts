@@ -5,53 +5,14 @@ import type {
   TautulliNotifier,
   TautulliNotificationRequest,
   TautulliApiResponse,
+  TautulliEnabledUser,
+  PendingNotification,
+  RecentlyAddedItem,
 } from '@root/types/tautulli.types.js'
 import type { DatabaseService } from './database.service.js'
 import type { User } from '@root/types/config.types.js'
 import type { MediaNotification } from '@root/types/discord.types.js'
-
-interface TautulliEnabledUser {
-  id: number
-  username: string
-  tautulli_notifier_id: number | null
-}
-
-interface PendingNotification {
-  guid: string
-  mediaType: 'movie' | 'show' | 'episode'
-  watchlistItemId: number
-  watchlistItemKey?: string // Plex key for matching movies
-  interestedUsers: Array<{
-    userId: number
-    username: string
-    notifierId: number
-  }>
-  title: string
-  seasonNumber?: number
-  episodeNumber?: number
-  addedAt: number // timestamp
-  attempts: number
-  maxAttempts: number
-}
-
-interface RecentlyAddedItem {
-  media_type: 'movie' | 'show' | 'season' | 'episode'
-  rating_key: string
-  parent_rating_key?: string
-  grandparent_rating_key?: string
-  title: string
-  parent_title?: string
-  grandparent_title?: string
-  guid?: string // Single GUID from Tautulli
-  guids: string[] // Array of GUIDs (often empty)
-  section_id: number
-  library_name: string
-  added_at: string
-  media_index?: string // Episode number as string
-  parent_media_index?: string // Season number as string
-  season?: number // Deprecated, use parent_media_index
-  episode?: number // Deprecated, use media_index
-}
+import { normalizeGuid } from '@root/utils/guid-handler.js'
 
 export class TautulliService {
   private db: DatabaseService
@@ -59,6 +20,13 @@ export class TautulliService {
 
   // Constants
   private readonly PLEXMOBILEAPP_AGENT_ID = 26 // Plex mobile app agent ID
+
+  /**
+   * Check if Tautulli service is active (initialized and enabled)
+   */
+  private get isActive(): boolean {
+    return this.isInitialized && this.config.enabled
+  }
 
   /**
    * Safely parse season and episode numbers from Tautulli API response
@@ -149,7 +117,6 @@ export class TautulliService {
 
     if (!this.config.url || !this.config.apiKey) {
       this.fastify.log.warn('Tautulli URL or API key not configured')
-      this.config.enabled = false
       return
     }
 
@@ -175,7 +142,7 @@ export class TautulliService {
             { error },
             'Failed to initialize Tautulli integration after all retries',
           )
-          this.config.enabled = false
+          // No-op: config is not mutable; rely on isInitialized=false gates
         } else {
           this.fastify.log.warn(
             { error, attempt, maxRetries },
@@ -277,7 +244,7 @@ export class TautulliService {
    * Create or update notification agents for all Plex users
    */
   async syncUserNotifiers(): Promise<void> {
-    if (!this.config.enabled) return
+    if (!this.isActive) return
 
     try {
       // Get all Plex users with watchlist sync enabled
@@ -575,7 +542,7 @@ export class TautulliService {
    * Get media metadata from Tautulli
    */
   async getMetadata(ratingKey: string): Promise<TautulliMetadata | null> {
-    if (!this.config.enabled) return null
+    if (!this.isActive) return null
 
     try {
       const response = await this.apiCall<TautulliMetadata>('get_metadata', {
@@ -596,7 +563,7 @@ export class TautulliService {
    * Search for media by GUID
    */
   async searchByGuid(guid: string): Promise<TautulliMetadata | null> {
-    if (!this.config.enabled) return null
+    if (!this.isActive) return null
 
     try {
       const response = await this.apiCall<{ results: TautulliMetadata[] }>(
@@ -655,7 +622,7 @@ export class TautulliService {
       episodeNumber?: number
     },
   ): Promise<void> {
-    if (!this.config.enabled || interestedUsers.length === 0) {
+    if (!this.isActive || interestedUsers.length === 0) {
       return
     }
 
@@ -743,12 +710,15 @@ export class TautulliService {
     const immediateResults: Array<{ username: string; success: boolean }> = []
     const usersNeedingQueue: typeof validUsers = []
 
+    // Fetch once to avoid N calls
+    const recentItems50 = await this.getRecentlyAdded(50)
+
     for (const user of validUsers) {
       // Try to find the content immediately in Tautulli's recently added
       try {
-        const recentItems = await this.getRecentlyAdded(50)
+        const recentItems = recentItems50
         const mockNotification: PendingNotification = {
-          guid: this.normalizeGuid(guid),
+          guid: normalizeGuid(guid),
           mediaType,
           watchlistItemId: metadata.watchlistItemId,
           watchlistItemKey: metadata.watchlistItemKey,
@@ -812,7 +782,7 @@ export class TautulliService {
     }
 
     // Queue remaining users who need polling
-    const normalizedGuid = this.normalizeGuid(guid)
+    const normalizedGuid = normalizeGuid(guid)
     const key = this.generateNotificationKey(normalizedGuid, metadata)
 
     // Check if we already have this notification queued
@@ -882,38 +852,21 @@ export class TautulliService {
   }
 
   /**
-   * Normalize a GUID for consistent comparison
-   */
-  private normalizeGuid(guid: string): string {
-    // Handle different GUID formats
-    if (guid.includes('://')) {
-      return guid.toLowerCase()
-    }
-
-    // If it's just a number, assume it's TMDB
-    if (/^\d+$/.test(guid)) {
-      return `tmdb://${guid}`
-    }
-
-    return guid.toLowerCase()
-  }
-
-  /**
    * Start the polling mechanism
    */
   private startPolling(): void {
-    if (this.pollInterval || !this.config.enabled) {
+    if (this.pollInterval || !this.isActive) {
       return
     }
 
     this.log.debug('Starting Tautulli notification polling')
 
     // Process immediately
-    this.processPendingNotifications()
+    void this.processPendingNotifications()
 
     // Then set up interval
     this.pollInterval = setInterval(() => {
-      this.processPendingNotifications()
+      void this.processPendingNotifications()
     }, this.POLL_INTERVAL_MS)
   }
 
@@ -1078,11 +1031,36 @@ export class TautulliService {
     notification: PendingNotification,
     recentItems: RecentlyAddedItem[],
   ): Promise<RecentlyAddedItem | null> {
+    // Cache to avoid repeated API calls for the same parent/grandparent metadata
+    const metadataCache = new Map<string, TautulliMetadata | null>()
+    const getCachedMetadata = async (
+      key: string,
+    ): Promise<TautulliMetadata | null> => {
+      if (!key) return null
+      if (metadataCache.has(key)) return metadataCache.get(key) ?? null
+      const metadata = await this.getMetadata(key)
+      metadataCache.set(key, metadata)
+      return metadata
+    }
+
     for (const item of recentItems) {
       // Check if media type matches
       if (!this.isMediaTypeMatch(notification.mediaType, item.media_type)) {
         continue
       }
+
+      // Normalize GUIDs for comparison (handle string[] or { id: string }[])
+      const itemGuids = Array.isArray(item.guids)
+        ? item.guids
+            .map((g: string | { id: string }) =>
+              typeof g === 'string'
+                ? normalizeGuid(g)
+                : g && typeof g.id === 'string'
+                  ? normalizeGuid(g.id)
+                  : null,
+            )
+            .filter((v): v is string => Boolean(v))
+        : []
 
       // For movies, match by Plex GUID since guids array is empty
       if (notification.mediaType === 'movie' && item.guid) {
@@ -1128,8 +1106,6 @@ export class TautulliService {
       }
 
       // Fallback: For shows/episodes, use the guids array (which is populated)
-      const itemGuids = item.guids.map((g) => this.normalizeGuid(g))
-
       // Direct match - check if the item's GUIDs include our notification GUID
       if (itemGuids.includes(notification.guid)) {
         // For episodes, also check season/episode numbers if available
@@ -1151,6 +1127,65 @@ export class TautulliService {
         }
       }
 
+      // For show notifications that find a season, check the parent show's GUIDs or Plex key
+      if (
+        notification.mediaType === 'show' &&
+        item.media_type === 'season' &&
+        item.parent_rating_key
+      ) {
+        try {
+          // Fetch the parent show's metadata
+          const parentMetadata = await getCachedMetadata(item.parent_rating_key)
+
+          // First try to match by Plex key (more reliable)
+          if (parentMetadata?.guid && notification.watchlistItemKey) {
+            const parentPlexKey = parentMetadata.guid.split('/').pop()
+            if (
+              parentPlexKey &&
+              notification.watchlistItemKey === parentPlexKey
+            ) {
+              this.log.info(
+                {
+                  title: notification.title,
+                  seasonTitle: item.title,
+                  seasonRatingKey: item.rating_key,
+                  parentPlexKey,
+                  watchlistItemKey: notification.watchlistItemKey,
+                },
+                'Found matching season by parent Plex key for show notification - will send season notification',
+              )
+              return item
+            }
+          }
+
+          // Fallback to GUID matching
+          if (parentMetadata?.guids) {
+            const parentGuids = parentMetadata.guids.map((g) =>
+              normalizeGuid(g.id),
+            )
+            if (parentGuids.includes(notification.guid)) {
+              // We found a matching season for our show
+              // When multiple episodes are added, Tautulli groups them as a season
+              // Send the season notification - Tautulli will show all episodes in the season
+              this.log.info(
+                {
+                  title: notification.title,
+                  seasonTitle: item.title,
+                  seasonRatingKey: item.rating_key,
+                },
+                'Found matching season by parent GUID for show notification - will send season notification',
+              )
+              return item
+            }
+          }
+        } catch (error) {
+          this.log.debug(
+            { error, parentRatingKey: item.parent_rating_key },
+            'Failed to fetch parent metadata for season matching in show notification',
+          )
+        }
+      }
+
       // For episode notifications that find a season, check the parent show's GUIDs or Plex key
       if (
         notification.mediaType === 'episode' &&
@@ -1159,7 +1194,7 @@ export class TautulliService {
       ) {
         try {
           // Fetch the parent show's metadata
-          const parentMetadata = await this.getMetadata(item.parent_rating_key)
+          const parentMetadata = await getCachedMetadata(item.parent_rating_key)
 
           // First try to match by Plex key (more reliable)
           if (parentMetadata?.guid && notification.watchlistItemKey) {
@@ -1185,7 +1220,7 @@ export class TautulliService {
           // Fallback to GUID matching
           if (parentMetadata?.guids) {
             const parentGuids = parentMetadata.guids.map((g) =>
-              this.normalizeGuid(g.id),
+              normalizeGuid(g.id),
             )
             if (parentGuids.includes(notification.guid)) {
               // We found a matching season for our show
@@ -1218,7 +1253,7 @@ export class TautulliService {
       ) {
         try {
           // Fetch the grandparent show's metadata
-          const grandparentMetadata = await this.getMetadata(
+          const grandparentMetadata = await getCachedMetadata(
             item.grandparent_rating_key,
           )
 
@@ -1257,7 +1292,7 @@ export class TautulliService {
           // Fallback to GUID matching
           if (grandparentMetadata?.guids) {
             const grandparentGuids = grandparentMetadata.guids.map((g) =>
-              this.normalizeGuid(g.id),
+              normalizeGuid(g.id),
             )
             if (grandparentGuids.includes(notification.guid)) {
               // Check if this is the correct episode
@@ -1444,7 +1479,7 @@ export class TautulliService {
     guid?: string,
     watchlistItemKey?: string,
   ): Promise<boolean> {
-    if (!this.config.enabled || !watchlistItemId) {
+    if (!this.isActive || !watchlistItemId) {
       return false
     }
 
@@ -1514,7 +1549,7 @@ export class TautulliService {
     },
     _watchlistItemId: number,
   ): Promise<{ success: number; failed: number }> {
-    if (!this.config.enabled) {
+    if (!this.isActive) {
       return { success: 0, failed: users.length }
     }
 
@@ -1687,7 +1722,7 @@ export class TautulliService {
    */
   getStatus(): 'running' | 'disabled' {
     // Tautulli is running if it's initialized and enabled
-    if (this.isInitialized && this.config.enabled) {
+    if (this.isActive) {
       return 'running'
     }
     return 'disabled'
