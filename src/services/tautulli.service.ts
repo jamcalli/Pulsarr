@@ -5,53 +5,14 @@ import type {
   TautulliNotifier,
   TautulliNotificationRequest,
   TautulliApiResponse,
+  TautulliEnabledUser,
+  PendingNotification,
+  RecentlyAddedItem,
 } from '@root/types/tautulli.types.js'
 import type { DatabaseService } from './database.service.js'
 import type { User } from '@root/types/config.types.js'
 import type { MediaNotification } from '@root/types/discord.types.js'
-
-interface TautulliEnabledUser {
-  id: number
-  username: string
-  tautulli_notifier_id: number | null
-}
-
-interface PendingNotification {
-  guid: string
-  mediaType: 'movie' | 'show' | 'episode'
-  watchlistItemId: number
-  watchlistItemKey?: string // Plex key for matching movies
-  interestedUsers: Array<{
-    userId: number
-    username: string
-    notifierId: number
-  }>
-  title: string
-  seasonNumber?: number
-  episodeNumber?: number
-  addedAt: number // timestamp
-  attempts: number
-  maxAttempts: number
-}
-
-interface RecentlyAddedItem {
-  media_type: 'movie' | 'show' | 'season' | 'episode'
-  rating_key: string
-  parent_rating_key?: string
-  grandparent_rating_key?: string
-  title: string
-  parent_title?: string
-  grandparent_title?: string
-  guid?: string // Single GUID from Tautulli
-  guids: string[] // Array of GUIDs (often empty)
-  section_id: number
-  library_name: string
-  added_at: string
-  media_index?: string // Episode number as string
-  parent_media_index?: string // Season number as string
-  season?: number // Deprecated, use parent_media_index
-  episode?: number // Deprecated, use media_index
-}
+import { normalizeGuid } from '@root/utils/guid-handler.js'
 
 export class TautulliService {
   private db: DatabaseService
@@ -748,7 +709,7 @@ export class TautulliService {
       try {
         const recentItems = await this.getRecentlyAdded(50)
         const mockNotification: PendingNotification = {
-          guid: this.normalizeGuid(guid),
+          guid: normalizeGuid(guid),
           mediaType,
           watchlistItemId: metadata.watchlistItemId,
           watchlistItemKey: metadata.watchlistItemKey,
@@ -812,7 +773,7 @@ export class TautulliService {
     }
 
     // Queue remaining users who need polling
-    const normalizedGuid = this.normalizeGuid(guid)
+    const normalizedGuid = normalizeGuid(guid)
     const key = this.generateNotificationKey(normalizedGuid, metadata)
 
     // Check if we already have this notification queued
@@ -879,23 +840,6 @@ export class TautulliService {
       key += `E${metadata.episodeNumber}`
     }
     return key
-  }
-
-  /**
-   * Normalize a GUID for consistent comparison
-   */
-  private normalizeGuid(guid: string): string {
-    // Handle different GUID formats
-    if (guid.includes('://')) {
-      return guid.toLowerCase()
-    }
-
-    // If it's just a number, assume it's TMDB
-    if (/^\d+$/.test(guid)) {
-      return `tmdb://${guid}`
-    }
-
-    return guid.toLowerCase()
   }
 
   /**
@@ -1084,6 +1028,9 @@ export class TautulliService {
         continue
       }
 
+      // Normalize GUIDs for comparison
+      const itemGuids = item.guids.map((g) => normalizeGuid(g))
+
       // For movies, match by Plex GUID since guids array is empty
       if (notification.mediaType === 'movie' && item.guid) {
         // Extract the Plex key from the item's guid (e.g., "plex://movie/5d7768b907c4a5001e67bb61")
@@ -1128,8 +1075,6 @@ export class TautulliService {
       }
 
       // Fallback: For shows/episodes, use the guids array (which is populated)
-      const itemGuids = item.guids.map((g) => this.normalizeGuid(g))
-
       // Direct match - check if the item's GUIDs include our notification GUID
       if (itemGuids.includes(notification.guid)) {
         // For episodes, also check season/episode numbers if available
@@ -1148,6 +1093,65 @@ export class TautulliService {
           }
         } else {
           return item
+        }
+      }
+
+      // For show notifications that find a season, check the parent show's GUIDs or Plex key
+      if (
+        notification.mediaType === 'show' &&
+        item.media_type === 'season' &&
+        item.parent_rating_key
+      ) {
+        try {
+          // Fetch the parent show's metadata
+          const parentMetadata = await this.getMetadata(item.parent_rating_key)
+
+          // First try to match by Plex key (more reliable)
+          if (parentMetadata?.guid && notification.watchlistItemKey) {
+            const parentPlexKey = parentMetadata.guid.split('/').pop()
+            if (
+              parentPlexKey &&
+              notification.watchlistItemKey === parentPlexKey
+            ) {
+              this.log.info(
+                {
+                  title: notification.title,
+                  seasonTitle: item.title,
+                  seasonRatingKey: item.rating_key,
+                  parentPlexKey,
+                  watchlistItemKey: notification.watchlistItemKey,
+                },
+                'Found matching season by parent Plex key for show notification - will send season notification',
+              )
+              return item
+            }
+          }
+
+          // Fallback to GUID matching
+          if (parentMetadata?.guids) {
+            const parentGuids = parentMetadata.guids.map((g) =>
+              normalizeGuid(g.id),
+            )
+            if (parentGuids.includes(notification.guid)) {
+              // We found a matching season for our show
+              // When multiple episodes are added, Tautulli groups them as a season
+              // Send the season notification - Tautulli will show all episodes in the season
+              this.log.info(
+                {
+                  title: notification.title,
+                  seasonTitle: item.title,
+                  seasonRatingKey: item.rating_key,
+                },
+                'Found matching season by parent GUID for show notification - will send season notification',
+              )
+              return item
+            }
+          }
+        } catch (error) {
+          this.log.debug(
+            { error, parentRatingKey: item.parent_rating_key },
+            'Failed to fetch parent metadata for season matching in show notification',
+          )
         }
       }
 
@@ -1185,7 +1189,7 @@ export class TautulliService {
           // Fallback to GUID matching
           if (parentMetadata?.guids) {
             const parentGuids = parentMetadata.guids.map((g) =>
-              this.normalizeGuid(g.id),
+              normalizeGuid(g.id),
             )
             if (parentGuids.includes(notification.guid)) {
               // We found a matching season for our show
@@ -1257,7 +1261,7 @@ export class TautulliService {
           // Fallback to GUID matching
           if (grandparentMetadata?.guids) {
             const grandparentGuids = grandparentMetadata.guids.map((g) =>
-              this.normalizeGuid(g.id),
+              normalizeGuid(g.id),
             )
             if (grandparentGuids.includes(notification.guid)) {
               // Check if this is the correct episode
