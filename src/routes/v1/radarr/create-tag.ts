@@ -5,6 +5,7 @@ import {
   CreateTagResponseSchema,
   ErrorSchema,
 } from '@schemas/radarr/create-tag.schema.js'
+import { logServiceError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -52,7 +53,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error({ error: err }, 'Error creating Radarr tag:')
+        logServiceError(
+          fastify.log,
+          request,
+          err,
+          'radarr',
+          'Failed to create tag',
+        )
         return reply.internalServerError('Unable to create tag')
       }
     },

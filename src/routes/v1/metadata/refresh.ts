@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   MetadataRefreshSuccessResponseSchema,
   MetadataRefreshErrorResponseSchema,
@@ -54,8 +55,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Unknown error'
-        fastify.log.error(`Error refreshing metadata: ${errorMessage}`, {
-          error: err,
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to refresh metadata',
         })
 
         return reply.status(500).send({

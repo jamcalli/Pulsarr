@@ -5,6 +5,7 @@ import {
   QualityProfilesResponseSchema,
   ErrorSchema,
 } from '@schemas/sonarr/get-quality-profiles.schema.js'
+import { logServiceError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
@@ -63,9 +64,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error(
-          { error: err },
-          'Error fetching Sonarr quality profiles:',
+        logServiceError(
+          fastify.log,
+          request,
+          err,
+          'sonarr',
+          'Error fetching quality profiles',
         )
         return reply.internalServerError(
           'Unable to fetch Sonarr quality profiles',

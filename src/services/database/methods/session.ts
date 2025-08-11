@@ -308,8 +308,8 @@ export async function resetRollingMonitoredShowToOriginal(
     })
   } catch (error) {
     this.log.error(
-      'Error resetting rolling monitored show to original state:',
-      error,
+      { error },
+      'Error resetting rolling monitored show to original state',
     )
     return 0
   }

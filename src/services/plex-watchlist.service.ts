@@ -58,8 +58,8 @@ export class PlexWatchlistService {
       }
     } catch (error) {
       this.log.error(
-        `Failed to create default quotas for user ${userId}:`,
-        error,
+        { error, userId },
+        'Failed to create default quotas for user',
       )
     }
   }
@@ -555,8 +555,8 @@ export class PlexWatchlistService {
             )
           } else {
             this.log.error(
-              `Failed to fetch Plex username for token${index + 1}:`,
-              error,
+              { error, tokenIndex: index + 1 },
+              'Failed to fetch Plex username for token',
             )
           }
           // Continue with the fallback name
@@ -1068,8 +1068,8 @@ export class PlexWatchlistService {
           notificationChecks.set(userId, checks)
         } catch (error) {
           this.log.error(
-            `Error checking existing notifications for user ${userId}:`,
-            error,
+            { error, userId },
+            'Error checking existing notifications for user',
           )
           // Create an empty map for this user to avoid crashes
           notificationChecks.set(userId, new Map())

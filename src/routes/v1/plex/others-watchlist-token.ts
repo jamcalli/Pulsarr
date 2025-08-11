@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { othersWatchlistSchema } from '@schemas/plex/others-watchlist-token.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 export const othersWatchlistTokenRoute: FastifyPluginAsyncZod = async (
   fastify,
@@ -9,12 +10,14 @@ export const othersWatchlistTokenRoute: FastifyPluginAsyncZod = async (
     method: 'GET',
     url: '/others-watchlist-token',
     schema: othersWatchlistSchema,
-    handler: async (_request, reply) => {
+    handler: async (request, reply) => {
       try {
         const response = await fastify.plexWatchlist.getOthersWatchlists()
         return reply.send(response)
       } catch (err) {
-        fastify.log.error(err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch others watchlists',
+        })
         reply
           .code(500)
           .send({ error: "Unable to fetch others' watchlist items" })

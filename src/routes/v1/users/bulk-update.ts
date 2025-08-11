@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   UserErrorSchema,
   BulkUpdateResponseSchema,
@@ -79,10 +80,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 failedIds.push(userId)
               }
             } catch (err) {
-              fastify.log.error(
-                { error: err },
-                `Error updating user ${userId}:`,
-              )
+              logRouteError(fastify.log, request, err, {
+                message: 'Failed to update individual user',
+                context: { userId },
+              })
               failedIds.push(userId)
             }
           }
@@ -107,7 +108,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             : {}),
         }
       } catch (error) {
-        fastify.log.error({ error }, 'Error in bulk user update:')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to perform bulk user update',
+        })
         return reply.internalServerError('Failed to update users')
       }
     },

@@ -388,8 +388,8 @@ export class ContentRouterService {
           )
           // Log the full error details for debugging
           if (error instanceof Error) {
-            this.log.error(`Error details: ${error.message}`)
-            this.log.error(`Error stack: ${error.stack}`)
+            this.log.error({ error }, `Error details: ${error.message}`)
+            this.log.error({ error }, `Error stack: ${error.stack}`)
           }
           // On error, continue with normal default routing
         }
@@ -1589,7 +1589,10 @@ export class ContentRouterService {
       try {
         return JSON.parse(syncedInstances || '[]')
       } catch (e) {
-        this.log.error(`Invalid syncedInstances JSON: "${syncedInstances}"`, e)
+        this.log.error(
+          { error: e },
+          `Invalid syncedInstances JSON: "${syncedInstances}"`,
+        )
         return []
       }
     }

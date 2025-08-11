@@ -24,8 +24,8 @@ export async function getWatchlistRadarrInstanceIds(
     return result.map((r) => r.radarr_instance_id)
   } catch (error) {
     this.log.error(
-      `Error getting Radarr instance IDs for watchlist ${watchlistId}:`,
-      error,
+      { error, watchlistId },
+      'Error getting Radarr instance IDs for watchlist',
     )
     return []
   }
@@ -57,8 +57,8 @@ export async function getWatchlistRadarrInstanceStatus(
     return result || null
   } catch (error) {
     this.log.error(
-      `Error getting Radarr instance status for watchlist ${watchlistId}, instance ${instanceId}:`,
-      error,
+      { error, watchlistId, instanceId },
+      'Error getting Radarr instance status for watchlist',
     )
     return null
   }
@@ -104,8 +104,8 @@ export async function addWatchlistToRadarrInstance(
     )
   } catch (error) {
     this.log.error(
-      `Error adding watchlist ${watchlistId} to Radarr instance ${instanceId}:`,
-      error,
+      { error, watchlistId, instanceId },
+      'Error adding watchlist to Radarr instance',
     )
     throw error
   }
@@ -148,8 +148,8 @@ export async function updateWatchlistRadarrInstanceStatus(
     )
   } catch (error) {
     this.log.error(
-      `Error updating watchlist ${watchlistId} Radarr instance ${instanceId} status:`,
-      error,
+      { error, watchlistId, instanceId },
+      'Error updating watchlist Radarr instance status',
     )
     throw error
   }
@@ -178,8 +178,8 @@ export async function removeWatchlistFromRadarrInstance(
     )
   } catch (error) {
     this.log.error(
-      `Error removing watchlist ${watchlistId} from Radarr instance ${instanceId}:`,
-      error,
+      { error, watchlistId, instanceId },
+      'Error removing watchlist from Radarr instance',
     )
     throw error
   }
@@ -221,8 +221,8 @@ export async function setPrimaryRadarrInstance(
     )
   } catch (error) {
     this.log.error(
-      `Error setting primary Radarr instance for watchlist ${watchlistId}:`,
-      error,
+      { error, watchlistId },
+      'Error setting primary Radarr instance for watchlist',
     )
     throw error
   }
@@ -408,8 +408,8 @@ export async function getWatchlistSonarrInstanceIds(
     return result.map((r) => r.sonarr_instance_id)
   } catch (error) {
     this.log.error(
-      `Error getting Sonarr instance IDs for watchlist ${watchlistId}:`,
-      error,
+      { error, watchlistId },
+      'Error getting Sonarr instance IDs for watchlist',
     )
     return []
   }
@@ -441,8 +441,8 @@ export async function getWatchlistSonarrInstanceStatus(
     return result || null
   } catch (error) {
     this.log.error(
-      `Error getting Sonarr instance status for watchlist ${watchlistId}, instance ${instanceId}:`,
-      error,
+      { error, watchlistId, instanceId },
+      'Error getting Sonarr instance status for watchlist',
     )
     return null
   }
@@ -482,8 +482,8 @@ export async function addWatchlistToSonarrInstance(
     )
   } catch (error) {
     this.log.error(
-      `Error adding watchlist ${watchlistId} to Sonarr instance ${instanceId}:`,
-      error,
+      { error, watchlistId, instanceId },
+      'Error adding watchlist to Sonarr instance',
     )
     throw error
   }
@@ -526,8 +526,8 @@ export async function updateWatchlistSonarrInstanceStatus(
     )
   } catch (error) {
     this.log.error(
-      `Error updating watchlist ${watchlistId} Sonarr instance ${instanceId} status:`,
-      error,
+      { error, watchlistId, instanceId },
+      'Error updating watchlist Sonarr instance status',
     )
     throw error
   }
@@ -556,8 +556,8 @@ export async function removeWatchlistFromSonarrInstance(
     )
   } catch (error) {
     this.log.error(
-      `Error removing watchlist ${watchlistId} from Sonarr instance ${instanceId}:`,
-      error,
+      { error, watchlistId, instanceId },
+      'Error removing watchlist from Sonarr instance',
     )
     throw error
   }
@@ -599,8 +599,8 @@ export async function setPrimarySonarrInstance(
     )
   } catch (error) {
     this.log.error(
-      `Error setting primary Sonarr instance for watchlist ${watchlistId}:`,
-      error,
+      { error, watchlistId },
+      'Error setting primary Sonarr instance for watchlist',
     )
     throw error
   }

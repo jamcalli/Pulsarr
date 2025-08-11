@@ -10,6 +10,7 @@ import {
   type FieldInfo,
   type OperatorInfo,
 } from '@schemas/content-router/evaluator-metadata.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 // Local type for evaluator metadata with contentType
 interface EvaluatorMetadataWithContentType {
@@ -49,7 +50,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           plugins: plugins || [],
         }
       } catch (err) {
-        fastify.log.error({ error: err }, 'Error retrieving router plugins:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to retrieve router plugins',
+        })
         return reply.internalServerError('Unable to retrieve router rules')
       }
     },
@@ -100,7 +103,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           evaluators: normalizedMetadata,
         }
       } catch (error) {
-        fastify.log.error({ error }, 'Error retrieving evaluator metadata:')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to retrieve evaluator metadata',
+        })
         return reply.internalServerError(
           'Unable to retrieve evaluator metadata',
         )

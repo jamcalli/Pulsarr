@@ -124,9 +124,10 @@ export class PlexLabelSyncService {
    * @returns True if this is a user-specific label
    */
   private isUserSpecificLabel(labelName: string): boolean {
-    return labelName
-      .toLowerCase()
-      .startsWith(`${this.config.labelPrefix.toLowerCase()}:`)
+    const prefix = this.config.labelPrefix.toLowerCase()
+    const lname = labelName.toLowerCase()
+    // user labels are "prefix:user:username"
+    return lname.startsWith(`${prefix}:user:`)
   }
 
   /**
@@ -1367,7 +1368,12 @@ export class PlexLabelSyncService {
         for (const tracking of currentTracking) {
           // Check each label in the tracking record
           for (const label of tracking.labels_applied) {
-            const trackingKey = `${tracking.content_guids.join(',')}:${tracking.user_id}:${tracking.plex_rating_key}:${label}`
+            // Find the watchlist_id for this tracking record to match desired key format
+            const matchingUser = content.users.find(
+              (u) => u.user_id === tracking.user_id,
+            )
+            const watchlistId = matchingUser?.watchlist_id || tracking.user_id // fallback to user_id if no match
+            const trackingKey = `${watchlistId}:${tracking.plex_rating_key}:${label}`
             if (!desiredTracking.has(trackingKey)) {
               untrackOperations.push({
                 contentGuids: tracking.content_guids,
@@ -2199,9 +2205,12 @@ export class PlexLabelSyncService {
               ? parseGuids(watchlistItem.guids)
               : [ratingKey]
 
+            const contentType = (
+              watchlistItem?.type === 'show' ? 'show' : 'movie'
+            ) as 'movie' | 'show'
             await this.db.trackPlexLabels(
               contentGuids,
-              'movie',
+              contentType,
               user.user_id,
               ratingKey,
               [userLabel],

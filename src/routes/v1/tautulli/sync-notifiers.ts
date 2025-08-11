@@ -4,6 +4,7 @@ import {
   ErrorSchema,
   type SyncNotifiersResponse,
 } from '@root/schemas/tautulli/tautulli.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -24,7 +25,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Tautulli'],
       },
     },
-    async (_, reply) => {
+    async (request, reply) => {
       try {
         // Check if user has Plex Pass by verifying RSS feeds exist
         const config = await fastify.db.getConfig()
@@ -48,7 +49,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           eligibleUsers: tautulliUsers.length,
         }
       } catch (error) {
-        fastify.log.error(error, 'Failed to sync user notifiers')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to sync user notifiers',
+        })
         return reply.status(500).send({
           success: false,
           message: 'Failed to sync notifiers',

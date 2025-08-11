@@ -237,9 +237,10 @@ export class WatchlistWorkflowService {
         await this.plexService.pingPlex()
         this.log.info('Plex connection verified')
       } catch (plexError) {
-        this.log.error('Failed to verify Plex connectivity', {
-          error: plexError,
-        })
+        this.log.error(
+          { error: plexError },
+          'Failed to verify Plex connectivity',
+        )
         throw new Error('Failed to verify Plex connectivity', {
           cause: plexError,
         })
@@ -268,9 +269,10 @@ export class WatchlistWorkflowService {
           this.rssMode = true
         }
       } catch (rssError) {
-        this.log.error('Error generating or initializing RSS feeds', {
-          error: rssError,
-        })
+        this.log.error(
+          { error: rssError },
+          'Error generating or initializing RSS feeds',
+        )
         throw new Error('Failed to generate or initialize RSS feeds', {
           cause: rssError,
         })
@@ -302,19 +304,25 @@ export class WatchlistWorkflowService {
         // Schedule first periodic reconciliation for +20 minutes
         await this.schedulePendingReconciliation()
       } catch (syncError) {
-        this.log.error('Error during initial watchlist synchronization', {
-          error: syncError,
-          errorMessage:
-            syncError instanceof Error ? syncError.message : String(syncError),
-          errorStack: syncError instanceof Error ? syncError.stack : undefined,
-        })
+        this.log.error(
+          {
+            error: syncError,
+            errorMessage:
+              syncError instanceof Error
+                ? syncError.message
+                : String(syncError),
+            errorStack:
+              syncError instanceof Error ? syncError.stack : undefined,
+          },
+          'Error during initial watchlist synchronization',
+        )
 
         // Ensure failsafe is still scheduled even after initial sync failure
         try {
           await this.schedulePendingReconciliation()
         } catch (scheduleError) {
           this.log.error(
-            scheduleError,
+            { error: scheduleError },
             'Failed to schedule failsafe after initial sync error',
           )
         }
@@ -348,18 +356,21 @@ export class WatchlistWorkflowService {
       this.rssMode = false
 
       // Enhanced error logging
-      this.log.error('Error in Watchlist workflow:', {
-        error,
-        errorDetails:
-          error instanceof Error
-            ? {
-                message: error.message,
-                name: error.name,
-                stack: error.stack,
-                cause: error.cause,
-              }
-            : undefined,
-      })
+      this.log.error(
+        {
+          error,
+          errorDetails:
+            error instanceof Error
+              ? {
+                  message: error.message,
+                  name: error.name,
+                  stack: error.stack,
+                  cause: error.cause,
+                }
+              : undefined,
+        },
+        'Error in Watchlist workflow',
+      )
 
       throw error
     }
@@ -398,8 +409,8 @@ export class WatchlistWorkflowService {
       await this.cleanupExistingManualSync()
     } catch (error) {
       this.log.error(
-        'Error cleaning up periodic reconciliation during shutdown:',
-        error,
+        { error },
+        'Error cleaning up periodic reconciliation during shutdown',
       )
     }
 
@@ -436,15 +447,18 @@ export class WatchlistWorkflowService {
             this.log.debug('Fetching self watchlist')
             return await this.plexService.getSelfWatchlist()
           } catch (selfError) {
-            this.log.error('Error refreshing self watchlist:', {
-              error: selfError,
-              errorMessage:
-                selfError instanceof Error
-                  ? selfError.message
-                  : String(selfError),
-              errorStack:
-                selfError instanceof Error ? selfError.stack : undefined,
-            })
+            this.log.error(
+              {
+                error: selfError,
+                errorMessage:
+                  selfError instanceof Error
+                    ? selfError.message
+                    : String(selfError),
+                errorStack:
+                  selfError instanceof Error ? selfError.stack : undefined,
+              },
+              'Error refreshing self watchlist',
+            )
             throw new Error('Failed to refresh self watchlist', {
               cause: selfError,
             })
@@ -457,15 +471,20 @@ export class WatchlistWorkflowService {
             this.log.debug('Fetching friends watchlists')
             return await this.plexService.getOthersWatchlists()
           } catch (friendsError) {
-            this.log.error('Error refreshing friends watchlists:', {
-              error: friendsError,
-              errorMessage:
-                friendsError instanceof Error
-                  ? friendsError.message
-                  : String(friendsError),
-              errorStack:
-                friendsError instanceof Error ? friendsError.stack : undefined,
-            })
+            this.log.error(
+              {
+                error: friendsError,
+                errorMessage:
+                  friendsError instanceof Error
+                    ? friendsError.message
+                    : String(friendsError),
+                errorStack:
+                  friendsError instanceof Error
+                    ? friendsError.stack
+                    : undefined,
+              },
+              'Error refreshing friends watchlists',
+            )
             throw new Error('Failed to refresh friends watchlists', {
               cause: friendsError,
             })
@@ -498,11 +517,14 @@ export class WatchlistWorkflowService {
         // Continue despite this error
       }
     } catch (error) {
-      this.log.error('Error refreshing watchlists:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-      })
+      this.log.error(
+        {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+        },
+        'Error refreshing watchlists',
+      )
       throw error
     }
   }
@@ -573,7 +595,7 @@ export class WatchlistWorkflowService {
         const results = await this.plexService.processRssWatchlists()
         await this.processRssResults(results)
       } catch (error) {
-        this.log.error(error, 'Error checking RSS feeds')
+        this.log.error({ error }, 'Error checking RSS feeds')
       }
     }, this.rssCheckIntervalMs)
   }
@@ -1141,14 +1163,15 @@ export class WatchlistWorkflowService {
 
       return true
     } catch (error) {
-      this.log.error(`Error processing movie ${item.title}:`, {
-        error,
-        details: {
+      this.log.error(
+        {
+          error,
           title: item.title,
           guids: item.guids,
           type: item.type,
         },
-      })
+        'Error processing movie',
+      )
       throw error
     }
   }
@@ -1207,14 +1230,15 @@ export class WatchlistWorkflowService {
 
       return true
     } catch (error) {
-      this.log.error(`Error processing show ${item.title} in Sonarr:`, {
-        error,
-        details: {
+      this.log.error(
+        {
+          error,
           title: item.title,
           guids: item.guids,
           type: item.type,
         },
-      })
+        'Error processing show in Sonarr',
+      )
       throw error
     }
   }
@@ -1521,11 +1545,14 @@ export class WatchlistWorkflowService {
         )
       }
     } catch (error) {
-      this.log.error('Error during watchlist sync:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-      })
+      this.log.error(
+        {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+        },
+        'Error during watchlist sync',
+      )
       throw error
     }
   }
@@ -1614,19 +1641,22 @@ export class WatchlistWorkflowService {
         } catch (error) {
           this.status = 'stopped'
           this.isRunning = false
-          this.log.error('Error in queue processing:', {
-            error,
-            errorMessage:
-              error instanceof Error ? error.message : String(error),
-            errorStack: error instanceof Error ? error.stack : undefined,
-          })
+          this.log.error(
+            {
+              error,
+              errorMessage:
+                error instanceof Error ? error.message : String(error),
+              errorStack: error instanceof Error ? error.stack : undefined,
+            },
+            'Error in queue processing',
+          )
 
           // Ensure failsafe is scheduled even after queue processing failure
           try {
             await this.schedulePendingReconciliation()
           } catch (scheduleError) {
             this.log.error(
-              scheduleError,
+              { error: scheduleError },
               'Failed to schedule failsafe after queue processing error',
             )
           }
@@ -1781,18 +1811,21 @@ export class WatchlistWorkflowService {
               await this.schedulePendingReconciliation()
             }
           } catch (error) {
-            this.log.error('Error in periodic watchlist reconciliation:', {
-              error,
-              errorMessage:
-                error instanceof Error ? error.message : String(error),
-            })
+            this.log.error(
+              {
+                error,
+                errorMessage:
+                  error instanceof Error ? error.message : String(error),
+              },
+              'Error in periodic watchlist reconciliation',
+            )
 
             // Still try to reschedule even after error
             try {
               await this.schedulePendingReconciliation()
             } catch (scheduleError) {
               this.log.error(
-                scheduleError,
+                { error: scheduleError },
                 'Failed to reschedule after reconciliation error',
               )
             }
@@ -1804,11 +1837,14 @@ export class WatchlistWorkflowService {
         'Periodic watchlist reconciliation job created (will be dynamically scheduled)',
       )
     } catch (error) {
-      this.log.error('Error setting up periodic reconciliation:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-      })
+      this.log.error(
+        {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+        },
+        'Error setting up periodic reconciliation',
+      )
       throw error
     }
   }
@@ -1831,11 +1867,11 @@ export class WatchlistWorkflowService {
       }
     } catch (error) {
       this.log.error(
-        'Error cleaning up existing periodic reconciliation job:',
         {
           error,
           errorMessage: error instanceof Error ? error.message : String(error),
         },
+        'Error cleaning up existing periodic reconciliation job',
       )
       throw error
     }
@@ -1861,10 +1897,13 @@ export class WatchlistWorkflowService {
         `Scheduled next periodic reconciliation for ${scheduleTime.toISOString()}`,
       )
     } catch (error) {
-      this.log.error('Error scheduling pending reconciliation:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-      })
+      this.log.error(
+        {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+        'Error scheduling pending reconciliation',
+      )
       throw error
     }
   }
@@ -1883,10 +1922,13 @@ export class WatchlistWorkflowService {
 
       this.log.info('Unscheduled pending periodic reconciliation')
     } catch (error) {
-      this.log.error('Error unscheduling pending reconciliation:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-      })
+      this.log.error(
+        {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+        'Error unscheduling pending reconciliation',
+      )
       // Don't throw here - this is called during sync start and shouldn't block sync
     }
   }

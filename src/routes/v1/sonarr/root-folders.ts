@@ -5,6 +5,7 @@ import {
   RootFoldersResponseSchema,
   ErrorSchema,
 } from '@schemas/sonarr/get-root-folders.schema.js'
+import { logServiceError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
@@ -64,7 +65,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error({ error: err }, 'Error fetching Sonarr root folders:')
+        logServiceError(
+          fastify.log,
+          request,
+          err,
+          'sonarr',
+          'Error fetching root folders',
+        )
         return reply.internalServerError('Unable to fetch Sonarr root folders')
       }
     },

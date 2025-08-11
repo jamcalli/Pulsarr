@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { DefaultInstanceError } from '@root/types/errors.js'
+import { logServiceError } from '@utils/route-errors.js'
 
 // Zod schema for Radarr instance configuration
 const RadarrInstanceSchema = z.object({
@@ -107,7 +108,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         await fastify.radarrManager.updateInstance(id, updates)
         reply.status(204)
       } catch (error) {
-        fastify.log.error({ error }, 'Error updating Radarr instance:')
+        logServiceError(
+          fastify.log,
+          request,
+          error,
+          'radarr',
+          'Error updating instance',
+        )
 
         if (error instanceof Error) {
           const statusCode = error.message.includes('Authentication')
