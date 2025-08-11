@@ -106,8 +106,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Validate Plex Pass requirement for Tautulli
         if (safeConfigUpdate.tautulliEnabled === true) {
-          const currentConfig = await fastify.db.getConfig()
-          if (!currentConfig?.selfRss || !currentConfig?.friendsRss) {
+          if (!fastify.config.selfRss || !fastify.config.friendsRss) {
             reply.status(400)
             return {
               error:

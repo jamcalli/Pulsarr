@@ -31,10 +31,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check config first to avoid unnecessary API calls if tagging is disabled
-        const config = await fastify.db.getConfig()
-        if (!config) {
-          return reply.notFound('Config not found in database')
-        }
+        const config = fastify.config
 
         // Prepare default results for disabled services
         const sonarrResults = {
@@ -145,10 +142,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check config first to see if tagging is enabled at all
-        const config = await fastify.db.getConfig()
-        if (!config) {
-          return reply.notFound('Config not found in database')
-        }
+        const config = fastify.config
 
         // If both Sonarr and Radarr tagging are disabled, return early
         if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
@@ -247,10 +241,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check if cleanup is enabled
-        const config = await fastify.db.getConfig()
-        if (!config) {
-          return reply.notFound('Config not found in database')
-        }
+        const config = fastify.config
 
         // If cleanup is disabled, return early with appropriate message
         if (!config.cleanupOrphanedTags) {
@@ -322,10 +313,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check if tagging is enabled
-        const config = await fastify.db.getConfig()
-        if (!config) {
-          return reply.notFound('Config not found in database')
-        }
+        const config = fastify.config
 
         // If both Sonarr and Radarr tagging are disabled, return early
         if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
