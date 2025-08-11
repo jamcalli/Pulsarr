@@ -375,7 +375,7 @@ export const getWatchlist = async (
     }
 
     // Log error and rethrow to let callers decide how to handle the failure
-    log.error({ error }, 'Error in getWatchlist')
+    log.error({ error, start, retryCount }, 'Error in getWatchlist')
     throw error
   }
 }
@@ -1047,7 +1047,10 @@ const toItemsBatch = async (
               // Reset consecutive success counter
               consecutiveSuccessCount = 0
             } else {
-              log.error({ error }, `Error processing item ${item.title}`)
+              log.error(
+                { error, itemId: item.id, title: item.title, type: item.type },
+                'Error processing item',
+              )
               results.set(item, new Set())
               batchCompletedCount++
             }

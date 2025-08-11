@@ -69,7 +69,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Error fetching root folders',
           context: {
             service: 'sonarr',
-            instanceId: String(request.query.instanceId),
+            instanceId: request.query.instanceId,
           },
         })
         return reply.internalServerError('Unable to fetch Sonarr root folders')

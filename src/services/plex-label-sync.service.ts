@@ -2206,9 +2206,17 @@ export class PlexLabelSyncService {
               ? parseGuids(watchlistItem.guids)
               : [ratingKey]
 
-            const contentType = (
+            if (
+              watchlistItem?.type &&
+              !['movie', 'show'].includes(watchlistItem.type)
+            ) {
+              this.log.warn('Unexpected content type, defaulting to movie', {
+                watchlistId: user.watchlist_id,
+                type: watchlistItem.type,
+              })
+            }
+            const contentType: 'movie' | 'show' =
               watchlistItem?.type === 'show' ? 'show' : 'movie'
-            ) as 'movie' | 'show'
             await this.db.trackPlexLabels(
               contentGuids,
               contentType,
@@ -2490,9 +2498,17 @@ export class PlexLabelSyncService {
               ? parseGuids(watchlistItem.guids)
               : [ratingKey]
 
-            const contentType = (
+            if (
+              watchlistItem?.type &&
+              !['movie', 'show'].includes(watchlistItem.type)
+            ) {
+              this.log.warn('Unexpected content type, defaulting to movie', {
+                watchlistId: user.watchlist_id,
+                type: watchlistItem.type,
+              })
+            }
+            const contentType: 'movie' | 'show' =
               watchlistItem?.type === 'show' ? 'show' : 'movie'
-            ) as 'movie' | 'show'
             await this.db.trackPlexLabels(
               contentGuids,
               contentType,

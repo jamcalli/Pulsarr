@@ -56,7 +56,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Error creating tag',
           context: {
             service: 'sonarr',
-            instanceId: String(request.body.instanceId),
+            instanceId: request.body.instanceId,
           },
         })
         return reply.internalServerError('Unable to create tag')
