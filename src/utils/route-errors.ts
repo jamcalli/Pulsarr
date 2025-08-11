@@ -100,11 +100,13 @@ export function logServiceError(
   message?: string,
 ): void {
   const params = request.params as { instanceId?: string }
+  const query = request.query as { instanceId?: string }
+  const instanceId = params?.instanceId ?? query?.instanceId
 
   logRouteError(logger, request, error, {
     message: message || `Error in ${serviceName} service operation`,
     context: {
-      instanceId: params.instanceId,
+      instanceId,
       service: serviceName,
     },
   })

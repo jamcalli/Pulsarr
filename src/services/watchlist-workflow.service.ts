@@ -595,7 +595,15 @@ export class WatchlistWorkflowService {
         const results = await this.plexService.processRssWatchlists()
         await this.processRssResults(results)
       } catch (error) {
-        this.log.error({ error }, 'Error checking RSS feeds')
+        this.log.error(
+          {
+            error,
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
+            errorStack: error instanceof Error ? error.stack : undefined,
+          },
+          'Error checking RSS feeds',
+        )
       }
     }, this.rssCheckIntervalMs)
   }
@@ -1639,8 +1647,8 @@ export class WatchlistWorkflowService {
 
           this.log.info(`Queue processing completed for ${queueSize} items`)
         } catch (error) {
-          this.status = 'stopped'
-          this.isRunning = false
+          // Don't set status to 'stopped' or stop the workflow
+          // This allows the workflow to continue and self-heal via reconciliation
           this.log.error(
             {
               error,
@@ -1648,7 +1656,7 @@ export class WatchlistWorkflowService {
                 error instanceof Error ? error.message : String(error),
               errorStack: error instanceof Error ? error.stack : undefined,
             },
-            'Error in queue processing',
+            'Error in queue processing - will recover via scheduled reconciliation',
           )
 
           // Ensure failsafe is scheduled even after queue processing failure
@@ -1661,7 +1669,7 @@ export class WatchlistWorkflowService {
             )
           }
 
-          throw error
+          // Don't throw - let the workflow continue running
         } finally {
           this.isRefreshing = false
           this.isProcessingWorkflow = false

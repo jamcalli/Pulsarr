@@ -5,7 +5,7 @@ import {
   ErrorSchema,
 } from '@schemas/radarr/get-quality-profiles.schema.js'
 import { TagsResponseSchema } from '@schemas/radarr/get-tags.schema.js'
-import { logServiceError } from '@utils/route-errors.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
@@ -63,13 +63,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        logServiceError(
-          fastify.log,
-          request,
-          err,
-          'radarr',
-          'Failed to fetch tags',
-        )
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch tags',
+          context: {
+            instanceId: request.query.instanceId,
+            service: 'radarr',
+          },
+        })
         return reply.internalServerError('Unable to fetch Radarr tags')
       }
     },

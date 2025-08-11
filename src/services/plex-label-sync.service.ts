@@ -1352,14 +1352,15 @@ export class PlexLabelSyncService {
           }
         }
 
-        // Track tag labels using any valid watchlist ID (they're content-specific, not user-specific)
+        // Track tag labels per user to align with per-user tracking records
         if (finalTagLabels.length > 0 && content.users.length > 0) {
-          const representativeWatchlistId = content.users[0].watchlist_id
           for (const tagLabel of finalTagLabels) {
             if (allFinalLabels.includes(tagLabel)) {
-              desiredTracking.add(
-                `${representativeWatchlistId}:${plexItem.ratingKey}:${tagLabel}`,
-              )
+              for (const u of content.users) {
+                desiredTracking.add(
+                  `${u.watchlist_id}:${plexItem.ratingKey}:${tagLabel}`,
+                )
+              }
             }
           }
         }
@@ -1925,8 +1926,8 @@ export class PlexLabelSyncService {
       return result
     } catch (error) {
       this.log.error(
-        'Error in content-centric batch label synchronization:',
-        error,
+        { error },
+        'Error in content-centric batch label synchronization',
       )
 
       if (emitProgress) {
@@ -2009,8 +2010,8 @@ export class PlexLabelSyncService {
         retryCount++
       } catch (error) {
         this.log.error(
-          `Error searching for content in Plex (attempt ${retryCount + 1}):`,
-          error,
+          { error },
+          `Error searching for content in Plex (attempt ${retryCount + 1})`,
         )
         retryCount++
 
@@ -2489,9 +2490,12 @@ export class PlexLabelSyncService {
               ? parseGuids(watchlistItem.guids)
               : [ratingKey]
 
+            const contentType = (
+              watchlistItem?.type === 'show' ? 'show' : 'movie'
+            ) as 'movie' | 'show'
             await this.db.trackPlexLabels(
               contentGuids,
-              'movie',
+              contentType,
               user.user_id,
               ratingKey,
               combinedLabels,
@@ -2529,8 +2533,8 @@ export class PlexLabelSyncService {
       return success
     } catch (error) {
       this.log.error(
-        `Error applying combined labels to item ${ratingKey}:`,
-        error,
+        { error },
+        `Error applying combined labels to item ${ratingKey}`,
       )
       return false
     }
@@ -3330,10 +3334,10 @@ export class PlexLabelSyncService {
               }
 
               // Add the new user from the pending sync if not already tracked
-              if (!trackedUsers.has(pendingSync.watchlist_item_id)) {
+              if (!trackedUsers.has(pendingSync.user_id)) {
                 const newUser = userMap.get(pendingSync.user_id)
                 if (newUser) {
-                  trackedUsers.set(pendingSync.watchlist_item_id, {
+                  trackedUsers.set(pendingSync.user_id, {
                     user_id: newUser.id,
                     username: newUser.name || `user_${newUser.id}`,
                     watchlist_id: pendingSync.watchlist_item_id,
