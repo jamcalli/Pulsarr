@@ -909,7 +909,7 @@ export async function getInstanceContentBreakdown(
       instances,
     }
   } catch (error) {
-    this.log.error('Error getting instance content breakdown:', error)
+    this.log.error({ error }, 'Error getting instance content breakdown:')
     throw error
   }
 }

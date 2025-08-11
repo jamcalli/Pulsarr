@@ -82,7 +82,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           userQuotas,
         }
       } catch (error) {
-        fastify.log.error('Error creating user quota:', error)
+        fastify.log.error({ error }, 'Error creating user quota:')
         return reply.internalServerError('Failed to create user quota')
       }
     },
@@ -130,7 +130,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           userQuotas,
         }
       } catch (error) {
-        fastify.log.error('Error getting user quota:', error)
+        fastify.log.error({ error }, 'Error getting user quota:')
         return reply.internalServerError('Failed to retrieve user quota')
       }
     },
@@ -204,7 +204,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error updating user quota:', error)
+        fastify.log.error({ error }, 'Error updating user quota:')
         return reply.internalServerError('Failed to update user quota')
       }
     },
@@ -325,7 +325,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error updating separate user quotas:', error)
+        fastify.log.error({ error }, 'Error updating separate user quotas:')
         return reply.internalServerError('Failed to update user quotas')
       }
     },
@@ -370,7 +370,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'User quotas deleted successfully',
         }
       } catch (error) {
-        fastify.log.error('Error deleting user quota:', error)
+        fastify.log.error({ error }, 'Error deleting user quota:')
         return reply.internalServerError('Failed to delete user quota')
       }
     },
@@ -405,7 +405,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           userQuotas,
         }
       } catch (error) {
-        fastify.log.error('Error getting users with quotas:', error)
+        fastify.log.error({ error }, 'Error getting users with quotas:')
         return reply.internalServerError('Failed to retrieve users with quotas')
       }
     },
@@ -453,7 +453,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           quotaStatus,
         }
       } catch (error) {
-        fastify.log.error('Error getting quota status:', error)
+        fastify.log.error({ error }, 'Error getting quota status:')
         return reply.internalServerError('Failed to retrieve quota status')
       }
     },
@@ -509,7 +509,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           quotaStatuses,
         }
       } catch (error) {
-        fastify.log.error('Error getting bulk quota status:', error)
+        fastify.log.error({ error }, 'Error getting bulk quota status:')
         return reply.internalServerError('Failed to retrieve bulk quota status')
       }
     },
@@ -557,7 +557,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Quota usage recorded successfully',
         }
       } catch (error) {
-        fastify.log.error('Error recording quota usage:', error)
+        fastify.log.error({ error }, 'Error recording quota usage:')
         return reply.internalServerError('Failed to record quota usage')
       }
     },
@@ -615,7 +615,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           offset,
         }
       } catch (error) {
-        fastify.log.error('Error getting quota usage history:', error)
+        fastify.log.error({ error }, 'Error getting quota usage history:')
         return reply.internalServerError(
           'Failed to retrieve quota usage history',
         )
@@ -656,7 +656,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           dailyStats,
         }
       } catch (error) {
-        fastify.log.error('Error getting daily usage stats:', error)
+        fastify.log.error({ error }, 'Error getting daily usage stats:')
         return reply.internalServerError(
           'Failed to retrieve daily usage statistics',
         )
@@ -731,7 +731,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             : {}),
         }
       } catch (error) {
-        fastify.log.error('Error in bulk quota operation:', error)
+        fastify.log.error({ error }, 'Error in bulk quota operation:')
         return reply.internalServerError(
           'Failed to perform bulk quota operation',
         )
@@ -772,7 +772,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: `Cleaned up ${deletedCount} old quota usage records`,
         }
       } catch (error) {
-        fastify.log.error('Error cleaning up quota usage:', error)
+        fastify.log.error({ error }, 'Error cleaning up quota usage:')
         return reply.internalServerError(
           'Failed to cleanup quota usage records',
         )

@@ -386,7 +386,10 @@ export class PlexSessionMonitorService {
           return { series, instanceId: instance.id }
         }
       } catch (error) {
-        this.log.error(`Error searching Sonarr instance ${instance.id}:`, error)
+        this.log.error(
+          { error },
+          `Error searching Sonarr instance ${instance.id}:`,
+        )
       }
     }
 
@@ -405,7 +408,7 @@ export class PlexSessionMonitorService {
 
       return await this.findSeriesInSonarr(seriesIds, session.grandparentTitle)
     } catch (error) {
-      this.log.error('Error getting Sonarr series data:', error)
+      this.log.error({ error }, 'Error getting Sonarr series data:')
       return null
     }
   }
@@ -464,7 +467,7 @@ export class PlexSessionMonitorService {
 
       return rollingShow
     } catch (error) {
-      this.log.error('Error getting rolling monitored show:', error)
+      this.log.error({ error }, 'Error getting rolling monitored show:')
       return null
     }
   }
@@ -493,7 +496,7 @@ export class PlexSessionMonitorService {
         }
       }
     } catch (error) {
-      this.log.error('Error updating rolling show progress:', error)
+      this.log.error({ error }, 'Error updating rolling show progress:')
     }
   }
 
@@ -646,7 +649,7 @@ export class PlexSessionMonitorService {
         plex_username: undefined,
       })
     } catch (error) {
-      this.log.error('Error creating rolling monitored show:', error)
+      this.log.error({ error }, 'Error creating rolling monitored show:')
       throw error
     }
   }
@@ -731,7 +734,7 @@ export class PlexSessionMonitorService {
         `Reset ${showTitle} to pilot-only: deleted ${deletedCount} episode files, unmonitored ${episodesToUnmonitor.length} episodes and ${unmonitoredSeasons.length} seasons`,
       )
     } catch (error) {
-      this.log.error(`Error resetting ${showTitle} to pilot-only:`, error)
+      this.log.error({ error }, `Error resetting ${showTitle} to pilot-only:`)
       throw error
     }
   }
@@ -864,7 +867,7 @@ export class PlexSessionMonitorService {
         }
       }
     } catch (error) {
-      this.log.error('Error resetting inactive rolling shows:', error)
+      this.log.error({ error }, 'Error resetting inactive rolling shows:')
       throw error
     }
   }
@@ -1008,7 +1011,7 @@ export class PlexSessionMonitorService {
         )
       }
     } catch (error) {
-      this.log.error('Error in progressive cleanup:', error)
+      this.log.error({ error }, 'Error in progressive cleanup:')
     }
   }
 
@@ -1200,7 +1203,7 @@ export class PlexSessionMonitorService {
         )
       }
     } catch (error) {
-      this.log.error(`Error cleaning up seasons for ${showTitle}:`, error)
+      this.log.error({ error }, `Error cleaning up seasons for ${showTitle}:`)
       throw error
     }
   }

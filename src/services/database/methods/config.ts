@@ -568,7 +568,7 @@ export async function updateConfig(
       .update(updateData)
     return updated > 0
   } catch (error) {
-    this.log.error('Error updating config:', error)
+    this.log.error({ error }, 'Error updating config:')
     return false
   }
 }

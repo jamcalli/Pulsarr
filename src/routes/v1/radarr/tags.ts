@@ -62,7 +62,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error fetching Radarr tags:', err)
+        fastify.log.error({ error: err }, 'Error fetching Radarr tags:')
         return reply.internalServerError('Unable to fetch Radarr tags')
       }
     },

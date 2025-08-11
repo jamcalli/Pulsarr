@@ -72,7 +72,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (err) {
-        fastify.log.error('Error syncing plex labels:', err)
+        fastify.log.error({ error: err }, 'Error syncing plex labels:')
         return reply.internalServerError('Unable to sync plex labels')
       }
     },
@@ -164,7 +164,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (err) {
-        fastify.log.error('Error cleaning up plex labels:', err)
+        fastify.log.error({ error: err }, 'Error cleaning up plex labels:')
         return reply.internalServerError('Unable to clean up plex labels')
       }
     },
@@ -232,7 +232,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (err) {
-        fastify.log.error('Error removing plex labels:', err)
+        fastify.log.error({ error: err }, 'Error removing plex labels:')
         return reply.internalServerError('Unable to remove plex labels')
       }
     },

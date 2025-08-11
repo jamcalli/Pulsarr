@@ -428,7 +428,7 @@ export async function createNotificationRecord(
 
     return this.extractId(result)
   } catch (error) {
-    this.log.error('Error creating notification record:', error)
+    this.log.error({ error }, 'Error creating notification record:')
     throw error
   }
 }

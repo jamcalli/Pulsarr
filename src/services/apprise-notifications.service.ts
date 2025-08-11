@@ -521,7 +521,7 @@ export class AppriseNotificationService {
       // Send to the system Apprise URL
       return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
-      this.log.error('Error sending system notification:', error)
+      this.log.error({ error }, 'Error sending system notification:')
       return false
     }
   }
@@ -802,7 +802,7 @@ export class AppriseNotificationService {
       // Send to the system Apprise URL
       return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
-      this.log.error('Error sending delete sync notification:', error)
+      this.log.error({ error }, 'Error sending delete sync notification:')
       return false
     }
   }
@@ -929,7 +929,10 @@ export class AppriseNotificationService {
       // Send to the system Apprise URL
       return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
-      this.log.error('Error sending watchlist addition notification:', error)
+      this.log.error(
+        { error },
+        'Error sending watchlist addition notification:',
+      )
       return false
     }
   }
@@ -1052,7 +1055,7 @@ export class AppriseNotificationService {
 
       return await this.sendNotification(targetUrl, notification)
     } catch (error) {
-      this.log.error('Error sending test notification:', error)
+      this.log.error({ error }, 'Error sending test notification:')
       return false
     }
   }

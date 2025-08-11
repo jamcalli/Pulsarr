@@ -58,7 +58,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           shows: shows.map(serializeRollingShowDates),
         })
       } catch (error) {
-        request.log.error('Error fetching rolling monitored shows:', error)
+        request.log.error({ error }, 'Error fetching rolling monitored shows:')
         return reply.code(400).send({
           error: 'Failed to fetch rolling monitored shows',
         })
@@ -88,7 +88,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           result,
         })
       } catch (error) {
-        request.log.error('Error running session monitor:', error)
+        request.log.error({ error }, 'Error running session monitor:')
         return reply.code(400).send({
           error: 'Failed to run session monitor',
         })
@@ -152,7 +152,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
             : `Successfully removed ${existingShow.show_title} from rolling monitoring entirely (deleted ${deletedCount} total ${deletedCount === 1 ? 'entry' : 'entries'})`,
         })
       } catch (error) {
-        request.log.error('Error deleting rolling monitored show:', error)
+        request.log.error({ error }, 'Error deleting rolling monitored show:')
         return reply.code(400).send({
           error: 'Failed to delete rolling monitored show',
         })
@@ -208,7 +208,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           message: `Successfully reset ${existingShow.show_title} to its original monitoring state${deletedUserEntries > 0 ? ` (removed ${deletedUserEntries} user ${deletedUserEntries === 1 ? 'entry' : 'entries'})` : ''}`,
         })
       } catch (error) {
-        request.log.error('Error resetting rolling monitored show:', error)
+        request.log.error({ error }, 'Error resetting rolling monitored show:')
         return reply.code(400).send({
           error: 'Failed to reset rolling monitored show',
         })

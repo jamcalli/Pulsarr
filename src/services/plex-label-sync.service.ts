@@ -246,7 +246,7 @@ export class PlexLabelSyncService {
       )
       return processedMovies
     } catch (error) {
-      this.log.error('Error fetching Radarr movies for tag sync:', error)
+      this.log.error({ error }, 'Error fetching Radarr movies for tag sync:')
       return []
     }
   }
@@ -328,7 +328,7 @@ export class PlexLabelSyncService {
       )
       return processedSeries
     } catch (error) {
-      this.log.error('Error fetching Sonarr series for tag sync:', error)
+      this.log.error({ error }, 'Error fetching Sonarr series for tag sync:')
       return []
     }
   }
@@ -397,7 +397,7 @@ export class PlexLabelSyncService {
       })
       return null
     } catch (error) {
-      this.log.error('Error matching Plex movie to Radarr:', error)
+      this.log.error({ error }, 'Error matching Plex movie to Radarr:')
       return null
     }
   }
@@ -524,7 +524,7 @@ export class PlexLabelSyncService {
       })
       return null
     } catch (error) {
-      this.log.error('Error matching Plex series to Sonarr:', error)
+      this.log.error({ error }, 'Error matching Plex series to Sonarr:')
       return null
     }
   }
@@ -629,7 +629,7 @@ export class PlexLabelSyncService {
       this.log.info('Completed tag sync to Plex labels', result)
       return result
     } catch (error) {
-      this.log.error('Error during tag sync to Plex labels:', error)
+      this.log.error({ error }, 'Error during tag sync to Plex labels:')
       throw error
     }
   }
@@ -718,7 +718,7 @@ export class PlexLabelSyncService {
 
       return success
     } catch (error) {
-      this.log.error('Error applying tag labels to Plex item:', error)
+      this.log.error({ error }, 'Error applying tag labels to Plex item:')
       return false
     }
   }
@@ -835,7 +835,7 @@ export class PlexLabelSyncService {
 
       return allSuccessful
     } catch (error) {
-      this.log.error('Error processing webhook for label sync:', error)
+      this.log.error({ error }, 'Error processing webhook for label sync:')
       return false
     }
   }
@@ -1603,7 +1603,7 @@ export class PlexLabelSyncService {
           }
           this.log.info('Label reset completed successfully')
         } catch (resetError) {
-          this.log.error('Error during label reset:', resetError)
+          this.log.error({ error: resetError }, 'Error during label reset:')
           // Continue with sync even if reset fails
           if (emitProgress) {
             this.fastify.progress.emit({
@@ -1892,7 +1892,10 @@ export class PlexLabelSyncService {
             )
           }
         } catch (cleanupError) {
-          this.log.error('Error during orphaned label cleanup:', cleanupError)
+          this.log.error(
+            { error: cleanupError },
+            'Error during orphaned label cleanup:',
+          )
           cleanupMessage = ', orphaned cleanup failed'
         }
       }
@@ -2233,7 +2236,10 @@ export class PlexLabelSyncService {
 
       return success
     } catch (error) {
-      this.log.error(`Error applying user labels to item ${ratingKey}:`, error)
+      this.log.error(
+        { error },
+        `Error applying user labels to item ${ratingKey}:`,
+      )
       return false
     }
   }
@@ -2541,7 +2547,7 @@ export class PlexLabelSyncService {
         webhookTags,
       )
     } catch (error) {
-      this.log.error('Error queuing pending label sync:', error)
+      this.log.error({ error }, 'Error queuing pending label sync:')
     }
   }
 
@@ -3000,7 +3006,7 @@ export class PlexLabelSyncService {
 
       return allSuccessful
     } catch (error) {
-      this.log.error('Error syncing label for watchlist item:', error)
+      this.log.error({ error }, 'Error syncing label for watchlist item:')
       return false
     }
   }
@@ -3029,7 +3035,7 @@ export class PlexLabelSyncService {
 
       return []
     } catch (error) {
-      this.log.error('Error extracting tags from webhook:', error)
+      this.log.error({ error }, 'Error extracting tags from webhook:')
       return []
     }
   }
@@ -3066,7 +3072,7 @@ export class PlexLabelSyncService {
 
       return null
     } catch (error) {
-      this.log.error('Error extracting content GUID from webhook:', error)
+      this.log.error({ error }, 'Error extracting content GUID from webhook:')
       return null
     }
   }
@@ -3093,7 +3099,7 @@ export class PlexLabelSyncService {
 
       return 'Unknown Content'
     } catch (error) {
-      this.log.error('Error extracting content title from webhook:', error)
+      this.log.error({ error }, 'Error extracting content title from webhook:')
       return 'Unknown Content'
     }
   }
@@ -3170,7 +3176,7 @@ export class PlexLabelSyncService {
 
       return result
     } catch (error) {
-      this.log.error('Error getting users with content:', error)
+      this.log.error({ error }, 'Error getting users with content:')
       return []
     }
   }
@@ -3416,7 +3422,7 @@ export class PlexLabelSyncService {
       // Completion will be logged by the processor service with more details
       return result
     } catch (error) {
-      this.log.error('Error processing pending label syncs:', error)
+      this.log.error({ error }, 'Error processing pending label syncs:')
       throw error
     }
   }
@@ -3689,7 +3695,10 @@ export class PlexLabelSyncService {
         },
       )
     } catch (error) {
-      this.log.error('Error during label cleanup for watchlist items:', error)
+      this.log.error(
+        { error },
+        'Error during label cleanup for watchlist items:',
+      )
       // Don't throw - label cleanup failure shouldn't prevent item deletion
     }
   }
@@ -4202,7 +4211,7 @@ export class PlexLabelSyncService {
 
       return result
     } catch (error) {
-      this.log.error('Error in bulk Plex label removal:', error)
+      this.log.error({ error }, 'Error in bulk Plex label removal:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -4570,7 +4579,7 @@ export class PlexLabelSyncService {
 
       return result
     } catch (error) {
-      this.log.error('Error during orphaned label cleanup:', error)
+      this.log.error({ error }, 'Error during orphaned label cleanup:')
       return { removed: 0, failed: 1 }
     }
   }
@@ -4857,7 +4866,7 @@ export class PlexLabelSyncService {
         failed: failedCount,
       }
     } catch (error) {
-      this.log.error('Error during Plex label reset:', error)
+      this.log.error({ error }, 'Error during Plex label reset:')
       if (emitProgress) {
         this.fastify.progress.emit({
           operationId,

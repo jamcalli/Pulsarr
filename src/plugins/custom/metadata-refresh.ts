@@ -89,7 +89,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
           await metadataRefreshHandler(jobName)
         } catch (error) {
-          fastify.log.error(`Error in scheduled job ${jobName}:`, error)
+          fastify.log.error({ error }, `Error in scheduled job ${jobName}:`)
           throw error
         }
       })

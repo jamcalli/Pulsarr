@@ -62,7 +62,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error fetching Radarr quality profiles:', err)
+        fastify.log.error(
+          { error: err },
+          'Error fetching Radarr quality profiles:',
+        )
         return reply.internalServerError(
           'Unable to fetch Radarr quality profiles',
         )

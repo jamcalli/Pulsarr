@@ -39,7 +39,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: result.message,
         }
       } catch (err) {
-        fastify.log.error('Error testing Sonarr connection:', err)
+        fastify.log.error({ error: err }, 'Error testing Sonarr connection:')
 
         const errorMessage =
           err instanceof Error

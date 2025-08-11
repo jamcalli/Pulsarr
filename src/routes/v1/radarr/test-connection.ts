@@ -39,7 +39,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: result.message,
         }
       } catch (err) {
-        fastify.log.error('Error testing Radarr connection:', err)
+        fastify.log.error({ error: err }, 'Error testing Radarr connection:')
 
         const errorMessage =
           err instanceof Error

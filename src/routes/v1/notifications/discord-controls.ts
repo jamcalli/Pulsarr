@@ -57,7 +57,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error starting Discord bot:', err)
+        fastify.log.error({ error: err }, 'Error starting Discord bot:')
         return reply.internalServerError('Unable to start Discord bot')
       }
     },
@@ -109,7 +109,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error stopping Discord bot:', err)
+        fastify.log.error({ error: err }, 'Error stopping Discord bot:')
         return reply.internalServerError('Unable to stop Discord bot')
       }
     },
@@ -214,7 +214,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error validating webhooks:', err)
+        fastify.log.error({ error: err }, 'Error validating webhooks:')
         return reply.internalServerError('Unable to validate webhooks')
       }
     },

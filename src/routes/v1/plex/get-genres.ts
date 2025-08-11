@@ -35,7 +35,7 @@ export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
         reply.status(200)
         return response
       } catch (err) {
-        fastify.log.error('Error fetching watchlist genres:', err)
+        fastify.log.error({ error: err }, 'Error fetching watchlist genres:')
         return reply.internalServerError('Unable to fetch watchlist genres')
       }
     },

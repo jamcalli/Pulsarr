@@ -58,7 +58,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { error: err.message || 'Error fetching configuration' }
         }
 
-        fastify.log.error('Error fetching config:', err)
+        fastify.log.error({ error: err }, 'Error fetching config:')
         reply.status(500)
         return { error: 'Unable to fetch configuration' }
       }
@@ -127,7 +127,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         try {
           await fastify.updateConfig(safeConfigUpdate)
         } catch (configUpdateError) {
-          fastify.log.error('Error updating runtime config:', configUpdateError)
+          fastify.log.error(
+            { error: configUpdateError },
+            'Error updating runtime config:',
+          )
           reply.status(400)
           return { error: 'Failed to update runtime configuration' }
         }
@@ -139,7 +142,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           try {
             await fastify.updateConfig(originalRuntimeValues)
           } catch (revertError) {
-            fastify.log.error('Failed to revert runtime config:', revertError)
+            fastify.log.error(
+              { error: revertError },
+              'Failed to revert runtime config:',
+            )
           }
           reply.status(400)
           return { error: 'Failed to update configuration in database' }
@@ -205,7 +211,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           reply.status(err.statusCode as number)
           return { error: err.message || 'Error updating configuration' }
         }
-        fastify.log.error('Error updating config:', err)
+        fastify.log.error({ error: err }, 'Error updating config:')
         reply.status(500)
         return { error: 'Unable to update configuration' }
       }

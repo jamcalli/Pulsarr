@@ -151,7 +151,7 @@ export default function createUserEvaluator(
       const regex = new RegExp(pattern)
       return regex.test(userName)
     } catch (error) {
-      fastify.log.error(`Invalid regex pattern: ${pattern}`, error)
+      fastify.log.error({ error }, `Invalid regex pattern: ${pattern}`)
       return false
     }
   }

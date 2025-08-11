@@ -52,7 +52,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error creating Radarr tag:', err)
+        fastify.log.error({ error: err }, 'Error creating Radarr tag:')
         return reply.internalServerError('Unable to create tag')
       }
     },

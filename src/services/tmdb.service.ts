@@ -177,7 +177,10 @@ export class TmdbService {
         watchProviders,
       }
     } catch (error) {
-      this.log.error(`Error fetching TV metadata for TMDB ID ${tmdbId}:`, error)
+      this.log.error(
+        { error },
+        `Error fetching TV metadata for TMDB ID ${tmdbId}:`,
+      )
       return null
     }
   }
@@ -435,7 +438,7 @@ export class TmdbService {
 
       return null
     } catch (error) {
-      this.log.error('Error fetching TMDB regions:', error)
+      this.log.error({ error }, 'Error fetching TMDB regions:')
       return null
     }
   }
@@ -506,7 +509,7 @@ export class TmdbService {
       return null
     } catch (error) {
       clearTimeout(timeoutId)
-      this.log.error(`Error finding content by TVDB ID ${tvdbId}:`, error)
+      this.log.error({ error }, `Error finding content by TVDB ID ${tvdbId}:`)
       return null
     }
   }

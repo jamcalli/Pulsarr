@@ -503,7 +503,10 @@ export class ApprovalService {
         )
       }
     } catch (error) {
-      this.fastify.log.error('Failed to perform approval maintenance:', error)
+      this.fastify.log.error(
+        { error },
+        'Failed to perform approval maintenance:',
+      )
     }
   }
 
@@ -565,7 +568,7 @@ export class ApprovalService {
 
       return result
     } catch (error) {
-      this.fastify.log.error(`Error approving request ${requestId}:`, error)
+      this.fastify.log.error({ error }, `Error approving request ${requestId}:`)
       return null
     }
   }
@@ -592,7 +595,7 @@ export class ApprovalService {
 
       return result
     } catch (error) {
-      this.fastify.log.error(`Error rejecting request ${requestId}:`, error)
+      this.fastify.log.error({ error }, `Error rejecting request ${requestId}:`)
       return null
     }
   }

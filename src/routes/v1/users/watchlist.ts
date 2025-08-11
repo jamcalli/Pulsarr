@@ -74,7 +74,7 @@ const watchlistRoute: FastifyPluginAsync = async (fastify) => {
 
         return reply.status(200).send(response)
       } catch (error) {
-        fastify.log.error('Error fetching user watchlist:', error)
+        fastify.log.error({ error }, 'Error fetching user watchlist:')
         const errorResponse: GetUserWatchlistError = {
           success: false,
           message: 'Failed to fetch user watchlist',
