@@ -112,7 +112,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Error updating instance',
           context: {
             service: 'radarr',
-            instanceId: String(request.params.id),
+            instanceId: request.params.id,
           },
         })
 
