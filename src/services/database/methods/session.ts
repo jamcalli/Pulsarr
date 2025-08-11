@@ -41,7 +41,7 @@ export async function createRollingMonitoredShow(
     )
     return id
   } catch (error) {
-    this.log.error('Error creating rolling monitored show:', error)
+    this.log.error({ error }, 'Error creating rolling monitored show:')
     throw new Error('Failed to create rolling monitored show')
   }
 }
@@ -60,7 +60,7 @@ export async function getRollingMonitoredShows(
       'asc',
     )
   } catch (error) {
-    this.log.error('Error getting rolling monitored shows:', error)
+    this.log.error({ error }, 'Error getting rolling monitored shows:')
     return []
   }
 }
@@ -82,7 +82,7 @@ export async function getRollingMonitoredShowById(
 
     return result || null
   } catch (error) {
-    this.log.error('Error getting rolling monitored show by ID:', error)
+    this.log.error({ error }, 'Error getting rolling monitored show by ID:')
     return null
   }
 }
@@ -124,7 +124,7 @@ export async function getRollingMonitoredShow(
 
     return await query.first()
   } catch (error) {
-    this.log.error('Error getting rolling monitored show:', error)
+    this.log.error({ error }, 'Error getting rolling monitored show:')
     return null
   }
 }
@@ -156,7 +156,7 @@ export async function updateRollingShowProgress(
 
     return updated > 0
   } catch (error) {
-    this.log.error('Error updating rolling show progress:', error)
+    this.log.error({ error }, 'Error updating rolling show progress:')
     return false
   }
 }
@@ -184,7 +184,7 @@ export async function updateRollingShowMonitoredSeason(
 
     return updated > 0
   } catch (error) {
-    this.log.error('Error updating rolling show monitored season:', error)
+    this.log.error({ error }, 'Error updating rolling show monitored season:')
     return false
   }
 }
@@ -206,7 +206,7 @@ export async function deleteRollingMonitoredShow(
 
     return deleted > 0
   } catch (error) {
-    this.log.error('Error deleting rolling monitored show:', error)
+    this.log.error({ error }, 'Error deleting rolling monitored show:')
     return false
   }
 }
@@ -249,7 +249,10 @@ export async function deleteAllRollingMonitoredShowEntries(
       return deleted
     })
   } catch (error) {
-    this.log.error('Error deleting all rolling monitored show entries:', error)
+    this.log.error(
+      { error },
+      'Error deleting all rolling monitored show entries:',
+    )
     return 0
   }
 }
@@ -305,8 +308,8 @@ export async function resetRollingMonitoredShowToOriginal(
     })
   } catch (error) {
     this.log.error(
-      'Error resetting rolling monitored show to original state:',
-      error,
+      { error },
+      'Error resetting rolling monitored show to original state',
     )
     return 0
   }
@@ -330,7 +333,7 @@ export async function getInactiveRollingMonitoredShows(
       .where('last_updated_at', '<', cutoffDate.toISOString())
       .orderBy('last_updated_at', 'asc')
   } catch (error) {
-    this.log.error('Error getting inactive rolling monitored shows:', error)
+    this.log.error({ error }, 'Error getting inactive rolling monitored shows:')
     return []
   }
 }

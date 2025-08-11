@@ -19,6 +19,7 @@ import {
   type BulkOperationResponse,
 } from '@schemas/approval/approval.schema.js'
 import { extractTmdbId, extractTvdbId } from '@utils/guid-handler.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   /**
@@ -137,7 +138,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         })
       } catch (error) {
-        fastify.log.error('Error creating approval request:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to create approval request',
+          userId: request.body.userId,
+          contentKey: request.body.contentKey,
+        })
         return reply.internalServerError('Failed to create approval request')
       }
     },
@@ -210,7 +215,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           offset,
         }
       } catch (error) {
-        fastify.log.error('Error getting approval requests:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to get approval requests',
+        })
         return reply.internalServerError('Failed to retrieve approval requests')
       }
     },
@@ -270,7 +277,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error getting approval request:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to get approval request',
+          requestId: request.params.id,
+        })
         return reply.internalServerError('Failed to retrieve approval request')
       }
     },
@@ -387,7 +397,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error updating approval request:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to update approval request',
+          requestId: request.params.id,
+        })
         return reply.internalServerError('Failed to update approval request')
       }
     },
@@ -431,7 +444,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Approval request deleted successfully',
         }
       } catch (error) {
-        fastify.log.error('Error deleting approval request:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to delete approval request',
+          requestId: request.params.id,
+        })
         return reply.internalServerError('Failed to delete approval request')
       }
     },
@@ -500,7 +516,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Approval request rejected successfully',
         }
       } catch (error) {
-        fastify.log.error('Error rejecting approval request:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to reject approval request',
+          requestId: request.params.id,
+        })
         return reply.internalServerError('Failed to reject approval request')
       }
     },
@@ -535,7 +554,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           stats,
         }
       } catch (error) {
-        fastify.log.error('Error getting approval stats:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to get approval stats',
+        })
         return reply.internalServerError(
           'Failed to retrieve approval statistics',
         )
@@ -620,7 +641,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Approval request approved and executed successfully',
         }
       } catch (error) {
-        fastify.log.error('Error approving and executing request:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to approve and execute request',
+          requestId: request.params.id,
+        })
         return reply.internalServerError(
           'Failed to approve and execute request',
         )
@@ -669,7 +693,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error in bulk approve:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to bulk approve requests',
+          requestCount: request.body.requestIds.length,
+        })
         return reply.internalServerError('Failed to bulk approve requests')
       }
     },
@@ -716,7 +743,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error in bulk reject:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to bulk reject requests',
+          requestCount: request.body.requestIds.length,
+        })
         return reply.internalServerError('Failed to bulk reject requests')
       }
     },
@@ -756,7 +786,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error in bulk delete:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to bulk delete requests',
+          requestCount: request.body.requestIds.length,
+        })
         return reply.internalServerError('Failed to bulk delete requests')
       }
     },

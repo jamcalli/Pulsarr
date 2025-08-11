@@ -5,6 +5,7 @@ import {
   QualityProfilesResponseSchema,
   ErrorSchema,
 } from '@schemas/radarr/get-quality-profiles.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
@@ -62,7 +63,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error fetching Radarr quality profiles:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Error fetching quality profiles',
+          context: {
+            instanceId: request.query.instanceId,
+            service: 'radarr',
+          },
+        })
         return reply.internalServerError(
           'Unable to fetch Radarr quality profiles',
         )

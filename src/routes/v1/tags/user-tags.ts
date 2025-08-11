@@ -8,6 +8,7 @@ import {
   RemoveTagsResponseSchema,
   ErrorSchema,
 } from '@schemas/tags/user-tags.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Create user tags in Sonarr and/or Radarr instances
@@ -30,10 +31,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check config first to avoid unnecessary API calls if tagging is disabled
-        const config = await fastify.db.getConfig()
-        if (!config) {
-          return reply.notFound('Config not found in database')
-        }
+        const config = fastify.config
 
         // Prepare default results for disabled services
         const sonarrResults = {
@@ -115,7 +113,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (err) {
-        fastify.log.error('Error creating user tags:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to create user tags',
+        })
         return reply.internalServerError('Unable to create user tags')
       }
     },
@@ -142,10 +142,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check config first to see if tagging is enabled at all
-        const config = await fastify.db.getConfig()
-        if (!config) {
-          return reply.notFound('Config not found in database')
-        }
+        const config = fastify.config
 
         // If both Sonarr and Radarr tagging are disabled, return early
         if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
@@ -214,7 +211,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           orphanedCleanup: results.orphanedCleanup,
         }
       } catch (err) {
-        fastify.log.error('Error syncing user tags:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to sync user tags',
+        })
         return reply.internalServerError(
           'Unable to sync user tags with content',
         )
@@ -242,10 +241,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check if cleanup is enabled
-        const config = await fastify.db.getConfig()
-        if (!config) {
-          return reply.notFound('Config not found in database')
-        }
+        const config = fastify.config
 
         // If cleanup is disabled, return early with appropriate message
         if (!config.cleanupOrphanedTags) {
@@ -287,7 +283,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           sonarr: results.sonarr,
         }
       } catch (err) {
-        fastify.log.error('Error cleaning up orphaned tags:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to cleanup orphaned tags',
+        })
         return reply.internalServerError('Unable to clean up orphaned tags')
       }
     },
@@ -315,10 +313,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check if tagging is enabled
-        const config = await fastify.db.getConfig()
-        if (!config) {
-          return reply.notFound('Config not found in database')
-        }
+        const config = fastify.config
 
         // If both Sonarr and Radarr tagging are disabled, return early
         if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
@@ -380,7 +375,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           radarr: results.radarr,
         }
       } catch (err) {
-        fastify.log.error('Error removing user tags:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to remove user tags',
+        })
         return reply.internalServerError('Unable to remove user tags')
       }
     },

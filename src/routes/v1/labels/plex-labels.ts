@@ -6,6 +6,7 @@ import {
   CleanupPlexLabelsResponseSchema,
   ErrorSchema,
 } from '@schemas/labels/plex-labels.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Synchronize plex labels for all content
@@ -27,7 +28,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Labels'],
       },
     },
-    async (_request, reply) => {
+    async (request, reply) => {
       try {
         // Check if plex label sync service is available
         if (!fastify.plexLabelSyncService) {
@@ -72,7 +73,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (err) {
-        fastify.log.error('Error syncing plex labels:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to sync plex labels',
+        })
         return reply.internalServerError('Unable to sync plex labels')
       }
     },
@@ -96,7 +99,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Labels'],
       },
     },
-    async (_request, reply) => {
+    async (request, reply) => {
       try {
         // Check if plex label sync service is available
         if (!fastify.plexLabelSyncService) {
@@ -164,7 +167,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (err) {
-        fastify.log.error('Error cleaning up plex labels:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to cleanup plex labels',
+        })
         return reply.internalServerError('Unable to clean up plex labels')
       }
     },
@@ -189,7 +194,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Labels'],
       },
     },
-    async (_request, reply) => {
+    async (request, reply) => {
       try {
         // Check if plex label sync service is available
         if (!fastify.plexLabelSyncService) {
@@ -232,7 +237,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (err) {
-        fastify.log.error('Error removing plex labels:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to remove plex labels',
+        })
         return reply.internalServerError('Unable to remove plex labels')
       }
     },

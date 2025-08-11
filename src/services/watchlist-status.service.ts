@@ -74,7 +74,7 @@ export class StatusService {
 
       return updateCount
     } catch (error) {
-      this.log.error('Error syncing Sonarr statuses:', error)
+      this.log.error({ error }, 'Error syncing Sonarr statuses:')
       throw error
     }
   }
@@ -125,7 +125,7 @@ export class StatusService {
 
       return updateCount
     } catch (error) {
-      this.log.error('Error syncing Radarr statuses:', error)
+      this.log.error({ error }, 'Error syncing Radarr statuses:')
       throw error
     }
   }
@@ -528,7 +528,10 @@ export class StatusService {
 
       return updateCount
     } catch (error) {
-      this.log.error('Error in bulk processing show junction updates:', error)
+      this.log.error(
+        { error },
+        'Error in bulk processing show junction updates:',
+      )
       throw error
     }
   }
@@ -764,7 +767,10 @@ export class StatusService {
 
       return updateCount
     } catch (error) {
-      this.log.error('Error in bulk processing movie junction updates:', error)
+      this.log.error(
+        { error },
+        'Error in bulk processing movie junction updates:',
+      )
       throw error
     }
   }
@@ -1691,7 +1697,7 @@ export class StatusService {
         sonarr: sonarrResults,
       }
     } catch (error) {
-      this.log.error('Error syncing all configured instances:', error)
+      this.log.error({ error }, 'Error syncing all configured instances:')
 
       if (emitProgress) {
         this.emitProgress({

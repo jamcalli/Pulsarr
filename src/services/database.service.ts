@@ -155,7 +155,7 @@ export class DatabaseService {
       await configurePgTypes(this.log)
       this.log.info('PostgreSQL type parsers configured successfully')
     } catch (error) {
-      this.log.error('Failed to configure PostgreSQL type parsers:', error)
+      this.log.error({ error }, 'Failed to configure PostgreSQL type parsers:')
       // Consider if this should be fatal or if the app can continue
       // with default type parsing
     }

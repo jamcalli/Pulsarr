@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { plexRemoveNotificationSchema } from '@schemas/plex/remove-notifications.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 export const removeNotificationsRoute: FastifyPluginAsyncZod = async (
   fastify,
@@ -65,10 +66,10 @@ export const removeNotificationsRoute: FastifyPluginAsyncZod = async (
               message: 'Plex notification removed successfully',
             })
           } catch (error) {
-            fastify.log.error(
-              `Error removing Plex from Radarr instance ${instance.name}:`,
-              error,
-            )
+            logRouteError(fastify.log, request, error, {
+              message: 'Failed to remove Plex notification from Radarr',
+              context: { instanceId: instance.id, instanceName: instance.name },
+            })
             results.radarr.push({
               id: instance.id,
               name: instance.name,
@@ -106,10 +107,10 @@ export const removeNotificationsRoute: FastifyPluginAsyncZod = async (
               message: 'Plex notification removed successfully',
             })
           } catch (error) {
-            fastify.log.error(
-              `Error removing Plex from Sonarr instance ${instance.name}:`,
-              error,
-            )
+            logRouteError(fastify.log, request, error, {
+              message: 'Failed to remove Plex notification from Sonarr',
+              context: { instanceId: instance.id, instanceName: instance.name },
+            })
             results.sonarr.push({
               id: instance.id,
               name: instance.name,
@@ -135,7 +136,9 @@ export const removeNotificationsRoute: FastifyPluginAsyncZod = async (
           results,
         }
       } catch (err) {
-        fastify.log.error(err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to remove Plex notifications',
+        })
         return reply
           .code(500)
           .send({ error: 'Unable to remove Plex notifications' })

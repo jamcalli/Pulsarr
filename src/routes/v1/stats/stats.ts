@@ -1,6 +1,7 @@
 // File: src/routes/v1/stats/dashboard.ts
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   DashboardStatsSchema,
   GenreStatSchema,
@@ -106,7 +107,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         return response
       } catch (err) {
-        fastify.log.error('Error fetching dashboard statistics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch dashboard statistics',
+        })
         return reply.internalServerError('Unable to fetch dashboard statistics')
       }
     },
@@ -134,7 +137,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const breakdown = await fastify.db.getInstanceContentBreakdown()
         return breakdown
       } catch (err) {
-        fastify.log.error('Error fetching instance content breakdown:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch instance content breakdown',
+        })
         return reply.internalServerError(
           'Unable to fetch instance content breakdown',
         )
@@ -167,7 +172,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const topGenres = await fastify.db.getTopGenres(limit)
         return topGenres
       } catch (err) {
-        fastify.log.error('Error fetching genre statistics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch genre statistics',
+        })
         return reply.internalServerError('Unable to fetch genre statistics')
       }
     },
@@ -198,7 +205,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const shows = await fastify.db.getMostWatchlistedShows(limit)
         return shows
       } catch (err) {
-        fastify.log.error('Error fetching show statistics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch show statistics',
+        })
         return reply.internalServerError('Unable to fetch show statistics')
       }
     },
@@ -229,7 +238,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const movies = await fastify.db.getMostWatchlistedMovies(limit)
         return movies
       } catch (err) {
-        fastify.log.error('Error fetching movie statistics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch movie statistics',
+        })
         return reply.internalServerError('Unable to fetch movie statistics')
       }
     },
@@ -260,7 +271,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const topUsers = await fastify.db.getUsersWithMostWatchlistItems(limit)
         return topUsers
       } catch (err) {
-        fastify.log.error('Error fetching user statistics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch user statistics',
+        })
         return reply.internalServerError('Unable to fetch user statistics')
       }
     },
@@ -292,7 +305,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const activity = await fastify.db.getRecentActivityStats(days)
         return activity
       } catch (err) {
-        fastify.log.error('Error fetching activity statistics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch activity statistics',
+        })
         return reply.internalServerError('Unable to fetch activity statistics')
       }
     },
@@ -321,7 +336,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const availability = await fastify.db.getAverageTimeToAvailability()
         return availability
       } catch (err) {
-        fastify.log.error('Error fetching availability statistics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch availability statistics',
+        })
         return reply.internalServerError(
           'Unable to fetch availability statistics',
         )
@@ -352,7 +369,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const times = await fastify.db.getAverageTimeFromGrabbedToNotified()
         return times
       } catch (err) {
-        fastify.log.error('Error fetching grabbed-to-notified statistics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch grabbed-to-notified statistics',
+        })
         return reply.internalServerError(
           'Unable to fetch grabbed-to-notified statistics',
         )
@@ -383,7 +402,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           await fastify.db.getDetailedStatusTransitionMetrics()
         return transitions
       } catch (err) {
-        fastify.log.error('Error fetching status transition metrics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch status transition metrics',
+        })
         return reply.internalServerError(
           'Unable to fetch status transition metrics',
         )
@@ -413,7 +434,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const flowData = await fastify.db.getStatusFlowData()
         return flowData
       } catch (err) {
-        fastify.log.error('Error fetching status flow data:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch status flow data',
+        })
         return reply.internalServerError('Unable to fetch status flow data')
       }
     },
@@ -444,7 +467,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const stats = await fastify.db.getNotificationStats(days)
         return stats
       } catch (err) {
-        fastify.log.error('Error fetching notification statistics:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch notification statistics',
+        })
         return reply.internalServerError(
           'Unable to fetch notification statistics',
         )
