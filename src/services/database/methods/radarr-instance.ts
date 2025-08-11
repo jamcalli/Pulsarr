@@ -269,8 +269,8 @@ export async function cleanupDeletedRadarrInstanceReferences(
         }
       } catch (parseError) {
         this.log.error(
-          `Error parsing synced_instances for Radarr instance ${instance.id}:`,
-          parseError,
+          { error: parseError },
+          `Error parsing synced_instances for Radarr instance ${instance.id}`,
         )
       }
     }
@@ -280,8 +280,8 @@ export async function cleanupDeletedRadarrInstanceReferences(
     )
   } catch (error) {
     this.log.error(
-      `Error cleaning up references to deleted Radarr instance ${deletedId}:`,
-      error,
+      { error },
+      `Error cleaning up references to deleted Radarr instance ${deletedId}`,
     )
     throw error
   }
