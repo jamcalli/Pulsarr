@@ -598,7 +598,7 @@ export class DiscordNotificationService {
         )
       }
     } catch (error) {
-      this.log.error('Error looking up user alias for webhook:', error)
+      this.log.error({ error }, 'Error looking up user alias for webhook:')
       // Fall back to username if there's an error
     }
 
@@ -1134,7 +1134,10 @@ export class DiscordNotificationService {
               this.log.warn('Failed to send delete sync webhook notification')
             }
           } catch (webhookError) {
-            this.log.error('Error sending webhook notification:', webhookError)
+            this.log.error(
+              { error: webhookError },
+              'Error sending webhook notification:',
+            )
           }
         }
       }
@@ -1218,7 +1221,7 @@ export class DiscordNotificationService {
       )
       return successCount > 0
     } catch (error) {
-      this.log.error('Error sending delete sync notification:', error)
+      this.log.error({ error }, 'Error sending delete sync notification:')
       return false
     }
   }

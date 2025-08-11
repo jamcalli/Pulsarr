@@ -133,7 +133,7 @@ export class PlexServerService {
       this.initialized = true
       return true
     } catch (error) {
-      this.log.error('Error initializing PlexServerService:', error)
+      this.log.error({ error }, 'Error initializing PlexServerService:')
       this.initialized = false
       return false
     }
@@ -292,7 +292,7 @@ export class PlexServerService {
 
       return connections
     } catch (error) {
-      this.log.error('Error getting Plex server connection info:', error)
+      this.log.error({ error }, 'Error getting Plex server connection info:')
       return this.getDefaultConnectionInfo()
     }
   }
@@ -473,7 +473,7 @@ export class PlexServerService {
         this.log.debug(`Found ${formattedUsers.length} Plex users`)
         return formattedUsers
       } catch (xmlError) {
-        this.log.error('Error parsing Plex users XML:', xmlError)
+        this.log.error({ error: xmlError }, 'Error parsing Plex users XML:')
 
         // Fallback to regex as a last resort
         this.log.warn('Falling back to regex parsing for Plex users')
@@ -519,7 +519,7 @@ export class PlexServerService {
         return formattedUsers
       }
     } catch (error) {
-      this.log.error('Error fetching Plex users:', error)
+      this.log.error({ error }, 'Error fetching Plex users:')
       return []
     }
   }
@@ -618,7 +618,7 @@ export class PlexServerService {
           }
         }
       } catch (xmlError) {
-        this.log.error('Error parsing shared servers XML:', xmlError)
+        this.log.error({ error: xmlError }, 'Error parsing shared servers XML:')
 
         // Fallback to regex as a last resort
         this.log.warn('Falling back to regex parsing for shared servers')
@@ -675,7 +675,7 @@ export class PlexServerService {
       this.log.info(`Found access tokens for ${serverInfoMap.size} users`)
       return serverInfoMap
     } catch (error) {
-      this.log.error('Error fetching shared server info:', error)
+      this.log.error({ error }, 'Error fetching shared server info:')
       return new Map()
     }
   }
@@ -735,7 +735,7 @@ export class PlexServerService {
       this.log.debug(`Found access token for user "${username}"`)
       return userInfo.accessToken
     } catch (error) {
-      this.log.error(`Error getting token for user "${username}":`, error)
+      this.log.error({ error }, `Error getting token for user "${username}":`)
       return null
     }
   }
@@ -970,7 +970,7 @@ export class PlexServerService {
 
       return playlistMap
     } catch (error) {
-      this.log.error('Error in getOrCreateProtectionPlaylists:', error)
+      this.log.error({ error }, 'Error in getOrCreateProtectionPlaylists:')
       return playlistMap
     }
   }
@@ -1441,7 +1441,7 @@ export class PlexServerService {
       this.log.debug(`Found ${sessions.length} active Plex sessions`)
       return sessions
     } catch (error) {
-      this.log.error('Error fetching Plex sessions:', error)
+      this.log.error({ error }, 'Error fetching Plex sessions:')
       return []
     }
   }
@@ -1562,7 +1562,7 @@ export class PlexServerService {
       )
       return results
     } catch (error) {
-      this.log.error(`Error searching library by GUID "${guid}":`, error)
+      this.log.error({ error }, `Error searching library by GUID "${guid}":`)
       return []
     }
   }

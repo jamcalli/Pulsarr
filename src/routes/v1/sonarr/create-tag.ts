@@ -5,6 +5,7 @@ import {
   CreateTagResponseSchema,
   ErrorSchema,
 } from '@schemas/sonarr/create-tag.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -51,7 +52,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error creating Sonarr tag:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Error creating tag',
+          context: {
+            service: 'sonarr',
+            instanceId: request.body.instanceId,
+            label: request.body.label,
+          },
+        })
         return reply.internalServerError('Unable to create tag')
       }
     },

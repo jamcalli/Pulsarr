@@ -67,7 +67,7 @@ export default fp(
         fastify.log.info('Config ready, starting workflow')
         await watchlistWorkflow.startWorkflow()
       } catch (err) {
-        fastify.log.error('Error in workflow startup:', err)
+        fastify.log.error({ error: err }, 'Error in workflow startup:')
       }
     }
 

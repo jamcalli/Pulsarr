@@ -124,9 +124,10 @@ export class PlexLabelSyncService {
    * @returns True if this is a user-specific label
    */
   private isUserSpecificLabel(labelName: string): boolean {
-    return labelName
-      .toLowerCase()
-      .startsWith(`${this.config.labelPrefix.toLowerCase()}:`)
+    const prefix = this.config.labelPrefix.toLowerCase()
+    const lname = labelName.toLowerCase()
+    // user labels are "prefix:user:username"
+    return lname.startsWith(`${prefix}:user:`)
   }
 
   /**
@@ -246,7 +247,7 @@ export class PlexLabelSyncService {
       )
       return processedMovies
     } catch (error) {
-      this.log.error('Error fetching Radarr movies for tag sync:', error)
+      this.log.error({ error }, 'Error fetching Radarr movies for tag sync:')
       return []
     }
   }
@@ -328,7 +329,7 @@ export class PlexLabelSyncService {
       )
       return processedSeries
     } catch (error) {
-      this.log.error('Error fetching Sonarr series for tag sync:', error)
+      this.log.error({ error }, 'Error fetching Sonarr series for tag sync:')
       return []
     }
   }
@@ -397,7 +398,7 @@ export class PlexLabelSyncService {
       })
       return null
     } catch (error) {
-      this.log.error('Error matching Plex movie to Radarr:', error)
+      this.log.error({ error }, 'Error matching Plex movie to Radarr:')
       return null
     }
   }
@@ -524,7 +525,7 @@ export class PlexLabelSyncService {
       })
       return null
     } catch (error) {
-      this.log.error('Error matching Plex series to Sonarr:', error)
+      this.log.error({ error }, 'Error matching Plex series to Sonarr:')
       return null
     }
   }
@@ -629,7 +630,7 @@ export class PlexLabelSyncService {
       this.log.info('Completed tag sync to Plex labels', result)
       return result
     } catch (error) {
-      this.log.error('Error during tag sync to Plex labels:', error)
+      this.log.error({ error }, 'Error during tag sync to Plex labels:')
       throw error
     }
   }
@@ -718,7 +719,7 @@ export class PlexLabelSyncService {
 
       return success
     } catch (error) {
-      this.log.error('Error applying tag labels to Plex item:', error)
+      this.log.error({ error }, 'Error applying tag labels to Plex item:')
       return false
     }
   }
@@ -835,7 +836,7 @@ export class PlexLabelSyncService {
 
       return allSuccessful
     } catch (error) {
-      this.log.error('Error processing webhook for label sync:', error)
+      this.log.error({ error }, 'Error processing webhook for label sync:')
       return false
     }
   }
@@ -1351,14 +1352,15 @@ export class PlexLabelSyncService {
           }
         }
 
-        // Track tag labels using any valid watchlist ID (they're content-specific, not user-specific)
+        // Track tag labels per user to align with per-user tracking records
         if (finalTagLabels.length > 0 && content.users.length > 0) {
-          const representativeWatchlistId = content.users[0].watchlist_id
           for (const tagLabel of finalTagLabels) {
             if (allFinalLabels.includes(tagLabel)) {
-              desiredTracking.add(
-                `${representativeWatchlistId}:${plexItem.ratingKey}:${tagLabel}`,
-              )
+              for (const u of content.users) {
+                desiredTracking.add(
+                  `${u.watchlist_id}:${plexItem.ratingKey}:${tagLabel}`,
+                )
+              }
             }
           }
         }
@@ -1367,7 +1369,15 @@ export class PlexLabelSyncService {
         for (const tracking of currentTracking) {
           // Check each label in the tracking record
           for (const label of tracking.labels_applied) {
-            const trackingKey = `${tracking.content_guids.join(',')}:${tracking.user_id}:${tracking.plex_rating_key}:${label}`
+            // Find the watchlist_id for this tracking record to match desired key format
+            const matchingUser = content.users.find(
+              (u) => u.user_id === tracking.user_id,
+            )
+            // Use a sentinel value that cannot collide with a valid watchlist_id
+            const watchlistId =
+              matchingUser?.watchlist_id ??
+              `__orphaned_user_${tracking.user_id}__`
+            const trackingKey = `${watchlistId}:${tracking.plex_rating_key}:${label}`
             if (!desiredTracking.has(trackingKey)) {
               untrackOperations.push({
                 contentGuids: tracking.content_guids,
@@ -1603,7 +1613,7 @@ export class PlexLabelSyncService {
           }
           this.log.info('Label reset completed successfully')
         } catch (resetError) {
-          this.log.error('Error during label reset:', resetError)
+          this.log.error({ error: resetError }, 'Error during label reset:')
           // Continue with sync even if reset fails
           if (emitProgress) {
             this.fastify.progress.emit({
@@ -1892,7 +1902,10 @@ export class PlexLabelSyncService {
             )
           }
         } catch (cleanupError) {
-          this.log.error('Error during orphaned label cleanup:', cleanupError)
+          this.log.error(
+            { error: cleanupError },
+            'Error during orphaned label cleanup:',
+          )
           cleanupMessage = ', orphaned cleanup failed'
         }
       }
@@ -1916,8 +1929,8 @@ export class PlexLabelSyncService {
       return result
     } catch (error) {
       this.log.error(
-        'Error in content-centric batch label synchronization:',
-        error,
+        { error },
+        'Error in content-centric batch label synchronization',
       )
 
       if (emitProgress) {
@@ -2000,8 +2013,8 @@ export class PlexLabelSyncService {
         retryCount++
       } catch (error) {
         this.log.error(
-          `Error searching for content in Plex (attempt ${retryCount + 1}):`,
-          error,
+          { error },
+          `Error searching for content in Plex (attempt ${retryCount + 1})`,
         )
         retryCount++
 
@@ -2196,9 +2209,20 @@ export class PlexLabelSyncService {
               ? parseGuids(watchlistItem.guids)
               : [ratingKey]
 
+            if (
+              watchlistItem?.type &&
+              !['movie', 'show'].includes(watchlistItem.type)
+            ) {
+              this.log.warn('Unexpected content type, defaulting to movie', {
+                watchlistId: user.watchlist_id,
+                type: watchlistItem.type,
+              })
+            }
+            const contentType: 'movie' | 'show' =
+              watchlistItem?.type === 'show' ? 'show' : 'movie'
             await this.db.trackPlexLabels(
               contentGuids,
-              'movie',
+              contentType,
               user.user_id,
               ratingKey,
               [userLabel],
@@ -2233,7 +2257,10 @@ export class PlexLabelSyncService {
 
       return success
     } catch (error) {
-      this.log.error(`Error applying user labels to item ${ratingKey}:`, error)
+      this.log.error(
+        { error },
+        `Error applying user labels to item ${ratingKey}:`,
+      )
       return false
     }
   }
@@ -2474,9 +2501,20 @@ export class PlexLabelSyncService {
               ? parseGuids(watchlistItem.guids)
               : [ratingKey]
 
+            if (
+              watchlistItem?.type &&
+              !['movie', 'show'].includes(watchlistItem.type)
+            ) {
+              this.log.warn('Unexpected content type, defaulting to movie', {
+                watchlistId: user.watchlist_id,
+                type: watchlistItem.type,
+              })
+            }
+            const contentType: 'movie' | 'show' =
+              watchlistItem?.type === 'show' ? 'show' : 'movie'
             await this.db.trackPlexLabels(
               contentGuids,
-              'movie',
+              contentType,
               user.user_id,
               ratingKey,
               combinedLabels,
@@ -2514,8 +2552,8 @@ export class PlexLabelSyncService {
       return success
     } catch (error) {
       this.log.error(
-        `Error applying combined labels to item ${ratingKey}:`,
-        error,
+        { error },
+        `Error applying combined labels to item ${ratingKey}`,
       )
       return false
     }
@@ -2541,7 +2579,7 @@ export class PlexLabelSyncService {
         webhookTags,
       )
     } catch (error) {
-      this.log.error('Error queuing pending label sync:', error)
+      this.log.error({ error }, 'Error queuing pending label sync:')
     }
   }
 
@@ -3000,7 +3038,7 @@ export class PlexLabelSyncService {
 
       return allSuccessful
     } catch (error) {
-      this.log.error('Error syncing label for watchlist item:', error)
+      this.log.error({ error }, 'Error syncing label for watchlist item:')
       return false
     }
   }
@@ -3029,7 +3067,7 @@ export class PlexLabelSyncService {
 
       return []
     } catch (error) {
-      this.log.error('Error extracting tags from webhook:', error)
+      this.log.error({ error }, 'Error extracting tags from webhook:')
       return []
     }
   }
@@ -3066,7 +3104,7 @@ export class PlexLabelSyncService {
 
       return null
     } catch (error) {
-      this.log.error('Error extracting content GUID from webhook:', error)
+      this.log.error({ error }, 'Error extracting content GUID from webhook:')
       return null
     }
   }
@@ -3093,7 +3131,7 @@ export class PlexLabelSyncService {
 
       return 'Unknown Content'
     } catch (error) {
-      this.log.error('Error extracting content title from webhook:', error)
+      this.log.error({ error }, 'Error extracting content title from webhook:')
       return 'Unknown Content'
     }
   }
@@ -3170,7 +3208,7 @@ export class PlexLabelSyncService {
 
       return result
     } catch (error) {
-      this.log.error('Error getting users with content:', error)
+      this.log.error({ error }, 'Error getting users with content:')
       return []
     }
   }
@@ -3315,10 +3353,10 @@ export class PlexLabelSyncService {
               }
 
               // Add the new user from the pending sync if not already tracked
-              if (!trackedUsers.has(pendingSync.watchlist_item_id)) {
+              if (!trackedUsers.has(pendingSync.user_id)) {
                 const newUser = userMap.get(pendingSync.user_id)
                 if (newUser) {
-                  trackedUsers.set(pendingSync.watchlist_item_id, {
+                  trackedUsers.set(pendingSync.user_id, {
                     user_id: newUser.id,
                     username: newUser.name || `user_${newUser.id}`,
                     watchlist_id: pendingSync.watchlist_item_id,
@@ -3416,7 +3454,7 @@ export class PlexLabelSyncService {
       // Completion will be logged by the processor service with more details
       return result
     } catch (error) {
-      this.log.error('Error processing pending label syncs:', error)
+      this.log.error({ error }, 'Error processing pending label syncs:')
       throw error
     }
   }
@@ -3689,7 +3727,10 @@ export class PlexLabelSyncService {
         },
       )
     } catch (error) {
-      this.log.error('Error during label cleanup for watchlist items:', error)
+      this.log.error(
+        { error },
+        'Error during label cleanup for watchlist items:',
+      )
       // Don't throw - label cleanup failure shouldn't prevent item deletion
     }
   }
@@ -4202,7 +4243,7 @@ export class PlexLabelSyncService {
 
       return result
     } catch (error) {
-      this.log.error('Error in bulk Plex label removal:', error)
+      this.log.error({ error }, 'Error in bulk Plex label removal:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -4570,7 +4611,7 @@ export class PlexLabelSyncService {
 
       return result
     } catch (error) {
-      this.log.error('Error during orphaned label cleanup:', error)
+      this.log.error({ error }, 'Error during orphaned label cleanup:')
       return { removed: 0, failed: 1 }
     }
   }
@@ -4857,7 +4898,7 @@ export class PlexLabelSyncService {
         failed: failedCount,
       }
     } catch (error) {
-      this.log.error('Error during Plex label reset:', error)
+      this.log.error({ error }, 'Error during Plex label reset:')
       if (emitProgress) {
         this.fastify.progress.emit({
           operationId,

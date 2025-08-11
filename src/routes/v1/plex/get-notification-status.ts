@@ -2,6 +2,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { plexGetNotificationStatusSchema } from '@schemas/plex/get-notification-status.schema.js'
 import type { WebhookNotification } from '@root/types/radarr.types.js'
 import type { WebhookNotification as SonarrWebhookNotification } from '@root/types/sonarr.types.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
   fastify,
@@ -75,10 +76,10 @@ export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
                 : 'Plex notification is not configured',
             })
           } catch (error) {
-            fastify.log.error(
-              `Error checking Plex for Radarr instance ${instance.name}:`,
-              error,
-            )
+            logRouteError(fastify.log, request, error, {
+              message: 'Failed to check Plex notification status in Radarr',
+              context: { instanceId: instance.id, instanceName: instance.name },
+            })
             results.radarr.push({
               id: instance.id,
               name: instance.name,
@@ -124,10 +125,10 @@ export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
                 : 'Plex notification is not configured',
             })
           } catch (error) {
-            fastify.log.error(
-              `Error checking Plex for Sonarr instance ${instance.name}:`,
-              error,
-            )
+            logRouteError(fastify.log, request, error, {
+              message: 'Failed to check Plex notification status in Sonarr',
+              context: { instanceId: instance.id, instanceName: instance.name },
+            })
             results.sonarr.push({
               id: instance.id,
               name: instance.name,
@@ -153,7 +154,9 @@ export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
           results,
         }
       } catch (err) {
-        fastify.log.error(err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to check Plex notification status',
+        })
         return reply
           .code(500)
           .send({ error: 'Unable to check Plex notification status' })

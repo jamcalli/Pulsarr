@@ -151,7 +151,7 @@ export default function createUserEvaluator(
       const regex = new RegExp(pattern)
       return regex.test(userName)
     } catch (error) {
-      fastify.log.error(`Invalid regex pattern: ${pattern}`, error)
+      fastify.log.error({ error }, `Invalid regex pattern: ${pattern}`)
       return false
     }
   }
@@ -185,7 +185,7 @@ export default function createUserEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('user')
       } catch (err) {
-        fastify.log.error({ err }, 'User evaluator - DB query failed')
+        fastify.log.error({ error: err }, 'User evaluator - DB query failed')
         return null
       }
 

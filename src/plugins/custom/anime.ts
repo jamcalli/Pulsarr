@@ -86,7 +86,7 @@ async function animePlugin(fastify: FastifyInstance) {
             fastify.log.info('Anime database update skipped - no changes')
           }
         } catch (error) {
-          fastify.log.error('Scheduled anime update failed:', error)
+          fastify.log.error({ error }, 'Scheduled anime update failed:')
           throw error // Re-throw so scheduler can record the failure
         }
       })
@@ -107,7 +107,7 @@ async function animePlugin(fastify: FastifyInstance) {
             )
           }
         } catch (error) {
-          fastify.log.error('Initial anime database update failed:', error)
+          fastify.log.error({ error }, 'Initial anime database update failed:')
           // Don't throw here - let the plugin continue to initialize
         }
       } else {
@@ -118,7 +118,7 @@ async function animePlugin(fastify: FastifyInstance) {
 
       fastify.log.info('Anime plugin initialized successfully')
     } catch (error) {
-      fastify.log.error('Failed to initialize anime plugin:', error)
+      fastify.log.error({ error }, 'Failed to initialize anime plugin:')
     }
   })
 }

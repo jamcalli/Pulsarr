@@ -90,7 +90,7 @@ export class RadarrManagerService {
         throw new Error('Unable to initialize any Radarr services')
       }
     } catch (error) {
-      this.log.error('Error initializing Radarr manager:', error)
+      this.log.error({ error }, 'Error initializing Radarr manager')
       throw error
     }
   }
@@ -219,8 +219,8 @@ export class RadarrManagerService {
       )
     } catch (error) {
       this.log.error(
-        `Failed to add item to instance ${targetInstanceId}:`,
-        error,
+        { error },
+        `Failed to add item to instance ${targetInstanceId}`,
       )
       throw error
     }
@@ -327,7 +327,7 @@ export class RadarrManagerService {
       try {
         await service.removeWebhook()
       } catch (error) {
-        this.log.error(`Failed to remove webhook for instance ${id}:`, error)
+        this.log.error({ error }, `Failed to remove webhook for instance ${id}`)
       }
 
       await this.fastify.db.deleteRadarrInstance(id)
@@ -355,7 +355,10 @@ export class RadarrManagerService {
         await radarrService.initialize(instance)
         this.radarrServices.set(id, radarrService)
       } catch (initError) {
-        this.log.error(`Failed to initialize Radarr instance ${id}:`, initError)
+        this.log.error(
+          { error: initError },
+          `Failed to initialize Radarr instance ${id}:`,
+        )
         // Initialize failed, possibly due to webhook setup
         // Extract a meaningful error message
         let errorMessage = 'Failed to initialize Radarr instance'
@@ -401,7 +404,7 @@ export class RadarrManagerService {
       )
       return await tempService.testConnection(baseUrl, apiKey)
     } catch (error) {
-      this.log.error('Error testing Radarr connection:', error)
+      this.log.error({ error }, 'Error testing Radarr connection')
       return {
         success: false,
         message:

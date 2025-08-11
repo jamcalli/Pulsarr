@@ -82,7 +82,7 @@ function parseScheduleRow(
     this.log.warn(`Unknown schedule type: ${schedule.type}`)
     return null
   } catch (error) {
-    this.log.error(`Error parsing schedule ${schedule.name}:`, error)
+    this.log.error({ error }, `Error parsing schedule ${schedule.name}:`)
     return null
   }
 }
@@ -104,7 +104,7 @@ export async function getAllSchedules(
       .map((schedule) => parseScheduleRow.call(this, schedule))
       .filter((schedule): schedule is DbSchedule => schedule !== null)
   } catch (error) {
-    this.log.error('Error fetching all schedules:', error)
+    this.log.error({ error }, 'Error fetching all schedules:')
     return []
   }
 }
@@ -128,7 +128,7 @@ export async function getScheduleByName(
 
     return parseScheduleRow.call(this, schedule)
   } catch (error) {
-    this.log.error(`Error fetching schedule ${name}:`, error)
+    this.log.error({ error }, `Error fetching schedule ${name}:`)
     return null
   }
 }
@@ -184,7 +184,7 @@ export async function updateSchedule(
 
     return updated > 0
   } catch (error) {
-    this.log.error(`Error updating schedule ${name}:`, error)
+    this.log.error({ error }, `Error updating schedule ${name}:`)
     return false
   }
 }
@@ -219,7 +219,7 @@ export async function createSchedule(
 
     return this.extractId(result)
   } catch (error) {
-    this.log.error(`Error creating schedule ${schedule.name}:`, error)
+    this.log.error({ error }, `Error creating schedule ${schedule.name}:`)
     throw error
   }
 }
@@ -238,7 +238,7 @@ export async function deleteSchedule(
     const deleted = await this.knex('schedules').where({ name }).delete()
     return deleted > 0
   } catch (error) {
-    this.log.error(`Error deleting schedule ${name}:`, error)
+    this.log.error({ error }, `Error deleting schedule ${name}:`)
     return false
   }
 }
