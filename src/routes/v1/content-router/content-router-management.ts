@@ -48,7 +48,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           rules: formattedRules,
         }
       } catch (err) {
-        fastify.log.error('Error retrieving router rules:', err)
+        fastify.log.error({ error: err }, 'Error retrieving router rules:')
         return reply.internalServerError('Unable to retrieve router rules')
       }
     },
@@ -152,7 +152,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           rules: formattedRules,
         }
       } catch (err) {
-        fastify.log.error('Error retrieving router rules by target:', err)
+        fastify.log.error(
+          { error: err },
+          'Error retrieving router rules by target:',
+        )
         return reply.internalServerError('Unable to retrieve router rules')
       }
     },
@@ -361,7 +364,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           rule: formattedRule,
         }
       } catch (err) {
-        fastify.log.error('Error creating router rule:', err)
+        fastify.log.error({ error: err }, 'Error creating router rule:')
         return reply.internalServerError('Unable to create router rule')
       }
     },

@@ -63,7 +63,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error fetching Radarr root folders:', err)
+        fastify.log.error({ error: err }, 'Error fetching Radarr root folders:')
         return reply.internalServerError('Unable to fetch Radarr root folders')
       }
     },

@@ -79,7 +79,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 failedIds.push(userId)
               }
             } catch (err) {
-              fastify.log.error(`Error updating user ${userId}:`, err)
+              fastify.log.error(
+                { error: err },
+                `Error updating user ${userId}:`,
+              )
               failedIds.push(userId)
             }
           }
@@ -104,7 +107,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             : {}),
         }
       } catch (error) {
-        fastify.log.error('Error in bulk user update:', error)
+        fastify.log.error({ error }, 'Error in bulk user update:')
         return reply.internalServerError('Failed to update users')
       }
     },

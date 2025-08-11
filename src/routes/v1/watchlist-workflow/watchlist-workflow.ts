@@ -69,7 +69,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               }
             } catch (configErr) {
               // Log config update error but don't fail the workflow start
-              fastify.log.error('Error updating _isReady config:', configErr)
+              fastify.log.error(
+                { error: configErr },
+                'Error updating _isReady config:',
+              )
             }
           }
 
@@ -95,7 +98,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error starting Watchlist workflow:', err)
+        fastify.log.error({ error: err }, 'Error starting Watchlist workflow:')
         return reply.internalServerError('Unable to start Watchlist workflow')
       }
     },
@@ -143,7 +146,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error stopping Watchlist workflow:', err)
+        fastify.log.error({ error: err }, 'Error stopping Watchlist workflow:')
         return reply.internalServerError('Unable to stop Watchlist workflow')
       }
     },
@@ -181,7 +184,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error getting Watchlist workflow status:', err)
+        fastify.log.error(
+          { error: err },
+          'Error getting Watchlist workflow status:',
+        )
         return reply.internalServerError(
           'Unable to get Watchlist workflow status',
         )

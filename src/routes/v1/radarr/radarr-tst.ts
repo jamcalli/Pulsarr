@@ -107,7 +107,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         await fastify.radarrManager.updateInstance(id, updates)
         reply.status(204)
       } catch (error) {
-        fastify.log.error('Error updating Radarr instance:', error)
+        fastify.log.error({ error }, 'Error updating Radarr instance:')
 
         if (error instanceof Error) {
           const statusCode = error.message.includes('Authentication')

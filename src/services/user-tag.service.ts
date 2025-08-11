@@ -255,7 +255,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error creating Sonarr user tags:', error)
+      this.log.error({ error }, 'Error creating Sonarr user tags:')
       throw error
     }
   }
@@ -325,7 +325,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error creating Radarr user tags:', error)
+      this.log.error({ error }, 'Error creating Radarr user tags:')
       throw error
     }
   }
@@ -646,7 +646,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error tagging Sonarr content:', error)
+      this.log.error({ error }, 'Error tagging Sonarr content:')
       throw error
     }
   }
@@ -967,7 +967,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error tagging Radarr content:', error)
+      this.log.error({ error }, 'Error tagging Radarr content:')
       throw error
     }
   }
@@ -1044,7 +1044,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error syncing Sonarr tags:', error)
+      this.log.error({ error }, 'Error syncing Sonarr tags:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -1132,7 +1132,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error syncing Radarr tags:', error)
+      this.log.error({ error }, 'Error syncing Radarr tags:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -1185,7 +1185,10 @@ export class UserTagService {
             },
           })
         } catch (cleanupError) {
-          this.log.error('Error during orphaned tag cleanup:', cleanupError)
+          this.log.error(
+            { error: cleanupError },
+            'Error during orphaned tag cleanup:',
+          )
         }
       }
 
@@ -1208,7 +1211,7 @@ export class UserTagService {
         orphanedCleanup,
       }
     } catch (error) {
-      this.log.error('Error in tag synchronization:', error)
+      this.log.error({ error }, 'Error in tag synchronization:')
       throw error
     }
   }
@@ -1261,7 +1264,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error cleaning up orphaned user tags:', error)
+      this.log.error({ error }, 'Error cleaning up orphaned user tags:')
       throw error
     }
   }
@@ -1529,7 +1532,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error removing Sonarr user tags:', error)
+      this.log.error({ error }, 'Error removing Sonarr user tags:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -1810,7 +1813,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error removing Radarr user tags:', error)
+      this.log.error({ error }, 'Error removing Radarr user tags:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -1882,7 +1885,7 @@ export class UserTagService {
         radarr: radarrResults,
       }
     } catch (error) {
-      this.log.error('Error in complete tag removal:', error)
+      this.log.error({ error }, 'Error in complete tag removal:')
       throw error
     }
   }
@@ -1958,7 +1961,7 @@ export class UserTagService {
 
       return removedTagId
     } catch (error) {
-      this.log.error(`Error creating removed tag for ${itemName}:`, error)
+      this.log.error({ error }, `Error creating removed tag for ${itemName}:`)
       throw error
     }
   }

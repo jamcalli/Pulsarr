@@ -362,7 +362,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           regions,
         }
       } catch (error) {
-        fastify.log.error('Error fetching TMDB regions:', error)
+        fastify.log.error({ error }, 'Error fetching TMDB regions:')
         return reply.code(500).send({
           success: false,
           message: 'Failed to fetch regions',

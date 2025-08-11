@@ -85,7 +85,7 @@ export class PlexWatchlistService {
       )
       return snapshot
     } catch (error) {
-      this.log.error('Error creating GUIDs snapshot:', error)
+      this.log.error({ error }, 'Error creating GUIDs snapshot:')
       return new Set()
     }
   }
@@ -196,7 +196,7 @@ export class PlexWatchlistService {
         { success: discordSent },
       )
     } catch (error) {
-      this.log.error('Error sending Discord webhook notification:', error)
+      this.log.error({ error }, 'Error sending Discord webhook notification:')
     }
 
     // Send Apprise notification
@@ -217,7 +217,7 @@ export class PlexWatchlistService {
           { success: appriseSent },
         )
       } catch (error) {
-        this.log.error('Error sending Apprise notification:', error)
+        this.log.error({ error }, 'Error sending Apprise notification:')
       }
     }
 
@@ -1004,7 +1004,7 @@ export class PlexWatchlistService {
 
       return isActive
     } catch (error) {
-      this.log.error('Error checking RSS workflow status:', error)
+      this.log.error({ error }, 'Error checking RSS workflow status:')
       return false
     }
   }
@@ -2031,7 +2031,10 @@ export class PlexWatchlistService {
               break
             }
           } catch (error) {
-            this.log.error(`Error checking database for GUID ${guid}:`, error)
+            this.log.error(
+              { error },
+              `Error checking database for GUID ${guid}:`,
+            )
           }
         }
 

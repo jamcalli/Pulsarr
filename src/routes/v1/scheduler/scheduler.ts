@@ -34,7 +34,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const schedules = await fastify.db.getAllSchedules()
         return schedules
       } catch (err) {
-        fastify.log.error('Error fetching schedules:', err)
+        fastify.log.error({ error: err }, 'Error fetching schedules:')
         return reply.internalServerError('Unable to fetch schedules')
       }
     },
@@ -75,7 +75,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error fetching schedule:', err)
+        fastify.log.error({ error: err }, 'Error fetching schedule:')
         return reply.internalServerError('Unable to fetch schedule')
       }
     },
@@ -142,7 +142,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             message: `Schedule "${scheduleData.name}" created`,
           }
         } catch (error) {
-          fastify.log.error('Error creating schedule:', error)
+          fastify.log.error({ error }, 'Error creating schedule:')
           return reply.internalServerError(
             `Failed to create schedule "${scheduleData.name}"`,
           )
@@ -152,7 +152,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error processing schedule:', err)
+        fastify.log.error({ error: err }, 'Error processing schedule:')
         return reply.internalServerError('Unable to process schedule request')
       }
     },
@@ -212,7 +212,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error updating schedule:', err)
+        fastify.log.error({ error: err }, 'Error updating schedule:')
         return reply.internalServerError('Unable to update schedule')
       }
     },
@@ -266,7 +266,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error deleting schedule:', err)
+        fastify.log.error({ error: err }, 'Error deleting schedule:')
         return reply.internalServerError('Unable to delete schedule')
       }
     },
@@ -314,7 +314,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error running job:', err)
+        fastify.log.error({ error: err }, 'Error running job:')
         return reply.internalServerError('Unable to run job')
       }
     },
@@ -375,7 +375,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error toggling schedule status:', err)
+        fastify.log.error({ error: err }, 'Error toggling schedule status:')
         return reply.internalServerError('Unable to toggle schedule status')
       }
     },
@@ -437,7 +437,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error in delete sync dry run:', err)
+        fastify.log.error({ error: err }, 'Error in delete sync dry run:')
         return reply.internalServerError('Failed to run delete sync dry run')
       }
     },

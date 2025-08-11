@@ -344,7 +344,7 @@ export async function deleteRadarrInstance(
 
     this.log.info(`Deleted Radarr instance ${id} and cleaned up references`)
   } catch (error) {
-    this.log.error(`Error deleting Radarr instance ${id}:`, error)
+    this.log.error({ error }, `Error deleting Radarr instance ${id}:`)
     throw error
   }
 }

@@ -826,7 +826,7 @@ export class WatchlistWorkflowService {
         await this.plexService.storeRssWatchlistItems(items, source)
         this.log.info(`Stored ${items.size} changed ${source} RSS items`)
       } catch (error) {
-        this.log.error(`Error storing ${source} RSS items:`, error)
+        this.log.error({ error }, `Error storing ${source} RSS items:`)
       }
     }
   }
@@ -1020,7 +1020,7 @@ export class WatchlistWorkflowService {
 
       return true
     } catch (error) {
-      this.log.error(`Error verifying show ${item.title} in Sonarr:`, error)
+      this.log.error({ error }, `Error verifying show ${item.title} in Sonarr:`)
       throw error
     }
   }
@@ -1080,7 +1080,10 @@ export class WatchlistWorkflowService {
 
       return true
     } catch (error) {
-      this.log.error(`Error verifying movie ${item.title} in Radarr:`, error)
+      this.log.error(
+        { error },
+        `Error verifying movie ${item.title} in Radarr:`,
+      )
       throw error
     }
   }

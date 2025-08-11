@@ -267,7 +267,7 @@ export class RadarrService {
           'Error creating webhook for Radarr. Full config:',
           webhookConfig,
         )
-        this.log.error('Creation error details:', createError)
+        this.log.error({ error: createError }, 'Creation error details:')
 
         let errorMessage = 'Failed to create webhook'
         if (createError instanceof HttpError) {
@@ -296,7 +296,7 @@ export class RadarrService {
 
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error('Failed to setup webhook for Radarr:', error)
+      this.log.error({ error }, 'Failed to setup webhook for Radarr:')
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -319,7 +319,7 @@ export class RadarrService {
         this.log.info('Successfully removed Pulsarr webhook for Radarr')
       }
     } catch (error) {
-      this.log.error('Failed to remove webhook for Radarr:', error)
+      this.log.error({ error }, 'Failed to remove webhook for Radarr:')
       throw error
     }
   }
@@ -478,7 +478,7 @@ export class RadarrService {
     try {
       return await this.getFromRadarr<RadarrMovie[]>('movie')
     } catch (error) {
-      this.log.error('Error fetching all movies:', error)
+      this.log.error({ error }, 'Error fetching all movies:')
       throw error
     }
   }
@@ -1078,7 +1078,7 @@ export class RadarrService {
         }
       }
     } catch (error) {
-      this.log.error('Connection test error:', error)
+      this.log.error({ error }, 'Connection test error:')
 
       if (error instanceof Error) {
         if (error.message.includes('Invalid URL')) {
@@ -1176,7 +1176,7 @@ export class RadarrService {
       await this.postToRadarr('notification', plexConfig)
       this.log.info('Successfully configured Plex notification')
     } catch (error) {
-      this.log.error('Error configuring Plex notification:', error)
+      this.log.error({ error }, 'Error configuring Plex notification:')
       throw error
     }
   }
@@ -1198,7 +1198,7 @@ export class RadarrService {
         this.log.info('No Plex notification found to remove from Radarr')
       }
     } catch (error) {
-      this.log.error('Error removing Plex notification from Radarr:', error)
+      this.log.error({ error }, 'Error removing Plex notification from Radarr:')
       throw error
     }
   }
@@ -1368,7 +1368,7 @@ export class RadarrService {
 
       this.log.debug(`Updated tags for movie ID ${movieId}`, { tagIds })
     } catch (error) {
-      this.log.error(`Failed to update tags for movie ${movieId}:`, error)
+      this.log.error({ error }, `Failed to update tags for movie ${movieId}:`)
       throw error
     }
   }
@@ -1428,7 +1428,7 @@ export class RadarrService {
         `Bulk updated tags for ${updates.length} movies across ${tagGroups.size} tag groups`,
       )
     } catch (error) {
-      this.log.error('Failed to bulk update movie tags:', error)
+      this.log.error({ error }, 'Failed to bulk update movie tags:')
       throw error
     }
   }

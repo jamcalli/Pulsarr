@@ -227,7 +227,10 @@ export class SonarrService {
           'Error creating webhook for Sonarr. Full config:',
           webhookConfig,
         )
-        this.log.error('Creation error details for Sonarr:', createError)
+        this.log.error(
+          { error: createError },
+          'Creation error details for Sonarr:',
+        )
 
         let errorMessage = 'Failed to create webhook'
         if (createError instanceof HttpError) {
@@ -255,7 +258,7 @@ export class SonarrService {
       }
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error('Failed to setup webhook for Sonarr:', error)
+      this.log.error({ error }, 'Failed to setup webhook for Sonarr:')
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -279,7 +282,7 @@ export class SonarrService {
         this.log.info('Successfully removed Pulsarr webhook for Sonarr')
       }
     } catch (error) {
-      this.log.error('Failed to remove webhook for Sonarr:', error)
+      this.log.error({ error }, 'Failed to remove webhook for Sonarr:')
       throw error
     }
   }
@@ -505,7 +508,7 @@ export class SonarrService {
         }
       }
     } catch (error) {
-      this.log.error('Connection test error:', error)
+      this.log.error({ error }, 'Connection test error:')
 
       if (error instanceof Error) {
         if (error.message.includes('Invalid URL')) {
@@ -1135,7 +1138,10 @@ export class SonarrService {
       await this.postToSonarr('notification', plexConfig)
       this.log.info('Successfully configured Plex notification for Sonarr')
     } catch (error) {
-      this.log.error('Error configuring Plex notification for Sonarr:', error)
+      this.log.error(
+        { error },
+        'Error configuring Plex notification for Sonarr:',
+      )
       throw error
     }
   }
@@ -1157,7 +1163,7 @@ export class SonarrService {
         this.log.info('No Plex notification found to remove from Sonarr')
       }
     } catch (error) {
-      this.log.error('Error removing Plex notification from Sonarr:', error)
+      this.log.error({ error }, 'Error removing Plex notification from Sonarr:')
       throw error
     }
   }
@@ -1322,7 +1328,7 @@ export class SonarrService {
 
       this.log.debug(`Updated tags for series ID ${seriesId}`, { tagIds })
     } catch (error) {
-      this.log.error(`Failed to update tags for series ${seriesId}:`, error)
+      this.log.error({ error }, `Failed to update tags for series ${seriesId}:`)
       throw error
     }
   }
@@ -1382,7 +1388,7 @@ export class SonarrService {
         `Bulk updated tags for ${updates.length} series across ${tagGroups.size} tag groups`,
       )
     } catch (error) {
-      this.log.error('Failed to bulk update series tags:', error)
+      this.log.error({ error }, 'Failed to bulk update series tags:')
       throw error
     }
   }
@@ -1485,7 +1491,7 @@ export class SonarrService {
     try {
       return await this.getFromSonarr<SonarrSeries[]>('series')
     } catch (error) {
-      this.log.error('Error fetching all series:', error)
+      this.log.error({ error }, 'Error fetching all series:')
       throw error
     }
   }
@@ -1590,7 +1596,7 @@ export class SonarrService {
         `Updated monitoring for series ${seriesId} season ${seasonNumber} to ${monitored}`,
       )
     } catch (error) {
-      this.log.error('Error updating season monitoring:', error)
+      this.log.error({ error }, 'Error updating season monitoring:')
       throw error
     }
   }
@@ -1621,7 +1627,7 @@ export class SonarrService {
 
       this.log.info(`Updated series ${seriesId} monitoring settings`)
     } catch (error) {
-      this.log.error('Error updating series monitoring:', error)
+      this.log.error({ error }, 'Error updating series monitoring:')
       throw error
     }
   }
@@ -1638,7 +1644,10 @@ export class SonarrService {
       )
       return episodes || []
     } catch (error) {
-      this.log.error(`Error fetching episodes for series ${seriesId}:`, error)
+      this.log.error(
+        { error },
+        `Error fetching episodes for series ${seriesId}:`,
+      )
       throw error
     }
   }
@@ -1687,7 +1696,7 @@ export class SonarrService {
         `Updated monitoring for ${episodes.length} episodes to ${monitored}`,
       )
     } catch (error) {
-      this.log.error('Error updating episode monitoring:', error)
+      this.log.error({ error }, 'Error updating episode monitoring:')
       throw error
     }
   }
@@ -1715,7 +1724,10 @@ export class SonarrService {
 
       this.log.info(`Updated episode ${episodeId} monitoring to ${monitored}`)
     } catch (error) {
-      this.log.error(`Error updating episode ${episodeId} monitoring:`, error)
+      this.log.error(
+        { error },
+        `Error updating episode ${episodeId} monitoring:`,
+      )
       throw error
     }
   }
@@ -1730,7 +1742,7 @@ export class SonarrService {
 
       this.log.info(`Deleted episode file ${episodeFileId}`)
     } catch (error) {
-      this.log.error(`Error deleting episode file ${episodeFileId}:`, error)
+      this.log.error({ error }, `Error deleting episode file ${episodeFileId}:`)
       throw error
     }
   }
@@ -1793,7 +1805,7 @@ export class SonarrService {
       }
 
       // Handle unexpected errors
-      this.log.error('Unexpected error deleting episode files:', error)
+      this.log.error({ error }, 'Unexpected error deleting episode files:')
       throw error
     }
   }

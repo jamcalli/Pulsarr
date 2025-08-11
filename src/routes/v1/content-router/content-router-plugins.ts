@@ -49,7 +49,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           plugins: plugins || [],
         }
       } catch (err) {
-        fastify.log.error('Error retrieving router plugins:', err)
+        fastify.log.error({ error: err }, 'Error retrieving router plugins:')
         return reply.internalServerError('Unable to retrieve router rules')
       }
     },
@@ -100,7 +100,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           evaluators: normalizedMetadata,
         }
       } catch (error) {
-        fastify.log.error('Error retrieving evaluator metadata:', error)
+        fastify.log.error({ error }, 'Error retrieving evaluator metadata:')
         return reply.internalServerError(
           'Unable to retrieve evaluator metadata',
         )

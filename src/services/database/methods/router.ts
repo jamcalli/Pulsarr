@@ -511,7 +511,7 @@ export async function hasAnyRouterRules(
     // Check if count is greater than 0
     return Number(result?.count || 0) > 0
   } catch (error) {
-    this.log.error('Error checking for router rules:', error)
+    this.log.error({ error }, 'Error checking for router rules:')
 
     // In case of error, assume rules might exist to be safe
     // This is more conservative than skipping evaluation on error

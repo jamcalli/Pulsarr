@@ -63,7 +63,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error fetching Sonarr quality profiles:', err)
+        fastify.log.error(
+          { error: err },
+          'Error fetching Sonarr quality profiles:',
+        )
         return reply.internalServerError(
           'Unable to fetch Sonarr quality profiles',
         )

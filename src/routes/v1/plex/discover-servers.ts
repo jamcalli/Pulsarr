@@ -156,7 +156,7 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
           message: `Found ${serverOptions.length} Plex servers`,
         }
       } catch (err: unknown) {
-        fastify.log.error('Error discovering Plex servers:', err)
+        fastify.log.error({ error: err }, 'Error discovering Plex servers:')
 
         // Handle Fastify-specific errors
         if (

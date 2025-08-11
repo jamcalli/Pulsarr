@@ -62,7 +62,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error fetching Sonarr tags:', err)
+        fastify.log.error({ error: err }, 'Error fetching Sonarr tags:')
         return reply.internalServerError('Unable to fetch Sonarr tags')
       }
     },

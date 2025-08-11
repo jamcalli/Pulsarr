@@ -115,7 +115,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (err) {
-        fastify.log.error('Error creating user tags:', err)
+        fastify.log.error({ error: err }, 'Error creating user tags:')
         return reply.internalServerError('Unable to create user tags')
       }
     },
@@ -214,7 +214,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           orphanedCleanup: results.orphanedCleanup,
         }
       } catch (err) {
-        fastify.log.error('Error syncing user tags:', err)
+        fastify.log.error({ error: err }, 'Error syncing user tags:')
         return reply.internalServerError(
           'Unable to sync user tags with content',
         )
@@ -287,7 +287,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           sonarr: results.sonarr,
         }
       } catch (err) {
-        fastify.log.error('Error cleaning up orphaned tags:', err)
+        fastify.log.error({ error: err }, 'Error cleaning up orphaned tags:')
         return reply.internalServerError('Unable to clean up orphaned tags')
       }
     },
@@ -380,7 +380,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           radarr: results.radarr,
         }
       } catch (err) {
-        fastify.log.error('Error removing user tags:', err)
+        fastify.log.error({ error: err }, 'Error removing user tags:')
         return reply.internalServerError('Unable to remove user tags')
       }
     },

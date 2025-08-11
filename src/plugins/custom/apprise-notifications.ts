@@ -48,14 +48,17 @@ export default fp(
             await fastify.updateConfig({ enableApprise: false })
           }
         } catch (error) {
-          fastify.log.error('Error connecting to Apprise container:', error)
+          fastify.log.error({ error }, 'Error connecting to Apprise container:')
           await fastify.updateConfig({ enableApprise: false })
         }
       }
 
       // Start the delayed check - don't await it
       delayedCheck().catch((error) => {
-        fastify.log.error('Unexpected error in Apprise initialization:', error)
+        fastify.log.error(
+          { error },
+          'Unexpected error in Apprise initialization:',
+        )
       })
     } else {
       fastify.log.info(

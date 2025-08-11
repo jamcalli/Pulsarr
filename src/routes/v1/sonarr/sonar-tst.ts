@@ -112,7 +112,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         await fastify.sonarrManager.updateInstance(id, updates)
         reply.status(204)
       } catch (error) {
-        fastify.log.error('Error updating Sonarr instance:', error)
+        fastify.log.error({ error }, 'Error updating Sonarr instance:')
 
         if (error instanceof Error) {
           const statusCode = error.message.includes('Authentication')

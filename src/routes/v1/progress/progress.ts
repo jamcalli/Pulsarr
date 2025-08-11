@@ -28,7 +28,7 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
         try {
           progressService.removeConnection(connectionId)
         } catch (error) {
-          fastify.log.error('Error removing progress connection:', error)
+          fastify.log.error({ error }, 'Error removing progress connection:')
         }
       })
 
@@ -45,7 +45,7 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
               }
             }
           } catch (error) {
-            fastify.log.error('SSE stream error:', error)
+            fastify.log.error({ error }, 'SSE stream error:')
             // The generator will terminate, closing the SSE connection
           }
         })(),

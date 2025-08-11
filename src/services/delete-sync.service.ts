@@ -136,7 +136,7 @@ export class DeleteSyncService {
       this.log.info('Delete Sync Service initialized successfully')
       return true
     } catch (error) {
-      this.log.error('Error initializing Delete Sync Service:', error)
+      this.log.error({ error }, 'Error initializing Delete Sync Service:')
       return false
     }
   }
@@ -418,7 +418,10 @@ export class DeleteSyncService {
           ? refreshError.message
           : String(refreshError)
       }`
-      this.log.error('Error refreshing watchlist data:', refreshError)
+      this.log.error(
+        { error: refreshError },
+        'Error refreshing watchlist data:',
+      )
       return { success: false, message: errorMessage }
     }
   }
@@ -617,7 +620,7 @@ export class DeleteSyncService {
 
       this.log.info('User tags updated successfully')
     } catch (error) {
-      this.log.error('Error updating user tags:', error)
+      this.log.error({ error }, 'Error updating user tags:')
       throw new Error('Failed to update user tags before delete sync')
     }
   }
@@ -1271,7 +1274,10 @@ export class DeleteSyncService {
 
       return tagMap
     } catch (error) {
-      this.log.error(`Error fetching tags for instance ${instanceId}:`, error)
+      this.log.error(
+        { error },
+        `Error fetching tags for instance ${instanceId}:`,
+      )
       return new Map()
     }
   }
@@ -1325,7 +1331,7 @@ export class DeleteSyncService {
 
       return false
     } catch (error) {
-      this.log.error('Error checking for removal tag:', error)
+      this.log.error({ error }, 'Error checking for removal tag:')
       return false
     }
   }
@@ -1637,7 +1643,7 @@ export class DeleteSyncService {
 
       return guidSet
     } catch (error) {
-      this.log.error('Error in getAllWatchlistItems:', error)
+      this.log.error({ error }, 'Error in getAllWatchlistItems:')
       throw error
     }
   }

@@ -137,7 +137,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         })
       } catch (error) {
-        fastify.log.error('Error creating approval request:', error)
+        fastify.log.error({ error }, 'Error creating approval request:')
         return reply.internalServerError('Failed to create approval request')
       }
     },
@@ -210,7 +210,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           offset,
         }
       } catch (error) {
-        fastify.log.error('Error getting approval requests:', error)
+        fastify.log.error({ error }, 'Error getting approval requests:')
         return reply.internalServerError('Failed to retrieve approval requests')
       }
     },
@@ -270,7 +270,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error getting approval request:', error)
+        fastify.log.error({ error }, 'Error getting approval request:')
         return reply.internalServerError('Failed to retrieve approval request')
       }
     },
@@ -387,7 +387,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error updating approval request:', error)
+        fastify.log.error({ error }, 'Error updating approval request:')
         return reply.internalServerError('Failed to update approval request')
       }
     },
@@ -431,7 +431,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Approval request deleted successfully',
         }
       } catch (error) {
-        fastify.log.error('Error deleting approval request:', error)
+        fastify.log.error({ error }, 'Error deleting approval request:')
         return reply.internalServerError('Failed to delete approval request')
       }
     },
@@ -500,7 +500,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Approval request rejected successfully',
         }
       } catch (error) {
-        fastify.log.error('Error rejecting approval request:', error)
+        fastify.log.error({ error }, 'Error rejecting approval request:')
         return reply.internalServerError('Failed to reject approval request')
       }
     },
@@ -535,7 +535,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           stats,
         }
       } catch (error) {
-        fastify.log.error('Error getting approval stats:', error)
+        fastify.log.error({ error }, 'Error getting approval stats:')
         return reply.internalServerError(
           'Failed to retrieve approval statistics',
         )
@@ -620,7 +620,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Approval request approved and executed successfully',
         }
       } catch (error) {
-        fastify.log.error('Error approving and executing request:', error)
+        fastify.log.error({ error }, 'Error approving and executing request:')
         return reply.internalServerError(
           'Failed to approve and execute request',
         )
@@ -669,7 +669,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error in bulk approve:', error)
+        fastify.log.error({ error }, 'Error in bulk approve:')
         return reply.internalServerError('Failed to bulk approve requests')
       }
     },
@@ -716,7 +716,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error in bulk reject:', error)
+        fastify.log.error({ error }, 'Error in bulk reject:')
         return reply.internalServerError('Failed to bulk reject requests')
       }
     },
@@ -756,7 +756,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error('Error in bulk delete:', error)
+        fastify.log.error({ error }, 'Error in bulk delete:')
         return reply.internalServerError('Failed to bulk delete requests')
       }
     },

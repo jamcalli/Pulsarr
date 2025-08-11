@@ -51,7 +51,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error creating Sonarr tag:', err)
+        fastify.log.error({ error: err }, 'Error creating Sonarr tag:')
         return reply.internalServerError('Unable to create tag')
       }
     },

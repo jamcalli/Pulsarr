@@ -93,7 +93,7 @@ export class AnimeService {
 
       return { count: finalCount, updated: true }
     } catch (error) {
-      this.logger.error('Failed to update anime database:', error)
+      this.logger.error({ error }, 'Failed to update anime database:')
       throw error
     }
   }
@@ -163,7 +163,7 @@ export class AnimeService {
         return true
       })
     } catch (error) {
-      this.logger.error('Failed to parse anime XML:', error)
+      this.logger.error({ error }, 'Failed to parse anime XML:')
       throw new Error(
         `XML parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       )
