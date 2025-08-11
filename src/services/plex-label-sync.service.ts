@@ -1373,7 +1373,10 @@ export class PlexLabelSyncService {
             const matchingUser = content.users.find(
               (u) => u.user_id === tracking.user_id,
             )
-            const watchlistId = matchingUser?.watchlist_id || tracking.user_id // fallback to user_id if no match
+            // Use a sentinel value that cannot collide with a valid watchlist_id
+            const watchlistId =
+              matchingUser?.watchlist_id ??
+              `__orphaned_user_${tracking.user_id}__`
             const trackingKey = `${watchlistId}:${tracking.plex_rating_key}:${label}`
             if (!desiredTracking.has(trackingKey)) {
               untrackOperations.push({
