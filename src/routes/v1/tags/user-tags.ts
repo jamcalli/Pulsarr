@@ -8,6 +8,7 @@ import {
   RemoveTagsResponseSchema,
   ErrorSchema,
 } from '@schemas/tags/user-tags.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Create user tags in Sonarr and/or Radarr instances
@@ -115,7 +116,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (err) {
-        fastify.log.error({ error: err }, 'Error creating user tags:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to create user tags',
+        })
         return reply.internalServerError('Unable to create user tags')
       }
     },
@@ -214,7 +217,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           orphanedCleanup: results.orphanedCleanup,
         }
       } catch (err) {
-        fastify.log.error({ error: err }, 'Error syncing user tags:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to sync user tags',
+        })
         return reply.internalServerError(
           'Unable to sync user tags with content',
         )
@@ -287,7 +292,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           sonarr: results.sonarr,
         }
       } catch (err) {
-        fastify.log.error({ error: err }, 'Error cleaning up orphaned tags:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to cleanup orphaned tags',
+        })
         return reply.internalServerError('Unable to clean up orphaned tags')
       }
     },
@@ -380,7 +387,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           radarr: results.radarr,
         }
       } catch (err) {
-        fastify.log.error({ error: err }, 'Error removing user tags:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to remove user tags',
+        })
         return reply.internalServerError('Unable to remove user tags')
       }
     },

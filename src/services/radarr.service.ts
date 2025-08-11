@@ -264,8 +264,7 @@ export class RadarrService {
         this.log.debug('Webhook creation response for Radarr:', response)
       } catch (createError) {
         this.log.error(
-          'Error creating webhook for Radarr. Full config:',
-          webhookConfig,
+          'Error creating webhook for Radarr. Config omitted for security.',
         )
         this.log.error({ error: createError }, 'Creation error details:')
 
@@ -389,16 +388,16 @@ export class RadarrService {
             await this.setupWebhook()
           } catch (error) {
             this.log.error(
-              `Failed to setup webhook for instance ${instance.name} after server start:`,
-              error,
+              { error, instanceName: instance.name },
+              'Failed to setup webhook after server start',
             )
           }
         })
       }
     } catch (error) {
       this.log.error(
-        `Failed to initialize Radarr service for instance ${instance.name}:`,
-        error,
+        { error, instanceName: instance.name },
+        'Failed to initialize Radarr service for instance',
       )
       throw error
     }
@@ -459,7 +458,7 @@ export class RadarrService {
         await this.getFromRadarr<QualityProfile[]>('qualityprofile')
       return profiles
     } catch (err) {
-      this.log.error(`Error fetching quality profiles: ${err}`)
+      this.log.error({ error: err }, 'Error fetching quality profiles')
       throw err
     }
   }
@@ -469,7 +468,7 @@ export class RadarrService {
       const rootFolders = await this.getFromRadarr<RootFolder[]>('rootfolder')
       return rootFolders
     } catch (err) {
-      this.log.error(`Error fetching root folders: ${err}`)
+      this.log.error({ error: err }, 'Error fetching root folders')
       throw err
     }
   }
@@ -495,7 +494,7 @@ export class RadarrService {
       const movieItems = movies.map((movie) => this.toItem(movie))
       return new Set([...movieItems, ...exclusions])
     } catch (err) {
-      this.log.error(`Error fetching movies: ${err}`)
+      this.log.error({ error: err }, 'Error fetching movies')
       throw err
     }
   }
@@ -521,7 +520,8 @@ export class RadarrService {
       }
     } catch (err) {
       this.log.error(
-        `Error checking movie existence for TMDB ${tmdbId}: ${err}`,
+        { error: err, tmdbId },
+        'Error checking movie existence for TMDB',
       )
       return {
         found: false,
@@ -584,7 +584,7 @@ export class RadarrService {
       this.log.info(`Fetched all movie ${allExclusions.length} exclusions`)
       return new Set(allExclusions.map((movie) => this.toItem(movie)))
     } catch (err) {
-      this.log.error(`Error fetching exclusions: ${err}`)
+      this.log.error({ error: err }, 'Error fetching exclusions')
       throw err
     }
   }
@@ -819,7 +819,7 @@ export class RadarrService {
       await this.deleteFromRadarrById(matchingRadarrId, deleteFiles)
       this.log.info(`Deleted ${item.title} from Radarr`)
     } catch (err) {
-      this.log.error(`Error deleting from Radarr: ${err}`)
+      this.log.error({ error: err }, 'Error deleting from Radarr')
       throw err
     }
   }
@@ -1270,8 +1270,8 @@ export class RadarrService {
       return tags
     } catch (error) {
       this.log.error(
-        `Failed to refresh tags cache for Radarr instance ${instanceId}:`,
-        error,
+        { error, instanceId },
+        'Failed to refresh tags cache for Radarr instance',
       )
 
       // If cache refresh fails but we have stale data, return that

@@ -5,6 +5,7 @@ import {
   TestConnectionResponseSchema,
   ErrorSchema,
 } from '@schemas/radarr/test-connection.schema.js'
+import { logServiceError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -39,7 +40,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: result.message,
         }
       } catch (err) {
-        fastify.log.error({ error: err }, 'Error testing Radarr connection:')
+        logServiceError(
+          fastify.log,
+          request,
+          err,
+          'radarr',
+          'Error testing connection',
+        )
 
         const errorMessage =
           err instanceof Error

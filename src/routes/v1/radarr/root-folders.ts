@@ -5,6 +5,7 @@ import {
   RootFoldersResponseSchema,
   ErrorSchema,
 } from '@schemas/radarr/get-root-folders.schema.js'
+import { logServiceError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
@@ -63,7 +64,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error({ error: err }, 'Error fetching Radarr root folders:')
+        logServiceError(
+          fastify.log,
+          request,
+          err,
+          'radarr',
+          'Error fetching root folders',
+        )
         return reply.internalServerError('Unable to fetch Radarr root folders')
       }
     },

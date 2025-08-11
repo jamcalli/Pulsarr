@@ -7,6 +7,7 @@ import {
   SyncInstanceResultSchema,
   SyncAllInstancesResultSchema,
 } from '@schemas/sync/sync.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Sync a specific instance (radarr or sonarr)
@@ -65,7 +66,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: `Successfully synchronized ${itemsCopied} items to ${type} instance`,
         }
       } catch (err) {
-        fastify.log.error(`Error syncing instance: ${err}`)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to sync instance',
+          instanceId: request.params.instanceId,
+          type: request.query.type,
+        })
         return reply.internalServerError('Unable to sync instance')
       }
     },
@@ -113,7 +118,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: `Successfully synchronized ${totalRadarrItems} movies and ${totalSonarrItems} shows across all configured instances`,
         }
       } catch (err) {
-        fastify.log.error(`Error syncing all instances: ${err}`)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to sync all instances',
+        })
         return reply.internalServerError('Unable to sync all instances')
       }
     },

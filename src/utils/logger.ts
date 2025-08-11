@@ -42,9 +42,14 @@ const projectRoot = resolve(__dirname, '..', '..')
  * @returns A function that properly serializes error objects with message, stack, name, and custom properties.
  */
 function createErrorSerializer() {
-  return (err: Error | Record<string, unknown>) => {
+  return (err: Error | Record<string, unknown> | string | number | boolean) => {
     if (!err) {
       return err
+    }
+
+    // Handle primitive values (string, number, boolean)
+    if (typeof err !== 'object') {
+      return { message: String(err) }
     }
 
     // Handle the case where err might be a plain object or Error instance
@@ -252,6 +257,7 @@ export function createLoggerConfig(
         serializers: {
           req: createRequestSerializer(),
           err: createErrorSerializer(),
+          error: createErrorSerializer(),
         },
       }
     }

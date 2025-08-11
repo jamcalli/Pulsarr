@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   MeResponseSchema,
   MeErrorSchema,
@@ -69,7 +70,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error(error, 'Error in /me endpoint')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to retrieve current user information',
+        })
         reply.status(500)
         return {
           success: false,

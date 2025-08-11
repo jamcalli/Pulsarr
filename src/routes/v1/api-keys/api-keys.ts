@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   CreateApiKeySchema,
   CreateApiKeyResponseSchema,
@@ -49,7 +50,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error({ error }, 'Failed to create API key')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to create API key',
+        })
         reply.status(500)
         return {
           success: false,
@@ -94,7 +97,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           })),
         }
       } catch (error) {
-        fastify.log.error({ error }, 'Failed to get API keys')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to retrieve API keys',
+        })
         reply.status(500)
         return {
           success: false,
@@ -137,7 +142,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         reply.status(204)
       } catch (error) {
-        fastify.log.error({ error }, 'Failed to revoke API key')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to revoke API key',
+        })
         reply.status(500)
         return {
           success: false,

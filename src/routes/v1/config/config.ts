@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   ConfigSchema,
   ConfigResponseSchema,
@@ -58,7 +59,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { error: err.message || 'Error fetching configuration' }
         }
 
-        fastify.log.error({ error: err }, 'Error fetching config:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch configuration',
+        })
         reply.status(500)
         return { error: 'Unable to fetch configuration' }
       }
@@ -127,10 +130,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         try {
           await fastify.updateConfig(safeConfigUpdate)
         } catch (configUpdateError) {
-          fastify.log.error(
-            { error: configUpdateError },
-            'Error updating runtime config:',
-          )
+          logRouteError(fastify.log, request, configUpdateError, {
+            message: 'Failed to update runtime configuration',
+          })
           reply.status(400)
           return { error: 'Failed to update runtime configuration' }
         }
@@ -142,10 +144,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           try {
             await fastify.updateConfig(originalRuntimeValues)
           } catch (revertError) {
-            fastify.log.error(
-              { error: revertError },
-              'Failed to revert runtime config:',
-            )
+            logRouteError(fastify.log, request, revertError, {
+              message: 'Failed to revert runtime configuration',
+            })
           }
           reply.status(400)
           return { error: 'Failed to update configuration in database' }
@@ -211,7 +212,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           reply.status(err.statusCode as number)
           return { error: err.message || 'Error updating configuration' }
         }
-        fastify.log.error({ error: err }, 'Error updating config:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to update configuration',
+        })
         reply.status(500)
         return { error: 'Unable to update configuration' }
       }

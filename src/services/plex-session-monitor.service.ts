@@ -65,9 +65,13 @@ export class PlexSessionMonitorService {
         try {
           await this.processSession(session, result)
         } catch (error) {
-          const errorMsg = `Error processing session for ${session.grandparentTitle || 'Unknown'}: ${error}`
-          this.log.error(errorMsg)
-          result.errors.push(errorMsg)
+          this.log.error(
+            { error, sessionTitle: session.grandparentTitle || 'Unknown' },
+            'Error processing session',
+          )
+          result.errors.push(
+            `Error processing session for ${session.grandparentTitle || 'Unknown'}`,
+          )
         }
       }
 
@@ -77,9 +81,8 @@ export class PlexSessionMonitorService {
 
       return result
     } catch (error) {
-      const errorMsg = `Fatal error in session monitoring: ${error}`
-      this.log.error(errorMsg)
-      result.errors.push(errorMsg)
+      this.log.error({ error }, 'Fatal error in session monitoring')
+      result.errors.push('Fatal error in session monitoring')
       return result
     }
   }

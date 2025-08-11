@@ -15,6 +15,7 @@ import {
   type TmdbTvMetadata,
 } from '@schemas/tmdb/tmdb.schema.js'
 import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Intelligent TMDB metadata endpoint - accepts GUID format (tmdb:123 or tvdb:456)
@@ -160,10 +161,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: `Invalid GUID format: ${inputGuid}. Expected format: tmdb:123 or tvdb:456`,
         })
       } catch (error) {
-        fastify.log.error(
-          `Error fetching TMDB metadata for GUID ${request.params.id}:`,
-          error,
-        )
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to fetch TMDB metadata',
+          guid: request.params.id,
+        })
         return reply.code(500).send({
           success: false,
           message: 'Failed to fetch metadata',
@@ -233,10 +234,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           metadata,
         }
       } catch (error) {
-        fastify.log.error(
-          `Error fetching TMDB movie metadata for ID ${request.params.id}:`,
-          error,
-        )
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to fetch TMDB movie metadata',
+          tmdbId: request.params.id,
+        })
         return reply.code(500).send({
           success: false,
           message: 'Failed to fetch movie metadata',
@@ -306,10 +307,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           metadata,
         }
       } catch (error) {
-        fastify.log.error(
-          `Error fetching TMDB TV metadata for ID ${request.params.id}:`,
-          error,
-        )
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to fetch TMDB TV metadata',
+          tmdbId: request.params.id,
+        })
         return reply.code(500).send({
           success: false,
           message: 'Failed to fetch TV show metadata',
@@ -362,7 +363,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           regions,
         }
       } catch (error) {
-        fastify.log.error({ error }, 'Error fetching TMDB regions:')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to fetch TMDB regions',
+        })
         return reply.code(500).send({
           success: false,
           message: 'Failed to fetch regions',

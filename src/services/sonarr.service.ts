@@ -224,8 +224,7 @@ export class SonarrService {
         this.log.debug('Webhook creation response:', response)
       } catch (createError) {
         this.log.error(
-          'Error creating webhook for Sonarr. Full config:',
-          webhookConfig,
+          'Error creating webhook for Sonarr. Config omitted for security.',
         )
         this.log.error(
           { error: createError },
@@ -349,16 +348,16 @@ export class SonarrService {
             await this.setupWebhook()
           } catch (error) {
             this.log.error(
-              `Failed to setup webhook for instance ${instance.name} after server start for Sonarr:`,
-              error,
+              { error, instanceName: instance.name },
+              'Failed to setup webhook after server start for Sonarr',
             )
           }
         })
       }
     } catch (error) {
       this.log.error(
-        `Failed to initialize Sonarr service for instance ${instance.name}:`,
-        error,
+        { error, instanceName: instance.name },
+        'Failed to initialize Sonarr service',
       )
       throw error
     }
@@ -500,7 +499,7 @@ export class SonarrService {
         }
       } catch (error) {
         // If something else went wrong in the notification check
-        this.log.warn('Webhook API test failed:', error)
+        this.log.warn({ error }, 'Webhook API test failed')
         return {
           success: false,
           message:
@@ -594,7 +593,7 @@ export class SonarrService {
         await this.getFromSonarr<QualityProfile[]>('qualityprofile')
       return profiles
     } catch (err) {
-      this.log.error(`Error fetching quality profiles: ${err}`)
+      this.log.error({ error: err }, 'Error fetching quality profiles')
       throw err
     }
   }
@@ -604,7 +603,7 @@ export class SonarrService {
       const rootFolders = await this.getFromSonarr<RootFolder[]>('rootfolder')
       return rootFolders
     } catch (err) {
-      this.log.error(`Error fetching root folders: ${err}`)
+      this.log.error({ error: err }, 'Error fetching root folders')
       throw err
     }
   }
@@ -621,7 +620,7 @@ export class SonarrService {
       const showItems = shows.map((show) => this.toItem(show))
       return new Set([...showItems, ...exclusions])
     } catch (err) {
-      this.log.error(`Error fetching series: ${err}`)
+      this.log.error({ error: err }, 'Error fetching series')
       throw err
     }
   }
@@ -646,9 +645,7 @@ export class SonarrService {
         serviceName: 'Sonarr',
       }
     } catch (err) {
-      this.log.error(
-        `Error checking series existence for TVDB ${tvdbId}: ${err}`,
-      )
+      this.log.error({ error: err, tvdbId }, 'Error checking series existence')
       return {
         found: false,
         checked: false,
@@ -699,7 +696,7 @@ export class SonarrService {
       this.log.info(`Fetched all show ${allExclusions.length} exclusions`)
       return new Set(allExclusions.map((show) => this.toItem(show)))
     } catch (err) {
-      this.log.error(`Error fetching exclusions: ${err}`)
+      this.log.error({ error: err }, 'Error fetching exclusions')
       throw err
     }
   }
@@ -918,7 +915,8 @@ export class SonarrService {
       )
     } catch (err) {
       this.log.debug(
-        `Received warning for sending ${item.title} to Sonarr: ${err}`,
+        { error: err, title: item.title },
+        'Received warning for sending to Sonarr',
       )
       throw err
     }
@@ -962,7 +960,7 @@ export class SonarrService {
       await this.deleteFromSonarrById(matchingSonarrId, deleteFiles)
       this.log.info(`Deleted ${item.title} from Sonarr`)
     } catch (err) {
-      this.log.error(`Error deleting from Sonarr: ${err}`)
+      this.log.error({ error: err }, 'Error deleting from Sonarr')
       throw err
     }
   }
@@ -1228,8 +1226,8 @@ export class SonarrService {
       return tags
     } catch (error) {
       this.log.error(
-        `Failed to refresh tags cache for Sonarr instance ${instanceId}:`,
-        error,
+        { error, instanceId },
+        'Failed to refresh tags cache for Sonarr instance',
       )
 
       // If cache refresh fails but we have stale data, return that
@@ -1553,7 +1551,7 @@ export class SonarrService {
         `Triggered search for series ${seriesId} season ${seasonNumber}`,
       )
     } catch (error) {
-      this.log.error(`Error searching season: ${error}`)
+      this.log.error({ error }, 'Error searching season')
       throw error
     }
   }
@@ -1667,8 +1665,8 @@ export class SonarrService {
       return allEpisodes.filter((ep) => ep.seasonNumber === seasonNumber)
     } catch (error) {
       this.log.error(
-        `Error fetching episodes for series ${seriesId} season ${seasonNumber}:`,
-        error,
+        { error, seriesId, seasonNumber },
+        'Error fetching episodes for series season',
       )
       throw error
     }
@@ -1775,7 +1773,7 @@ export class SonarrService {
         const failedIds = episodeFileIds.filter(
           (_, index) => results[index].status === 'rejected',
         )
-        this.log.error(`Failed episode file IDs: ${failedIds.join(', ')}`)
+        this.log.error({ failedIds }, 'Failed episode file IDs')
 
         // Log the actual errors for debugging
         const rejectedResults = results.filter(
@@ -1784,8 +1782,8 @@ export class SonarrService {
         rejectedResults.forEach((failure, index) => {
           const failedId = failedIds[index]
           this.log.error(
-            `Episode file ${failedId} deletion error:`,
-            failure.reason,
+            { error: failure.reason, episodeFileId: failedId },
+            'Episode file deletion error',
           )
         })
 

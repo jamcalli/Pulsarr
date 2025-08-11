@@ -9,6 +9,7 @@ import {
   type WebhookValidationRequest,
   type WebhookValidationResponse,
 } from '@schemas/notifications/discord-control.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Start Discord Bot
@@ -57,7 +58,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error({ error: err }, 'Error starting Discord bot:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to start Discord bot',
+        })
         return reply.internalServerError('Unable to start Discord bot')
       }
     },
@@ -109,7 +112,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error({ error: err }, 'Error stopping Discord bot:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to stop Discord bot',
+        })
         return reply.internalServerError('Unable to stop Discord bot')
       }
     },
@@ -214,7 +219,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error({ error: err }, 'Error validating webhooks:')
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to validate webhooks',
+        })
         return reply.internalServerError('Unable to validate webhooks')
       }
     },

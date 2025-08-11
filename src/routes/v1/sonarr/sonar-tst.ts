@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { DefaultInstanceError } from '@root/types/errors.js'
+import { logServiceError } from '@utils/route-errors.js'
 
 // Zod schema for Sonarr instance configuration
 const SonarrInstanceSchema = z.object({
@@ -112,7 +113,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         await fastify.sonarrManager.updateInstance(id, updates)
         reply.status(204)
       } catch (error) {
-        fastify.log.error({ error }, 'Error updating Sonarr instance:')
+        logServiceError(
+          fastify.log,
+          request,
+          error,
+          'sonarr',
+          'Error updating instance',
+        )
 
         if (error instanceof Error) {
           const statusCode = error.message.includes('Authentication')

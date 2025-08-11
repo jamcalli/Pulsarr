@@ -5,6 +5,7 @@ import {
   ErrorSchema,
 } from '@schemas/sonarr/get-quality-profiles.schema.js'
 import { TagsResponseSchema } from '@schemas/sonarr/get-tags.schema.js'
+import { logServiceError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
@@ -62,7 +63,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error({ error: err }, 'Error fetching Sonarr tags:')
+        logServiceError(
+          fastify.log,
+          request,
+          err,
+          'sonarr',
+          'Error fetching tags',
+        )
         return reply.internalServerError('Unable to fetch Sonarr tags')
       }
     },
