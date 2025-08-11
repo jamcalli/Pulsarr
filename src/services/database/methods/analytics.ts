@@ -676,8 +676,8 @@ export async function getDetailedStatusTransitionMetrics(
     return results
   } catch (error) {
     this.log.error(
-      'Error calculating detailed status transition metrics:',
-      error,
+      { error },
+      'Error calculating detailed status transition metrics',
     )
     throw error
   }

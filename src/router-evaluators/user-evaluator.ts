@@ -185,7 +185,7 @@ export default function createUserEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('user')
       } catch (err) {
-        fastify.log.error({ err }, 'User evaluator - DB query failed')
+        fastify.log.error({ error: err }, 'User evaluator - DB query failed')
         return null
       }
 

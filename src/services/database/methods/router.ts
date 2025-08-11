@@ -297,8 +297,8 @@ export async function getRouterRulesByTargetType(
     return rules.map((rule) => this.formatRouterRule(rule))
   } catch (error) {
     this.log.error(
-      `Error fetching router rules by target type ${targetType}:`,
-      error,
+      { error },
+      `Error fetching router rules by target type ${targetType}`,
     )
     throw error
   }
