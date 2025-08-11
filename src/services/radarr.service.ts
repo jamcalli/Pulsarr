@@ -66,19 +66,22 @@ export class RadarrService {
   }
 
   private mapConnectionErrorToMessage(error: Error): string {
-    if (error.name === 'AbortError') {
+    // Prefer undici/Node fetch cause codes when available
+    const cause = error.cause as { code?: string } | undefined
+    const code = cause?.code
+    if (error.name === 'AbortError' || code === 'ABORT_ERR') {
       return 'Connection timeout. Please check your base URL and network connection.'
     }
-    if (error.message.includes('ECONNREFUSED')) {
+    if (code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
       return 'Connection refused. Please check if Radarr is running and the URL is correct.'
     }
-    if (error.message.includes('ENOTFOUND')) {
+    if (code === 'ENOTFOUND' || error.message.includes('ENOTFOUND')) {
       return 'Server not found. Please check your base URL.'
     }
-    if (error.message.includes('ETIMEDOUT')) {
+    if (code === 'ETIMEDOUT' || error.message.includes('ETIMEDOUT')) {
       return 'Connection timeout. Please check your network and firewall settings.'
     }
-    if (error.message.includes('ECONNRESET')) {
+    if (code === 'ECONNRESET' || error.message.includes('ECONNRESET')) {
       return 'Connection was reset. Please check your network stability.'
     }
     return 'Network error. Please check your connection and base URL.'
@@ -264,9 +267,9 @@ export class RadarrService {
         this.log.debug('Webhook creation response for Radarr:', response)
       } catch (createError) {
         this.log.error(
-          'Error creating webhook for Radarr. Config omitted for security.',
+          { error: createError, endpoint: 'notification' },
+          'Error creating webhook for Radarr (config omitted)',
         )
-        this.log.error({ error: createError }, 'Creation error details:')
 
         let errorMessage = 'Failed to create webhook'
         if (createError instanceof HttpError) {
@@ -775,7 +778,8 @@ export class RadarrService {
       )
     } catch (err) {
       this.log.debug(
-        `Received warning for sending ${item.title} to Radarr: ${err}`,
+        { error: err, title: item.title },
+        'Send to Radarr failed (rethrowing upstream)',
       )
       throw err
     }

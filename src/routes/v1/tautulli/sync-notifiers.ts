@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 import {
   SyncNotifiersResponseSchema,
   ErrorSchema,
@@ -8,7 +9,7 @@ import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
-    Reply: SyncNotifiersResponse
+    Reply: SyncNotifiersResponse | z.infer<typeof ErrorSchema>
   }>(
     '/sync-notifiers',
     {
