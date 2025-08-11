@@ -1,0 +1,140 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "security:openssf-scorecard",
+    ":maintainLockFilesWeekly"
+  ],
+  "baseBranches": ["develop"],
+  "timezone": "UTC",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": "deps:",
+  "commitMessageAction": "update",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+  "branchPrefix": "renovate/",
+  "labels": ["dependencies"],
+  "assignees": ["jamcalli"],
+  "reviewers": ["jamcalli"],
+  "packageRules": [
+    {
+      "description": "Group all Radix UI components",
+      "groupName": "Radix UI",
+      "matchPackagePatterns": ["^@radix-ui/"],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group all Fastify plugins",
+      "groupName": "Fastify ecosystem",
+      "matchPackagePatterns": ["^@fastify/", "^fastify"],
+      "excludePackageNames": ["fastify-cli", "fastify-tsconfig"],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group TypeScript types",
+      "groupName": "TypeScript types",
+      "matchPackagePatterns": ["^@types/"],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group build tools",
+      "groupName": "Build tools",
+      "matchPackageNames": [
+        "vite",
+        "@vitejs/plugin-react",
+        "typescript",
+        "tsc-alias",
+        "tsx",
+        "@biomejs/biome"
+      ],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group database dependencies",
+      "groupName": "Database",
+      "matchPackageNames": [
+        "knex",
+        "better-sqlite3",
+        "pg",
+        "@types/better-sqlite3",
+        "@types/pg"
+      ],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group React ecosystem",
+      "groupName": "React",
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "react-hook-form",
+        "react-router-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group Tailwind ecosystem",
+      "groupName": "Tailwind CSS",
+      "matchPackageNames": [
+        "tailwindcss",
+        "@tailwindcss/postcss",
+        "postcss",
+        "autoprefixer",
+        "tailwind-merge",
+        "class-variance-authority"
+      ],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Auto-merge security patches",
+      "matchUpdateTypes": ["patch"],
+      "matchPackagePatterns": ["*"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true,
+      "requiredStatusChecks": null
+    },
+    {
+      "description": "Separate major updates for manual review",
+      "matchUpdateTypes": ["major"],
+      "schedule": ["before 6am on monday"],
+      "labels": ["dependencies", "major-update"],
+      "reviewers": ["jamcalli"],
+      "prPriority": 10
+    },
+    {
+      "description": "Pin Node.js version updates",
+      "matchPackageNames": ["node"],
+      "rangeStrategy": "pin",
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Weekly digest for dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "Dev dependencies (non-critical)",
+      "excludePackageNames": [
+        "typescript",
+        "@biomejs/biome",
+        "vite",
+        "@vitejs/plugin-react"
+      ],
+      "schedule": ["before 6am on monday"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "prPriority": 20,
+    "labels": ["security", "dependencies"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "osvVulnerabilityAlerts": true
+}
