@@ -78,15 +78,6 @@ export async function processNotifications(
     if (!user.notify_discord && !user.notify_apprise && !user.notify_tautulli)
       continue
 
-    if (
-      item.type === 'show' &&
-      item.series_status === 'ended' &&
-      item.last_notified_at &&
-      !isBulkRelease
-    ) {
-      continue
-    }
-
     const notificationTypeInfo = determineNotificationType(
       mediaInfo,
       isBulkRelease,
