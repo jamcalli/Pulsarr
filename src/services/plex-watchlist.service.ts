@@ -31,6 +31,8 @@ import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 export class PlexWatchlistService {
   // Cache for user sync permissions to avoid repeated DB lookups
   private userCanSyncCache = new Map<number, boolean>()
+  // In-flight promise map to prevent concurrent DB hits for the same user
+  private userCanSyncInFlight = new Map<number, Promise<boolean>>()
 
   constructor(
     private readonly log: FastifyBaseLogger,
@@ -77,19 +79,29 @@ export class PlexWatchlistService {
     const cached = this.userCanSyncCache.get(userId)
     if (cached !== undefined) return cached
 
-    try {
-      const dbUser = await this.dbService.getUser(userId)
-      const canSync = dbUser?.can_sync ?? false
-      this.userCanSyncCache.set(userId, canSync)
-      return canSync
-    } catch (error) {
-      this.log.error(
-        { error, userId },
-        'Failed to fetch user can_sync; treating as disabled',
-      )
-      this.userCanSyncCache.set(userId, false)
-      return false
-    }
+    const inflight = this.userCanSyncInFlight.get(userId)
+    if (inflight) return inflight
+
+    const p = (async () => {
+      try {
+        const dbUser = await this.dbService.getUser(userId)
+        const canSync = dbUser?.can_sync ?? false
+        this.userCanSyncCache.set(userId, canSync)
+        return canSync
+      } catch (error) {
+        this.log.error(
+          { error, userId },
+          'Failed to fetch user can_sync; treating as disabled',
+        )
+        this.userCanSyncCache.set(userId, false)
+        return false
+      } finally {
+        this.userCanSyncInFlight.delete(userId)
+      }
+    })()
+
+    this.userCanSyncInFlight.set(userId, p)
+    return p
   }
 
   /**
@@ -1087,6 +1099,15 @@ export class PlexWatchlistService {
     // Clear user sync cache for fresh permissions per operation
     this.userCanSyncCache.clear()
 
+    // Skip notification only if RSS workflow is fully initialized and active
+    // During startup/initial sync, we still send notifications even in RSS mode
+    if (this.isRssWorkflowActive()) {
+      this.log.info(
+        'Skipping direct notifications because RSS workflow is fully initialized and active',
+      )
+      return
+    }
+
     // Prefetch can_sync for users and filter out disabled users early
     const enabledUserIds = new Set<number>()
     await Promise.all(
@@ -1099,15 +1120,6 @@ export class PlexWatchlistService {
     if (enabledUserIds.size === 0) {
       this.log.info(
         'All users in this batch have sync disabled; skipping notifications',
-      )
-      return
-    }
-
-    // Skip notification only if RSS workflow is fully initialized and active
-    // During startup/initial sync, we still send notifications even in RSS mode
-    if (this.isRssWorkflowActive()) {
-      this.log.info(
-        'Skipping direct notifications because RSS workflow is fully initialized and active',
       )
       return
     }
@@ -1998,6 +2010,22 @@ export class PlexWatchlistService {
     // Clear user sync cache for fresh permissions per operation
     this.userCanSyncCache.clear()
 
+    // Prefetch can_sync for users to avoid repeated lookups during RSS matching
+    const enabledUserIds = new Set<number>()
+    await Promise.all(
+      Array.from(userWatchlistMap.keys()).map(async (user) => {
+        if (!user?.userId) return
+        const canSync = await this.getUserCanSync(user.userId)
+        if (canSync) enabledUserIds.add(user.userId)
+      }),
+    )
+    if (enabledUserIds.size === 0) {
+      this.log.info(
+        `All users in RSS ${source} batch have sync disabled; skipping RSS processing`,
+      )
+      return
+    }
+
     const pendingItems = await this.dbService.getTempRssItems(source)
     this.log.info(
       `Found ${pendingItems.length} pending RSS items to match during ${source} sync`,
@@ -2092,14 +2120,25 @@ export class PlexWatchlistService {
           }
         }
 
-        // Send notification if needed
-        if (shouldSendNotification) {
+        // Send notification if needed and user has sync enabled
+        if (
+          shouldSendNotification &&
+          enabledUserIds.has(bestMatch.user.userId)
+        ) {
           await this.sendWatchlistNotifications(bestMatch.user, {
             id: bestMatch.item.id,
             title: bestMatch.item.title,
             type: bestMatch.item.type || 'unknown',
             thumb: bestMatch.item.thumb,
           })
+        } else if (
+          shouldSendNotification &&
+          !enabledUserIds.has(bestMatch.user.userId)
+        ) {
+          this.log.info(
+            `Skipping RSS notification for "${bestMatch.item.title}" - user ${bestMatch.user.username} (ID: ${bestMatch.user.userId}) has sync disabled`,
+            { userId: bestMatch.user.userId, itemTitle: bestMatch.item.title },
+          )
         }
       }
 
