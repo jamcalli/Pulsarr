@@ -79,9 +79,19 @@
       ]
     },
     {
-      "description": "Prefer manual review for patch updates (security handled separately)",
+      "description": "Prefer manual review for patch updates (excluding GitHub Actions)",
       "matchUpdateTypes": ["patch"],
-      "excludePackageNames": []
+      "matchManagers": [
+        "npm",
+        "yarn",
+        "pnpm",
+        "pip",
+        "poetry",
+        "composer",
+        "gem",
+        "cargo"
+      ],
+      "automerge": false
     },
     {
       "description": "Separate major updates for manual review",
@@ -114,13 +124,18 @@
       "excludePackagePatterns": ["^@types/"]
     },
     {
-      "description": "Manage GitHub Actions and pin to commit SHAs",
+      "description": "Auto-merge GitHub Actions patch/minor updates (pinned to SHAs)",
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
-      "rangeStrategy": "pin",
+      "matchUpdateTypes": ["patch", "minor"],
       "stabilityDays": 3,
       "automerge": true,
       "automergeType": "pr"
+    },
+    {
+      "description": "Pin all GitHub Actions to commit SHAs",
+      "matchManagers": ["github-actions"],
+      "rangeStrategy": "pin"
     }
   ],
   "vulnerabilityAlerts": {
