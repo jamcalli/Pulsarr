@@ -30,7 +30,7 @@ import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 
 export class PlexWatchlistService {
   // Cache for user sync permissions to avoid repeated DB lookups
-  private userSyncCache = new Map<number, boolean>()
+  private userCanSyncCache = new Map<number, boolean>()
 
   constructor(
     private readonly log: FastifyBaseLogger,
@@ -74,13 +74,22 @@ export class PlexWatchlistService {
    * @returns Promise resolving to boolean indicating if user can sync
    */
   private async getUserCanSync(userId: number): Promise<boolean> {
-    const cached = this.userSyncCache.get(userId)
+    const cached = this.userCanSyncCache.get(userId)
     if (cached !== undefined) return cached
 
-    const dbUser = await this.dbService.getUser(userId)
-    const canSync = dbUser?.can_sync ?? false
-    this.userSyncCache.set(userId, canSync)
-    return canSync
+    try {
+      const dbUser = await this.dbService.getUser(userId)
+      const canSync = dbUser?.can_sync ?? false
+      this.userCanSyncCache.set(userId, canSync)
+      return canSync
+    } catch (error) {
+      this.log.error(
+        { error, userId },
+        'Failed to fetch user can_sync; treating as disabled',
+      )
+      this.userCanSyncCache.set(userId, false)
+      return false
+    }
   }
 
   /**
@@ -198,20 +207,12 @@ export class PlexWatchlistService {
     },
   ): Promise<boolean> {
     // Check if user has sync enabled before sending any notifications
-    try {
-      const canSync = await this.getUserCanSync(user.userId)
-      if (!canSync) {
-        const name = user.username ?? 'Unknown User'
-        this.log.info(
-          `Skipping notification for user ${name} (ID: ${user.userId}) - sync disabled`,
-          { userId: user.userId, canSync },
-        )
-        return false
-      }
-    } catch (error) {
-      this.log.error(
-        { error, userId: user.userId },
-        'Error checking user sync status for notifications',
+    const canSync = await this.getUserCanSync(user.userId)
+    if (!canSync) {
+      const name = user.username ?? 'Unknown User'
+      this.log.info(
+        `Skipping notification for user ${name} (ID: ${user.userId}) - sync disabled`,
+        { userId: user.userId },
       )
       return false
     }
@@ -1084,7 +1085,23 @@ export class PlexWatchlistService {
     existingGuidsSnapshot: Set<string>,
   ): Promise<void> {
     // Clear user sync cache for fresh permissions per operation
-    this.userSyncCache.clear()
+    this.userCanSyncCache.clear()
+
+    // Prefetch can_sync for users and filter out disabled users early
+    const enabledUserIds = new Set<number>()
+    await Promise.all(
+      Array.from(processedItems.keys()).map(async (user) => {
+        if (!user?.userId) return
+        const canSync = await this.getUserCanSync(user.userId)
+        if (canSync) enabledUserIds.add(user.userId)
+      }),
+    )
+    if (enabledUserIds.size === 0) {
+      this.log.info(
+        'All users in this batch have sync disabled; skipping notifications',
+      )
+      return
+    }
 
     // Skip notification only if RSS workflow is fully initialized and active
     // During startup/initial sync, we still send notifications even in RSS mode
@@ -1108,7 +1125,7 @@ export class PlexWatchlistService {
     // Pre-process titles for each user to check existing notifications
     const userItemTitles = new Map<number, string[]>()
     for (const [user, items] of processedItems.entries()) {
-      if (!user.userId) continue
+      if (!user.userId || !enabledUserIds.has(user.userId)) continue
 
       const titles: string[] = []
       for (const item of items) {
@@ -1142,7 +1159,7 @@ export class PlexWatchlistService {
 
     // Now process all items with the cached notification checks
     for (const [user, items] of processedItems.entries()) {
-      if (!user.userId) continue
+      if (!user.userId || !enabledUserIds.has(user.userId)) continue
 
       const userNotifications =
         notificationChecks.get(user.userId) || new Map<string, boolean>()
@@ -1979,7 +1996,7 @@ export class PlexWatchlistService {
     source: 'self' | 'friends',
   ): Promise<void> {
     // Clear user sync cache for fresh permissions per operation
-    this.userSyncCache.clear()
+    this.userCanSyncCache.clear()
 
     const pendingItems = await this.dbService.getTempRssItems(source)
     this.log.info(
