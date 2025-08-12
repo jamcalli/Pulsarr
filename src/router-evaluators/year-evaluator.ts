@@ -17,7 +17,10 @@ import { extractYear } from '@root/types/content-lookup.types.js'
  * @returns True if the value is an array where every element is a number; otherwise, false.
  */
 function isNumberArray(value: unknown): value is number[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'number')
+  return (
+    Array.isArray(value) &&
+    value.every((item) => typeof item === 'number' && Number.isFinite(item))
+  )
 }
 
 /**
@@ -26,7 +29,7 @@ function isNumberArray(value: unknown): value is number[] {
  * @returns `true` if the value is of type number; otherwise, `false`.
  */
 function isNumber(value: unknown): value is number {
-  return typeof value === 'number'
+  return typeof value === 'number' && Number.isFinite(value)
 }
 
 // Type guard for year range object
@@ -249,7 +252,7 @@ export default function createYearEvaluator(
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
-        priority: rule.order || 50, // Default to 50 if not specified
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,

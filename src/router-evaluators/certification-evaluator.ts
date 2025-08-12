@@ -243,7 +243,7 @@ export default function createCertificationEvaluator(
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
-        priority: rule.order || 50, // Default to 50 if not specified
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
