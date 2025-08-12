@@ -80,8 +80,7 @@
     },
     {
       "description": "Prefer manual review for patch updates (security handled separately)",
-      "matchUpdateTypes": ["patch"],
-      "matchPackagePatterns": ["*"]
+      "matchUpdateTypes": ["patch"]
     },
     {
       "description": "Separate major updates for manual review",
@@ -110,9 +109,9 @@
       "description": "Manage GitHub Actions and pin to commit SHAs",
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
-      "pinDigests": true,
       "rangeStrategy": "pin",
       "matchUpdateTypes": ["patch", "minor"],
+      "stabilityDays": 3,
       "automerge": true,
       "automergeType": "pr"
     }
