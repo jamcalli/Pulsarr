@@ -301,7 +301,7 @@ export default async function serviceApp(
         // Allow access to login page
       },
     },
-    (req, reply) => {
+    (_req, reply) => {
       return reply.html()
     },
   )

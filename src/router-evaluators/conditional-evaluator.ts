@@ -105,7 +105,7 @@ export default function createConditionalEvaluator(
         rules = await fastify.db.getRouterRulesByType('conditional')
       } catch (err) {
         fastify.log.error(
-          { err },
+          { error: err },
           'Conditional evaluator (canEvaluate) - DB query failed',
         )
         return false
@@ -131,7 +131,7 @@ export default function createConditionalEvaluator(
         rules = await fastify.db.getRouterRulesByType('conditional')
       } catch (err) {
         fastify.log.error(
-          { err },
+          { error: err },
           'Conditional evaluator (evaluate) - DB query failed',
         )
         return null
