@@ -116,7 +116,7 @@ export class TautulliService {
     }
 
     if (!this.config.url || !this.config.apiKey) {
-      this.fastify.log.warn('Tautulli URL or API key not configured')
+      this.log.warn('Tautulli URL or API key not configured')
       return
     }
 
@@ -132,19 +132,19 @@ export class TautulliService {
         // Save config to database
         await this.saveConfig()
 
-        this.fastify.log.info('Tautulli integration enabled successfully')
+        this.log.info('Tautulli integration enabled successfully')
         this.isInitialized = true
 
         return
       } catch (error) {
         if (attempt === maxRetries) {
-          this.fastify.log.error(
+          this.log.error(
             { error },
             'Failed to initialize Tautulli integration after all retries',
           )
           // No-op: config is not mutable; rely on isInitialized=false gates
         } else {
-          this.fastify.log.warn(
+          this.log.warn(
             { error, attempt, maxRetries },
             'Tautulli initialization failed, retrying...',
           )
@@ -264,11 +264,9 @@ export class TautulliService {
         await this.ensureUserNotifier(user, existingNotifiers)
       }
 
-      this.fastify.log.info(
-        `Synced ${plexUsers.length} user notifiers with Tautulli`,
-      )
+      this.log.info(`Synced ${plexUsers.length} user notifiers with Tautulli`)
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         {
           error: error instanceof Error ? error.message : error,
         },
@@ -285,7 +283,7 @@ export class TautulliService {
       const response = await this.apiCall<TautulliNotifier[]>('get_notifiers')
       return response?.response?.data || []
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         {
           error: error instanceof Error ? error.message : error,
         },
@@ -313,7 +311,7 @@ export class TautulliService {
         await this.db.updateUser(user.id, {
           tautulli_notifier_id: existingNotifier.id,
         })
-        this.fastify.log.debug(
+        this.log.debug(
           { username: user.username, notifierId: existingNotifier.id },
           'Updated database with existing Tautulli notifier ID',
         )
@@ -330,7 +328,7 @@ export class TautulliService {
 
       return notifierId
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         {
           error: error instanceof Error ? error.message : error,
           stack: error instanceof Error ? error.stack : undefined,
@@ -353,7 +351,7 @@ export class TautulliService {
         )
       const users = response?.response?.data || []
 
-      this.fastify.log.debug(
+      this.log.debug(
         {
           requestedUsername: username,
           availableUsers: users.map((u) => u.username),
@@ -365,7 +363,7 @@ export class TautulliService {
       const user = users.find((u) => u.username === username)
 
       if (!user) {
-        this.fastify.log.warn(
+        this.log.warn(
           {
             requestedUsername: username,
             availableUsers: users.map((u) => u.username),
@@ -376,7 +374,7 @@ export class TautulliService {
 
       return user?.user_id || null
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         { error, username },
         'Failed to get Plex user ID from Tautulli',
       )
@@ -388,7 +386,7 @@ export class TautulliService {
    * Create a new notification agent for a user
    */
   private async createUserNotifier(user: TautulliEnabledUser): Promise<number> {
-    this.fastify.log.debug(
+    this.log.debug(
       { user: user.username },
       'Starting Tautulli notifier creation process',
     )
@@ -398,11 +396,11 @@ export class TautulliService {
 
     if (!plexUserId) {
       const error = `Could not find Plex user ID for username: ${user.username}`
-      this.fastify.log.error({ user: user.username, message: error })
+      this.log.error({ user: user.username, message: error })
       throw new Error(error)
     }
 
-    this.fastify.log.debug(
+    this.log.debug(
       { user: user.username, plexUserId },
       'Found Plex user ID, creating basic notifier',
     )
@@ -410,7 +408,7 @@ export class TautulliService {
     // Create the notifier and get ID
     const notifierId = await this.createBasicNotifier(user.username)
 
-    this.fastify.log.debug(
+    this.log.debug(
       { user: user.username, notifierId },
       'Basic notifier created, configuring settings',
     )
@@ -418,7 +416,7 @@ export class TautulliService {
     // Configure the notifier with user settings
     await this.configureNotifier(notifierId, user.username, plexUserId)
 
-    this.fastify.log.debug(
+    this.log.debug(
       { user: user.username, notifierId, plexUserId },
       'Successfully created and configured Tautulli notifier for user',
     )
@@ -442,9 +440,9 @@ export class TautulliService {
     if (createResponse?.response?.result !== 'success') {
       const errorMsg =
         createResponse?.response?.message || 'Unknown error from Tautulli'
-      this.fastify.log.error(
-        `Failed to create notifier: ${errorMsg}`,
-        createResponse,
+      this.log.error(
+        { errorMsg, response: createResponse?.response },
+        'Failed to create notifier',
       )
       throw new Error(`Failed to create notifier: ${errorMsg}`)
     }
@@ -481,9 +479,15 @@ export class TautulliService {
     )
 
     if (!newNotifier) {
-      this.fastify.log.error(
-        `Created notifier not found for ${username}. Available notifiers:`,
-        notifiers.map((n) => ({ id: n.id, name: n.friendly_name })),
+      this.log.error(
+        {
+          username,
+          availableNotifiers: notifiers.map((n) => ({
+            id: n.id,
+            name: n.friendly_name,
+          })),
+        },
+        'Created notifier not found',
       )
       throw new Error('Created notifier not found')
     }
@@ -530,9 +534,9 @@ export class TautulliService {
     if (configResponse?.response?.result !== 'success') {
       const errorMsg =
         configResponse?.response?.message || 'Unknown error from Tautulli'
-      this.fastify.log.error(
-        `Failed to configure notifier: ${errorMsg}`,
-        configResponse,
+      this.log.error(
+        { errorMsg, response: configResponse?.response },
+        'Failed to configure notifier',
       )
       throw new Error(`Failed to configure notifier: ${errorMsg}`)
     }
@@ -551,7 +555,7 @@ export class TautulliService {
 
       return response?.response?.data || null
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         { error, ratingKey },
         'Failed to get metadata from Tautulli',
       )
@@ -576,7 +580,7 @@ export class TautulliService {
       const results = response?.response?.data?.results || []
       return results[0] || null
     } catch (error) {
-      this.fastify.log.error({ error, guid }, 'Failed to search Tautulli')
+      this.log.error({ error, guid }, 'Failed to search Tautulli')
       return null
     }
   }
@@ -885,6 +889,12 @@ export class TautulliService {
    * Process all pending notifications
    */
   private async processPendingNotifications(): Promise<void> {
+    if (!this.isActive) {
+      this.log.debug('Tautulli disabled during polling; stopping')
+      this.stopPolling()
+      return
+    }
+
     if (this.isPolling) {
       this.log.debug('Polling already in progress, skipping')
       return
@@ -912,6 +922,14 @@ export class TautulliService {
 
       // Process each pending notification
       for (const [key, notification] of this.pendingNotifications) {
+        // Check if service was disabled during processing
+        if (!this.isActive) {
+          this.log.debug(
+            'Tautulli disabled during notification processing; stopping',
+          )
+          this.stopPolling()
+          return
+        }
         await this.processSingleNotification(key, notification, recentItems)
       }
 
@@ -1567,7 +1585,7 @@ export class TautulliService {
 
     for (const user of users) {
       if (!user.tautulli_notifier_id) {
-        this.fastify.log.info(
+        this.log.info(
           { user: user.username },
           'User has no Tautulli notifier, creating one now',
         )
@@ -1584,14 +1602,14 @@ export class TautulliService {
             })
           } else {
             failed++
-            this.fastify.log.warn(
+            this.log.warn(
               { user: user.username },
               'Failed to create Tautulli notifier for user',
             )
           }
         } catch (error) {
           failed++
-          this.fastify.log.error(
+          this.log.error(
             { error, user: user.username },
             'Error creating Tautulli notifier for user',
           )
@@ -1618,7 +1636,7 @@ export class TautulliService {
     }
 
     if (!metadata) {
-      this.fastify.log.warn(
+      this.log.warn(
         { mediaItem },
         'Could not find media in Tautulli for bulk notification',
       )
@@ -1664,14 +1682,14 @@ export class TautulliService {
           success++
         } else {
           failed++
-          this.fastify.log.warn(
+          this.log.warn(
             { user: user.username, error: response?.response?.message },
             'Failed to send Tautulli notification in bulk',
           )
         }
       } catch (error) {
         failed++
-        this.fastify.log.error(
+        this.log.error(
           { error, user: user.username },
           'Error sending Tautulli notification in bulk',
         )
@@ -1681,7 +1699,7 @@ export class TautulliService {
     await Promise.all(notificationPromises)
 
     const duration = Date.now() - startTime
-    this.fastify.log.info(
+    this.log.info(
       { success, failed, title: metadata.title, duration },
       'Completed bulk Tautulli notifications',
     )
@@ -1755,15 +1773,12 @@ export class TautulliService {
       // Update user record
       await this.db.updateUser(userId, { tautulli_notifier_id: null })
 
-      this.fastify.log.info(
+      this.log.info(
         { userId, notifierId: user.tautulli_notifier_id },
         'Removed user Tautulli notifier',
       )
     } catch (error) {
-      this.fastify.log.error(
-        { error, userId },
-        'Failed to remove user notifier',
-      )
+      this.log.error({ error, userId }, 'Failed to remove user notifier')
     }
   }
 }

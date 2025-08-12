@@ -57,16 +57,33 @@ function createErrorSerializer() {
 
     // Always include these properties if they exist
     if ('message' in err && err.message) serialized.message = err.message
-    if ('stack' in err && err.stack) serialized.stack = err.stack
     if ('name' in err && err.name) serialized.name = err.name
     if ('status' in err && err.status !== undefined)
       serialized.status = err.status
+    if ('statusCode' in err && err.statusCode !== undefined)
+      serialized.statusCode = err.statusCode
     if ('constructor' in err && err.constructor?.name)
       serialized.type = err.constructor.name
 
+    // Conditionally include stack trace - exclude for auth errors (401)
+    const statusCode =
+      'statusCode' in err && typeof err.statusCode === 'number'
+        ? err.statusCode
+        : 'status' in err && typeof err.status === 'number'
+          ? err.status
+          : undefined
+    const shouldIncludeStack = !statusCode || statusCode >= 500
+    if ('stack' in err && err.stack && shouldIncludeStack) {
+      serialized.stack = err.stack
+    }
+
     // Include any other enumerable properties
     for (const key of Object.keys(err)) {
-      if (!['message', 'stack', 'name', 'status', 'type'].includes(key)) {
+      if (
+        !['message', 'stack', 'name', 'status', 'statusCode', 'type'].includes(
+          key,
+        )
+      ) {
         serialized[key] = (err as Record<string, unknown>)[key]
       }
     }

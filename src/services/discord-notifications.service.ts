@@ -385,7 +385,7 @@ export class DiscordNotificationService {
 
       // Use Promise.all with error handling inside each promise
       const results = await Promise.all(
-        webhookUrls.map(async (webhookUrl) => {
+        webhookUrls.map(async (webhookUrl, endpointIndex) => {
           try {
             const response = await fetch(webhookUrl, {
               method: 'POST',
@@ -396,7 +396,7 @@ export class DiscordNotificationService {
             if (!response.ok) {
               this.log.warn(
                 {
-                  endpointIndex: webhookUrls.indexOf(webhookUrl) + 1,
+                  endpointIndex: endpointIndex + 1,
                   status: response.status,
                 },
                 'Discord webhook request failed for one endpoint',
@@ -406,7 +406,7 @@ export class DiscordNotificationService {
             return true
           } catch (error) {
             this.log.warn(
-              { endpointIndex: webhookUrls.indexOf(webhookUrl) + 1, error },
+              { endpointIndex: endpointIndex + 1, error },
               'Error sending to one Discord webhook endpoint',
             )
             return false
@@ -601,7 +601,10 @@ export class DiscordNotificationService {
         )
       }
     } catch (error) {
-      this.log.error({ error }, 'Error looking up user alias for webhook:')
+      this.log.error(
+        { err: error as Error, username: notification.username },
+        'Error looking up user alias for webhook',
+      )
       // Fall back to username if there's an error
     }
 
