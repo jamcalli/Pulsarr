@@ -79,9 +79,9 @@
       ]
     },
     {
-      "description": "Prefer manual review for patch updates (security handled separately)",
+      "description": "Default: manual review for patch updates (overridden by specific manager rules)",
       "matchUpdateTypes": ["patch"],
-      "excludeManagers": ["github-actions"]
+      "automerge": false
     },
     {
       "description": "Separate major updates for manual review",
@@ -114,15 +114,25 @@
       "excludePackagePatterns": ["^@types/"]
     },
     {
-      "description": "Manage GitHub Actions and pin to commit SHAs",
+      "description": "Pin all GitHub Actions to commit SHAs for security",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    },
+    {
+      "description": "Auto-merge patch/minor GitHub Actions updates after stability period",
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
-      "rangeStrategy": "pin",
-      "matchUpdateTypes": ["patch", "minor"],
-      "stabilityDays": 3,
+      "matchUpdateTypes": ["patch", "minor", "pinDigest"],
+      "minimumReleaseAge": "3 days",
       "automerge": true,
-      "automergeType": "pr",
-      "internalChecksFilter": "strict"
+      "automergeType": "pr"
+    },
+    {
+      "description": "Require manual review for major GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "minimumReleaseAge": "7 days"
     }
   ],
   "vulnerabilityAlerts": {
