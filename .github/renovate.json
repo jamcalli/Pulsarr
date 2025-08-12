@@ -79,7 +79,7 @@
       ]
     },
     {
-      "description": "Prefer manual review for all patch updates",
+      "description": "Default: manual review for patch updates (overridden by specific manager rules)",
       "matchUpdateTypes": ["patch"],
       "automerge": false
     },
