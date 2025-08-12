@@ -60,18 +60,25 @@ export default async function serviceApp(
 
   // Error handler
   fastify.setErrorHandler((err, request, reply) => {
-    fastify.log.error(
-      {
-        err,
-        request: {
-          method: request.method,
-          url: request.url,
-          query: request.query,
-          params: request.params,
-        },
+    const statusCode = err.statusCode ?? 500
+    const logData = {
+      err,
+      request: {
+        method: request.method,
+        url: request.url,
+        query: request.query,
+        params: request.params,
       },
-      'Unhandled error occurred',
-    )
+    }
+
+    // Use appropriate log level based on status code
+    if (statusCode === 401) {
+      fastify.log.warn(logData, 'Authentication required')
+    } else if (statusCode >= 500) {
+      fastify.log.error(logData, 'Internal server error occurred')
+    } else {
+      fastify.log.warn(logData, 'Client error occurred')
+    }
     reply.code(err.statusCode ?? 500)
     let message = 'Internal Server Error'
     if (err.statusCode && err.statusCode < 500) {

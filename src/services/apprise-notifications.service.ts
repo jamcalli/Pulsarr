@@ -97,6 +97,11 @@ export class AppriseNotificationService {
         return false
       }
 
+      if (!this.appriseBaseUrl) {
+        this.log.debug('Apprise base URL not configured; skipping notification')
+        return false
+      }
+
       // Use HTML content as the primary body when available
       const bodyContent = notification.body_html || notification.body
       const isHtml = !!notification.body_html
@@ -113,28 +118,32 @@ export class AppriseNotificationService {
         input: isHtml ? 'html' : (format ?? 'text'), // Required by Apprise for proper content processing
       }
 
+      const safeTargetUrl = targetUrl.includes('://')
+        ? `${targetUrl.split('://')[0]}://***redacted***`
+        : '***redacted***'
       this.log.debug(
-        {
-          payload,
-          targetUrl,
-          isHtml,
-        },
+        { targetUrl: safeTargetUrl, isHtml },
         'Sending Apprise notification',
       )
 
       // Construct the endpoint URL
-      if (!this.appriseBaseUrl) {
-        this.log.debug('Apprise base URL not configured; skipping notification')
-        return false
-      }
       const url = new URL('/notify', this.appriseBaseUrl)
 
       // Send the request with the correctly formatted payload
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const controller = new AbortController()
+      const timeoutMs = 10000
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+      let response: Response
+      try {
+        response = await fetch(url.toString(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(timeoutId)
+      }
 
       if (!response.ok) {
         this.log.error(
@@ -147,7 +156,10 @@ export class AppriseNotificationService {
       this.log.info('Apprise notification sent successfully')
       return true
     } catch (error) {
-      this.log.error({ error }, 'Error sending Apprise notification')
+      this.log.error(
+        { err: error as Error },
+        'Error sending Apprise notification',
+      )
       return false
     }
   }
@@ -525,7 +537,10 @@ export class AppriseNotificationService {
       // Send to the system Apprise URL
       return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
-      this.log.error({ error }, 'Error sending system notification:')
+      this.log.error(
+        { err: error as Error },
+        'Error sending system notification',
+      )
       return false
     }
   }
@@ -806,7 +821,10 @@ export class AppriseNotificationService {
       // Send to the system Apprise URL
       return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
-      this.log.error({ error }, 'Error sending delete sync notification:')
+      this.log.error(
+        { err: error as Error },
+        'Error sending delete sync notification',
+      )
       return false
     }
   }
@@ -859,8 +877,8 @@ export class AppriseNotificationService {
           }
         } catch (error) {
           this.log.error(
-            'Error looking up user alias for Apprise notification:',
-            error,
+            { err: error as Error },
+            'Error looking up user alias for Apprise notification',
           )
           // Fall back to username if there's an error
         }
@@ -1059,7 +1077,7 @@ export class AppriseNotificationService {
 
       return await this.sendNotification(targetUrl, notification)
     } catch (error) {
-      this.log.error({ error }, 'Error sending test notification:')
+      this.log.error({ err: error as Error }, 'Error sending test notification')
       return false
     }
   }
