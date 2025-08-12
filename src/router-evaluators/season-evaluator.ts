@@ -265,7 +265,15 @@ export default function createSeasonEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('season')
       } catch (err) {
-        fastify.log.error({ error: err }, 'Season evaluator - DB query failed')
+        fastify.log.error(
+          {
+            error: err instanceof Error ? err : new Error(String(err)),
+            evaluator: 'season',
+            op: 'getRouterRulesByType',
+            targetType: 'season',
+          },
+          'Season evaluator - DB query failed',
+        )
         return null
       }
 
