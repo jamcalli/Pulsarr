@@ -216,11 +216,26 @@ export default function createSeasonEvaluator(
     }
 
     if (isSeasonRange(value) && operator === 'between') {
-      const minSeason =
-        typeof value.min === 'number' ? value.min : Number.NEGATIVE_INFINITY
-      const maxSeason =
-        typeof value.max === 'number' ? value.max : Number.POSITIVE_INFINITY
+      // Only treat numeric bounds; undefined-only ranges should not match
+      const hasMin = typeof (value as SeasonRange).min === 'number'
+      const hasMax = typeof (value as SeasonRange).max === 'number'
+      if (!hasMin && !hasMax) {
+        return false
+      }
+      const seasonRange = value as SeasonRange
+      let minSeason: number = Number.NEGATIVE_INFINITY
+      let maxSeason: number = Number.POSITIVE_INFINITY
 
+      if (hasMin && typeof seasonRange.min === 'number') {
+        minSeason = seasonRange.min
+      }
+      if (hasMax && typeof seasonRange.max === 'number') {
+        maxSeason = seasonRange.max
+      }
+      // Swap reversed bounds for greater robustness
+      if (minSeason > maxSeason) {
+        ;[minSeason, maxSeason] = [maxSeason, minSeason]
+      }
       return seasons.some(
         (season) => season >= minSeason && season <= maxSeason,
       )
