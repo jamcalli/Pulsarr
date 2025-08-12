@@ -37,6 +37,62 @@ const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
 
 /**
+ * Creates a custom error serializer that handles both standard errors and custom HttpError objects.
+ *
+ * @returns A function that properly serializes error objects with message, stack, name, and custom properties.
+ */
+function createErrorSerializer() {
+  return (err: Error | Record<string, unknown> | string | number | boolean) => {
+    if (!err) {
+      return err
+    }
+
+    // Handle primitive values (string, number, boolean)
+    if (typeof err !== 'object') {
+      return { message: String(err) }
+    }
+
+    // Handle the case where err might be a plain object or Error instance
+    const serialized: Record<string, unknown> = {}
+
+    // Always include these properties if they exist
+    if ('message' in err && err.message) serialized.message = err.message
+    if ('name' in err && err.name) serialized.name = err.name
+    if ('status' in err && err.status !== undefined)
+      serialized.status = err.status
+    if ('statusCode' in err && err.statusCode !== undefined)
+      serialized.statusCode = err.statusCode
+    if ('constructor' in err && err.constructor?.name)
+      serialized.type = err.constructor.name
+
+    // Conditionally include stack trace - exclude for auth errors (401)
+    const statusCode =
+      'statusCode' in err && typeof err.statusCode === 'number'
+        ? err.statusCode
+        : 'status' in err && typeof err.status === 'number'
+          ? err.status
+          : undefined
+    const shouldIncludeStack = !statusCode || statusCode >= 500
+    if ('stack' in err && err.stack && shouldIncludeStack) {
+      serialized.stack = err.stack
+    }
+
+    // Include any other enumerable properties
+    for (const key of Object.keys(err)) {
+      if (
+        !['message', 'stack', 'name', 'status', 'statusCode', 'type'].includes(
+          key,
+        )
+      ) {
+        serialized[key] = (err as Record<string, unknown>)[key]
+      }
+    }
+
+    return serialized
+  }
+}
+
+/**
  * Returns a serializer function for Fastify requests that redacts sensitive query parameters from the URL.
  *
  * The serializer extracts the HTTP method, URL, host, remote address, and remote port from the request, replacing the values of sensitive query parameters (`apiKey`, `password`, `token`, `plexToken`, `X-Plex-Token`) in the URL with `[REDACTED]`.
@@ -130,6 +186,8 @@ function getTerminalOptions(): LoggerOptions {
     },
     serializers: {
       req: createRequestSerializer(),
+      err: createErrorSerializer(),
+      error: createErrorSerializer(),
     },
   }
 }
@@ -145,6 +203,8 @@ function getFileOptions(): FileLoggerOptions {
     stream: getFileStream(),
     serializers: {
       req: createRequestSerializer(),
+      err: createErrorSerializer(),
+      error: createErrorSerializer(),
     },
   }
 }
@@ -213,6 +273,8 @@ export function createLoggerConfig(
         stream: multistream,
         serializers: {
           req: createRequestSerializer(),
+          err: createErrorSerializer(),
+          error: createErrorSerializer(),
         },
       }
     }

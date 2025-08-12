@@ -81,7 +81,7 @@ export async function getTopGenres(
     )
     return sortedGenres
   } catch (error) {
-    this.log.error('Error in getTopGenres:', error)
+    this.log.error({ error }, 'Error in getTopGenres:')
     throw error
   }
 }
@@ -483,7 +483,10 @@ export async function getAverageTimeFromGrabbedToNotified(
 
     return rows
   } catch (error) {
-    this.log.error('Error calculating time from grabbed to notified:', error)
+    this.log.error(
+      { error },
+      'Error calculating time from grabbed to notified:',
+    )
     throw error
   }
 }
@@ -673,8 +676,8 @@ export async function getDetailedStatusTransitionMetrics(
     return results
   } catch (error) {
     this.log.error(
-      'Error calculating detailed status transition metrics:',
-      error,
+      { error },
+      'Error calculating detailed status transition metrics',
     )
     throw error
   }
@@ -859,7 +862,7 @@ export async function getStatusFlowData(this: DatabaseService): Promise<
 
     return formattedResults
   } catch (error) {
-    this.log.error('Error calculating status flow data:', error)
+    this.log.error({ error }, 'Error calculating status flow data:')
     throw error
   }
 }

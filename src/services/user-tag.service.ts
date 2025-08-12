@@ -180,8 +180,8 @@ export class UserTagService {
         )
       } catch (error) {
         this.log.error(
+          { error },
           `Failed to create tag "${tagInfo.label}" for user ${tagInfo.user.name}:`,
-          error,
         )
         failedCount++
       }
@@ -247,15 +247,15 @@ export class UserTagService {
           )
         } catch (instanceError) {
           this.log.error(
+            { error: instanceError },
             `Error processing tags for Sonarr instance ${instance.name}:`,
-            instanceError,
           )
         }
       }
 
       return results
     } catch (error) {
-      this.log.error('Error creating Sonarr user tags:', error)
+      this.log.error({ error }, 'Error creating Sonarr user tags:')
       throw error
     }
   }
@@ -317,15 +317,15 @@ export class UserTagService {
           )
         } catch (instanceError) {
           this.log.error(
+            { error: instanceError },
             `Error processing tags for Radarr instance ${instance.name}:`,
-            instanceError,
           )
         }
       }
 
       return results
     } catch (error) {
-      this.log.error('Error creating Radarr user tags:', error)
+      this.log.error({ error }, 'Error creating Radarr user tags:')
       throw error
     }
   }
@@ -549,8 +549,8 @@ export class UserTagService {
                     ]
                   } catch (tagError) {
                     this.log.error(
+                      { error: tagError },
                       'Failed to create special removed tag. Cannot proceed with special-tag mode:',
-                      tagError,
                     )
                     throw tagError
                   }
@@ -581,8 +581,8 @@ export class UserTagService {
               }
             } catch (showError) {
               this.log.error(
+                { error: showError },
                 `Error processing show "${show.title}":`,
-                showError,
               )
               instanceResults.failed++
             }
@@ -597,8 +597,8 @@ export class UserTagService {
               )
             } catch (bulkError) {
               this.log.error(
+                { error: bulkError },
                 `Bulk update failed for Sonarr instance ${instance.name}, falling back to individual updates:`,
-                bulkError,
               )
 
               // Fallback to individual updates
@@ -610,8 +610,8 @@ export class UserTagService {
                   )
                 } catch (individualError) {
                   this.log.error(
+                    { error: individualError },
                     `Individual update failed for series ID ${update.seriesId}:`,
-                    individualError,
                   )
                   instanceResults.failed++
                   // Don't decrement tagged - it was never successfully updated
@@ -627,8 +627,8 @@ export class UserTagService {
           return instanceResults
         } catch (instanceError) {
           this.log.error(
+            { error: instanceError },
             `Error processing Sonarr instance ${instance.name} for tagging:`,
-            instanceError,
           )
           return { tagged: 0, skipped: 0, failed: 0 }
         }
@@ -646,7 +646,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error tagging Sonarr content:', error)
+      this.log.error({ error }, 'Error tagging Sonarr content:')
       throw error
     }
   }
@@ -870,8 +870,8 @@ export class UserTagService {
                     ]
                   } catch (tagError) {
                     this.log.error(
+                      { error: tagError },
                       'Failed to create special removed tag. Cannot proceed with special-tag mode:',
-                      tagError,
                     )
                     throw tagError
                   }
@@ -902,8 +902,8 @@ export class UserTagService {
               }
             } catch (movieError) {
               this.log.error(
+                { error: movieError },
                 `Error processing movie "${movie.title}":`,
-                movieError,
               )
               instanceResults.failed++
             }
@@ -918,8 +918,8 @@ export class UserTagService {
               )
             } catch (bulkError) {
               this.log.error(
+                { error: bulkError },
                 `Bulk update failed for Radarr instance ${instance.name}, falling back to individual updates:`,
-                bulkError,
               )
 
               // Fallback to individual updates
@@ -931,8 +931,8 @@ export class UserTagService {
                   )
                 } catch (individualError) {
                   this.log.error(
+                    { error: individualError },
                     `Individual update failed for movie ID ${update.movieId}:`,
-                    individualError,
                   )
                   instanceResults.failed++
                   // Don't decrement tagged - it was never successfully updated
@@ -948,8 +948,8 @@ export class UserTagService {
           return instanceResults
         } catch (instanceError) {
           this.log.error(
+            { error: instanceError },
             `Error processing Radarr instance ${instance.name} for tagging:`,
-            instanceError,
           )
           return { tagged: 0, skipped: 0, failed: 0 }
         }
@@ -967,7 +967,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error tagging Radarr content:', error)
+      this.log.error({ error }, 'Error tagging Radarr content:')
       throw error
     }
   }
@@ -1044,7 +1044,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error syncing Sonarr tags:', error)
+      this.log.error({ error }, 'Error syncing Sonarr tags:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -1052,7 +1052,9 @@ export class UserTagService {
           type: 'sonarr-tagging',
           phase: 'error',
           progress: 100,
-          message: `Error syncing Sonarr tags: ${error}`,
+          message: `Error syncing Sonarr tags: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         })
       }
 
@@ -1132,7 +1134,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error syncing Radarr tags:', error)
+      this.log.error({ error }, 'Error syncing Radarr tags:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -1140,7 +1142,9 @@ export class UserTagService {
           type: 'radarr-tagging',
           phase: 'error',
           progress: 100,
-          message: `Error syncing Radarr tags: ${error}`,
+          message: `Error syncing Radarr tags: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         })
       }
 
@@ -1185,7 +1189,10 @@ export class UserTagService {
             },
           })
         } catch (cleanupError) {
-          this.log.error('Error during orphaned tag cleanup:', cleanupError)
+          this.log.error(
+            { error: cleanupError },
+            'Error during orphaned tag cleanup:',
+          )
         }
       }
 
@@ -1208,7 +1215,7 @@ export class UserTagService {
         orphanedCleanup,
       }
     } catch (error) {
-      this.log.error('Error in tag synchronization:', error)
+      this.log.error({ error }, 'Error in tag synchronization:')
       throw error
     }
   }
@@ -1261,7 +1268,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error cleaning up orphaned user tags:', error)
+      this.log.error({ error }, 'Error cleaning up orphaned user tags:')
       throw error
     }
   }
@@ -1343,8 +1350,8 @@ export class UserTagService {
             }
           } catch (error) {
             this.log.error(
+              { error },
               `Error collecting data from instance ${instance.name}:`,
-              error,
             )
             return null
           }
@@ -1430,8 +1437,8 @@ export class UserTagService {
               results.itemsUpdated++
             } catch (error) {
               this.log.error(
+                { error },
                 `Error processing series "${item.title}" for tag removal:`,
-                error,
               )
               results.failed++
             }
@@ -1458,8 +1465,8 @@ export class UserTagService {
                   await service.updateSeriesTags(update.seriesId, update.tagIds)
                 } catch (individualError) {
                   this.log.error(
+                    { error: individualError },
                     `Failed to update series ${update.seriesId} individually:`,
-                    individualError,
                   )
                   results.failed++
                   // Don't decrement itemsUpdated - it was never successfully updated
@@ -1484,8 +1491,8 @@ export class UserTagService {
           }
         } catch (instanceError) {
           this.log.error(
+            { error: instanceError },
             `Error processing instance ${instance.name}:`,
-            instanceError,
           )
           results.failed += series.length
         }
@@ -1509,8 +1516,8 @@ export class UserTagService {
               results.tagsDeleted++
             } catch (error) {
               this.log.error(
+                { error },
                 `Error deleting tag ID ${tag.id} from Sonarr:`,
-                error,
               )
             }
           }
@@ -1529,7 +1536,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error removing Sonarr user tags:', error)
+      this.log.error({ error }, 'Error removing Sonarr user tags:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -1537,7 +1544,9 @@ export class UserTagService {
           type: 'sonarr-tag-removal',
           phase: 'error',
           progress: 100,
-          message: `Error removing Sonarr user tags: ${error}`,
+          message: `Error removing Sonarr user tags: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         })
       }
 
@@ -1622,8 +1631,8 @@ export class UserTagService {
             }
           } catch (error) {
             this.log.error(
+              { error },
               `Error collecting data from instance ${instance.name}:`,
-              error,
             )
             return null
           }
@@ -1711,8 +1720,8 @@ export class UserTagService {
               results.itemsUpdated++
             } catch (error) {
               this.log.error(
+                { error },
                 `Error processing movie "${item.title}" for tag removal:`,
-                error,
               )
               results.failed++
             }
@@ -1739,8 +1748,8 @@ export class UserTagService {
                   await service.updateMovieTags(update.movieId, update.tagIds)
                 } catch (individualError) {
                   this.log.error(
+                    { error: individualError },
                     `Failed to update movie ${update.movieId} individually:`,
-                    individualError,
                   )
                   results.failed++
                   // Don't decrement itemsUpdated - it was never successfully updated
@@ -1765,8 +1774,8 @@ export class UserTagService {
           }
         } catch (instanceError) {
           this.log.error(
+            { error: instanceError },
             `Error processing instance ${instance.name}:`,
-            instanceError,
           )
           results.failed += movies.length
         }
@@ -1790,8 +1799,8 @@ export class UserTagService {
               results.tagsDeleted++
             } catch (error) {
               this.log.error(
+                { error },
                 `Error deleting tag ID ${tag.id} from Radarr:`,
-                error,
               )
             }
           }
@@ -1810,7 +1819,7 @@ export class UserTagService {
 
       return results
     } catch (error) {
-      this.log.error('Error removing Radarr user tags:', error)
+      this.log.error({ error }, 'Error removing Radarr user tags:')
 
       if (emitProgress) {
         this.fastify.progress.emit({
@@ -1818,7 +1827,9 @@ export class UserTagService {
           type: 'radarr-tag-removal',
           phase: 'error',
           progress: 100,
-          message: `Error removing Radarr user tags: ${error}`,
+          message: `Error removing Radarr user tags: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         })
       }
 
@@ -1882,7 +1893,7 @@ export class UserTagService {
         radarr: radarrResults,
       }
     } catch (error) {
-      this.log.error('Error in complete tag removal:', error)
+      this.log.error({ error }, 'Error in complete tag removal:')
       throw error
     }
   }
@@ -1958,7 +1969,7 @@ export class UserTagService {
 
       return removedTagId
     } catch (error) {
-      this.log.error(`Error creating removed tag for ${itemName}:`, error)
+      this.log.error({ error }, `Error creating removed tag for ${itemName}:`)
       throw error
     }
   }
@@ -2069,8 +2080,8 @@ export class UserTagService {
             results.removed++
           } catch (error) {
             this.log.error(
+              { error },
               `Error processing series "${seriesDetail.title}" for orphaned tag cleanup:`,
-              error,
             )
             results.failed++
           }
@@ -2098,8 +2109,8 @@ export class UserTagService {
                 )
               } catch (individualError) {
                 this.log.error(
+                  { error: individualError },
                   `Individual orphaned tag cleanup failed for series ID ${update.seriesId}:`,
-                  individualError,
                 )
                 results.failed++
                 // Don't decrement removed - it was never successfully updated
@@ -2115,8 +2126,8 @@ export class UserTagService {
         sonarrInstancesProcessed++
       } catch (instanceError) {
         this.log.error(
+          { error: instanceError },
           `Error processing Sonarr instance ${instance.name} for orphaned tag cleanup:`,
-          instanceError,
         )
         sonarrInstancesProcessed++
       }
@@ -2217,8 +2228,8 @@ export class UserTagService {
             results.removed++
           } catch (error) {
             this.log.error(
+              { error },
               `Error processing movie "${movieDetail.title}" for orphaned tag cleanup:`,
-              error,
             )
             results.failed++
           }
@@ -2246,8 +2257,8 @@ export class UserTagService {
                 )
               } catch (individualError) {
                 this.log.error(
+                  { error: individualError },
                   `Individual orphaned tag cleanup failed for movie ID ${update.movieId}:`,
-                  individualError,
                 )
                 results.failed++
                 // Don't decrement removed - it was never successfully updated
@@ -2263,8 +2274,8 @@ export class UserTagService {
         radarrInstancesProcessed++
       } catch (instanceError) {
         this.log.error(
+          { error: instanceError },
           `Error processing Radarr instance ${instance.name} for orphaned tag cleanup:`,
-          instanceError,
         )
         radarrInstancesProcessed++
       }

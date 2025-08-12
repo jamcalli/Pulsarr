@@ -21,7 +21,7 @@ export default fp(
 
     // Only proceed if we have an Apprise URL configured
     if (appriseUrl) {
-      fastify.log.info(`Found Apprise URL in configuration: ${appriseUrl}`)
+      fastify.log.info('Found Apprise URL in configuration')
 
       // Add a delay before checking
       const delayedCheck = async () => {
@@ -40,7 +40,7 @@ export default fp(
             fastify.log.info(
               'Apprise notification service is configured and enabled',
             )
-            fastify.log.info(`Using Apprise container at: ${appriseUrl}`)
+            fastify.log.info('Using configured Apprise container')
           } else {
             fastify.log.warn(
               'Could not connect to Apprise container, notifications will be disabled',
@@ -48,14 +48,17 @@ export default fp(
             await fastify.updateConfig({ enableApprise: false })
           }
         } catch (error) {
-          fastify.log.error('Error connecting to Apprise container:', error)
+          fastify.log.error({ error }, 'Error connecting to Apprise container:')
           await fastify.updateConfig({ enableApprise: false })
         }
       }
 
       // Start the delayed check - don't await it
       delayedCheck().catch((error) => {
-        fastify.log.error('Unexpected error in Apprise initialization:', error)
+        fastify.log.error(
+          { error },
+          'Unexpected error in Apprise initialization:',
+        )
       })
     } else {
       fastify.log.info(

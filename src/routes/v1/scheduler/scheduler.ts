@@ -10,6 +10,7 @@ import {
   type ScheduleConfig,
   type ScheduleUpdate,
 } from '@schemas/scheduler/scheduler.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get all job schedules
@@ -34,7 +35,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const schedules = await fastify.db.getAllSchedules()
         return schedules
       } catch (err) {
-        fastify.log.error('Error fetching schedules:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch schedules',
+        })
         return reply.internalServerError('Unable to fetch schedules')
       }
     },
@@ -75,7 +78,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error fetching schedule:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch schedule',
+          scheduleName: request.params.name,
+        })
         return reply.internalServerError('Unable to fetch schedule')
       }
     },
@@ -142,7 +148,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             message: `Schedule "${scheduleData.name}" created`,
           }
         } catch (error) {
-          fastify.log.error('Error creating schedule:', error)
+          logRouteError(fastify.log, request, error, {
+            message: 'Failed to create schedule',
+            scheduleName: scheduleData.name,
+          })
           return reply.internalServerError(
             `Failed to create schedule "${scheduleData.name}"`,
           )
@@ -152,7 +161,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error processing schedule:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to process schedule request',
+        })
         return reply.internalServerError('Unable to process schedule request')
       }
     },
@@ -212,7 +223,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error updating schedule:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to update schedule',
+          scheduleName: request.params.name,
+        })
         return reply.internalServerError('Unable to update schedule')
       }
     },
@@ -266,7 +280,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error deleting schedule:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to delete schedule',
+          scheduleName: request.params.name,
+        })
         return reply.internalServerError('Unable to delete schedule')
       }
     },
@@ -314,7 +331,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error running job:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to run job',
+          jobName: request.params.name,
+        })
         return reply.internalServerError('Unable to run job')
       }
     },
@@ -375,7 +395,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error toggling schedule status:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to toggle schedule status',
+          scheduleName: request.params.name,
+          enabled: request.body.enabled,
+        })
         return reply.internalServerError('Unable to toggle schedule status')
       }
     },
@@ -402,7 +426,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Scheduler'],
       },
     },
-    async (_request, reply) => {
+    async (request, reply) => {
       try {
         const jobName = 'delete-sync'
         const schedule = await fastify.db.getScheduleByName(jobName)
@@ -437,7 +461,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error in delete sync dry run:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to run delete sync dry run',
+        })
         return reply.internalServerError('Failed to run delete sync dry run')
       }
     },

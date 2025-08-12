@@ -66,19 +66,22 @@ export class RadarrService {
   }
 
   private mapConnectionErrorToMessage(error: Error): string {
-    if (error.name === 'AbortError') {
+    // Prefer undici/Node fetch cause codes when available
+    const cause = error.cause as { code?: string } | undefined
+    const code = cause?.code
+    if (error.name === 'AbortError' || code === 'ABORT_ERR') {
       return 'Connection timeout. Please check your base URL and network connection.'
     }
-    if (error.message.includes('ECONNREFUSED')) {
+    if (code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
       return 'Connection refused. Please check if Radarr is running and the URL is correct.'
     }
-    if (error.message.includes('ENOTFOUND')) {
+    if (code === 'ENOTFOUND' || error.message.includes('ENOTFOUND')) {
       return 'Server not found. Please check your base URL.'
     }
-    if (error.message.includes('ETIMEDOUT')) {
+    if (code === 'ETIMEDOUT' || error.message.includes('ETIMEDOUT')) {
       return 'Connection timeout. Please check your network and firewall settings.'
     }
-    if (error.message.includes('ECONNRESET')) {
+    if (code === 'ECONNRESET' || error.message.includes('ECONNRESET')) {
       return 'Connection was reset. Please check your network stability.'
     }
     return 'Network error. Please check your connection and base URL.'
@@ -264,10 +267,9 @@ export class RadarrService {
         this.log.debug('Webhook creation response for Radarr:', response)
       } catch (createError) {
         this.log.error(
-          'Error creating webhook for Radarr. Full config:',
-          webhookConfig,
+          { error: createError, endpoint: 'notification' },
+          'Error creating webhook for Radarr (config omitted)',
         )
-        this.log.error('Creation error details:', createError)
 
         let errorMessage = 'Failed to create webhook'
         if (createError instanceof HttpError) {
@@ -296,7 +298,7 @@ export class RadarrService {
 
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error('Failed to setup webhook for Radarr:', error)
+      this.log.error({ error }, 'Failed to setup webhook for Radarr:')
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -319,7 +321,7 @@ export class RadarrService {
         this.log.info('Successfully removed Pulsarr webhook for Radarr')
       }
     } catch (error) {
-      this.log.error('Failed to remove webhook for Radarr:', error)
+      this.log.error({ error }, 'Failed to remove webhook for Radarr:')
       throw error
     }
   }
@@ -389,16 +391,16 @@ export class RadarrService {
             await this.setupWebhook()
           } catch (error) {
             this.log.error(
-              `Failed to setup webhook for instance ${instance.name} after server start:`,
-              error,
+              { error, instanceName: instance.name },
+              'Failed to setup webhook after server start',
             )
           }
         })
       }
     } catch (error) {
       this.log.error(
-        `Failed to initialize Radarr service for instance ${instance.name}:`,
-        error,
+        { error, instanceName: instance.name },
+        'Failed to initialize Radarr service for instance',
       )
       throw error
     }
@@ -459,7 +461,7 @@ export class RadarrService {
         await this.getFromRadarr<QualityProfile[]>('qualityprofile')
       return profiles
     } catch (err) {
-      this.log.error(`Error fetching quality profiles: ${err}`)
+      this.log.error({ error: err }, 'Error fetching quality profiles')
       throw err
     }
   }
@@ -469,7 +471,7 @@ export class RadarrService {
       const rootFolders = await this.getFromRadarr<RootFolder[]>('rootfolder')
       return rootFolders
     } catch (err) {
-      this.log.error(`Error fetching root folders: ${err}`)
+      this.log.error({ error: err }, 'Error fetching root folders')
       throw err
     }
   }
@@ -478,7 +480,7 @@ export class RadarrService {
     try {
       return await this.getFromRadarr<RadarrMovie[]>('movie')
     } catch (error) {
-      this.log.error('Error fetching all movies:', error)
+      this.log.error({ error }, 'Error fetching all movies:')
       throw error
     }
   }
@@ -495,7 +497,7 @@ export class RadarrService {
       const movieItems = movies.map((movie) => this.toItem(movie))
       return new Set([...movieItems, ...exclusions])
     } catch (err) {
-      this.log.error(`Error fetching movies: ${err}`)
+      this.log.error({ error: err }, 'Error fetching movies')
       throw err
     }
   }
@@ -521,7 +523,8 @@ export class RadarrService {
       }
     } catch (err) {
       this.log.error(
-        `Error checking movie existence for TMDB ${tmdbId}: ${err}`,
+        { error: err, tmdbId },
+        'Error checking movie existence for TMDB',
       )
       return {
         found: false,
@@ -584,7 +587,7 @@ export class RadarrService {
       this.log.info(`Fetched all movie ${allExclusions.length} exclusions`)
       return new Set(allExclusions.map((movie) => this.toItem(movie)))
     } catch (err) {
-      this.log.error(`Error fetching exclusions: ${err}`)
+      this.log.error({ error: err }, 'Error fetching exclusions')
       throw err
     }
   }
@@ -775,7 +778,8 @@ export class RadarrService {
       )
     } catch (err) {
       this.log.debug(
-        `Received warning for sending ${item.title} to Radarr: ${err}`,
+        { error: err, title: item.title },
+        'Send to Radarr failed (rethrowing upstream)',
       )
       throw err
     }
@@ -819,7 +823,7 @@ export class RadarrService {
       await this.deleteFromRadarrById(matchingRadarrId, deleteFiles)
       this.log.info(`Deleted ${item.title} from Radarr`)
     } catch (err) {
-      this.log.error(`Error deleting from Radarr: ${err}`)
+      this.log.error({ error: err }, 'Error deleting from Radarr')
       throw err
     }
   }
@@ -1078,7 +1082,7 @@ export class RadarrService {
         }
       }
     } catch (error) {
-      this.log.error('Connection test error:', error)
+      this.log.error({ error }, 'Connection test error:')
 
       if (error instanceof Error) {
         if (error.message.includes('Invalid URL')) {
@@ -1176,7 +1180,7 @@ export class RadarrService {
       await this.postToRadarr('notification', plexConfig)
       this.log.info('Successfully configured Plex notification')
     } catch (error) {
-      this.log.error('Error configuring Plex notification:', error)
+      this.log.error({ error }, 'Error configuring Plex notification:')
       throw error
     }
   }
@@ -1198,7 +1202,7 @@ export class RadarrService {
         this.log.info('No Plex notification found to remove from Radarr')
       }
     } catch (error) {
-      this.log.error('Error removing Plex notification from Radarr:', error)
+      this.log.error({ error }, 'Error removing Plex notification from Radarr:')
       throw error
     }
   }
@@ -1270,8 +1274,8 @@ export class RadarrService {
       return tags
     } catch (error) {
       this.log.error(
-        `Failed to refresh tags cache for Radarr instance ${instanceId}:`,
-        error,
+        { error, instanceId },
+        'Failed to refresh tags cache for Radarr instance',
       )
 
       // If cache refresh fails but we have stale data, return that
@@ -1368,7 +1372,7 @@ export class RadarrService {
 
       this.log.debug(`Updated tags for movie ID ${movieId}`, { tagIds })
     } catch (error) {
-      this.log.error(`Failed to update tags for movie ${movieId}:`, error)
+      this.log.error({ error }, `Failed to update tags for movie ${movieId}:`)
       throw error
     }
   }
@@ -1428,7 +1432,7 @@ export class RadarrService {
         `Bulk updated tags for ${updates.length} movies across ${tagGroups.size} tag groups`,
       )
     } catch (error) {
-      this.log.error('Failed to bulk update movie tags:', error)
+      this.log.error({ error }, 'Failed to bulk update movie tags:')
       throw error
     }
   }

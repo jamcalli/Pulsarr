@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { randomUUID } from 'node:crypto'
 import { on } from 'node:events'
 import { ProgressStreamResponseSchema } from '@schemas/progress/progress.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const progressRoute: FastifyPluginAsync = async (fastify) => {
   fastify.get(
@@ -28,7 +29,10 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
         try {
           progressService.removeConnection(connectionId)
         } catch (error) {
-          fastify.log.error('Error removing progress connection:', error)
+          logRouteError(fastify.log, request, error, {
+            message: 'Failed to remove progress connection',
+            connectionId,
+          })
         }
       })
 
@@ -45,7 +49,10 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
               }
             }
           } catch (error) {
-            fastify.log.error('SSE stream error:', error)
+            logRouteError(fastify.log, request, error, {
+              message: 'SSE stream error',
+              connectionId,
+            })
             // The generator will terminate, closing the SSE connection
           }
         })(),

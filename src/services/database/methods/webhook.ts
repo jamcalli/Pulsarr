@@ -34,7 +34,7 @@ export async function createPendingWebhook(
       expires_at: webhook.expires_at,
     }
   } catch (error) {
-    this.log.error('Error creating pending webhook:', error)
+    this.log.error({ error }, 'Error creating pending webhook:')
     throw new Error('Failed to create pending webhook')
   }
 }
@@ -78,7 +78,7 @@ export async function getPendingWebhooks(
       expires_at: new Date(webhook.expires_at),
     }))
   } catch (error) {
-    this.log.error('Error getting pending webhooks:', error)
+    this.log.error({ error }, 'Error getting pending webhooks:')
     return []
   }
 }
@@ -98,7 +98,7 @@ export async function deletePendingWebhook(
 
     return deleted > 0
   } catch (error) {
-    this.log.error(`Error deleting pending webhook ${id}:`, error)
+    this.log.error({ error }, `Error deleting pending webhook ${id}:`)
     return false
   }
 }
@@ -118,7 +118,7 @@ export async function cleanupExpiredWebhooks(
 
     return deleted
   } catch (error) {
-    this.log.error('Error cleaning up expired webhooks:', error)
+    this.log.error({ error }, 'Error cleaning up expired webhooks:')
     return 0
   }
 }
@@ -163,7 +163,7 @@ export async function getWebhooksByGuid(
       expires_at: new Date(webhook.expires_at),
     }))
   } catch (error) {
-    this.log.error(`Error getting webhooks for ${guid}:`, error)
+    this.log.error({ error }, `Error getting webhooks for ${guid}:`)
     return []
   }
 }

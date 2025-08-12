@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   UserListResponseSchema,
   UserListWithCountsResponseSchema,
@@ -25,7 +26,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Users'],
       },
     },
-    async (_, reply) => {
+    async (request, reply) => {
       try {
         const dbUsers = await fastify.db.getAllUsers()
 
@@ -58,7 +59,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error retrieving users:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to retrieve users list',
+        })
         return reply.internalServerError('Unable to retrieve users')
       }
     },
@@ -83,7 +86,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         tags: ['Users'],
       },
     },
-    async (_, reply) => {
+    async (request, reply) => {
       try {
         const dbUsers = await fastify.db.getUsersWithWatchlistCount()
 
@@ -116,7 +119,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
 
-        fastify.log.error('Error retrieving users with counts:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to retrieve users with watchlist counts',
+        })
         return reply.internalServerError('Unable to retrieve users with counts')
       }
     },

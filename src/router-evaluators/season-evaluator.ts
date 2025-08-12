@@ -216,14 +216,24 @@ export default function createSeasonEvaluator(
     }
 
     if (isSeasonRange(value) && operator === 'between') {
-      const minSeason =
-        typeof value.min === 'number' ? value.min : Number.NEGATIVE_INFINITY
-      const maxSeason =
-        typeof value.max === 'number' ? value.max : Number.POSITIVE_INFINITY
-
-      const minSeen = Math.min(...seasons)
-      const maxSeen = Math.max(...seasons)
-      return minSeen <= maxSeason && maxSeen >= minSeason
+      // Only treat finite numeric bounds; undefined-only ranges should not match
+      const seasonRange = value as SeasonRange
+      const rawMin = seasonRange.min
+      const rawMax = seasonRange.max
+      const hasMin = typeof rawMin === 'number' && Number.isFinite(rawMin)
+      const hasMax = typeof rawMax === 'number' && Number.isFinite(rawMax)
+      if (!hasMin && !hasMax) {
+        return false
+      }
+      let minSeason: number = hasMin ? rawMin : Number.NEGATIVE_INFINITY
+      let maxSeason: number = hasMax ? rawMax : Number.POSITIVE_INFINITY
+      // Swap reversed bounds for greater robustness
+      if (minSeason > maxSeason) {
+        ;[minSeason, maxSeason] = [maxSeason, minSeason]
+      }
+      return seasons.some(
+        (season) => season >= minSeason && season <= maxSeason,
+      )
     }
 
     return false
@@ -265,7 +275,15 @@ export default function createSeasonEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('season')
       } catch (err) {
-        fastify.log.error({ err }, 'Season evaluator - DB query failed')
+        fastify.log.error(
+          {
+            error: err instanceof Error ? err : new Error(String(err)),
+            evaluator: 'season',
+            op: 'getRouterRulesByType',
+            targetType: 'season',
+          },
+          'Season evaluator - DB query failed',
+        )
         return null
       }
 
@@ -276,7 +294,7 @@ export default function createSeasonEvaluator(
 
       // Find matching rules based on season criteria
       const matchingRules = sonarrRules.filter((rule) => {
-        if (!rule.criteria || !rule.criteria.season) {
+        if (!rule.criteria || !('season' in rule.criteria)) {
           return false
         }
 
@@ -301,7 +319,7 @@ export default function createSeasonEvaluator(
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
-        priority: rule.order || 50, // Default to 50 if not specified
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,

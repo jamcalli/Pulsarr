@@ -4,6 +4,7 @@ import {
   PingSuccessSchema,
   PingErrorSchema,
 } from '@schemas/plex/ping.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 export const pingRoute: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
@@ -22,12 +23,14 @@ export const pingRoute: FastifyPluginAsync = async (fastify) => {
         tags: ['Plex'],
       },
     },
-    async (_request, reply) => {
+    async (request, reply) => {
       try {
         const success = await fastify.plexWatchlist.pingPlex()
         return { success }
       } catch (error) {
-        fastify.log.error(error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to ping Plex server',
+        })
         return reply.internalServerError('Failed to connect to Plex')
       }
     },

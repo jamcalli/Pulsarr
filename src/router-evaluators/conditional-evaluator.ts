@@ -105,8 +105,14 @@ export default function createConditionalEvaluator(
         rules = await fastify.db.getRouterRulesByType('conditional')
       } catch (err) {
         fastify.log.error(
-          { err },
-          'Conditional evaluator (canEvaluate) - DB query failed',
+          {
+            error: err,
+            scope: 'conditional-evaluator',
+            phase: 'canEvaluate',
+            op: 'getRouterRulesByType',
+            contentType: context.contentType,
+          },
+          'DB query failed',
         )
         return false
       }
@@ -131,8 +137,14 @@ export default function createConditionalEvaluator(
         rules = await fastify.db.getRouterRulesByType('conditional')
       } catch (err) {
         fastify.log.error(
-          { err },
-          'Conditional evaluator (evaluate) - DB query failed',
+          {
+            error: err,
+            scope: 'conditional-evaluator',
+            phase: 'evaluate',
+            op: 'getRouterRulesByType',
+            contentType: context.contentType,
+          },
+          'DB query failed',
         )
         return null
       }
@@ -147,7 +159,7 @@ export default function createConditionalEvaluator(
         return null
       }
 
-      const matchingRules = []
+      const matchingRules: RouterRule[] = []
 
       for (const rule of contentTypeRules) {
         if (!rule.criteria || typeof rule.criteria.condition === 'undefined') {
@@ -156,7 +168,10 @@ export default function createConditionalEvaluator(
 
         const condition = rule.criteria.condition
         if (!isValidCondition(condition)) {
-          fastify.log.warn(`Invalid condition structure in rule "${rule.name}"`)
+          fastify.log.warn(
+            { scope: 'conditional-evaluator', ruleName: rule.name },
+            'Invalid condition structure in conditional-routing rule',
+          )
           continue
         }
 
@@ -169,13 +184,25 @@ export default function createConditionalEvaluator(
 
           if (isMatch) {
             fastify.log.debug(
-              `Conditional rule "${rule.name}" matched for item "${item.title}"`,
+              {
+                scope: 'conditional-evaluator',
+                ruleName: rule.name,
+                itemTitle: item.title,
+                contentType: context.contentType,
+              },
+              'Conditional rule matched for item',
             )
             matchingRules.push(rule)
           }
         } catch (error) {
           fastify.log.error(
-            `Error evaluating conditional rule "${rule.name}": ${error}`,
+            {
+              error,
+              scope: 'conditional-evaluator',
+              phase: 'evaluate',
+              ruleName: rule.name,
+            },
+            'Error evaluating conditional rule',
           )
         }
       }
@@ -189,7 +216,7 @@ export default function createConditionalEvaluator(
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
-        priority: rule.order || 50, // Default to 50 if not specified
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,

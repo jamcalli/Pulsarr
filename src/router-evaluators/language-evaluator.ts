@@ -151,7 +151,10 @@ export default function createLanguageEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('language')
       } catch (err) {
-        fastify.log.error({ err }, 'Language evaluator - DB query failed')
+        fastify.log.error(
+          { error: err },
+          'Language evaluator - DB query failed',
+        )
         return null
       }
 
@@ -251,7 +254,7 @@ export default function createLanguageEvaluator(
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
-        priority: rule.order || 50, // Default to 50 if not specified
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,

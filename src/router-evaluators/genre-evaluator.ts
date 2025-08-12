@@ -1,5 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import {
+  evaluateRegexSafelyMultiple,
+  evaluateRegexSafely,
+} from '@utils/regex-safety.js'
+import {
   type ContentItem,
   type RoutingContext,
   type RoutingDecision,
@@ -140,7 +144,7 @@ export default function createGenreEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('genre')
       } catch (err) {
-        fastify.log.error({ err }, 'Genre evaluator - DB query failed')
+        fastify.log.error({ error: err }, 'Genre evaluator - DB query failed')
         return null
       }
 
@@ -211,13 +215,12 @@ export default function createGenreEvaluator(
 
         if (operator === 'regex') {
           if (isString(genreValue)) {
-            try {
-              const regex = new RegExp(genreValue)
-              return Array.from(itemGenres).some((genre) => regex.test(genre))
-            } catch (error) {
-              fastify.log.error(`Invalid regex in genre rule: ${error}`)
-              return false
-            }
+            return evaluateRegexSafelyMultiple(
+              genreValue,
+              Array.from(itemGenres),
+              fastify.log,
+              'genre rule',
+            )
           }
         }
 
@@ -234,7 +237,7 @@ export default function createGenreEvaluator(
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
-        priority: rule.order || 50, // Default to 50 if not specified
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
@@ -302,14 +305,12 @@ export default function createGenreEvaluator(
           break
         case 'regex':
           if (isString(value)) {
-            try {
-              const regex = new RegExp(value)
-              matched = Array.from(itemGenres).some((genre) =>
-                regex.test(genre),
-              )
-            } catch (error) {
-              fastify.log.error(`Invalid regex in genre condition: ${error}`)
-            }
+            matched = evaluateRegexSafelyMultiple(
+              value,
+              Array.from(itemGenres),
+              fastify.log,
+              'genre condition',
+            )
           }
           break
       }

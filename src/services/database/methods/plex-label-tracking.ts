@@ -1170,8 +1170,8 @@ export async function removeTrackedLabels(
               })
             } catch (error) {
               this.log.error(
-                `Failed to remove labels for rating key ${plexRatingKey}`,
                 { error, plexRatingKey, labelsToRemove },
+                `Failed to remove labels for rating key ${plexRatingKey}`,
               )
               chunkResults.push({
                 plexRatingKey,
@@ -1263,8 +1263,8 @@ export async function removeTrackedLabels(
               })
             } catch (error) {
               this.log.error(
-                `Failed to remove labels for rating key ${plexRatingKey}`,
                 { error, plexRatingKey, labelsToRemove },
+                `Failed to remove labels for rating key ${plexRatingKey}`,
               )
               chunkResults.push({
                 plexRatingKey,

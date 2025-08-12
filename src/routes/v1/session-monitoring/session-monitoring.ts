@@ -10,6 +10,7 @@ import {
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import type { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
 import { serializeRollingShowDates } from '@utils/date-serializer.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 /**
  * Resets a rolling monitored show's monitoring state to its original configuration based on its monitoring type.
@@ -58,10 +59,12 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           shows: shows.map(serializeRollingShowDates),
         })
       } catch (error) {
-        request.log.error('Error fetching rolling monitored shows:', error)
-        return reply.code(400).send({
-          error: 'Failed to fetch rolling monitored shows',
+        logRouteError(request.log, request, error, {
+          message: 'Failed to fetch rolling monitored shows',
         })
+        return reply.internalServerError(
+          'Failed to fetch rolling monitored shows',
+        )
       }
     },
   )
@@ -75,9 +78,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         if (!fastify.config.plexSessionMonitoring?.enabled) {
-          return reply.code(400).send({
-            error: 'Session monitoring is not enabled',
-          })
+          return reply.badRequest('Session monitoring is not enabled')
         }
 
         request.log.info('Manually triggering session monitor')
@@ -88,10 +89,10 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           result,
         })
       } catch (error) {
-        request.log.error('Error running session monitor:', error)
-        return reply.code(400).send({
-          error: 'Failed to run session monitor',
+        logRouteError(request.log, request, error, {
+          message: 'Failed to run session monitor',
         })
+        return reply.internalServerError('Failed to run session monitor')
       }
     },
   )
@@ -114,9 +115,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
         const showId = Number.parseInt(id, 10)
 
         if (Number.isNaN(showId)) {
-          return reply.code(400).send({
-            error: 'Invalid show ID',
-          })
+          return reply.badRequest('Invalid show ID')
         }
 
         // Check if the show exists
@@ -124,9 +123,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.db.getRollingMonitoredShowById(showId)
 
         if (!existingShow) {
-          return reply.code(404).send({
-            error: 'Rolling monitored show not found',
-          })
+          return reply.notFound('Rolling monitored show not found')
         }
 
         // Check if reset is requested (for backwards compatibility, default to true)
@@ -152,10 +149,13 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
             : `Successfully removed ${existingShow.show_title} from rolling monitoring entirely (deleted ${deletedCount} total ${deletedCount === 1 ? 'entry' : 'entries'})`,
         })
       } catch (error) {
-        request.log.error('Error deleting rolling monitored show:', error)
-        return reply.code(400).send({
-          error: 'Failed to delete rolling monitored show',
+        logRouteError(request.log, request, error, {
+          message: 'Failed to delete rolling monitored show',
+          showId: request.params.id,
         })
+        return reply.internalServerError(
+          'Failed to delete rolling monitored show',
+        )
       }
     },
   )
@@ -177,9 +177,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
         const showId = Number.parseInt(id, 10)
 
         if (Number.isNaN(showId)) {
-          return reply.code(400).send({
-            error: 'Invalid show ID',
-          })
+          return reply.badRequest('Invalid show ID')
         }
 
         // Check if the show exists
@@ -187,9 +185,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.db.getRollingMonitoredShowById(showId)
 
         if (!existingShow) {
-          return reply.code(404).send({
-            error: 'Rolling monitored show not found',
-          })
+          return reply.notFound('Rolling monitored show not found')
         }
 
         // Reset the show based on its monitoring type
@@ -208,10 +204,13 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           message: `Successfully reset ${existingShow.show_title} to its original monitoring state${deletedUserEntries > 0 ? ` (removed ${deletedUserEntries} user ${deletedUserEntries === 1 ? 'entry' : 'entries'})` : ''}`,
         })
       } catch (error) {
-        request.log.error('Error resetting rolling monitored show:', error)
-        return reply.code(400).send({
-          error: 'Failed to reset rolling monitored show',
+        logRouteError(request.log, request, error, {
+          message: 'Failed to reset rolling monitored show',
+          showId: request.params.id,
         })
+        return reply.internalServerError(
+          'Failed to reset rolling monitored show',
+        )
       }
     },
   )
@@ -240,13 +239,13 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           inactivityDays,
         })
       } catch (error) {
-        request.log.error(
-          'Error fetching inactive rolling monitored shows:',
-          error,
-        )
-        return reply.code(400).send({
-          error: 'Failed to fetch inactive rolling monitored shows',
+        logRouteError(request.log, request, error, {
+          message: 'Failed to fetch inactive rolling monitored shows',
+          inactivityDays: request.query.inactivityDays || 7,
         })
+        return reply.internalServerError(
+          'Failed to fetch inactive rolling monitored shows',
+        )
       }
     },
   )
@@ -267,9 +266,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
         const inactivityDays = request.body.inactivityDays || 7
 
         if (inactivityDays < 1 || inactivityDays > 365) {
-          return reply.code(400).send({
-            error: 'Inactivity days must be between 1 and 365',
-          })
+          return reply.badRequest('Inactivity days must be between 1 and 365')
         }
 
         // Get inactive shows before resetting to count them
@@ -291,13 +288,13 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           resetCount: inactiveShows.length,
         })
       } catch (error) {
-        request.log.error(
-          'Error resetting inactive rolling monitored shows:',
-          error,
-        )
-        return reply.code(400).send({
-          error: 'Failed to reset inactive rolling monitored shows',
+        logRouteError(request.log, request, error, {
+          message: 'Failed to reset inactive rolling monitored shows',
+          inactivityDays: request.body.inactivityDays || 7,
         })
+        return reply.internalServerError(
+          'Failed to reset inactive rolling monitored shows',
+        )
       }
     },
   )

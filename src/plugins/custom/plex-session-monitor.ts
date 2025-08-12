@@ -65,7 +65,10 @@ export default fp(
                 )
               }
             } catch (error) {
-              fastify.log.error('Plex session monitoring task failed:', error)
+              fastify.log.error(
+                { error },
+                'Plex session monitoring task failed:',
+              )
             }
           },
         )
@@ -120,7 +123,10 @@ export default fp(
                 `Automatic reset task completed for shows inactive ${inactivityDays}+ days`,
               )
             } catch (error) {
-              fastify.log.error('Automatic rolling reset task failed:', error)
+              fastify.log.error(
+                { error },
+                'Automatic rolling reset task failed:',
+              )
             }
           },
         )

@@ -1,0 +1,141 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "security:openssf-scorecard"],
+  "baseBranches": ["develop"],
+  "timezone": "UTC",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "branchPrefix": "renovate/",
+  "pinDigests": true,
+  "labels": ["dependencies"],
+  "assignees": ["jamcalli"],
+  "reviewers": ["jamcalli"],
+  "packageRules": [
+    {
+      "description": "Group all Radix UI components",
+      "groupName": "Radix UI",
+      "matchPackagePatterns": ["^@radix-ui/"]
+    },
+    {
+      "description": "Group all Fastify plugins",
+      "groupName": "Fastify ecosystem",
+      "matchPackagePatterns": ["^@fastify/", "^fastify"],
+      "excludePackageNames": ["fastify-cli", "fastify-tsconfig"]
+    },
+    {
+      "description": "Group TypeScript types",
+      "groupName": "TypeScript types",
+      "matchPackagePatterns": ["^@types/"]
+    },
+    {
+      "description": "Group build tools",
+      "groupName": "Build tools",
+      "matchPackageNames": [
+        "vite",
+        "@vitejs/plugin-react",
+        "typescript",
+        "tsc-alias",
+        "tsx",
+        "@biomejs/biome"
+      ]
+    },
+    {
+      "description": "Group database dependencies",
+      "groupName": "Database",
+      "matchPackageNames": [
+        "knex",
+        "better-sqlite3",
+        "pg",
+        "@types/better-sqlite3",
+        "@types/pg"
+      ]
+    },
+    {
+      "description": "Group React ecosystem",
+      "groupName": "React",
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "react-hook-form",
+        "react-router-dom",
+        "@types/react",
+        "@types/react-dom"
+      ]
+    },
+    {
+      "description": "Group Tailwind ecosystem",
+      "groupName": "Tailwind CSS",
+      "matchPackageNames": [
+        "tailwindcss",
+        "@tailwindcss/postcss",
+        "postcss",
+        "autoprefixer",
+        "tailwind-merge",
+        "class-variance-authority"
+      ]
+    },
+    {
+      "description": "Prefer manual review for patch updates (security handled separately)",
+      "matchUpdateTypes": ["patch"],
+      "excludeManagers": ["github-actions"]
+    },
+    {
+      "description": "Separate major updates for manual review",
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "major-update"],
+      "reviewers": ["jamcalli"],
+      "prPriority": 10
+    },
+    {
+      "description": "Pin Node.js version updates",
+      "matchManagers": ["nvm", "nodenv", "asdf", "node-version"],
+      "rangeStrategy": "pin"
+    },
+    {
+      "description": "Weekly digest for dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "Dev dependencies (non-critical)",
+      "excludePackageNames": [
+        "typescript",
+        "@biomejs/biome",
+        "vite",
+        "@vitejs/plugin-react",
+        "tailwindcss",
+        "@tailwindcss/postcss",
+        "postcss",
+        "autoprefixer",
+        "tailwind-merge",
+        "class-variance-authority"
+      ],
+      "excludePackagePatterns": ["^@types/"]
+    },
+    {
+      "description": "Manage GitHub Actions and pin to commit SHAs",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "rangeStrategy": "pin",
+      "matchUpdateTypes": ["patch", "minor"],
+      "stabilityDays": 3,
+      "automerge": true,
+      "automergeType": "pr",
+      "internalChecksFilter": "strict"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "automerge": true,
+    "automergeType": "pr",
+    "schedule": ["at any time"],
+    "prPriority": 20,
+    "labels": ["security", "dependencies"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "osvVulnerabilityAlerts": true
+}

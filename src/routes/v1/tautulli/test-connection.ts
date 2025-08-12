@@ -6,6 +6,7 @@ import {
   type TestConnectionBody,
   type TestConnectionResponse,
 } from '@root/schemas/tautulli/tautulli.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -31,7 +32,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check if user has Plex Pass by verifying RSS feeds exist
-        const config = await fastify.db.getConfig()
+        const config = fastify.config
         if (!config?.selfRss || !config?.friendsRss) {
           return reply.badRequest(
             'Plex Pass is required for Tautulli integration. Please generate RSS feeds first to verify Plex Pass subscription.',
@@ -81,17 +82,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: data?.response?.message || 'Connection test failed',
         }
       } catch (error) {
-        fastify.log.error(error, 'Failed to test Tautulli connection')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to test Tautulli connection',
+        })
 
         let errorMessage = 'Connection test failed'
         if (error instanceof Error) {
           errorMessage = error.message
         }
 
-        return reply.status(500).send({
-          success: false,
-          message: errorMessage,
-        })
+        return reply.internalServerError(errorMessage)
       }
     },
   )

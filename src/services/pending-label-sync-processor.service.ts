@@ -93,7 +93,7 @@ export class PendingLabelSyncProcessorService {
 
       return result.updated
     } catch (error) {
-      this.log.error('Error processing pending label syncs:', error)
+      this.log.error({ error }, 'Error processing pending label syncs:')
       return 0
     } finally {
       this._processingSyncs = false
@@ -117,7 +117,7 @@ export class PendingLabelSyncProcessorService {
       const deleted = await this.db.expirePendingLabelSyncs()
       return deleted
     } catch (error) {
-      this.log.error('Error cleaning up expired label syncs:', error)
+      this.log.error({ error }, 'Error cleaning up expired label syncs:')
       return 0
     } finally {
       this._cleaningUp = false

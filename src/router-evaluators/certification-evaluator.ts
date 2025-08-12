@@ -13,7 +13,7 @@ import {
   isRadarrResponse,
   isSonarrResponse,
 } from '@root/types/content-lookup.types.js'
-import safeRegex from 'safe-regex'
+import { evaluateRegexSafely } from '@utils/regex-safety.js'
 
 /**
  * Creates a routing evaluator that determines routing decisions and evaluates conditions based on the certification or rating metadata of Radarr and Sonarr content items.
@@ -111,35 +111,6 @@ export default function createCertificationEvaluator(
     return undefined
   }
 
-  /**
-   * Evaluates whether the input string matches the provided regex pattern, rejecting unsafe or invalid patterns.
-   *
-   * @param pattern - The regex pattern to evaluate.
-   * @param input - The string to test against the pattern.
-   * @returns True if the input matches the pattern and the pattern is safe and valid; otherwise, false.
-   *
-   * @remark Unsafe regex patterns (as determined by `safe-regex`) and invalid regex syntax are rejected and logged.
-   */
-  function evaluateRegexSafely(pattern: string, input: string): boolean {
-    // Reject potentially catastrophic patterns using safe-regex
-    if (!safeRegex(pattern)) {
-      fastify.log.warn(
-        `Rejected unsafe regex in certification rule: ${pattern}`,
-      )
-      return false
-    }
-
-    try {
-      // Since we can't use async/await with timeouts here, we'll rely on safe-regex
-      // to filter out problematic patterns that could cause catastrophic backtracking
-      const regex = new RegExp(pattern)
-      return regex.test(input)
-    } catch (error) {
-      fastify.log.error(`Invalid regex in certification rule: ${error}`)
-      return false
-    }
-  }
-
   return {
     name: 'Certification Router',
     description: 'Routes content based on certification/rating',
@@ -177,7 +148,10 @@ export default function createCertificationEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('certification')
       } catch (err) {
-        fastify.log.error({ err }, 'Certification evaluator - DB query failed')
+        fastify.log.error(
+          { error: err },
+          'Certification evaluator - DB query failed',
+        )
         return null
       }
 
@@ -247,7 +221,12 @@ export default function createCertificationEvaluator(
               normalizedRuleCertification,
             )
           case 'regex':
-            return evaluateRegexSafely(ruleCertification, certification)
+            return evaluateRegexSafely(
+              ruleCertification,
+              certification,
+              fastify.log,
+              'certification rule',
+            )
           default:
             // Default to equals for backward compatibility
             return normalizedCertification === normalizedRuleCertification
@@ -264,7 +243,7 @@ export default function createCertificationEvaluator(
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
-        priority: rule.order || 50, // Default to 50 if not specified
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
@@ -338,7 +317,12 @@ export default function createCertificationEvaluator(
           break
         case 'regex':
           if (typeof value === 'string') {
-            result = evaluateRegexSafely(value, certification)
+            result = evaluateRegexSafely(
+              value,
+              certification,
+              fastify.log,
+              'certification condition',
+            )
           }
           break
       }
