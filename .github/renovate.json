@@ -133,6 +133,12 @@
       "matchUpdateTypes": ["major"],
       "automerge": false,
       "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "High priority for vulnerability alerts",
+      "matchDatasources": ["*"],
+      "vulnerabilityAlerts": true,
+      "prPriority": 20
     }
   ],
   "vulnerabilityAlerts": {
@@ -140,7 +146,6 @@
     "automerge": true,
     "automergeType": "pr",
     "schedule": ["at any time"],
-    "prPriority": 20,
     "labels": ["security", "dependencies"]
   },
   "lockFileMaintenance": {
