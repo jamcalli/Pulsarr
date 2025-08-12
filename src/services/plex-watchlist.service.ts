@@ -178,6 +178,24 @@ export class PlexWatchlistService {
       thumb?: string
     },
   ): Promise<boolean> {
+    // Check if user has sync enabled before sending any notifications
+    try {
+      const dbUser = await this.dbService.getUser(user.userId)
+      if (!dbUser || !dbUser.can_sync) {
+        this.log.info(
+          `Skipping notification for user ${user.username} (ID: ${user.userId}) - sync disabled`,
+          { userId: user.userId, canSync: dbUser?.can_sync || false },
+        )
+        return false
+      }
+    } catch (error) {
+      this.log.error(
+        { error, userId: user.userId },
+        'Error checking user sync status for notifications',
+      )
+      return false
+    }
+
     const username = user.username || 'Unknown User'
     let discordSent = false
     let appriseSent = false
