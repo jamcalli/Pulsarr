@@ -122,7 +122,7 @@
       "description": "Auto-merge patch/minor GitHub Actions updates after stability period",
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
-      "matchUpdateTypes": ["patch", "minor", "digest"],
+      "matchUpdateTypes": ["patch", "minor", "pinDigest"],
       "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr"
