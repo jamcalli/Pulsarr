@@ -80,7 +80,8 @@
     },
     {
       "description": "Prefer manual review for patch updates (security handled separately)",
-      "matchUpdateTypes": ["patch"]
+      "matchUpdateTypes": ["patch"],
+      "excludeManagers": ["github-actions"]
     },
     {
       "description": "Separate major updates for manual review",
@@ -102,8 +103,15 @@
         "typescript",
         "@biomejs/biome",
         "vite",
-        "@vitejs/plugin-react"
-      ]
+        "@vitejs/plugin-react",
+        "tailwindcss",
+        "@tailwindcss/postcss",
+        "postcss",
+        "autoprefixer",
+        "tailwind-merge",
+        "class-variance-authority"
+      ],
+      "excludePackagePatterns": ["^@types/"]
     },
     {
       "description": "Manage GitHub Actions and pin to commit SHAs",
@@ -113,7 +121,8 @@
       "matchUpdateTypes": ["patch", "minor"],
       "stabilityDays": 3,
       "automerge": true,
-      "automergeType": "pr"
+      "automergeType": "pr",
+      "internalChecksFilter": "strict"
     }
   ],
   "vulnerabilityAlerts": {
