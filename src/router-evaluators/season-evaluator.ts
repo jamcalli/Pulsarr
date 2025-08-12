@@ -216,22 +216,17 @@ export default function createSeasonEvaluator(
     }
 
     if (isSeasonRange(value) && operator === 'between') {
-      // Only treat numeric bounds; undefined-only ranges should not match
-      const hasMin = typeof (value as SeasonRange).min === 'number'
-      const hasMax = typeof (value as SeasonRange).max === 'number'
+      // Only treat finite numeric bounds; undefined-only ranges should not match
+      const seasonRange = value as SeasonRange
+      const rawMin = seasonRange.min
+      const rawMax = seasonRange.max
+      const hasMin = typeof rawMin === 'number' && Number.isFinite(rawMin)
+      const hasMax = typeof rawMax === 'number' && Number.isFinite(rawMax)
       if (!hasMin && !hasMax) {
         return false
       }
-      const seasonRange = value as SeasonRange
-      let minSeason: number = Number.NEGATIVE_INFINITY
-      let maxSeason: number = Number.POSITIVE_INFINITY
-
-      if (hasMin && typeof seasonRange.min === 'number') {
-        minSeason = seasonRange.min
-      }
-      if (hasMax && typeof seasonRange.max === 'number') {
-        maxSeason = seasonRange.max
-      }
+      let minSeason: number = hasMin ? rawMin : Number.NEGATIVE_INFINITY
+      let maxSeason: number = hasMax ? rawMax : Number.POSITIVE_INFINITY
       // Swap reversed bounds for greater robustness
       if (minSeason > maxSeason) {
         ;[minSeason, maxSeason] = [maxSeason, minSeason]
@@ -299,7 +294,7 @@ export default function createSeasonEvaluator(
 
       // Find matching rules based on season criteria
       const matchingRules = sonarrRules.filter((rule) => {
-        if (!rule.criteria || !rule.criteria.season) {
+        if (!rule.criteria || !('season' in rule.criteria)) {
           return false
         }
 
@@ -324,7 +319,7 @@ export default function createSeasonEvaluator(
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
-        priority: rule.order || 50, // Default to 50 if not specified
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
