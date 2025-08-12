@@ -24,7 +24,12 @@
       "description": "Group all Fastify plugins",
       "groupName": "Fastify ecosystem",
       "matchPackagePatterns": ["^@fastify/", "^fastify"],
-      "excludePackageNames": ["fastify-cli", "fastify-tsconfig"]
+      "excludePackageNames": [
+        "fastify-cli",
+        "fastify-tsconfig",
+        "@fastify/vite",
+        "@fastify/react"
+      ]
     },
     {
       "description": "Group TypeScript types",
@@ -32,16 +37,23 @@
       "matchPackagePatterns": ["^@types/"]
     },
     {
-      "description": "Group build tools",
+      "description": "Group build tools and Fastify integration",
       "groupName": "Build tools",
       "matchPackageNames": [
         "vite",
         "@vitejs/plugin-react",
+        "@fastify/vite",
+        "@fastify/react",
         "typescript",
         "tsc-alias",
         "tsx",
         "@biomejs/biome"
       ]
+    },
+    {
+      "description": "Use widen strategy for peer dependencies",
+      "matchDepTypes": ["peerDependencies"],
+      "rangeStrategy": "widen"
     },
     {
       "description": "Group database dependencies",
