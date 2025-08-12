@@ -133,10 +133,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             orphanedResult =
               await fastify.plexLabelSyncService.cleanupOrphanedPlexLabels()
           } catch (cleanupError) {
-            fastify.log.error(
-              'Error during orphaned label cleanup:',
-              cleanupError,
-            )
+            logRouteError(fastify.log, request, cleanupError, {
+              message: 'Error during orphaned label cleanup',
+              context: { phase: 'orphanedCleanup' },
+            })
             orphanedResult = { removed: 0, failed: 1 }
           }
         }

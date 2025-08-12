@@ -49,13 +49,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Failed to connect to Tautulli',
         }
       } catch (error) {
+        // Preserve framework-provided HTTP errors
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
+
         logRouteError(fastify.log, request, error, {
           message: 'Failed to test Tautulli connection',
+          context: { service: 'tautulli', action: 'testConnection' },
         })
-        return reply.status(500).send({
-          success: false,
-          message: 'Connection test failed',
-        })
+        return reply.internalServerError('Connection test failed')
       }
     },
   )

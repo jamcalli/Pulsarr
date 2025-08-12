@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { UpdateCredentialsSchema } from '@schemas/auth/users.js'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 const responseSchema = z.object({
   message: z.string(),
@@ -27,7 +28,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         body: UpdateCredentialsSchema,
         response: {
           200: responseSchema,
-          401: responseSchema,
+          400: ErrorSchema,
+          401: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Authentication'],
       },
@@ -40,7 +43,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const user = await fastify.db.getAdminUser(email)
 
         if (!user) {
-          return reply.code(401).send({ message: 'User does not exist.' })
+          return reply.unauthorized('User does not exist.')
         }
 
         const isPasswordValid = await fastify.compare(
@@ -49,14 +52,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         )
 
         if (!isPasswordValid) {
-          return reply.code(401).send({ message: 'Invalid current password.' })
+          return reply.unauthorized('Invalid current password.')
         }
 
         if (newPassword === currentPassword) {
-          reply.status(400)
-          return {
-            message: 'New password cannot be the same as the current password.',
-          }
+          return reply.badRequest(
+            'New password cannot be the same as the current password.',
+          )
         }
 
         const hashedPassword = await fastify.hash(newPassword)
@@ -71,7 +73,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         return { message: 'Password updated successfully' }
       } catch (error) {
-        reply.internalServerError()
+        return reply.internalServerError('Failed to update password')
       }
     },
   )

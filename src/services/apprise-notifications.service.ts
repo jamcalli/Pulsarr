@@ -123,6 +123,10 @@ export class AppriseNotificationService {
       )
 
       // Construct the endpoint URL
+      if (!this.appriseBaseUrl) {
+        this.log.debug('Apprise base URL not configured; skipping notification')
+        return false
+      }
       const url = new URL('/notify', this.appriseBaseUrl)
 
       // Send the request with the correctly formatted payload

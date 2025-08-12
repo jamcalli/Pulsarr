@@ -28,7 +28,7 @@ export default async function (fastify: FastifyInstance) {
         return
       } catch (err) {
         // Invalid API key
-        return reply.code(401).send({ message: 'Invalid API key' })
+        return reply.unauthorized('Invalid API key')
       }
     }
 
@@ -55,9 +55,9 @@ export default async function (fastify: FastifyInstance) {
 
     // Regular session authentication check for all other cases
     if (!request.session.user) {
-      return reply
-        .code(401)
-        .send({ message: 'You must be authenticated to access this route.' })
+      return reply.unauthorized(
+        'You must be authenticated to access this route.',
+      )
     }
   })
 }

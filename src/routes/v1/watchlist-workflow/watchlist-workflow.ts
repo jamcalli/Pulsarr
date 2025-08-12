@@ -92,6 +92,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             }
             return response
           }
+          logRouteError(fastify.log, request, startErr, {
+            message: 'Failed to start Watchlist workflow (no fallback)',
+          })
           return reply.internalServerError('Failed to start Watchlist workflow')
         }
       } catch (err) {

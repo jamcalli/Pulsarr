@@ -18,6 +18,8 @@ interface LogRouteErrorOptions {
   message?: string
   /** Additional context to include in logs */
   context?: Record<string, unknown>
+  /** Log level; defaults to 'error' */
+  level?: 'error' | 'warn' | 'info'
   /** Allow any additional context fields directly on the options object for backward compatibility */
   [key: string]: unknown
 }
@@ -52,7 +54,7 @@ export function logRouteError(
   error: unknown,
   options: LogRouteErrorOptions = {},
 ): void {
-  const route = `${request.method} ${request.routeOptions.url || request.url}`
+  const route = `${request.method} ${request.routeOptions?.url || request.url}`
 
   // Extract common context from request
   const baseContext: RouteErrorContext = {
@@ -80,7 +82,17 @@ export function logRouteError(
   // Generate default message if not provided
   const message = options.message || `Error in route ${route}`
 
-  logger.error(baseContext, message)
+  const level = options.level ?? 'error'
+  switch (level) {
+    case 'warn':
+      logger.warn(baseContext, message)
+      break
+    case 'info':
+      logger.info(baseContext, message)
+      break
+    default:
+      logger.error(baseContext, message)
+  }
 }
 
 /**
@@ -96,7 +108,7 @@ export function logServiceError(
   logger: FastifyBaseLogger,
   request: FastifyRequest,
   error: unknown,
-  serviceName: 'radarr' | 'sonarr',
+  serviceName: 'radarr' | 'sonarr' | 'tautulli',
   message?: string,
 ): void {
   const params = request.params as { instanceId?: string }

@@ -9,7 +9,7 @@ import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
-    Reply: SyncNotifiersResponse | z.infer<typeof ErrorSchema>
+    Reply: SyncNotifiersResponse
   }>(
     '/sync-notifiers',
     {
@@ -53,10 +53,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to sync user notifiers',
         })
-        return reply.status(500).send({
-          success: false,
-          message: 'Failed to sync notifiers',
-        })
+        return reply.internalServerError('Failed to sync notifiers')
       }
     },
   )

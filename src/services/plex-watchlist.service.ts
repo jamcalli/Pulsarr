@@ -184,10 +184,14 @@ export class PlexWatchlistService {
 
     // Send Discord notification (simplified without discord_id check)
     try {
+      // Runtime type guard to ensure valid Discord type
+      const discordType =
+        item.type === 'movie' || item.type === 'show' ? item.type : 'movie'
+
       discordSent = await this.fastify.discord.sendMediaNotification({
         username,
         title: item.title,
-        type: item.type as 'movie' | 'show',
+        type: discordType,
         posterUrl: item.thumb,
       })
 
@@ -196,7 +200,16 @@ export class PlexWatchlistService {
         { success: discordSent },
       )
     } catch (error) {
-      this.log.error({ error }, 'Error sending Discord webhook notification:')
+      this.log.error(
+        {
+          error,
+          username,
+          title: item.title,
+          type: item.type,
+          userId: user.userId,
+        },
+        'Error sending Discord webhook notification',
+      )
     }
 
     // Send Apprise notification
@@ -217,7 +230,16 @@ export class PlexWatchlistService {
           { success: appriseSent },
         )
       } catch (error) {
-        this.log.error({ error }, 'Error sending Apprise notification:')
+        this.log.error(
+          {
+            error,
+            username,
+            title: item.title,
+            type: item.type,
+            userId: user.userId,
+          },
+          'Error sending Apprise notification',
+        )
       }
     }
 
@@ -1537,13 +1559,26 @@ export class PlexWatchlistService {
     return results
   }
 
-  private async ensureRssFeeds() {
+  private async ensureRssFeeds(): Promise<{
+    selfRss?: string
+    friendsRss?: string
+  }> {
     const config = this.config
 
     if (!config?.selfRss && !config?.friendsRss) {
-      this.log.info('No RSS feeds found in database, attempting to generate...')
+      this.log.info(
+        'No RSS feeds found in configuration, attempting to generate...',
+      )
       await this.generateAndSaveRssFeeds()
       const updatedConfig = await this.dbService.getConfig()
+
+      // Sync the in-memory config with the updated RSS feeds
+      if (updatedConfig) {
+        await this.fastify.updateConfig({
+          selfRss: updatedConfig.selfRss,
+          friendsRss: updatedConfig.friendsRss,
+        })
+      }
 
       if (!updatedConfig?.selfRss && !updatedConfig?.friendsRss) {
         throw new Error('Unable to generate or retrieve RSS feed URLs')

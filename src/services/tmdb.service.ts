@@ -116,10 +116,7 @@ export class TmdbService {
         radarrRatings,
       }
     } catch (error) {
-      this.log.error(
-        `Error fetching movie metadata for TMDB ID ${tmdbId}:`,
-        error,
-      )
+      this.log.error({ error, tmdbId }, 'Error fetching movie metadata')
       return null
     }
   }
@@ -177,10 +174,7 @@ export class TmdbService {
         watchProviders,
       }
     } catch (error) {
-      this.log.error(
-        { error },
-        `Error fetching TV metadata for TMDB ID ${tmdbId}:`,
-      )
+      this.log.error({ error, tmdbId }, 'Error fetching TV metadata')
       return null
     }
   }
@@ -557,10 +551,7 @@ export class TmdbService {
 
       return movieData.ratings
     } catch (error) {
-      this.log.warn(
-        `Failed to fetch Radarr ratings for TMDB ID ${tmdbId}:`,
-        error,
-      )
+      this.log.warn({ error, tmdbId }, 'Failed to fetch Radarr ratings')
       return null
     }
   }

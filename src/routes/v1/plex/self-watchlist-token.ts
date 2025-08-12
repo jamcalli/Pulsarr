@@ -18,7 +18,7 @@ export const selfWatchlistTokenRoute: FastifyPluginAsyncZod = async (
         logRouteError(fastify.log, request, err, {
           message: 'Failed to fetch self watchlist',
         })
-        reply.code(500).send({ error: 'Unable to fetch watchlist items' })
+        return reply.internalServerError('Unable to fetch watchlist items')
       }
     },
   })

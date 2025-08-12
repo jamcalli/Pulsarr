@@ -53,10 +53,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             ? err.message
             : 'Unable to test Sonarr connection'
 
-        return reply.status(500).send({
-          success: false,
-          message: errorMessage.replace(/Sonarr API error: /, ''),
-        })
+        return reply.internalServerError(
+          errorMessage.replace(/Sonarr API error: /, ''),
+        )
       }
     },
   )

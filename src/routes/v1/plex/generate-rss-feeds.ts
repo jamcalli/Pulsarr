@@ -18,7 +18,7 @@ export const generateRssFeedsRoute: FastifyPluginAsyncZod = async (
         logRouteError(fastify.log, request, err, {
           message: 'Failed to generate RSS feeds',
         })
-        return reply.code(500).send({ error: 'Unable to fetch watchlist URLs' })
+        return reply.internalServerError('Unable to fetch watchlist URLs')
       }
     },
   })

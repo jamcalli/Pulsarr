@@ -52,11 +52,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Check if TMDB is configured
         if (!fastify.tmdb.isConfigured()) {
-          return reply.code(503).send({
-            success: false,
-            message:
-              'TMDB API is not configured. Please add your TMDB API key to the settings.',
-          })
+          return reply.serviceUnavailable(
+            'TMDB API is not configured. Please add your TMDB API key to the settings.',
+          )
         }
 
         // Check if it's already a TMDB GUID
@@ -103,10 +101,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             )
           }
 
-          return reply.code(404).send({
-            success: false,
-            message: `No metadata found for TMDB ID ${directTmdbId}`,
-          })
+          return reply.notFound(`No metadata found for TMDB ID ${directTmdbId}`)
         }
 
         // Check if it's a TVDB GUID
@@ -116,10 +111,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           const findResult = await fastify.tmdb.findByTvdbId(tvdbId)
 
           if (!findResult) {
-            return reply.code(404).send({
-              success: false,
-              message: `No TMDB content found for TVDB ID ${tvdbId}`,
-            })
+            return reply.notFound(`No TMDB content found for TVDB ID ${tvdbId}`)
           }
 
           // Fetch metadata based on the determined type
@@ -130,10 +122,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               region,
             )
             if (!metadata) {
-              return reply.code(404).send({
-                success: false,
-                message: `No movie metadata found for TMDB ID ${findResult.tmdbId}`,
-              })
+              return reply.notFound(
+                `No movie metadata found for TMDB ID ${findResult.tmdbId}`,
+              )
             }
           } else {
             metadata = await fastify.tmdb.getTvMetadata(
@@ -141,10 +132,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               region,
             )
             if (!metadata) {
-              return reply.code(404).send({
-                success: false,
-                message: `No TV show metadata found for TMDB ID ${findResult.tmdbId}`,
-              })
+              return reply.notFound(
+                `No TV show metadata found for TMDB ID ${findResult.tmdbId}`,
+              )
             }
           }
 
@@ -156,19 +146,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // If it's neither TMDB nor TVDB format, return error
-        return reply.code(400).send({
-          success: false,
-          message: `Invalid GUID format: ${inputGuid}. Expected format: tmdb:123 or tvdb:456`,
-        })
+        return reply.badRequest(
+          `Invalid GUID format: ${inputGuid}. Expected format: tmdb:123 or tvdb:456`,
+        )
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch TMDB metadata',
           guid: request.params.id,
         })
-        return reply.code(500).send({
-          success: false,
-          message: 'Failed to fetch metadata',
-        })
+        return reply.internalServerError('Failed to fetch metadata')
       }
     },
   )
@@ -203,29 +189,21 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Validate TMDB ID
         if (Number.isNaN(tmdbId) || tmdbId <= 0) {
-          return reply.code(400).send({
-            success: false,
-            message: 'Invalid TMDB ID provided',
-          })
+          return reply.badRequest('Invalid TMDB ID provided')
         }
 
         // Check if TMDB is configured
         if (!fastify.tmdb.isConfigured()) {
-          return reply.code(503).send({
-            success: false,
-            message:
-              'TMDB API is not configured. Please add your TMDB API key to the settings.',
-          })
+          return reply.serviceUnavailable(
+            'TMDB API is not configured. Please add your TMDB API key to the settings.',
+          )
         }
 
         // Fetch movie metadata
         const metadata = await fastify.tmdb.getMovieMetadata(tmdbId, region)
 
         if (!metadata) {
-          return reply.code(404).send({
-            success: false,
-            message: `No movie metadata found for TMDB ID ${tmdbId}`,
-          })
+          return reply.notFound(`No movie metadata found for TMDB ID ${tmdbId}`)
         }
 
         return {
@@ -238,10 +216,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Failed to fetch TMDB movie metadata',
           tmdbId: request.params.id,
         })
-        return reply.code(500).send({
-          success: false,
-          message: 'Failed to fetch movie metadata',
-        })
+        return reply.internalServerError('Failed to fetch movie metadata')
       }
     },
   )
@@ -276,29 +251,23 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Validate TMDB ID
         if (Number.isNaN(tmdbId) || tmdbId <= 0) {
-          return reply.code(400).send({
-            success: false,
-            message: 'Invalid TMDB ID provided',
-          })
+          return reply.badRequest('Invalid TMDB ID provided')
         }
 
         // Check if TMDB is configured
         if (!fastify.tmdb.isConfigured()) {
-          return reply.code(503).send({
-            success: false,
-            message:
-              'TMDB API is not configured. Please add your TMDB API key to the settings.',
-          })
+          return reply.serviceUnavailable(
+            'TMDB API is not configured. Please add your TMDB API key to the settings.',
+          )
         }
 
         // Fetch TV show metadata
         const metadata = await fastify.tmdb.getTvMetadata(tmdbId, region)
 
         if (!metadata) {
-          return reply.code(404).send({
-            success: false,
-            message: `No TV show metadata found for TMDB ID ${tmdbId}`,
-          })
+          return reply.notFound(
+            `No TV show metadata found for TMDB ID ${tmdbId}`,
+          )
         }
 
         return {
@@ -311,10 +280,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Failed to fetch TMDB TV metadata',
           tmdbId: request.params.id,
         })
-        return reply.code(500).send({
-          success: false,
-          message: 'Failed to fetch TV show metadata',
-        })
+        return reply.internalServerError('Failed to fetch TV show metadata')
       }
     },
   )
@@ -339,11 +305,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         // Check if TMDB is configured
         if (!fastify.tmdb.isConfigured()) {
-          return reply.code(503).send({
-            success: false,
-            message:
-              'TMDB API is not configured. Please add your TMDB API key to the settings.',
-          })
+          return reply.serviceUnavailable(
+            'TMDB API is not configured. Please add your TMDB API key to the settings.',
+          )
         }
 
         // Fetch available regions
@@ -366,10 +330,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch TMDB regions',
         })
-        return reply.code(500).send({
-          success: false,
-          message: 'Failed to fetch regions',
-        })
+        return reply.internalServerError('Failed to fetch regions')
       }
     },
   )

@@ -318,11 +318,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
         if (!existingRequest) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'Approval request not found',
-          }
+          return reply.notFound('Approval request not found')
         }
 
         // Validate state transitions only if status is being changed

@@ -66,7 +66,13 @@ export class PlexSessionMonitorService {
           await this.processSession(session, result)
         } catch (error) {
           this.log.error(
-            { error, sessionTitle: session.grandparentTitle || 'Unknown' },
+            {
+              error,
+              seriesTitle: session.grandparentTitle || 'Unknown',
+              season: session.parentIndex,
+              episode: session.index,
+              grandparentKey: session.grandparentKey,
+            },
             'Error processing session',
           )
           result.errors.push(

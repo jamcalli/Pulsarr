@@ -33,7 +33,14 @@ export class SonarrManagerService {
       this.log.info('Starting Sonarr manager initialization')
 
       const instances = await this.fastify.db.getAllSonarrInstances()
-      this.log.info(`Found ${instances.length} Sonarr instances`, { instances })
+      this.log.info(
+        {
+          count: instances.length,
+          instanceIds: instances.map((i) => i.id),
+          instanceNames: instances.map((i) => i.name),
+        },
+        `Found ${instances.length} Sonarr instances`,
+      )
 
       if (instances.length === 0) {
         this.log.warn('No Sonarr instances found')

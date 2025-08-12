@@ -572,10 +572,8 @@ export class DeleteSyncService {
    * Helper method to log errors with consistent format
    */
   private logError(message: string, error: unknown): void {
-    this.log.error(message, {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    })
+    const errObj = error instanceof Error ? error : new Error(String(error))
+    this.log.error({ error: errObj }, message)
   }
 
   /**

@@ -41,7 +41,7 @@ const watchlistRoute: FastifyPluginAsync = async (fastify) => {
             success: false,
             message: 'User not found',
           }
-          return reply.status(404).send(errorResponse)
+          return reply.notFound(errorResponse.message)
         }
 
         // Get watchlist items using the database service method
@@ -82,7 +82,7 @@ const watchlistRoute: FastifyPluginAsync = async (fastify) => {
           success: false,
           message: 'Failed to fetch user watchlist',
         }
-        return reply.status(500).send(errorResponse)
+        return reply.internalServerError(errorResponse.message)
       }
     },
   )
