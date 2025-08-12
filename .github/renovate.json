@@ -10,6 +10,7 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "branchPrefix": "renovate/",
+  "pinDigests": true,
   "labels": ["dependencies"],
   "assignees": ["jamcalli"],
   "reviewers": ["jamcalli"],
@@ -78,12 +79,9 @@
       ]
     },
     {
-      "description": "Auto-merge security patches",
+      "description": "Prefer manual review for patch updates (security handled separately)",
       "matchUpdateTypes": ["patch"],
-      "matchPackagePatterns": ["*"],
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": false
+      "matchPackagePatterns": ["*"]
     },
     {
       "description": "Separate major updates for manual review",
@@ -107,10 +105,22 @@
         "vite",
         "@vitejs/plugin-react"
       ]
+    },
+    {
+      "description": "Manage GitHub Actions and pin to commit SHAs",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "pinDigests": true,
+      "rangeStrategy": "pin",
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr"
     }
   ],
   "vulnerabilityAlerts": {
     "enabled": true,
+    "automerge": true,
+    "automergeType": "pr",
     "schedule": ["at any time"],
     "prPriority": 20,
     "labels": ["security", "dependencies"]
