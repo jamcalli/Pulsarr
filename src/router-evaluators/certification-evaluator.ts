@@ -177,7 +177,10 @@ export default function createCertificationEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('certification')
       } catch (err) {
-        fastify.log.error({ err }, 'Certification evaluator - DB query failed')
+        fastify.log.error(
+          { error: err },
+          'Certification evaluator - DB query failed',
+        )
         return null
       }
 

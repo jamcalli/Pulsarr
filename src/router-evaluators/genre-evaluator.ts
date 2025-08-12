@@ -140,7 +140,7 @@ export default function createGenreEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('genre')
       } catch (err) {
-        fastify.log.error({ err }, 'Genre evaluator - DB query failed')
+        fastify.log.error({ error: err }, 'Genre evaluator - DB query failed')
         return null
       }
 

@@ -13,6 +13,7 @@ import {
   MessageFlags,
 } from 'discord.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { createHash } from 'node:crypto'
 import type {
   MediaNotification,
   DiscordEmbed,
@@ -39,6 +40,19 @@ type CommandHandler = (
 interface Command {
   data: SlashCommandBuilder
   execute: CommandHandler
+}
+
+/**
+ * Generates a stable, anonymized fingerprint for a webhook endpoint URL
+ * @param url - The webhook URL to fingerprint
+ * @returns A stable 8-character hash for identification
+ */
+function endpointFingerprint(url: string): string {
+  try {
+    return createHash('sha256').update(url).digest('hex').slice(0, 8)
+  } catch {
+    return 'unknown'
+  }
 }
 
 export class DiscordNotificationService {
@@ -386,30 +400,52 @@ export class DiscordNotificationService {
       // Use Promise.all with error handling inside each promise
       const results = await Promise.all(
         webhookUrls.map(async (webhookUrl, endpointIndex) => {
+          const endpoint = endpointFingerprint(webhookUrl)
+          const controller = new AbortController()
+          const timeoutMs = 10000
+          const timeout = setTimeout(() => controller.abort(), timeoutMs)
+          const startedAt = Date.now()
           try {
             const response = await fetch(webhookUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
+              signal: controller.signal,
             })
 
+            const durationMs = Date.now() - startedAt
             if (!response.ok) {
               this.log.warn(
                 {
                   endpointIndex: endpointIndex + 1,
+                  endpoint,
                   status: response.status,
+                  statusText: response.statusText,
+                  durationMs,
                 },
                 'Discord webhook request failed for one endpoint',
               )
               return false
             }
+            this.log.debug(
+              {
+                endpointIndex: endpointIndex + 1,
+                endpoint,
+                status: response.status,
+                durationMs,
+              },
+              'Discord webhook request succeeded for one endpoint',
+            )
             return true
           } catch (error) {
+            const durationMs = Date.now() - startedAt
             this.log.warn(
-              { endpointIndex: endpointIndex + 1, error },
+              { endpointIndex: endpointIndex + 1, endpoint, error, durationMs },
               'Error sending to one Discord webhook endpoint',
             )
             return false
+          } finally {
+            clearTimeout(timeout)
           }
         }),
       )
@@ -602,7 +638,7 @@ export class DiscordNotificationService {
       }
     } catch (error) {
       this.log.error(
-        { err: error as Error, username: notification.username },
+        { error: error as Error, username: notification.username },
         'Error looking up user alias for webhook',
       )
       // Fall back to username if there's an error
@@ -700,7 +736,21 @@ export class DiscordNotificationService {
 
       return { valid: true }
     } catch (error) {
-      this.log.error({ error }, 'Error validating webhook')
+      let safeHost: string | undefined
+      let webhookIdSuffix: string | undefined
+      try {
+        const u = new URL(url)
+        safeHost = u.hostname
+        const parts = u.pathname.split('/')
+        // /api/webhooks/{id}/{token}
+        webhookIdSuffix = parts.length >= 4 ? parts[3].slice(-6) : undefined
+      } catch {
+        // ignore parsing error; keep minimal context
+      }
+      this.log.error(
+        { error, host: safeHost, webhookIdSuffix },
+        'Error validating webhook',
+      )
       return {
         valid: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -1142,7 +1192,7 @@ export class DiscordNotificationService {
           } catch (webhookError) {
             this.log.error(
               { error: webhookError },
-              'Error sending webhook notification:',
+              'Error sending webhook notification',
             )
           }
         }
@@ -1231,7 +1281,7 @@ export class DiscordNotificationService {
       )
       return successCount > 0
     } catch (error) {
-      this.log.error({ error }, 'Error sending delete sync notification:')
+      this.log.error({ error }, 'Error sending delete sync notification')
       return false
     }
   }
