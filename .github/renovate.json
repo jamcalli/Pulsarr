@@ -81,7 +81,7 @@
     {
       "description": "Prefer manual review for patch updates (security handled separately)",
       "matchUpdateTypes": ["patch"],
-      "excludeManagers": ["github-actions"]
+      "excludePackageNames": []
     },
     {
       "description": "Separate major updates for manual review",
@@ -118,11 +118,9 @@
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "rangeStrategy": "pin",
-      "matchUpdateTypes": ["patch", "minor"],
       "stabilityDays": 3,
       "automerge": true,
-      "automergeType": "pr",
-      "internalChecksFilter": "strict"
+      "automergeType": "pr"
     }
   ],
   "vulnerabilityAlerts": {
