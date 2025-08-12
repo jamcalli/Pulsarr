@@ -1077,7 +1077,10 @@ export class AppriseNotificationService {
 
       return await this.sendNotification(targetUrl, notification)
     } catch (error) {
-      this.log.error({ err: error as Error }, 'Error sending test notification')
+      this.log.error(
+        { error: error as Error },
+        'Error sending test notification',
+      )
       return false
     }
   }

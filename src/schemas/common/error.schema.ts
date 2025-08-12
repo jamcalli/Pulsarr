@@ -7,3 +7,5 @@ export const ErrorSchema = z.object({
   error: z.string(),
   message: z.string().min(1),
 })
+
+export type ErrorResponse = z.infer<typeof ErrorSchema>

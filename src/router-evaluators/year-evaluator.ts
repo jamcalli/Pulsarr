@@ -170,7 +170,7 @@ export default function createYearEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('year')
       } catch (err) {
-        fastify.log.error({ err }, 'Year evaluator - DB query failed')
+        fastify.log.error({ error: err }, 'Year evaluator - DB query failed')
         return null
       }
 
