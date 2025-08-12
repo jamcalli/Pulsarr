@@ -1,5 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import {
+  evaluateRegexSafelyMultiple,
+  evaluateRegexSafely,
+} from '@utils/regex-safety.js'
+import {
   type ContentItem,
   type RoutingContext,
   type RoutingDecision,
@@ -211,13 +215,12 @@ export default function createGenreEvaluator(
 
         if (operator === 'regex') {
           if (isString(genreValue)) {
-            try {
-              const regex = new RegExp(genreValue)
-              return Array.from(itemGenres).some((genre) => regex.test(genre))
-            } catch (error) {
-              fastify.log.error(`Invalid regex in genre rule: ${error}`)
-              return false
-            }
+            return evaluateRegexSafelyMultiple(
+              genreValue,
+              Array.from(itemGenres),
+              fastify.log,
+              'genre rule',
+            )
           }
         }
 
@@ -302,14 +305,12 @@ export default function createGenreEvaluator(
           break
         case 'regex':
           if (isString(value)) {
-            try {
-              const regex = new RegExp(value)
-              matched = Array.from(itemGenres).some((genre) =>
-                regex.test(genre),
-              )
-            } catch (error) {
-              fastify.log.error(`Invalid regex in genre condition: ${error}`)
-            }
+            matched = evaluateRegexSafelyMultiple(
+              value,
+              Array.from(itemGenres),
+              fastify.log,
+              'genre condition',
+            )
           }
           break
       }

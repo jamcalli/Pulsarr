@@ -221,9 +221,9 @@ export default function createSeasonEvaluator(
       const maxSeason =
         typeof value.max === 'number' ? value.max : Number.POSITIVE_INFINITY
 
-      const minSeen = Math.min(...seasons)
-      const maxSeen = Math.max(...seasons)
-      return minSeen <= maxSeason && maxSeen >= minSeason
+      return seasons.some(
+        (season) => season >= minSeason && season <= maxSeason,
+      )
     }
 
     return false

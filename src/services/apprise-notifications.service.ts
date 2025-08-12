@@ -157,7 +157,7 @@ export class AppriseNotificationService {
       return true
     } catch (error) {
       this.log.error(
-        { err: error as Error },
+        { error: error as Error },
         'Error sending Apprise notification',
       )
       return false
@@ -538,7 +538,7 @@ export class AppriseNotificationService {
       return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
       this.log.error(
-        { err: error as Error },
+        { error: error as Error },
         'Error sending system notification',
       )
       return false
@@ -822,7 +822,7 @@ export class AppriseNotificationService {
       return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
       this.log.error(
-        { err: error as Error },
+        { error: error as Error },
         'Error sending delete sync notification',
       )
       return false
@@ -877,7 +877,7 @@ export class AppriseNotificationService {
           }
         } catch (error) {
           this.log.error(
-            { err: error as Error },
+            { error: error as Error },
             'Error looking up user alias for Apprise notification',
           )
           // Fall back to username if there's an error
@@ -952,8 +952,8 @@ export class AppriseNotificationService {
       return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
       this.log.error(
-        { error },
-        'Error sending watchlist addition notification:',
+        { error: error as Error },
+        'Error sending watchlist addition notification',
       )
       return false
     }
