@@ -152,11 +152,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               message: userMessage,
             })
         } else {
-          reply.status(500).send({
-            statusCode: 500,
-            error: 'Internal Server Error',
-            message: 'An unexpected error occurred while updating the instance',
-          })
+          reply.internalServerError(
+            'An unexpected error occurred while updating the instance',
+          )
         }
       }
     },

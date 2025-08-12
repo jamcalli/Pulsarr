@@ -32,7 +32,14 @@ export class RadarrManagerService {
     try {
       this.log.info('Starting Radarr manager initialization')
       const instances = await this.fastify.db.getAllRadarrInstances()
-      this.log.info(`Found ${instances.length} Radarr instances`, { instances })
+      this.log.info(
+        {
+          count: instances.length,
+          instanceIds: instances.map((i) => i.id),
+          instanceNames: instances.map((i) => i.name),
+        },
+        `Found ${instances.length} Radarr instances`,
+      )
 
       if (instances.length === 0) {
         this.log.warn('No Radarr instances found')
@@ -60,8 +67,12 @@ export class RadarrManagerService {
           )
         } catch (instanceError) {
           this.log.error(
-            `Failed to initialize Radarr service for instance ${instance.name}, will retry:`,
-            instanceError,
+            {
+              error: instanceError,
+              instanceId: instance.id,
+              instanceName: instance.name,
+            },
+            'Failed to initialize Radarr service for instance, will retry',
           )
 
           await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -79,8 +90,12 @@ export class RadarrManagerService {
             )
           } catch (retryError) {
             this.log.error(
-              `Failed to initialize Radarr service after retry for instance ${instance.name}:`,
-              retryError,
+              {
+                error: retryError,
+                instanceId: instance.id,
+                instanceName: instance.name,
+              },
+              'Failed to initialize Radarr service after retry',
             )
           }
         }

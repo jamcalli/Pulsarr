@@ -111,7 +111,7 @@ export class SchedulerService {
 
             this.log.info(`Job ${schedule.name} scheduled successfully`)
           } catch (error) {
-            this.log.error({ error }, `Error setting up job ${schedule.name}:`)
+            this.log.error({ error }, `Error setting up job ${schedule.name}`)
           }
         } else if (!handler) {
           this.log.warn(`No handler registered for job ${schedule.name}`)
@@ -120,7 +120,7 @@ export class SchedulerService {
         }
       }
     } catch (error) {
-      this.log.error({ error }, 'Error initializing jobs from database:')
+      this.log.error({ error }, 'Error initializing jobs from database')
     }
   }
 
@@ -192,7 +192,7 @@ export class SchedulerService {
 
           this.log.debug(`Job ${name} completed successfully`)
         } catch (error) {
-          this.log.error({ error }, `Error in job ${name}:`)
+          this.log.error({ error }, `Error in job ${name}`)
 
           // Update with error status
           await this.fastify.db.updateSchedule(name, {
@@ -205,7 +205,7 @@ export class SchedulerService {
         }
       },
       (error) => {
-        this.log.error({ error }, `Job task error for ${name}:`)
+        this.log.error({ error }, `Job task error for ${name}`)
       },
     )
 
@@ -330,7 +330,7 @@ export class SchedulerService {
 
       return true
     } catch (error) {
-      this.log.error({ error }, `Error scheduling job ${name}:`)
+      this.log.error({ error }, `Error scheduling job ${name}`)
       return false
     }
   }
@@ -352,7 +352,7 @@ export class SchedulerService {
       }
       return false
     } catch (error) {
-      this.log.error({ error }, `Error unscheduling job ${name}:`)
+      this.log.error({ error }, `Error unscheduling job ${name}`)
       return false
     }
   }
@@ -386,7 +386,7 @@ export class SchedulerService {
       this.log.info(`Job ${name} executed manually`)
       return true
     } catch (error) {
-      this.log.error({ error }, `Error executing job ${name}:`)
+      this.log.error({ error }, `Error executing job ${name}`)
 
       // Update with error status
       await this.fastify.db.updateSchedule(name, {
@@ -539,7 +539,7 @@ export class SchedulerService {
 
       return true
     } catch (error) {
-      this.log.error({ error }, `Error updating job schedule ${name}:`)
+      this.log.error({ error }, `Error updating job schedule ${name}`)
       return false
     }
   }

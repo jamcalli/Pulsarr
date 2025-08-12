@@ -49,12 +49,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           if (config?.plexTokens && config.plexTokens.length > 0) {
             // Use the first available Plex token
             const plexToken = config.plexTokens[0]
-            plexConnected = true
             avatar = await fetchPlexAvatar(plexToken, fastify.log)
+            plexConnected = true
           }
         } catch (error) {
           // Don't fail the entire request if Plex avatar fetch fails
-          fastify.log.warn(error, 'Failed to fetch Plex token or avatar')
+          plexConnected = false
+          fastify.log.warn(
+            {
+              err: error,
+              route: `${request.method} ${request.routeOptions?.url || request.url}`,
+            },
+            'Failed to fetch Plex token or avatar',
+          )
         }
 
         return {

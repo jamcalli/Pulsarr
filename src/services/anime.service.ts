@@ -93,8 +93,12 @@ export class AnimeService {
 
       return { count: finalCount, updated: true }
     } catch (error) {
-      this.logger.error({ error }, 'Failed to update anime database:')
-      throw error
+      // Non-critical: log and continue without anime detection
+      this.logger.error(
+        { error },
+        'Failed to update anime database - continuing without anime detection',
+      )
+      return { count: 0, updated: false }
     }
   }
 

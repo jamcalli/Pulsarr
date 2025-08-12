@@ -53,10 +53,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             ? err.message
             : 'Unable to test Radarr connection'
 
-        return reply.status(500).send({
-          success: false,
-          message: errorMessage.replace(/Radarr API error: /, ''),
-        })
+        return reply.internalServerError(
+          errorMessage.replace(/Radarr API error: /, ''),
+        )
       }
     },
   )

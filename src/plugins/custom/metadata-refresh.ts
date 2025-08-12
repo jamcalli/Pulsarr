@@ -31,7 +31,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         `Scheduled metadata refresh completed successfully: ${totalItems} items refreshed (${totalSelfItems} self, ${totalOthersItems} others)`,
       )
     } catch (error) {
-      fastify.log.error(`Scheduled metadata refresh failed: ${error}`)
+      fastify.log.error({ error, jobName }, 'Scheduled metadata refresh failed')
       throw error
     }
   }

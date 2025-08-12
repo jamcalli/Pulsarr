@@ -91,10 +91,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           errorMessage = error.message
         }
 
-        return reply.status(500).send({
-          success: false,
-          message: errorMessage,
-        })
+        return reply.internalServerError(errorMessage)
       }
     },
   )

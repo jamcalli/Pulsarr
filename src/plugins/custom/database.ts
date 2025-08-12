@@ -147,7 +147,8 @@ export default fp(
           }
         }
       } catch (error) {
-        fastify.log.error({ error }, 'Error initializing config:')
+        const err = error instanceof Error ? error : new Error(String(error))
+        fastify.log.error(err, 'Error initializing config')
         throw error
       }
     }
@@ -155,7 +156,9 @@ export default fp(
     try {
       await initializeConfig()
     } catch (error) {
-      fastify.log.error({ error }, 'Failed to initialize config:')
+      const err = error instanceof Error ? error : new Error(String(error))
+      fastify.log.error(err, 'Failed to initialize config')
+      throw error
     }
   },
   {

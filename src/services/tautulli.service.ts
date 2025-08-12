@@ -398,7 +398,7 @@ export class TautulliService {
 
     if (!plexUserId) {
       const error = `Could not find Plex user ID for username: ${user.username}`
-      this.fastify.log.error({ user: user.username }, error)
+      this.fastify.log.error({ user: user.username, message: error })
       throw new Error(error)
     }
 

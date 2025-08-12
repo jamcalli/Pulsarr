@@ -395,7 +395,10 @@ export class DiscordNotificationService {
 
             if (!response.ok) {
               this.log.warn(
-                { url: webhookUrl, status: response.status },
+                {
+                  endpointIndex: webhookUrls.indexOf(webhookUrl) + 1,
+                  status: response.status,
+                },
                 'Discord webhook request failed for one endpoint',
               )
               return false
@@ -403,7 +406,7 @@ export class DiscordNotificationService {
             return true
           } catch (error) {
             this.log.warn(
-              { url: webhookUrl, error },
+              { endpointIndex: webhookUrls.indexOf(webhookUrl) + 1, error },
               'Error sending to one Discord webhook endpoint',
             )
             return false
@@ -694,7 +697,7 @@ export class DiscordNotificationService {
 
       return { valid: true }
     } catch (error) {
-      this.log.error({ error, url }, 'Error validating webhook')
+      this.log.error({ error }, 'Error validating webhook')
       return {
         valid: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -1203,15 +1206,19 @@ export class DiscordNotificationService {
               }
             } catch (dmError) {
               this.log.error(
-                `Failed to send delete sync DM notification to admin ${adminUser.name}:`,
-                dmError,
+                {
+                  error: dmError,
+                  admin: adminUser.name,
+                  discordId: adminUser.discord_id,
+                },
+                'Failed to send delete sync DM notification to admin',
               )
             }
           }
         } catch (userError) {
           this.log.error(
-            'Error retrieving users for DM notifications:',
-            userError,
+            { error: userError },
+            'Error retrieving users for DM notifications',
           )
         }
       }
