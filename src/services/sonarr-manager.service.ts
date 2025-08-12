@@ -33,7 +33,14 @@ export class SonarrManagerService {
       this.log.info('Starting Sonarr manager initialization')
 
       const instances = await this.fastify.db.getAllSonarrInstances()
-      this.log.info(`Found ${instances.length} Sonarr instances`, { instances })
+      this.log.info(
+        {
+          count: instances.length,
+          instanceIds: instances.map((i) => i.id),
+          instanceNames: instances.map((i) => i.name),
+        },
+        `Found ${instances.length} Sonarr instances`,
+      )
 
       if (instances.length === 0) {
         this.log.warn('No Sonarr instances found')
@@ -52,8 +59,8 @@ export class SonarrManagerService {
           this.sonarrServices.set(instance.id, sonarrService)
         } catch (error) {
           this.log.error(
-            `Failed to initialize Sonarr service for instance ${instance.name}:`,
-            error,
+            { error },
+            `Failed to initialize Sonarr service for instance ${instance.name}`,
           )
         }
       }
@@ -62,7 +69,7 @@ export class SonarrManagerService {
         throw new Error('Unable to initialize any Sonarr services')
       }
     } catch (error) {
-      this.log.error('Error initializing Sonarr manager:', error)
+      this.log.error({ error }, 'Error initializing Sonarr manager')
       throw error
     }
   }
@@ -80,7 +87,7 @@ export class SonarrManagerService {
       )
       return await tempService.testConnection(baseUrl, apiKey)
     } catch (error) {
-      this.log.error('Error testing Sonarr connection:', error)
+      this.log.error({ error }, 'Error testing Sonarr connection')
       return {
         success: false,
         message:
@@ -116,8 +123,8 @@ export class SonarrManagerService {
         }
       } catch (error) {
         this.log.error(
-          `Error fetching series for instance ${instance.name}:`,
-          error,
+          { error },
+          `Error fetching series for instance ${instance.name}`,
         )
       }
     }
@@ -287,7 +294,7 @@ export class SonarrManagerService {
             )
           }
         } catch (error) {
-          this.log.error('Failed to create rolling monitoring entry:', error)
+          this.log.error({ error }, 'Failed to create rolling monitoring entry')
         }
       }
 
@@ -301,8 +308,8 @@ export class SonarrManagerService {
       )
     } catch (error) {
       this.log.error(
-        `Failed to add item to instance ${targetInstanceId}:`,
-        error,
+        { error },
+        `Failed to add item to instance ${targetInstanceId}`,
       )
       throw error
     }
@@ -418,7 +425,7 @@ export class SonarrManagerService {
       try {
         await service.removeWebhook()
       } catch (error) {
-        this.log.error(`Failed to remove webhook for instance ${id}:`, error)
+        this.log.error({ error }, `Failed to remove webhook for instance ${id}`)
       }
 
       await this.fastify.db.deleteSonarrInstance(id)
@@ -446,7 +453,10 @@ export class SonarrManagerService {
         await sonarrService.initialize(instance)
         this.sonarrServices.set(id, sonarrService)
       } catch (initError) {
-        this.log.error(`Failed to initialize Sonarr instance ${id}:`, initError)
+        this.log.error(
+          { error: initError },
+          `Failed to initialize Sonarr instance ${id}`,
+        )
         // Initialize failed, possibly due to webhook setup
         // Extract a meaningful error message
         let errorMessage = 'Failed to initialize Sonarr instance'

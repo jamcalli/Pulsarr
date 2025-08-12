@@ -297,7 +297,7 @@ export async function createAdminUser(
     })
     return true
   } catch (error) {
-    this.log.error('Error creating admin user:', error)
+    this.log.error({ error }, 'Error creating admin user:')
     return false
   }
 }
@@ -366,7 +366,7 @@ export async function updateAdminPassword(
       })
     return updated > 0
   } catch (error) {
-    this.log.error('Error updating admin password:', error)
+    this.log.error({ error }, 'Error updating admin password:')
     return false
   }
 }
@@ -387,7 +387,7 @@ export async function hasUsersWithSyncDisabled(
 
     return Number(count?.count || 0) > 0
   } catch (error) {
-    this.log.error('Error checking for users with sync disabled:', error)
+    this.log.error({ error }, 'Error checking for users with sync disabled:')
     return true
   }
 }
@@ -469,7 +469,7 @@ export async function setPrimaryUser(
     this.log.info(`Set user ID ${userId} as the primary token user`)
     return true
   } catch (error) {
-    this.log.error(`Error setting primary user ${userId}:`, error)
+    this.log.error({ error }, `Error setting primary user ${userId}:`)
     return false
   }
 }

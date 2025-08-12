@@ -4,6 +4,7 @@ import {
   WatchlistWorkflowResponseSchema,
   ErrorSchema,
 } from '@schemas/watchlist-workflow/watchlist-workflow.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Start Watchlist Workflow
@@ -69,7 +70,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               }
             } catch (configErr) {
               // Log config update error but don't fail the workflow start
-              fastify.log.error('Error updating _isReady config:', configErr)
+              logRouteError(fastify.log, request, configErr, {
+                message: 'Failed to update _isReady config',
+              })
             }
           }
 
@@ -89,13 +92,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             }
             return response
           }
+          logRouteError(fastify.log, request, startErr, {
+            message: 'Failed to start Watchlist workflow (no fallback)',
+          })
           return reply.internalServerError('Failed to start Watchlist workflow')
         }
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error starting Watchlist workflow:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to start Watchlist workflow',
+        })
         return reply.internalServerError('Unable to start Watchlist workflow')
       }
     },
@@ -143,7 +151,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error stopping Watchlist workflow:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to stop Watchlist workflow',
+        })
         return reply.internalServerError('Unable to stop Watchlist workflow')
       }
     },
@@ -181,7 +191,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-        fastify.log.error('Error getting Watchlist workflow status:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to get Watchlist workflow status',
+        })
         return reply.internalServerError(
           'Unable to get Watchlist workflow status',
         )

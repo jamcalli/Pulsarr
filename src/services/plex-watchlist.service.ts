@@ -58,8 +58,8 @@ export class PlexWatchlistService {
       }
     } catch (error) {
       this.log.error(
-        `Failed to create default quotas for user ${userId}:`,
-        error,
+        { error, userId },
+        'Failed to create default quotas for user',
       )
     }
   }
@@ -85,7 +85,7 @@ export class PlexWatchlistService {
       )
       return snapshot
     } catch (error) {
-      this.log.error('Error creating GUIDs snapshot:', error)
+      this.log.error({ error }, 'Error creating GUIDs snapshot:')
       return new Set()
     }
   }
@@ -184,10 +184,14 @@ export class PlexWatchlistService {
 
     // Send Discord notification (simplified without discord_id check)
     try {
+      // Runtime type guard to ensure valid Discord type
+      const discordType =
+        item.type === 'movie' || item.type === 'show' ? item.type : 'movie'
+
       discordSent = await this.fastify.discord.sendMediaNotification({
         username,
         title: item.title,
-        type: item.type as 'movie' | 'show',
+        type: discordType,
         posterUrl: item.thumb,
       })
 
@@ -196,7 +200,16 @@ export class PlexWatchlistService {
         { success: discordSent },
       )
     } catch (error) {
-      this.log.error('Error sending Discord webhook notification:', error)
+      this.log.error(
+        {
+          error,
+          username,
+          title: item.title,
+          type: item.type,
+          userId: user.userId,
+        },
+        'Error sending Discord webhook notification',
+      )
     }
 
     // Send Apprise notification
@@ -217,7 +230,16 @@ export class PlexWatchlistService {
           { success: appriseSent },
         )
       } catch (error) {
-        this.log.error('Error sending Apprise notification:', error)
+        this.log.error(
+          {
+            error,
+            username,
+            title: item.title,
+            type: item.type,
+            userId: user.userId,
+          },
+          'Error sending Apprise notification',
+        )
       }
     }
 
@@ -555,8 +577,8 @@ export class PlexWatchlistService {
             )
           } else {
             this.log.error(
-              `Failed to fetch Plex username for token${index + 1}:`,
-              error,
+              { error, tokenIndex: index + 1 },
+              'Failed to fetch Plex username for token',
             )
           }
           // Continue with the fallback name
@@ -1004,7 +1026,7 @@ export class PlexWatchlistService {
 
       return isActive
     } catch (error) {
-      this.log.error('Error checking RSS workflow status:', error)
+      this.log.error({ error }, 'Error checking RSS workflow status:')
       return false
     }
   }
@@ -1068,8 +1090,8 @@ export class PlexWatchlistService {
           notificationChecks.set(userId, checks)
         } catch (error) {
           this.log.error(
-            `Error checking existing notifications for user ${userId}:`,
-            error,
+            { error, userId },
+            'Error checking existing notifications for user',
           )
           // Create an empty map for this user to avoid crashes
           notificationChecks.set(userId, new Map())
@@ -1537,17 +1559,32 @@ export class PlexWatchlistService {
     return results
   }
 
-  private async ensureRssFeeds() {
-    let config = await this.dbService.getConfig()
+  private async ensureRssFeeds(): Promise<{
+    selfRss?: string
+    friendsRss?: string
+  }> {
+    const config = this.config
 
     if (!config?.selfRss && !config?.friendsRss) {
-      this.log.info('No RSS feeds found in database, attempting to generate...')
+      this.log.info(
+        'No RSS feeds found in configuration, attempting to generate...',
+      )
       await this.generateAndSaveRssFeeds()
-      config = await this.dbService.getConfig()
+      const updatedConfig = await this.dbService.getConfig()
 
-      if (!config?.selfRss && !config?.friendsRss) {
+      // Sync the in-memory config with the updated RSS feeds
+      if (updatedConfig) {
+        await this.fastify.updateConfig({
+          selfRss: updatedConfig.selfRss,
+          friendsRss: updatedConfig.friendsRss,
+        })
+      }
+
+      if (!updatedConfig?.selfRss && !updatedConfig?.friendsRss) {
         throw new Error('Unable to generate or retrieve RSS feed URLs')
       }
+
+      return updatedConfig
     }
 
     return config
@@ -2031,7 +2068,10 @@ export class PlexWatchlistService {
               break
             }
           } catch (error) {
-            this.log.error(`Error checking database for GUID ${guid}:`, error)
+            this.log.error(
+              { error },
+              `Error checking database for GUID ${guid}:`,
+            )
           }
         }
 

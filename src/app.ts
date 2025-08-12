@@ -7,6 +7,7 @@ import FastifyFormBody from '@fastify/formbody'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { createTemporaryAdminSession } from '@utils/session.js'
 import { hasValidPlexTokens } from '@utils/plex.js'
+import type { ErrorResponse } from '@root/schemas/common/error.schema.js'
 
 export const options = {
   ajv: {
@@ -60,24 +61,41 @@ export default async function serviceApp(
 
   // Error handler
   fastify.setErrorHandler((err, request, reply) => {
-    fastify.log.error(
-      {
-        err,
-        request: {
-          method: request.method,
-          url: request.url,
-          query: request.query,
-          params: request.params,
-        },
+    const statusCode = err.statusCode ?? 500
+    // Avoid logging query/params to prevent leaking tokens/PII
+    const logData = {
+      err,
+      request: {
+        id: request.id,
+        method: request.method,
+        path: request.url.split('?')[0],
+        route: request.routeOptions?.url,
       },
-      'Unhandled error occurred',
-    )
-    reply.code(err.statusCode ?? 500)
-    let message = 'Internal Server Error'
-    if (err.statusCode && err.statusCode < 500) {
-      message = err.message
     }
-    return { message }
+
+    // Use appropriate log level based on status code
+    if (statusCode === 401) {
+      request.log.warn(logData, 'Authentication required')
+    } else if (statusCode >= 500) {
+      request.log.error(logData, 'Internal server error occurred')
+    } else {
+      request.log.warn(logData, 'Client error occurred')
+    }
+    reply.code(statusCode)
+    const isServerError = statusCode >= 500
+    const payload: ErrorResponse = {
+      statusCode,
+      code: err.code || 'GENERIC_ERROR',
+      error: isServerError
+        ? 'Internal Server Error'
+        : 'error' in err && typeof err.error === 'string'
+          ? err.error
+          : 'Client Error',
+      message: isServerError
+        ? 'Internal Server Error'
+        : err.message || 'An error occurred',
+    }
+    return payload
   })
 
   // 404 handler with rate limiting
@@ -92,16 +110,22 @@ export default async function serviceApp(
       request.log.warn(
         {
           request: {
+            id: request.id,
             method: request.method,
-            url: request.url,
-            query: request.query,
-            params: request.params,
+            path: request.url.split('?')[0],
+            route: request.routeOptions?.url,
           },
         },
         'Resource not found',
       )
       reply.code(404)
-      return { message: 'Not Found' }
+      const response: ErrorResponse = {
+        statusCode: 404,
+        code: 'NOT_FOUND',
+        error: 'Not Found',
+        message: 'Resource not found',
+      }
+      return response
     },
   )
 
@@ -277,7 +301,7 @@ export default async function serviceApp(
         // Allow access to login page
       },
     },
-    (req, reply) => {
+    (_req, reply) => {
       return reply.html()
     },
   )

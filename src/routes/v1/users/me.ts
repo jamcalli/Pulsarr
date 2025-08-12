@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   MeResponseSchema,
   MeErrorSchema,
@@ -43,17 +44,24 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Try to get Plex token from config to fetch avatar
         try {
-          const config = await fastify.db.getConfig()
+          const config = fastify.config
 
           if (config?.plexTokens && config.plexTokens.length > 0) {
             // Use the first available Plex token
             const plexToken = config.plexTokens[0]
-            plexConnected = true
             avatar = await fetchPlexAvatar(plexToken, fastify.log)
+            plexConnected = true
           }
         } catch (error) {
           // Don't fail the entire request if Plex avatar fetch fails
-          fastify.log.warn(error, 'Failed to fetch Plex token or avatar')
+          plexConnected = false
+          fastify.log.warn(
+            {
+              err: error,
+              route: `${request.method} ${request.routeOptions?.url || request.url}`,
+            },
+            'Failed to fetch Plex token or avatar',
+          )
         }
 
         return {
@@ -69,7 +77,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         }
       } catch (error) {
-        fastify.log.error(error, 'Error in /me endpoint')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to retrieve current user information',
+        })
         reply.status(500)
         return {
           success: false,

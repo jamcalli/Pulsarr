@@ -151,7 +151,7 @@ export default function createUserEvaluator(
       const regex = new RegExp(pattern)
       return regex.test(userName)
     } catch (error) {
-      fastify.log.error(`Invalid regex pattern: ${pattern}`, error)
+      fastify.log.error({ error }, `Invalid regex pattern: ${pattern}`)
       return false
     }
   }
@@ -185,7 +185,7 @@ export default function createUserEvaluator(
       try {
         rules = await fastify.db.getRouterRulesByType('user')
       } catch (err) {
-        fastify.log.error({ err }, 'User evaluator - DB query failed')
+        fastify.log.error({ error: err }, 'User evaluator - DB query failed')
         return null
       }
 
@@ -252,7 +252,7 @@ export default function createUserEvaluator(
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
-        priority: rule.order || 50, // Default to 50 if not specified
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,

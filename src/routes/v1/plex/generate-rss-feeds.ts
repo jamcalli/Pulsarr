@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { rssFeedsSchema } from '@schemas/plex/generate-rss-feeds.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 export const generateRssFeedsRoute: FastifyPluginAsyncZod = async (
   fastify,
@@ -9,13 +10,15 @@ export const generateRssFeedsRoute: FastifyPluginAsyncZod = async (
     method: 'GET',
     url: '/generate-rss-feeds',
     schema: rssFeedsSchema,
-    handler: async (_request, reply) => {
+    handler: async (request, reply) => {
       try {
         const response = await fastify.plexWatchlist.generateAndSaveRssFeeds()
         return reply.send(response)
       } catch (err) {
-        fastify.log.error(err)
-        return reply.code(500).send({ error: 'Unable to fetch watchlist URLs' })
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to generate RSS feeds',
+        })
+        return reply.internalServerError('Unable to fetch watchlist URLs')
       }
     },
   })

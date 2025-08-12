@@ -86,7 +86,7 @@ export class ContentRouterService {
               }
             }
           } catch (err) {
-            this.log.error(`Error loading evaluator ${file}:`, err)
+            this.log.error({ error: err }, `Error loading evaluator ${file}:`)
           }
         }
       }
@@ -98,7 +98,7 @@ export class ContentRouterService {
         `Successfully loaded ${this.evaluators.length} router evaluators`,
       )
     } catch (error) {
-      this.log.error('Error initializing content router:', error)
+      this.log.error({ error }, 'Error initializing content router')
       throw error
     }
   }
@@ -194,8 +194,8 @@ export class ContentRouterService {
         return { routedInstances }
       } catch (error) {
         this.log.error(
-          `Error force-routing "${item.title}" to instance ${options.forcedInstanceId}:`,
-          error,
+          { error },
+          `Error force-routing "${item.title}" to instance ${options.forcedInstanceId}`,
         )
         throw error
       }
@@ -211,8 +211,8 @@ export class ContentRouterService {
       hasAnyRules = await this.fastify.db.hasAnyRouterRules()
     } catch (error) {
       this.log.error(
-        `Error checking for router rules for "${item.title}":`,
-        error,
+        { error },
+        `Error checking for router rules for "${item.title}"`,
       )
       // Continue with default routing path on error
     }
@@ -252,8 +252,8 @@ export class ContentRouterService {
           routedInstances.push(options.syncTargetInstanceId)
         } catch (error) {
           this.log.error(
-            `Error routing "${item.title}" to sync target instance ${options.syncTargetInstanceId}:`,
-            error,
+            { error },
+            `Error routing "${item.title}" to sync target instance ${options.syncTargetInstanceId}`,
           )
           throw error
         }
@@ -383,13 +383,13 @@ export class ContentRouterService {
           }
         } catch (error) {
           this.log.error(
-            `Error checking approval requirements for default routing of "${item.title}":`,
-            error,
+            { error },
+            `Error checking approval requirements for default routing of "${item.title}"`,
           )
           // Log the full error details for debugging
           if (error instanceof Error) {
-            this.log.error(`Error details: ${error.message}`)
-            this.log.error(`Error stack: ${error.stack}`)
+            this.log.error({ error }, `Error details: ${error.message}`)
+            this.log.error({ error }, `Error stack: ${error.stack}`)
           }
           // On error, continue with normal default routing
         }
@@ -429,7 +429,10 @@ export class ContentRouterService {
         enrichedItem = await this.enrichItemMetadata(item, context)
         this.log.debug(`Enriched metadata for "${item.title}"`)
       } catch (error) {
-        this.log.error(`Failed to enrich metadata for "${item.title}":`, error)
+        this.log.error(
+          { error },
+          `Failed to enrich metadata for "${item.title}"`,
+        )
         // Continue with original item if enrichment fails
       }
     }
@@ -457,8 +460,8 @@ export class ContentRouterService {
           }
         } catch (evaluatorError) {
           this.log.error(
-            `Error in evaluator "${evaluator.name}" when routing "${enrichedItem.title}":`,
-            evaluatorError,
+            { error: evaluatorError },
+            `Error in evaluator "${evaluator.name}" when routing "${enrichedItem.title}"`,
           )
         }
       }
@@ -497,8 +500,8 @@ export class ContentRouterService {
           routedInstances.push(options.syncTargetInstanceId)
         } catch (error) {
           this.log.error(
-            `Error routing "${item.title}" to sync target instance ${options.syncTargetInstanceId}:`,
-            error,
+            { error },
+            `Error routing "${item.title}" to sync target instance ${options.syncTargetInstanceId}`,
           )
         }
       }
@@ -595,8 +598,8 @@ export class ContentRouterService {
             }
           } catch (error) {
             this.log.error(
-              `Error checking approval requirements for default routing of "${item.title}":`,
-              error,
+              { error },
+              `Error checking approval requirements for default routing of "${item.title}"`,
             )
             // Continue with normal routing on error
           }
@@ -723,8 +726,8 @@ export class ContentRouterService {
         }
       } catch (error) {
         this.log.error(
-          `Error checking approval requirements for "${enrichedItem.title}":`,
-          error,
+          { error },
+          `Error checking approval requirements for "${enrichedItem.title}"`,
         )
         // On error, continue with normal routing
       }
@@ -802,8 +805,8 @@ export class ContentRouterService {
         routedInstances.push(decision.instanceId)
       } catch (routeError) {
         this.log.error(
-          `Error routing "${item.title}" to instance ${decision.instanceId}:`,
-          routeError,
+          { error: routeError },
+          `Error routing "${item.title}" to instance ${decision.instanceId}`,
         )
       }
     }
@@ -958,8 +961,8 @@ export class ContentRouterService {
           )
         } catch (error) {
           this.log.error(
-            `Database error fetching default Radarr instance for metadata lookup of "${item.title}":`,
-            error,
+            { error },
+            `Database error fetching default Radarr instance for metadata lookup of "${item.title}"`,
           )
           return item
         }
@@ -1074,8 +1077,8 @@ export class ContentRouterService {
           }
         } catch (error) {
           this.log.error(
-            `Database error fetching default Sonarr instance for metadata lookup of "${item.title}":`,
-            error,
+            { error },
+            `Database error fetching default Sonarr instance for metadata lookup of "${item.title}"`,
           )
           return item
         }
@@ -1114,7 +1117,7 @@ export class ContentRouterService {
         }
       }
     } catch (error) {
-      this.log.error(`Error enriching metadata for "${item.title}":`, error)
+      this.log.error({ error }, `Error enriching metadata for "${item.title}"`)
     }
 
     // Return original item if enrichment failed
@@ -1289,8 +1292,8 @@ export class ContentRouterService {
           routedInstances.push(instanceId)
         } catch (error) {
           this.log.error(
-            `Error routing "${item.title}" to Radarr instance ${instanceId}:`,
-            error,
+            { error },
+            `Error routing "${item.title}" to Radarr instance ${instanceId}`,
           )
           // Continue with other instances even if one fails
         }
@@ -1327,8 +1330,8 @@ export class ContentRouterService {
           routedInstances.push(instanceId)
         } catch (error) {
           this.log.error(
-            `Error routing "${item.title}" to Sonarr instance ${instanceId}:`,
-            error,
+            { error },
+            `Error routing "${item.title}" to Sonarr instance ${instanceId}`,
           )
           // Continue with other instances even if one fails
         }
@@ -1393,7 +1396,7 @@ export class ContentRouterService {
 
       return routedInstances
     } catch (error) {
-      this.log.error(`Error in default routing for ${item.title}:`, error)
+      this.log.error({ error }, `Error in default routing for ${item.title}`)
       return []
     }
   }
@@ -1508,7 +1511,7 @@ export class ContentRouterService {
               }
             }
           } catch (error) {
-            this.log.error(`Error evaluating router rule ${rule.id}:`, error)
+            this.log.error({ error }, `Error evaluating router rule ${rule.id}`)
           }
         }
       }
@@ -1568,7 +1571,7 @@ export class ContentRouterService {
 
       return { required: false }
     } catch (error) {
-      this.log.error('Error checking approval requirements:', error)
+      this.log.error({ error }, 'Error checking approval requirements')
       return { required: false }
     }
   }
@@ -1586,7 +1589,10 @@ export class ContentRouterService {
       try {
         return JSON.parse(syncedInstances || '[]')
       } catch (e) {
-        this.log.error(`Invalid syncedInstances JSON: "${syncedInstances}"`, e)
+        this.log.error(
+          { error: e },
+          `Invalid syncedInstances JSON: "${syncedInstances}"`,
+        )
         return []
       }
     }
@@ -1682,7 +1688,10 @@ export class ContentRouterService {
 
       return { instanceIds }
     } catch (error) {
-      this.log.error(`Error getting default ${contentType} instances:`, error)
+      this.log.error(
+        { error },
+        `Error getting default ${contentType} instances`,
+      )
       return {
         instanceIds: [],
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -1709,8 +1718,8 @@ export class ContentRouterService {
       return result.instanceIds
     } catch (error) {
       this.log.error(
-        `Error in getting default routing instances for ${contentType}:`,
-        error,
+        { error },
+        `Error in getting default routing instances for ${contentType}`,
       )
       return []
     }
@@ -1781,8 +1790,8 @@ export class ContentRouterService {
       return decisions
     } catch (error) {
       this.log.error(
-        `Error getting default routing decisions for ${contentType}:`,
-        error,
+        { error },
+        `Error getting default routing decisions for ${contentType}`,
       )
       return []
     }
@@ -1836,8 +1845,8 @@ export class ContentRouterService {
 
       if (!proposedRouting || !proposedRouting.instanceId) {
         this.log.error(
-          'Approved request has invalid routing decision:',
-          approvedRequest,
+          { approvedRequest },
+          'Approved request has invalid routing decision',
         )
         return { routedInstances: [] }
       }
@@ -1866,8 +1875,8 @@ export class ContentRouterService {
           )
         } catch (error) {
           this.log.error(
-            `Failed to route approved content "${item.title}" to Radarr instance ${instanceId}:`,
-            error,
+            { error },
+            `Failed to route approved content "${item.title}" to Radarr instance ${instanceId}`,
           )
         }
       } else {
@@ -1890,15 +1899,15 @@ export class ContentRouterService {
           )
         } catch (error) {
           this.log.error(
-            `Failed to route approved content "${item.title}" to Sonarr instance ${instanceId}:`,
-            error,
+            { error },
+            `Failed to route approved content "${item.title}" to Sonarr instance ${instanceId}`,
           )
         }
       }
 
       return { routedInstances }
     } catch (error) {
-      this.log.error('Error routing using approved decision:', error)
+      this.log.error({ error }, 'Error routing using approved decision')
       return { routedInstances: [] }
     }
   }

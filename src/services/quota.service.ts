@@ -336,7 +336,7 @@ export class QuotaService {
     try {
       await this.performAllQuotaMaintenance()
     } catch (error) {
-      this.fastify.log.error('Failed to perform quota maintenance:', error)
+      this.fastify.log.error({ error }, 'Failed to perform quota maintenance:')
     }
   }
 
@@ -393,7 +393,7 @@ export class QuotaService {
         this.fastify.log.debug('No active quotas found during maintenance')
       }
     } catch (error) {
-      this.fastify.log.error('Failed to log quota status:', error)
+      this.fastify.log.error({ error }, 'Failed to log quota status:')
     }
   }
 

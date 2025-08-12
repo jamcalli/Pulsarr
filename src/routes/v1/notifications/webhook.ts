@@ -20,6 +20,7 @@ import {
   processContentNotifications,
   isWebhookProcessable,
 } from '@root/utils/notification-processor.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -555,7 +556,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         throw new Error('Invalid webhook payload')
       } catch (error) {
-        fastify.log.error({ error }, 'Error processing webhook')
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to process webhook',
+          instanceName: body.instanceName,
+        })
         return reply.internalServerError('Error processing webhook')
       }
     },

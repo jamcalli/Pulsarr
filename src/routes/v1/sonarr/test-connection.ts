@@ -5,6 +5,7 @@ import {
   TestConnectionResponseSchema,
   ErrorSchema,
 } from '@schemas/sonarr/test-connection.schema.js'
+import { logServiceError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -39,17 +40,22 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: result.message,
         }
       } catch (err) {
-        fastify.log.error('Error testing Sonarr connection:', err)
+        logServiceError(
+          fastify.log,
+          request,
+          err,
+          'sonarr',
+          'Error testing connection',
+        )
 
         const errorMessage =
           err instanceof Error
             ? err.message
             : 'Unable to test Sonarr connection'
 
-        return reply.status(500).send({
-          success: false,
-          message: errorMessage.replace(/Sonarr API error: /, ''),
-        })
+        return reply.internalServerError(
+          errorMessage.replace(/Sonarr API error: /, ''),
+        )
       }
     },
   )

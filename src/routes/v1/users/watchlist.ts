@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   GetUserWatchlistParamsSchema,
   GetUserWatchlistResponseSchema,
@@ -40,7 +41,7 @@ const watchlistRoute: FastifyPluginAsync = async (fastify) => {
             success: false,
             message: 'User not found',
           }
-          return reply.status(404).send(errorResponse)
+          return reply.notFound(errorResponse.message)
         }
 
         // Get watchlist items using the database service method
@@ -74,12 +75,14 @@ const watchlistRoute: FastifyPluginAsync = async (fastify) => {
 
         return reply.status(200).send(response)
       } catch (error) {
-        fastify.log.error('Error fetching user watchlist:', error)
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to fetch user watchlist',
+        })
         const errorResponse: GetUserWatchlistError = {
           success: false,
           message: 'Failed to fetch user watchlist',
         }
-        return reply.status(500).send(errorResponse)
+        return reply.internalServerError(errorResponse.message)
       }
     },
   )

@@ -245,8 +245,8 @@ export class ApprovalService {
       }
     } catch (error) {
       this.fastify.log.error(
-        'Error handling cross-user content fulfillment:',
-        error,
+        { error },
+        'Error handling cross-user content fulfillment',
       )
       // Don't throw - this is a nice-to-have feature
     }
@@ -319,8 +319,8 @@ export class ApprovalService {
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {
               this.fastify.log.error(
-                `Failed to route to Radarr instance ${targetInstanceId}:`,
-                error,
+                { error, instanceId: targetInstanceId },
+                'Failed to route to Radarr instance',
               )
               routingResults.failed.push({
                 instanceId: targetInstanceId,
@@ -406,8 +406,8 @@ export class ApprovalService {
       return { success: false, error: 'Invalid routing decision' }
     } catch (error) {
       this.fastify.log.error(
-        `Failed to process approved request ${request.id}:`,
-        error,
+        { error, requestId: request.id },
+        'Failed to process approved request',
       )
       return {
         success: false,
@@ -503,7 +503,10 @@ export class ApprovalService {
         )
       }
     } catch (error) {
-      this.fastify.log.error('Failed to perform approval maintenance:', error)
+      this.fastify.log.error(
+        { error },
+        'Failed to perform approval maintenance:',
+      )
     }
   }
 
@@ -565,7 +568,7 @@ export class ApprovalService {
 
       return result
     } catch (error) {
-      this.fastify.log.error(`Error approving request ${requestId}:`, error)
+      this.fastify.log.error({ error }, `Error approving request ${requestId}:`)
       return null
     }
   }
@@ -592,7 +595,7 @@ export class ApprovalService {
 
       return result
     } catch (error) {
-      this.fastify.log.error(`Error rejecting request ${requestId}:`, error)
+      this.fastify.log.error({ error }, `Error rejecting request ${requestId}:`)
       return null
     }
   }
@@ -710,8 +713,8 @@ export class ApprovalService {
       return deleted
     } catch (error) {
       this.fastify.log.error(
-        `Error deleting approval request ${requestId}:`,
-        error,
+        { error, requestId },
+        'Error deleting approval request',
       )
       return false
     }

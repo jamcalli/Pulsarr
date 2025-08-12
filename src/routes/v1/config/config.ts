@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
+import { logRouteError } from '@utils/route-errors.js'
 import {
   ConfigSchema,
   ConfigResponseSchema,
@@ -58,7 +59,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { error: err.message || 'Error fetching configuration' }
         }
 
-        fastify.log.error('Error fetching config:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch configuration',
+        })
         reply.status(500)
         return { error: 'Unable to fetch configuration' }
       }
@@ -103,8 +106,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Validate Plex Pass requirement for Tautulli
         if (safeConfigUpdate.tautulliEnabled === true) {
-          const currentConfig = await fastify.db.getConfig()
-          if (!currentConfig?.selfRss || !currentConfig?.friendsRss) {
+          if (!fastify.config.selfRss || !fastify.config.friendsRss) {
             reply.status(400)
             return {
               error:
@@ -127,7 +129,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         try {
           await fastify.updateConfig(safeConfigUpdate)
         } catch (configUpdateError) {
-          fastify.log.error('Error updating runtime config:', configUpdateError)
+          logRouteError(fastify.log, request, configUpdateError, {
+            message: 'Failed to update runtime configuration',
+          })
           reply.status(400)
           return { error: 'Failed to update runtime configuration' }
         }
@@ -139,7 +143,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           try {
             await fastify.updateConfig(originalRuntimeValues)
           } catch (revertError) {
-            fastify.log.error('Failed to revert runtime config:', revertError)
+            logRouteError(fastify.log, request, revertError, {
+              message: 'Failed to revert runtime configuration',
+            })
           }
           reply.status(400)
           return { error: 'Failed to update configuration in database' }
@@ -205,7 +211,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           reply.status(err.statusCode as number)
           return { error: err.message || 'Error updating configuration' }
         }
-        fastify.log.error('Error updating config:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to update configuration',
+        })
         reply.status(500)
         return { error: 'Unable to update configuration' }
       }

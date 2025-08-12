@@ -5,6 +5,7 @@ import {
   PlexServerResponseSchema,
   PlexServerErrorSchema,
 } from '@schemas/plex/discover-servers.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 // Types for Plex API responses
 interface PlexResourceConnection {
@@ -156,7 +157,9 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
           message: `Found ${serverOptions.length} Plex servers`,
         }
       } catch (err: unknown) {
-        fastify.log.error('Error discovering Plex servers:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to discover Plex servers',
+        })
 
         // Handle Fastify-specific errors
         if (

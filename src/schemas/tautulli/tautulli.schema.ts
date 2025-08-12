@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 // Test connection schemas
 export const TestConnectionBodySchema = z.object({
@@ -18,11 +19,8 @@ export const SyncNotifiersResponseSchema = z.object({
   eligibleUsers: z.number(),
 })
 
-// Error schema
-export const ErrorSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-})
+// Re-export shared schemas
+export { ErrorSchema }
 
 // Type exports
 export type TestConnectionBody = z.infer<typeof TestConnectionBodySchema>

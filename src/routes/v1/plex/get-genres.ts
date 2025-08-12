@@ -4,6 +4,7 @@ import {
   WatchlistGenresResponseSchema,
   WatchlistGenresErrorSchema,
 } from '@schemas/plex/get-genres.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 
 export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
@@ -35,7 +36,9 @@ export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
         reply.status(200)
         return response
       } catch (err) {
-        fastify.log.error('Error fetching watchlist genres:', err)
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to fetch watchlist genres',
+        })
         return reply.internalServerError('Unable to fetch watchlist genres')
       }
     },

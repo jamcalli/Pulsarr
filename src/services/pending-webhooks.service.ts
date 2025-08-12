@@ -321,7 +321,7 @@ export class PendingWebhooksService {
 
       return deletedCount
     } catch (error) {
-      this.log.error('Error processing pending webhooks:', error)
+      this.log.error({ error }, 'Error processing pending webhooks:')
       return 0
     } finally {
       this._processingWebhooks = false
@@ -349,7 +349,7 @@ export class PendingWebhooksService {
       const deleted = await this.fastify.db.cleanupExpiredWebhooks()
       return deleted
     } catch (error) {
-      this.log.error('Error cleaning up expired webhooks:', error)
+      this.log.error({ error }, 'Error cleaning up expired webhooks:')
       return 0
     } finally {
       this._cleaningUp = false
