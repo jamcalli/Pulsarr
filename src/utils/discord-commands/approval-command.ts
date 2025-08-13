@@ -1,16 +1,15 @@
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import {
-  SlashCommandBuilder,
-  type ChatInputCommandInteraction,
-  type ButtonInteraction,
-  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
+  type ButtonInteraction,
   ButtonStyle,
+  type ChatInputCommandInteraction,
+  EmbedBuilder,
   MessageFlags,
+  SlashCommandBuilder,
 } from 'discord.js'
-import type { FastifyInstance } from 'fastify'
-import type { FastifyBaseLogger } from 'fastify'
-import type { ApprovalRequest } from '@root/types/approval.types.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 interface ApprovalCommandContext {
   fastify: FastifyInstance

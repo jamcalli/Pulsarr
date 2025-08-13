@@ -1,8 +1,8 @@
 import type {
+  BulkOperationResult,
   PlexLabelTracking,
   TrackPlexLabelsOperation,
   UntrackPlexLabelOperation,
-  BulkOperationResult,
 } from '../methods/plex-label-tracking.js'
 
 declare module '@services/database.service.js' {

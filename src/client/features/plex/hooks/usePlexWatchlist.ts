@@ -1,8 +1,8 @@
+import type { OthersWatchlistSuccess } from '@root/schemas/plex/others-watchlist-token.schema'
+import type { SelfWatchlistSuccess } from '@root/schemas/plex/self-watchlist-token.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
-import type { SelfWatchlistSuccess } from '@root/schemas/plex/self-watchlist-token.schema'
-import type { OthersWatchlistSuccess } from '@root/schemas/plex/others-watchlist-token.schema'
 
 export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
 

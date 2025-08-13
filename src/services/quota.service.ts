@@ -1,12 +1,12 @@
-import type { FastifyInstance } from 'fastify'
 import type {
-  UserQuotaConfig,
-  UserQuotaConfigs,
+  CreateUserQuotaData,
   QuotaStatus,
   QuotaType,
-  CreateUserQuotaData,
   UpdateUserQuotaData,
+  UserQuotaConfig,
+  UserQuotaConfigs,
 } from '@root/types/approval.types.js'
+import type { FastifyInstance } from 'fastify'
 
 export class QuotaService {
   constructor(private fastify: FastifyInstance) {}

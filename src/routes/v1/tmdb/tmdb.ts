@@ -1,21 +1,21 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
+import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
 import {
-  GetTmdbMetadataParamsSchema,
-  GetTmdbMetadataQuerySchema,
-  TmdbMetadataSuccessResponseSchema,
-  TmdbMetadataErrorResponseSchema,
-  TmdbRegionsSuccessResponseSchema,
-  TmdbRegionsErrorResponseSchema,
   type GetTmdbMetadataParams,
+  GetTmdbMetadataParamsSchema,
   type GetTmdbMetadataQuery,
-  type TmdbMetadataSuccessResponse,
+  GetTmdbMetadataQuerySchema,
   type TmdbMetadataErrorResponse,
+  TmdbMetadataErrorResponseSchema,
+  type TmdbMetadataSuccessResponse,
+  TmdbMetadataSuccessResponseSchema,
   type TmdbMovieMetadata,
+  TmdbRegionsErrorResponseSchema,
+  TmdbRegionsSuccessResponseSchema,
   type TmdbTvMetadata,
 } from '@schemas/tmdb/tmdb.schema.js'
-import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Intelligent TMDB metadata endpoint - accepts GUID format (tmdb:123 or tvdb:456)

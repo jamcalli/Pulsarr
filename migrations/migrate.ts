@@ -1,6 +1,6 @@
+import dotenv from 'dotenv'
 import knex from 'knex'
 import config from './knexfile.js'
-import dotenv from 'dotenv'
 
 // Load environment variables from .env file
 dotenv.config()

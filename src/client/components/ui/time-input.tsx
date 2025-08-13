@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { format, isValid } from 'date-fns';
+import { useEffect, useState } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -6,8 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { format, isValid } from 'date-fns';
 
 interface TimeSelectorProps {
   value?: Date;

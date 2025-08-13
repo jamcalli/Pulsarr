@@ -1,41 +1,41 @@
-import { useEffect } from 'react'
-import { Loader2, Check, AlertTriangle } from 'lucide-react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
+import { AlertTriangle, Check, Loader2 } from 'lucide-react'
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import type { z } from 'zod'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Form,
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
-  FormDescription,
 } from '@/components/ui/form'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { toast } from 'sonner'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import type { z } from 'zod'
-import type {
-  PlexUserUpdates,
-  PlexUserTableRow,
-  BulkUpdateStatus,
-} from '@/features/plex/store/types'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { bulkUpdateSchema } from '@/features/plex/store/schemas'
+import type {
+  BulkUpdateStatus,
+  PlexUserTableRow,
+  PlexUserUpdates,
+} from '@/features/plex/store/types'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 type BulkUpdateSchema = z.infer<typeof bulkUpdateSchema>
 

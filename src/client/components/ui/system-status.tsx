@@ -1,7 +1,7 @@
+import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertTriangle } from 'lucide-react'
-import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 
 interface SystemStatusProps {
   job: JobStatus | null | undefined

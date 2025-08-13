@@ -1,15 +1,15 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { User } from '@root/types/config.types.js'
-import { getPublicContentUrls } from '@root/utils/notification-processor.js'
-import type {
-  MediaNotification,
-  SystemNotification,
-} from '@root/types/discord.types.js'
 import type {
   AppriseMessageType,
   AppriseNotification,
 } from '@root/types/apprise.types.js'
+import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
+import type {
+  MediaNotification,
+  SystemNotification,
+} from '@root/types/discord.types.js'
+import { getPublicContentUrls } from '@root/utils/notification-processor.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class AppriseNotificationService {
   constructor(

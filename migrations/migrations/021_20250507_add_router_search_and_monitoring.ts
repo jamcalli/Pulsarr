@@ -1,7 +1,7 @@
 import type { Knex } from 'knex'
 import {
-  shouldSkipForPostgreSQL,
   shouldSkipDownForPostgreSQL,
+  shouldSkipForPostgreSQL,
 } from '../utils/clientDetection.js'
 
 /**

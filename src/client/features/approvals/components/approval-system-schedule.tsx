@@ -1,3 +1,6 @@
+import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { HelpCircle, Loader2, Save } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -13,9 +16,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { HelpCircle, Save, Loader2 } from 'lucide-react'
-import { useState } from 'react'
-import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 
 interface ApprovalSystemScheduleProps {
   interval: number | null

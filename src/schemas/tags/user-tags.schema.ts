@@ -1,9 +1,9 @@
-import { z } from 'zod'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import {
-  TagPrefixSchema,
   RemovedTagPrefixSchema,
+  TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import { z } from 'zod'
 
 // Configuration schema for user tagging
 export const TaggingConfigSchema = z

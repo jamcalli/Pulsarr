@@ -4,9 +4,10 @@
  * This plugin registers the DeleteSyncService with the Fastify application
  * and connects it to the pre-existing scheduler job.
  */
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
+
 import { DeleteSyncService } from '@services/delete-sync.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

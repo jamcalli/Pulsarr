@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
-import type { RadarrInstance } from '@/features/radarr/store/radarrStore'
-import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import { Computer } from 'lucide-react'
+import { useMemo } from 'react'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import type { RadarrInstance } from '@/features/radarr/store/radarrStore'
 
 /**
  * Returns a list of Radarr instances available for synchronization, excluding the current instance and those with a placeholder API key.

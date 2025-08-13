@@ -1,8 +1,8 @@
-import type { Knex } from 'knex'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
 import fs from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
+import type { Knex } from 'knex'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

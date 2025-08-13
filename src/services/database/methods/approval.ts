@@ -1,13 +1,13 @@
-import type { DatabaseService } from '@services/database.service.js'
 import type {
   ApprovalRequest,
   ApprovalRequestRow,
+  ApprovalStats,
+  ApprovalStatus,
   CreateApprovalRequestData,
   UpdateApprovalRequestData,
-  ApprovalStats,
   UserApprovalStats,
-  ApprovalStatus,
 } from '@root/types/approval.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 
 /**
  * Maps a database row to an ApprovalRequest object, parsing JSON fields and assigning default values for missing data.

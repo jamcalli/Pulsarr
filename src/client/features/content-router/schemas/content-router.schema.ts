@@ -1,8 +1,8 @@
-import { z } from 'zod'
 import {
   ComparisonOperatorSchema,
   ConditionValueSchema,
 } from '@root/schemas/content-router/content-router.schema'
+import { z } from 'zod'
 import { ROUTER_SERIES_TYPES } from '../constants'
 
 export type ConditionValue = z.infer<typeof ConditionValueSchema>

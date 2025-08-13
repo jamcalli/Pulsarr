@@ -1,10 +1,10 @@
-import type { DatabaseService } from '@services/database.service.js'
 import type {
+  CronConfig,
   DbSchedule,
   IntervalConfig,
-  CronConfig,
   JobRunInfo,
 } from '@root/types/scheduler.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 
 /**
  * Parses a raw schedule database row into a typed `DbSchedule` object.

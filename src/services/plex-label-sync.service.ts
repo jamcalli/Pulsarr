@@ -13,32 +13,33 @@
  * - Content GUID matching and resolution
  * - Configurable concurrency control for optimal performance
  */
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { PlexServerService } from '@utils/plex-server.js'
-import type { DatabaseService } from '@services/database.service.js'
+
+import type {
+  ContentWithUsers,
+  LabelReconciliationResult,
+  PlexContentItems,
+  RadarrMovieWithTags,
+  SonarrSeriesWithTags,
+  SyncResult,
+} from '@root/types/plex-label-sync.types.js'
+import type { WebhookPayload } from '@schemas/notifications/webhook.schema.js'
+import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
+import type { PendingLabelSyncWithPlexKeys } from '@services/database/methods/plex-label-sync.js'
 import type {
   PlexLabelTracking,
   TrackPlexLabelsOperation,
   UntrackPlexLabelOperation,
 } from '@services/database/methods/plex-label-tracking.js'
-import type { PendingLabelSyncWithPlexKeys } from '@services/database/methods/plex-label-sync.js'
-import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
-import type { WebhookPayload } from '@schemas/notifications/webhook.schema.js'
-import type {
-  SyncResult,
-  ContentWithUsers,
-  PlexContentItems,
-  LabelReconciliationResult,
-  RadarrMovieWithTags,
-  SonarrSeriesWithTags,
-} from '@root/types/plex-label-sync.types.js'
-import pLimit from 'p-limit'
+import type { DatabaseService } from '@services/database.service.js'
 import {
-  parseGuids,
-  getGuidMatchScore,
   extractTmdbId,
   extractTvdbId,
+  getGuidMatchScore,
+  parseGuids,
 } from '@utils/guid-handler.js'
+import type { PlexServerService } from '@utils/plex-server.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
 
 /**
  * Service to manage label synchronization between Pulsarr and Plex

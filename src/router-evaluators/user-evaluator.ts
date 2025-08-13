@@ -1,14 +1,14 @@
-import type { FastifyInstance } from 'fastify'
 import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
   Condition,
+  ContentItem,
   FieldInfo,
   OperatorInfo,
   RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
 } from '@root/types/router.types.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Creates a routing evaluator that determines routing decisions based on the requesting user's ID or username.

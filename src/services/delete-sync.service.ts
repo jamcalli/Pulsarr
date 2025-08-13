@@ -19,22 +19,23 @@
  * // Running the delete sync manually:
  * await fastify.deleteSync.run();
  */
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type {
-  Item as SonarrItem,
-  SonarrSeries,
-} from '@root/types/sonarr.types.js'
+
+import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   Item as RadarrItem,
   RadarrMovie,
 } from '@root/types/radarr.types.js'
-import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import { PlexServerService } from '@utils/plex-server.js'
+import type {
+  Item as SonarrItem,
+  SonarrSeries,
+} from '@root/types/sonarr.types.js'
 import {
-  parseGuids,
   extractRadarrId,
   extractSonarrId,
+  parseGuids,
 } from '@utils/guid-handler.js'
+import { PlexServerService } from '@utils/plex-server.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class DeleteSyncService {
   /**

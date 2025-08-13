@@ -1,29 +1,29 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
+  ConnectionTestResult,
+  SonarrItem as Item,
+  PagedResult,
+  QualityProfile,
+  RootFolder,
   SonarrAddOptions,
+  SonarrConfiguration,
+  SonarrEpisode,
+  SonarrInstance,
   SonarrPost,
   SonarrSeries,
-  SonarrEpisode,
-  SonarrItem as Item,
-  SonarrConfiguration,
-  PagedResult,
-  RootFolder,
-  QualityProfile,
-  SonarrInstance,
-  ConnectionTestResult,
   WebhookNotification,
 } from '@root/types/sonarr.types.js'
 import {
-  isSystemStatus,
   isSonarrStatus,
+  isSystemStatus,
 } from '@root/types/system-status.types.js'
 import {
-  extractTvdbId,
   extractSonarrId,
+  extractTvdbId,
   hasMatchingGuids,
   normalizeGuid,
 } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 // Custom error class to include HTTP status
 class HttpError extends Error {

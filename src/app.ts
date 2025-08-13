@@ -1,13 +1,12 @@
-import path from 'node:path'
-import { resolve } from 'node:path'
+import path, { resolve } from 'node:path'
 import fastifyAutoload from '@fastify/autoload'
-import FastifyVite from '@fastify/vite'
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import FastifyFormBody from '@fastify/formbody'
-import { getAuthBypassStatus } from '@utils/auth-bypass.js'
-import { createTemporaryAdminSession } from '@utils/session.js'
-import { hasValidPlexTokens } from '@utils/plex.js'
+import FastifyVite from '@fastify/vite'
 import type { ErrorResponse } from '@root/schemas/common/error.schema.js'
+import { getAuthBypassStatus } from '@utils/auth-bypass.js'
+import { hasValidPlexTokens } from '@utils/plex.js'
+import { createTemporaryAdminSession } from '@utils/session.js'
+import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 
 export const options = {
   ajv: {

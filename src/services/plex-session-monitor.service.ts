@@ -4,21 +4,22 @@
  * Monitors Plex sessions and triggers Sonarr searches based on viewing patterns
  * Implements "rolling" monitoring for progressive season downloads
  */
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { PlexServerService } from '@utils/plex-server.js'
-import type { SonarrManagerService } from './sonarr-manager.service.js'
-import type { DatabaseService } from './database.service.js'
-import type { SonarrSeries } from '@root/types/sonarr.types.js'
+
 import type {
   PlexSession,
   RollingMonitoredShow,
   SessionMonitoringResult,
 } from '@root/types/plex-session.types.js'
+import type { SonarrSeries } from '@root/types/sonarr.types.js'
 import {
   extractTvdbId,
   normalizeGuid,
   parseGuids,
 } from '@utils/guid-handler.js'
+import type { PlexServerService } from '@utils/plex-server.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { DatabaseService } from './database.service.js'
+import type { SonarrManagerService } from './sonarr-manager.service.js'
 
 export class PlexSessionMonitorService {
   constructor(

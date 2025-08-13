@@ -1,16 +1,16 @@
+import { Check, Loader2 } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Loader2, Check } from 'lucide-react'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { CreateUserErrorMessage } from '@/features/create-user/components/create-user-error'
 import { useCreateUserForm } from '@/features/create-user/hooks/useCreateUserForm'
-import { useRef, useEffect } from 'react'
 
 /**
  * Renders a user registration form with fields for email, username, password, and confirm password.

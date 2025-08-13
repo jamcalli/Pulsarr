@@ -1,13 +1,13 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { User } from '@root/types/config.types.js'
+import type { RadarrItem, RadarrMovie } from '@root/types/radarr.types.js'
+import type { SonarrItem, SonarrSeries } from '@root/types/sonarr.types.js'
 import {
-  getGuidMatchScore,
-  parseGuids,
   extractRadarrId,
   extractSonarrId,
+  getGuidMatchScore,
+  parseGuids,
 } from '@utils/guid-handler.js'
-import type { SonarrItem, SonarrSeries } from '@root/types/sonarr.types.js'
-import type { RadarrItem, RadarrMovie } from '@root/types/radarr.types.js'
-import type { User } from '@root/types/config.types.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
  * Tag structure returned from Sonarr/Radarr APIs

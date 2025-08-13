@@ -1,20 +1,20 @@
-import { Settings, LogOut, Moon, Sun, Sparkles } from 'lucide-react'
-import { useTheme } from '@/components/theme-provider'
+import { LogOut, Moon, Settings, Sparkles, Sun } from 'lucide-react'
+import { useState } from 'react'
 import { useSettings } from '@/components/settings-provider'
+import { useTheme } from '@/components/theme-provider'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { LogoutAlert } from '@/components/ui/logout-alert'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useState } from 'react'
-import { LogoutAlert } from '@/components/ui/logout-alert'
 
 interface SettingsButtonProps {
   isMobile?: boolean

@@ -1,24 +1,24 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import {
-  CreateApprovalRequestSchema,
-  UpdateApprovalRequestSchema,
-  ApprovalRequestCreateResponseSchema,
-  ApprovalRequestUpdateResponseSchema,
-  ApprovalRequestsListResponseSchema,
-  ApprovalStatsResponseSchema,
-  GetApprovalRequestsQuerySchema,
   ApprovalErrorSchema,
-  BulkApprovalRequestSchema,
-  BulkRejectRequestSchema,
-  BulkDeleteRequestSchema,
-  BulkOperationResponseSchema,
+  ApprovalRequestCreateResponseSchema,
+  ApprovalRequestsListResponseSchema,
+  ApprovalRequestUpdateResponseSchema,
+  ApprovalStatsResponseSchema,
   type BulkApprovalRequest,
-  type BulkRejectRequest,
+  BulkApprovalRequestSchema,
   type BulkDeleteRequest,
+  BulkDeleteRequestSchema,
   type BulkOperationResponse,
+  BulkOperationResponseSchema,
+  type BulkRejectRequest,
+  BulkRejectRequestSchema,
+  CreateApprovalRequestSchema,
+  GetApprovalRequestsQuerySchema,
+  UpdateApprovalRequestSchema,
 } from '@schemas/approval/approval.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   /**

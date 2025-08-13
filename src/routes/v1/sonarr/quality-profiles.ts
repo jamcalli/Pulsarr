@@ -1,11 +1,11 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
-  QuerystringSchema,
-  QualityProfilesResponseSchema,
   ErrorSchema,
+  QualityProfilesResponseSchema,
+  QuerystringSchema,
 } from '@schemas/sonarr/get-quality-profiles.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{

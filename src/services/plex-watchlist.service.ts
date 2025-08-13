@@ -1,30 +1,29 @@
-import type { FastifyBaseLogger } from 'fastify'
-import type { FastifyInstance } from 'fastify'
-import pLimit from 'p-limit'
-import {
-  getOthersWatchlist,
-  processWatchlistItems,
-  getFriends,
-  pingPlex,
-  fetchSelfWatchlist,
-  getPlexWatchlistUrls,
-  fetchWatchlistFromRss,
-} from '@utils/plex.js'
-import {
-  parseGuids,
-  hasMatchingParsedGuids,
-  getGuidMatchScore,
-} from '@utils/guid-handler.js'
+import type { User } from '@root/types/config.types.js'
 import type {
-  Item as WatchlistItem,
-  TokenWatchlistItem,
   Friend,
   RssWatchlistResults,
-  WatchlistGroup,
   TemptRssWatchlistItem,
+  TokenWatchlistItem,
+  WatchlistGroup,
+  Item as WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { User } from '@root/types/config.types.js'
 import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.js'
+import {
+  getGuidMatchScore,
+  hasMatchingParsedGuids,
+  parseGuids,
+} from '@utils/guid-handler.js'
+import {
+  fetchSelfWatchlist,
+  fetchWatchlistFromRss,
+  getFriends,
+  getOthersWatchlist,
+  getPlexWatchlistUrls,
+  pingPlex,
+  processWatchlistItems,
+} from '@utils/plex.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 
 export class PlexWatchlistService {

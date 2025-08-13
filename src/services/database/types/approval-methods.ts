@@ -1,10 +1,10 @@
 import type {
   ApprovalRequest,
+  ApprovalStats,
+  ApprovalStatus,
   CreateApprovalRequestData,
   UpdateApprovalRequestData,
-  ApprovalStats,
   UserApprovalStats,
-  ApprovalStatus,
 } from '@root/types/approval.types.js'
 
 declare module '@services/database.service.js' {

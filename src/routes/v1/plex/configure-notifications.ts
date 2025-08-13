@@ -1,6 +1,6 @@
-import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { plexConfigNotificationSchema } from '@schemas/plex/configure-notifications.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
 export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
   fastify,

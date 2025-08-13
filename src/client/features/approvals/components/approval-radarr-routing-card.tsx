@@ -1,22 +1,18 @@
-import { useState, useRef, useEffect } from 'react'
+import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
+import { Check, HelpCircle, Loader2, Plus } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
-import { HelpCircle, Plus, Loader2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -24,23 +20,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
+import { Switch } from '@/components/ui/switch'
+import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
+import {
+  TagsMultiSelect,
+  type TagsMultiSelectRef,
+} from '@/components/ui/tag-multi-select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   QualityProfileSelect,
   RootFolderSelect,
 } from '@/features/radarr/components/selects/radarr-selects'
 import SyncedInstancesSelect from '@/features/radarr/components/selects/radarr-synced-instance-select'
-import {
-  TagsMultiSelect,
-  type TagsMultiSelectRef,
-} from '@/components/ui/tag-multi-select'
-import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
-import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
 
 // Use a subset of RadarrInstanceSchema for form compatibility with routing schema
 type ApprovalRoutingFormData = Pick<

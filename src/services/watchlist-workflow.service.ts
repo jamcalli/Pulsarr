@@ -22,23 +22,24 @@
  * fastify.decorate('watchlistWorkflow', new WatchlistWorkflowService(log, fastify));
  * await fastify.watchlistWorkflow.startWorkflow();
  */
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
 import type {
-  TemptRssWatchlistItem,
   RssWatchlistResults,
+  TemptRssWatchlistItem,
   WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { Condition, ConditionGroup } from '@root/types/router.types.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
-  parseGuids,
-  getGuidMatchScore,
   extractTmdbId,
   extractTvdbId,
   extractTypedGuid,
+  getGuidMatchScore,
+  parseGuids,
 } from '@utils/guid-handler.js'
-import type { Condition, ConditionGroup } from '@root/types/router.types.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'

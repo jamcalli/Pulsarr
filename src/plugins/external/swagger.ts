@@ -1,12 +1,12 @@
-import fp from 'fastify-plugin'
-import apiReference from '@scalar/fastify-api-reference'
 import fastifySwagger from '@fastify/swagger'
+import apiReference from '@scalar/fastify-api-reference'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 import {
+  jsonSchemaTransform,
   serializerCompiler,
   validatorCompiler,
-  jsonSchemaTransform,
 } from 'fastify-type-provider-zod'
-import type { FastifyInstance } from 'fastify'
 
 const createOpenapiConfig = (fastify: FastifyInstance) => {
   const urlObject = new URL(fastify.config.baseUrl)

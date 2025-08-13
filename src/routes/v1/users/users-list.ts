@@ -1,11 +1,11 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
-import { logRouteError } from '@utils/route-errors.js'
 import {
+  UserErrorSchema,
   UserListResponseSchema,
   UserListWithCountsResponseSchema,
-  UserErrorSchema,
 } from '@schemas/users/users-list.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{

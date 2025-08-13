@@ -1,11 +1,11 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
-  PlexTokenSchema,
-  PlexServerResponseSchema,
   PlexServerErrorSchema,
+  PlexServerResponseSchema,
+  PlexTokenSchema,
 } from '@schemas/plex/discover-servers.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 // Types for Plex API responses
 interface PlexResourceConnection {

@@ -1,5 +1,5 @@
-import type { DatabaseService } from '@services/database.service.js'
 import type { WatchlistInstanceStatus } from '@root/types/watchlist-status.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
 
 /**

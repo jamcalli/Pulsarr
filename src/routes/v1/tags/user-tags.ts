@@ -1,14 +1,14 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
-  SyncTaggingResponseSchema,
-  CreateTaggingResponseSchema,
   CleanupResponseSchema,
+  CreateTaggingResponseSchema,
+  ErrorSchema,
   RemoveTagsRequestSchema,
   RemoveTagsResponseSchema,
-  ErrorSchema,
+  SyncTaggingResponseSchema,
 } from '@schemas/tags/user-tags.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Create user tags in Sonarr and/or Radarr instances

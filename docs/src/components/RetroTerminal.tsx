@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
 import BrowserOnly from '@docusaurus/BrowserOnly'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
+import React, { useEffect, useRef, useState } from 'react'
 
 const RetroTerminalContent = () => {
   const { siteConfig } = useDocusaurusContext()

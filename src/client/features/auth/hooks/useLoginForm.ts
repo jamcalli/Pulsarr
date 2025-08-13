@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import {
-  loginFormSchema,
   type LoginFormSchema,
+  loginFormSchema,
 } from '@/features/auth/schemas/login-schema'
 
 /**

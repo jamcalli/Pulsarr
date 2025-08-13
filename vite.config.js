@@ -1,7 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { viteFastify } from '@fastify/vite/plugin'
 import viteReact from '@vitejs/plugin-react'
-import { readFileSync } from 'node:fs'
 
 // Read package.json to expose version for client
 const packageJson = JSON.parse(

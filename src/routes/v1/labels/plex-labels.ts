@@ -1,12 +1,12 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
-  SyncPlexLabelsResponseSchema,
-  RemovePlexLabelsResponseSchema,
   CleanupPlexLabelsResponseSchema,
   ErrorSchema,
+  RemovePlexLabelsResponseSchema,
+  SyncPlexLabelsResponseSchema,
 } from '@schemas/labels/plex-labels.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Synchronize plex labels for all content

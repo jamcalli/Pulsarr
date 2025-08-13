@@ -1,6 +1,18 @@
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import type {
+  TmdbMetadataSuccessResponse,
+  TmdbRegion,
+  TmdbRegionsSuccessResponse,
+} from '@root/schemas/tmdb/tmdb.schema'
+import { Calendar, Clock, ExternalLink, Film, Globe, Tv } from 'lucide-react'
+import { useEffect, useState } from 'react'
+// Import local rating service icons
+import imdbIcon from '@/assets/images/rating-icons/imdb.svg'
+import metacriticIcon from '@/assets/images/rating-icons/metacritic.svg'
+import rottenTomatoesIcon from '@/assets/images/rating-icons/rotten-tomatoes.svg'
+import tmdbIcon from '@/assets/images/rating-icons/tmdb.svg'
+import traktIcon from '@/assets/images/rating-icons/trakt.svg'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -8,21 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Calendar, Clock, Tv, Film, ExternalLink, Globe } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
 import { useConfigStore } from '@/stores/configStore'
-import { useState, useEffect } from 'react'
-import type {
-  TmdbMetadataSuccessResponse,
-  TmdbRegion,
-  TmdbRegionsSuccessResponse,
-} from '@root/schemas/tmdb/tmdb.schema'
-
-// Import local rating service icons
-import imdbIcon from '@/assets/images/rating-icons/imdb.svg'
-import tmdbIcon from '@/assets/images/rating-icons/tmdb.svg'
-import metacriticIcon from '@/assets/images/rating-icons/metacritic.svg'
-import rottenTomatoesIcon from '@/assets/images/rating-icons/rotten-tomatoes.svg'
-import traktIcon from '@/assets/images/rating-icons/trakt.svg'
 
 interface TmdbMetadataDisplayProps {
   data: TmdbMetadataSuccessResponse

@@ -1,13 +1,13 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
-import { logRouteError } from '@utils/route-errors.js'
 import {
-  CreateApiKeySchema,
+  ApiKeyErrorSchema,
   CreateApiKeyResponseSchema,
+  CreateApiKeySchema,
   GetApiKeysResponseSchema,
   RevokeApiKeyParamsSchema,
-  ApiKeyErrorSchema,
 } from '@schemas/api-keys/api-keys.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Create API Key

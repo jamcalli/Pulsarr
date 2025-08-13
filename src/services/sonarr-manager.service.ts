@@ -1,15 +1,14 @@
-import type { FastifyBaseLogger } from 'fastify'
-import type { FastifyInstance } from 'fastify'
-import { SonarrService } from '@services/sonarr.service.js'
+import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
+import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type {
+  ConnectionTestResult,
   SonarrInstance,
   SonarrItem,
-  ConnectionTestResult,
 } from '@root/types/sonarr.types.js'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
-import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
+import { SonarrService } from '@services/sonarr.service.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class SonarrManagerService {
   private sonarrServices: Map<number, SonarrService> = new Map()

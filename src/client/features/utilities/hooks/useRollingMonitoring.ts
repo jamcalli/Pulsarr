@@ -1,9 +1,9 @@
-import { useState, useCallback, useRef } from 'react'
-import { toast } from 'sonner'
 import type {
   RollingMonitoredShow as BaseRollingMonitoredShow,
   SessionMonitoringResult,
 } from '@root/types/plex-session.types.js'
+import { useCallback, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 // Minimum loading time for better UX across all actions
 const MIN_LOADING_TIME = 500

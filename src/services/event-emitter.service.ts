@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { ProgressEvent } from '@root/types/progress.types.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class ProgressService {
   private static instance: ProgressService

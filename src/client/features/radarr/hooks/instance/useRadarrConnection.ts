@@ -1,13 +1,13 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import { toast } from 'sonner'
-import type {
-  RadarrInstance,
-  RadarrConnectionValues,
-} from '@/features/radarr/types/types'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
-import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
+import { toast } from 'sonner'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
+import type {
+  RadarrConnectionValues,
+  RadarrInstance,
+} from '@/features/radarr/types/types'
 
 /**
  * Checks if a Radarr instance is missing required configuration fields.

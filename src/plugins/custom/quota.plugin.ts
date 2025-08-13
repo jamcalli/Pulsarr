@@ -1,6 +1,6 @@
+import { QuotaService } from '@services/quota.service.js'
 import type { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
-import { QuotaService } from '@services/quota.service.js'
 
 /**
  * Plugin to register the quota management service
