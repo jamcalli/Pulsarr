@@ -5,8 +5,7 @@
   "main": "build/server.js",
   "type": "module",
   "engines": {
-    "node": ">=22.18.0 <23",
-    "npm": ">=10 <11"
+    "node": ">=22.18.0 <23"
   },
   "scripts": {
     "clean:client": "rm -rf dist/client",
@@ -74,7 +73,7 @@
     "@fastify/react": "^1.0.2",
     "@fastify/sensible": "^6.0.3",
     "@fastify/session": "^11.1.0",
-    "@fastify/swagger": "^9.5.0",
+    "@fastify/swagger": "^9.5.1",
     "@fastify/vite": "^8.1.1",
     "@hookform/resolvers": "^4.1.3",
     "@radix-ui/react-accordion": "^1.2.8",
@@ -99,10 +98,10 @@
     "@radix-ui/react-tabs": "^1.1.9",
     "@radix-ui/react-toast": "^1.2.11",
     "@radix-ui/react-tooltip": "^1.2.7",
-    "@scalar/fastify-api-reference": "^1.28.26",
+    "@scalar/fastify-api-reference": "^1.34.2",
     "@tanstack/react-table": "^8.21.3",
     "@vitejs/plugin-react": "^5.0.0",
-    "better-sqlite3": "^11.9.1",
+    "better-sqlite3": "^12.0.0",
     "class-variance-authority": "^0.7.1",
     "close-with-grace": "^2.2.0",
     "clsx": "^2.1.1",
@@ -114,9 +113,9 @@
     "fast-xml-parser": "^5.2.2",
     "fastify": "^5.3.2",
     "fastify-sse-v2": "^4.2.1",
-    "fastify-type-provider-zod": "^5.0.0",
+    "fastify-type-provider-zod": "^5.0.3",
     "knex": "^3.1.0",
-    "lucide-react": "^0.503.0",
+    "lucide-react": "^0.539.0",
     "next-themes": "^0.4.6",
     "pg": "^8.16.0",
     "pino": "9.7.0",
@@ -130,14 +129,14 @@
     "safe-regex": "^2.1.1",
     "semver": "^7.7.1",
     "sonner": "^2.0.5",
-    "tailwind-merge": "^3.0.1",
+    "tailwind-merge": "^3.3.1",
     "toad-scheduler": "^3.0.1",
     "tsx": "^4.19.4",
     "turndown": "^7.2.0",
-    "tw-animate-css": "^1.3.4",
+    "tw-animate-css": "^1.3.6",
     "vaul": "^1.1.2",
     "vite": "^7.0.0",
-    "zod": "^4.0.0",
+    "zod": "^4.0.17",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
@@ -160,6 +159,6 @@
     "postcss": "^8.5.2",
     "tailwindcss": "^4.1.10",
     "tsc-alias": "^1.8.15",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.0"
   }
 }
