@@ -207,7 +207,7 @@ Result: Enhanced content discovery and filtering
 
 ## Environment Configuration
 
-The Plex Label Sync feature can be configured via environment variables for advanced deployments. See the [Environment Variables](../development/environment-variables.md#plex-label-sync-configuration) reference for detailed configuration options.
+The Plex Label Sync feature can be configured via environment variables for advanced deployments. See the [Environment Variables reference](../development/environment-variables#complete-development-configuration) for detailed configuration options including the `plexLabelSync` JSON configuration.
 
 ## API Reference
 
