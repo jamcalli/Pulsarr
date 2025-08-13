@@ -186,7 +186,6 @@ function getTerminalOptions(): LoggerOptions {
     },
     serializers: {
       req: createRequestSerializer(),
-      err: createErrorSerializer(),
       error: createErrorSerializer(),
     },
   }
@@ -203,7 +202,6 @@ function getFileOptions(): FileLoggerOptions {
     stream: getFileStream(),
     serializers: {
       req: createRequestSerializer(),
-      err: createErrorSerializer(),
       error: createErrorSerializer(),
     },
   }
