@@ -4,6 +4,9 @@
   "description": "Plex watchlist tracker and notification center that integrates with the Arr stack",
   "main": "build/server.js",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "clean:client": "rm -rf dist/client",
     "clean:server": "rm -rf dist",
