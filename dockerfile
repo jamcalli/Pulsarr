@@ -15,9 +15,6 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 COPY package*.json ./
 COPY .npmrc ./
 
-# Install toolchain needed for native modules (builder only)
-RUN apk add --no-cache --virtual .build-deps python3 make g++
-
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/app/.npm \
@@ -34,8 +31,7 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
     npm run build
 
 # Prune dev dependencies to produce production node_modules for runtime image
-# and remove the temporary build toolchain
-RUN npm prune --omit=dev && apk del .build-deps && mkdir -p ${CACHE_DIR}
+RUN npm prune --omit=dev && mkdir -p ${CACHE_DIR}
 
 FROM node:22.18.0-alpine
 
