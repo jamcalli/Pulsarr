@@ -15,10 +15,13 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 COPY package*.json ./
 COPY .npmrc ./
 
+# Install toolchain needed for native modules (builder only)
+RUN apk add --no-cache --virtual .build-deps python3 make g++
+
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/app/.npm \
-    npm ci --prefer-offline --no-audit
+    HUSKY=0 npm ci --prefer-offline --no-audit
 
 # Copy build configuration files
 COPY vite.config.js tsconfig.json postcss.config.mjs ./
@@ -31,7 +34,8 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
     npm run build
 
 # Prune dev dependencies to produce production node_modules for runtime image
-RUN npm prune --omit=dev && mkdir -p ${CACHE_DIR}
+# and remove the temporary build toolchain
+RUN npm prune --omit=dev && apk del .build-deps && mkdir -p ${CACHE_DIR}
 
 FROM node:22.18.0-alpine
 
@@ -40,9 +44,8 @@ WORKDIR /app
 # cache dir in final
 ENV CACHE_DIR=/app/build-cache
 
-# Copy package files
+# Copy package files (runtime typically does not need .npmrc)
 COPY package*.json ./
-COPY .npmrc ./
 # Reuse production dependencies from the builder image
 COPY --from=builder /app/node_modules ./node_modules
 
@@ -61,6 +64,10 @@ RUN chmod +x docker-entrypoint.sh
 COPY LICENSE* ./
 COPY README.md ./
 
+# Ensure proper ownership and drop root
+RUN chown -R node:node /app
+USER node
+
 # Pass TMDB API key to runtime (GitHub Actions converts to TMDBAPIKEY)
 ARG TMDBAPIKEY
 
@@ -69,8 +76,8 @@ ENV NODE_ENV=production
 ENV tmdbApiKey=${TMDBAPIKEY}
 
 # Make volumes
-VOLUME ${CACHE_DIR}
-VOLUME /app/data
+VOLUME ["/app/build-cache"]
+VOLUME ["/app/data"]
 EXPOSE 3003
 
 CMD ["./docker-entrypoint.sh"]
