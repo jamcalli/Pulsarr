@@ -30,12 +30,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const user = await fastify.db.getAdminUser(email)
         if (!user || !(await fastify.compare(password, user.password))) {
-          reply.status(401)
-          return {
-            success: false,
-            message: 'Invalid email or password.',
-            username: '',
-          }
+          return reply.unauthorized('Invalid email or password.')
         }
 
         request.session.user = {
