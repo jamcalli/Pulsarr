@@ -1,12 +1,12 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import {
-  CreateUserSchema,
   CreateUserResponseSchema,
-  UpdateUserSchema,
+  CreateUserSchema,
   UpdateUserResponseSchema,
+  UpdateUserSchema,
   UserErrorSchema,
 } from '@schemas/users/users.schema.js'
+import type { FastifyPluginAsync } from 'fastify'
+import { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

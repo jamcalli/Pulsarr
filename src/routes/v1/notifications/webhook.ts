@@ -1,26 +1,26 @@
-import type { FastifyPluginAsync } from 'fastify'
 import {
-  WebhookPayloadSchema,
-  WebhookResponseSchema,
-  WebhookQuerySchema,
   ErrorSchema,
   type WebhookPayload,
-  type WebhookResponse,
+  WebhookPayloadSchema,
   type WebhookQuery,
+  WebhookQuerySchema,
+  type WebhookResponse,
+  WebhookResponseSchema,
 } from '@root/schemas/notifications/webhook.schema.js'
 import {
+  isWebhookProcessable,
+  processContentNotifications,
+} from '@root/utils/notification-processor.js'
+import {
+  checkForUpgrade,
+  isEpisodeAlreadyQueued,
   isRecentEpisode,
   processQueuedWebhooks,
-  webhookQueue,
-  checkForUpgrade,
   queuePendingWebhook,
-  isEpisodeAlreadyQueued,
+  webhookQueue,
 } from '@root/utils/webhookQueue.js'
-import {
-  processContentNotifications,
-  isWebhookProcessable,
-} from '@root/utils/notification-processor.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

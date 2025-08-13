@@ -1,12 +1,12 @@
 import type {
-  UserQuotaConfig,
-  UserQuotaConfigs,
-  QuotaUsage,
+  CreateUserQuotaData,
+  QuotaExceeded,
   QuotaStatus,
   QuotaType,
-  QuotaExceeded,
-  CreateUserQuotaData,
+  QuotaUsage,
   UpdateUserQuotaData,
+  UserQuotaConfig,
+  UserQuotaConfigs,
 } from '@root/types/approval.types.js'
 
 declare module '@services/database.service.js' {

@@ -1,15 +1,15 @@
-import type { FastifyInstance } from 'fastify'
+import { extractYear } from '@root/types/content-lookup.types.js'
 import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
   Condition,
+  ContentItem,
   FieldInfo,
   OperatorInfo,
   RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
 } from '@root/types/router.types.js'
-import { extractYear } from '@root/types/content-lookup.types.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Determines whether the provided value is an array consisting exclusively of numbers.

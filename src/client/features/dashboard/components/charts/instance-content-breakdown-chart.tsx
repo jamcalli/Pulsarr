@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import { Card, CardContent } from '@/components/ui/card'
-import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
-import { useInstanceContentData } from '@/features/dashboard/hooks/useChartData'
 import type { TooltipProps } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
 import type {
-  ValueType,
   NameType,
+  ValueType,
 } from 'recharts/types/component/DefaultTooltipContent'
+import { Card, CardContent } from '@/components/ui/card'
+import { type ChartConfig, ChartContainer } from '@/components/ui/chart'
+import { useInstanceContentData } from '@/features/dashboard/hooks/useChartData'
 
 /**
  * Displays a stacked bar chart summarizing the counts of "grabbed", "notified", and "requested" content statuses for each instance.

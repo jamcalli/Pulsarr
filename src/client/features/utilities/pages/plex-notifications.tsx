@@ -1,7 +1,13 @@
+import { Loader2, Save, Search, ServerIcon, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { Button } from '@/components/ui/button'
-import { Loader2, Save, Trash2, X, Search, ServerIcon } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -11,20 +17,14 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { usePlexNotifications } from '@/features/utilities/hooks/usePlexNotifications'
-import { usePlexServerDiscovery } from '@/features/utilities/hooks/usePlexServerDiscovery'
+import { Switch } from '@/components/ui/switch'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { PlexNotificationsConfirmationModal } from '@/features/utilities/components/plex-notifications/plex-notifications-confirmation-modal'
 import { PlexNotificationsPageSkeleton } from '@/features/utilities/components/plex-notifications/plex-notifications-page-skeleton'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { usePlexNotifications } from '@/features/utilities/hooks/usePlexNotifications'
+import { usePlexServerDiscovery } from '@/features/utilities/hooks/usePlexServerDiscovery'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { useConfigStore } from '@/stores/configStore'
 
 /**

@@ -1,6 +1,6 @@
+import { UserTagService } from '@services/user-tag.service.js'
 import type { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
-import { UserTagService } from '@services/user-tag.service.js'
 
 /**
  * Plugin to register the user tag service

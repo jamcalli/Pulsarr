@@ -1,19 +1,19 @@
-import type { FastifyInstance } from 'fastify'
-import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
-  Condition,
-  FieldInfo,
-  OperatorInfo,
-  RouterRule,
-} from '@root/types/router.types.js'
 import {
   isRadarrResponse,
   isSonarrResponse,
 } from '@root/types/content-lookup.types.js'
+import type {
+  Condition,
+  ContentItem,
+  FieldInfo,
+  OperatorInfo,
+  RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+} from '@root/types/router.types.js'
 import { evaluateRegexSafely } from '@utils/regex-safety.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Creates a routing evaluator that determines routing decisions and evaluates conditions based on the certification or rating metadata of Radarr and Sonarr content items.

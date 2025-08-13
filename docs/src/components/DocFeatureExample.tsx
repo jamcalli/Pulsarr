@@ -1,6 +1,6 @@
 import DocFeature from './DocFeature'
-import WorkflowCard from './WorkflowCard'
 import RetroTerminal from './RetroTerminal'
+import WorkflowCard from './WorkflowCard'
 
 /**
  * Example usage of the DocFeature component

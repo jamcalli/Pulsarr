@@ -1,18 +1,18 @@
-import type { FastifyInstance } from 'fastify'
-import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
-  Condition,
-  FieldInfo,
-  OperatorInfo,
-  RouterRule,
-} from '@root/types/router.types.js'
 import {
   isRadarrResponse,
   isSonarrResponse,
 } from '@root/types/content-lookup.types.js'
+import type {
+  Condition,
+  ContentItem,
+  FieldInfo,
+  OperatorInfo,
+  RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+} from '@root/types/router.types.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Creates a routing evaluator that generates routing decisions for content items based on their original language metadata.

@@ -1,14 +1,16 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { InfoIcon, Loader2, Save, Trash2, X } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Save, X, InfoIcon, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { DiscordStatusBadge } from '@/components/ui/discord-bot-status-badge'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -18,14 +20,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
-import { DiscordStatusBadge } from '@/components/ui/discord-bot-status-badge'
-import {
-  discordBotFormSchema,
-  type DiscordBotFormSchema,
-} from '@/features/notifications/schemas/form-schemas'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
+import {
+  type DiscordBotFormSchema,
+  discordBotFormSchema,
+} from '@/features/notifications/schemas/form-schemas'
+import { useConfigStore } from '@/stores/configStore'
 
 interface DiscordBotFormProps {
   isInitialized: boolean

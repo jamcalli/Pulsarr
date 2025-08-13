@@ -1,6 +1,6 @@
+import { ApprovalService } from '@services/approval.service.js'
 import type { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
-import { ApprovalService } from '@services/approval.service.js'
 
 /**
  * Plugin to register the approval workflow service

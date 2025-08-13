@@ -1,10 +1,10 @@
+import {
+  CredentialsSchema,
+  LoginErrorSchema,
+  LoginResponseSchema,
+} from '@schemas/auth/login.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import {
-  LoginResponseSchema,
-  LoginErrorSchema,
-  CredentialsSchema,
-} from '@schemas/auth/login.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

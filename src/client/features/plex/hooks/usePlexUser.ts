@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import type { CreateUser } from '@root/schemas/users/users.schema'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { UserWatchlistInfo } from '@/stores/configStore'
-import type { CreateUser } from '@root/schemas/users/users.schema'
+import { useConfigStore } from '@/stores/configStore'
 
 export type UserStatus = 'idle' | 'loading' | 'success' | 'error'
 

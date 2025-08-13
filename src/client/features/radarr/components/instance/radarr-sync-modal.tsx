@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { toast } from 'sonner'
 import { useRadarrSyncProgress } from '@/features/radarr/hooks/instance/useRadarrSyncProgress'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 

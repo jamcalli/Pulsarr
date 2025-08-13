@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react'
 import {
   Accordion,
   AccordionContent,
@@ -5,11 +6,10 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
-import { AlertTriangle } from 'lucide-react'
 import { ApprovalSystemForm } from '@/features/approvals/components/approval-system-form'
 import { QuotaSystemForm } from '@/features/approvals/components/quota-system-form'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
+import { cn } from '@/lib/utils'
 
 type MaintenanceJob =
   | {

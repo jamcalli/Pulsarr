@@ -1,6 +1,6 @@
+import { AlertTriangle, HelpCircle, Loader2, Save, X } from 'lucide-react'
+import type { UseFormReturn } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
 import {
   Form,
   FormControl,
@@ -9,6 +9,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -16,16 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { HelpCircle, Save, X, Loader2, AlertTriangle } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { UseFormReturn } from 'react-hook-form'
 import type { ApprovalConfigurationFormData } from '@/features/plex/hooks/useApprovalConfiguration'
+import { cn } from '@/lib/utils'
 
 interface QuotaSystemBusinessConfigProps {
   form: UseFormReturn<ApprovalConfigurationFormData>

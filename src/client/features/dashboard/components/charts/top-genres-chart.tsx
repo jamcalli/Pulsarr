@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import type { TooltipProps } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
+import type {
+  NameType,
+  ValueType,
+} from 'recharts/types/component/DefaultTooltipContent'
 import { ChartContainer } from '@/components/ui/chart'
 import { useTopGenresData } from '@/features/dashboard/hooks/useChartData'
-import type { TooltipProps } from 'recharts'
-import type {
-  ValueType,
-  NameType,
-} from 'recharts/types/component/DefaultTooltipContent'
 
 interface GenreChartData {
   name: string

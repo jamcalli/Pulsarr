@@ -1,16 +1,16 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import {
-  ScheduleConfigSchema,
-  ScheduleUpdateSchema,
-  JobStatusSchema,
-  SuccessResponseSchema,
   DeleteSyncDryRunResponseSchema,
   ErrorResponseSchema,
+  JobStatusSchema,
   type ScheduleConfig,
+  ScheduleConfigSchema,
   type ScheduleUpdate,
+  ScheduleUpdateSchema,
+  SuccessResponseSchema,
 } from '@schemas/scheduler/scheduler.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get all job schedules

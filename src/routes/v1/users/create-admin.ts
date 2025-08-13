@@ -1,10 +1,10 @@
+import {
+  CreateAdminErrorSchema,
+  CreateAdminResponseSchema,
+  CreateAdminSchema,
+} from '@schemas/auth/admin-user.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import {
-  CreateAdminSchema,
-  CreateAdminResponseSchema,
-  CreateAdminErrorSchema,
-} from '@schemas/auth/admin-user.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

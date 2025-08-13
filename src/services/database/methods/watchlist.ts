@@ -1,9 +1,9 @@
-import type { DatabaseService } from '@services/database.service.js'
 import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
 
 /**

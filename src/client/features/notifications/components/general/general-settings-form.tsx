@@ -1,30 +1,31 @@
 // src/client/features/notifications/components/general/general-settings-form.tsx
-import { useEffect, useState, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Save, X, InfoIcon } from 'lucide-react'
+import { InfoIcon, Loader2, Save, X } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Input } from '@/components/ui/input'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
 import {
-  generalFormSchema,
   type GeneralFormSchema,
+  generalFormSchema,
 } from '@/features/notifications/schemas/form-schemas'
+import { useConfigStore } from '@/stores/configStore'
 
 interface GeneralSettingsFormProps {
   isInitialized: boolean

@@ -1,9 +1,9 @@
-import knex, { type Knex } from 'knex'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
 import fs from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import readline from 'node:readline'
+import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
+import knex, { type Knex } from 'knex'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

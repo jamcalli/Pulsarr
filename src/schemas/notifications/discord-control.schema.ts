@@ -1,6 +1,7 @@
 // File: src/schemas/notifications/discord-control.schema.ts
-import { z } from 'zod'
+
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { z } from 'zod'
 
 // Schema for Discord bot status responses
 export const DiscordBotResponseSchema = z.object({

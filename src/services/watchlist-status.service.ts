@@ -1,11 +1,11 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type {
   DatabaseWatchlistItem,
   WatchlistInstanceStatus,
 } from '@root/types/watchlist-status.types.js'
-import { parseGuids, getGuidMatchScore } from '@utils/guid-handler.js'
+import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class StatusService {
   constructor(

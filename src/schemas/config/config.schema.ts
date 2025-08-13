@@ -1,9 +1,9 @@
-import { z } from 'zod'
 import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
 import {
-  TagPrefixSchema,
   RemovedTagPrefixSchema,
+  TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import { z } from 'zod'
 
 const LogLevelEnum = z.enum([
   'fatal',

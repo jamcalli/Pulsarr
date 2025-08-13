@@ -1,15 +1,15 @@
-import type { FastifyInstance } from 'fastify'
-import { evaluateRegexSafelyMultiple } from '@utils/regex-safety.js'
 import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
   Condition,
+  ContentItem,
   FieldInfo,
   OperatorInfo,
   RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
 } from '@root/types/router.types.js'
+import { evaluateRegexSafelyMultiple } from '@utils/regex-safety.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Normalizes a string by converting it to lowercase and trimming whitespace.

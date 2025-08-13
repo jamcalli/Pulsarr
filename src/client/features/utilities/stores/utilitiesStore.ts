@@ -1,26 +1,26 @@
-import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
-import type {
-  JobStatus,
-  DeleteSyncResult,
-  ScheduleUpdate,
-} from '@root/schemas/scheduler/scheduler.schema'
 import {
-  CreateTaggingResponseSchema,
-  SyncTaggingResponseSchema,
-  CleanupResponseSchema,
-  RemoveTagsResponseSchema,
-} from '@root/schemas/tags/user-tags.schema'
-import {
-  SyncPlexLabelsResponseSchema,
   CleanupPlexLabelsResponseSchema,
   RemovePlexLabelsResponseSchema,
+  SyncPlexLabelsResponseSchema,
 } from '@root/schemas/labels/plex-labels.schema'
+import type {
+  DeleteSyncResult,
+  JobStatus,
+  ScheduleUpdate,
+} from '@root/schemas/scheduler/scheduler.schema'
 import type {
   RollingMonitoredShow,
   SessionMonitoringResult,
 } from '@root/schemas/session-monitoring/session-monitoring.schema'
+import {
+  CleanupResponseSchema,
+  CreateTaggingResponseSchema,
+  RemoveTagsResponseSchema,
+  SyncTaggingResponseSchema,
+} from '@root/schemas/tags/user-tags.schema'
 import { z } from 'zod'
+import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
 
 // Use the existing schema type for the return type
 export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>

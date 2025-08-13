@@ -1,7 +1,7 @@
 import type {
+  ComparisonOperator,
   Condition,
   ConditionGroup,
-  ComparisonOperator,
   RouterRule,
 } from '@root/types/router.types.js'
 

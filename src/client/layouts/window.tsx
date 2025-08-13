@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { AppSidebar } from '@/components/AppSidebar'
 import { useSettings } from '@/components/settings-provider'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { AppSidebar } from '@/components/AppSidebar'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface WindowedLayoutProps {
   children: ReactNode

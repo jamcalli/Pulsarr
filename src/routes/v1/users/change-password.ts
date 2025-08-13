@@ -1,7 +1,7 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { UpdateCredentialsSchema } from '@schemas/auth/users.js'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { UpdateCredentialsSchema } from '@schemas/auth/users.js'
-import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 
 const responseSchema = z.object({
   message: z.string(),

@@ -1,17 +1,17 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { useConfigStore } from '@/stores/configStore'
 import type {
-  CreateTaggingResponse,
-  SyncTaggingResponse,
   CleanupResponse,
+  CreateTaggingResponse,
   RemoveTagsResponse,
+  SyncTaggingResponse,
 } from '@root/schemas/tags/user-tags.schema'
 import { TaggingConfigSchema } from '@root/schemas/tags/user-tags.schema'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import type { z } from 'zod'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useConfigStore } from '@/stores/configStore'
 
 export type UserTagsFormValues = z.infer<typeof TaggingConfigSchema>
 

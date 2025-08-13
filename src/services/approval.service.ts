@@ -1,17 +1,17 @@
-import type { FastifyInstance } from 'fastify'
 import type {
-  ApprovalRequest,
-  CreateApprovalRequestData,
   ApprovalContext,
-  RouterDecision,
+  ApprovalRequest,
   ApprovalTrigger,
+  CreateApprovalRequestData,
+  RouterDecision,
 } from '@root/types/approval.types.js'
+import type { DiscordEmbed } from '@root/types/discord.types.js'
+import type { ApprovalMetadata } from '@root/types/progress.types.js'
+import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ContentItem } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
-import type { RadarrItem } from '@root/types/radarr.types.js'
-import type { ApprovalMetadata } from '@root/types/progress.types.js'
-import type { DiscordEmbed } from '@root/types/discord.types.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
+import type { FastifyInstance } from 'fastify'
 
 export class ApprovalService {
   private notificationQueue: Set<number> = new Set()

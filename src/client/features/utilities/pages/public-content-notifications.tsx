@@ -1,12 +1,6 @@
+import { Check, InfoIcon, Loader2, Power, Save, Trash2, X } from 'lucide-react'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { Loader2, Power, Save, X, Check, InfoIcon, Trash2 } from 'lucide-react'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import {
   Form,
   FormControl,
@@ -17,12 +11,18 @@ import {
 } from '@/components/ui/form'
 import { MultiInput } from '@/components/ui/multi-input'
 import { Separator } from '@/components/ui/separator'
-import { usePublicContentNotifications } from '@/features/utilities/hooks/usePublicContentNotifications'
-import { PublicContentClearAlert } from '@/features/utilities/components/public-content-notifications/public-content-clear-alert'
-import { useConfigStore } from '@/stores/configStore'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { PublicContentClearAlert } from '@/features/utilities/components/public-content-notifications/public-content-clear-alert'
 import { PublicContentNotificationsPageSkeleton } from '@/features/utilities/components/public-content-notifications/public-content-notifications-page-skeleton'
+import { usePublicContentNotifications } from '@/features/utilities/hooks/usePublicContentNotifications'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useConfigStore } from '@/stores/configStore'
 
 // Type for string URL fields only (excludes boolean 'enabled' field)
 type WebhookFieldName =

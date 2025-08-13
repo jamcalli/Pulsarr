@@ -1,20 +1,20 @@
+import type { User } from '@root/types/config.types.js'
 import {
-  SlashCommandBuilder,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder,
-  type ChatInputCommandInteraction,
   type ButtonInteraction,
-  type ModalSubmitInteraction,
+  ButtonStyle,
+  type ChatInputCommandInteraction,
   MessageFlags as DiscordMessageFlags,
+  EmbedBuilder,
+  ModalBuilder,
+  type ModalSubmitInteraction,
+  SlashCommandBuilder,
+  TextInputBuilder,
+  TextInputStyle,
 } from 'discord.js'
 import { MessageFlags } from 'discord-api-types/v10'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { User } from '@root/types/config.types.js'
 
 // Types
 interface CommandContext {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**

@@ -1,23 +1,24 @@
 // File: src/routes/v1/stats/dashboard.ts
-import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
-import { logRouteError } from '@utils/route-errors.js'
+
 import {
-  DashboardStatsSchema,
-  GenreStatSchema,
-  ContentStatSchema,
-  UserStatSchema,
+  ActivityQuerySchema,
   ActivityStatsSchema,
   AvailabilityTimeSchema,
-  GrabbedToNotifiedTimeSchema,
-  StatusTransitionTimeSchema,
-  StatusFlowDataSchema,
+  ContentStatSchema,
+  DashboardStatsSchema,
   ErrorSchema,
-  LimitQuerySchema,
-  ActivityQuerySchema,
-  NotificationStatsSchema,
+  GenreStatSchema,
+  GrabbedToNotifiedTimeSchema,
   InstanceContentBreakdownSchema,
+  LimitQuerySchema,
+  NotificationStatsSchema,
+  StatusFlowDataSchema,
+  StatusTransitionTimeSchema,
+  UserStatSchema,
 } from '@schemas/stats/stats.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get all dashboard stats combined

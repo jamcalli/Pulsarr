@@ -1,5 +1,5 @@
-import type { FastifyInstance } from 'fastify'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
+import type { FastifyInstance } from 'fastify'
 
 export default async function (fastify: FastifyInstance) {
   fastify.addHook('onRequest', async (request, reply) => {

@@ -1,11 +1,11 @@
 import type {
-  WatchlistItemUpdate,
-  WatchlistStatus,
-} from '@root/types/watchlist-status.types.js'
-import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
+import type {
+  WatchlistItemUpdate,
+  WatchlistStatus,
+} from '@root/types/watchlist-status.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {

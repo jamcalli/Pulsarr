@@ -1,15 +1,14 @@
-import { Button } from '@/components/ui/button'
 import {
+  AlertTriangle,
+  Clock,
+  HelpCircle,
   Loader2,
   PlayCircle,
-  AlertTriangle,
   Power,
-  Clock,
   Save,
   X,
-  HelpCircle,
 } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -18,6 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -25,8 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,

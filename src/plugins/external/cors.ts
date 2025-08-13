@@ -1,7 +1,7 @@
-import fp from 'fastify-plugin'
+import type { FastifyCorsOptions } from '@fastify/cors'
 import cors from '@fastify/cors'
 import type { FastifyInstance } from 'fastify'
-import type { FastifyCorsOptions } from '@fastify/cors'
+import fp from 'fastify-plugin'
 
 const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
   fastify.log.info(

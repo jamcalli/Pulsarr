@@ -1,21 +1,21 @@
-import type { DatabaseService } from '@services/database.service.js'
-import type {
-  SonarrEpisodeSchema,
-  MediaNotification,
-  NotificationResult,
-} from '@root/types/sonarr.types.js'
+import type { User } from '@root/types/config.types.js'
+import type { NotificationType } from '@root/types/notification.types.js'
 import type {
   PendingWebhook,
   PendingWebhookCreate,
 } from '@root/types/pending-webhooks.types.js'
-import type { User } from '@root/types/config.types.js'
-import type { NotificationType } from '@root/types/notification.types.js'
-import type { Knex } from 'knex'
+import type {
+  MediaNotification,
+  NotificationResult,
+  SonarrEpisodeSchema,
+} from '@root/types/sonarr.types.js'
 import {
+  createPublicContentNotification,
   determineNotificationType,
   getPublicContentNotificationFlags,
-  createPublicContentNotification,
 } from '@root/utils/notification-processor.js'
+import type { DatabaseService } from '@services/database.service.js'
+import type { Knex } from 'knex'
 
 /**
  * Processes media release notifications for users and public channels, creating notification records and updating watchlist statuses as appropriate.

@@ -1,5 +1,18 @@
-import { useState, useEffect, useRef, useMemo, useContext } from 'react'
-import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
+import type {
+  ComparisonOperator,
+  Condition,
+  ConditionValue,
+} from '@root/schemas/content-router/content-router.schema'
+import type {
+  EvaluatorMetadata,
+  FieldInfo,
+  OperatorInfo,
+} from '@root/schemas/content-router/evaluator-metadata.schema'
+import { HelpCircle, Trash2 } from 'lucide-react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -7,31 +20,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Trash2, HelpCircle } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Card } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
 import ConditionInput from '@/features/content-router/components/condition-input'
+import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type {
-  FieldInfo,
-  OperatorInfo,
-  EvaluatorMetadata,
-} from '@root/schemas/content-router/evaluator-metadata.schema'
-import type {
-  Condition,
-  ComparisonOperator,
-  ConditionValue,
-} from '@root/schemas/content-router/content-router.schema'
+import { cn } from '@/lib/utils'
 
 interface ConditionBuilderProps {
   value: Condition

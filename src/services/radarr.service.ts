@@ -1,29 +1,29 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
-  RadarrAddOptions,
-  RadarrPost,
-  RadarrMovie,
-  Item,
-  RadarrConfiguration,
-  RootFolder,
-  QualityProfile,
-  PagedResult,
-  RadarrInstance,
   ConnectionTestResult,
-  WebhookNotification,
+  Item,
   MinimumAvailability,
+  PagedResult,
+  QualityProfile,
+  RadarrAddOptions,
+  RadarrConfiguration,
+  RadarrInstance,
+  RadarrMovie,
+  RadarrPost,
+  RootFolder,
+  WebhookNotification,
 } from '@root/types/radarr.types.js'
+import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import {
-  isSystemStatus,
   isRadarrStatus,
+  isSystemStatus,
 } from '@root/types/system-status.types.js'
 import {
-  extractTmdbId,
   extractRadarrId,
+  extractTmdbId,
   hasMatchingGuids,
   normalizeGuid,
 } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 // Custom error class to include HTTP status
 class HttpError extends Error {

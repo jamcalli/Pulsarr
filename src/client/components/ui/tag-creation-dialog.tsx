@@ -1,31 +1,31 @@
-import { useState } from 'react'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Loader2, Check } from 'lucide-react'
-import { toast } from 'sonner'
+import type {
+  CreateTagBody as RadarrCreateTagBody
+} from '@root/schemas/radarr/create-tag.schema'
 import {
   CreateTagResponseSchema as RadarrCreateTagResponseSchema,
   ErrorSchema as RadarrErrorSchema
 } from '@root/schemas/radarr/create-tag.schema'
+import type {
+  CreateTagBody as SonarrCreateTagBody
+} from '@root/schemas/sonarr/create-tag.schema'
 import {
   CreateTagResponseSchema as SonarrCreateTagResponseSchema,
   ErrorSchema as SonarrErrorSchema
 } from '@root/schemas/sonarr/create-tag.schema'
-import type {
-  CreateTagBody as RadarrCreateTagBody
-} from '@root/schemas/radarr/create-tag.schema'
-import type {
-  CreateTagBody as SonarrCreateTagBody
-} from '@root/schemas/sonarr/create-tag.schema'
+import { Check, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription,
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 // Status type for tracking the dialog state
 type SaveStatus = 'idle' | 'loading' | 'success' | 'error'

@@ -1,15 +1,14 @@
-import type { FastifyBaseLogger } from 'fastify'
-import type { FastifyInstance } from 'fastify'
-import { RadarrService } from '@services/radarr.service.js'
+import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type {
-  RadarrInstance,
   ConnectionTestResult,
   MinimumAvailability,
+  RadarrInstance,
+  Item as RadarrItem,
 } from '@root/types/radarr.types.js'
-import type { Item as RadarrItem } from '@root/types/radarr.types.js'
-import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
+import { RadarrService } from '@services/radarr.service.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class RadarrManagerService {
   private radarrServices: Map<number, RadarrService> = new Map()

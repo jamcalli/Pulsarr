@@ -1,25 +1,25 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
-import AccordionRouteCardSkeleton from '@/features/content-router/components/accordion-route-card-skeleton'
-import AccordionRouteCard from '@/features/content-router/components/accordion-route-card'
-import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapter'
-import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
-import { generateUUID } from '@/features/content-router/utils/utils'
-import type { RadarrInstance } from '@root/types/radarr.types'
-import type { SonarrInstance } from '@root/types/sonarr.types'
 import type {
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
+  ComparisonOperator,
   Condition,
   ConditionGroup,
-  ComparisonOperator,
+  ContentRouterRule,
+  ContentRouterRuleUpdate,
 } from '@root/schemas/content-router/content-router.schema'
+import type { RadarrInstance } from '@root/types/radarr.types'
+import type { SonarrInstance } from '@root/types/sonarr.types'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import AccordionRouteCard from '@/features/content-router/components/accordion-route-card'
+import AccordionRouteCardSkeleton from '@/features/content-router/components/accordion-route-card-skeleton'
+import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
 import {
   isCondition,
   isConditionGroup,
 } from '@/features/content-router/types/route-types'
+import { generateUUID } from '@/features/content-router/utils/utils'
+import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapter'
+import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
 
 // Define possible value types for criteria
 type CriteriaValue =

@@ -1,16 +1,16 @@
-import type { FastifyBaseLogger } from 'fastify'
-import type {
-  PlexResponse,
-  Item,
-  TokenWatchlistItem,
-  GraphQLQuery,
-  Friend,
-  PlexApiResponse,
-  RssResponse,
-} from '@root/types/plex.types.js'
 import type { Config } from '@root/types/config.types.js'
+import type {
+  Friend,
+  GraphQLQuery,
+  Item,
+  PlexApiResponse,
+  PlexResponse,
+  RssResponse,
+  TokenWatchlistItem,
+} from '@root/types/plex.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
 import { normalizeGuid } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger } from 'fastify'
 
 // Custom error interface for rate limit errors
 interface RateLimitError extends Error {

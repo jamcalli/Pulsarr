@@ -3,8 +3,8 @@ import { Loader2, Power } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 import type {
-  SessionMonitoringFormData,
   SessionMonitoringComponentProps,
+  SessionMonitoringFormData,
 } from '@/features/utilities/constants/session-monitoring'
 
 interface SessionMonitoringActionsProps

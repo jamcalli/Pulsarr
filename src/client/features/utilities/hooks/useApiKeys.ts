@@ -1,11 +1,11 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  type CreateApiKey,
+  CreateApiKeySchema,
+} from '@root/schemas/api-keys/api-keys.schema'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import {
-  CreateApiKeySchema,
-  type CreateApiKey,
-} from '@root/schemas/api-keys/api-keys.schema'
 import { useApiKeysStore } from '@/features/utilities/stores/apiKeysStore'
 
 type ApiKeyFormData = CreateApiKey

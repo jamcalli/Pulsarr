@@ -1,6 +1,6 @@
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { logRouteError } from '@utils/route-errors.js'
 
 // Zod schema for Sonarr instance configuration
 const SonarrInstanceSchema = z.object({

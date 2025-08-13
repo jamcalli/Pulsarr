@@ -1,6 +1,6 @@
-import { z } from 'zod'
-import type { UseFormReturn } from 'react-hook-form'
 import type { Config } from '@root/schemas/config/config.schema'
+import type { UseFormReturn } from 'react-hook-form'
+import { z } from 'zod'
 
 // Extract the session monitoring configuration schema from the backend config
 export const SessionMonitoringConfigSchema = z.object({
