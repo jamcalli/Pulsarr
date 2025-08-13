@@ -103,9 +103,24 @@
       "prPriority": 10
     },
     {
-      "description": "Pin Node.js version updates",
-      "matchManagers": ["nvm", "nodenv", "asdf", "node-version"],
-      "rangeStrategy": "pin"
+      "description": "Group all Node.js version updates - only LTS versions",
+      "groupName": "Node.js LTS",
+      "matchManagers": [
+        "dockerfile",
+        "github-actions",
+        "nvm",
+        "nodenv",
+        "asdf",
+        "node-version"
+      ],
+      "matchDatasources": ["docker", "node-version"],
+      "matchPackageNames": ["node"],
+      "rangeStrategy": "pin",
+      "allowedVersions": "/^22\\./",
+      "automerge": false,
+      "prPriority": 15,
+      "reviewers": ["jamcalli"],
+      "labels": ["dependencies", "node-version"]
     },
     {
       "description": "Weekly digest for dev dependencies",
