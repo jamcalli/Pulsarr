@@ -49,7 +49,7 @@ export interface ICondition {
   field: string
   operator: ComparisonOperator
   value: z.infer<typeof ConditionValueSchema> | null
-  negate?: boolean
+  negate: boolean
   _cid?: string
 }
 
@@ -65,7 +65,7 @@ export const ConditionSchema = z.object({
 export interface IConditionGroup {
   operator: 'AND' | 'OR'
   conditions: (ICondition | IConditionGroup)[]
-  negate?: boolean
+  negate: boolean
   _cid?: string
 }
 
