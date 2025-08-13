@@ -88,7 +88,8 @@
         "postcss",
         "autoprefixer",
         "tailwind-merge",
-        "class-variance-authority"
+        "class-variance-authority",
+        "tw-animate-css"
       ]
     },
     {
@@ -166,6 +167,16 @@
       "description": "Pin pino to 9.7.0 to prevent FastifyBaseLogger type breakage",
       "matchPackageNames": ["pino"],
       "allowedVersions": "9.7.0"
+    },
+    {
+      "description": "Pin @hookform/resolvers to v4.x to prevent v5 breaking changes",
+      "matchPackageNames": ["@hookform/resolvers"],
+      "allowedVersions": "< 5.0.0"
+    },
+    {
+      "description": "Pin recharts to v2.x to prevent breaking changes with component library",
+      "matchPackageNames": ["recharts"],
+      "allowedVersions": "< 3.0.0"
     },
     {
       "description": "High priority for vulnerability alerts",
