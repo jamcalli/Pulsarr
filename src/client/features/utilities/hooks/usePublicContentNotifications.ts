@@ -196,7 +196,7 @@ export function usePublicContentNotifications() {
           testResults: { ...prev.testResults, general: null },
         }))
         const url = form.getValues('discordWebhookUrls')
-        debouncedValidation('discordWebhookUrls', url)
+        debouncedValidation('discordWebhookUrls', url || '')
       } else if (name === 'discordWebhookUrlsMovies') {
         form.setValue('_moviesTested', false, { shouldValidate: true })
         setTestStatus((prev) => ({
@@ -204,7 +204,7 @@ export function usePublicContentNotifications() {
           testResults: { ...prev.testResults, movies: null },
         }))
         const url = form.getValues('discordWebhookUrlsMovies')
-        debouncedValidation('discordWebhookUrlsMovies', url)
+        debouncedValidation('discordWebhookUrlsMovies', url || '')
       } else if (name === 'discordWebhookUrlsShows') {
         form.setValue('_showsTested', false, { shouldValidate: true })
         setTestStatus((prev) => ({
@@ -212,7 +212,7 @@ export function usePublicContentNotifications() {
           testResults: { ...prev.testResults, shows: null },
         }))
         const url = form.getValues('discordWebhookUrlsShows')
-        debouncedValidation('discordWebhookUrlsShows', url)
+        debouncedValidation('discordWebhookUrlsShows', url || '')
       }
     })
     return () => subscription.unsubscribe()

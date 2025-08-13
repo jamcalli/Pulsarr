@@ -136,12 +136,12 @@ export const ConfigSchema = z.object({
       remainingEpisodes: z.number().min(1),
       filterUsers: z
         .union([z.string(), z.array(z.string())])
-        .optional()
         .transform((val) => {
-          // Always convert to array
+          // Always convert to array or return undefined
           if (!val) return undefined
           return Array.isArray(val) ? val : [val]
-        }),
+        })
+        .optional(),
       // Rolling monitoring reset settings
       enableAutoReset: z.boolean().optional(),
       inactivityResetDays: z.number().min(1).max(365).optional(),
