@@ -1,4 +1,4 @@
-FROM node:23.6.0-alpine AS builder
+FROM node:22.18.0-alpine AS builder
 
 WORKDIR /app
 
@@ -32,7 +32,7 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
 # Ensure cache dir
 RUN mkdir -p ${CACHE_DIR}
 
-FROM node:23.6.0-alpine
+FROM node:22.18.0-alpine
 
 WORKDIR /app
 
