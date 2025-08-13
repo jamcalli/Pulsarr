@@ -1,14 +1,13 @@
 import type { FastifyInstance } from 'fastify'
-import {
-  type ContentItem,
-  type RoutingContext,
-  type RoutingDecision,
-  type RoutingEvaluator,
-  type Condition,
-  ConditionGroup,
-  type FieldInfo,
-  type OperatorInfo,
-  type RouterRule,
+import type {
+  ContentItem,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+  Condition,
+  FieldInfo,
+  OperatorInfo,
+  RouterRule,
 } from '@root/types/router.types.js'
 
 /**
@@ -164,14 +163,14 @@ export default function createUserEvaluator(
     supportedOperators,
 
     async canEvaluate(
-      item: ContentItem,
+      _item: ContentItem,
       context: RoutingContext,
     ): Promise<boolean> {
       return !!(context.userId || context.userName)
     },
 
     async evaluate(
-      item: ContentItem,
+      _item: ContentItem,
       context: RoutingContext,
     ): Promise<RoutingDecision[] | null> {
       // Skip if no user information available
@@ -262,7 +261,7 @@ export default function createUserEvaluator(
     // For conditional evaluator support
     evaluateCondition(
       condition: Condition,
-      item: ContentItem,
+      _item: ContentItem,
       context: RoutingContext,
     ): boolean {
       // Handle ConditionGroup object - defer to ContentRouterService
@@ -280,7 +279,7 @@ export default function createUserEvaluator(
         return false
       }
 
-      const { operator, value, negate = false } = condition
+      const { operator, value, negate: _ = false } = condition
       let result = false
 
       switch (operator) {

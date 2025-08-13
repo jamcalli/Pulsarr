@@ -25,7 +25,7 @@ export default fp(
     fastify.addHook('onReady', async () => {
       try {
         // Register the handler for the job
-        await fastify.scheduler.scheduleJob('delete-sync', async (jobName) => {
+        await fastify.scheduler.scheduleJob('delete-sync', async (_jobName) => {
           // First check if the schedule itself is enabled
           const schedule = await fastify.db.getScheduleByName('delete-sync')
           if (!schedule || !schedule.enabled) {

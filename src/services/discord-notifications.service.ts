@@ -701,7 +701,7 @@ export class DiscordNotificationService {
       let parsedUrl: URL
       try {
         parsedUrl = new URL(url)
-      } catch (e) {
+      } catch (_e) {
         return { valid: false, error: 'Invalid URL format' }
       }
 

@@ -438,7 +438,7 @@ const AccordionRouteCard = ({
 
     try {
       await onToggleEnabled(route.id, newEnabledState)
-    } catch (error) {
+    } catch (_error) {
       // Revert on error
       form.setValue('enabled', route.enabled, { shouldDirty: false })
     }
@@ -718,6 +718,7 @@ const AccordionRouteCard = ({
                   <div className="flex items-center gap-2 flex-1">
                     <span className="truncate">{localTitle || 'Unnamed'}</span>
                     {!isSaving && (
+                      // biome-ignore lint/a11y/useSemanticElements: We need to use span with role="button" to avoid button nesting issues
                       <span
                         className={cn(
                           'inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
@@ -738,7 +739,6 @@ const AccordionRouteCard = ({
                             setIsEditing(true)
                           }
                         }}
-                        // biome-ignore lint/a11y/useSemanticElements: We need to use span with role="button" to avoid button nesting issues
                         role="button"
                         tabIndex={0}
                         aria-label="Edit title"

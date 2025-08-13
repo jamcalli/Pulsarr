@@ -213,10 +213,10 @@ const AccordionContentRouterSection = ({
   onGenreDropdownOpen,
 }: AccordionContentRouterSectionProps) => {
   // Use the appropriate adapter based on targetType
+  const radarrContentRouter = useRadarrContentRouterAdapter()
+  const sonarrContentRouter = useSonarrContentRouterAdapter()
   const contentRouter =
-    targetType === 'radarr'
-      ? useRadarrContentRouterAdapter()
-      : useSonarrContentRouterAdapter()
+    targetType === 'radarr' ? radarrContentRouter : sonarrContentRouter
 
   const {
     rules,
@@ -291,7 +291,7 @@ const AccordionContentRouterSection = ({
     async (id: number, enabled: boolean) => {
       try {
         await toggleRule(id, enabled)
-      } catch (error) {
+      } catch (_error) {
         // Error handling is done in toggleRule
       }
     },

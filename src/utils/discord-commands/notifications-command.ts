@@ -15,7 +15,6 @@ import {
 import { MessageFlags } from 'discord-api-types/v10'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { User } from '@root/types/config.types.js'
-import type { DatabaseService } from '@root/services/database.service.js'
 
 // Types
 interface CommandContext {
@@ -28,11 +27,10 @@ class SettingsCache {
   private static instance: SettingsCache
   private cache: Map<string, { messageId: string; timestamp: number }> =
     new Map()
-  private cleanupInterval: NodeJS.Timeout
   private readonly SESSION_TIMEOUT = 15 * 60 * 1000 // 15 minutes
 
   private constructor() {
-    this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000)
+    setInterval(() => this.cleanup(), 5 * 60 * 1000)
   }
 
   static getInstance(): SettingsCache {
@@ -267,7 +265,7 @@ async function showSettingsForm(
 
   try {
     if (!interaction.replied && !interaction.deferred) {
-      const response = await interaction.reply({
+      const _response = await interaction.reply({
         ...messagePayload,
         flags: DiscordMessageFlags.Ephemeral,
       })

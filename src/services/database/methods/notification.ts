@@ -85,7 +85,7 @@ export async function processNotifications(
     if (!notificationTypeInfo) {
       continue
     }
-    const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
+    const { contentType, seasonNumber, episodeNumber: _ } = notificationTypeInfo
 
     // Note: Duplicate prevention is now handled by database unique constraint
     // and ON CONFLICT DO NOTHING in createNotificationRecord method

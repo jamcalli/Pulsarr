@@ -89,6 +89,10 @@ const ConditionBuilder = ({
   const selectedEvaluatorRef = useRef<EvaluatorMetadata | null>(null)
   selectedEvaluatorRef.current = selectedEvaluator
 
+  // Get the content type from context
+  const routerContext = useContext(ContentRouterContext)
+  const contentType = routerContext?.contentType || 'both'
+
   // Filter out the Conditional Router from options - we only want to show actual condition types
   const filteredEvaluators = useMemo(
     () => evaluatorMetadata.filter((e) => e.name !== 'Conditional Router'),
@@ -242,11 +246,7 @@ const ConditionBuilder = ({
         })
       },
     }
-  }, [onChange]) // Remove evaluatorMetadata dependency since we use the ref
-
-  // Get the content type from context
-  const routerContext = useContext(ContentRouterContext)
-  const contentType = routerContext?.contentType || 'both'
+  }, [onChange, contentType]) // Remove evaluatorMetadata dependency since we use the ref
 
   // Update available fields when metadata changes - with optimized dependencies
   useEffect(() => {

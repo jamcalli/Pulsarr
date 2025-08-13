@@ -340,7 +340,7 @@ async function createApprovalMessageWithNavigation(
     if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
       embed.setImage(watchlistItems[0].thumb)
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently ignore poster lookup errors
   }
 
@@ -623,7 +623,7 @@ async function showLoadingState(
       embeds: [embed],
       components: [loadingActionRow],
     })
-  } catch (error) {
+  } catch (_error) {
     // Fallback to defer if update fails
     await interaction.deferUpdate()
   }

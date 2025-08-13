@@ -48,7 +48,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'User created successfully',
           user,
         }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Failed to create user')
       }
     },
@@ -118,7 +118,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'User updated successfully',
           user: updatedUser,
         }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Failed to update user')
       }
     },
@@ -164,7 +164,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'User retrieved successfully',
           user,
         }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Failed to retrieve user')
       }
     },

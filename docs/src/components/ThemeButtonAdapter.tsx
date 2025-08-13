@@ -1,4 +1,3 @@
-import React from 'react'
 import { useColorMode } from '@docusaurus/theme-common'
 import { Moon, Sun } from 'lucide-react'
 

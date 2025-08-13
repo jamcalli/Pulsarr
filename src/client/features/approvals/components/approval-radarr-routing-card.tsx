@@ -192,7 +192,7 @@ export function ApprovalRadarrRoutingCard({
       }, setSavingStatus)
 
       toast.success('Routing configuration updated successfully')
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update routing configuration')
     }
   }

@@ -5,7 +5,7 @@ import { QuotaService } from '@services/quota.service.js'
 /**
  * Plugin to register the quota management service
  */
-const quotaPlugin: FastifyPluginAsync = async (fastify, opts) => {
+const quotaPlugin: FastifyPluginAsync = async (fastify, _opts) => {
   // Create the quota service
   const quotaService = new QuotaService(fastify)
 

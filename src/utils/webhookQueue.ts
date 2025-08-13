@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import type { WebhookQueue, RecentWebhook } from '@root/types/webhook.types.js'
+import type { WebhookQueue } from '@root/types/webhook.types.js'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 import { processContentNotifications } from '@root/utils/notification-processor.js'
 

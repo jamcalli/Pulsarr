@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify'
 import { RadarrService } from '@services/radarr.service.js'
 import type {
   RadarrInstance,
-  RadarrGenreRoute,
   ConnectionTestResult,
   MinimumAvailability,
 } from '@root/types/radarr.types.js'
@@ -181,7 +180,7 @@ export class RadarrManagerService {
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
-      let targetQualityProfileId: number | undefined = undefined
+      let targetQualityProfileId: number | undefined
 
       if (qualityProfile !== undefined) {
         if (typeof qualityProfile === 'number') {

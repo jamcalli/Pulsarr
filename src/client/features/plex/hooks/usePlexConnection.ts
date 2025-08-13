@@ -86,7 +86,7 @@ export function usePlexConnection() {
       form.reset({ plexToken: '' })
       setStatus('idle')
       toast.success('Plex token has been removed')
-    } catch (error) {
+    } catch (_error) {
       setStatus('error')
       toast.error('Failed to remove token')
     } finally {

@@ -4,7 +4,6 @@ import { SonarrService } from '@services/sonarr.service.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
   SonarrInstance,
-  SonarrGenreRoute,
   SonarrItem,
   ConnectionTestResult,
 } from '@root/types/sonarr.types.js'
@@ -172,7 +171,7 @@ export class SonarrManagerService {
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
-      let targetQualityProfileId: number | undefined = undefined
+      let targetQualityProfileId: number | undefined
 
       if (qualityProfile !== undefined) {
         if (typeof qualityProfile === 'number') {

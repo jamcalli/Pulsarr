@@ -6,7 +6,6 @@ import {
   CreateApiKeyResponseSchema,
   GetApiKeysResponseSchema,
   RevokeApiKeyParamsSchema,
-  RevokeApiKeyResponseSchema,
   ApiKeyErrorSchema,
 } from '@schemas/api-keys/api-keys.schema.js'
 

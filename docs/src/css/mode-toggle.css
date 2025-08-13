@@ -2,34 +2,34 @@
 
 /* Target the theme toggle specifically */
 html .react-toggle {
-	margin-bottom: 0 !important;
-	vertical-align: middle !important;
-	align-self: center !important;
+  margin-bottom: 0 !important;
+  vertical-align: middle !important;
+  align-self: center !important;
 }
 
 /* Adjust the vertical position of the toggle buttons */
 .navbar-items--right [class*="toggleButton"] {
-	margin: 0 !important;
-	padding: 0 !important;
-	display: flex !important;
-	align-items: center !important;
-	justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Fix the vertical alignment of all navbar right items */
 .navbar__items--right {
-	display: flex;
-	align-items: center !important;
+  display: flex;
+  align-items: center !important;
 }
 
 /* Remove margins from all navbar buttons */
 .navbar__items--right button {
-	margin: 0 !important;
+  margin: 0 !important;
 }
 
 /* Force all navbar items to be vertically centered */
 .navbar__items--right > * {
-	display: flex !important;
-	align-items: center !important;
-	justify-content: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }

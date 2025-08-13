@@ -30,7 +30,6 @@ import type {
 } from '@root/types/plex.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
-import type { IntervalConfig } from '@root/types/scheduler.types.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import {
   parseGuids,
@@ -84,9 +83,6 @@ export class WatchlistWorkflowService {
 
   /** Flag to prevent concurrent execution between queue processing and periodic reconciliation */
   private isProcessingWorkflow = false
-
-  /** Flag to track if the workflow is actually running (may differ from status) */
-  private isRunning = false
 
   /** Flag to indicate if using RSS fallback */
   private isUsingRssFallback = false
@@ -215,7 +211,6 @@ export class WatchlistWorkflowService {
     try {
       // Set status to starting immediately
       this.status = 'starting'
-      this.isRunning = false
 
       this.log.debug('Starting watchlist workflow initialization')
 
@@ -338,7 +333,6 @@ export class WatchlistWorkflowService {
 
       // Update status to running after everything is initialized
       this.status = 'running'
-      this.isRunning = true
       this.initialized = true
 
       // Set the RSS mode flag based on whether we're using RSS fallback
@@ -351,7 +345,6 @@ export class WatchlistWorkflowService {
       return true
     } catch (error) {
       this.status = 'stopped'
-      this.isRunning = false
       this.initialized = false
       this.rssMode = false
 
@@ -418,7 +411,6 @@ export class WatchlistWorkflowService {
     this.changeQueue.clear()
 
     // Update status
-    this.isRunning = false
     this.status = 'stopped'
     this.initialized = false
     this.rssMode = false
@@ -1724,7 +1716,7 @@ export class WatchlistWorkflowService {
         return (
           Array.isArray(parsed) ? parsed : [parsed].filter(Boolean)
         ) as T[]
-      } catch (e) {
+      } catch (_e) {
         return (value ? [value] : []) as T[]
       }
     }
@@ -1764,16 +1756,6 @@ export class WatchlistWorkflowService {
 
     // Otherwise, return false
     return false
-  }
-
-  private async setupManualSyncFallback(): Promise<void> {
-    if (this.rssCheckInterval) {
-      clearInterval(this.rssCheckInterval)
-      this.rssCheckInterval = null
-    }
-
-    // Just call the common setup method
-    await this.setupPeriodicReconciliation()
   }
 
   private async setupPeriodicReconciliation(): Promise<void> {

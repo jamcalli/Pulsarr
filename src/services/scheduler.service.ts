@@ -466,7 +466,7 @@ export class SchedulerService {
         }
       }
 
-      const updateResult = await this.fastify.db.updateSchedule(name, updates)
+      const _updateResult = await this.fastify.db.updateSchedule(name, updates)
 
       // Get job and handler
       const jobData = this.jobs.get(name)

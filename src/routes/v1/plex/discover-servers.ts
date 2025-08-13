@@ -114,7 +114,7 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
 
             try {
               const url = new URL(connection.uri)
-              const isSecure = url.protocol === 'https:'
+              const _isSecure = url.protocol === 'https:'
 
               // Add option with direct Plex URL (secure)
               if (url.hostname) {

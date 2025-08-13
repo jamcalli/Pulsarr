@@ -5,7 +5,7 @@ import { UserTagService } from '@services/user-tag.service.js'
 /**
  * Plugin to register the user tag service
  */
-const userTagPlugin: FastifyPluginAsync = async (fastify, opts) => {
+const userTagPlugin: FastifyPluginAsync = async (fastify, _opts) => {
   // Create the user tag service
   const userTagService = new UserTagService(fastify.log, fastify)
 
