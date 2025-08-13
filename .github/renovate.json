@@ -164,8 +164,7 @@
     {
       "description": "High priority for vulnerability alerts",
       "matchDatasources": ["*"],
-      "vulnerabilityAlerts": true,
-      "prPriority": 20
+      "vulnerabilityAlerts": true
     }
   ],
   "vulnerabilityAlerts": {
@@ -173,7 +172,8 @@
     "automerge": true,
     "automergeType": "pr",
     "schedule": ["at any time"],
-    "labels": ["security", "dependencies"]
+    "labels": ["security", "dependencies"],
+    "prPriority": 20
   },
   "lockFileMaintenance": {
     "enabled": true,
