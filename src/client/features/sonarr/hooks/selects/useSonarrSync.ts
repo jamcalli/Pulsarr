@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
-import type { SonarrInstance } from '@/features/sonarr/store/sonarrStore'
-import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 import { Computer } from 'lucide-react'
+import { useMemo } from 'react'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import type { SonarrInstance } from '@/features/sonarr/store/sonarrStore'
 
 /**
  * Returns a list of Sonarr instances available for synchronization, excluding the current instance and those with a placeholder API key.

@@ -1,28 +1,15 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import { Separator } from '@/components/ui/separator'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form'
-import { Slider } from '@/components/ui/slider'
-import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import type {
+  ConditionGroup,
+  ConditionValue,
+  ContentRouterRule,
+  ContentRouterRuleUpdate,
+  IConditionGroup,
+} from '@root/schemas/content-router/content-router.schema'
+import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
+import type { RadarrInstance } from '@root/types/radarr.types'
+import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
+import type { SonarrInstance } from '@root/types/sonarr.types'
 import {
   AlertCircle,
   HelpCircle,
@@ -30,22 +17,32 @@ import {
   Loader2,
   Pen,
   Plus,
+  Power,
   Save,
   Trash2,
   X,
-  Power,
 } from 'lucide-react'
-import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import ConditionGroupComponent from '@/features/content-router/components/condition-group'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import { useConfigStore } from '@/stores/configStore'
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -53,23 +50,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
-import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
-import type {
-  ConditionValue,
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
-  ConditionGroup,
-  IConditionGroup,
-} from '@root/schemas/content-router/content-router.schema'
-import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
+import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import ConditionGroupComponent from '@/features/content-router/components/condition-group'
+import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
 import {
   ConditionalRouteFormSchema,
   type ConditionalRouteFormValues,
 } from '@/features/content-router/schemas/content-router.schema'
-import type { RadarrInstance } from '@root/types/radarr.types'
-import type { SonarrInstance } from '@root/types/sonarr.types'
+import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
+import { cn } from '@/lib/utils'
+import { useConfigStore } from '@/stores/configStore'
 
 // Define criteria interface to match backend schema
 interface Criteria {
@@ -438,7 +438,7 @@ const AccordionRouteCard = ({
 
     try {
       await onToggleEnabled(route.id, newEnabledState)
-    } catch (error) {
+    } catch (_error) {
       // Revert on error
       form.setValue('enabled', route.enabled, { shouldDirty: false })
     }
@@ -718,6 +718,7 @@ const AccordionRouteCard = ({
                   <div className="flex items-center gap-2 flex-1">
                     <span className="truncate">{localTitle || 'Unnamed'}</span>
                     {!isSaving && (
+                      // biome-ignore lint/a11y/useSemanticElements: We need to use span with role="button" to avoid button nesting issues
                       <span
                         className={cn(
                           'inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
@@ -738,7 +739,6 @@ const AccordionRouteCard = ({
                             setIsEditing(true)
                           }
                         }}
-                        // biome-ignore lint/a11y/useSemanticElements: We need to use span with role="button" to avoid button nesting issues
                         role="button"
                         tabIndex={0}
                         aria-label="Edit title"

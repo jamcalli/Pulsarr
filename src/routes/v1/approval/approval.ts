@@ -1,25 +1,24 @@
+import {
+  ApprovalErrorSchema,
+  ApprovalRequestCreateResponseSchema,
+  ApprovalRequestsListResponseSchema,
+  ApprovalRequestUpdateResponseSchema,
+  ApprovalStatsResponseSchema,
+  type BulkApprovalRequest,
+  BulkApprovalRequestSchema,
+  type BulkDeleteRequest,
+  BulkDeleteRequestSchema,
+  type BulkOperationResponse,
+  BulkOperationResponseSchema,
+  type BulkRejectRequest,
+  BulkRejectRequestSchema,
+  CreateApprovalRequestSchema,
+  GetApprovalRequestsQuerySchema,
+  UpdateApprovalRequestSchema,
+} from '@schemas/approval/approval.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import {
-  CreateApprovalRequestSchema,
-  UpdateApprovalRequestSchema,
-  ApprovalRequestCreateResponseSchema,
-  ApprovalRequestUpdateResponseSchema,
-  ApprovalRequestsListResponseSchema,
-  ApprovalStatsResponseSchema,
-  GetApprovalRequestsQuerySchema,
-  ApprovalErrorSchema,
-  BulkApprovalRequestSchema,
-  BulkRejectRequestSchema,
-  BulkDeleteRequestSchema,
-  BulkOperationResponseSchema,
-  type BulkApprovalRequest,
-  type BulkRejectRequest,
-  type BulkDeleteRequest,
-  type BulkOperationResponse,
-} from '@schemas/approval/approval.schema.js'
-import { extractTmdbId, extractTvdbId } from '@utils/guid-handler.js'
-import { logRouteError } from '@utils/route-errors.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   /**

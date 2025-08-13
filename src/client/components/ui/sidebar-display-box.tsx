@@ -1,6 +1,6 @@
 import type React from 'react'
-import CRTOverlay from './crt-overlay'
 import { cn } from '@/lib/utils'
+import CRTOverlay from './crt-overlay'
 
 interface SidebarDisplayBoxProps {
   children: React.ReactNode

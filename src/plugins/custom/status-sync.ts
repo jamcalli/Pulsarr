@@ -1,6 +1,6 @@
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
 import { StatusService } from '@services/watchlist-status.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

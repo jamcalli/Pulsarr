@@ -1,21 +1,21 @@
+import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { ColumnDef } from '@tanstack/react-table'
-
 import { format } from 'date-fns'
+import {
+  AlertCircle,
+  ArrowUpDown,
+  CheckCircle,
+  Clock,
+  Eye,
+  Monitor,
+  MoreHorizontal,
+  Trash2,
+  Tv,
+  XCircle,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Monitor,
-  Tv,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Eye,
-  Trash2,
-  MoreHorizontal,
-  ArrowUpDown,
-} from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 
 interface ApprovalTableActions {
   onView: (request: ApprovalRequestResponse) => void

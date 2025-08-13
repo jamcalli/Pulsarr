@@ -1,6 +1,6 @@
-import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { rssFeedsSchema } from '@schemas/plex/generate-rss-feeds.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
 export const generateRssFeedsRoute: FastifyPluginAsyncZod = async (
   fastify,

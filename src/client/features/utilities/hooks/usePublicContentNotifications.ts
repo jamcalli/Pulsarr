@@ -1,11 +1,11 @@
-import { useState, useCallback, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
-import { useDebounce } from '@/hooks/useDebounce'
 import type { WebhookValidationResponse } from '@root/schemas/notifications/discord-control.schema'
+import { useCallback, useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
+import { useDebounce } from '@/hooks/useDebounce'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Parses a comma-separated string into an array of trimmed, non-empty webhook URLs.

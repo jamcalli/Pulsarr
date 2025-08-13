@@ -1,5 +1,5 @@
-import { SystemStatus } from '@/components/ui/system-status'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { SystemStatus } from '@/components/ui/system-status'
 
 interface QuotaSystemStatusProps {
   job: JobStatus | null | undefined

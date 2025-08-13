@@ -1,14 +1,14 @@
-import { useState, useCallback } from 'react'
-import { toast } from 'sonner'
-import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
-import { useConfigStore } from '@/stores/configStore'
-import type { QuotaEditStatus } from '@/features/plex/components/user/quota-edit-modal'
-import type { UserWithQuotaInfo } from '@/stores/configStore'
 import type {
+  QuotaStatusGetResponse,
   UpdateSeparateQuotas,
   UserQuotaUpdateResponse,
-  QuotaStatusGetResponse,
 } from '@root/schemas/quota/quota.schema'
+import { useCallback, useState } from 'react'
+import { toast } from 'sonner'
+import type { QuotaEditStatus } from '@/features/plex/components/user/quota-edit-modal'
+import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import type { UserWithQuotaInfo } from '@/stores/configStore'
+import { useConfigStore } from '@/stores/configStore'
 
 interface QuotaFormData {
   hasMovieQuota: boolean

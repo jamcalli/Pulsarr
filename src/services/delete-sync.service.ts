@@ -19,44 +19,23 @@
  * // Running the delete sync manually:
  * await fastify.deleteSync.run();
  */
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type {
-  Item as SonarrItem,
-  SonarrSeries,
-} from '@root/types/sonarr.types.js'
+
+import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   Item as RadarrItem,
   RadarrMovie,
 } from '@root/types/radarr.types.js'
-import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import { PlexServerService } from '@utils/plex-server.js'
+import type {
+  Item as SonarrItem,
+  SonarrSeries,
+} from '@root/types/sonarr.types.js'
 import {
-  parseGuids,
   extractRadarrId,
   extractSonarrId,
+  parseGuids,
 } from '@utils/guid-handler.js'
-
-// Define the WatchlistItem interface for type assertions
-interface WatchlistItem {
-  title: string
-  key: string
-  type: string
-  thumb?: string
-  added?: string
-  guids?: string[] | string
-  genres?: string[] | string
-  user_id: number
-  status: 'pending' | 'requested' | 'grabbed' | 'notified'
-  series_status?: 'continuing' | 'ended'
-  movie_status?: 'available' | 'unavailable'
-  sonarr_instance_id?: number
-  radarr_instance_id?: number
-  last_notified_at?: string
-  sync_started_at?: string
-  created_at: string
-  updated_at: string
-  id?: string
-}
+import { PlexServerService } from '@utils/plex-server.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class DeleteSyncService {
   /**
@@ -964,7 +943,7 @@ export class DeleteSyncService {
         }
       }
 
-      const movieSummary = {
+      const _movieSummary = {
         deleted: moviesDeleted,
         skipped: moviesSkipped,
         protected: moviesProtected,
@@ -1173,7 +1152,7 @@ export class DeleteSyncService {
         }
       }
 
-      const tvShowSummary = {
+      const _tvShowSummary = {
         endedShows: {
           deleted: endedShowsDeleted,
           skipped: endedShowsSkipped,
@@ -1913,7 +1892,7 @@ export class DeleteSyncService {
         }
       }
 
-      const movieSummary = {
+      const _movieSummary = {
         deleted: moviesDeleted,
         skipped: moviesSkipped,
         protected: moviesProtected,
@@ -2095,7 +2074,7 @@ export class DeleteSyncService {
         }
       }
 
-      const tvShowSummary = {
+      const _tvShowSummary = {
         endedShows: {
           deleted: endedShowsDeleted,
           skipped: endedShowsSkipped,

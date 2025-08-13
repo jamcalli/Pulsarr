@@ -1,6 +1,6 @@
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
 import { AppriseNotificationService } from '@services/apprise-notifications.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -99,7 +99,7 @@ async function pingAppriseServer(url: string): Promise<boolean> {
     clearTimeout(timeoutId)
 
     return response.ok
-  } catch (error) {
+  } catch (_error) {
     return false
   }
 }

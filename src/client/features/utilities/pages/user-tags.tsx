@@ -1,18 +1,15 @@
-import { useEffect } from 'react'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { useConfigStore } from '@/stores/configStore'
-import { Button } from '@/components/ui/button'
 import {
-  Loader2,
-  Tag,
   AlertTriangle,
-  RefreshCw,
-  Trash2,
-  Save,
-  X,
   HelpCircle,
+  Loader2,
+  RefreshCw,
+  Save,
+  Tag,
+  Trash2,
+  X,
 } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
+import { useEffect } from 'react'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -22,26 +19,29 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import { Select } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  useUserTags,
-  isCreateTagResponse,
-  isSyncTagResponse,
-  isCleanupTagResponse,
-} from '@/features/utilities/hooks/useUserTags'
-import { Progress } from '@/components/ui/progress'
-import { useProgressStore } from '@/stores/progressStore'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { UserTagsDeleteConfirmationModal } from '@/features/utilities/components/user-tags/user-tags-delete-confirmation-modal'
 import { useTaggingProgress } from '@/features/utilities/hooks/useTaggingProgress'
-import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import {
+  isCleanupTagResponse,
+  isCreateTagResponse,
+  isSyncTagResponse,
+  useUserTags,
+} from '@/features/utilities/hooks/useUserTags'
 import { UserTagsPageSkeleton } from '@/features/utilities/pages/user-tags-page-skeleton'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useConfigStore } from '@/stores/configStore'
+import { useProgressStore } from '@/stores/progressStore'
 
 /**
  * Displays the administrative page for configuring and managing user-based tagging in Sonarr and Radarr.

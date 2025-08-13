@@ -1,21 +1,21 @@
+import type {
+  ActivityStats,
+  AvailabilityTime,
+  ContentStat,
+  ContentTypeDistribution,
+  DashboardStats,
+  GenreStat,
+  GrabbedToNotifiedTime,
+  InstanceContentBreakdown,
+  InstanceStat,
+  NotificationStats,
+  StatusDistribution,
+  StatusFlowData,
+  StatusTransitionTime,
+  UserStat,
+} from '@root/schemas/stats/stats.schema'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type {
-  GenreStat,
-  ContentStat,
-  UserStat,
-  StatusDistribution,
-  ContentTypeDistribution,
-  ActivityStats,
-  InstanceStat,
-  AvailabilityTime,
-  StatusTransitionTime,
-  StatusFlowData,
-  GrabbedToNotifiedTime,
-  DashboardStats,
-  NotificationStats,
-  InstanceContentBreakdown,
-} from '@root/schemas/stats/stats.schema'
 
 export interface StatsState {
   // All dashboard stats

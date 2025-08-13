@@ -1,32 +1,32 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
-  Condition,
-  ConditionGroup,
-  FieldInfo,
-  OperatorInfo,
-} from '@root/types/router.types.js'
-import type { SonarrItem, SonarrInstance } from '@root/types/sonarr.types.js'
-import type {
-  Item as RadarrItem,
-  RadarrInstance,
-} from '@root/types/radarr.types.js'
-import { resolve, join, dirname } from 'node:path'
 import { readdir } from 'node:fs/promises'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import type { RouterDecision } from '@root/types/approval.types.js'
 import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
-import type { RouterDecision } from '@root/types/approval.types.js'
+import type {
+  RadarrInstance,
+  Item as RadarrItem,
+} from '@root/types/radarr.types.js'
+import type {
+  Condition,
+  ConditionGroup,
+  ContentItem,
+  FieldInfo,
+  OperatorInfo,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+} from '@root/types/router.types.js'
+import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
 import {
+  extractImdbId,
   extractTmdbId,
   extractTvdbId,
-  extractImdbId,
 } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
  * ContentRouterService is responsible for routing content items to Radarr or Sonarr instances
@@ -1183,7 +1183,7 @@ export class ContentRouterService {
       if (evaluator.evaluateCondition) {
         try {
           return evaluator.evaluateCondition(condition, item, context)
-        } catch (e) {
+        } catch (_e) {
           // Ignore errors, try the next evaluator
         }
       }

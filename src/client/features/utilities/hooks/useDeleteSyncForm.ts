@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import * as z from 'zod'
 import type { Config } from '@root/types/config.types'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import * as z from 'zod'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useConfigStore } from '@/stores/configStore'
 
 // Schema definition
 export const deleteSyncSchema = z
@@ -101,7 +101,7 @@ export function useDeleteSyncForm() {
 
   const [scheduleTime, dayOfWeek] = useMemo(() => {
     // Default values
-    let time: Date | undefined = undefined
+    let time: Date | undefined
     let day = '*'
 
     const deleteSyncJob = schedules?.find((job) => job.name === 'delete-sync')

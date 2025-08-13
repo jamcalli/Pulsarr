@@ -1,15 +1,15 @@
-import type { FastifyInstance } from 'fastify'
 import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
   Condition,
   ConditionGroup,
+  ContentItem,
   FieldInfo,
   OperatorInfo,
   RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
 } from '@root/types/router.types.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Determines whether the given value is a valid {@link Condition} object.
@@ -95,7 +95,7 @@ export default function createConditionalEvaluator(
     supportedOperators,
 
     async canEvaluate(
-      item: ContentItem,
+      _item: ContentItem,
       context: RoutingContext,
     ): Promise<boolean> {
       const isMovie = context.contentType === 'movie'

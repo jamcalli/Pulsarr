@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import { useContentRouter } from '@/features/content-router/hooks/useContentRouter'
+import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 
 /**
  * Custom hook that integrates the Radarr store state with a Radarr-specific content router.

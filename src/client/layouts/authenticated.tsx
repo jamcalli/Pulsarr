@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
-import WindowedLayout from './window'
-import { useProgressStore } from '@/stores/progressStore'
-import { useVersionCheck } from '@/hooks/useVersionCheck'
+import { useEffect, useRef } from 'react'
 import { useApprovalToasts } from '@/hooks/useApprovalEvents'
+import { useVersionCheck } from '@/hooks/useVersionCheck'
+import { useProgressStore } from '@/stores/progressStore'
+import WindowedLayout from './window'
 
 interface AuthenticatedLayoutProps {
   children: ReactNode

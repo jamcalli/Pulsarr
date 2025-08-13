@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
+import type { ControllerRenderProps } from 'react-hook-form'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { useConfigStore } from '@/stores/configStore'
-import type { ControllerRenderProps } from 'react-hook-form'
 
 interface UserMultiSelectProps {
   field: ControllerRenderProps<any, any>

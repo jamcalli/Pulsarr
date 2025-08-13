@@ -1,24 +1,18 @@
-import { useState, useRef, useEffect } from 'react'
+import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
+import { HelpCircle, Plus, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
-import { cn } from '@/lib/utils'
-import { RefreshCw, Plus, HelpCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -26,36 +20,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
-import { useSonarrConnection } from '@/features/sonarr/hooks/instance/useSonarrConnection'
-import { useSonarrInstanceForm } from '@/features/sonarr/hooks/instance/useSonarrInstanceForms'
-import { useSonarrInstance } from '@/features/sonarr/hooks/instance/useSonarrInstance'
-import {
-  QualityProfileSelect,
-  RootFolderSelect,
-} from '@/features/sonarr/components/selects/sonarr-selects'
-import SyncedInstancesSelect from '../selects/sonarr-synced-instance-select'
-import ConnectionSettings from './sonarr-connection-settings'
-import InstanceCardSkeleton from './sonarr-card-skeleton'
-import DeleteInstanceAlert from './delete-instance-alert'
-import type { SonarrInstance } from '@/features/sonarr/types/types'
-import { toast } from 'sonner'
-import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
-import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { Switch } from '@/components/ui/switch'
+import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import {
   TagsMultiSelect,
   type TagsMultiSelectRef,
 } from '@/components/ui/tag-multi-select'
-import { useConfigStore } from '@/stores/configStore'
-import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import {
-  SONARR_SERIES_TYPES,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
+import {
+  QualityProfileSelect,
+  RootFolderSelect,
+} from '@/features/sonarr/components/selects/sonarr-selects'
+import {
   SERIES_TYPE_LABELS,
+  SONARR_SERIES_TYPES,
 } from '@/features/sonarr/constants'
-import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import { useSonarrConnection } from '@/features/sonarr/hooks/instance/useSonarrConnection'
+import { useSonarrInstance } from '@/features/sonarr/hooks/instance/useSonarrInstance'
+import { useSonarrInstanceForm } from '@/features/sonarr/hooks/instance/useSonarrInstanceForms'
+import {
+  API_KEY_PLACEHOLDER,
+  SONARR_MONITORING_OPTIONS,
+} from '@/features/sonarr/store/constants'
+import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
+import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import type { SonarrInstance } from '@/features/sonarr/types/types'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { cn } from '@/lib/utils'
+import { useConfigStore } from '@/stores/configStore'
+import SyncedInstancesSelect from '../selects/sonarr-synced-instance-select'
+import DeleteInstanceAlert from './delete-instance-alert'
+import InstanceCardSkeleton from './sonarr-card-skeleton'
+import ConnectionSettings from './sonarr-connection-settings'
 
 interface InstanceCardProps {
   instance: SonarrInstance
@@ -197,7 +199,7 @@ export function InstanceCard({
           const data = await (error as Response).json()
           errorMessage = data.message || errorMessage
         }
-      } catch (e) {
+      } catch (_e) {
         // If we can't parse the error as JSON, just use the error message we already have
       }
 
@@ -233,7 +235,7 @@ export function InstanceCard({
   const handleDelete = async () => {
     try {
       await deleteInstance(form, setIsConnectionValid, setTestStatus)
-    } catch (error) {}
+    } catch (_error) {}
   }
 
   const handleSave = form.handleSubmit(handleSubmit)

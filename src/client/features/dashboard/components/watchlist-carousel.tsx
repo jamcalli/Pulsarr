@@ -1,19 +1,19 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import { MediaCard } from '@/features/dashboard/components/media-card'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-import MediaCardSkeleton from '@/features/dashboard/components/media-card-skeleton'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSettings } from '@/components/settings-provider'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Carousel,
+  type CarouselApi,
   CarouselContent,
   CarouselItem,
-  type CarouselApi,
 } from '@/components/ui/carousel'
-import { cn } from '@/lib/utils'
-import { useSettings } from '@/components/settings-provider'
+import { MediaCard } from '@/features/dashboard/components/media-card'
+import MediaCardSkeleton from '@/features/dashboard/components/media-card-skeleton'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { ContentStat } from '@root/schemas/stats/stats.schema'
+import { cn } from '@/lib/utils'
 
 interface WatchlistCarouselProps {
   title: string

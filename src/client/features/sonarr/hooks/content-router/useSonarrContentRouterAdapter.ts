@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useContentRouter } from '@/features/content-router/hooks/useContentRouter'
+import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 
 /**
  * Integrates Sonarr store state with content routing functionalities.

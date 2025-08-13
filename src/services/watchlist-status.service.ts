@@ -1,15 +1,11 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type {
   DatabaseWatchlistItem,
   WatchlistInstanceStatus,
 } from '@root/types/watchlist-status.types.js'
-import {
-  parseGuids,
-  hasMatchingGuids,
-  getGuidMatchScore,
-} from '@utils/guid-handler.js'
+import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class StatusService {
   constructor(
@@ -785,24 +781,6 @@ export class StatusService {
     return items.find((item) =>
       item.guids.some((itemGuid) => guids.includes(itemGuid)),
     )
-  }
-
-  private isGuidMatch(
-    itemGuids1: string[] | string | undefined,
-    itemGuids2: string[] | string | undefined,
-  ): boolean {
-    // Use hasMatchingGuids utility function
-    return hasMatchingGuids(itemGuids1, itemGuids2)
-  }
-
-  private parseGenres(genres: string[] | string | undefined): string[] {
-    if (!genres) return []
-    if (Array.isArray(genres)) return genres
-    try {
-      return JSON.parse(genres)
-    } catch {
-      return typeof genres === 'string' ? [genres] : []
-    }
   }
 
   async syncInstance(

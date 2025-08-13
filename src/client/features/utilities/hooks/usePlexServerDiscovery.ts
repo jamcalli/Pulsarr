@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react'
-import { toast } from 'sonner'
 import type { PlexServer } from '@root/schemas/plex/discover-servers.schema'
+import { useCallback, useState } from 'react'
+import { toast } from 'sonner'
 
 /**
  * A hook for discovering Plex servers using a token

@@ -1,22 +1,22 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { formatDistanceToNow, parseISO } from 'date-fns'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { useConfigStore } from '@/stores/configStore'
-import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 import type {
-  SyncPlexLabelsResponse,
   CleanupPlexLabelsResponse,
   RemovePlexLabelsResponse,
+  SyncPlexLabelsResponse,
 } from '@root/schemas/labels/plex-labels.schema'
 import {
-  PlexLabelSyncConfigSchema,
   type PlexLabelSyncConfig,
+  PlexLabelSyncConfigSchema,
 } from '@root/schemas/plex/label-sync-config.schema'
+import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { formatDistanceToNow, parseISO } from 'date-fns'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import type { z } from 'zod'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { parseCronExpression } from '@/lib/utils'
+import { useConfigStore } from '@/stores/configStore'
 
 export type PlexLabelsFormValues = z.infer<typeof PlexLabelSyncConfigSchema>
 
@@ -249,7 +249,7 @@ export function usePlexLabels() {
       if (!lastRun?.time) return 'Never'
       try {
         return formatDistanceToNow(parseISO(lastRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return lastRun.time
       }
     },
@@ -262,7 +262,7 @@ export function usePlexLabels() {
       if (!nextRun?.time) return 'Not scheduled'
       try {
         return formatDistanceToNow(parseISO(nextRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return nextRun.time
       }
     },
@@ -461,7 +461,7 @@ export function usePlexLabels() {
       setLastActionResults(result)
 
       toast.success(result.message || 'Pulsarr labels synced successfully')
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [syncPlexLabels])
@@ -478,7 +478,7 @@ export function usePlexLabels() {
       toast.success(
         result.message || 'Orphaned Pulsarr labels cleaned up successfully',
       )
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [cleanupPlexLabels])

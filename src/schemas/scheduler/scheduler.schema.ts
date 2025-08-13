@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { createRequire } from 'node:module'
+import { z } from 'zod'
 
 const require = createRequire(import.meta.url)
 const cronValidate = require('cron-validate').default
@@ -45,7 +45,7 @@ export const CronConfigSchema = z.object({
 
           // Reject everything else (e.g. 7-field expressions with "year")
           return false
-        } catch (error) {
+        } catch (_error) {
           // If validation fails for any reason, assume invalid
           return false
         }

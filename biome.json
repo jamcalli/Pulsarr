@@ -1,32 +1,43 @@
 {
+  "$schema": "https://biomejs.dev/schemas/2.1.4/schema.json",
   "files": {
-    "ignore": [
-      "dist",
-      "tests",
-      "docs/build",
-      "docs/.docusaurus",
-      "docs/node_modules",
-      "docs/src/theme"
+    "includes": [
+      "**",
+      "!**/dist/**",
+      "!**/tests/**",
+      "!**/docs/build/**",
+      "!**/docs/.docusaurus/**",
+      "!**/docs/node_modules/**",
+      "!**/docs/src/theme/**",
+      "!**/src/client/dist/**"
     ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space"
   },
   "javascript": {
     "formatter": {
-      "indentStyle": "space",
       "semicolons": "asNeeded",
       "quoteStyle": "single"
     }
   },
   "json": {
     "formatter": {
-      "indentStyle": "space"
+      "enabled": true
     }
   },
-  "organizeImports": {
-    "enabled": false
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "correctness": {
+        "noUnusedImports": "error"
+      }
+    }
   },
   "overrides": [
     {
-      "include": ["docs/src/**/*.tsx", "docs/src/**/*.ts"],
+      "includes": ["**/docs/src/**/*.tsx", "**/docs/src/**/*.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -36,7 +47,10 @@
       }
     },
     {
-      "include": ["src/client/components/ui/**/*", "src/client/hooks/**/*"],
+      "includes": [
+        "**/src/client/components/ui/**/*",
+        "**/src/client/hooks/**/*"
+      ],
       "formatter": {
         "enabled": false
       },
@@ -47,7 +61,8 @@
             "useOptionalChain": "off"
           },
           "correctness": {
-            "useExhaustiveDependencies": "off"
+            "useExhaustiveDependencies": "off",
+            "noUnusedImports": "off"
           },
           "security": {
             "noDangerouslySetInnerHtml": "off"

@@ -1,16 +1,16 @@
 import { useMemo } from 'react'
+import type { TooltipProps } from 'recharts'
+import { Cell, Label, Pie, PieChart, Tooltip } from 'recharts'
+import type {
+  NameType,
+  ValueType,
+} from 'recharts/types/component/DefaultTooltipContent'
 import { useTheme } from '@/components/theme-provider'
-import { PieChart, Pie, Cell, Tooltip, Label } from 'recharts'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Card, CardContent } from '@/components/ui/card'
-import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
-import { useContentDistributionData } from '@/features/dashboard/hooks/useChartData'
+import { type ChartConfig, ChartContainer } from '@/components/ui/chart'
 import InstanceContentBreakdownChart from '@/features/dashboard/components/charts/instance-content-breakdown-chart'
-import type { TooltipProps } from 'recharts'
-import type {
-  ValueType,
-  NameType,
-} from 'recharts/types/component/DefaultTooltipContent'
+import { useContentDistributionData } from '@/features/dashboard/hooks/useChartData'
 
 /**
  * Displays a dashboard section that visualizes the distribution of content types using a pie chart and provides a breakdown chart for further analysis.

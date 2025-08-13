@@ -1,4 +1,3 @@
-import * as React from 'react'
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -13,33 +12,26 @@ import {
 } from '@tanstack/react-table'
 import {
   ArrowUpDown,
-  ChevronDown,
   Check,
-  X,
-  MoreHorizontal,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  MoreHorizontal,
   Target,
+  X,
 } from 'lucide-react'
-
+import * as React from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuTrigger,
   DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   Select,
   SelectContent,
@@ -48,20 +40,27 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { TableSkeleton } from '@/components/ui/table-skeleton'
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { UserWithQuotaInfo } from '@/stores/configStore'
-import type { PlexUserTableRow } from '@/features/plex/store/types'
-import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
-import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
-import { toast } from 'sonner'
-import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { QuotaStatusBadge } from '@/features/plex/components/user/quota-status-badge'
 import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
+import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
+import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
+import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { useTablePagination } from '@/hooks/use-table-pagination'
+import type { UserWithQuotaInfo } from '@/stores/configStore'
 
 interface ColumnMetaType {
   className?: string

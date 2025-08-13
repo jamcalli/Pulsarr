@@ -1,6 +1,6 @@
+import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.schema'
 
 /**
  * React hook for managing the state and data fetching of a user's watchlist in a UI component.

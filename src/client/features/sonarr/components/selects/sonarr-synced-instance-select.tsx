@@ -1,10 +1,10 @@
-import type { ControllerRenderProps } from 'react-hook-form'
-import type { SonarrInstance } from '@/features/sonarr/store/sonarrStore'
-import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
-import { MultiSelect } from '@/components/ui/multi-select'
 import { Computer } from 'lucide-react'
+import type { ControllerRenderProps } from 'react-hook-form'
 import { Badge } from '@/components/ui/badge'
+import { MultiSelect } from '@/components/ui/multi-select'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
+import type { SonarrInstance } from '@/features/sonarr/store/sonarrStore'
 
 /**
  * Displays a multi-select input for selecting Sonarr instances to sync with, excluding the current instance and those with placeholder API keys.

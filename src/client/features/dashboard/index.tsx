@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
-import { StatsHeader } from '@/features/dashboard/components/stats-header'
-import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
 import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-dashboard'
+import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
+import { StatsHeader } from '@/features/dashboard/components/stats-header'
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboardStats'
 
 export function DashboardPage() {
