@@ -4,7 +4,6 @@ import { logRouteError } from '@utils/route-errors.js'
 import {
   CreateUserQuotaSchema,
   UpdateUserQuotaSchema,
-  UpdateSpecificQuotaSchema,
   UpdateSeparateQuotasSchema,
   UserQuotaCreateResponseSchema,
   UserQuotaGetResponseSchema,

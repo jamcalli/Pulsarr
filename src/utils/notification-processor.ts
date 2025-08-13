@@ -1,9 +1,4 @@
-import type {
-  Config,
-  DiscordWebhookKey,
-  AppriseUrlKey,
-  PublicContentKeyMap,
-} from '@root/types/config.types.js'
+import type { Config, PublicContentKeyMap } from '@root/types/config.types.js'
 import type {
   SonarrEpisodeSchema,
   NotificationResult,

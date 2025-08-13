@@ -95,7 +95,7 @@ export default function createConditionalEvaluator(
     supportedOperators,
 
     async canEvaluate(
-      item: ContentItem,
+      _item: ContentItem,
       context: RoutingContext,
     ): Promise<boolean> {
       const isMovie = context.contentType === 'movie'

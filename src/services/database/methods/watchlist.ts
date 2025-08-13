@@ -155,7 +155,7 @@ export async function updateWatchlistItemByGuid(
   }
 
   // Remove syncing field as it only exists in junction tables, not watchlist_items
-  const { syncing, ...validUpdates } = updates
+  const { syncing: _, ...validUpdates } = updates
   const updateCount = await this.knex('watchlist_items')
     .whereIn('id', matchingIds)
     .update({

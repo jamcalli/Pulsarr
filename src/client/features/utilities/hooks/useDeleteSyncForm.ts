@@ -101,7 +101,7 @@ export function useDeleteSyncForm() {
 
   const [scheduleTime, dayOfWeek] = useMemo(() => {
     // Default values
-    let time: Date | undefined = undefined
+    let time: Date | undefined
     let day = '*'
 
     const deleteSyncJob = schedules?.find((job) => job.name === 'delete-sync')

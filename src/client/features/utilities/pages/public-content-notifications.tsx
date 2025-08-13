@@ -318,7 +318,7 @@ export default function PublicContentNotificationsPage() {
 
     try {
       await handleToggle(newEnabledState)
-    } catch (error) {
+    } catch (_error) {
       // Error handling (user feedback, logging) is done in the hook
       // No additional handling needed at component level
     }
@@ -383,26 +383,20 @@ export default function PublicContentNotificationsPage() {
                 Public Content Broadcasting
               </h3>
               <p className="text-sm text-foreground">
-                {isEnabled ? (
-                  <>
-                    Public content notifications are enabled. ALL content ready
-                    notifications will be broadcast to the configured public
-                    endpoints in addition to individual user notifications.
-                    Movies and shows can be routed to specific endpoints, with
-                    fallback to general endpoints if no specific ones are
-                    configured. Discord notifications include @ mentions for
-                    users who have the content watchlisted and have configured
-                    Discord IDs.
-                  </>
-                ) : (
-                  <>
-                    Content notifications will only be sent to individual users
-                    based on their personal notification settings. Enable this
-                    feature to broadcast ALL content availability to public
-                    Discord channels and shared Apprise endpoints for
-                    server-wide announcements.
-                  </>
-                )}
+                {isEnabled
+                  ? 'Public content notifications are enabled. ALL content ready ' +
+                    'notifications will be broadcast to the configured public ' +
+                    'endpoints in addition to individual user notifications. ' +
+                    'Movies and shows can be routed to specific endpoints, with ' +
+                    'fallback to general endpoints if no specific ones are ' +
+                    'configured. Discord notifications include @ mentions for ' +
+                    'users who have the content watchlisted and have configured ' +
+                    'Discord IDs.'
+                  : 'Content notifications will only be sent to individual users ' +
+                    'based on their personal notification settings. Enable this ' +
+                    'feature to broadcast ALL content availability to public ' +
+                    'Discord channels and shared Apprise endpoints for ' +
+                    'server-wide announcements.'}
               </p>
             </div>
 

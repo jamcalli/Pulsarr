@@ -287,7 +287,7 @@ export function useSessionMonitoring() {
 
       // Refresh rolling shows after running session monitor
       await fetchRollingShows()
-    } catch (err) {
+    } catch (_err) {
       // Error handling is done in the store
     }
   }, [runSessionMonitor, fetchRollingShows])
@@ -298,7 +298,7 @@ export function useSessionMonitoring() {
       try {
         const result = await resetShow(id)
         toast.success(result.message || 'Show reset successfully')
-      } catch (err) {
+      } catch (_err) {
         // Error handling is done in the store
       } finally {
         setActiveActionId(null)
@@ -313,7 +313,7 @@ export function useSessionMonitoring() {
       try {
         const result = await deleteShow(id)
         toast.success(result.message || 'Show removed successfully')
-      } catch (err) {
+      } catch (_err) {
         // Error handling is done in the store
       } finally {
         setActiveActionId(null)
@@ -332,7 +332,7 @@ export function useSessionMonitoring() {
       // Refresh both rolling and inactive shows using current form value
       await fetchRollingShows()
       await fetchInactiveShows(currentInactivityDays)
-    } catch (err) {
+    } catch (_err) {
       // Error handling is done in the store
     }
   }, [resetInactiveShows, fetchRollingShows, fetchInactiveShows, form])

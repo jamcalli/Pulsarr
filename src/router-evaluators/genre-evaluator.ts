@@ -1,18 +1,14 @@
 import type { FastifyInstance } from 'fastify'
-import {
-  evaluateRegexSafelyMultiple,
-  evaluateRegexSafely,
-} from '@utils/regex-safety.js'
-import {
-  type ContentItem,
-  type RoutingContext,
-  type RoutingDecision,
-  type RoutingEvaluator,
-  type Condition,
-  ConditionGroup,
-  type FieldInfo,
-  type OperatorInfo,
-  type RouterRule,
+import { evaluateRegexSafelyMultiple } from '@utils/regex-safety.js'
+import type {
+  ContentItem,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+  Condition,
+  FieldInfo,
+  OperatorInfo,
+  RouterRule,
 } from '@root/types/router.types.js'
 
 /**
@@ -119,7 +115,7 @@ export default function createGenreEvaluator(
     supportedOperators,
     async canEvaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): Promise<boolean> {
       return !!(
         item.genres &&
@@ -248,7 +244,7 @@ export default function createGenreEvaluator(
     evaluateCondition(
       condition: Condition,
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): boolean {
       // Only support the 'genres' field
       if (!('field' in condition) || condition.field !== 'genres') {
@@ -266,7 +262,7 @@ export default function createGenreEvaluator(
       // Create a set of normalized genres for case-insensitive comparison
       const itemGenres = new Set(item.genres.map(normalizeString))
 
-      const { operator, value, negate = false } = condition
+      const { operator, value, negate: _ = false } = condition
       let matched = false
 
       switch (operator) {

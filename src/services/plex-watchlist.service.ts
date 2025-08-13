@@ -12,7 +12,6 @@ import {
 } from '@utils/plex.js'
 import {
   parseGuids,
-  hasMatchingGuids,
   hasMatchingParsedGuids,
   getGuidMatchScore,
 } from '@utils/guid-handler.js'
@@ -165,44 +164,6 @@ export class PlexWatchlistService {
   }
 
   /**
-   * Determines if a notification should be sent
-   *
-   * @param title - Item title
-   * @param existingNotifications - Set of existing notification titles
-   * @param guids - Item GUIDs
-   * @param existingGuidsSnapshot - Snapshot of GUIDs that existed before sync
-   * @returns Boolean indicating if notification should be sent
-   */
-  private shouldSendNotification(
-    title: string,
-    existingNotifications: Set<string>,
-    guids: string[],
-    existingGuidsSnapshot: Set<string>,
-  ): boolean {
-    // Check if notification already exists
-    if (existingNotifications.has(title)) {
-      this.log.info(
-        `Skipping notification for "${title}" - already sent previously`,
-      )
-      return false
-    }
-
-    // Check if any GUIDs existed before sync
-    for (const guid of guids) {
-      const normalizedGuid = guid.toLowerCase()
-      if (existingGuidsSnapshot.has(normalizedGuid)) {
-        this.log.info(
-          `Skipping notification for "${title}" - item with GUID ${guid} already existed before sync`,
-          { title, guid },
-        )
-        return false
-      }
-    }
-
-    return true
-  }
-
-  /**
    * Sends watchlist notifications to a user
    *
    * @param user - User to notify
@@ -325,7 +286,7 @@ export class PlexWatchlistService {
     }
 
     const results = await Promise.all(
-      tokens.map((token, index) => {
+      tokens.map((token, _index) => {
         return pingPlex(token, this.log)
       }),
     )
@@ -639,7 +600,7 @@ export class PlexWatchlistService {
         }
 
         // Variable to hold our user
-        let user: User | undefined = undefined
+        let user: User | undefined
 
         // If this is the primary token, try to get the existing primary user
         if (isPrimary) {
@@ -1593,7 +1554,7 @@ export class PlexWatchlistService {
         return (
           Array.isArray(parsed) ? parsed : [parsed].filter(Boolean)
         ) as T[]
-      } catch (e) {
+      } catch (_e) {
         return (value ? [value] : []) as T[]
       }
     }
@@ -1605,7 +1566,7 @@ export class PlexWatchlistService {
     const config = await this.ensureRssFeeds()
 
     // Create a snapshot for this specific operation
-    const existingGuidsSnapshot = await this.createGuidsSnapshot()
+    const _existingGuidsSnapshot = await this.createGuidsSnapshot()
 
     const results: RssWatchlistResults = {
       self: {
@@ -1898,7 +1859,7 @@ export class PlexWatchlistService {
       // Queue one pending sync per unique content (not per watchlist item)
       // This ensures all users for the same content are processed together
       let totalQueued = 0
-      for (const [contentKey, content] of contentMap.entries()) {
+      for (const [_contentKey, content] of contentMap.entries()) {
         // Queue using the first watchlist ID as representative
         // The processing will find ALL users with this content when processing
         await this.plexLabelSyncService.queuePendingLabelSyncByWatchlistId(

@@ -291,7 +291,7 @@ export function useUserTags() {
       setLastActionResults(result)
 
       toast.success(result.message || 'User tags created successfully')
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [createUserTags])
@@ -309,7 +309,7 @@ export function useUserTags() {
       setLastActionResults(result)
 
       toast.success(result.message || 'User tags synced successfully')
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [syncUserTags])
@@ -324,7 +324,7 @@ export function useUserTags() {
       setLastActionResults(result)
 
       toast.success(result.message || 'Orphaned tags cleaned up successfully')
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [cleanupUserTags])

@@ -249,7 +249,7 @@ export function usePlexLabels() {
       if (!lastRun?.time) return 'Never'
       try {
         return formatDistanceToNow(parseISO(lastRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return lastRun.time
       }
     },
@@ -262,7 +262,7 @@ export function usePlexLabels() {
       if (!nextRun?.time) return 'Not scheduled'
       try {
         return formatDistanceToNow(parseISO(nextRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return nextRun.time
       }
     },
@@ -461,7 +461,7 @@ export function usePlexLabels() {
       setLastActionResults(result)
 
       toast.success(result.message || 'Pulsarr labels synced successfully')
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [syncPlexLabels])
@@ -478,7 +478,7 @@ export function usePlexLabels() {
       toast.success(
         result.message || 'Orphaned Pulsarr labels cleaned up successfully',
       )
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [cleanupPlexLabels])

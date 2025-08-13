@@ -72,7 +72,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         return { message: 'Password updated successfully' }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Failed to update password')
       }
     },

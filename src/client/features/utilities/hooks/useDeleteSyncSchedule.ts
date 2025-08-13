@@ -66,7 +66,7 @@ export function useDeleteSyncSchedule() {
 
       try {
         return formatDistanceToNow(parseISO(lastRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return lastRun.time
       }
     },
@@ -80,7 +80,7 @@ export function useDeleteSyncSchedule() {
 
       try {
         return formatDistanceToNow(parseISO(nextRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return nextRun.time
       }
     },

@@ -124,7 +124,7 @@ export default function createCertificationEvaluator(
 
     async canEvaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): Promise<boolean> {
       return hasCertificationData(item)
     },
@@ -254,7 +254,7 @@ export default function createCertificationEvaluator(
     evaluateCondition(
       condition: Condition,
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): boolean {
       // Only support the 'certification' field
       if (!('field' in condition) || condition.field !== 'certification') {
@@ -270,7 +270,7 @@ export default function createCertificationEvaluator(
         return false
       }
 
-      const { operator, value, negate = false } = condition
+      const { operator, value, negate: _ = false } = condition
 
       // Normalize for comparison
       const normalizedCertification = certification.toUpperCase()

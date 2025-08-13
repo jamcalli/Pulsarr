@@ -495,7 +495,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           await get().fetchSchedules()
 
           return data.success
-        } catch (err) {
+        } catch (_err) {
           return false
         }
       },
@@ -518,7 +518,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           await get().fetchSchedules()
 
           return data.success
-        } catch (err) {
+        } catch (_err) {
           return false
         }
       },
@@ -539,7 +539,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           await get().fetchSchedules()
 
           return data.success
-        } catch (err) {
+        } catch (_err) {
           return false
         }
       },

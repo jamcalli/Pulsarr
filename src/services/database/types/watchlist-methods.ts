@@ -1,7 +1,6 @@
 import type {
   WatchlistItemUpdate,
   WatchlistStatus,
-  DatabaseWatchlistItem,
 } from '@root/types/watchlist-status.types.js'
 import type {
   TokenWatchlistItem,

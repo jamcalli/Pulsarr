@@ -1212,7 +1212,7 @@ export class PlexServerService {
    * @returns Promise resolving to an object with title and GUIDs, or null if not found
    */
   async getItemMetadata(
-    username: string,
+    _username: string,
     plexGuid: string,
     grandparentGuid?: string,
     itemType?: string,
@@ -1223,7 +1223,7 @@ export class PlexServerService {
         itemType === 'episode' && grandparentGuid ? grandparentGuid : plexGuid
 
       // Extract the media ID from the Plex GUID to create a key
-      const mediaId = guidToUse.split(/[\/:]/).pop()
+      const mediaId = guidToUse.split(/[/:]/).pop()
       if (!mediaId) {
         this.log.warn(`Invalid Plex GUID format: "${guidToUse}"`)
         return null

@@ -9,7 +9,7 @@ export class ProgressService {
 
   private constructor(
     private readonly log: FastifyBaseLogger,
-    private readonly fastify: FastifyInstance,
+    readonly _fastify: FastifyInstance,
   ) {
     this.eventEmitter = new EventEmitter()
   }

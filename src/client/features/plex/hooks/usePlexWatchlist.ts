@@ -65,7 +65,7 @@ export function usePlexWatchlist() {
       await fetchUserData()
 
       toast.success('Watchlist data has been updated')
-    } catch (error) {
+    } catch (_error) {
       setSelfWatchlistStatus('error')
       setOthersWatchlistStatus('error')
       toast.error('Failed to refresh watchlist data')

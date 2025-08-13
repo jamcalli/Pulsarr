@@ -1183,7 +1183,7 @@ export class ContentRouterService {
       if (evaluator.evaluateCondition) {
         try {
           return evaluator.evaluateCondition(condition, item, context)
-        } catch (e) {
+        } catch (_e) {
           // Ignore errors, try the next evaluator
         }
       }

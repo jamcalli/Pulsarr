@@ -84,7 +84,7 @@ export function useApiKeys() {
         textArea.remove()
       }
       toast.success(`API key for "${name}" copied to clipboard`)
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to copy to clipboard')
     }
   }

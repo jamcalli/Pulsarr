@@ -45,7 +45,7 @@ export const CronConfigSchema = z.object({
 
           // Reject everything else (e.g. 7-field expressions with "year")
           return false
-        } catch (error) {
+        } catch (_error) {
           // If validation fails for any reason, assume invalid
           return false
         }

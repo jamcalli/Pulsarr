@@ -14,7 +14,7 @@ function SearchButton({
   className?: string
 }) {
   const { colorMode } = useColorMode()
-  const isDark = colorMode === 'dark'
+  const _isDark = colorMode === 'dark'
 
   // These styles match your blue button variant: 'text-mtext bg-blue border-2 border-border'
   const style = {

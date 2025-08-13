@@ -42,7 +42,7 @@ export class PendingLabelSyncProcessorService {
     private readonly log: FastifyBaseLogger,
     private readonly db: DatabaseService,
     private readonly plexLabelSyncService: PlexLabelSyncService,
-    private readonly fastify: FastifyInstance,
+    readonly _fastify: FastifyInstance,
   ) {
     this._config = {
       retryInterval: 30, // Default retry interval - not configurable

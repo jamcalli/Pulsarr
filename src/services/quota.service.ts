@@ -202,7 +202,7 @@ export class QuotaService {
       }
     }
 
-    const remaining = status.quotaLimit - status.currentUsage
+    const _remaining = status.quotaLimit - status.currentUsage
     const percentage = (status.currentUsage / status.quotaLimit) * 100
 
     let displayText = `${status.currentUsage}/${status.quotaLimit} used`
@@ -374,7 +374,7 @@ export class QuotaService {
   /**
    * Logs quota maintenance run for monitoring purposes
    */
-  private async logQuotaStatus(now: Date): Promise<void> {
+  private async logQuotaStatus(_now: Date): Promise<void> {
     try {
       const [dailyQuotas, weeklyQuotas, monthlyQuotas] = await Promise.all([
         this.fastify.db.getUsersWithQuotaType('daily'),

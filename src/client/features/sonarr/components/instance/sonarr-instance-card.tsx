@@ -197,7 +197,7 @@ export function InstanceCard({
           const data = await (error as Response).json()
           errorMessage = data.message || errorMessage
         }
-      } catch (e) {
+      } catch (_e) {
         // If we can't parse the error as JSON, just use the error message we already have
       }
 
@@ -233,7 +233,7 @@ export function InstanceCard({
   const handleDelete = async () => {
     try {
       await deleteInstance(form, setIsConnectionValid, setTestStatus)
-    } catch (error) {}
+    } catch (_error) {}
   }
 
   const handleSave = form.handleSubmit(handleSubmit)

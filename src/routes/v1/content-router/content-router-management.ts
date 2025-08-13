@@ -8,7 +8,6 @@ import {
   ContentRouterRuleErrorSchema,
   ContentRouterRuleToggleSchema,
   ContentRouterRuleSuccessSchema,
-  type ContentRouterRule,
 } from '@schemas/content-router/content-router.schema.js'
 import type { RouterRule } from '@root/types/router.types.js'
 import { RuleBuilder } from '@utils/rule-builder.js'

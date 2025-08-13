@@ -75,7 +75,7 @@ export function useRadarrConnection(
         try {
           const error = await response.json()
           throw new Error(error.message || 'Failed to test connection')
-        } catch (parseError) {
+        } catch (_parseError) {
           throw new Error('Failed to test connection')
         }
       }

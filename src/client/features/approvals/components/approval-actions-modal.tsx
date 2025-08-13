@@ -272,7 +272,7 @@ export default function ApprovalActionsModal({
           setDeleteStatus('idle')
         }, 300)
       }, 1500)
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete approval request')
     }
   }

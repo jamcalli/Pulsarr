@@ -15,7 +15,6 @@ import type {
   TmdbRegion,
 } from '@schemas/tmdb/tmdb.schema.js'
 import type {
-  TmdbErrorResponse,
   TmdbWatchProvidersResponse,
   TmdbFindResponse,
   TmdbWatchProviderData,

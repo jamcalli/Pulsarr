@@ -69,9 +69,9 @@ const config: Config = {
         },
       },
     ],
-    (context, options) => ({
+    (_context, _options) => ({
       name: 'resolve-client-components',
-      configureWebpack(config, isServer, utils) {
+      configureWebpack(_config, _isServer, _utils) {
         return {
           resolve: {
             alias: {

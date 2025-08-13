@@ -45,7 +45,7 @@ export function useCreateUserForm() {
       setStatus('loading')
       setBackendError(null)
 
-      const { confirmPassword, ...submitData } = data
+      const { confirmPassword: _, ...submitData } = data
 
       try {
         const response = await fetch('/v1/users/create-admin', {

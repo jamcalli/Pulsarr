@@ -107,7 +107,7 @@ export class AppriseNotificationService {
       const isHtml = !!notification.body_html
 
       // Create a clean payload without the non-standard body_html field
-      const { body_html, format, ...cleanNotification } = notification
+      const { body_html: _, format, ...cleanNotification } = notification
 
       // Prepare the payload with correct format settings for HTML
       const payload = {
@@ -230,7 +230,7 @@ export class AppriseNotificationService {
     try {
       // Get emojis and type titles - match Discord's emoji usage
       const emoji = notification.type === 'movie' ? '🎬' : '📺'
-      const mediaType =
+      const _mediaType =
         notification.type.charAt(0).toUpperCase() + notification.type.slice(1)
 
       // Prepare the notification title (similar to Discord's title structure)

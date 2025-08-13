@@ -11,7 +11,7 @@ import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ApprovalMetadata } from '@root/types/progress.types.js'
 import type { DiscordEmbed } from '@root/types/discord.types.js'
-import { hasMatchingGuids, getGuidMatchScore } from '@utils/guid-handler.js'
+import { getGuidMatchScore } from '@utils/guid-handler.js'
 
 export class ApprovalService {
   private notificationQueue: Set<number> = new Set()
@@ -1104,7 +1104,7 @@ export class ApprovalService {
         if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
           posterUrl = watchlistItems[0].thumb
         }
-      } catch (error) {
+      } catch (_error) {
         this.fastify.log.debug(
           'Could not fetch poster for approval notification',
         )
@@ -1181,7 +1181,7 @@ export class ApprovalService {
         if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
           posterUrl = watchlistItems[0].thumb
         }
-      } catch (error) {
+      } catch (_error) {
         this.fastify.log.debug(
           'Could not fetch poster for Apprise approval notification',
         )

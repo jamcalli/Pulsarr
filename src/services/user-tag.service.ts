@@ -1,6 +1,5 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
-  hasMatchingGuids,
   getGuidMatchScore,
   parseGuids,
   extractRadarrId,
@@ -1173,7 +1172,7 @@ export class UserTagService {
       ])
 
       // Handle orphaned tag cleanup if enabled
-      let orphanedCleanup: OrphanedTagCleanupResults | undefined = undefined
+      let orphanedCleanup: OrphanedTagCleanupResults | undefined
 
       if (this.cleanupOrphanedTags) {
         try {
@@ -2006,7 +2005,7 @@ export class UserTagService {
       failed: 0,
       instances: sonarrInstances.length,
     }
-    let sonarrInstancesProcessed = 0
+    let _sonarrInstancesProcessed = 0
     const sonarrManager = this.fastify.sonarrManager
 
     for (const instance of sonarrInstances) {
@@ -2016,7 +2015,7 @@ export class UserTagService {
           this.log.warn(
             `Sonarr service for instance ${instance.name} not found, skipping orphaned tag cleanup`,
           )
-          sonarrInstancesProcessed++
+          _sonarrInstancesProcessed++
           continue
         }
 
@@ -2034,7 +2033,7 @@ export class UserTagService {
           this.log.debug(
             `No orphaned user tags found in Sonarr instance ${instance.name}`,
           )
-          sonarrInstancesProcessed++
+          _sonarrInstancesProcessed++
           continue
         }
 
@@ -2123,13 +2122,13 @@ export class UserTagService {
           `Completed orphaned tag cleanup for Sonarr instance ${instance.name}: removed tags from ${results.removed} series`,
         )
 
-        sonarrInstancesProcessed++
+        _sonarrInstancesProcessed++
       } catch (instanceError) {
         this.log.error(
           { error: instanceError },
           `Error processing Sonarr instance ${instance.name} for orphaned tag cleanup:`,
         )
-        sonarrInstancesProcessed++
+        _sonarrInstancesProcessed++
       }
     }
 
@@ -2154,7 +2153,7 @@ export class UserTagService {
       failed: 0,
       instances: radarrInstances.length,
     }
-    let radarrInstancesProcessed = 0
+    let _radarrInstancesProcessed = 0
     const radarrManager = this.fastify.radarrManager
 
     for (const instance of radarrInstances) {
@@ -2164,7 +2163,7 @@ export class UserTagService {
           this.log.warn(
             `Radarr service for instance ${instance.name} not found, skipping orphaned tag cleanup`,
           )
-          radarrInstancesProcessed++
+          _radarrInstancesProcessed++
           continue
         }
 
@@ -2182,7 +2181,7 @@ export class UserTagService {
           this.log.debug(
             `No orphaned user tags found in Radarr instance ${instance.name}`,
           )
-          radarrInstancesProcessed++
+          _radarrInstancesProcessed++
           continue
         }
 
@@ -2271,13 +2270,13 @@ export class UserTagService {
           `Completed orphaned tag cleanup for Radarr instance ${instance.name}: removed tags from ${results.removed} movies`,
         )
 
-        radarrInstancesProcessed++
+        _radarrInstancesProcessed++
       } catch (instanceError) {
         this.log.error(
           { error: instanceError },
           `Error processing Radarr instance ${instance.name} for orphaned tag cleanup:`,
         )
-        radarrInstancesProcessed++
+        _radarrInstancesProcessed++
       }
     }
 
