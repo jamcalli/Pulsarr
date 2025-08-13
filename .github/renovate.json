@@ -74,6 +74,7 @@
         "react-dom",
         "react-hook-form",
         "react-router-dom",
+        "@hookform/resolvers",
         "@types/react",
         "@types/react-dom"
       ]

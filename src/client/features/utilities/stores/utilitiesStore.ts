@@ -180,7 +180,7 @@ const handleApiResponse = async <T>(
     return json as T
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('API response failed schema validation:', error.errors)
+      console.error('API response failed schema validation:', error.issues)
       throw new Error(`${defaultErrorMessage}: Invalid response format`)
     }
 
