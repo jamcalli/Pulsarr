@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
-  createUserFormSchema,
   type CreateUserFormSchema,
+  createUserFormSchema,
 } from '@/features/create-user/schemas/create-user-schema'
 
 /**
@@ -45,7 +45,7 @@ export function useCreateUserForm() {
       setStatus('loading')
       setBackendError(null)
 
-      const { confirmPassword, ...submitData } = data
+      const { confirmPassword: _, ...submitData } = data
 
       try {
         const response = await fetch('/v1/users/create-admin', {

@@ -46,15 +46,16 @@
  *   return users;
  * });
  */
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import knex, { type Knex } from 'knex'
-import { configurePgTypes } from '@utils/postgres-config.js'
+
 import { DefaultInstanceError } from '@root/types/errors.js'
 import type {
-  RouterRule,
   Condition,
   ConditionGroup,
+  RouterRule,
 } from '@root/types/router.types.js'
+import { configurePgTypes } from '@utils/postgres-config.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import knex, { type Knex } from 'knex'
 import './database/types/analytics-methods.js'
 import './database/types/anime-methods.js'
 import './database/types/approval-methods.js'

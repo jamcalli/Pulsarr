@@ -1,38 +1,38 @@
-import React, { useEffect } from 'react'
-import { Loader2, Check } from 'lucide-react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { CreateUser } from '@root/schemas/users/users.schema'
+import { Check, Loader2 } from 'lucide-react'
+import React, { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import type { UserWatchlistInfo } from '@/stores/configStore'
-import { plexUserSchema } from '@/features/plex/store/schemas'
-import type { PlexUserSchema } from '@/features/plex/store/schemas'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import type { CreateUser } from '@root/schemas/users/users.schema'
+import { Input } from '@/components/ui/input'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Switch } from '@/components/ui/switch'
 import type { UserStatus } from '@/features/plex/hooks/usePlexUser'
+import type { PlexUserSchema } from '@/features/plex/store/schemas'
+import { plexUserSchema } from '@/features/plex/store/schemas'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import type { UserWatchlistInfo } from '@/stores/configStore'
 
 interface FormContentProps {
   form: ReturnType<typeof useForm<PlexUserSchema>>

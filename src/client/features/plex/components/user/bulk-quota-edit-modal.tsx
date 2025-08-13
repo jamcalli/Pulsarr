@@ -1,24 +1,27 @@
-import React, { useEffect } from 'react'
-import { Loader2, Check, AlertTriangle } from 'lucide-react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { AlertTriangle, Check, Loader2 } from 'lucide-react'
+import React, { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -27,19 +30,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import type { PlexUserTableRow } from '@/features/plex/store/types'
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Switch } from '@/components/ui/switch'
 import type { BulkQuotaFormData } from '@/features/plex/hooks/useBulkQuotaManagement'
-import { z } from 'zod'
+import type { PlexUserTableRow } from '@/features/plex/store/types'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 // Form schema for bulk quota configuration
 const BulkQuotaFormSchema = z.object({

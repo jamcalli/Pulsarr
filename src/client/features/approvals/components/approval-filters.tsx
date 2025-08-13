@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react'
+import type { GetApprovalRequestsQuery } from '@root/schemas/approval/approval.schema'
+import { Filter, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -9,10 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent } from '@/components/ui/card'
-import { Filter, X } from 'lucide-react'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
-import type { GetApprovalRequestsQuery } from '@root/schemas/approval/approval.schema'
 
 /**
  * Renders interactive filter controls for approval requests, supporting both quick and advanced filtering by status, content type, trigger type, and user ID.

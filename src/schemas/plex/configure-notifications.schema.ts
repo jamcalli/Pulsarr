@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { ErrorSchema as CommonErrorSchema } from '@root/schemas/common/error.schema.js'
+import { z } from 'zod'
 
 const PlexNotificationConfigSchema = z.object({
   plexToken: z.string().min(1, 'Plex token is required'),

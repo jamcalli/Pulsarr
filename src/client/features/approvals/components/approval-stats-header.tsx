@@ -1,12 +1,12 @@
+import type { ApprovalStatsResponse } from '@root/schemas/approval/approval.schema'
 import {
-  Clock,
-  CheckCircle,
-  XCircle,
   AlertCircle,
   BarChart3,
+  CheckCircle,
+  Clock,
+  XCircle,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { ApprovalStatsResponse } from '@root/schemas/approval/approval.schema'
 
 interface ApprovalStatsHeaderProps {
   stats: ApprovalStatsResponse['stats'] | null

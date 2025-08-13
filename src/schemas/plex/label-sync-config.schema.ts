@@ -1,8 +1,8 @@
-import { z } from 'zod'
 import {
-  TagPrefixSchema,
   RemovedTagPrefixSchema,
+  TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import { z } from 'zod'
 
 export const PlexLabelSyncConfigSchema = z
   .object({

@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
+import { z } from 'zod'
 
 // Base enums matching approval types
 export const ApprovalStatusSchema = z.enum([

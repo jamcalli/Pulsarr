@@ -1,10 +1,10 @@
-import type { LevelWithSilent, LoggerOptions } from 'pino'
-import * as rfs from 'rotating-file-stream'
 import fs from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { resolve, dirname } from 'node:path'
-import pino from 'pino'
 import type { FastifyRequest } from 'fastify'
+import type { LevelWithSilent, LoggerOptions } from 'pino'
+import pino from 'pino'
+import * as rfs from 'rotating-file-stream'
 
 export const validLogLevels: LevelWithSilent[] = [
   'fatal',

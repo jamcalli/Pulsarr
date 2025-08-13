@@ -1,13 +1,13 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
-import { toast } from 'sonner'
-import type {
-  SonarrInstance,
-  SonarrConnectionValues,
-} from '@/features/sonarr/types/types'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
-import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
+import { toast } from 'sonner'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
+import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import type {
+  SonarrConnectionValues,
+  SonarrInstance,
+} from '@/features/sonarr/types/types'
 
 /**
  * Checks if a Sonarr instance is missing required configuration fields.
@@ -75,7 +75,7 @@ export function useSonarrConnection(
         try {
           const error = await response.json()
           throw new Error(error.message || 'Failed to test connection')
-        } catch (parseError) {
+        } catch (_parseError) {
           throw new Error('Failed to test connection')
         }
       }

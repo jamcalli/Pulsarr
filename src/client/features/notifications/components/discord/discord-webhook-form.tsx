@@ -1,30 +1,30 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Check, InfoIcon, Loader2, Save, Trash2, X } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Save, Check, InfoIcon, X, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { MultiInput } from '@/components/ui/multi-input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { MultiInput } from '@/components/ui/multi-input'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
-import {
-  webhookFormSchema,
-  type WebhookFormSchema,
-} from '@/features/notifications/schemas/form-schemas'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
+import {
+  type WebhookFormSchema,
+  webhookFormSchema,
+} from '@/features/notifications/schemas/form-schemas'
+import { useConfigStore } from '@/stores/configStore'
 
 interface DiscordWebhookFormProps {
   isInitialized: boolean

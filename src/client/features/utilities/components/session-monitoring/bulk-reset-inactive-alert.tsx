@@ -1,15 +1,15 @@
+import { Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Credenza,
+  CredenzaBody,
+  CredenzaClose,
   CredenzaContent,
+  CredenzaDescription,
+  CredenzaFooter,
   CredenzaHeader,
   CredenzaTitle,
-  CredenzaDescription,
-  CredenzaBody,
-  CredenzaFooter,
-  CredenzaClose,
 } from '@/components/ui/credenza'
-import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
 
 interface BulkResetInactiveAlertProps {
   open: boolean

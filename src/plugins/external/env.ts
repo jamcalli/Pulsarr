@@ -1,8 +1,8 @@
-import fp from 'fastify-plugin'
-import env from '@fastify/env'
-import type { FastifyInstance } from 'fastify'
-import type { Config, RawConfig } from '@root/types/config.types.js'
 import crypto from 'node:crypto'
+import env from '@fastify/env'
+import type { Config, RawConfig } from '@root/types/config.types.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 const generateSecret = () => crypto.randomBytes(32).toString('hex')
 

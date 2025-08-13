@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { HelpCircle, Loader2, Save, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
-import { Loader2, Save, X, HelpCircle } from 'lucide-react'
 import {
   Form,
   FormControl,
@@ -12,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -20,19 +21,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useConfigStore } from '@/stores/configStore'
-import { toast } from 'sonner'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { NewUserDefaultsPageSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-page-skeleton'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { useConfigStore } from '@/stores/configStore'
 
 const newUserDefaultsSchema = z.object({
   canSync: z.boolean(),

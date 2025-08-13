@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { z } from 'zod'
 
 const WatchlistItemSchema = z.object({
   title: z.string(),

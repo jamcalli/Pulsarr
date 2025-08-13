@@ -1,5 +1,5 @@
-import React from 'react'
 import BrowserOnly from '@docusaurus/BrowserOnly'
+import React from 'react'
 
 interface DocFeatureProps {
   title: string
@@ -34,11 +34,11 @@ export default function DocFeature({
       }
     >
       {() => {
-        const { ScrollArea } = require('@/client/components/ui/scroll-area')
+        const { ScrollArea: _ } = require('@/client/components/ui/scroll-area')
         const { useMediaQuery } = require('@/client/hooks/use-media-query')
 
         const ClientDocFeature = () => {
-          const isMobile = useMediaQuery('(max-width: 640px)')
+          const _isMobile = useMediaQuery('(max-width: 640px)')
 
           return (
             <div

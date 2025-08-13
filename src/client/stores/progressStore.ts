@@ -1,6 +1,6 @@
+import type { ProgressEvent } from '@root/types/progress.types.js'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { ProgressEvent } from '@root/types/progress.types.js'
 
 interface ProgressState {
   eventSource: EventSource | null

@@ -1,18 +1,17 @@
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { Button } from '@/components/ui/button'
 import {
-  Loader2,
-  PlayCircle,
   AlertTriangle,
   Check,
-  Power,
   Clock,
-  Save,
-  X,
   HelpCircle,
+  Loader2,
+  PlayCircle,
+  Power,
+  Save,
   Tag,
+  X,
 } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -21,6 +20,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -28,24 +28,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { TimeSelector } from '@/components/ui/time-input'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import { TimeSelector } from '@/components/ui/time-input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
-import { useNavigate } from 'react-router-dom'
-import { useConfigStore } from '@/stores/configStore'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { DeleteSyncPageSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-page-skeleton'
+import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { formatScheduleDisplay } from '@/lib/utils'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Renders the Delete Sync page, providing a user interface to configure, schedule, and manage automated deletion of media content based on watchlist or tag criteria.

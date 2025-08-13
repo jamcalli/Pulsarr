@@ -1,13 +1,13 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import type { UseRadarrInstanceFormProps } from '@/features/radarr/types/types'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import {
-  initialInstanceSchema,
   fullInstanceSchema,
+  initialInstanceSchema,
   type RadarrInstanceSchema,
 } from '@/features/radarr/store/schemas'
-import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import type { UseRadarrInstanceFormProps } from '@/features/radarr/types/types'
 
 /**
  * React hook for managing a Radarr instance configuration form with validation, state synchronization, and connection tracking.

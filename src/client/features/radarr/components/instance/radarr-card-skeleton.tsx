@@ -1,6 +1,6 @@
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { Card, CardHeader, CardContent } from '@/components/ui/card'
 
 export const RadarrPageSkeleton = () => {
   return (

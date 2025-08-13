@@ -1,46 +1,17 @@
-import { useState, useRef, useEffect } from 'react'
+import { HelpCircle, Plus, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
-import { cn } from '@/lib/utils'
-import { RefreshCw, Plus, HelpCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { Switch } from '@/components/ui/switch'
-import {
-  QualityProfileSelect,
-  RootFolderSelect,
-} from '@/features/radarr/components/selects/radarr-selects'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import { useRadarrConnection } from '@/features/radarr/hooks/instance/useRadarrConnection'
-import { useRadarrInstanceForm } from '@/features/radarr/hooks/instance/useRadarrInstanceForms'
-import { useRadarrInstance } from '@/features/radarr/hooks/instance/useRadarrInstance'
-import SyncedInstancesSelect from '@/features/radarr/components/selects/radarr-synced-instance-select'
-import ConnectionSettings from '@/features/radarr/components/instance/radarr-connection-settings'
-import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
-import DeleteInstanceAlert from '@/features/radarr/components/instance/delete-instance-alert'
-import { RadarrSyncModal } from '@/features/radarr/components/instance/radarr-sync-modal'
-import type { RadarrInstance } from '@/features/radarr/types/types'
-import { toast } from 'sonner'
-import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import {
-  TagsMultiSelect,
-  type TagsMultiSelectRef,
-} from '@/components/ui/tag-multi-select'
-import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import {
   Select,
   SelectContent,
@@ -48,7 +19,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
+import {
+  TagsMultiSelect,
+  type TagsMultiSelectRef,
+} from '@/components/ui/tag-multi-select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import DeleteInstanceAlert from '@/features/radarr/components/instance/delete-instance-alert'
+import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
+import ConnectionSettings from '@/features/radarr/components/instance/radarr-connection-settings'
+import { RadarrSyncModal } from '@/features/radarr/components/instance/radarr-sync-modal'
+import {
+  QualityProfileSelect,
+  RootFolderSelect,
+} from '@/features/radarr/components/selects/radarr-selects'
+import SyncedInstancesSelect from '@/features/radarr/components/selects/radarr-synced-instance-select'
+import { useRadarrConnection } from '@/features/radarr/hooks/instance/useRadarrConnection'
+import { useRadarrInstance } from '@/features/radarr/hooks/instance/useRadarrInstance'
+import { useRadarrInstanceForm } from '@/features/radarr/hooks/instance/useRadarrInstanceForms'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
+import type { RadarrInstance } from '@/features/radarr/types/types'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { cn } from '@/lib/utils'
 
 interface InstanceCardProps {
   instance: RadarrInstance
@@ -187,7 +187,7 @@ export function InstanceCard({
           const data = await (error as Response).json()
           errorMessage = data.message || errorMessage
         }
-      } catch (e) {
+      } catch (_e) {
         // If we can't parse the error as JSON, just use the error message we already have
       }
 
@@ -223,7 +223,7 @@ export function InstanceCard({
   const handleDelete = async () => {
     try {
       await deleteInstance(form, setIsConnectionValid, setTestStatus)
-    } catch (error) {}
+    } catch (_error) {}
   }
 
   const handleSave = form.handleSubmit(handleSubmit)
