@@ -60,10 +60,6 @@ RUN chmod +x docker-entrypoint.sh
 COPY LICENSE* ./
 COPY README.md ./
 
-# Ensure proper ownership and drop root
-RUN chown -R node:node /app
-USER node
-
 # Pass TMDB API key to runtime (GitHub Actions converts to TMDBAPIKEY)
 ARG TMDBAPIKEY
 
