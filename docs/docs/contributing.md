@@ -25,7 +25,9 @@ We welcome contributions to Pulsarr! This section outlines the process for contr
 3. **Write Tests**: If applicable, write tests for your changes.
 
 4. **Ensure Code Quality**:
-   - Run linting tools (npm run fix to run biome)
+   - Run linting tools: `npm run fix` (safe fixes only)
+   - If CI fails with import organization errors: `npm run fix:unsafe`
+   - Run TypeScript checks: `npm run typecheck`
    - Ensure tests pass (these are coming!)
    - Follow the existing code style
 
