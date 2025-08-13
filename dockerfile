@@ -13,6 +13,7 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 
 # Copy package files first (changes less often)
 COPY package*.json ./
+COPY .npmrc ./
 
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.npm \
@@ -41,6 +42,7 @@ ENV CACHE_DIR=/app/build-cache
 
 # Copy package files
 COPY package*.json ./
+COPY .npmrc ./
 # Reuse production dependencies from the builder image
 COPY --from=builder /app/node_modules ./node_modules
 
