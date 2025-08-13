@@ -47,6 +47,15 @@
       }
     },
     {
+      "includes": ["**/.github/renovate.json"],
+      "formatter": {
+        "enabled": false
+      },
+      "linter": {
+        "enabled": false
+      }
+    },
+    {
       "includes": [
         "**/src/client/components/ui/**/*",
         "**/src/client/hooks/**/*"

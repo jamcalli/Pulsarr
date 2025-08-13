@@ -74,6 +74,7 @@
         "react-dom",
         "react-hook-form",
         "react-router-dom",
+        "@hookform/resolvers",
         "@types/react",
         "@types/react-dom"
       ]
@@ -160,6 +161,11 @@
       "matchUpdateTypes": ["major"],
       "automerge": false,
       "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Pin pino to 9.7.0 to prevent FastifyBaseLogger type breakage",
+      "matchPackageNames": ["pino"],
+      "allowedVersions": "9.7.0"
     },
     {
       "description": "High priority for vulnerability alerts",
