@@ -106,7 +106,9 @@ export function GeneralSettingsForm({
     }
   }
 
-  const onSubmitGeneral = async (data: z.infer<typeof generalFormSchema>) => {
+  const onSubmitGeneral = async (data: z.input<typeof generalFormSchema>) => {
+    // Transform the form data to ensure proper types
+    const transformedData = generalFormSchema.parse(data)
     setGeneralStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
@@ -116,16 +118,16 @@ export function GeneralSettingsForm({
       // Convert back to milliseconds for storage
       const updatedConfig = {
         queueWaitTime:
-          data.queueWaitTime !== undefined
-            ? data.queueWaitTime * 60 * 1000
+          transformedData.queueWaitTime !== undefined
+            ? transformedData.queueWaitTime * 60 * 1000
             : DEFAULT_QUEUE_WAIT_TIME,
         newEpisodeThreshold:
-          data.newEpisodeThreshold !== undefined
-            ? data.newEpisodeThreshold * 60 * 60 * 1000
+          transformedData.newEpisodeThreshold !== undefined
+            ? transformedData.newEpisodeThreshold * 60 * 60 * 1000
             : DEFAULT_NEW_EPISODE_THRESHOLD,
         upgradeBufferTime:
-          data.upgradeBufferTime !== undefined
-            ? data.upgradeBufferTime * 1000
+          transformedData.upgradeBufferTime !== undefined
+            ? transformedData.upgradeBufferTime * 1000
             : DEFAULT_UPGRADE_BUFFER_TIME,
       }
 
@@ -184,6 +186,7 @@ export function GeneralSettingsForm({
                 <FormControl>
                   <Input
                     {...field}
+                    value={String(field.value ?? '')}
                     placeholder="Enter queue wait time"
                     type="number"
                     min="0"
@@ -220,6 +223,7 @@ export function GeneralSettingsForm({
                 <FormControl>
                   <Input
                     {...field}
+                    value={String(field.value ?? '')}
                     placeholder="Enter new episode threshold"
                     type="number"
                     min="0"
@@ -256,6 +260,7 @@ export function GeneralSettingsForm({
                 <FormControl>
                   <Input
                     {...field}
+                    value={String(field.value ?? '')}
                     placeholder="Enter upgrade buffer time"
                     type="number"
                     min="0"
