@@ -53,6 +53,7 @@ export function useSessionMonitoring() {
   // Initialize form with default values following established patterns
   const form = useForm<SessionMonitoringFormData>({
     resolver: zodResolver(SessionMonitoringConfigSchema),
+    mode: 'onChange',
     defaultValues: {
       enabled: false,
       pollingIntervalMinutes: 15,
@@ -186,8 +187,10 @@ export function useSessionMonitoring() {
           setTimeout(resolve, 500),
         )
 
+        // Transform the form data using the schema before passing to updateConfig
+        const transformedData = SessionMonitoringConfigSchema.parse(data)
         const updateConfigPromise = updateConfig({
-          plexSessionMonitoring: data,
+          plexSessionMonitoring: transformedData,
         })
 
         // Handle schedule updates in parallel

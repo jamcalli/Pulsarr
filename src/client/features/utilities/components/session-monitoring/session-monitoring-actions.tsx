@@ -2,15 +2,11 @@ import { Loader2, Power } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
-import type {
-  SessionMonitoringComponentProps,
-  SessionMonitoringFormData,
-} from '@/features/utilities/constants/session-monitoring'
+import type { SessionMonitoringComponentProps } from '@/features/utilities/constants/session-monitoring'
 
 interface SessionMonitoringActionsProps
   extends SessionMonitoringComponentProps {
   isSubmitting: boolean
-  onSubmit: (data: SessionMonitoringFormData) => Promise<void>
 }
 
 /**
@@ -26,22 +22,19 @@ export function SessionMonitoringActions({
   form,
   isEnabled,
   isSubmitting,
-  onSubmit,
 }: SessionMonitoringActionsProps) {
   return (
     <div>
       <h3 className="font-medium text-foreground mb-2">Actions</h3>
       <div className="flex flex-wrap items-center gap-4">
         <Button
-          type="button"
+          type="submit"
           size="sm"
-          onClick={async () => {
+          onClick={() => {
             const newEnabledState = !isEnabled
             form.setValue('enabled', newEnabledState, {
               shouldDirty: true,
             })
-            // Auto-save when toggling enable/disable
-            await onSubmit(form.getValues())
           }}
           disabled={isSubmitting}
           variant={isEnabled ? 'error' : 'noShadow'}

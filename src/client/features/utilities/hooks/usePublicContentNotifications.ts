@@ -25,7 +25,7 @@ const publicContentNotificationsSchema =
     _showsTested: z.boolean().default(false),
   })
 
-export type PublicContentNotificationsFormValues = z.infer<
+export type PublicContentNotificationsFormValues = z.input<
   typeof publicContentNotificationsSchema
 >
 
@@ -354,6 +354,9 @@ export function usePublicContentNotifications() {
       setIsSubmitting(true)
 
       try {
+        // Transform form data to ensure proper types for backend
+        const transformedData = publicContentNotificationsSchema.parse(data)
+
         // Apply minimum loading time for better UX
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
@@ -361,7 +364,7 @@ export function usePublicContentNotifications() {
 
         // Strip out testing fields before saving
         const { _generalTested, _moviesTested, _showsTested, ...configData } =
-          data
+          transformedData
 
         await Promise.all([
           updateConfig({

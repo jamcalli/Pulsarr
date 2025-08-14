@@ -69,7 +69,6 @@ export default function PlexSessionMonitoringPage() {
             form={form}
             isEnabled={isEnabled}
             isSubmitting={isSaving}
-            onSubmit={onSubmit}
           />
 
           <Separator />

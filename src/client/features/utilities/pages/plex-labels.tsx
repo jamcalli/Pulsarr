@@ -514,7 +514,11 @@ export function PlexLabelsPage() {
                   render={({ field }) => (
                     <div className="shrink-0">
                       <TimeSelector
-                        value={field.value || scheduleTime}
+                        value={
+                          field.value instanceof Date
+                            ? field.value
+                            : scheduleTime
+                        }
                         onChange={handleTimeChange}
                         dayOfWeek={form.watch('dayOfWeek')}
                         disabled={
