@@ -555,7 +555,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }),
         body: z.object({
           contentType: z.enum(['movie', 'show']),
-          requestDate: z.string().datetime().optional(),
+          requestDate: z.iso.datetime().optional(),
         }),
         response: {
           200: QuotaErrorSchema,
