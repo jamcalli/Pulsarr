@@ -39,19 +39,51 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 
 // Form schema for dual quota configuration
-const QuotaFormSchema = z.object({
-  hasMovieQuota: z.boolean(),
-  movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-  movieQuotaLimit: z.coerce.number().min(1).max(1000).optional(),
-  movieBypassApproval: z.boolean().default(false),
+const QuotaFormSchema = z
+  .object({
+    hasMovieQuota: z.boolean(),
+    movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
+    movieQuotaLimit: z.coerce
+      .number()
+      .min(1, { error: 'Must be at least 1' })
+      .max(1000, { error: 'Must be 1000 or less' })
+      .optional(),
+    movieBypassApproval: z.boolean().default(false),
 
-  hasShowQuota: z.boolean(),
-  showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-  showQuotaLimit: z.coerce.number().min(1).max(1000).optional(),
-  showBypassApproval: z.boolean().default(false),
-})
-
-type QuotaFormData = z.infer<typeof QuotaFormSchema>
+    hasShowQuota: z.boolean(),
+    showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
+    showQuotaLimit: z.coerce
+      .number()
+      .min(1, { error: 'Must be at least 1' })
+      .max(1000, { error: 'Must be 1000 or less' })
+      .optional(),
+    showBypassApproval: z.boolean().default(false),
+  })
+  .refine(
+    (data) => {
+      // Validate movie quota limit when movie quota is enabled
+      if (
+        data.hasMovieQuota &&
+        data.movieQuotaLimit !== undefined &&
+        data.movieQuotaLimit < 1
+      ) {
+        return false
+      }
+      // Validate show quota limit when show quota is enabled
+      if (
+        data.hasShowQuota &&
+        data.showQuotaLimit !== undefined &&
+        data.showQuotaLimit < 1
+      ) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Quota limits must be at least 1 when quotas are enabled',
+      path: ['movieQuotaLimit'],
+    },
+  )
 
 export interface QuotaEditStatus {
   type: 'idle' | 'loading' | 'success' | 'error'
@@ -59,8 +91,8 @@ export interface QuotaEditStatus {
 }
 
 interface FormContentProps {
-  form: ReturnType<typeof useForm<QuotaFormData>>
-  handleSubmit: (values: QuotaFormData) => Promise<void>
+  form: ReturnType<typeof useForm<z.input<typeof QuotaFormSchema>>>
+  handleSubmit: (values: z.input<typeof QuotaFormSchema>) => Promise<void>
   handleOpenChange: (open: boolean) => void
   saveStatus: QuotaEditStatus
   isFormDirty: boolean
@@ -157,10 +189,14 @@ const FormContent = React.memo(
                           <Input
                             type="number"
                             placeholder="10"
-                            min="1"
                             max="1000"
                             disabled={saveStatus.type !== 'idle'}
-                            {...field}
+                            value={field.value || ''}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
+                            onBlur={field.onBlur}
+                            name={field.name}
                           />
                         </FormControl>
                         <FormMessage />
@@ -269,10 +305,14 @@ const FormContent = React.memo(
                           <Input
                             type="number"
                             placeholder="10"
-                            min="1"
                             max="1000"
                             disabled={saveStatus.type !== 'idle'}
-                            {...field}
+                            value={field.value || ''}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
+                            onBlur={field.onBlur}
+                            name={field.name}
                           />
                         </FormControl>
                         <FormMessage />
@@ -352,7 +392,7 @@ interface QuotaEditModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   user: UserWithQuotaInfo | null
-  onSave: (quotaData: QuotaFormData) => Promise<void>
+  onSave: (quotaData: z.input<typeof QuotaFormSchema>) => Promise<void>
   saveStatus: QuotaEditStatus
 }
 
@@ -377,8 +417,9 @@ export function QuotaEditModal({
 }: QuotaEditModalProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  const form = useForm<QuotaFormData>({
+  const form = useForm<z.input<typeof QuotaFormSchema>>({
     resolver: zodResolver(QuotaFormSchema),
+    mode: 'onChange',
     defaultValues: {
       hasMovieQuota: false,
       movieQuotaType: 'monthly',
@@ -410,7 +451,7 @@ export function QuotaEditModal({
     }
   }, [user, isOpen, form])
 
-  const handleSubmit = async (values: QuotaFormData) => {
+  const handleSubmit = async (values: z.input<typeof QuotaFormSchema>) => {
     await onSave(values)
   }
 

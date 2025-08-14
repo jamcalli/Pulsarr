@@ -37,8 +37,6 @@ import type {
 } from '@/features/plex/store/types'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
-type BulkUpdateSchema = z.infer<typeof bulkUpdateSchema>
-
 interface BulkEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -48,8 +46,8 @@ interface BulkEditModalProps {
 }
 
 interface FormContentProps {
-  form: ReturnType<typeof useForm<BulkUpdateSchema>>
-  handleSubmit: (values: BulkUpdateSchema) => Promise<void>
+  form: ReturnType<typeof useForm<z.input<typeof bulkUpdateSchema>>>
+  handleSubmit: (values: z.input<typeof bulkUpdateSchema>) => Promise<void>
   handleOpenChange: (open: boolean) => void
   saveStatus: BulkUpdateStatus
   selectedRows: PlexUserTableRow[]
@@ -486,7 +484,7 @@ export default function BulkEditModal({
 }: BulkEditModalProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  const form = useForm<BulkUpdateSchema>({
+  const form = useForm<z.input<typeof bulkUpdateSchema>>({
     resolver: zodResolver(bulkUpdateSchema),
     defaultValues: {
       clearAlias: false,
@@ -524,7 +522,7 @@ export default function BulkEditModal({
     return () => subscription.unsubscribe()
   }, [form])
 
-  const handleSubmit = async (values: BulkUpdateSchema) => {
+  const handleSubmit = async (values: z.input<typeof bulkUpdateSchema>) => {
     if (!selectedRows.length) return
 
     // Extract userIds from selected rows
