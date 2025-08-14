@@ -4,9 +4,9 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
-  type LoginFormSchema,
+  type Credentials as LoginFormSchema,
   loginFormSchema,
-} from '@/features/auth/schemas/login-schema'
+} from '@root/schemas/auth/auth'
 
 /**
  * React hook that manages state, validation, and submission logic for a login form.
