@@ -39,7 +39,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 
 // Form schema for dual quota configuration
-const QuotaFormSchema = z
+export const QuotaFormSchema = z
   .object({
     hasMovieQuota: z.boolean(),
     movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
@@ -48,7 +48,7 @@ const QuotaFormSchema = z
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
       .optional(),
-    movieBypassApproval: z.boolean().default(false),
+    movieBypassApproval: z.boolean(),
 
     hasShowQuota: z.boolean(),
     showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
@@ -57,7 +57,7 @@ const QuotaFormSchema = z
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
       .optional(),
-    showBypassApproval: z.boolean().default(false),
+    showBypassApproval: z.boolean(),
   })
   .refine(
     (data) => {

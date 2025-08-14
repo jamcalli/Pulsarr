@@ -41,30 +41,30 @@ import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 // Form schema for bulk quota configuration
-const BulkQuotaFormSchema = z
+export const BulkQuotaFormSchema = z
   .object({
     // Clear quotas
-    clearQuotas: z.boolean().default(false),
+    clearQuotas: z.boolean(),
 
     // Movie quota settings
-    setMovieQuota: z.boolean().default(false),
+    setMovieQuota: z.boolean(),
     movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
     movieQuotaLimit: z
       .number()
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
       .optional(),
-    movieBypassApproval: z.boolean().default(false),
+    movieBypassApproval: z.boolean(),
 
     // Show quota settings
-    setShowQuota: z.boolean().default(false),
+    setShowQuota: z.boolean(),
     showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
     showQuotaLimit: z
       .number()
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
       .optional(),
-    showBypassApproval: z.boolean().default(false),
+    showBypassApproval: z.boolean(),
   })
   .refine(
     (data) => {

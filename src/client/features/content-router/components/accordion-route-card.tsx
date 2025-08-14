@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { Resolver } from 'react-hook-form'
 import type {
   ConditionGroup,
   ConditionValue,
@@ -268,9 +269,9 @@ const AccordionRouteCard = ({
     return buildDefaultValues(route, instances, contentType)
   }, [route, buildDefaultValues, instances, contentType])
 
-  // Setup form with validation
-  const form = useForm({
-    resolver: zodResolver(ConditionalRouteFormSchema),
+  // Setup form with validation - use targeted type cast to fix Zod v4 recursive schema inference issue
+  const form = useForm<ConditionalRouteFormValues>({
+    resolver: zodResolver(ConditionalRouteFormSchema) as Resolver<ConditionalRouteFormValues>,
     defaultValues,
     mode: 'all',
   })
@@ -541,8 +542,8 @@ const AccordionRouteCard = ({
           tags: data.tags || [],
           enabled: data.enabled,
           order: data.order,
-          condition: Array.isArray(data.condition?.conditions)
-            ? (data.condition as ConditionGroup)
+          condition: data.condition?.conditions?.length
+            ? data.condition
             : { operator: 'AND', conditions: [], negate: false },
           search_on_add:
             data.search_on_add === null ? undefined : data.search_on_add,
@@ -564,8 +565,8 @@ const AccordionRouteCard = ({
       else {
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          condition: Array.isArray(data.condition?.conditions)
-            ? (data.condition as ConditionGroup)
+          condition: data.condition?.conditions?.length
+            ? data.condition
             : { operator: 'AND', conditions: [], negate: false },
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
@@ -1201,7 +1202,7 @@ const AccordionRouteCard = ({
                           </div>
                           <FormControl>
                             <Slider
-                              defaultValue={[field.value]}
+                              defaultValue={[field.value ?? 50]}
                               min={1}
                               max={100}
                               step={1}
