@@ -319,7 +319,7 @@ export class PlexWatchlistService {
       plexTokens: [token],
     }
 
-    // Fetch items with the primary user ID
+    // Fetch items with the primary user ID and database fallback
     const items = await fetchSelfWatchlist(
       tokenConfig,
       this.log,

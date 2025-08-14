@@ -284,7 +284,7 @@ export const getWatchlist = async (
 
   const containerSize = 300
   const url = new URL(
-    'https://metadata.provider.plex.tv/library/sections/watchlist/all',
+    'https://discover.provider.plex.tv/library/sections/watchlist/all',
   )
   url.searchParams.append('X-Plex-Token', token)
   url.searchParams.append('X-Plex-Container-Start', start.toString())
