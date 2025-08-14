@@ -43,7 +43,7 @@ const QuotaFormSchema = z
   .object({
     hasMovieQuota: z.boolean(),
     movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-    movieQuotaLimit: z.coerce
+    movieQuotaLimit: z
       .number()
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
@@ -52,7 +52,7 @@ const QuotaFormSchema = z
 
     hasShowQuota: z.boolean(),
     showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-    showQuotaLimit: z.coerce
+    showQuotaLimit: z
       .number()
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
@@ -187,16 +187,11 @@ const FormContent = React.memo(
                         </FormLabel>
                         <FormControl>
                           <Input
+                            {...field}
                             type="number"
                             placeholder="10"
                             max="1000"
                             disabled={saveStatus.type !== 'idle'}
-                            value={field.value || ''}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
-                            onBlur={field.onBlur}
-                            name={field.name}
                           />
                         </FormControl>
                         <FormMessage />
@@ -303,16 +298,11 @@ const FormContent = React.memo(
                         </FormLabel>
                         <FormControl>
                           <Input
+                            {...field}
                             type="number"
                             placeholder="10"
                             max="1000"
                             disabled={saveStatus.type !== 'idle'}
-                            value={field.value || ''}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
-                            onBlur={field.onBlur}
-                            name={field.name}
                           />
                         </FormControl>
                         <FormMessage />
