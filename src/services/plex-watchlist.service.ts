@@ -324,6 +324,7 @@ export class PlexWatchlistService {
       tokenConfig,
       this.log,
       primaryUser.id,
+      (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
     )
 
     // Use the primary user's actual data
