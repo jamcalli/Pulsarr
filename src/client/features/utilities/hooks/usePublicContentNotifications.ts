@@ -7,56 +7,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useConfigStore } from '@/stores/configStore'
-
-/**
- * Parses a comma-separated string into an array of trimmed, non-empty webhook URLs.
- *
- * @param value - A string containing webhook URLs separated by commas.
- * @returns An array of trimmed webhook URLs, or an empty array if the input is empty or undefined.
- */
-function parseWebhookUrls(value?: string): string[] {
-  const trimmed = value?.trim() ?? ''
-  if (trimmed.length === 0) return []
-
-  return trimmed
-    .split(',')
-    .map((url) => url.trim())
-    .filter(Boolean)
-}
-
-// Reusable Discord webhook URL validator
-const discordWebhookString = z
-  .string()
-  .optional()
-  .refine(
-    (value): value is string => {
-      const urls = parseWebhookUrls(value)
-      if (urls.length === 0) {
-        return value === undefined || value.trim() === ''
-      }
-      return urls.every((url) => url.includes('discord.com/api/webhooks'))
-    },
-    {
-      message: 'All URLs must be valid Discord webhook URLs',
-    },
-  )
-  .superRefine((value, ctx) => {
-    const urls = parseWebhookUrls(value)
-    if (urls.length === 0) return
-
-    const invalidUrls = urls.filter(
-      (url) => !url.includes('discord.com/api/webhooks'),
-    )
-
-    if (invalidUrls.length > 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid Discord webhook URL${
-          invalidUrls.length > 1 ? 's' : ''
-        }: ${invalidUrls.join(', ')}`,
-      })
-    }
-  })
+import { discordWebhookStringSchema } from '@/utils/discord-webhook-validation'
 
 // Extract API schema and extend with testing fields
 const ApiPublicContentNotificationsSchema =
@@ -65,9 +16,9 @@ const ApiPublicContentNotificationsSchema =
 const publicContentNotificationsSchema =
   ApiPublicContentNotificationsSchema.extend({
     // Replace simple strings with Discord webhook validation
-    discordWebhookUrls: discordWebhookString,
-    discordWebhookUrlsMovies: discordWebhookString,
-    discordWebhookUrlsShows: discordWebhookString,
+    discordWebhookUrls: discordWebhookStringSchema,
+    discordWebhookUrlsMovies: discordWebhookStringSchema,
+    discordWebhookUrlsShows: discordWebhookStringSchema,
     // Hidden fields to track connection testing
     _generalTested: z.boolean().default(false),
     _moviesTested: z.boolean().default(false),

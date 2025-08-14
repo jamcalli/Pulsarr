@@ -1,10 +1,12 @@
 // src/client/features/notifications/components/general/general-settings-form.tsx
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConfigSchema } from '@root/schemas/config/config.schema'
 import { InfoIcon, Loader2, Save, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import type { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -21,11 +23,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  type GeneralFormSchema,
-  generalFormSchema,
-} from '@/features/notifications/schemas/form-schemas'
 import { useConfigStore } from '@/stores/configStore'
+
+// Extract general notification fields from backend API schema
+const generalFormSchema = ConfigSchema.pick({
+  queueWaitTime: true,
+  newEpisodeThreshold: true,
+  upgradeBufferTime: true,
+})
 
 interface GeneralSettingsFormProps {
   isInitialized: boolean
@@ -53,7 +58,7 @@ export function GeneralSettingsForm({
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
 
-  const generalForm = useForm<GeneralFormSchema>({
+  const generalForm = useForm<z.input<typeof generalFormSchema>>({
     resolver: zodResolver(generalFormSchema),
     defaultValues: {
       queueWaitTime: 0,
@@ -101,7 +106,7 @@ export function GeneralSettingsForm({
     }
   }
 
-  const onSubmitGeneral = async (data: GeneralFormSchema) => {
+  const onSubmitGeneral = async (data: z.infer<typeof generalFormSchema>) => {
     setGeneralStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
