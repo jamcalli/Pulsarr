@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConfigSchema } from '@root/schemas/config/config.schema'
 import type { WebhookValidationResponse } from '@root/schemas/notifications/discord-control.schema'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -57,26 +58,19 @@ const discordWebhookString = z
     }
   })
 
-// Create an enhanced schema with connection testing validation
-const publicContentNotificationsSchema = z
-  .object({
-    enabled: z.boolean().default(false),
-    discordWebhookUrls: discordWebhookString,
-    discordWebhookUrlsMovies: discordWebhookString,
-    discordWebhookUrlsShows: discordWebhookString,
-    appriseUrls: z.string().optional(),
-    appriseUrlsMovies: z.string().optional(),
-    appriseUrlsShows: z.string().optional(),
-    // Hidden fields to track connection testing
-    _generalTested: z.boolean().default(false),
-    _moviesTested: z.boolean().default(false),
-    _showsTested: z.boolean().default(false),
-  })
-  .superRefine(() => {
-    // Only require testing if enabled and URLs are provided AND the field is dirty
-    // We'll handle the testing requirement in the component level validation
-    // The schema validation will be used for URL format validation only
-  })
+// Extract API schema and extend with testing fields
+const ApiPublicContentNotificationsSchema = ConfigSchema.shape.publicContentNotifications.unwrap()
+
+const publicContentNotificationsSchema = ApiPublicContentNotificationsSchema.extend({
+  // Replace simple strings with Discord webhook validation
+  discordWebhookUrls: discordWebhookString,
+  discordWebhookUrlsMovies: discordWebhookString, 
+  discordWebhookUrlsShows: discordWebhookString,
+  // Hidden fields to track connection testing
+  _generalTested: z.boolean().default(false),
+  _moviesTested: z.boolean().default(false),
+  _showsTested: z.boolean().default(false),
+})
 
 export type PublicContentNotificationsFormValues = z.infer<
   typeof publicContentNotificationsSchema
@@ -117,7 +111,7 @@ export function usePublicContentNotifications() {
   })
 
   // Initialize form with default values
-  const form = useForm<PublicContentNotificationsFormValues>({
+  const form = useForm<z.input<typeof publicContentNotificationsSchema>>({
     resolver: zodResolver(publicContentNotificationsSchema),
     defaultValues: {
       enabled: config?.publicContentNotifications?.enabled || false,
