@@ -488,7 +488,8 @@ export const fetchSelfWatchlist = async (
           break // Break out of the token loop since we have fallback data
         } catch (fallbackError) {
           log.error(
-            `Failed to fetch fallback database items for user ${userId}: ${fallbackError}`,
+            { error: fallbackError, userId },
+            'Failed to fetch fallback database items for user',
           )
         }
       }
@@ -730,7 +731,10 @@ export const getWatchlistForUser = async (
           `Retrieved ${existingItems.length} existing items from database for user ${userId}`,
         )
       } catch (dbError) {
-        log.error(`Failed to retrieve existing items from database: ${dbError}`)
+        log.error(
+          { error: dbError },
+          'Failed to retrieve existing items from database',
+        )
       }
     }
   }
