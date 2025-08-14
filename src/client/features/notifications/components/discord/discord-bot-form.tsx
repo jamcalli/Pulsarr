@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConfigSchema } from '@root/schemas/config/config.schema'
 import { InfoIcon, Loader2, Save, Trash2, X } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { DiscordStatusBadge } from '@/components/ui/discord-bot-status-badge'
 import {
@@ -21,11 +23,20 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
-import {
-  type DiscordBotFormSchema,
-  discordBotFormSchema,
-} from '@/features/notifications/schemas/form-schemas'
 import { useConfigStore } from '@/stores/configStore'
+
+// Extract Discord bot fields from backend API schema and add validation
+const ApiDiscordBotSchema = ConfigSchema.pick({
+  discordBotToken: true,
+  discordClientId: true,
+  discordGuildId: true,
+})
+
+const discordBotFormSchema = ApiDiscordBotSchema.extend({
+  discordBotToken: z.string().min(1, { error: 'Bot token is required' }),
+  discordClientId: z.string().min(1, { error: 'Client ID is required' }),
+  discordGuildId: z.string().min(1, { error: 'Guild ID is required' }),
+})
 
 interface DiscordBotFormProps {
   isInitialized: boolean
@@ -47,7 +58,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
   const [showClearAlert, setShowClearAlert] = React.useState(false)
   const [formTouched, setFormTouched] = React.useState(false)
 
-  const discordBotForm = useForm<DiscordBotFormSchema>({
+  const discordBotForm = useForm<z.input<typeof discordBotFormSchema>>({
     resolver: zodResolver(discordBotFormSchema),
     defaultValues: {
       discordBotToken: '',
@@ -98,7 +109,9 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
     }
   }
 
-  const onSubmitDiscordBot = async (data: DiscordBotFormSchema) => {
+  const onSubmitDiscordBot = async (
+    data: z.infer<typeof discordBotFormSchema>,
+  ) => {
     setDiscordBotStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
