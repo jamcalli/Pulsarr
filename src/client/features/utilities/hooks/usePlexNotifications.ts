@@ -1,10 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { PlexNotificationResponse } from '@root/schemas/plex/configure-notifications.schema'
+import type { z } from 'zod'
+import {
+  type PlexNotificationConfig,
+  type PlexNotificationResponse,
+  PlexNotificationConfigSchema,
+} from '@root/schemas/plex/configure-notifications.schema'
 import type { PlexNotificationStatusResponse } from '@root/schemas/plex/get-notification-status.schema'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { useConfigStore } from '@/stores/configStore'
 
 // Minimum loading delay
@@ -21,17 +25,7 @@ interface ExtendedPlexNotificationStatusResponse
   }
 }
 
-// Schema for the form
-const plexNotificationsSchema = z.object({
-  plexToken: z.string().optional(),
-  plexHost: z.string().min(1, 'Plex host is required'),
-  plexPort: z.coerce.number().int().positive().default(32400),
-  useSsl: z.boolean().default(false),
-})
-
-export type PlexNotificationsFormValues = z.infer<
-  typeof plexNotificationsSchema
->
+export type PlexNotificationsFormValues = PlexNotificationConfig
 
 /**
  * React hook for managing Plex notifications configuration via a form.
@@ -51,8 +45,8 @@ export function usePlexNotifications() {
   >(null)
 
   // Initialize form with default values
-  const form = useForm<PlexNotificationsFormValues>({
-    resolver: zodResolver(plexNotificationsSchema),
+  const form = useForm<z.input<typeof PlexNotificationConfigSchema>>({
+    resolver: zodResolver(PlexNotificationConfigSchema),
     defaultValues: {
       plexToken: '',
       plexHost: '',
