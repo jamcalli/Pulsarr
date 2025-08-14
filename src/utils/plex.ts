@@ -1,16 +1,16 @@
-import type { FastifyBaseLogger } from 'fastify'
-import type {
-  PlexResponse,
-  Item,
-  TokenWatchlistItem,
-  GraphQLQuery,
-  Friend,
-  PlexApiResponse,
-  RssResponse,
-} from '@root/types/plex.types.js'
 import type { Config } from '@root/types/config.types.js'
+import type {
+  Friend,
+  GraphQLQuery,
+  Item,
+  PlexApiResponse,
+  PlexResponse,
+  RssResponse,
+  TokenWatchlistItem,
+} from '@root/types/plex.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
 import { normalizeGuid } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger } from 'fastify'
 
 // Custom error interface for rate limit errors
 interface RateLimitError extends Error {
@@ -284,7 +284,7 @@ export const getWatchlist = async (
 
   const containerSize = 300
   const url = new URL(
-    'https://metadata.provider.plex.tv/library/sections/watchlist/all',
+    'https://discover.provider.plex.tv/library/sections/watchlist/all',
   )
   url.searchParams.append('X-Plex-Token', token)
   url.searchParams.append('X-Plex-Container-Start', start.toString())
@@ -384,6 +384,7 @@ export const fetchSelfWatchlist = async (
   config: Config,
   log: FastifyBaseLogger,
   userId: number,
+  getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>()
 
@@ -457,6 +458,41 @@ export const fetchSelfWatchlist = async (
       }
     } catch (err) {
       log.error(`Error fetching watchlist for token: ${err}`)
+
+      // If we have the database function, try to get existing items
+      if (getAllWatchlistItemsForUser) {
+        try {
+          log.info(`Falling back to existing database items for user ${userId}`)
+          const existingItems = await getAllWatchlistItemsForUser(userId)
+
+          // Convert database items to TokenWatchlistItems
+          for (const item of existingItems) {
+            const tokenItem: TokenWatchlistItem = {
+              id: item.key,
+              key: item.key,
+              title: item.title,
+              type: item.type,
+              user_id: userId,
+              status: item.status || 'pending',
+              created_at: item.created_at,
+              updated_at: item.updated_at,
+              guids: item.guids || [],
+              genres: item.genres || [],
+            }
+            allItems.add(tokenItem)
+          }
+
+          log.info(
+            `Successfully fell back to ${existingItems.length} existing database items for user ${userId}`,
+          )
+          break // Break out of the token loop since we have fallback data
+        } catch (fallbackError) {
+          log.error(
+            { error: fallbackError, userId },
+            'Failed to fetch fallback database items for user',
+          )
+        }
+      }
     }
   }
 
@@ -545,7 +581,7 @@ export const getWatchlistForUser = async (
   page: string | null = null,
   retryCount = 0,
   maxRetries = 3,
-  getAllWatchlistItems?: (userId: number) => Promise<Item[]>,
+  getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>()
   const url = new URL('https://community.plex.tv/api')
@@ -626,7 +662,7 @@ export const getWatchlistForUser = async (
           watchlist.pageInfo.endCursor,
           retryCount,
           maxRetries,
-          getAllWatchlistItems,
+          getAllWatchlistItemsForUser,
         )
         for (const item of nextPageItems) {
           allItems.add(item)
@@ -660,7 +696,7 @@ export const getWatchlistForUser = async (
         page,
         retryCount + 1,
         maxRetries,
-        getAllWatchlistItems,
+        getAllWatchlistItemsForUser,
       )
     }
 
@@ -669,10 +705,10 @@ export const getWatchlistForUser = async (
     )
 
     // If we have the database function, try to get existing items
-    if (getAllWatchlistItems) {
+    if (getAllWatchlistItemsForUser) {
       try {
         log.info(`Falling back to existing database items for user ${userId}`)
-        const existingItems = await getAllWatchlistItems(userId)
+        const existingItems = await getAllWatchlistItemsForUser(userId)
 
         // Convert database items to TokenWatchlistItems
         for (const item of existingItems) {
@@ -695,7 +731,10 @@ export const getWatchlistForUser = async (
           `Retrieved ${existingItems.length} existing items from database for user ${userId}`,
         )
       } catch (dbError) {
-        log.error(`Failed to retrieve existing items from database: ${dbError}`)
+        log.error(
+          { error: dbError },
+          'Failed to retrieve existing items from database',
+        )
       }
     }
   }
@@ -707,7 +746,7 @@ export const getOthersWatchlist = async (
   config: Config,
   log: FastifyBaseLogger,
   friends: Set<[Friend & { userId: number }, string]>,
-  getAllWatchlistItems?: (userId: number) => Promise<Item[]>,
+  getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
 ): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
   const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
   log.info(`Starting fetch of watchlists for ${friends.size} friends`)
@@ -741,7 +780,7 @@ export const getOthersWatchlist = async (
           null,
           0,
           3,
-          getAllWatchlistItems,
+          getAllWatchlistItemsForUser,
         )
         return { user, watchlistItems, success: true }
       } catch (error) {
