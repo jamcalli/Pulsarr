@@ -1,9 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "security:openssf-scorecard"],
-  "baseBranches": ["develop"],
+  "extends": [
+    "config:recommended",
+    "security:openssf-scorecard"
+  ],
+  "baseBranchPatterns": [
+    "develop"
+  ],
   "timezone": "UTC",
-  "schedule": ["before 6am on monday"],
+  "schedule": [
+    "before 6am on monday"
+  ],
   "prConcurrentLimit": 3,
   "prHourlyLimit": 2,
   "semanticCommits": "enabled",
@@ -11,30 +18,41 @@
   "semanticCommitScope": "deps",
   "branchPrefix": "renovate/",
   "pinDigests": true,
-  "labels": ["dependencies"],
-  "assignees": ["jamcalli"],
-  "reviewers": ["jamcalli"],
+  "labels": [
+    "dependencies"
+  ],
+  "assignees": [
+    "jamcalli"
+  ],
+  "reviewers": [
+    "jamcalli"
+  ],
   "packageRules": [
     {
       "description": "Group all Radix UI components",
       "groupName": "Radix UI",
-      "matchPackagePatterns": ["^@radix-ui/"]
+      "matchPackageNames": [
+        "/^@radix-ui//"
+      ]
     },
     {
       "description": "Group all Fastify plugins",
       "groupName": "Fastify ecosystem",
-      "matchPackagePatterns": ["^@fastify/", "^fastify"],
-      "excludePackageNames": [
-        "fastify-cli",
-        "fastify-tsconfig",
-        "@fastify/vite",
-        "@fastify/react"
+      "matchPackageNames": [
+        "/^@fastify//",
+        "/^fastify/",
+        "!fastify-cli",
+        "!fastify-tsconfig",
+        "!@fastify/vite",
+        "!@fastify/react"
       ]
     },
     {
       "description": "Group TypeScript types",
       "groupName": "TypeScript types",
-      "matchPackagePatterns": ["^@types/"]
+      "matchPackageNames": [
+        "/^@types//"
+      ]
     },
     {
       "description": "Group build tools and Fastify integration",
@@ -52,7 +70,9 @@
     },
     {
       "description": "Use widen strategy for peer dependencies",
-      "matchDepTypes": ["peerDependencies"],
+      "matchDepTypes": [
+        "peerDependencies"
+      ],
       "rangeStrategy": "widen"
     },
     {
@@ -95,14 +115,23 @@
     },
     {
       "description": "Default: manual review for patch updates (overridden by specific manager rules)",
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": false
     },
     {
       "description": "Separate major updates for manual review",
-      "matchUpdateTypes": ["major"],
-      "labels": ["dependencies", "major-update"],
-      "reviewers": ["jamcalli"],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "labels": [
+        "dependencies",
+        "major-update"
+      ],
+      "reviewers": [
+        "jamcalli"
+      ],
       "prPriority": 10
     },
     {
@@ -116,68 +145,100 @@
         "asdf",
         "node-version"
       ],
-      "matchDatasources": ["docker", "node-version"],
-      "matchPackageNames": ["node"],
+      "matchDatasources": [
+        "docker",
+        "node-version"
+      ],
+      "matchPackageNames": [
+        "node"
+      ],
       "rangeStrategy": "pin",
       "allowedVersions": "/^22\\./",
       "automerge": false,
       "prPriority": 15,
-      "reviewers": ["jamcalli"],
-      "labels": ["dependencies", "node-version"]
+      "reviewers": [
+        "jamcalli"
+      ],
+      "labels": [
+        "dependencies",
+        "node-version"
+      ]
     },
     {
       "description": "Weekly digest for dev dependencies",
-      "matchDepTypes": ["devDependencies"],
-      "groupName": "Dev dependencies (non-critical)",
-      "excludePackageNames": [
-        "typescript",
-        "@biomejs/biome",
-        "vite",
-        "@vitejs/plugin-react",
-        "tailwindcss",
-        "@tailwindcss/postcss",
-        "postcss",
-        "autoprefixer",
-        "tailwind-merge",
-        "class-variance-authority"
+      "matchDepTypes": [
+        "devDependencies"
       ],
-      "excludePackagePatterns": ["^@types/"]
+      "groupName": "Dev dependencies (non-critical)",
+      "matchPackageNames": [
+        "!typescript",
+        "!@biomejs/biome",
+        "!vite",
+        "!@vitejs/plugin-react",
+        "!tailwindcss",
+        "!@tailwindcss/postcss",
+        "!postcss",
+        "!autoprefixer",
+        "!tailwind-merge",
+        "!class-variance-authority",
+        "!/^@types//"
+      ]
     },
     {
       "description": "Pin all GitHub Actions to commit SHAs for security",
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "pinDigests": true
     },
     {
       "description": "Auto-merge patch/minor GitHub Actions updates after stability period",
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "groupName": "GitHub Actions",
-      "matchUpdateTypes": ["patch", "minor", "pinDigest"],
+      "matchUpdateTypes": [
+        "patch",
+        "minor",
+        "pinDigest"
+      ],
       "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr"
     },
     {
       "description": "Require manual review for major GitHub Actions updates",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "automerge": false,
       "minimumReleaseAge": "7 days"
     },
     {
       "description": "Pin pino to 9.7.0 to prevent FastifyBaseLogger type breakage",
-      "matchPackageNames": ["pino"],
+      "matchPackageNames": [
+        "pino"
+      ],
       "allowedVersions": "9.7.0"
     },
     {
       "description": "Pin recharts to v2.x to prevent breaking changes with component library",
-      "matchPackageNames": ["recharts"],
+      "matchPackageNames": [
+        "recharts"
+      ],
       "allowedVersions": "< 3.0.0"
     },
     {
       "description": "High priority for vulnerability alerts",
-      "matchDatasources": ["*"],
-      "vulnerabilityAlerts": true,
+      "matchDatasources": [
+        "*"
+      ],
+      "vulnerabilityAlerts": {
+        "enabled": true
+      },
       "prPriority": 20
     }
   ],
@@ -185,12 +246,19 @@
     "enabled": true,
     "automerge": true,
     "automergeType": "pr",
-    "schedule": ["at any time"],
-    "labels": ["security", "dependencies"]
+    "schedule": [
+      "at any time"
+    ],
+    "labels": [
+      "security",
+      "dependencies"
+    ]
   },
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["before 6am on monday"]
+    "schedule": [
+      "before 6am on monday"
+    ]
   },
   "osvVulnerabilityAlerts": true
 }
