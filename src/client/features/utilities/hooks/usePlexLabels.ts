@@ -18,7 +18,7 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { parseCronExpression } from '@/lib/utils'
 import { useConfigStore } from '@/stores/configStore'
 
-export type PlexLabelsFormValues = z.infer<typeof PlexLabelSyncConfigSchema>
+export type PlexLabelsFormValues = z.input<typeof PlexLabelSyncConfigSchema>
 
 // Union type for action results
 type ActionResult =
@@ -138,6 +138,7 @@ export function usePlexLabels() {
   // Initialize form with default values
   const form = useForm<PlexLabelsFormValues>({
     resolver: zodResolver(PlexLabelSyncConfigSchema),
+    mode: 'onChange',
     defaultValues: {
       enabled: false,
       labelPrefix: 'pulsarr',
@@ -332,7 +333,7 @@ export function usePlexLabels() {
 
   // Handle form submission - using main config system
   const onSubmit = useCallback(
-    async (data: PlexLabelsFormValues) => {
+    async (data: z.infer<typeof PlexLabelSyncConfigSchema>) => {
       // Set both states to maintain consistency with DeleteSyncForm
       setSaveStatus('loading')
       setLoadingWithMinDuration(true)
@@ -542,9 +543,11 @@ export function usePlexLabels() {
           setTimeout(resolve, 500),
         )
 
-        // Get current form values and update enabled state
-        const currentValues = form.getValues()
-        const formData = { ...currentValues, enabled: newEnabledState }
+        // Get current config values and update enabled state
+        const currentConfig = config?.plexLabelSync
+        if (!currentConfig) throw new Error('Configuration not available')
+
+        const formData = { ...currentConfig, enabled: newEnabledState }
 
         // Update config through main config system
         await Promise.all([
@@ -591,7 +594,7 @@ export function usePlexLabels() {
         setLoadingWithMinDuration(false)
       }
     },
-    [form, updateConfig, setLoadingWithMinDuration],
+    [form, updateConfig, setLoadingWithMinDuration, config?.plexLabelSync],
   )
 
   return {
