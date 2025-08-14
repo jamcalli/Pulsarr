@@ -2,8 +2,8 @@ import { ErrorSchema as CommonErrorSchema } from '@root/schemas/common/error.sch
 import { z } from 'zod'
 
 const PlexNotificationConfigSchema = z.object({
-  plexToken: z.string().min(1, 'Plex token is required'),
-  plexHost: z.string().min(1, 'Plex host is required'),
+  plexToken: z.string().min(1, { error: 'Plex token is required' }),
+  plexHost: z.string().min(1, { error: 'Plex host is required' }),
   plexPort: z.number().int().positive().default(32400),
   useSsl: z.boolean().default(false),
 })
@@ -37,6 +37,9 @@ export const plexConfigNotificationSchema = {
     500: CommonErrorSchema,
   },
 }
+
+// Export schema for client use
+export { PlexNotificationConfigSchema }
 
 export type PlexNotificationConfig = z.infer<
   typeof PlexNotificationConfigSchema
