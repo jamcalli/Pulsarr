@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConfigSchema } from '@root/schemas/config/config.schema'
 import type { Config } from '@root/types/config.types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -7,64 +8,46 @@ import * as z from 'zod'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 
-// Schema definition
-export const deleteSyncSchema = z
-  .object({
-    deletionMode: z.enum(['watchlist', 'tag-based']).default('watchlist'),
-    deleteMovie: z.boolean(),
-    deleteEndedShow: z.boolean(),
-    deleteContinuingShow: z.boolean(),
-    deleteFiles: z.boolean(),
-    respectUserSyncSetting: z.boolean(),
-    enablePlexPlaylistProtection: z.boolean(),
-    plexProtectionPlaylistName: z.string().min(1),
-    deleteSyncNotify: z.enum([
-      'none',
-      'message',
-      'webhook',
-      'both',
-      'all',
-      'discord-only',
-      'apprise-only',
-      'webhook-only',
-      'dm-only',
-      'discord-webhook',
-      'discord-message',
-      'discord-both',
-    ]),
-    deleteSyncNotifyOnlyOnDeletion: z.boolean().default(false),
-    maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
-    scheduleTime: z.date().optional(),
-    dayOfWeek: z.string().default('*'),
-    // removedTagPrefix should be configured in the User Tags section when using the 'special-tag' removal mode
-    // This value is read-only in this form but is still needed for the tag-based deletion logic
-    removedTagPrefix: z
-      .string()
-      .trim()
-      .min(1, { message: 'Prefix cannot be empty' })
-      .default('pulsarr:removed'),
-    // Store the current removedTagMode from config to enable validation
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
-  })
-  .refine(
-    (data) => {
-      // If deletion mode is tag-based, removedTagMode must be 'special-tag'
-      if (
-        data.deletionMode === 'tag-based' &&
-        data.removedTagMode !== 'special-tag'
-      ) {
-        return false
-      }
-      return true
-    },
-    {
-      message:
-        'Tag-based deletion requires "Tag Behavior on Removal" to be set to "Special Tag"',
-      path: ['deletionMode'],
-    },
-  )
+// Extract delete sync fields from backend API schema
+const ApiDeleteSyncSchema = ConfigSchema.pick({
+  deletionMode: true,
+  deleteMovie: true,
+  deleteEndedShow: true,
+  deleteContinuingShow: true,
+  deleteFiles: true,
+  respectUserSyncSetting: true,
+  enablePlexPlaylistProtection: true,
+  plexProtectionPlaylistName: true,
+  deleteSyncNotify: true,
+  deleteSyncNotifyOnlyOnDeletion: true,
+  maxDeletionPrevention: true,
+  removedTagPrefix: true,
+  removedTagMode: true,
+})
 
-export type DeleteSyncFormValues = z.infer<typeof deleteSyncSchema>
+// Extend with client-specific fields for scheduling
+export const deleteSyncSchema = ApiDeleteSyncSchema.extend({
+  scheduleTime: z.date().optional(),
+  dayOfWeek: z.string().default('*'),
+}).refine(
+  (data) => {
+    // If deletion mode is tag-based, removedTagMode must be 'special-tag'
+    if (
+      data.deletionMode === 'tag-based' &&
+      data.removedTagMode !== 'special-tag'
+    ) {
+      return false
+    }
+    return true
+  },
+  {
+    message:
+      'Tag-based deletion requires "Tag Behavior on Removal" to be set to "Special Tag"',
+    path: ['deletionMode'],
+  },
+)
+
+export type DeleteSyncFormValues = z.input<typeof deleteSyncSchema>
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
 const validateDayOfWeek = (value: string | undefined): string => {

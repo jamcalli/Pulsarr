@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
+import type { z } from 'zod'
 import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
-import { BulkQuotaEditModal } from '@/features/plex/components/user/bulk-quota-edit-modal'
-import { QuotaEditModal } from '@/features/plex/components/user/quota-edit-modal'
+import {
+  BulkQuotaEditModal,
+  type BulkQuotaFormSchema,
+} from '@/features/plex/components/user/bulk-quota-edit-modal'
+import {
+  QuotaEditModal,
+  type QuotaFormSchema,
+} from '@/features/plex/components/user/quota-edit-modal'
 import UserEditModal from '@/features/plex/components/user/user-edit-modal'
 import UserTable from '@/features/plex/components/user/user-table'
 import { useBulkQuotaManagement } from '@/features/plex/hooks/useBulkQuotaManagement'
@@ -105,16 +112,7 @@ export default function UserTableSection() {
     }
   }
 
-  const handleSaveQuota = async (formData: {
-    hasMovieQuota: boolean
-    movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-    movieQuotaLimit?: number
-    movieBypassApproval: boolean
-    hasShowQuota: boolean
-    showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-    showQuotaLimit?: number
-    showBypassApproval: boolean
-  }) => {
+  const handleSaveQuota = async (formData: z.input<typeof QuotaFormSchema>) => {
     if (!selectedQuotaUser) return
 
     await saveQuota(selectedQuotaUser, formData, () => {
@@ -138,17 +136,9 @@ export default function UserTableSection() {
     }
   }
 
-  const handleBulkQuotaSave = async (formData: {
-    clearQuotas: boolean
-    setMovieQuota: boolean
-    movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-    movieQuotaLimit?: number
-    movieBypassApproval: boolean
-    setShowQuota: boolean
-    showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-    showQuotaLimit?: number
-    showBypassApproval: boolean
-  }) => {
+  const handleBulkQuotaSave = async (
+    formData: z.input<typeof BulkQuotaFormSchema>,
+  ) => {
     await performBulkOperation(selectedQuotaRows, formData, () => {
       setIsBulkQuotaModalOpen(false)
       setSelectedQuotaRows([])
