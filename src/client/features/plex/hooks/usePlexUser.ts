@@ -1,8 +1,8 @@
-import type { z } from 'zod'
-import type { plexUserSchema } from '@/features/plex/store/schemas'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import type { z } from 'zod'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import type { plexUserSchema } from '@/features/plex/store/schemas'
 import type { UserWatchlistInfo } from '@/stores/configStore'
 import { useConfigStore } from '@/stores/configStore'
 

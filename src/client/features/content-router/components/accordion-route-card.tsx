@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { Resolver } from 'react-hook-form'
 import type {
   ConditionGroup,
   ConditionValue,
@@ -24,6 +23,7 @@ import {
   X,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Resolver } from 'react-hook-form'
 import { useForm, useWatch } from 'react-hook-form'
 import {
   Accordion,
@@ -271,7 +271,9 @@ const AccordionRouteCard = ({
 
   // Setup form with validation - use targeted type cast to fix Zod v4 recursive schema inference issue
   const form = useForm<ConditionalRouteFormValues>({
-    resolver: zodResolver(ConditionalRouteFormSchema) as Resolver<ConditionalRouteFormValues>,
+    resolver: zodResolver(
+      ConditionalRouteFormSchema,
+    ) as Resolver<ConditionalRouteFormValues>,
     defaultValues,
     mode: 'all',
   })

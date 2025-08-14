@@ -6,9 +6,9 @@ import type { MeResponse } from '@root/schemas/users/me.schema'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
 import type { Config } from '@root/types/config.types'
 import type { z } from 'zod'
-import type { plexUserSchema } from '@/features/plex/store/schemas'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
+import type { plexUserSchema } from '@/features/plex/store/schemas'
 
 export type UserWatchlistInfo = UserWithCount
 

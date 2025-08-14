@@ -1027,7 +1027,12 @@ export function PlexLabelsPage() {
 
                 <Button
                   type="submit"
-                  disabled={isSaving || isToggling || !form.formState.isDirty}
+                  disabled={
+                    isSaving ||
+                    isToggling ||
+                    !form.formState.isDirty ||
+                    !form.formState.isValid
+                  }
                   className="flex items-center gap-2"
                   variant="blue"
                 >
