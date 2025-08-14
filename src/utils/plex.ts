@@ -9,7 +9,7 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
-import { normalizeGuid } from '@utils/guid-handler.js'
+import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 // Custom error interface for rate limit errors
@@ -286,7 +286,6 @@ export const getWatchlist = async (
   const url = new URL(
     'https://discover.provider.plex.tv/library/sections/watchlist/all',
   )
-  url.searchParams.append('X-Plex-Token', token)
   url.searchParams.append('X-Plex-Container-Start', start.toString())
   url.searchParams.append('X-Plex-Container-Size', containerSize.toString())
 
@@ -294,6 +293,7 @@ export const getWatchlist = async (
     const response = await fetch(url.toString(), {
       headers: {
         Accept: 'application/json',
+        'X-Plex-Token': token,
       },
     })
 
@@ -467,6 +467,27 @@ export const fetchSelfWatchlist = async (
 
           // Convert database items to TokenWatchlistItems
           for (const item of existingItems) {
+            // Normalize guids using the parseGuids utility to handle JSON strings, arrays, and null values
+            const guids = parseGuids(item.guids)
+
+            // Normalize genres to handle JSON strings, arrays, and null values
+            const genres = Array.isArray(item.genres)
+              ? item.genres.filter((g): g is string => typeof g === 'string')
+              : typeof item.genres === 'string'
+                ? (() => {
+                    try {
+                      const parsed = JSON.parse(item.genres)
+                      return Array.isArray(parsed)
+                        ? parsed.filter(
+                            (g: unknown): g is string => typeof g === 'string',
+                          )
+                        : []
+                    } catch {
+                      return []
+                    }
+                  })()
+                : []
+
             const tokenItem: TokenWatchlistItem = {
               id: item.key,
               key: item.key,
@@ -476,8 +497,8 @@ export const fetchSelfWatchlist = async (
               status: item.status || 'pending',
               created_at: item.created_at,
               updated_at: item.updated_at,
-              guids: item.guids || [],
-              genres: item.genres || [],
+              guids,
+              genres,
             }
             allItems.add(tokenItem)
           }
@@ -625,6 +646,13 @@ export const getWatchlistForUser = async (
     })
 
     if (!response.ok) {
+      if (response.status === 429) {
+        const err = new Error(
+          'Rate limited by Plex GraphQL (429)',
+        ) as RateLimitError
+        err.isRateLimitExhausted = retryCount >= maxRetries
+        throw err
+      }
       throw new Error(`Plex API error: ${response.statusText}`)
     }
 
@@ -712,6 +740,27 @@ export const getWatchlistForUser = async (
 
         // Convert database items to TokenWatchlistItems
         for (const item of existingItems) {
+          // Normalize guids using the parseGuids utility to handle JSON strings, arrays, and null values
+          const guids = parseGuids(item.guids)
+
+          // Normalize genres to handle JSON strings, arrays, and null values
+          const genres = Array.isArray(item.genres)
+            ? item.genres.filter((g): g is string => typeof g === 'string')
+            : typeof item.genres === 'string'
+              ? (() => {
+                  try {
+                    const parsed = JSON.parse(item.genres)
+                    return Array.isArray(parsed)
+                      ? parsed.filter(
+                          (g: unknown): g is string => typeof g === 'string',
+                        )
+                      : []
+                  } catch {
+                    return []
+                  }
+                })()
+              : []
+
           const tokenItem: TokenWatchlistItem = {
             id: item.key,
             key: item.key,
@@ -721,8 +770,8 @@ export const getWatchlistForUser = async (
             status: item.status || 'pending',
             created_at: item.created_at,
             updated_at: item.updated_at,
-            guids: item.guids || [],
-            genres: item.genres || [],
+            guids,
+            genres,
           }
           allItems.add(tokenItem)
         }
@@ -1140,11 +1189,11 @@ export const toItemsSingle = async (
     const url = new URL(
       `https://discover.provider.plex.tv/library/metadata/${item.id}`,
     )
-    url.searchParams.append('X-Plex-Token', config.plexTokens[0])
 
     const response = await fetch(url.toString(), {
       headers: {
         Accept: 'application/json',
+        'X-Plex-Token': config.plexTokens[0],
       },
       signal: AbortSignal.timeout(5000),
     })
@@ -1328,7 +1377,6 @@ export const getRssFromPlexToken = async (
   log: FastifyBaseLogger,
 ): Promise<string | null> => {
   const url = new URL('https://discover.provider.plex.tv/rss')
-  url.searchParams.append('X-Plex-Token', token)
   url.searchParams.append('X-Plex-Client-Identifier', 'pulsarr')
   url.searchParams.append('format', 'json')
 
@@ -1339,6 +1387,7 @@ export const getRssFromPlexToken = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Plex-Token': token,
       },
       body,
     })
