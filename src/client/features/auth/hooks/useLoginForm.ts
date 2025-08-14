@@ -3,10 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import {
-  type Credentials as LoginFormSchema,
-  loginFormSchema,
-} from '@root/schemas/auth/auth'
+import { type Credentials, loginFormSchema } from '@root/schemas/auth/auth'
 
 /**
  * React hook that manages state, validation, and submission logic for a login form.
@@ -26,7 +23,7 @@ export function useLoginForm() {
     emailInputRef.current?.focus()
   }, [])
 
-  const form = useForm<LoginFormSchema>({
+  const form = useForm<Credentials>({
     resolver: zodResolver(loginFormSchema),
     mode: 'onSubmit',
     reValidateMode: 'onBlur',
@@ -37,7 +34,7 @@ export function useLoginForm() {
   })
 
   const handleSubmit = useCallback(
-    async (data: LoginFormSchema) => {
+    async (data: Credentials) => {
       const { email, password } = data
       setStatus('loading')
       setBackendError(null)
