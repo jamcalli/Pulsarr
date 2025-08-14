@@ -4,9 +4,9 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
-  type CreateUserFormSchema,
-  createUserFormSchema,
-} from '@/features/create-user/schemas/create-user-schema'
+  type CreateAdminFormSchema,
+  CreateAdminFormSchema as createAdminFormSchema,
+} from '@root/schemas/auth/admin-user'
 
 /**
  * React hook that manages a user creation form with validation, submission, and error handling.
@@ -22,8 +22,8 @@ export function useCreateUserForm() {
   const emailInputRef = useRef<HTMLInputElement>(null)
 
   // Initialize form with zod resolver
-  const form = useForm<CreateUserFormSchema>({
-    resolver: zodResolver(createUserFormSchema),
+  const form = useForm<CreateAdminFormSchema>({
+    resolver: zodResolver(createAdminFormSchema),
     mode: 'onChange',
     defaultValues: {
       email: '',
@@ -41,7 +41,7 @@ export function useCreateUserForm() {
   }, [])
 
   const handleSubmit = useCallback(
-    async (data: CreateUserFormSchema) => {
+    async (data: CreateAdminFormSchema) => {
       setStatus('loading')
       setBackendError(null)
 
