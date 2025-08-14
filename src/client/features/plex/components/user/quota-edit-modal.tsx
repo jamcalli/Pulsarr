@@ -3,6 +3,8 @@ import { Check, Loader2 } from 'lucide-react'
 import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import type { UpdateSeparateQuotasSchema } from '@root/schemas/quota/quota.schema'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -38,12 +40,13 @@ import { Switch } from '@/components/ui/switch'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 
-// Form schema for dual quota configuration
+// Form schema derived from backend schema to avoid drift
+// Flattens the nested UpdateSeparateQuotasSchema for better UX
 export const QuotaFormSchema = z
   .object({
     hasMovieQuota: z.boolean(),
-    movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-    movieQuotaLimit: z
+    movieQuotaType: QuotaTypeSchema.optional(),
+    movieQuotaLimit: z.coerce
       .number()
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
@@ -51,8 +54,8 @@ export const QuotaFormSchema = z
     movieBypassApproval: z.boolean(),
 
     hasShowQuota: z.boolean(),
-    showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-    showQuotaLimit: z
+    showQuotaType: QuotaTypeSchema.optional(),
+    showQuotaLimit: z.coerce
       .number()
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
@@ -90,9 +93,45 @@ export interface QuotaEditStatus {
   message?: string
 }
 
+export type QuotaFormValues = z.input<typeof QuotaFormSchema>
+export type QuotaFormData = z.infer<typeof QuotaFormSchema>
+
+// Utility function to transform form data to backend API format
+export function transformQuotaFormToAPI(
+  formData: QuotaFormData,
+): z.infer<typeof UpdateSeparateQuotasSchema> {
+  const result: z.infer<typeof UpdateSeparateQuotasSchema> = {}
+
+  // Movie quota
+  if (formData.hasMovieQuota) {
+    result.movieQuota = {
+      enabled: true,
+      quotaType: formData.movieQuotaType,
+      quotaLimit: formData.movieQuotaLimit,
+      bypassApproval: formData.movieBypassApproval,
+    }
+  } else {
+    result.movieQuota = { enabled: false }
+  }
+
+  // Show quota
+  if (formData.hasShowQuota) {
+    result.showQuota = {
+      enabled: true,
+      quotaType: formData.showQuotaType,
+      quotaLimit: formData.showQuotaLimit,
+      bypassApproval: formData.showBypassApproval,
+    }
+  } else {
+    result.showQuota = { enabled: false }
+  }
+
+  return result
+}
+
 interface FormContentProps {
-  form: ReturnType<typeof useForm<z.input<typeof QuotaFormSchema>>>
-  handleSubmit: (values: z.input<typeof QuotaFormSchema>) => Promise<void>
+  form: ReturnType<typeof useForm<QuotaFormValues>>
+  handleSubmit: (values: QuotaFormValues) => Promise<void>
   handleOpenChange: (open: boolean) => void
   saveStatus: QuotaEditStatus
   isFormDirty: boolean
@@ -188,6 +227,7 @@ const FormContent = React.memo(
                         <FormControl>
                           <Input
                             {...field}
+                            value={String(field.value ?? '')}
                             type="number"
                             placeholder="10"
                             max="1000"
@@ -299,6 +339,7 @@ const FormContent = React.memo(
                         <FormControl>
                           <Input
                             {...field}
+                            value={String(field.value ?? '')}
                             type="number"
                             placeholder="10"
                             max="1000"
@@ -382,7 +423,7 @@ interface QuotaEditModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   user: UserWithQuotaInfo | null
-  onSave: (quotaData: z.input<typeof QuotaFormSchema>) => Promise<void>
+  onSave: (quotaData: z.infer<typeof QuotaFormSchema>) => Promise<void>
   saveStatus: QuotaEditStatus
 }
 
@@ -407,7 +448,7 @@ export function QuotaEditModal({
 }: QuotaEditModalProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  const form = useForm<z.input<typeof QuotaFormSchema>>({
+  const form = useForm<QuotaFormValues>({
     resolver: zodResolver(QuotaFormSchema),
     mode: 'onChange',
     defaultValues: {
@@ -441,8 +482,10 @@ export function QuotaEditModal({
     }
   }, [user, isOpen, form])
 
-  const handleSubmit = async (values: z.input<typeof QuotaFormSchema>) => {
-    await onSave(values)
+  const handleSubmit = async (values: QuotaFormValues) => {
+    // Transform the form data to the expected schema output type
+    const transformedData = QuotaFormSchema.parse(values)
+    await onSave(transformedData)
   }
 
   const handleOpenChange = (newOpen: boolean) => {

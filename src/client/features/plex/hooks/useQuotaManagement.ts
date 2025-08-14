@@ -5,21 +5,15 @@ import type {
 } from '@root/schemas/quota/quota.schema'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import type { QuotaEditStatus } from '@/features/plex/components/user/quota-edit-modal'
+import {
+  QuotaFormSchema,
+  transformQuotaFormToAPI,
+  type QuotaEditStatus,
+  type QuotaFormValues,
+} from '@/features/plex/components/user/quota-edit-modal'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import { useConfigStore } from '@/stores/configStore'
-
-interface QuotaFormData {
-  hasMovieQuota: boolean
-  movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-  movieQuotaLimit?: number
-  movieBypassApproval: boolean
-  hasShowQuota: boolean
-  showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-  showQuotaLimit?: number
-  showBypassApproval: boolean
-}
 
 /**
  * React hook for managing user quota settings for movies and shows.
@@ -93,18 +87,21 @@ export function useQuotaManagement() {
   const saveQuota = useCallback(
     async (
       user: UserWithQuotaInfo,
-      formData: QuotaFormData,
+      formData: QuotaFormValues,
       onSuccess?: () => void,
     ) => {
       setSaveStatus({ type: 'loading' })
 
       try {
+        // Transform the form data to ensure proper types
+        const transformedData = QuotaFormSchema.parse(formData)
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, MIN_LOADING_DELAY),
         )
 
         const quotaOperation = async () => {
-          const hasAnyQuota = formData.hasMovieQuota || formData.hasShowQuota
+          const hasAnyQuota =
+            transformedData.hasMovieQuota || transformedData.hasShowQuota
 
           if (!hasAnyQuota) {
             // Delete all existing quotas if user had any
@@ -115,45 +112,23 @@ export function useQuotaManagement() {
             return 'No quotas to remove'
           }
 
-          // Use the new separate quotas API
-          const separateQuotasData: UpdateSeparateQuotas = {}
-
-          // Handle movie quota
-          if (formData.hasMovieQuota) {
-            if (!formData.movieQuotaType || !formData.movieQuotaLimit) {
-              throw new Error('Movie quota type and limit are required')
-            }
-
-            separateQuotasData.movieQuota = {
-              enabled: true,
-              quotaType: formData.movieQuotaType,
-              quotaLimit: formData.movieQuotaLimit,
-              bypassApproval: formData.movieBypassApproval,
-            }
-          } else {
-            separateQuotasData.movieQuota = {
-              enabled: false,
-            }
+          // Validate required fields
+          if (
+            transformedData.hasMovieQuota &&
+            (!transformedData.movieQuotaType ||
+              !transformedData.movieQuotaLimit)
+          ) {
+            throw new Error('Movie quota type and limit are required')
+          }
+          if (
+            transformedData.hasShowQuota &&
+            (!transformedData.showQuotaType || !transformedData.showQuotaLimit)
+          ) {
+            throw new Error('Show quota type and limit are required')
           }
 
-          // Handle show quota
-          if (formData.hasShowQuota) {
-            if (!formData.showQuotaType || !formData.showQuotaLimit) {
-              throw new Error('Show quota type and limit are required')
-            }
-
-            separateQuotasData.showQuota = {
-              enabled: true,
-              quotaType: formData.showQuotaType,
-              quotaLimit: formData.showQuotaLimit,
-              bypassApproval: formData.showBypassApproval,
-            }
-          } else {
-            separateQuotasData.showQuota = {
-              enabled: false,
-            }
-          }
-
+          // Transform form data to API format using the utility function
+          const separateQuotasData = transformQuotaFormToAPI(transformedData)
           await updateSeparateQuotas(user.id, separateQuotasData)
           return 'Quotas updated successfully'
         }
