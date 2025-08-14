@@ -13,8 +13,6 @@ import type { z } from 'zod'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 
-export type UserTagsFormValues = z.infer<typeof TaggingConfigSchema>
-
 // Union type for action results
 type ActionResult =
   | CreateTaggingResponse
@@ -133,7 +131,7 @@ export function useUserTags() {
   }, [removeTagsResults])
 
   // Initialize form with default values
-  const form = useForm<UserTagsFormValues>({
+  const form = useForm<z.input<typeof TaggingConfigSchema>>({
     resolver: zodResolver(TaggingConfigSchema),
     defaultValues: {
       tagUsersInSonarr: false,
@@ -206,7 +204,7 @@ export function useUserTags() {
 
   // Handle form submission - mimicking DeleteSyncForm exactly
   const onSubmit = useCallback(
-    async (data: UserTagsFormValues) => {
+    async (data: z.input<typeof TaggingConfigSchema>) => {
       // Set both states to maintain consistency with DeleteSyncForm
       setSaveStatus('loading')
       setLoadingWithMinDuration(true)

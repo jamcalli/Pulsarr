@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { CreateUser } from '@root/schemas/users/users.schema'
 import { Check, Loader2 } from 'lucide-react'
 import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
@@ -309,7 +308,10 @@ interface UserEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: UserWatchlistInfo | null
-  onSave: (userId: number, updates: CreateUser) => Promise<void>
+  onSave: (
+    userId: number,
+    updates: z.input<typeof plexUserSchema>,
+  ) => Promise<void>
   saveStatus: UserStatus
 }
 

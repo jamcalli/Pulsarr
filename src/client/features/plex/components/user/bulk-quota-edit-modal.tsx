@@ -49,7 +49,7 @@ const BulkQuotaFormSchema = z
     // Movie quota settings
     setMovieQuota: z.boolean().default(false),
     movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-    movieQuotaLimit: z.coerce
+    movieQuotaLimit: z
       .number()
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
@@ -59,7 +59,7 @@ const BulkQuotaFormSchema = z
     // Show quota settings
     setShowQuota: z.boolean().default(false),
     showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-    showQuotaLimit: z.coerce
+    showQuotaLimit: z
       .number()
       .min(1, { error: 'Must be at least 1' })
       .max(1000, { error: 'Must be 1000 or less' })
