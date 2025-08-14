@@ -64,7 +64,7 @@ export const QuotaStatusResponseSchema = z.object({
   quotaLimit: z.number(),
   currentUsage: z.number(),
   exceeded: z.boolean(),
-  resetDate: z.string().datetime().nullable(),
+  resetDate: z.iso.datetime().nullable(),
   bypassApproval: z.boolean(),
 })
 
