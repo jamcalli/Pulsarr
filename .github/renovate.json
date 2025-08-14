@@ -75,6 +75,7 @@
         "react-hook-form",
         "react-router-dom",
         "@hookform/resolvers",
+        "zod",
         "@types/react",
         "@types/react-dom"
       ]
@@ -167,11 +168,6 @@
       "description": "Pin pino to 9.7.0 to prevent FastifyBaseLogger type breakage",
       "matchPackageNames": ["pino"],
       "allowedVersions": "9.7.0"
-    },
-    {
-      "description": "Pin @hookform/resolvers to v4.x to prevent v5 breaking changes",
-      "matchPackageNames": ["@hookform/resolvers"],
-      "allowedVersions": "< 5.0.0"
     },
     {
       "description": "Pin recharts to v2.x to prevent breaking changes with component library",
