@@ -5233,30 +5233,7 @@
                                 "additionalProperties": false
                               },
                               {
-                                "type": "object",
-                                "properties": {
-                                  "operator": {
-                                    "type": "string",
-                                    "enum": ["AND", "OR"]
-                                  },
-                                  "conditions": {
-                                    "type": "array",
-                                    "items": {}
-                                  },
-                                  "negate": {
-                                    "default": false,
-                                    "type": "boolean"
-                                  },
-                                  "_cid": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "operator",
-                                  "conditions",
-                                  "negate"
-                                ],
-                                "additionalProperties": false
+                                "$ref": "#/components/schemas/schema0"
                               }
                             ]
                           },
@@ -5531,25 +5508,7 @@
                         "required": ["field", "operator", "value"]
                       },
                       {
-                        "type": "object",
-                        "properties": {
-                          "operator": {
-                            "type": "string",
-                            "enum": ["AND", "OR"]
-                          },
-                          "conditions": {
-                            "type": "array",
-                            "items": {}
-                          },
-                          "negate": {
-                            "default": false,
-                            "type": "boolean"
-                          },
-                          "_cid": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["operator", "conditions"]
+                        "$ref": "#/components/schemas/schema0Input"
                       }
                     ]
                   },
@@ -5795,26 +5754,7 @@
                               "additionalProperties": false
                             },
                             {
-                              "type": "object",
-                              "properties": {
-                                "operator": {
-                                  "type": "string",
-                                  "enum": ["AND", "OR"]
-                                },
-                                "conditions": {
-                                  "type": "array",
-                                  "items": {}
-                                },
-                                "negate": {
-                                  "default": false,
-                                  "type": "boolean"
-                                },
-                                "_cid": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["operator", "conditions", "negate"],
-                              "additionalProperties": false
+                              "$ref": "#/components/schemas/schema0"
                             }
                           ]
                         },
@@ -6148,30 +6088,7 @@
                                 "additionalProperties": false
                               },
                               {
-                                "type": "object",
-                                "properties": {
-                                  "operator": {
-                                    "type": "string",
-                                    "enum": ["AND", "OR"]
-                                  },
-                                  "conditions": {
-                                    "type": "array",
-                                    "items": {}
-                                  },
-                                  "negate": {
-                                    "default": false,
-                                    "type": "boolean"
-                                  },
-                                  "_cid": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "operator",
-                                  "conditions",
-                                  "negate"
-                                ],
-                                "additionalProperties": false
+                                "$ref": "#/components/schemas/schema0"
                               }
                             ]
                           },
@@ -6489,30 +6406,7 @@
                                 "additionalProperties": false
                               },
                               {
-                                "type": "object",
-                                "properties": {
-                                  "operator": {
-                                    "type": "string",
-                                    "enum": ["AND", "OR"]
-                                  },
-                                  "conditions": {
-                                    "type": "array",
-                                    "items": {}
-                                  },
-                                  "negate": {
-                                    "default": false,
-                                    "type": "boolean"
-                                  },
-                                  "_cid": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "operator",
-                                  "conditions",
-                                  "negate"
-                                ],
-                                "additionalProperties": false
+                                "$ref": "#/components/schemas/schema0"
                               }
                             ]
                           },
@@ -6819,26 +6713,7 @@
                               "additionalProperties": false
                             },
                             {
-                              "type": "object",
-                              "properties": {
-                                "operator": {
-                                  "type": "string",
-                                  "enum": ["AND", "OR"]
-                                },
-                                "conditions": {
-                                  "type": "array",
-                                  "items": {}
-                                },
-                                "negate": {
-                                  "default": false,
-                                  "type": "boolean"
-                                },
-                                "_cid": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["operator", "conditions", "negate"],
-                              "additionalProperties": false
+                              "$ref": "#/components/schemas/schema0"
                             }
                           ]
                         },
@@ -7129,25 +7004,7 @@
                         "required": ["field", "operator", "value"]
                       },
                       {
-                        "type": "object",
-                        "properties": {
-                          "operator": {
-                            "type": "string",
-                            "enum": ["AND", "OR"]
-                          },
-                          "conditions": {
-                            "type": "array",
-                            "items": {}
-                          },
-                          "negate": {
-                            "default": false,
-                            "type": "boolean"
-                          },
-                          "_cid": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["operator", "conditions"]
+                        "$ref": "#/components/schemas/schema0Input"
                       }
                     ]
                   },
@@ -7401,26 +7258,7 @@
                               "additionalProperties": false
                             },
                             {
-                              "type": "object",
-                              "properties": {
-                                "operator": {
-                                  "type": "string",
-                                  "enum": ["AND", "OR"]
-                                },
-                                "conditions": {
-                                  "type": "array",
-                                  "items": {}
-                                },
-                                "negate": {
-                                  "default": false,
-                                  "type": "boolean"
-                                },
-                                "_cid": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["operator", "conditions", "negate"],
-                              "additionalProperties": false
+                              "$ref": "#/components/schemas/schema0"
                             }
                           ]
                         },
@@ -7818,30 +7656,7 @@
                                 "additionalProperties": false
                               },
                               {
-                                "type": "object",
-                                "properties": {
-                                  "operator": {
-                                    "type": "string",
-                                    "enum": ["AND", "OR"]
-                                  },
-                                  "conditions": {
-                                    "type": "array",
-                                    "items": {}
-                                  },
-                                  "negate": {
-                                    "default": false,
-                                    "type": "boolean"
-                                  },
-                                  "_cid": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "operator",
-                                  "conditions",
-                                  "negate"
-                                ],
-                                "additionalProperties": false
+                                "$ref": "#/components/schemas/schema0"
                               }
                             ]
                           },

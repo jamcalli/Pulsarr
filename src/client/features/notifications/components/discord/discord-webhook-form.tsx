@@ -47,7 +47,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
   const [_webhookTested, setWebhookTested] = React.useState(false)
   const [showClearAlert, setShowClearAlert] = React.useState(false)
 
-  const webhookForm = useForm<WebhookFormSchema>({
+  const webhookForm = useForm({
     resolver: zodResolver(webhookFormSchema),
     defaultValues: {
       discordWebhookUrl: '',

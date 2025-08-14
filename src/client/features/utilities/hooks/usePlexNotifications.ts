@@ -1,14 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { z } from 'zod'
 import {
   type PlexNotificationConfig,
-  type PlexNotificationResponse,
   PlexNotificationConfigSchema,
+  type PlexNotificationResponse,
 } from '@root/schemas/plex/configure-notifications.schema'
 import type { PlexNotificationStatusResponse } from '@root/schemas/plex/get-notification-status.schema'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import type { z } from 'zod'
 import { useConfigStore } from '@/stores/configStore'
 
 // Minimum loading delay

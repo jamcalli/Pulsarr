@@ -212,7 +212,7 @@ export const ConfigSchema = z.object({
   // TMDB Configuration
   tmdbRegion: z
     .string()
-    .length(2, 'Region must be a 2-letter country code')
+    .length(2, { error: 'Region must be a 2-letter country code' })
     .optional(),
   // User Tags Configuration - flat properties following new pattern
   tagUsersInSonarr: z.boolean().optional(),

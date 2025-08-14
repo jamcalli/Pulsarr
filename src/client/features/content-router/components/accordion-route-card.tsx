@@ -269,7 +269,7 @@ const AccordionRouteCard = ({
   }, [route, buildDefaultValues, instances, contentType])
 
   // Setup form with validation
-  const form = useForm<ConditionalRouteFormValues>({
+  const form = useForm({
     resolver: zodResolver(ConditionalRouteFormSchema),
     defaultValues,
     mode: 'all',

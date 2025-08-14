@@ -1,12 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 import {
   type CreateAdminFormSchema,
   CreateAdminFormSchema as createAdminFormSchema,
 } from '@root/schemas/auth/admin-user'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
 /**
  * React hook that manages a user creation form with validation, submission, and error handling.
