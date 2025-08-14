@@ -282,9 +282,15 @@ export function usePlexLabels() {
   // Handle time change for form integration (like Delete Sync)
   const handleTimeChange = useCallback(
     (newTime: Date, newDay?: string) => {
-      form.setValue('scheduleTime', newTime, { shouldDirty: true })
+      form.setValue('scheduleTime', newTime, {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
       if (newDay !== undefined) {
-        form.setValue('dayOfWeek', newDay, { shouldDirty: true })
+        form.setValue('dayOfWeek', newDay, {
+          shouldDirty: true,
+          shouldValidate: true,
+        })
       }
     },
     [form],
@@ -333,14 +339,15 @@ export function usePlexLabels() {
 
   // Handle form submission - using main config system
   const onSubmit = useCallback(
-    async (data: z.infer<typeof PlexLabelSyncConfigSchema>) => {
+    async (data: PlexLabelsFormValues) => {
       // Set both states to maintain consistency with DeleteSyncForm
       setSaveStatus('loading')
       setLoadingWithMinDuration(true)
 
       try {
-        // Create a copy of the data
-        const formDataCopy = { ...data }
+        // Transform the form data using the schema before using it
+        const transformedData = PlexLabelSyncConfigSchema.parse(data)
+        const formDataCopy = { ...transformedData }
 
         // Create minimum loading time promise
         const minimumLoadingTime = new Promise((resolve) =>
@@ -354,10 +361,10 @@ export function usePlexLabels() {
 
         // Handle schedule update based on scheduleTime
         let scheduleUpdatePromise = Promise.resolve()
-        if (data.scheduleTime) {
-          const hours = data.scheduleTime.getHours()
-          const minutes = data.scheduleTime.getMinutes()
-          const dayOfWeek = data.dayOfWeek || '*'
+        if (transformedData.scheduleTime) {
+          const hours = transformedData.scheduleTime.getHours()
+          const minutes = transformedData.scheduleTime.getMinutes()
+          const dayOfWeek = transformedData.dayOfWeek || '*'
 
           // Create cron expression (seconds minutes hours day month weekday)
           const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`
@@ -399,7 +406,7 @@ export function usePlexLabels() {
         await fetchSchedules()
 
         // If we enable labeling, we can no longer edit the label format
-        if (data.enabled) {
+        if (transformedData.enabled) {
           setLabelDefinitionsDeleted(false)
           setIsLabelDeletionComplete(false)
         }

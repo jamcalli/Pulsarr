@@ -21,8 +21,8 @@ export const SessionMonitoringConfigSchema = z.object({
   enableProgressiveCleanup: z.boolean().optional(),
 })
 
-// Infer the TypeScript type from the schema
-export type SessionMonitoringFormData = z.infer<
+// Form type - use z.input for better compatibility with form inputs
+export type SessionMonitoringFormData = z.input<
   typeof SessionMonitoringConfigSchema
 >
 

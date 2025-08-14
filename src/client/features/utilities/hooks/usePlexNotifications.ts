@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  type PlexNotificationConfig,
   PlexNotificationConfigSchema,
   type PlexNotificationResponse,
 } from '@root/schemas/plex/configure-notifications.schema'
@@ -25,7 +24,9 @@ interface ExtendedPlexNotificationStatusResponse
   }
 }
 
-export type PlexNotificationsFormValues = PlexNotificationConfig
+export type PlexNotificationsFormValues = z.input<
+  typeof PlexNotificationConfigSchema
+>
 
 /**
  * React hook for managing Plex notifications configuration via a form.
@@ -199,6 +200,9 @@ export function usePlexNotifications() {
       const timeoutId = setTimeout(() => controller.abort(), 5000)
 
       try {
+        // Transform form data to ensure proper types for backend
+        const transformedData = PlexNotificationConfigSchema.parse(data)
+
         // Create a minimum loading time promise
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, MIN_LOADING_DELAY),
@@ -210,7 +214,7 @@ export function usePlexNotifications() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify(transformedData),
           signal: signal, // Add the abort signal to the fetch request
         })
 
