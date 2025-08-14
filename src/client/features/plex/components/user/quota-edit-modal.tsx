@@ -1,10 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { UpdateSeparateQuotasSchema } from '@root/schemas/quota/quota.schema'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema'
 import { Check, Loader2 } from 'lucide-react'
 import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import type { UpdateSeparateQuotasSchema } from '@root/schemas/quota/quota.schema'
-import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
