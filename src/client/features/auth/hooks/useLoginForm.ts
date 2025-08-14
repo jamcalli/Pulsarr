@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { type Credentials, loginFormSchema } from '@root/schemas/auth/auth'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { type Credentials, loginFormSchema } from '@root/schemas/auth/auth'
 
 /**
  * React hook that manages state, validation, and submission logic for a login form.

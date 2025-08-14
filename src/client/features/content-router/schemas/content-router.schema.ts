@@ -84,7 +84,7 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
 // Schema for a conditional route - enhanced validation for all conditions
 export const ConditionalRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   condition: ConditionGroupSchema.refine(
     (val) => {
@@ -143,13 +143,13 @@ export const ConditionalRouteFormSchema = z.object({
     },
   ),
   target_instance_id: z.number().min(1, {
-    message: 'Instance selection is required.',
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -170,20 +170,20 @@ export type ConditionalRouteFormValues = z.infer<
 // Keep backward compatibility with existing route schemas
 export const GenreRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   genre: z.union([
-    z.string().min(1, { message: 'Genre is required.' }),
-    z.array(z.string().min(1, { message: 'Each genre must not be empty.' })),
+    z.string().min(1, { error: 'Genre is required.' }),
+    z.array(z.string().min(1, { error: 'Each genre must not be empty.' })),
   ]),
   target_instance_id: z.number().positive({
-    message: 'Instance selection is required.',
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -243,16 +243,16 @@ export const YearCriteriaFormSchema = z
 
 export const YearRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   target_instance_id: z.number().min(1, {
-    message: 'Instance selection is required.',
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -265,19 +265,19 @@ export type YearCriteriaFormValues = z.infer<typeof YearCriteriaFormSchema>
 
 export const LanguageRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   language: z.string().min(1, {
-    message: 'Language is required.',
+    error: 'Language is required.',
   }),
   target_instance_id: z.number().positive({
-    message: 'Instance selection is required.',
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -288,19 +288,19 @@ export type LanguageRouteFormValues = z.infer<typeof LanguageRouteFormSchema>
 
 export const UserRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   users: z
     .union([z.string(), z.array(z.string())])
     .transform((val) => (Array.isArray(val) ? val : [val])),
   target_instance_id: z.number().min(1, {
-    message: 'Instance selection is required.',
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),

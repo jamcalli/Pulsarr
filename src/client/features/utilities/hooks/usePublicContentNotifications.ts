@@ -59,18 +59,20 @@ const discordWebhookString = z
   })
 
 // Extract API schema and extend with testing fields
-const ApiPublicContentNotificationsSchema = ConfigSchema.shape.publicContentNotifications.unwrap()
+const ApiPublicContentNotificationsSchema =
+  ConfigSchema.shape.publicContentNotifications.unwrap()
 
-const publicContentNotificationsSchema = ApiPublicContentNotificationsSchema.extend({
-  // Replace simple strings with Discord webhook validation
-  discordWebhookUrls: discordWebhookString,
-  discordWebhookUrlsMovies: discordWebhookString, 
-  discordWebhookUrlsShows: discordWebhookString,
-  // Hidden fields to track connection testing
-  _generalTested: z.boolean().default(false),
-  _moviesTested: z.boolean().default(false),
-  _showsTested: z.boolean().default(false),
-})
+const publicContentNotificationsSchema =
+  ApiPublicContentNotificationsSchema.extend({
+    // Replace simple strings with Discord webhook validation
+    discordWebhookUrls: discordWebhookString,
+    discordWebhookUrlsMovies: discordWebhookString,
+    discordWebhookUrlsShows: discordWebhookString,
+    // Hidden fields to track connection testing
+    _generalTested: z.boolean().default(false),
+    _moviesTested: z.boolean().default(false),
+    _showsTested: z.boolean().default(false),
+  })
 
 export type PublicContentNotificationsFormValues = z.infer<
   typeof publicContentNotificationsSchema
