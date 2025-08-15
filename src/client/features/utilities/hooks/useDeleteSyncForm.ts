@@ -51,11 +51,18 @@ export type DeleteSyncFormValues = z.input<typeof deleteSyncSchema>
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * React hook for managing the deletion synchronization form, including state, validation, and submission logic.
+ * Manages the Delete Sync form state, validation, initialization from global config/schedules, and submission.
  *
- * Initializes form values from global configuration and schedule data, validates input using a Zod schema, and provides handlers for submitting changes, canceling edits, and updating scheduled deletion times. On submission, updates configuration and schedule settings, manages submission status, and provides user feedback.
+ * Provides a React Hook Form instance for delete-sync settings (including scheduling fields), synchronizes initial values from the global configuration and the 'delete-sync' cron schedule, enforces schema validation, and exposes handlers to submit changes (which persist configuration and schedule updates), cancel edits, and update the scheduled time.
  *
- * @returns An object containing the form instance, current save status, a flag indicating if saving is in progress, the last submitted values, and handler functions for form submission, cancellation, and schedule time changes.
+ * @returns An object containing:
+ *  - form: the React Hook Form instance for delete-sync values
+ *  - saveStatus: current save status ('idle' | 'loading' | 'success' | 'error')
+ *  - isSaving: boolean indicating an in-progress save
+ *  - submittedValues: the last-submitted form values or null
+ *  - onSubmit: handler to submit form values (persists config and schedule)
+ *  - handleCancel: resets the form to current configuration/schedule values
+ *  - handleTimeChange: updates the form's scheduleTime and optional dayOfWeek
  */
 export function useDeleteSyncForm() {
   const { config, updateConfig } = useConfigStore()
