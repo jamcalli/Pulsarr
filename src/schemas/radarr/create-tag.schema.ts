@@ -6,7 +6,7 @@ export const CreateTagBodySchema = z
     instanceId: z.coerce
       .number()
       .int({ error: 'Instance ID must be an integer' })
-      .positive({ error: 'Instance ID is required' }),
+      .positive({ error: 'Instance ID must be positive' }),
     label: z.string().trim().min(1, { error: 'Tag label is required' }),
   })
   .strict()

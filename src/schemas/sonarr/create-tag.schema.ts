@@ -3,11 +3,11 @@ import { z } from 'zod'
 
 export const CreateTagBodySchema = z
   .object({
-    instanceId: z
+    instanceId: z.coerce
       .number()
       .int({ error: 'Instance ID must be an integer' })
-      .positive({ error: 'Instance ID is required' }),
-    label: z.string().min(1, { error: 'Tag label is required' }),
+      .positive({ error: 'Instance ID must be positive' }),
+    label: z.string().trim().min(1, { error: 'Tag label is required' }),
   })
   .strict()
 

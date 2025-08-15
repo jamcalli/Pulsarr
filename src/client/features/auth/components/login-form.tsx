@@ -26,7 +26,10 @@ export function LoginForm() {
               <FormControl>
                 <Input
                   {...field}
-                  ref={emailInputRef}
+                  ref={(el) => {
+                    field.ref(el)
+                    emailInputRef.current = el
+                  }}
                   type="email"
                   placeholder="Email"
                   autoComplete="email"
