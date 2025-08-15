@@ -557,7 +557,9 @@ const AccordionRouteCard = ({
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
           series_type:
-            contentType === 'sonarr' && data.series_type
+            contentType === 'sonarr' &&
+            data.series_type &&
+            data.series_type !== 'none'
               ? data.series_type
               : undefined,
           // Action fields
@@ -586,7 +588,9 @@ const AccordionRouteCard = ({
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
           series_type:
-            contentType === 'sonarr' && data.series_type
+            contentType === 'sonarr' &&
+            data.series_type &&
+            data.series_type !== 'none'
               ? data.series_type
               : undefined,
           // Action fields
@@ -1207,7 +1211,7 @@ const AccordionRouteCard = ({
                           </div>
                           <FormControl>
                             <Slider
-                              defaultValue={[field.value ?? 50]}
+                              value={[field.value ?? 50]}
                               min={1}
                               max={100}
                               step={1}

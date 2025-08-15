@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  type CreateAdminFormSchema,
+  type CreateAdminForm,
   CreateAdminFormSchema as createAdminFormSchema,
 } from '@root/schemas/auth/admin-user'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -22,7 +22,7 @@ export function useCreateUserForm() {
   const emailInputRef = useRef<HTMLInputElement>(null)
 
   // Initialize form with zod resolver
-  const form = useForm<CreateAdminFormSchema>({
+  const form = useForm<CreateAdminForm>({
     resolver: zodResolver(createAdminFormSchema),
     mode: 'onChange',
     defaultValues: {
@@ -41,7 +41,7 @@ export function useCreateUserForm() {
   }, [])
 
   const handleSubmit = useCallback(
-    async (data: CreateAdminFormSchema) => {
+    async (data: CreateAdminForm) => {
       setStatus('loading')
       setBackendError(null)
 
