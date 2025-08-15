@@ -54,7 +54,7 @@ const isValidGroup = (
   visited.add(group)
 
   if (!group.conditions || group.conditions.length === 0) {
-    return true // Allow empty conditions in base schema
+    return false // Require at least one condition to match server validation
   }
 
   return group.conditions.every((cond) => {
@@ -77,7 +77,7 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
     })
     .refine((group) => isValidGroup(group), {
       message:
-        'Condition groups cannot exceed 20 levels or contain circular references',
+        'Condition groups must contain at least one condition and cannot exceed 20 levels or contain circular references',
     }),
 )
 

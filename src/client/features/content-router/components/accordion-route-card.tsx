@@ -276,8 +276,9 @@ const AccordionRouteCard = ({
     return buildDefaultValues(route, instances, contentType)
   }, [route, buildDefaultValues, instances, contentType])
 
-  // Setup form with validation - use targeted type cast to fix Zod v4 recursive schema inference issue
+  // Setup form with validation
   const form = useForm<ConditionalRouteFormValues>({
+    // Type cast required: Zod v4 recursive schema inference limitation with z.lazy()
     resolver: zodResolver(
       ConditionalRouteFormSchema,
     ) as Resolver<ConditionalRouteFormValues>,

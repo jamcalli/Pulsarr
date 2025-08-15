@@ -40,7 +40,7 @@ export function useCreateUserForm() {
     }
   }, [])
 
-  const handleSubmit = useCallback(
+  const onSubmit = useCallback(
     async (data: CreateAdminForm) => {
       setStatus('loading')
       setBackendError(null)
@@ -85,6 +85,6 @@ export function useCreateUserForm() {
     status,
     backendError,
     emailInputRef,
-    handleSubmit,
+    onSubmit,
   }
 }
