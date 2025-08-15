@@ -77,14 +77,14 @@ export function GeneralSettingsForm({
 
     return {
       queueWaitTime: Math.round(
-        (configData.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
+        (configData.queueWaitTime ?? DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
       ),
       newEpisodeThreshold: Math.round(
-        (configData.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
+        (configData.newEpisodeThreshold ?? DEFAULT_NEW_EPISODE_THRESHOLD) /
           (60 * 60 * 1000),
       ),
       upgradeBufferTime: Math.round(
-        (configData.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
+        (configData.upgradeBufferTime ?? DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
       ),
     }
   }, [])
@@ -93,12 +93,6 @@ export function GeneralSettingsForm({
   useEffect(() => {
     const displayValues = getDisplayValues(config)
     if (displayValues) {
-      generalForm.setValue('queueWaitTime', displayValues.queueWaitTime)
-      generalForm.setValue(
-        'newEpisodeThreshold',
-        displayValues.newEpisodeThreshold,
-      )
-      generalForm.setValue('upgradeBufferTime', displayValues.upgradeBufferTime)
       generalForm.reset(displayValues)
     }
   }, [config, generalForm, getDisplayValues])

@@ -99,9 +99,9 @@ export const ConditionalRouteFormSchema = z.object({
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
-  search_on_add: z.boolean().optional(),
+  search_on_add: z.boolean().default(true),
   season_monitoring: z.string().optional(),
-  series_type: z.enum([...ROUTER_SERIES_TYPES, 'none']).optional(),
+  series_type: z.enum([...ROUTER_SERIES_TYPES, 'none'] as const).optional(),
   // Actions section - approval behavior
   always_require_approval: z.boolean().default(false),
   bypass_user_quotas: z.boolean().default(false),
@@ -121,7 +121,7 @@ export const GenreRouteFormSchema = z.object({
     z.string().min(1, { error: 'Genre is required.' }),
     z.array(z.string().min(1, { error: 'Each genre must not be empty.' })),
   ]),
-  target_instance_id: z.number().positive({
+  target_instance_id: z.number().min(1, {
     error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
@@ -215,7 +215,7 @@ export const LanguageRouteFormSchema = z.object({
   language: z.string().min(1, {
     error: 'Language is required.',
   }),
-  target_instance_id: z.number().positive({
+  target_instance_id: z.number().min(1, {
     error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
