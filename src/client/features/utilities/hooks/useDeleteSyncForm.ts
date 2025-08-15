@@ -50,21 +50,6 @@ export const deleteSyncSchema = ApiDeleteSyncSchema.extend({
 export type DeleteSyncFormValues = z.input<typeof deleteSyncSchema>
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
-const validateDayOfWeek = (value: string | undefined): string => {
-  // Valid patterns: '*' (every day) or a single digit from 0-6
-  const validPattern = /^\*$|^[0-6]$/
-
-  // If the value is undefined, empty, or doesn't match the pattern, return '*'
-  if (!value || !validPattern.test(value)) {
-    console.warn(
-      `Invalid dayOfWeek value "${value}" detected, falling back to "*"`,
-    )
-    return '*'
-  }
-
-  return value
-}
-
 /**
  * React hook for managing the deletion synchronization form, including state, validation, and submission logic.
  *
@@ -236,7 +221,7 @@ export function useDeleteSyncForm() {
       if (data.scheduleTime) {
         const hours = data.scheduleTime.getHours()
         const minutes = data.scheduleTime.getMinutes()
-        const dayOfWeek = validateDayOfWeek(data.dayOfWeek)
+        const dayOfWeek = data.dayOfWeek || '*'
 
         // Create cron expression (seconds minutes hours day month weekday)
         const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`

@@ -34,6 +34,26 @@ const DAYS_OF_WEEK: DayOption[] = [
 ];
 
 /**
+ * Validates that a dayOfWeek value is valid for cron expressions.
+ * @param value - The dayOfWeek value to validate
+ * @returns A valid dayOfWeek value ('*' or 0-6)
+ */
+const validateDayOfWeek = (value: string | undefined): string => {
+  // Valid patterns: '*' (every day) or a single digit from 0-6
+  const validPattern = /^\*$|^[0-6]$/
+
+  // If the value is undefined, empty, or doesn't match the pattern, return '*'
+  if (!value || !validPattern.test(value)) {
+    console.warn(
+      `Invalid dayOfWeek value "${value}" detected, falling back to "*"`
+    )
+    return '*'
+  }
+
+  return value
+};
+
+/**
  * A React component that provides dropdown selectors for choosing a day of the week and a time in 15-minute intervals.
  *
  * Users can select a day and a time, and the component invokes the provided callback with the updated Date and selected day string. If the initial date is missing or invalid, the time defaults to "00:00". Both selectors can be disabled, and custom CSS classes can be applied to the container.
@@ -58,7 +78,7 @@ export function TimeSelector({
   };
   
   const [time, setTime] = useState<string>(formatTimeValue(value));
-  const [selectedDay, setSelectedDay] = useState<string>(dayOfWeek);
+  const [selectedDay, setSelectedDay] = useState<string>(validateDayOfWeek(dayOfWeek));
   
   // Update time when value prop changes
   useEffect(() => {
@@ -67,7 +87,7 @@ export function TimeSelector({
   
   // Update day selection when prop changes
   useEffect(() => {
-    setSelectedDay(dayOfWeek);
+    setSelectedDay(validateDayOfWeek(dayOfWeek));
   }, [dayOfWeek]);
   
   const handleTimeChange = (newTimeString: string) => {
@@ -77,12 +97,16 @@ export function TimeSelector({
     const newDate = value ? new Date(value) : new Date();
     newDate.setHours(hours, minutes, 0, 0);
     
-    onChange(newDate, selectedDay);
+    // Validate the dayOfWeek before passing it to onChange
+    const validatedDayOfWeek = validateDayOfWeek(selectedDay);
+    onChange(newDate, validatedDayOfWeek);
   };
   
   const handleDayChange = (newDay: string) => {
-    setSelectedDay(newDay);
-    onChange(value || new Date(), newDay);
+    // Validate the dayOfWeek before setting it and calling onChange
+    const validatedDayOfWeek = validateDayOfWeek(newDay);
+    setSelectedDay(validatedDayOfWeek);
+    onChange(value || new Date(), validatedDayOfWeek);
   };
   
   return (
