@@ -28,6 +28,7 @@ export default function PlexSessionMonitoringPage() {
   const {
     form,
     isSaving,
+    isToggling,
     rollingShows,
     inactiveShows,
     inactivityDays,
@@ -37,6 +38,7 @@ export default function PlexSessionMonitoringPage() {
     isEnabled,
     onSubmit,
     handleCancel,
+    handleToggle,
     handleRunSessionMonitor,
     handleResetShow,
     handleDeleteShow,
@@ -66,9 +68,10 @@ export default function PlexSessionMonitoringPage() {
       <div className="space-y-6">
         <Form {...form}>
           <SessionMonitoringActions
-            form={form}
             isEnabled={isEnabled}
             isSubmitting={isSaving}
+            isToggling={isToggling}
+            onToggle={handleToggle}
           />
 
           <Separator />
