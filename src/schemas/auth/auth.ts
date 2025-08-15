@@ -13,14 +13,7 @@ const PasswordSchema = z
   .min(8, { error: 'Password must be at least 8 characters long' })
 
 export const CredentialsSchema = z.object({
-  email: z
-    .email({ error: 'Please enter a valid email address' })
-    .refine((email) => email.includes('@'), {
-      message: 'Please include an @ symbol in the email address',
-    })
-    .refine((email) => email.includes('.'), {
-      message: 'Please include a domain in the email address',
-    }),
+  email: z.email({ error: 'Please enter a valid email address' }),
   password: PasswordSchema,
 })
 

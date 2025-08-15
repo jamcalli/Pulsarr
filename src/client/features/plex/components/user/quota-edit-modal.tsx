@@ -64,6 +64,13 @@ export const QuotaFormSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.hasMovieQuota) {
+      if (!data.movieQuotaType) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Movie quota type is required when movie quota is enabled',
+          path: ['movieQuotaType'],
+        })
+      }
       if (data.movieQuotaLimit == null) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -79,6 +86,13 @@ export const QuotaFormSchema = z
       }
     }
     if (data.hasShowQuota) {
+      if (!data.showQuotaType) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Show quota type is required when show quota is enabled',
+          path: ['showQuotaType'],
+        })
+      }
       if (data.showQuotaLimit == null) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

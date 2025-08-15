@@ -112,21 +112,6 @@ export function useQuotaManagement() {
             return 'No quotas to remove'
           }
 
-          // Validate required fields
-          if (
-            transformedData.hasMovieQuota &&
-            (!transformedData.movieQuotaType ||
-              !transformedData.movieQuotaLimit)
-          ) {
-            throw new Error('Movie quota type and limit are required')
-          }
-          if (
-            transformedData.hasShowQuota &&
-            (!transformedData.showQuotaType || !transformedData.showQuotaLimit)
-          ) {
-            throw new Error('Show quota type and limit are required')
-          }
-
           // Transform form data to API format using the utility function
           const separateQuotasData = transformQuotaFormToAPI(transformedData)
           await updateSeparateQuotas(user.id, separateQuotasData)
