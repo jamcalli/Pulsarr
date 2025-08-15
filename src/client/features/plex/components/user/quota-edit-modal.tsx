@@ -62,31 +62,38 @@ export const QuotaFormSchema = z
       .optional(),
     showBypassApproval: z.boolean(),
   })
-  .refine(
-    (data) => {
-      // Validate movie quota limit when movie quota is enabled
-      if (
-        data.hasMovieQuota &&
-        data.movieQuotaLimit !== undefined &&
-        data.movieQuotaLimit < 1
-      ) {
-        return false
+  .superRefine((data, ctx) => {
+    if (data.hasMovieQuota) {
+      if (data.movieQuotaLimit == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Movie quota limit is required when movie quota is enabled',
+          path: ['movieQuotaLimit'],
+        })
+      } else if (data.movieQuotaLimit < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Must be at least 1',
+          path: ['movieQuotaLimit'],
+        })
       }
-      // Validate show quota limit when show quota is enabled
-      if (
-        data.hasShowQuota &&
-        data.showQuotaLimit !== undefined &&
-        data.showQuotaLimit < 1
-      ) {
-        return false
+    }
+    if (data.hasShowQuota) {
+      if (data.showQuotaLimit == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Show quota limit is required when show quota is enabled',
+          path: ['showQuotaLimit'],
+        })
+      } else if (data.showQuotaLimit < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Must be at least 1',
+          path: ['showQuotaLimit'],
+        })
       }
-      return true
-    },
-    {
-      message: 'Quota limits must be at least 1 when quotas are enabled',
-      path: ['movieQuotaLimit'],
-    },
-  )
+    }
+  })
 
 export interface QuotaEditStatus {
   type: 'idle' | 'loading' | 'success' | 'error'
