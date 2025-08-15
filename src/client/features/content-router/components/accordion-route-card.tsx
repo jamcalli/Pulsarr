@@ -89,6 +89,13 @@ interface ExtendedContentRouterRule extends ContentRouterRule {
   condition?: ConditionGroup
 }
 
+function normalizeConditionGroup(
+  cg: ConditionalRouteFormValues['condition'] | undefined,
+): ConditionGroup {
+  if (cg?.conditions?.length) return cg
+  return { operator: 'AND', conditions: [], negate: false }
+}
+
 interface AccordionRouteCardProps {
   route: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>
   isNew?: boolean
@@ -544,9 +551,7 @@ const AccordionRouteCard = ({
           tags: data.tags || [],
           enabled: data.enabled,
           order: data.order,
-          condition: data.condition?.conditions?.length
-            ? data.condition
-            : { operator: 'AND', conditions: [], negate: false },
+          condition: normalizeConditionGroup(data.condition),
           search_on_add:
             data.search_on_add === null ? undefined : data.search_on_add,
           season_monitoring:
@@ -567,9 +572,7 @@ const AccordionRouteCard = ({
       else {
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          condition: data.condition?.conditions?.length
-            ? data.condition
-            : { operator: 'AND', conditions: [], negate: false },
+          condition: normalizeConditionGroup(data.condition),
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
             ? Number(data.quality_profile)

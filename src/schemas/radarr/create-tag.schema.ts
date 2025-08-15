@@ -2,8 +2,8 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 export const CreateTagBodySchema = z.object({
-  instanceId: z.number().int().positive('Instance ID is required'),
-  label: z.string().min(1, 'Tag label is required'),
+  instanceId: z.number().int().positive({ error: 'Instance ID is required' }),
+  label: z.string().min(1, { error: 'Tag label is required' }),
 })
 
 export const CreateTagResponseSchema = z.object({

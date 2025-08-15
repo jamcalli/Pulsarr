@@ -53,8 +53,8 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { useConfigStore } from '@/stores/configStore'
 
 const approvalRoutingSchema = z.object({
-  qualityProfile: z.string().min(1, 'Quality profile is required'),
-  rootFolder: z.string().min(1, 'Root folder is required'),
+  qualityProfile: z.string().min(1, { error: 'Quality profile is required' }),
+  rootFolder: z.string().min(1, { error: 'Root folder is required' }),
   searchOnAdd: z.boolean(),
   monitorNewItems: z.enum(['all', 'none']),
   bypassIgnored: z.boolean(),

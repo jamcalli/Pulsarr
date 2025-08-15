@@ -193,10 +193,29 @@ export function useSessionMonitoring() {
         // Transform the form data using the schema before passing to updateConfig
         const transformedData = SessionMonitoringConfigSchema.parse(formData)
 
+        const updateConfigPromise = updateConfig({
+          plexSessionMonitoring: transformedData,
+        })
+
+        // Keep schedules consistent with the new enabled state
+        const schedulePromises: Promise<void>[] = []
+        if (sessionMonitorSchedule) {
+          schedulePromises.push(
+            handleUpdateSessionMonitorSchedule(
+              sessionMonitorSchedule,
+              formData,
+            ),
+          )
+        }
+        if (autoResetSchedule) {
+          schedulePromises.push(
+            handleUpdateAutoResetSchedule(autoResetSchedule, formData),
+          )
+        }
+
         await Promise.all([
-          updateConfig({
-            plexSessionMonitoring: transformedData,
-          }),
+          updateConfigPromise,
+          ...schedulePromises,
           minimumLoadingTime,
         ])
 
@@ -216,7 +235,14 @@ export function useSessionMonitoring() {
         setIsToggling(false)
       }
     },
-    [updateConfig, form],
+    [
+      updateConfig,
+      form,
+      sessionMonitorSchedule,
+      autoResetSchedule,
+      handleUpdateSessionMonitorSchedule,
+      handleUpdateAutoResetSchedule,
+    ],
   )
 
   // Form submission handler following established patterns

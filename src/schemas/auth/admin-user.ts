@@ -9,14 +9,7 @@ export const CreateAdminResponseSchema = z.object({
 export { ErrorSchema as CreateAdminErrorSchema }
 
 export const CreateAdminSchema = z.object({
-  email: z
-    .email({ error: 'Please enter a valid email address' })
-    .refine((email) => email.includes('@'), {
-      message: 'Please include an @ symbol in the email address',
-    })
-    .refine((email) => email.includes('.'), {
-      message: 'Please include a domain in the email address',
-    }),
+  email: z.email({ error: 'Please enter a valid email address' }),
   username: z
     .string()
     .min(3, { error: 'Username must be at least 3 characters' })

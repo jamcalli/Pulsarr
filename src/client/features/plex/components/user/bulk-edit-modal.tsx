@@ -540,15 +540,9 @@ export default function BulkEditModal({
     }
 
     if (values.clearApprise) {
-      // Set to null to clear the apprise field
+      // Set to null to clear the apprise field and always disable notifications
       updates.apprise = null
-      // When clearing apprise endpoints, always disable notifications
-      if (values.setAppriseNotify) {
-        updates.notify_apprise = false
-      } else {
-        // Explicitly disable notifications without an apprise endpoint
-        updates.notify_apprise = false
-      }
+      updates.notify_apprise = false
     } else if (values.setAppriseNotify) {
       // Only set notifications if we're not clearing endpoints
       updates.notify_apprise = values.appriseNotifyValue
@@ -556,12 +550,7 @@ export default function BulkEditModal({
 
     if (values.clearDiscordId) {
       // When clearing Discord IDs, always disable Discord notifications
-      if (values.setDiscordNotify) {
-        updates.notify_discord = false
-      } else {
-        // Explicitly disable notifications without Discord ID
-        updates.notify_discord = false
-      }
+      updates.notify_discord = false
     } else if (values.setDiscordNotify) {
       // Only set Discord notifications if we're not clearing Discord IDs
       updates.notify_discord = values.discordNotifyValue

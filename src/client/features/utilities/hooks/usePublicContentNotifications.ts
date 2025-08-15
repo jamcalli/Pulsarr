@@ -312,11 +312,7 @@ export function usePublicContentNotifications() {
             } removed)`
           }
 
-          if (result.duplicateCount && result.duplicateCount > 0) {
-            toast.error(countText)
-          } else {
-            toast.success(countText)
-          }
+          toast.success(countText)
         } else {
           form.setValue(testedField, false, { shouldValidate: true })
           form.setError(urlField, {
