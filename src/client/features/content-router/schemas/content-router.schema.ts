@@ -43,7 +43,7 @@ const isValidGroup = (
   visited = new WeakSet(),
 ): boolean => {
   // Guard against excessive nesting
-  if (depth > 20) {
+  if (depth >= 20) {
     return false
   }
 
@@ -87,7 +87,7 @@ export const ConditionalRouteFormSchema = z.object({
     error: 'Route name must be at least 2 characters.',
   }),
   condition: ConditionGroupSchema,
-  target_instance_id: z.number().min(1, {
+  target_instance_id: z.coerce.number().int().min(1, {
     error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
@@ -121,7 +121,7 @@ export const GenreRouteFormSchema = z.object({
     z.string().min(1, { error: 'Genre is required.' }),
     z.array(z.string().min(1, { error: 'Each genre must not be empty.' })),
   ]),
-  target_instance_id: z.number().min(1, {
+  target_instance_id: z.coerce.number().int().min(1, {
     error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
@@ -170,6 +170,22 @@ export const YearCriteriaFormSchema = z
   )
   .refine(
     (data) => {
+      if (
+        data.matchType === 'range' &&
+        data.minYear !== undefined &&
+        data.maxYear !== undefined
+      ) {
+        return data.minYear <= data.maxYear
+      }
+      return true
+    },
+    {
+      message: 'Min year cannot be greater than max year',
+      path: ['minYear'],
+    },
+  )
+  .refine(
+    (data) => {
       if (data.matchType === 'list') {
         const years = data.years
           .split(',')
@@ -190,7 +206,7 @@ export const YearRouteFormSchema = z.object({
   name: z.string().min(2, {
     error: 'Route name must be at least 2 characters.',
   }),
-  target_instance_id: z.number().min(1, {
+  target_instance_id: z.coerce.number().int().min(1, {
     error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
@@ -215,7 +231,7 @@ export const LanguageRouteFormSchema = z.object({
   language: z.string().min(1, {
     error: 'Language is required.',
   }),
-  target_instance_id: z.number().min(1, {
+  target_instance_id: z.coerce.number().int().min(1, {
     error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
@@ -238,7 +254,7 @@ export const UserRouteFormSchema = z.object({
   users: z
     .union([z.string(), z.array(z.string())])
     .transform((val) => (Array.isArray(val) ? val : [val])),
-  target_instance_id: z.number().min(1, {
+  target_instance_id: z.coerce.number().int().min(1, {
     error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {

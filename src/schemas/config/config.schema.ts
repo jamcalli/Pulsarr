@@ -91,9 +91,9 @@ export const ConfigSchema = z.object({
   tautulliUrl: z.string().optional(),
   tautulliApiKey: z.string().optional(),
   // General Notifications
-  queueWaitTime: z.coerce.number().optional(),
-  newEpisodeThreshold: z.coerce.number().optional(),
-  upgradeBufferTime: z.coerce.number().optional(),
+  queueWaitTime: z.coerce.number().int().min(0).max(5).optional(), // 0-5 minutes
+  newEpisodeThreshold: z.coerce.number().int().min(0).max(720).optional(), // 0-720 hours (1 month)
+  upgradeBufferTime: z.coerce.number().int().min(0).max(10).optional(), // 0-10 seconds
   // Pending Webhooks Config
   // How often to retry processing pending webhooks (in seconds)
   pendingWebhookRetryInterval: z.number().optional(),
