@@ -5,7 +5,7 @@ import { InfoIcon, Loader2, Save, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import type { z } from 'zod'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Form,
