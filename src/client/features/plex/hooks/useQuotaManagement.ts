@@ -10,7 +10,7 @@ import {
   QuotaFormSchema,
   type QuotaFormValues,
   transformQuotaFormToAPI,
-} from '@/features/plex/components/user/quota-edit-modal'
+} from '@/features/plex/quota/form-schema'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import { useConfigStore } from '@/stores/configStore'

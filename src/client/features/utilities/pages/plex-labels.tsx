@@ -515,7 +515,8 @@ export function PlexLabelsPage() {
                     <div className="shrink-0">
                       <TimeSelector
                         value={
-                          field.value instanceof Date
+                          field.value instanceof Date &&
+                          !Number.isNaN(field.value.getTime())
                             ? field.value
                             : scheduleTime
                         }

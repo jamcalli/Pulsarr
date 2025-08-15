@@ -29,7 +29,7 @@ export const IntervalConfigSchema = z
 export const CronConfigSchema = z.object({
   expression: z
     .string()
-    .min(1, 'Cron expression is required')
+    .min(1, { error: 'Cron expression is required' })
     .refine(
       (expression) => {
         try {
@@ -61,13 +61,13 @@ export const CronConfigSchema = z.object({
 export const ScheduleConfigSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('interval'),
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, { error: 'Name is required' }),
     config: IntervalConfigSchema,
     enabled: z.boolean().optional().default(true),
   }),
   z.object({
     type: z.literal('cron'),
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, { error: 'Name is required' }),
     config: CronConfigSchema,
     enabled: z.boolean().optional().default(true),
   }),

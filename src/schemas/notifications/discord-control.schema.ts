@@ -12,7 +12,7 @@ export const DiscordBotResponseSchema = z.object({
 
 // Schema for webhook validation requests
 export const WebhookValidationRequestSchema = z.object({
-  webhookUrls: z.string().min(1, 'Webhook URLs are required'),
+  webhookUrls: z.string().min(1, { error: 'Webhook URLs are required' }),
 })
 
 // Schema for webhook validation responses

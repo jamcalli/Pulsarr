@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 // Schema for the token request
 export const PlexTokenSchema = z.object({
-  plexToken: z.string().min(1, 'Plex token is required'),
+  plexToken: z.string().min(1, { error: 'Plex token is required' }),
 })
 
 // Schema for a single server in the response

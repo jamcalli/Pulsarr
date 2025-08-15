@@ -28,21 +28,17 @@ export function parseWebhookUrls(value?: string): string[] {
 export const discordWebhookStringSchema = z
   .string()
   .optional()
-  .refine(
-    (value): value is string => {
-      const urls = parseWebhookUrls(value)
-      if (urls.length === 0) {
-        return value === undefined || value.trim() === ''
-      }
-      return urls.every((url) => url.includes('discord.com/api/webhooks'))
-    },
-    {
-      message: 'All URLs must be valid Discord webhook URLs',
-    },
-  )
   .superRefine((value, ctx) => {
     const urls = parseWebhookUrls(value)
-    if (urls.length === 0) return
+    if (urls.length === 0) {
+      if (value !== undefined && value.trim() !== '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'All URLs must be valid Discord webhook URLs',
+        })
+      }
+      return
+    }
 
     const invalidUrls = urls.filter(
       (url) => !url.includes('discord.com/api/webhooks'),

@@ -3,8 +3,8 @@ import { z } from 'zod'
 
 // Test connection schemas
 export const TestConnectionBodySchema = z.object({
-  tautulliUrl: z.string().url('Invalid URL format'),
-  tautulliApiKey: z.string().min(1, 'API key is required'),
+  tautulliUrl: z.string().url({ error: 'Invalid URL format' }),
+  tautulliApiKey: z.string().min(1, { error: 'API key is required' }),
 })
 
 export const TestConnectionResponseSchema = z.object({
