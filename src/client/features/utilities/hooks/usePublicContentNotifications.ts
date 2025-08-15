@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { useDebounce } from '@/hooks/useDebounce'
 import { useConfigStore } from '@/stores/configStore'
 import { discordWebhookStringSchema } from '@/utils/discord-webhook-validation'
 
@@ -23,6 +22,28 @@ const publicContentNotificationsSchema =
     _generalTested: z.boolean().default(false),
     _moviesTested: z.boolean().default(false),
     _showsTested: z.boolean().default(false),
+  }).superRefine((data, ctx) => {
+    // Enforce "test before save" for each Discord webhook field
+    const checks: Array<
+      [urlKey: keyof typeof data, testedKey: keyof typeof data]
+    > = [
+      ['discordWebhookUrls', '_generalTested'],
+      ['discordWebhookUrlsMovies', '_moviesTested'],
+      ['discordWebhookUrlsShows', '_showsTested'],
+    ]
+
+    for (const [urlKey, testedKey] of checks) {
+      const url = data[urlKey] as string | undefined
+      const tested = data[testedKey] as boolean | undefined
+
+      if (url && url.trim().length > 0 && !tested) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [urlKey as string],
+          message: 'Please test connection before saving',
+        })
+      }
+    }
   })
 
 export type PublicContentNotificationsFormValues = z.input<
@@ -120,19 +141,6 @@ export function usePublicContentNotifications() {
     return () => subscription.unsubscribe()
   }, [form])
 
-  // Debounced validation function
-  const debouncedValidation = useDebounce(
-    (fieldName: string, value: string) => {
-      if (value && value.length > 0) {
-        form.setError(fieldName as keyof PublicContentNotificationsFormValues, {
-          type: 'manual',
-          message: 'Please test connection before saving',
-        })
-      }
-    },
-    300,
-  )
-
   // Reset testing states when URLs change
   useEffect(() => {
     const subscription = form.watch((_, { name }) => {
@@ -142,28 +150,22 @@ export function usePublicContentNotifications() {
           ...prev,
           testResults: { ...prev.testResults, general: null },
         }))
-        const url = form.getValues('discordWebhookUrls')
-        debouncedValidation('discordWebhookUrls', url || '')
       } else if (name === 'discordWebhookUrlsMovies') {
         form.setValue('_moviesTested', false, { shouldValidate: true })
         setTestStatus((prev) => ({
           ...prev,
           testResults: { ...prev.testResults, movies: null },
         }))
-        const url = form.getValues('discordWebhookUrlsMovies')
-        debouncedValidation('discordWebhookUrlsMovies', url || '')
       } else if (name === 'discordWebhookUrlsShows') {
         form.setValue('_showsTested', false, { shouldValidate: true })
         setTestStatus((prev) => ({
           ...prev,
           testResults: { ...prev.testResults, shows: null },
         }))
-        const url = form.getValues('discordWebhookUrlsShows')
-        debouncedValidation('discordWebhookUrlsShows', url || '')
       }
     })
     return () => subscription.unsubscribe()
-  }, [form, debouncedValidation])
+  }, [form])
 
   // Helper function to validate Discord webhook URL using the same endpoint as notifications
   const validateDiscordWebhook = useCallback(
