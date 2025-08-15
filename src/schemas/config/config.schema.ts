@@ -90,10 +90,33 @@ export const ConfigSchema = z.object({
   tautulliEnabled: z.boolean().optional(),
   tautulliUrl: z.string().optional(),
   tautulliApiKey: z.string().optional(),
-  // General Notifications
-  queueWaitTime: z.coerce.number().int().min(0).max(5).optional(), // 0-5 minutes
-  newEpisodeThreshold: z.coerce.number().int().min(0).max(720).optional(), // 0-720 hours (1 month)
-  upgradeBufferTime: z.coerce.number().int().min(0).max(10).optional(), // 0-10 seconds
+  // General Notifications (stored in milliseconds)
+  queueWaitTime: z.coerce
+    .number()
+    .int()
+    .min(0, { error: 'Queue wait time must be at least 0 milliseconds' })
+    .max(5 * 60 * 1000, {
+      error: 'Queue wait time cannot exceed 300000 milliseconds (5 minutes)',
+    })
+    .optional(), // 0-5 minutes in ms
+  newEpisodeThreshold: z.coerce
+    .number()
+    .int()
+    .min(0, { error: 'New episode threshold must be at least 0 milliseconds' })
+    .max(720 * 60 * 60 * 1000, {
+      error:
+        'New episode threshold cannot exceed 2592000000 milliseconds (720 hours)',
+    })
+    .optional(), // 0-720 hours in ms
+  upgradeBufferTime: z.coerce
+    .number()
+    .int()
+    .min(0, { error: 'Upgrade buffer time must be at least 0 milliseconds' })
+    .max(10 * 1000, {
+      error:
+        'Upgrade buffer time cannot exceed 10000 milliseconds (10 seconds)',
+    })
+    .optional(), // 0-10 seconds in ms
   // Pending Webhooks Config
   // How often to retry processing pending webhooks (in seconds)
   pendingWebhookRetryInterval: z.number().optional(),
@@ -212,7 +235,8 @@ export const ConfigSchema = z.object({
   // TMDB Configuration
   tmdbRegion: z
     .string()
-    .length(2, { error: 'Region must be a 2-letter country code' })
+    .regex(/^[A-Za-z]{2}$/, { error: 'Region must be exactly 2 letters (A–Z)' })
+    .transform((s) => s.toUpperCase())
     .optional(),
   // User Tags Configuration - flat properties following new pattern
   tagUsersInSonarr: z.boolean().optional(),

@@ -1,7 +1,6 @@
 // src/client/features/notifications/components/general/general-settings-form.tsx
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ConfigSchema } from '@root/schemas/config/config.schema'
 import { InfoIcon, Loader2, Save, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -25,11 +24,28 @@ import {
 } from '@/components/ui/tooltip'
 import { useConfigStore } from '@/stores/configStore'
 
-// Extract general notification fields from backend API schema
-const generalFormSchema = ConfigSchema.pick({
-  queueWaitTime: true,
-  newEpisodeThreshold: true,
-  upgradeBufferTime: true,
+// Frontend form schema with user-friendly validation (before conversion to milliseconds)
+const generalFormSchema = z.object({
+  queueWaitTime: z.coerce
+    .number()
+    .int()
+    .min(0, { error: 'Queue wait time must be at least 0 minutes' })
+    .max(5, { error: 'Queue wait time cannot exceed 5 minutes' })
+    .optional(),
+  newEpisodeThreshold: z.coerce
+    .number()
+    .int()
+    .min(0, { error: 'New episode threshold must be at least 0 hours' })
+    .max(720, {
+      error: 'New episode threshold cannot exceed 720 hours (1 month)',
+    })
+    .optional(),
+  upgradeBufferTime: z.coerce
+    .number()
+    .int()
+    .min(0, { error: 'Upgrade buffer time must be at least 0 seconds' })
+    .max(10, { error: 'Upgrade buffer time cannot exceed 10 seconds' })
+    .optional(),
 })
 
 interface GeneralSettingsFormProps {
@@ -193,6 +209,7 @@ export function GeneralSettingsForm({
                     placeholder="Enter queue wait time"
                     type="number"
                     min="0"
+                    max="5"
                     step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"
@@ -238,6 +255,7 @@ export function GeneralSettingsForm({
                     placeholder="Enter new episode threshold"
                     type="number"
                     min="0"
+                    max="720"
                     step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"
@@ -283,6 +301,7 @@ export function GeneralSettingsForm({
                     placeholder="Enter upgrade buffer time"
                     type="number"
                     min="0"
+                    max="10"
                     step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"

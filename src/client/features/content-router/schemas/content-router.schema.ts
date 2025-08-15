@@ -53,9 +53,7 @@ const isValidGroup = (
   }
   visited.add(group)
 
-  if (!group.conditions || group.conditions.length === 0) {
-    return false // Require at least one condition to match server validation
-  }
+  // Note: Array length check moved to schema .min(1) validation
 
   return group.conditions.every((cond) => {
     if ('conditions' in cond) {
@@ -69,15 +67,15 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
   z
     .object({
       operator: z.enum(['AND', 'OR']),
-      conditions: z.array(
-        z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
-      ),
+      conditions: z
+        .array(z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]))
+        .min(1, { message: 'At least one condition is required' }),
       negate: z.boolean().optional().default(false),
       _cid: z.string().optional(),
     })
     .refine((group) => isValidGroup(group), {
       message:
-        'Condition groups must contain at least one condition and cannot exceed 20 levels or contain circular references',
+        'Condition groups cannot exceed 20 levels or contain circular references',
     }),
 )
 
@@ -117,10 +115,12 @@ export const GenreRouteFormSchema = z.object({
   name: z.string().min(2, {
     error: 'Route name must be at least 2 characters.',
   }),
-  genre: z.union([
-    z.string().min(1, { error: 'Genre is required.' }),
-    z.array(z.string().min(1, { error: 'Each genre must not be empty.' })),
-  ]),
+  genre: z
+    .union([
+      z.string().min(1, { error: 'Genre is required.' }),
+      z.array(z.string().min(1, { error: 'Each genre must not be empty.' })),
+    ])
+    .transform((val) => (Array.isArray(val) ? val : [val])),
   target_instance_id: z.coerce.number().int().min(1, {
     error: 'Instance selection is required.',
   }),
@@ -189,8 +189,9 @@ export const YearCriteriaFormSchema = z
       if (data.matchType === 'list') {
         const years = data.years
           .split(',')
-          .map((y) => Number.parseInt(y.trim()))
-          .filter((y) => !Number.isNaN(y))
+          .map((y) => y.trim())
+          .filter((y) => y.length > 0 && /^\d{4}$/.test(y))
+          .map((y) => Number(y))
         return years.length > 0 && years.every((y) => y >= 1900 && y <= 2100)
       }
       return true
