@@ -64,11 +64,8 @@ export function GeneralSettingsForm({
 
   const generalForm = useForm<z.input<typeof generalFormSchema>>({
     resolver: zodResolver(generalFormSchema),
-    defaultValues: {
-      queueWaitTime: 0,
-      newEpisodeThreshold: 0,
-      upgradeBufferTime: 0,
-    },
+    mode: 'onBlur',
+    defaultValues: {},
   })
 
   // Helper functions to convert between storage and display units
@@ -106,7 +103,8 @@ export function GeneralSettingsForm({
 
   const onSubmitGeneral = async (data: z.input<typeof generalFormSchema>) => {
     // Transform the form data to ensure proper types
-    const transformedData = generalFormSchema.parse(data)
+    const transformedData: z.output<typeof generalFormSchema> =
+      generalFormSchema.parse(data)
     setGeneralStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
@@ -134,7 +132,7 @@ export function GeneralSettingsForm({
       setGeneralStatus('success')
 
       // Keep the display values in the form
-      generalForm.reset(data)
+      generalForm.reset(transformedData)
 
       toast.success('General notification settings have been updated')
 
@@ -184,10 +182,18 @@ export function GeneralSettingsForm({
                 <FormControl>
                   <Input
                     {...field}
-                    value={String(field.value ?? '')}
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.currentTarget.value === ''
+                          ? undefined
+                          : e.currentTarget.valueAsNumber,
+                      )
+                    }
                     placeholder="Enter queue wait time"
                     type="number"
                     min="0"
+                    step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"
                   />
@@ -221,10 +227,18 @@ export function GeneralSettingsForm({
                 <FormControl>
                   <Input
                     {...field}
-                    value={String(field.value ?? '')}
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.currentTarget.value === ''
+                          ? undefined
+                          : e.currentTarget.valueAsNumber,
+                      )
+                    }
                     placeholder="Enter new episode threshold"
                     type="number"
                     min="0"
+                    step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"
                   />
@@ -258,10 +272,18 @@ export function GeneralSettingsForm({
                 <FormControl>
                   <Input
                     {...field}
-                    value={String(field.value ?? '')}
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.currentTarget.value === ''
+                          ? undefined
+                          : e.currentTarget.valueAsNumber,
+                      )
+                    }
                     placeholder="Enter upgrade buffer time"
                     type="number"
                     min="0"
+                    step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"
                   />

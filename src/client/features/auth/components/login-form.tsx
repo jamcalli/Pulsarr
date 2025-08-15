@@ -17,7 +17,11 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form className="grid gap-4" onSubmit={form.handleSubmit(handleSubmit)}>
+      <form
+        className="grid gap-4"
+        noValidate
+        onSubmit={form.handleSubmit(handleSubmit)}
+      >
         <FormField
           control={form.control}
           name="email"
