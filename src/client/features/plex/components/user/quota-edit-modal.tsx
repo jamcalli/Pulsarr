@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Loader2 } from 'lucide-react'
 import React, { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type UseFormReturn } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -44,7 +44,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 
 interface FormContentProps {
-  form: ReturnType<typeof useForm<QuotaFormValues>>
+  form: UseFormReturn<QuotaFormValues>
   handleSubmit: (values: QuotaFormValues) => Promise<void>
   handleOpenChange: (open: boolean) => void
   saveStatus: QuotaEditStatus
@@ -144,7 +144,15 @@ const FormContent = React.memo(
                             value={String(field.value ?? '')}
                             type="number"
                             placeholder="10"
+                            min={1}
                             max="1000"
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value === ''
+                                  ? undefined
+                                  : Number(e.target.value),
+                              )
+                            }
                             disabled={saveStatus.type !== 'idle'}
                           />
                         </FormControl>
@@ -256,7 +264,15 @@ const FormContent = React.memo(
                             value={String(field.value ?? '')}
                             type="number"
                             placeholder="10"
+                            min={1}
                             max="1000"
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value === ''
+                                  ? undefined
+                                  : Number(e.target.value),
+                              )
+                            }
                             disabled={saveStatus.type !== 'idle'}
                           />
                         </FormControl>

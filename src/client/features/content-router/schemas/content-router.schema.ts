@@ -101,7 +101,7 @@ export const ConditionalRouteFormSchema = z.object({
   order: z.number().int().min(1).max(100).default(50),
   search_on_add: z.boolean().optional(),
   season_monitoring: z.string().optional(),
-  series_type: z.enum(ROUTER_SERIES_TYPES).optional(),
+  series_type: z.enum([...ROUTER_SERIES_TYPES, 'none']).optional(),
   // Actions section - approval behavior
   always_require_approval: z.boolean().default(false),
   bypass_user_quotas: z.boolean().default(false),

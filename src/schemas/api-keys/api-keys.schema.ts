@@ -13,6 +13,7 @@ const ApiKeySchema = z.object({
 export const CreateApiKeySchema = z.object({
   name: z
     .string()
+    .trim()
     .min(1, { error: 'Name is required' })
     .max(100, { error: 'Name must be less than 100 characters' }),
 })

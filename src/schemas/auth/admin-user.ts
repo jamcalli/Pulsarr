@@ -30,4 +30,4 @@ export const CreateAdminFormSchema = CreateAdminSchema.extend({
 export type CreateAdminResponse = z.infer<typeof CreateAdminResponseSchema>
 export type CreateAdminError = z.infer<typeof ErrorSchema>
 export type CreateAdmin = z.infer<typeof CreateAdminSchema>
-export type CreateAdminFormSchema = z.infer<typeof CreateAdminFormSchema>
+export type CreateAdminForm = z.infer<typeof CreateAdminFormSchema>
