@@ -79,7 +79,16 @@ export interface QuotaEditStatus {
 export type QuotaFormValues = z.input<typeof QuotaFormSchema>
 export type QuotaFormData = z.infer<typeof QuotaFormSchema>
 
-// Utility function to transform form data to backend API format
+/**
+ * Convert the flattened quota form data into the backend UpdateSeparateQuotasSchema shape.
+ *
+ * When a quota (movie or show) is enabled in the form, the corresponding object in the
+ * returned payload will be { enabled: true, quotaType, quotaLimit, bypassApproval }.
+ * When disabled, the object will be { enabled: false }.
+ *
+ * @param formData - Form values produced by QuotaFormSchema
+ * @returns Payload matching the backend `UpdateSeparateQuotasSchema` with `movieQuota` and `showQuota`
+ */
 export function transformQuotaFormToAPI(
   formData: QuotaFormData,
 ): z.infer<typeof UpdateSeparateQuotasSchema> {

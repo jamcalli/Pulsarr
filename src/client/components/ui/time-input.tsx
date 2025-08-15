@@ -73,15 +73,15 @@ const validateDayOfWeek = (value: string | undefined): string => {
 };
 
 /**
- * A React component that provides dropdown selectors for choosing a day of the week and a time in 15-minute intervals.
+ * Day-and-time picker: lets users choose a day-of-week (or "*") and a time in 15‑minute steps.
  *
- * Users can select a day and a time, and the component invokes the provided callback with the updated Date and selected day string. If the initial date is missing or invalid, the time defaults to "00:00". Both selectors can be disabled, and custom CSS classes can be applied to the container.
+ * The component displays two dropdowns (day and time). When a selection changes it calls `onChange`
+ * with a Date (time applied) and a validated/normalized day string. The day value is normalized to
+ * '*' or '0'–'6' (a received '7' is normalized to '0'); invalid inputs fall back to '*'.
  *
- * @param value - The initial date used to display the selected time, if valid.
- * @param onChange - Callback called with the new Date and selected day string when a selection changes.
- * @param disabled - Disables both dropdown selectors when true.
- * @param className - Additional CSS classes for the container.
- * @param dayOfWeek - The initial day selection; defaults to '*'.
+ * @param value - Optional initial Date shown in the time selector; if missing or invalid the displayed time is "00:00". When `onChange` is invoked, if `value` was not provided a new Date() is used as the date portion.
+ * @param onChange - Called when either selector changes: receives the updated Date (with the selected time) and the validated day string ('*' or '0'–'6').
+ * @param dayOfWeek - Initial day selection; defaults to '*' and is validated/normalized before use.
  */
 export function TimeSelector({ 
   value, 

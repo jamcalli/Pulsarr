@@ -89,6 +89,12 @@ interface ExtendedContentRouterRule extends ContentRouterRule {
   condition?: ConditionGroup
 }
 
+/**
+ * Ensure a valid ConditionGroup is returned for the form: if `cg` contains one or more conditions it is returned unchanged; otherwise a default empty `ConditionGroup` is returned.
+ *
+ * @param cg - A condition group value from the conditional-route form (may be undefined or have an empty conditions array).
+ * @returns A `ConditionGroup` that is safe to store on a route (default: `{ operator: 'AND', conditions: [], negate: false }` when `cg` is missing or has no conditions).
+ */
 function normalizeConditionGroup(
   cg: ConditionalRouteFormValues['condition'] | undefined,
 ): ConditionGroup {

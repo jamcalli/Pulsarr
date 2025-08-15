@@ -52,11 +52,11 @@ import { useConfigStore } from '@/stores/configStore'
 import { useProgressStore } from '@/stores/progressStore'
 
 /**
- * Renders the Plex Labels management page for administrators to configure and control user-based labeling in Plex.
+ * Admin page for configuring and managing Plex user-labeling.
  *
- * This page provides controls to enable or disable Plex labeling, adjust label prefix and concurrency settings, manage cleanup and removal behaviors, and configure tag synchronization with Radarr and Sonarr. Administrators can trigger label synchronization, cleanup, and removal actions, view real-time progress and operation results, and manage a scheduled full sync with time and day selection. The UI includes safeguards against conflicting actions and accidental destructive operations, and displays detailed status and error feedback.
+ * Renders a form-driven UI to enable/disable Plex labeling, adjust label prefixes and concurrency, configure cleanup and removal behavior, toggle and schedule full syncs (time/day), and enable tag sync from Radarr/Sonarr. Exposes controls to trigger sync, cleanup, and label removal actions, displays real-time progress and last-operation results, and includes a confirmation modal for destructive actions. Uses internal hooks for config, form state, scheduling, and progress tracking.
  *
- * @returns A React element representing the Plex label management interface.
+ * @returns A React element containing the Plex Labels management interface.
  */
 export function PlexLabelsPage() {
   const { config, initialize: configInitialize } = useConfigStore()

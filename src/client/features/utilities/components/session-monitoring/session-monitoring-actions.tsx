@@ -10,14 +10,14 @@ interface SessionMonitoringActionsProps {
 }
 
 /**
- * Renders an action section with a button to enable or disable session monitoring in a form.
+ * Render the "Actions" section containing a single button to enable or disable session monitoring.
  *
- * The button immediately toggles the monitoring state via API call with proper loading states and user feedback. The button's appearance and label reflect the current monitoring state and submission status.
+ * The button calls `onToggle` with the new desired enabled state and reflects in its
+ * appearance and label the current state and progress: it shows a spinner while `isToggling`,
+ * is disabled while `isSubmitting || isToggling`, and uses an "error" variant when enabled.
  *
- * @param isEnabled - Whether session monitoring is currently enabled.
- * @param isSubmitting - Whether the form is currently being submitted.
- * @param isToggling - Whether the toggle operation is in progress.
- * @param onToggle - Async function to toggle the monitoring state.
+ * @param onToggle - Async callback invoked with the new enabled state when the button is clicked.
+ * @returns The Actions UI for toggling session monitoring.
  */
 export function SessionMonitoringActions({
   isEnabled,

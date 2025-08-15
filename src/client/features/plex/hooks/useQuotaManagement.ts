@@ -16,11 +16,15 @@ import type { UserWithQuotaInfo } from '@/stores/configStore'
 import { useConfigStore } from '@/stores/configStore'
 
 /**
- * React hook for managing user quota settings for movies and shows.
+ * Hook for managing a user's movie and show quota settings.
  *
- * Provides state and functions to save, update, delete, and retrieve user quota information, and to track the status of quota operations.
+ * Provides helpers to create, update, delete, and fetch quotas, and exposes the current save operation status.
  *
- * @returns An object containing the current save status, a function to save or update quotas, a setter for save status, and a function to fetch a user's quota status.
+ * @returns An object with:
+ *  - `saveStatus` — current status of the last save operation (`idle | loading | success | error` with optional message).
+ *  - `saveQuota(user, formData, onSuccess?)` — saves or removes quotas based on form values; accepts a user, validated form values, and an optional success callback.
+ *  - `setSaveStatus` — setter for `saveStatus`.
+ *  - `getQuotaStatus(userId)` — fetches the quota status for the given user ID.
  */
 export function useQuotaManagement() {
   const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
