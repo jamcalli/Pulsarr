@@ -15,7 +15,7 @@ export const CreateApiKeySchema = z.object({
     .string()
     .trim()
     .min(1, { error: 'Name is required' })
-    .max(100, { error: 'Name must be less than 100 characters' }),
+    .max(100, { error: 'Name must be at most 100 characters' }),
 })
 
 export const CreateApiKeyResponseSchema = z.object({

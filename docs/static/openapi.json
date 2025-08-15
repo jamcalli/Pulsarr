@@ -13265,7 +13265,8 @@
                     "minLength": 1
                   }
                 },
-                "required": ["instanceId", "label"]
+                "required": ["instanceId", "label"],
+                "additionalProperties": false
               }
             }
           },
@@ -13280,7 +13281,10 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "number"
+                      "type": "integer",
+                      "exclusiveMinimum": true,
+                      "maximum": 9007199254740991,
+                      "minimum": 0
                     },
                     "label": {
                       "type": "string"
@@ -14243,8 +14247,7 @@
                 "type": "object",
                 "properties": {
                   "baseUrl": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                   },
                   "apiKey": {
                     "type": "string",
@@ -16219,7 +16222,8 @@
                     "minLength": 1
                   }
                 },
-                "required": ["instanceId", "label"]
+                "required": ["instanceId", "label"],
+                "additionalProperties": false
               }
             }
           },
@@ -16234,7 +16238,10 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "number"
+                      "type": "integer",
+                      "exclusiveMinimum": true,
+                      "maximum": 9007199254740991,
+                      "minimum": 0
                     },
                     "label": {
                       "type": "string"
@@ -17239,8 +17246,7 @@
                 "type": "object",
                 "properties": {
                   "baseUrl": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                   },
                   "apiKey": {
                     "type": "string",
@@ -19535,8 +19541,7 @@
                 "type": "object",
                 "properties": {
                   "tautulliUrl": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                   },
                   "tautulliApiKey": {
                     "type": "string",

@@ -18,7 +18,7 @@ import { useCreateUserForm } from '@/features/create-user/hooks/useCreateUserFor
  * Handles form validation, displays backend error messages, and updates the submit button's state and label based on submission status. The email input is automatically focused when the form mounts.
  */
 export function CreateUserForm() {
-  const { form, status, backendError, handleSubmit } = useCreateUserForm()
+  const { form, status, backendError, onSubmit } = useCreateUserForm()
   const emailInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export function CreateUserForm() {
 
   return (
     <Form {...form}>
-      <form className="grid gap-4" onSubmit={form.handleSubmit(handleSubmit)}>
+      <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
         <FormField
           control={form.control}
           name="email"
