@@ -199,13 +199,14 @@ export function GeneralSettingsForm({
                   <Input
                     {...field}
                     value={field.value?.toString() ?? ''}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const v = e.currentTarget.valueAsNumber
                       field.onChange(
-                        e.currentTarget.value === ''
+                        e.currentTarget.value === '' || Number.isNaN(v)
                           ? undefined
-                          : e.currentTarget.valueAsNumber,
+                          : v,
                       )
-                    }
+                    }}
                     placeholder="Enter queue wait time"
                     type="number"
                     min="0"
@@ -245,13 +246,14 @@ export function GeneralSettingsForm({
                   <Input
                     {...field}
                     value={field.value?.toString() ?? ''}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const v = e.currentTarget.valueAsNumber
                       field.onChange(
-                        e.currentTarget.value === ''
+                        e.currentTarget.value === '' || Number.isNaN(v)
                           ? undefined
-                          : e.currentTarget.valueAsNumber,
+                          : v,
                       )
-                    }
+                    }}
                     placeholder="Enter new episode threshold"
                     type="number"
                     min="0"
@@ -291,13 +293,14 @@ export function GeneralSettingsForm({
                   <Input
                     {...field}
                     value={field.value?.toString() ?? ''}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const v = e.currentTarget.valueAsNumber
                       field.onChange(
-                        e.currentTarget.value === ''
+                        e.currentTarget.value === '' || Number.isNaN(v)
                           ? undefined
-                          : e.currentTarget.valueAsNumber,
+                          : v,
                       )
-                    }
+                    }}
                     placeholder="Enter upgrade buffer time"
                     type="number"
                     min="0"

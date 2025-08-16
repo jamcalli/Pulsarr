@@ -3595,13 +3595,19 @@
                           "type": "string"
                         },
                         "queueWaitTime": {
-                          "type": "number"
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 300000
                         },
                         "newEpisodeThreshold": {
-                          "type": "number"
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2592000000
                         },
                         "upgradeBufferTime": {
-                          "type": "number"
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
                         },
                         "pendingWebhookRetryInterval": {
                           "type": "number"
@@ -3947,11 +3953,7 @@
                           },
                           "additionalProperties": false
                         },
-                        "tmdbRegion": {
-                          "type": "string",
-                          "minLength": 2,
-                          "maxLength": 2
-                        },
+                        "tmdbRegion": {},
                         "tagUsersInSonarr": {
                           "type": "boolean"
                         },
@@ -4137,13 +4139,19 @@
                     "type": "string"
                   },
                   "queueWaitTime": {
-                    "type": "number"
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 300000
                   },
                   "newEpisodeThreshold": {
-                    "type": "number"
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2592000000
                   },
                   "upgradeBufferTime": {
-                    "type": "number"
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
                   },
                   "pendingWebhookRetryInterval": {
                     "type": "number"
@@ -4488,8 +4496,7 @@
                   },
                   "tmdbRegion": {
                     "type": "string",
-                    "minLength": 2,
-                    "maxLength": 2
+                    "pattern": "^[A-Za-z]{2}$"
                   },
                   "tagUsersInSonarr": {
                     "type": "boolean"
@@ -4622,13 +4629,19 @@
                           "type": "string"
                         },
                         "queueWaitTime": {
-                          "type": "number"
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 300000
                         },
                         "newEpisodeThreshold": {
-                          "type": "number"
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2592000000
                         },
                         "upgradeBufferTime": {
-                          "type": "number"
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
                         },
                         "pendingWebhookRetryInterval": {
                           "type": "number"
@@ -4974,11 +4987,7 @@
                           },
                           "additionalProperties": false
                         },
-                        "tmdbRegion": {
-                          "type": "string",
-                          "minLength": 2,
-                          "maxLength": 2
-                        },
+                        "tmdbRegion": {},
                         "tagUsersInSonarr": {
                           "type": "boolean"
                         },
