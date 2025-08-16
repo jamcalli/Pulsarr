@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
+import { z } from 'zod'
 
 // Base enums matching approval types
 export const ApprovalStatusSchema = z.enum([
@@ -152,17 +152,23 @@ export const ApprovalErrorSchema = z.object({
 
 // Bulk operation schemas
 export const BulkApprovalRequestSchema = z.object({
-  requestIds: z.array(z.number()).min(1, 'At least one request ID is required'),
+  requestIds: z
+    .array(z.number())
+    .min(1, { error: 'At least one request ID is required' }),
   notes: z.string().optional(),
 })
 
 export const BulkRejectRequestSchema = z.object({
-  requestIds: z.array(z.number()).min(1, 'At least one request ID is required'),
+  requestIds: z
+    .array(z.number())
+    .min(1, { error: 'At least one request ID is required' }),
   reason: z.string().optional(),
 })
 
 export const BulkDeleteRequestSchema = z.object({
-  requestIds: z.array(z.number()).min(1, 'At least one request ID is required'),
+  requestIds: z
+    .array(z.number())
+    .min(1, { error: 'At least one request ID is required' }),
 })
 
 export const BulkOperationResponseSchema = z.object({

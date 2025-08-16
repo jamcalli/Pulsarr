@@ -1,6 +1,6 @@
-import { useConfigStore } from '@/stores/configStore'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays a badge showing whether Apprise integration is enabled or disabled, with green for enabled and red for disabled.

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
-import { formatDistanceToNow, parseISO } from 'date-fns'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { toast } from 'sonner'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { formatDistanceToNow, parseISO } from 'date-fns'
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
  * React hook for managing the scheduling, configuration, and execution of approval and quota maintenance jobs.
@@ -253,7 +253,7 @@ export function useApprovalScheduler() {
       if (!lastRun?.time) return 'Never'
       try {
         return formatDistanceToNow(parseISO(lastRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return lastRun.time
       }
     },
@@ -266,7 +266,7 @@ export function useApprovalScheduler() {
       if (!nextRun?.time) return 'Not scheduled'
       try {
         return formatDistanceToNow(parseISO(nextRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return nextRun.time
       }
     },
@@ -302,7 +302,7 @@ export function useApprovalScheduler() {
             `Approval maintenance schedule has been ${enabled ? 'enabled' : 'disabled'}.`,
           )
         }
-      } catch (err) {
+      } catch (_err) {
         toast.error('Failed to toggle approval schedule status')
       } finally {
         setIsTogglingApproval(false)
@@ -321,7 +321,7 @@ export function useApprovalScheduler() {
             `Quota maintenance schedule has been ${enabled ? 'enabled' : 'disabled'}.`,
           )
         }
-      } catch (err) {
+      } catch (_err) {
         toast.error('Failed to toggle quota schedule status')
       } finally {
         setIsTogglingQuota(false)
@@ -338,7 +338,7 @@ export function useApprovalScheduler() {
       if (success) {
         toast.success('Approval maintenance job has been started.')
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to run approval maintenance job')
     } finally {
       setIsRunningApproval(false)
@@ -352,7 +352,7 @@ export function useApprovalScheduler() {
       if (success) {
         toast.success('Quota maintenance job has been started.')
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to run quota maintenance job')
     } finally {
       setIsRunningQuota(false)

@@ -1,16 +1,17 @@
-import * as React from 'react'
+import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import {
   type ColumnFiltersState,
-  type SortingState,
-  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -27,10 +28,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ApprovalTableToolbar } from '@/features/approvals/components/approval-table-toolbar'
-import { createApprovalColumns } from '@/features/approvals/components/approval-table-columns'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import { createApprovalColumns } from '@/features/approvals/components/approval-table-columns'
+import { ApprovalTableToolbar } from '@/features/approvals/components/approval-table-toolbar'
 import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface ApprovalTableProps {

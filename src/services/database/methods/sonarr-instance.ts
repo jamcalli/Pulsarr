@@ -1,6 +1,6 @@
-import type { DatabaseService } from '@services/database.service.js'
-import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { SonarrInstanceRow } from '@root/types/database-rows.types.js'
+import type { SonarrInstance } from '@root/types/sonarr.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
 
 /**

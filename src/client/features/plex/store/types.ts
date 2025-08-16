@@ -1,13 +1,13 @@
-import type {
-  UpdateUser,
-  BulkUpdateRequest,
-} from '@root/schemas/users/users.schema'
-import type { SelfWatchlistSuccess } from '@root/schemas/plex/self-watchlist-token.schema'
+import type { RssFeedsSuccess } from '@root/schemas/plex/generate-rss-feeds.schema'
 import type { OthersWatchlistSuccess } from '@root/schemas/plex/others-watchlist-token.schema'
 import type { PingSuccess } from '@root/schemas/plex/ping.schema'
-import type { RssFeedsSuccess } from '@root/schemas/plex/generate-rss-feeds.schema'
-import type { UserWatchlistInfo } from '@/stores/configStore'
+import type { SelfWatchlistSuccess } from '@root/schemas/plex/self-watchlist-token.schema'
+import type {
+  BulkUpdateRequest,
+  UpdateUser,
+} from '@root/schemas/users/users.schema'
 import type { Row } from '@tanstack/react-table'
+import type { UserWatchlistInfo } from '@/stores/configStore'
 
 export interface PlexConnectionValues {
   plexToken: string

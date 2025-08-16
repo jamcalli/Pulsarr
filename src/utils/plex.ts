@@ -543,7 +543,7 @@ export const getFriends = async (
     }
 
     try {
-      log.debug(`Fetching friends with token: ${token}`)
+      log.debug('Fetching friends with Plex token')
       const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
@@ -575,7 +575,7 @@ export const getFriends = async (
         )
 
         if (friends.length === 0) {
-          log.warn(`No friends found for token: ${token}`)
+          log.warn('No friends found for Plex token')
           continue
         }
 

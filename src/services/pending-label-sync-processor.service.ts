@@ -1,7 +1,7 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { PendingLabelSyncConfig } from '@root/types/pending-label-sync-processor.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexLabelSyncService } from '@services/plex-label-sync.service.js'
-import type { PendingLabelSyncConfig } from '@root/types/pending-label-sync-processor.types.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
  * Service to handle label syncs that couldn't be processed immediately.
@@ -42,7 +42,7 @@ export class PendingLabelSyncProcessorService {
     private readonly log: FastifyBaseLogger,
     private readonly db: DatabaseService,
     private readonly plexLabelSyncService: PlexLabelSyncService,
-    private readonly fastify: FastifyInstance,
+    readonly _fastify: FastifyInstance,
   ) {
     this._config = {
       retryInterval: 30, // Default retry interval - not configurable

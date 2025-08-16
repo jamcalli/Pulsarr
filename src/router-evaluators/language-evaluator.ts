@@ -1,19 +1,18 @@
-import type { FastifyInstance } from 'fastify'
-import {
-  type ContentItem,
-  type RoutingContext,
-  type RoutingDecision,
-  type RoutingEvaluator,
-  type Condition,
-  ConditionGroup,
-  type FieldInfo,
-  type OperatorInfo,
-  type RouterRule,
-} from '@root/types/router.types.js'
 import {
   isRadarrResponse,
   isSonarrResponse,
 } from '@root/types/content-lookup.types.js'
+import type {
+  Condition,
+  ContentItem,
+  FieldInfo,
+  OperatorInfo,
+  RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+} from '@root/types/router.types.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Creates a routing evaluator that generates routing decisions for content items based on their original language metadata.
@@ -127,7 +126,7 @@ export default function createLanguageEvaluator(
 
     async canEvaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): Promise<boolean> {
       return hasLanguageData(item)
     },
@@ -265,7 +264,7 @@ export default function createLanguageEvaluator(
     evaluateCondition(
       condition: Condition,
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): boolean {
       // Only support the 'language' field
       if (!('field' in condition) || condition.field !== 'language') {
@@ -281,7 +280,7 @@ export default function createLanguageEvaluator(
         return false
       }
 
-      const { operator, value, negate = false } = condition
+      const { operator, value, negate: _ = false } = condition
 
       // Normalize for comparison
       const normalizedLanguage = language.toLowerCase()

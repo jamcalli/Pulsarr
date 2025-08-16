@@ -1,43 +1,41 @@
-import { useEffect } from 'react'
-import { Loader2, Check, AlertTriangle } from 'lucide-react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
+import { AlertTriangle, Check, Loader2 } from 'lucide-react'
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import type { z } from 'zod'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Form,
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
-  FormDescription,
 } from '@/components/ui/form'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { toast } from 'sonner'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import type { z } from 'zod'
-import type {
-  PlexUserUpdates,
-  PlexUserTableRow,
-  BulkUpdateStatus,
-} from '@/features/plex/store/types'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { bulkUpdateSchema } from '@/features/plex/store/schemas'
-
-type BulkUpdateSchema = z.infer<typeof bulkUpdateSchema>
+import type {
+  BulkUpdateStatus,
+  PlexUserTableRow,
+  PlexUserUpdates,
+} from '@/features/plex/store/types'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface BulkEditModalProps {
   open: boolean
@@ -48,8 +46,8 @@ interface BulkEditModalProps {
 }
 
 interface FormContentProps {
-  form: ReturnType<typeof useForm<BulkUpdateSchema>>
-  handleSubmit: (values: BulkUpdateSchema) => Promise<void>
+  form: ReturnType<typeof useForm<z.input<typeof bulkUpdateSchema>>>
+  handleSubmit: (values: z.input<typeof bulkUpdateSchema>) => Promise<void>
   handleOpenChange: (open: boolean) => void
   saveStatus: BulkUpdateStatus
   selectedRows: PlexUserTableRow[]
@@ -486,7 +484,7 @@ export default function BulkEditModal({
 }: BulkEditModalProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  const form = useForm<BulkUpdateSchema>({
+  const form = useForm<z.input<typeof bulkUpdateSchema>>({
     resolver: zodResolver(bulkUpdateSchema),
     defaultValues: {
       clearAlias: false,
@@ -524,7 +522,7 @@ export default function BulkEditModal({
     return () => subscription.unsubscribe()
   }, [form])
 
-  const handleSubmit = async (values: BulkUpdateSchema) => {
+  const handleSubmit = async (values: z.input<typeof bulkUpdateSchema>) => {
     if (!selectedRows.length) return
 
     // Extract userIds from selected rows
@@ -542,15 +540,9 @@ export default function BulkEditModal({
     }
 
     if (values.clearApprise) {
-      // Set to null to clear the apprise field
+      // Set to null to clear the apprise field and always disable notifications
       updates.apprise = null
-      // When clearing apprise endpoints, always disable notifications
-      if (values.setAppriseNotify) {
-        updates.notify_apprise = false
-      } else {
-        // Explicitly disable notifications without an apprise endpoint
-        updates.notify_apprise = false
-      }
+      updates.notify_apprise = false
     } else if (values.setAppriseNotify) {
       // Only set notifications if we're not clearing endpoints
       updates.notify_apprise = values.appriseNotifyValue
@@ -558,12 +550,7 @@ export default function BulkEditModal({
 
     if (values.clearDiscordId) {
       // When clearing Discord IDs, always disable Discord notifications
-      if (values.setDiscordNotify) {
-        updates.notify_discord = false
-      } else {
-        // Explicitly disable notifications without Discord ID
-        updates.notify_discord = false
-      }
+      updates.notify_discord = false
     } else if (values.setDiscordNotify) {
       // Only set Discord notifications if we're not clearing Discord IDs
       updates.notify_discord = values.discordNotifyValue

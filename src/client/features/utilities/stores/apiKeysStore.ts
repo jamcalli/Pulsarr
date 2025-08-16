@@ -1,15 +1,15 @@
-import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
-import { z } from 'zod'
+import { MIN_LOADING_DELAY } from '@root/client/features/plex/store/constants'
 import {
-  CreateApiKeyResponseSchema,
-  GetApiKeysResponseSchema,
   type CreateApiKey,
   type CreateApiKeyResponse,
+  CreateApiKeyResponseSchema,
   type GetApiKeysResponse,
+  GetApiKeysResponseSchema,
 } from '@root/schemas/api-keys/api-keys.schema'
 import type { ApiKey } from '@root/types/api-key.types'
-import { MIN_LOADING_DELAY } from '@root/client/features/plex/store/constants'
+import { z } from 'zod'
+import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
 
 export interface ApiKeysState {
   apiKeys: ApiKey[]
@@ -82,7 +82,7 @@ const handleApiResponse = async <T>(
     return json as T
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('API response failed schema validation:', error.errors)
+      console.error('API response failed schema validation:', error.issues)
       throw new Error(`${defaultErrorMessage}: Invalid response format`)
     }
 

@@ -1,17 +1,23 @@
-import { z } from 'zod'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { z } from 'zod'
 
-export const CreateTagBodySchema = z.object({
-  instanceId: z.number().int().positive('Instance ID is required'),
-  label: z.string().min(1, 'Tag label is required'),
-})
+export const CreateTagBodySchema = z
+  .object({
+    instanceId: z.coerce
+      .number()
+      .int({ error: 'Instance ID must be an integer' })
+      .positive({ error: 'Instance ID must be positive' }),
+    label: z.string().trim().min(1, { error: 'Tag label is required' }),
+  })
+  .strict()
 
 export const CreateTagResponseSchema = z.object({
-  id: z.number(),
-  label: z.string(),
+  id: z.number().int().positive(),
+  label: z.string().trim(),
 })
 
-export type CreateTagBody = z.infer<typeof CreateTagBodySchema>
+export type CreateTagBodyInput = z.input<typeof CreateTagBodySchema>
+export type CreateTagBody = z.output<typeof CreateTagBodySchema>
 export type CreateTagResponse = z.infer<typeof CreateTagResponseSchema>
 export type CreateTagError = z.infer<typeof ErrorSchema>
 

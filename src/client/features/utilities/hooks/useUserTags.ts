@@ -1,19 +1,17 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { useConfigStore } from '@/stores/configStore'
 import type {
-  CreateTaggingResponse,
-  SyncTaggingResponse,
   CleanupResponse,
+  CreateTaggingResponse,
   RemoveTagsResponse,
+  SyncTaggingResponse,
 } from '@root/schemas/tags/user-tags.schema'
 import { TaggingConfigSchema } from '@root/schemas/tags/user-tags.schema'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import type { z } from 'zod'
-
-export type UserTagsFormValues = z.infer<typeof TaggingConfigSchema>
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useConfigStore } from '@/stores/configStore'
 
 // Union type for action results
 type ActionResult =
@@ -133,7 +131,7 @@ export function useUserTags() {
   }, [removeTagsResults])
 
   // Initialize form with default values
-  const form = useForm<UserTagsFormValues>({
+  const form = useForm<z.input<typeof TaggingConfigSchema>>({
     resolver: zodResolver(TaggingConfigSchema),
     defaultValues: {
       tagUsersInSonarr: false,
@@ -206,7 +204,7 @@ export function useUserTags() {
 
   // Handle form submission - mimicking DeleteSyncForm exactly
   const onSubmit = useCallback(
-    async (data: UserTagsFormValues) => {
+    async (data: z.input<typeof TaggingConfigSchema>) => {
       // Set both states to maintain consistency with DeleteSyncForm
       setSaveStatus('loading')
       setLoadingWithMinDuration(true)
@@ -291,7 +289,7 @@ export function useUserTags() {
       setLastActionResults(result)
 
       toast.success(result.message || 'User tags created successfully')
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [createUserTags])
@@ -309,7 +307,7 @@ export function useUserTags() {
       setLastActionResults(result)
 
       toast.success(result.message || 'User tags synced successfully')
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [syncUserTags])
@@ -324,7 +322,7 @@ export function useUserTags() {
       setLastActionResults(result)
 
       toast.success(result.message || 'Orphaned tags cleaned up successfully')
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [cleanupUserTags])

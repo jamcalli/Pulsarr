@@ -1,10 +1,10 @@
+import { Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Loader2, Check } from 'lucide-react'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -17,7 +17,11 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form className="grid gap-4" onSubmit={form.handleSubmit(handleSubmit)}>
+      <form
+        className="grid gap-4"
+        noValidate
+        onSubmit={form.handleSubmit(handleSubmit)}
+      >
         <FormField
           control={form.control}
           name="email"
@@ -26,7 +30,10 @@ export function LoginForm() {
               <FormControl>
                 <Input
                   {...field}
-                  ref={emailInputRef}
+                  ref={(el) => {
+                    field.ref(el)
+                    emailInputRef.current = el
+                  }}
                   type="email"
                   placeholder="Email"
                   autoComplete="email"

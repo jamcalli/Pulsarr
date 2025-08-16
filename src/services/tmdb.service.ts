@@ -5,23 +5,23 @@
  * movie and TV show metadata including overview, ratings, and watch providers.
  * Uses modern Bearer token authentication (API Read Access Token).
  */
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
+import type { RadarrMovieLookupResponse } from '@root/types/content-lookup.types.js'
 import type {
-  TmdbMovieDetails,
-  TmdbTvDetails,
-  TmdbMovieMetadata,
-  TmdbTvMetadata,
-  RadarrRatings,
-  TmdbRegion,
-} from '@schemas/tmdb/tmdb.schema.js'
-import type {
-  TmdbErrorResponse,
-  TmdbWatchProvidersResponse,
   TmdbFindResponse,
   TmdbWatchProviderData,
+  TmdbWatchProvidersResponse,
 } from '@root/types/tmdb.types.js'
-import type { RadarrMovieLookupResponse } from '@root/types/content-lookup.types.js'
 import { isTmdbError } from '@root/types/tmdb.types.js'
+import type {
+  RadarrRatings,
+  TmdbMovieDetails,
+  TmdbMovieMetadata,
+  TmdbRegion,
+  TmdbTvDetails,
+  TmdbTvMetadata,
+} from '@schemas/tmdb/tmdb.schema.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class TmdbService {
   private static readonly BASE_URL = 'https://api.themoviedb.org/3'

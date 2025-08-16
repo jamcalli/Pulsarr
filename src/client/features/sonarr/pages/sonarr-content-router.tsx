@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
-import { useConfigStore } from '@/stores/configStore'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays the Sonarr Content Router page for managing content routing rules.

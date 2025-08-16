@@ -4,131 +4,131 @@
 
 /* Force navbar links to always be black */
 .navbar__link {
-	color: #000 !important;
-	font-weight: 500;
+  color: #000 !important;
+  font-weight: 500;
 }
 
 /* Make sure links stay black on hover, just slightly lighter */
 .navbar__link:hover,
 .navbar__link--active {
-	color: #000 !important;
-	opacity: 0.8;
-	text-decoration: none;
+  color: #000 !important;
+  opacity: 0.8;
+  text-decoration: none;
 }
 
 /* Remove blue color from active link */
 .navbar__link.navbar__link--active {
-	color: #000 !important;
-	opacity: 0.8;
+  color: #000 !important;
+  opacity: 0.8;
 }
 
 /* Force black text in both light and dark modes */
 html[data-theme="light"] .navbar__link,
 html[data-theme="light"] .navbar__link:hover,
 html[data-theme="light"] .navbar__link--active {
-	color: #000 !important;
+  color: #000 !important;
 }
 
 html[data-theme="dark"] .navbar__link,
 html[data-theme="dark"] .navbar__link:hover,
 html[data-theme="dark"] .navbar__link--active {
-	color: #000 !important;
+  color: #000 !important;
 }
 
 /* Remove background color from active/hover states */
 .navbar__link:hover,
 .navbar__link--active {
-	background-color: transparent !important;
+  background-color: transparent !important;
 }
 
 /* Force logo text to always be black */
 .navbar__title,
 .navbar__brand {
-	color: #000 !important;
-	font-weight: 600;
+  color: #000 !important;
+  font-weight: 600;
 }
 
 /* Force brand link to stay black */
 .navbar__brand:hover,
 .navbar__brand:focus {
-	color: #000 !important;
+  color: #000 !important;
 }
 
 /* Force mobile menu toggle button to be black */
 .navbar__toggle,
 .navbar__toggle svg,
 .navbar-sidebar__brand .navbar__toggle {
-	color: #000 !important;
+  color: #000 !important;
 }
 
 /* Target the hamburger icon specifically */
 .navbar__toggle:hover,
 .navbar__toggle:focus {
-	color: #000 !important;
-	background-color: transparent !important;
+  color: #000 !important;
+  background-color: transparent !important;
 }
 
 /* Override: Allow mobile sidebar brand text to use theme colors */
 .navbar-sidebar__brand .navbar__title,
 .navbar-sidebar__brand .navbar__brand {
-	color: var(--text) !important;
+  color: var(--text) !important;
 }
 
 /* Star reminder text styling */
 .navbar__star-reminder {
-	display: inline-block !important;
-	color: #000000 !important; /* Always black text */
-	font-size: 0.875rem !important; /* text-sm */
-	margin-right: 0.25rem !important; /* Reduced from 0.75rem to 0.25rem */
-	white-space: nowrap;
-	opacity: 0.8;
-	transition: opacity 0.2s ease;
-	line-height: 1.5;
-	padding: 0.5rem 0;
+  display: inline-block !important;
+  color: #000000 !important; /* Always black text */
+  font-size: 0.875rem !important; /* text-sm */
+  margin-right: 0.25rem !important; /* Reduced from 0.75rem to 0.25rem */
+  white-space: nowrap;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+  line-height: 1.5;
+  padding: 0.5rem 0;
 }
 
 .navbar__star-reminder:hover {
-	opacity: 1;
+  opacity: 1;
 }
 
 /* Styling for GitHub stats button container */
 #github-stats-button {
-	display: flex;
-	align-items: center;
-	margin-right: 0.75rem;
-	height: 40px; /* Match the height of container to mode toggle */
-	order: 98; /* Position before theme toggle but after other elements */
+  display: flex;
+  align-items: center;
+  margin-right: 0.75rem;
+  height: 40px; /* Match the height of container to mode toggle */
+  order: 98; /* Position before theme toggle but after other elements */
 }
 
 /* Better align navbar components */
 .navbar__items--right {
-	align-items: center;
-	height: 100%;
+  align-items: center;
+  height: 100%;
 }
 
 /* Make sure all buttons in the navbar are consistently sized */
 .navbar__items--right button {
-	height: 2.5rem;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	margin: 0;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
 }
 
 /* Mobile styles - ensure GitHub stats button stays visible */
 @media (max-width: 996px) {
-	#github-stats-button {
-		display: flex !important;
-		margin-right: 0.5rem;
-	}
+  #github-stats-button {
+    display: flex !important;
+    margin-right: 0.5rem;
+  }
 
-	/* Ensure the GitHub button doesn't wrap to a new line */
-	.navbar__items--right {
-		flex-wrap: nowrap;
-	}
+  /* Ensure the GitHub button doesn't wrap to a new line */
+  .navbar__items--right {
+    flex-wrap: nowrap;
+  }
 
-	/* Keep GitHub button in mobile view */
-	.navbar-sidebar .navbar__items #github-stats-button {
-		display: none !important;
-	}
+  /* Keep GitHub button in mobile view */
+  .navbar-sidebar .navbar__items #github-stats-button {
+    display: none !important;
+  }
 }

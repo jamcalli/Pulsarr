@@ -4,29 +4,30 @@
  * A stateful service class for interacting with Plex Media Server.
  * Provides connection management, user operations, and playlist protection functionality.
  */
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { parseGuids, normalizeGuid } from '@utils/guid-handler.js'
-import { toItemsSingle } from '@utils/plex.js'
+
 import type { Item } from '@root/types/plex.types.js'
-import { XMLParser } from 'fast-xml-parser'
+import type {
+  PlexMetadata,
+  PlexMetadataResponse,
+  PlexPlaylistItem,
+  PlexPlaylistItemsResponse,
+  PlexPlaylistResponse,
+  PlexResource,
+  PlexSearchResponse,
+  PlexServerConnectionInfo,
+  PlexSharedServerInfo,
+  PlexUser,
+} from '@root/types/plex-server.types.js'
 import type {
   PlexSession,
   PlexSessionResponse,
   PlexShowMetadata,
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
-import type {
-  PlexPlaylistResponse,
-  PlexPlaylistItemsResponse,
-  PlexPlaylistItem,
-  PlexServerConnectionInfo,
-  PlexUser,
-  PlexSharedServerInfo,
-  PlexResource,
-  PlexMetadata,
-  PlexSearchResponse,
-  PlexMetadataResponse,
-} from '@root/types/plex-server.types.js'
+import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
+import { toItemsSingle } from '@utils/plex.js'
+import { XMLParser } from 'fast-xml-parser'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
  * PlexServerService class for maintaining state and providing Plex operations
@@ -1212,7 +1213,7 @@ export class PlexServerService {
    * @returns Promise resolving to an object with title and GUIDs, or null if not found
    */
   async getItemMetadata(
-    username: string,
+    _username: string,
     plexGuid: string,
     grandparentGuid?: string,
     itemType?: string,
@@ -1223,7 +1224,7 @@ export class PlexServerService {
         itemType === 'episode' && grandparentGuid ? grandparentGuid : plexGuid
 
       // Extract the media ID from the Plex GUID to create a key
-      const mediaId = guidToUse.split(/[\/:]/).pop()
+      const mediaId = guidToUse.split(/[/:]/).pop()
       if (!mediaId) {
         this.log.warn(`Invalid Plex GUID format: "${guidToUse}"`)
         return null

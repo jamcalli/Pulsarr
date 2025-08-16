@@ -1,7 +1,7 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import { LogoutBodySchema, LogoutResponseSchema } from '@schemas/auth/logout.js'
 import { isLocalIpAddress } from '@utils/ip.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -55,7 +55,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           success: true,
           message: 'Successfully logged out.',
         }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Logout failed.')
       }
     },

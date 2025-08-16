@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 const WatchlistItemSchema = z.object({
@@ -31,14 +32,7 @@ const RssWatchlistSuccessSchema = z.object({
   friends: WatchlistSectionSchema,
 })
 
-const RssWatchlistErrorSchema = z.object({
-  error: z.string(),
-})
-
-const RssWatchlistResponseSchema = z.union([
-  RssWatchlistSuccessSchema,
-  RssWatchlistErrorSchema,
-])
+const RssWatchlistResponseSchema = RssWatchlistSuccessSchema
 
 export const rssWatchlistSchema = {
   summary: 'Parse RSS watchlists',
@@ -47,11 +41,11 @@ export const rssWatchlistSchema = {
   tags: ['Plex'],
   response: {
     200: RssWatchlistResponseSchema,
+    500: ErrorSchema,
   },
 }
 
 export type RssWatchlistResponse = z.infer<typeof RssWatchlistResponseSchema>
 export type RssWatchlistSuccess = z.infer<typeof RssWatchlistSuccessSchema>
-export type RssWatchlistError = z.infer<typeof RssWatchlistErrorSchema>
 export type WatchlistItem = z.infer<typeof WatchlistItemSchema>
 export type User = z.infer<typeof UserSchema>

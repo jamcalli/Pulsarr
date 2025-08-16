@@ -1,9 +1,9 @@
-import type { DatabaseService } from '@services/database.service.js'
 import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
 
 /**
@@ -155,7 +155,7 @@ export async function updateWatchlistItemByGuid(
   }
 
   // Remove syncing field as it only exists in junction tables, not watchlist_items
-  const { syncing, ...validUpdates } = updates
+  const { syncing: _, ...validUpdates } = updates
   const updateCount = await this.knex('watchlist_items')
     .whereIn('id', matchingIds)
     .update({

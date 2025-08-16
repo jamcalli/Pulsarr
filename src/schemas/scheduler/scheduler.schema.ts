@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { createRequire } from 'node:module'
+import { z } from 'zod'
 
 const require = createRequire(import.meta.url)
 const cronValidate = require('cron-validate').default
@@ -29,7 +29,7 @@ export const IntervalConfigSchema = z
 export const CronConfigSchema = z.object({
   expression: z
     .string()
-    .min(1, 'Cron expression is required')
+    .min(1, { error: 'Cron expression is required' })
     .refine(
       (expression) => {
         try {
@@ -45,7 +45,7 @@ export const CronConfigSchema = z.object({
 
           // Reject everything else (e.g. 7-field expressions with "year")
           return false
-        } catch (error) {
+        } catch (_error) {
           // If validation fails for any reason, assume invalid
           return false
         }
@@ -61,13 +61,13 @@ export const CronConfigSchema = z.object({
 export const ScheduleConfigSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('interval'),
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, { error: 'Name is required' }),
     config: IntervalConfigSchema,
     enabled: z.boolean().optional().default(true),
   }),
   z.object({
     type: z.literal('cron'),
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, { error: 'Name is required' }),
     config: CronConfigSchema,
     enabled: z.boolean().optional().default(true),
   }),

@@ -1,10 +1,10 @@
-import type { FastifyPluginAsync } from 'fastify'
 import {
-  TestConnectionResponseSchema,
   ErrorSchema,
   type TestConnectionResponse,
+  TestConnectionResponseSchema,
 } from '@root/schemas/tautulli/tautulli.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

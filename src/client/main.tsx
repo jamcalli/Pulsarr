@@ -1,11 +1,11 @@
 import './styles/globals.css'
 import './styles/fonts.css'
 import { createRoot } from 'react-dom/client'
-import { ThemeProvider } from '@/components/theme-provider'
-import { SettingsProvider } from '@/components/settings-provider'
 import { RouterProvider } from 'react-router-dom'
-import { router } from '@/router/router'
 import PulsarrIcon from '@/assets/images/pulsarr.svg'
+import { SettingsProvider } from '@/components/settings-provider'
+import { ThemeProvider } from '@/components/theme-provider'
+import { router } from '@/router/router'
 
 const setFavicon = () => {
   const link =

@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import { InstanceCard as RadarrInstanceCard } from '@/features/radarr/components/instance/radarr-instance-card'
 import RadarrPageSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
+import { InstanceCard as RadarrInstanceCard } from '@/features/radarr/components/instance/radarr-instance-card'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 
 /**
  * Renders the management page for configuring and maintaining Radarr instances.

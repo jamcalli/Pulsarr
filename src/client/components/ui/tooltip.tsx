@@ -2,8 +2,8 @@
 
 import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 import * as React from 'react'
-import { cn } from '@/lib/utils'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { cn } from '@/lib/utils'
 
 // Create context to manage mobile tooltip state
 type TooltipContextType = {

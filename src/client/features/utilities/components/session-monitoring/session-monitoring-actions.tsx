@@ -2,31 +2,27 @@ import { Loader2, Power } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
-import type {
-  SessionMonitoringFormData,
-  SessionMonitoringComponentProps,
-} from '@/features/utilities/constants/session-monitoring'
-
-interface SessionMonitoringActionsProps
-  extends SessionMonitoringComponentProps {
+interface SessionMonitoringActionsProps {
+  isEnabled: boolean
   isSubmitting: boolean
-  onSubmit: (data: SessionMonitoringFormData) => Promise<void>
+  isToggling: boolean
+  onToggle: (enabled: boolean) => Promise<void>
 }
 
 /**
- * Renders an action section with a button to enable or disable session monitoring in a form.
+ * Render the "Actions" control with a toggle button to enable or disable session monitoring.
  *
- * The button toggles the monitoring state, marks the form as dirty, and triggers an auto-save by calling the provided submission handler with the updated form values. The button's appearance and label reflect the current monitoring state and submission status.
+ * The button calls `onToggle` with the opposite of `isEnabled`. It is disabled while `isSubmitting`
+ * or `isToggling` is true. While `isToggling` the button shows a spinner and the label changes
+ * to "Enabling..." / "Disabling..."; otherwise it shows "Enable" / "Disable" and a power icon.
  *
- * @param isEnabled - Whether session monitoring is currently enabled.
- * @param isSubmitting - Whether the form is currently being submitted.
- * @param onSubmit - Async function invoked with updated form values when toggling monitoring.
+ * @param onToggle - Async callback invoked with the new enabled state (boolean).
  */
 export function SessionMonitoringActions({
-  form,
   isEnabled,
   isSubmitting,
-  onSubmit,
+  isToggling,
+  onToggle,
 }: SessionMonitoringActionsProps) {
   return (
     <div>
@@ -37,22 +33,31 @@ export function SessionMonitoringActions({
           size="sm"
           onClick={async () => {
             const newEnabledState = !isEnabled
-            form.setValue('enabled', newEnabledState, {
-              shouldDirty: true,
-            })
-            // Auto-save when toggling enable/disable
-            await onSubmit(form.getValues())
+            try {
+              await onToggle(newEnabledState)
+            } catch (error) {
+              // Error handling is done in the hook
+              console.error('Toggle failed:', error)
+            }
           }}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isToggling}
           variant={isEnabled ? 'error' : 'noShadow'}
           className="h-8"
         >
-          {isSubmitting ? (
+          {isToggling ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Power className="h-4 w-4" />
           )}
-          <span className="ml-2">{isEnabled ? 'Disable' : 'Enable'}</span>
+          <span className="ml-2">
+            {isToggling
+              ? isEnabled
+                ? 'Disabling...'
+                : 'Enabling...'
+              : isEnabled
+                ? 'Disable'
+                : 'Enable'}
+          </span>
         </Button>
       </div>
     </div>

@@ -1,12 +1,12 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import {
-  CreateUserSchema,
   CreateUserResponseSchema,
-  UpdateUserSchema,
+  CreateUserSchema,
   UpdateUserResponseSchema,
+  UpdateUserSchema,
   UserErrorSchema,
 } from '@schemas/users/users.schema.js'
+import type { FastifyPluginAsync } from 'fastify'
+import { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -48,7 +48,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'User created successfully',
           user,
         }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Failed to create user')
       }
     },
@@ -118,7 +118,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'User updated successfully',
           user: updatedUser,
         }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Failed to update user')
       }
     },
@@ -164,7 +164,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'User retrieved successfully',
           user,
         }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Failed to retrieve user')
       }
     },
