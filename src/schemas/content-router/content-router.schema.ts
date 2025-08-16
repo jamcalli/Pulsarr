@@ -48,7 +48,7 @@ export const ConditionValueSchema = z.union([
 export interface ICondition {
   field: string
   operator: ComparisonOperator
-  value: z.infer<typeof ConditionValueSchema> | null
+  value: z.infer<typeof ConditionValueSchema>
   negate?: boolean
   _cid?: string
 }
@@ -334,6 +334,8 @@ export function normalizeSeasonMonitoring(value: unknown): string | undefined {
     'lastseason',
     'latestseason',
     'pilot',
+    'pilotrolling',
+    'firstseasonrolling',
     'recent',
     'monitorspecials',
     'unmonitorspecials',
