@@ -108,7 +108,7 @@ export const ConditionalRouteFormSchema = z.object({
         depth = 0,
         visited = new WeakSet(),
       ): boolean => {
-        if (depth > 20) return false
+        if (depth >= 20) return false
         if (visited.has(group)) return false
         visited.add(group)
 

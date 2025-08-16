@@ -92,8 +92,10 @@ interface ExtendedContentRouterRule extends ContentRouterRule {
 /**
  * Ensure a valid ConditionGroup is returned for form values.
  *
- * If `cg` is undefined or contains no conditions, returns a default empty AND group
- * ({ operator: 'AND', conditions: [], negate: false }). Otherwise returns `cg` unchanged.
+ * If `cg` is undefined or contains no conditions, returns a default empty group,
+ * preserving provided operator/negate when available
+ * ({ operator: cg?.operator ?? 'AND', conditions: [], negate: cg?.negate ?? false }).
+ * Otherwise returns `cg` unchanged.
  *
  * @param cg - Condition group from form values (may be undefined or empty)
  * @returns A valid ConditionGroup suitable for use or persistence
@@ -103,7 +105,7 @@ function normalizeConditionGroup(
 ): ConditionGroup {
   if (cg?.conditions?.length) return cg
   return {
-    operator: 'AND',
+    operator: cg?.operator ?? 'AND',
     conditions: [],
     negate: cg?.negate ?? false,
   }
@@ -117,13 +119,13 @@ function normalizeConditionGroup(
  * @returns The normalized series_type value or undefined
  */
 function normalizeSeriesType(
-  contentType: string,
-  value?: string | null,
+  contentType: 'sonarr' | 'radarr',
+  value?: 'standard' | 'anime' | 'daily' | 'none' | null,
 ): 'standard' | 'anime' | 'daily' | undefined {
   if (contentType !== 'sonarr' || !value || value === 'none') {
     return undefined
   }
-  return value as 'standard' | 'anime' | 'daily'
+  return value
 }
 
 interface AccordionRouteCardProps {
