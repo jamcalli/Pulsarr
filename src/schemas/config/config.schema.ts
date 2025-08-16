@@ -238,6 +238,7 @@ export const ConfigSchema = z.object({
   // TMDB Configuration
   tmdbRegion: z
     .string()
+    .trim()
     .regex(/^[A-Za-z]{2}$/, { error: 'Region must be exactly 2 letters (A–Z)' })
     .transform((s) => s.toUpperCase())
     .optional(),
