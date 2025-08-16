@@ -1,6 +1,34 @@
 import { z } from 'zod'
 import { SERIES_TYPES } from './constants.js'
 
+// Helper function to check if a value is considered "non-empty" for validation
+function isNonEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false
+  if (typeof value === 'string') return value.trim() !== ''
+  if (Array.isArray(value)) return value.length > 0
+  return true
+}
+
+// Valid season monitoring options (hoisted to avoid per-call allocation)
+const VALID_SEASON_MONITORING = new Set([
+  'unknown',
+  'all',
+  'future',
+  'missing',
+  'existing',
+  'firstseason',
+  'lastseason',
+  'latestseason',
+  'pilot',
+  'pilotrolling',
+  'firstseasonrolling',
+  'recent',
+  'monitorspecials',
+  'unmonitorspecials',
+  'none',
+  'skip',
+])
+
 // Base schemas for conditions
 export const ComparisonOperatorSchema = z.enum([
   'equals',
@@ -67,11 +95,7 @@ export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
         // Validate that condition has complete data
         const hasField = Boolean(cond.field)
         const hasOperator = Boolean(cond.operator)
-        const hasValue =
-          cond.value !== undefined &&
-          cond.value !== null &&
-          (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
-          (!Array.isArray(cond.value) || cond.value.length > 0)
+        const hasValue = isNonEmptyValue(cond.value)
 
         return hasField && hasOperator && hasValue
       },
@@ -95,7 +119,7 @@ const isValidConditionGroup = (
   visited = new WeakSet(),
 ): boolean => {
   // Guard against excessive nesting (prevent stack overflow)
-  if (depth >= 20) {
+  if (depth > 20) {
     return false
   }
 
@@ -324,27 +348,9 @@ export function normalizeSeasonMonitoring(value: unknown): string | undefined {
     return undefined
   }
 
-  const validValues = new Set([
-    'unknown',
-    'all',
-    'future',
-    'missing',
-    'existing',
-    'firstseason',
-    'lastseason',
-    'latestseason',
-    'pilot',
-    'pilotrolling',
-    'firstseasonrolling',
-    'recent',
-    'monitorspecials',
-    'unmonitorspecials',
-    'none',
-    'skip',
-  ])
   const strValue = String(value).toLowerCase()
 
-  return validValues.has(strValue) ? strValue : 'all'
+  return VALID_SEASON_MONITORING.has(strValue) ? strValue : 'all'
 }
 export type ContentRouterRuleToggle = z.infer<
   typeof ContentRouterRuleToggleSchema
