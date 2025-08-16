@@ -95,7 +95,7 @@ const isValidConditionGroup = (
   visited = new WeakSet(),
 ): boolean => {
   // Guard against excessive nesting (prevent stack overflow)
-  if (depth > 20) {
+  if (depth >= 20) {
     return false
   }
 

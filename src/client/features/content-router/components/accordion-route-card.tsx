@@ -102,7 +102,28 @@ function normalizeConditionGroup(
   cg: ConditionalRouteFormValues['condition'] | undefined,
 ): ConditionGroup {
   if (cg?.conditions?.length) return cg
-  return { operator: 'AND', conditions: [], negate: false }
+  return {
+    operator: 'AND',
+    conditions: [],
+    negate: cg?.negate ?? false,
+  }
+}
+
+/**
+ * Normalizes series_type for Sonarr instances only.
+ *
+ * @param contentType - The content type ('sonarr' or 'radarr')
+ * @param value - The series_type value from form data
+ * @returns The normalized series_type value or undefined
+ */
+function normalizeSeriesType(
+  contentType: string,
+  value?: string | null,
+): 'standard' | 'anime' | 'daily' | undefined {
+  if (contentType !== 'sonarr' || !value || value === 'none') {
+    return undefined
+  }
+  return value as 'standard' | 'anime' | 'daily'
 }
 
 interface AccordionRouteCardProps {
@@ -311,9 +332,9 @@ const AccordionRouteCard = ({
 
       // If condition field changes, trigger validation
       if (name && (name === 'condition' || name.startsWith('condition.'))) {
-        setTimeout(() => {
+        queueMicrotask(() => {
           form.trigger('condition')
-        }, 0)
+        })
       }
     })
 
@@ -566,12 +587,7 @@ const AccordionRouteCard = ({
             data.search_on_add === null ? undefined : data.search_on_add,
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
-          series_type:
-            contentType === 'sonarr' &&
-            data.series_type &&
-            data.series_type !== 'none'
-              ? data.series_type
-              : undefined,
+          series_type: normalizeSeriesType(contentType, data.series_type),
           // Action fields
           always_require_approval: data.always_require_approval,
           bypass_user_quotas: data.bypass_user_quotas,
@@ -597,12 +613,7 @@ const AccordionRouteCard = ({
             data.search_on_add === null ? undefined : data.search_on_add,
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
-          series_type:
-            contentType === 'sonarr' &&
-            data.series_type &&
-            data.series_type !== 'none'
-              ? data.series_type
-              : undefined,
+          series_type: normalizeSeriesType(contentType, data.series_type),
           // Action fields
           always_require_approval: data.always_require_approval,
           bypass_user_quotas: data.bypass_user_quotas,
@@ -976,9 +987,8 @@ const AccordionRouteCard = ({
                                     onChange={(value) => {
                                       field.onChange(value)
                                       // Trigger validation immediately after condition changes
-                                      setTimeout(
-                                        () => form.trigger('condition'),
-                                        0,
+                                      queueMicrotask(() =>
+                                        form.trigger('condition'),
                                       )
                                     }}
                                     evaluatorMetadata={evaluatorMetadata}
