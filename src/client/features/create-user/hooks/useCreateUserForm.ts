@@ -1,19 +1,25 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  type CreateAdminForm,
+  CreateAdminFormSchema as createAdminFormSchema,
+} from '@root/schemas/auth/admin-user'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import {
-  type CreateUserFormSchema,
-  createUserFormSchema,
-} from '@/features/create-user/schemas/create-user-schema'
 
 /**
- * React hook that manages a user creation form with validation, submission, and error handling.
+ * Hook for managing the "create admin user" form: validation, submission, and simple UI state.
  *
- * Initializes form state using a Zod schema, tracks submission status, manages backend error messages, and provides a ref to focus the email input on mount. Handles form submission by sending user data to the backend and navigates to the login page upon successful creation.
+ * Uses a Zod schema with react-hook-form, focuses the email input on mount, submits the form (excluding
+ * confirmPassword) to the backend endpoint `/v1/users/create-admin`, and navigates to `/login` on success.
  *
- * @returns An object containing the form instance, submission status, backend error message, email input ref, and the submit handler function.
+ * @returns An object with:
+ * - `form` — the react-hook-form instance wired to the admin user schema.
+ * - `status` — submission state: `'idle' | 'loading' | 'success'`.
+ * - `backendError` — backend error message string or `null`.
+ * - `emailInputRef` — ref for the email input element (used to focus on mount).
+ * - `onSubmit` — async submit handler to pass to `form.handleSubmit`.
  */
 export function useCreateUserForm() {
   const navigate = useNavigate()
@@ -22,8 +28,8 @@ export function useCreateUserForm() {
   const emailInputRef = useRef<HTMLInputElement>(null)
 
   // Initialize form with zod resolver
-  const form = useForm<CreateUserFormSchema>({
-    resolver: zodResolver(createUserFormSchema),
+  const form = useForm<CreateAdminForm>({
+    resolver: zodResolver(createAdminFormSchema),
     mode: 'onChange',
     defaultValues: {
       email: '',
@@ -40,8 +46,8 @@ export function useCreateUserForm() {
     }
   }, [])
 
-  const handleSubmit = useCallback(
-    async (data: CreateUserFormSchema) => {
+  const onSubmit = useCallback(
+    async (data: CreateAdminForm) => {
       setStatus('loading')
       setBackendError(null)
 
@@ -85,6 +91,6 @@ export function useCreateUserForm() {
     status,
     backendError,
     emailInputRef,
-    handleSubmit,
+    onSubmit,
   }
 }

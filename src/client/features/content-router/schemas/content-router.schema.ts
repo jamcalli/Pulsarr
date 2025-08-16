@@ -5,6 +5,15 @@ import {
 import { z } from 'zod'
 import { ROUTER_SERIES_TYPES } from '../constants'
 
+// Helper function to check if a value is considered "non-empty" for validation
+// (Keep in sync with server-side helper in content-router.schema.ts)
+function isNonEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false
+  if (typeof value === 'string') return value.trim() !== ''
+  if (Array.isArray(value)) return value.length > 0
+  return true
+}
+
 export type ConditionValue = z.infer<typeof ConditionValueSchema>
 
 // Define interface for a basic condition
@@ -53,9 +62,7 @@ const isValidGroup = (
   }
   visited.add(group)
 
-  if (!group.conditions || group.conditions.length === 0) {
-    return true // Allow empty conditions in base schema
-  }
+  // Note: Array length check moved to schema .min(1) validation
 
   return group.conditions.every((cond) => {
     if ('conditions' in cond) {
@@ -69,9 +76,9 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
   z
     .object({
       operator: z.enum(['AND', 'OR']),
-      conditions: z.array(
-        z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
-      ),
+      conditions: z
+        .array(z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]))
+        .min(1, { error: 'At least one condition is required.' }),
       negate: z.boolean().optional().default(false),
       _cid: z.string().optional(),
     })
@@ -84,20 +91,16 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
 // Schema for a conditional route - enhanced validation for all conditions
 export const ConditionalRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   condition: ConditionGroupSchema.refine(
     (val) => {
-      // Helper function to validate a single condition
+      // Helper function to validate a single condition (checks for complete data)
       const isValidCondition = (cond: ICondition) => {
         if ('field' in cond && 'operator' in cond && 'value' in cond) {
           const hasField = Boolean(cond.field)
           const hasOperator = Boolean(cond.operator)
-          const hasValue =
-            cond.value !== undefined &&
-            cond.value !== null &&
-            (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
-            (!Array.isArray(cond.value) || cond.value.length > 0)
+          const hasValue = isNonEmptyValue(cond.value)
 
           return hasField && hasOperator && hasValue
         }
@@ -110,28 +113,16 @@ export const ConditionalRouteFormSchema = z.object({
         depth = 0,
         visited = new WeakSet(),
       ): boolean => {
-        // Guard against excessive nesting
-        if (depth > 20) {
-          return false
-        }
-
-        // Guard against circular references
-        if (visited.has(group)) {
-          return false
-        }
+        if (depth > 20) return false
+        if (visited.has(group)) return false
         visited.add(group)
 
-        if (!group.conditions || group.conditions.length === 0) {
-          return false
-        }
+        if (!group.conditions || group.conditions.length === 0) return false
 
         return group.conditions.every((cond) => {
           if ('conditions' in cond) {
-            // Recursive check with incremented depth and shared visited set
             return isValidGroup(cond as IConditionGroup, depth + 1, visited)
           }
-
-          // Check individual condition
           return isValidCondition(cond as ICondition)
         })
       }
@@ -142,21 +133,21 @@ export const ConditionalRouteFormSchema = z.object({
       message: 'All conditions must be completely filled out',
     },
   ),
-  target_instance_id: z.number().min(1, {
-    message: 'Instance selection is required.',
+  target_instance_id: z.coerce.number().int().min(1, {
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
-  search_on_add: z.boolean().optional(),
+  search_on_add: z.boolean().default(true),
   season_monitoring: z.string().optional(),
-  series_type: z.enum(ROUTER_SERIES_TYPES).optional(),
+  series_type: z.enum([...ROUTER_SERIES_TYPES, 'none'] as const).optional(),
   // Actions section - approval behavior
   always_require_approval: z.boolean().default(false),
   bypass_user_quotas: z.boolean().default(false),
@@ -170,20 +161,24 @@ export type ConditionalRouteFormValues = z.infer<
 // Keep backward compatibility with existing route schemas
 export const GenreRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
-  genre: z.union([
-    z.string().min(1, { message: 'Genre is required.' }),
-    z.array(z.string().min(1, { message: 'Each genre must not be empty.' })),
-  ]),
-  target_instance_id: z.number().positive({
-    message: 'Instance selection is required.',
+  genre: z
+    .union([
+      z.string().min(1, { error: 'Genre is required.' }),
+      z
+        .array(z.string().min(1, { error: 'Each genre must not be empty.' }))
+        .min(1, { error: 'Select at least one genre.' }),
+    ])
+    .transform((val) => (Array.isArray(val) ? val : [val])),
+  target_instance_id: z.coerce.number().int().min(1, {
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -225,11 +220,28 @@ export const YearCriteriaFormSchema = z
   )
   .refine(
     (data) => {
+      if (
+        data.matchType === 'range' &&
+        data.minYear !== undefined &&
+        data.maxYear !== undefined
+      ) {
+        return data.minYear <= data.maxYear
+      }
+      return true
+    },
+    {
+      message: 'Min year cannot be greater than max year',
+      path: ['minYear'],
+    },
+  )
+  .refine(
+    (data) => {
       if (data.matchType === 'list') {
         const years = data.years
           .split(',')
-          .map((y) => Number.parseInt(y.trim()))
-          .filter((y) => !Number.isNaN(y))
+          .map((y) => y.trim())
+          .filter((y) => y.length > 0 && /^\d{4}$/.test(y))
+          .map((y) => Number(y))
         return years.length > 0 && years.every((y) => y >= 1900 && y <= 2100)
       }
       return true
@@ -243,16 +255,16 @@ export const YearCriteriaFormSchema = z
 
 export const YearRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
-  target_instance_id: z.number().min(1, {
-    message: 'Instance selection is required.',
+  target_instance_id: z.coerce.number().int().min(1, {
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -265,19 +277,19 @@ export type YearCriteriaFormValues = z.infer<typeof YearCriteriaFormSchema>
 
 export const LanguageRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   language: z.string().min(1, {
-    message: 'Language is required.',
+    error: 'Language is required.',
   }),
-  target_instance_id: z.number().positive({
-    message: 'Instance selection is required.',
+  target_instance_id: z.coerce.number().int().min(1, {
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -288,19 +300,19 @@ export type LanguageRouteFormValues = z.infer<typeof LanguageRouteFormSchema>
 
 export const UserRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   users: z
     .union([z.string(), z.array(z.string())])
     .transform((val) => (Array.isArray(val) ? val : [val])),
-  target_instance_id: z.number().min(1, {
-    message: 'Instance selection is required.',
+  target_instance_id: z.coerce.number().int().min(1, {
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),

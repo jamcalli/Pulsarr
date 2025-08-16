@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const LogoutBodySchema = z.object({}).strict()
+export const LogoutBodySchema = z.strictObject({})
 
 export const LogoutResponseSchema = z.object({
   success: z.boolean(),

@@ -48,11 +48,13 @@ export function useSessionMonitoring() {
     config?.plexSessionMonitoring?.inactivityResetDays || 7,
   )
   const [activeActionId, setActiveActionId] = useState<number | null>(null)
+  const [isToggling, setIsToggling] = useState(false)
   const formInitializedRef = useRef(false)
 
   // Initialize form with default values following established patterns
   const form = useForm<SessionMonitoringFormData>({
     resolver: zodResolver(SessionMonitoringConfigSchema),
+    mode: 'onChange',
     defaultValues: {
       enabled: false,
       pollingIntervalMinutes: 15,
@@ -174,6 +176,75 @@ export function useSessionMonitoring() {
     [toggleScheduleStatus, updateAutoResetSchedule],
   )
 
+  // Handle toggle enable/disable with consistent loading patterns
+  const handleToggle = useCallback(
+    async (newEnabledState: boolean) => {
+      setIsToggling(true)
+      try {
+        // Apply minimum loading time for better UX
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+
+        // Get current form values and update enabled state
+        const currentValues = form.getValues()
+        const formData = { ...currentValues, enabled: newEnabledState }
+
+        // Transform the form data using the schema before passing to updateConfig
+        const transformedData = SessionMonitoringConfigSchema.parse(formData)
+
+        const updateConfigPromise = updateConfig({
+          plexSessionMonitoring: transformedData,
+        })
+
+        // Keep schedules consistent with the new enabled state
+        const schedulePromises: Promise<void>[] = []
+        if (sessionMonitorSchedule) {
+          schedulePromises.push(
+            handleUpdateSessionMonitorSchedule(
+              sessionMonitorSchedule,
+              formData,
+            ),
+          )
+        }
+        if (autoResetSchedule) {
+          schedulePromises.push(
+            handleUpdateAutoResetSchedule(autoResetSchedule, formData),
+          )
+        }
+
+        await Promise.all([
+          updateConfigPromise,
+          ...schedulePromises,
+          minimumLoadingTime,
+        ])
+
+        // Only update form state if the API call succeeds
+        form.setValue('enabled', newEnabledState, { shouldDirty: false })
+        toast.success(
+          `Session monitoring ${newEnabledState ? 'enabled' : 'disabled'} successfully`,
+        )
+      } catch (error) {
+        console.error('Failed to toggle session monitoring:', error)
+        toast.error(
+          `Failed to ${newEnabledState ? 'enable' : 'disable'} session monitoring`,
+        )
+        // Re-throw the error for the component to handle
+        throw error
+      } finally {
+        setIsToggling(false)
+      }
+    },
+    [
+      updateConfig,
+      form,
+      sessionMonitorSchedule,
+      autoResetSchedule,
+      handleUpdateSessionMonitorSchedule,
+      handleUpdateAutoResetSchedule,
+    ],
+  )
+
   // Form submission handler following established patterns
   const onSubmit = useCallback(
     async (data: SessionMonitoringFormData) => {
@@ -186,8 +257,10 @@ export function useSessionMonitoring() {
           setTimeout(resolve, 500),
         )
 
+        // Transform the form data using the schema before passing to updateConfig
+        const transformedData = SessionMonitoringConfigSchema.parse(data)
         const updateConfigPromise = updateConfig({
-          plexSessionMonitoring: data,
+          plexSessionMonitoring: transformedData,
         })
 
         // Handle schedule updates in parallel
@@ -378,12 +451,16 @@ export function useSessionMonitoring() {
     // Action states
     activeActionId,
 
+    // Toggle states
+    isToggling,
+
     // Computed values
     isEnabled,
 
     // Handlers
     onSubmit,
     handleCancel,
+    handleToggle,
     handleRunSessionMonitor,
     handleResetShow,
     handleDeleteShow,

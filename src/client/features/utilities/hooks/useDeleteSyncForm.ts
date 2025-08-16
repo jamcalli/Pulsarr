@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConfigSchema } from '@root/schemas/config/config.schema'
 import type { Config } from '@root/types/config.types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -7,87 +8,61 @@ import * as z from 'zod'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 
-// Schema definition
-export const deleteSyncSchema = z
-  .object({
-    deletionMode: z.enum(['watchlist', 'tag-based']).default('watchlist'),
-    deleteMovie: z.boolean(),
-    deleteEndedShow: z.boolean(),
-    deleteContinuingShow: z.boolean(),
-    deleteFiles: z.boolean(),
-    respectUserSyncSetting: z.boolean(),
-    enablePlexPlaylistProtection: z.boolean(),
-    plexProtectionPlaylistName: z.string().min(1),
-    deleteSyncNotify: z.enum([
-      'none',
-      'message',
-      'webhook',
-      'both',
-      'all',
-      'discord-only',
-      'apprise-only',
-      'webhook-only',
-      'dm-only',
-      'discord-webhook',
-      'discord-message',
-      'discord-both',
-    ]),
-    deleteSyncNotifyOnlyOnDeletion: z.boolean().default(false),
-    maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
-    scheduleTime: z.date().optional(),
-    dayOfWeek: z.string().default('*'),
-    // removedTagPrefix should be configured in the User Tags section when using the 'special-tag' removal mode
-    // This value is read-only in this form but is still needed for the tag-based deletion logic
-    removedTagPrefix: z
-      .string()
-      .trim()
-      .min(1, { message: 'Prefix cannot be empty' })
-      .default('pulsarr:removed'),
-    // Store the current removedTagMode from config to enable validation
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
-  })
-  .refine(
-    (data) => {
-      // If deletion mode is tag-based, removedTagMode must be 'special-tag'
-      if (
-        data.deletionMode === 'tag-based' &&
-        data.removedTagMode !== 'special-tag'
-      ) {
-        return false
-      }
-      return true
-    },
-    {
-      message:
-        'Tag-based deletion requires "Tag Behavior on Removal" to be set to "Special Tag"',
-      path: ['deletionMode'],
-    },
-  )
+// Extract delete sync fields from backend API schema
+const ApiDeleteSyncSchema = ConfigSchema.pick({
+  deletionMode: true,
+  deleteMovie: true,
+  deleteEndedShow: true,
+  deleteContinuingShow: true,
+  deleteFiles: true,
+  respectUserSyncSetting: true,
+  enablePlexPlaylistProtection: true,
+  plexProtectionPlaylistName: true,
+  deleteSyncNotify: true,
+  deleteSyncNotifyOnlyOnDeletion: true,
+  maxDeletionPrevention: true,
+  removedTagPrefix: true,
+  removedTagMode: true,
+})
 
-export type DeleteSyncFormValues = z.infer<typeof deleteSyncSchema>
+// Extend with client-specific fields for scheduling
+export const deleteSyncSchema = ApiDeleteSyncSchema.extend({
+  scheduleTime: z.date().optional(),
+  dayOfWeek: z.string().default('*'),
+}).refine(
+  (data) => {
+    // If deletion mode is tag-based, removedTagMode must be 'special-tag'
+    if (
+      data.deletionMode === 'tag-based' &&
+      data.removedTagMode !== 'special-tag'
+    ) {
+      return false
+    }
+    return true
+  },
+  {
+    message:
+      'Tag-based deletion requires "Tag Behavior on Removal" to be set to "Special Tag"',
+    path: ['deletionMode'],
+  },
+)
+
+export type DeleteSyncFormValues = z.input<typeof deleteSyncSchema>
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
-const validateDayOfWeek = (value: string | undefined): string => {
-  // Valid patterns: '*' (every day) or a single digit from 0-6
-  const validPattern = /^\*$|^[0-6]$/
-
-  // If the value is undefined, empty, or doesn't match the pattern, return '*'
-  if (!value || !validPattern.test(value)) {
-    console.warn(
-      `Invalid dayOfWeek value "${value}" detected, falling back to "*"`,
-    )
-    return '*'
-  }
-
-  return value
-}
-
 /**
- * React hook for managing the deletion synchronization form, including state, validation, and submission logic.
+ * Manages the Delete Sync form state, validation, initialization from global config/schedules, and submission.
  *
- * Initializes form values from global configuration and schedule data, validates input using a Zod schema, and provides handlers for submitting changes, canceling edits, and updating scheduled deletion times. On submission, updates configuration and schedule settings, manages submission status, and provides user feedback.
+ * Provides a React Hook Form instance for delete-sync settings (including scheduling fields), synchronizes initial values from the global configuration and the 'delete-sync' cron schedule, enforces schema validation, and exposes handlers to submit changes (which persist configuration and schedule updates), cancel edits, and update the scheduled time.
  *
- * @returns An object containing the form instance, current save status, a flag indicating if saving is in progress, the last submitted values, and handler functions for form submission, cancellation, and schedule time changes.
+ * @returns An object containing:
+ *  - form: the React Hook Form instance for delete-sync values
+ *  - saveStatus: current save status ('idle' | 'loading' | 'success' | 'error')
+ *  - isSaving: boolean indicating an in-progress save
+ *  - submittedValues: the last-submitted form values or null
+ *  - onSubmit: handler to submit form values (persists config and schedule)
+ *  - handleCancel: resets the form to current configuration/schedule values
+ *  - handleTimeChange: updates the form's scheduleTime and optional dayOfWeek
  */
 export function useDeleteSyncForm() {
   const { config, updateConfig } = useConfigStore()
@@ -253,7 +228,7 @@ export function useDeleteSyncForm() {
       if (data.scheduleTime) {
         const hours = data.scheduleTime.getHours()
         const minutes = data.scheduleTime.getMinutes()
-        const dayOfWeek = validateDayOfWeek(data.dayOfWeek)
+        const dayOfWeek = data.dayOfWeek || '*'
 
         // Create cron expression (seconds minutes hours day month weekday)
         const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`

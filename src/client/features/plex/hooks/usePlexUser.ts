@@ -1,7 +1,8 @@
-import type { CreateUser } from '@root/schemas/users/users.schema'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import type { z } from 'zod'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import type { plexUserSchema } from '@/features/plex/store/schemas'
 import type { UserWatchlistInfo } from '@/stores/configStore'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -41,7 +42,10 @@ export function usePlexUser() {
     setIsEditModalOpen(true)
   }
 
-  const handleUpdateUser = async (userId: number, updates: CreateUser) => {
+  const handleUpdateUser = async (
+    userId: number,
+    updates: z.input<typeof plexUserSchema>,
+  ) => {
     setSaveStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>

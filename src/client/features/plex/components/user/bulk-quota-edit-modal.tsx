@@ -37,31 +37,64 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
-import type { BulkQuotaFormData } from '@/features/plex/hooks/useBulkQuotaManagement'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 // Form schema for bulk quota configuration
-const BulkQuotaFormSchema = z.object({
-  // Clear quotas
-  clearQuotas: z.boolean().default(false),
+export const BulkQuotaFormSchema = z
+  .object({
+    // Clear quotas
+    clearQuotas: z.boolean(),
 
-  // Movie quota settings
-  setMovieQuota: z.boolean().default(false),
-  movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-  movieQuotaLimit: z.coerce.number().min(1).max(1000).optional(),
-  movieBypassApproval: z.boolean().default(false),
+    // Movie quota settings
+    setMovieQuota: z.boolean(),
+    movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
+    movieQuotaLimit: z
+      .number()
+      .min(1, { error: 'Must be at least 1' })
+      .max(1000, { error: 'Must be 1000 or less' })
+      .optional(),
+    movieBypassApproval: z.boolean(),
 
-  // Show quota settings
-  setShowQuota: z.boolean().default(false),
-  showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-  showQuotaLimit: z.coerce.number().min(1).max(1000).optional(),
-  showBypassApproval: z.boolean().default(false),
-})
+    // Show quota settings
+    setShowQuota: z.boolean(),
+    showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
+    showQuotaLimit: z
+      .number()
+      .min(1, { error: 'Must be at least 1' })
+      .max(1000, { error: 'Must be 1000 or less' })
+      .optional(),
+    showBypassApproval: z.boolean(),
+  })
+  .refine(
+    (data) => {
+      // Validate movie quota limit when movie quota is enabled
+      if (
+        data.setMovieQuota &&
+        data.movieQuotaLimit !== undefined &&
+        data.movieQuotaLimit < 1
+      ) {
+        return false
+      }
+      // Validate show quota limit when show quota is enabled
+      if (
+        data.setShowQuota &&
+        data.showQuotaLimit !== undefined &&
+        data.showQuotaLimit < 1
+      ) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Quota limits must be at least 1 when quotas are enabled',
+      path: ['movieQuotaLimit'], // This could be dynamic, but for now just use one path
+    },
+  )
 
 interface QuotaSectionProps {
   contentType: 'movie' | 'show'
-  form: ReturnType<typeof useForm<BulkQuotaFormData>>
+  form: ReturnType<typeof useForm<z.input<typeof BulkQuotaFormSchema>>>
   enabled: boolean
   disabled: boolean
   colorStyle: React.CSSProperties
@@ -81,7 +114,11 @@ const QuotaSection = React.memo(
 
         <FormField
           control={form.control}
-          name={`set${capitalizedType}Quota` as keyof BulkQuotaFormData}
+          name={
+            `set${capitalizedType}Quota` as keyof z.input<
+              typeof BulkQuotaFormSchema
+            >
+          }
           render={({ field }) => (
             <FormItem>
               <div className="flex items-center justify-between">
@@ -109,7 +146,11 @@ const QuotaSection = React.memo(
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ml-4">
             <FormField
               control={form.control}
-              name={`${fieldPrefix}QuotaType` as keyof BulkQuotaFormData}
+              name={
+                `${fieldPrefix}QuotaType` as keyof z.input<
+                  typeof BulkQuotaFormSchema
+                >
+              }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-foreground">
@@ -140,7 +181,11 @@ const QuotaSection = React.memo(
 
             <FormField
               control={form.control}
-              name={`${fieldPrefix}QuotaLimit` as keyof BulkQuotaFormData}
+              name={
+                `${fieldPrefix}QuotaLimit` as keyof z.input<
+                  typeof BulkQuotaFormSchema
+                >
+              }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-foreground">
@@ -166,7 +211,11 @@ const QuotaSection = React.memo(
 
             <FormField
               control={form.control}
-              name={`${fieldPrefix}BypassApproval` as keyof BulkQuotaFormData}
+              name={
+                `${fieldPrefix}BypassApproval` as keyof z.input<
+                  typeof BulkQuotaFormSchema
+                >
+              }
               render={({ field }) => (
                 <FormItem className="flex flex-col justify-end h-full">
                   <div className="flex items-center space-x-2">
@@ -202,8 +251,8 @@ export interface BulkQuotaEditStatus {
 }
 
 interface FormContentProps {
-  form: ReturnType<typeof useForm<BulkQuotaFormData>>
-  handleSubmit: (values: BulkQuotaFormData) => Promise<void>
+  form: ReturnType<typeof useForm<z.input<typeof BulkQuotaFormSchema>>>
+  handleSubmit: (values: z.input<typeof BulkQuotaFormSchema>) => Promise<void>
   handleOpenChange: (open: boolean) => void
   saveStatus: BulkQuotaEditStatus
   isFormDirty: boolean
@@ -224,7 +273,8 @@ const FormContent = React.memo(
     const clearQuotas = form.watch('clearQuotas')
 
     const isSubmitDisabled = React.useMemo(() => {
-      if (saveStatus.type !== 'idle' || !isFormDirty) return true
+      if (saveStatus.type !== 'idle' || !isFormDirty || !form.formState.isValid)
+        return true
 
       const hasAction = clearQuotas || setMovieQuota || setShowQuota
       if (!hasAction) return true
@@ -248,6 +298,7 @@ const FormContent = React.memo(
     }, [
       saveStatus.type,
       isFormDirty,
+      form.formState.isValid,
       clearQuotas,
       setMovieQuota,
       setShowQuota,
@@ -310,15 +361,15 @@ const FormContent = React.memo(
             <QuotaSection
               contentType="movie"
               form={form}
-              enabled={setMovieQuota && !clearQuotas}
-              disabled={saveStatus.type !== 'idle' || clearQuotas}
+              enabled={Boolean(setMovieQuota && !clearQuotas)}
+              disabled={saveStatus.type !== 'idle' || Boolean(clearQuotas)}
               colorStyle={{ borderColor: 'var(--color-movie)' }}
             />
             <QuotaSection
               contentType="show"
               form={form}
-              enabled={setShowQuota && !clearQuotas}
-              disabled={saveStatus.type !== 'idle' || clearQuotas}
+              enabled={Boolean(setShowQuota && !clearQuotas)}
+              disabled={saveStatus.type !== 'idle' || Boolean(clearQuotas)}
               colorStyle={{ borderColor: 'var(--color-show)' }}
             />
           </div>
@@ -365,7 +416,7 @@ interface BulkQuotaEditModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   selectedRows: PlexUserTableRow[]
-  onSave: (formData: BulkQuotaFormData) => Promise<void>
+  onSave: (formData: z.input<typeof BulkQuotaFormSchema>) => Promise<void>
   saveStatus: BulkQuotaEditStatus
 }
 
@@ -390,8 +441,9 @@ export function BulkQuotaEditModal({
 }: BulkQuotaEditModalProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  const form = useForm<BulkQuotaFormData>({
+  const form = useForm<z.input<typeof BulkQuotaFormSchema>>({
     resolver: zodResolver(BulkQuotaFormSchema),
+    mode: 'onChange',
     defaultValues: {
       clearQuotas: false,
       setMovieQuota: false,
@@ -412,7 +464,7 @@ export function BulkQuotaEditModal({
     }
   }, [isOpen, form])
 
-  const handleSubmit = async (values: BulkQuotaFormData) => {
+  const handleSubmit = async (values: z.input<typeof BulkQuotaFormSchema>) => {
     await onSave(values)
   }
 

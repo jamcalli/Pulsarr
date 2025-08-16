@@ -8,13 +8,17 @@ export interface AdminUser {
   role: string
 }
 
+const PasswordSchema = z
+  .string()
+  .min(8, { error: 'Password must be at least 8 characters long' })
+
 export const CredentialsSchema = z.object({
-  email: z.string().trim().toLowerCase().email().max(255),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(255),
+  email: z.email({ error: 'Please enter a valid email address' }),
+  password: PasswordSchema,
 })
+
+// For compatibility with existing API usage
+export const loginFormSchema = CredentialsSchema
 
 export type Credentials = z.infer<typeof CredentialsSchema>
 
