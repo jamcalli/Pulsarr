@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { CreateUser } from '@root/schemas/users/users.schema'
 import { Check, Loader2 } from 'lucide-react'
 import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import type { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -29,14 +29,13 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import type { UserStatus } from '@/features/plex/hooks/usePlexUser'
-import type { PlexUserSchema } from '@/features/plex/store/schemas'
 import { plexUserSchema } from '@/features/plex/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { UserWatchlistInfo } from '@/stores/configStore'
 
 interface FormContentProps {
-  form: ReturnType<typeof useForm<PlexUserSchema>>
-  handleSubmit: (values: PlexUserSchema) => Promise<void>
+  form: ReturnType<typeof useForm<z.input<typeof plexUserSchema>>>
+  handleSubmit: (values: z.input<typeof plexUserSchema>) => Promise<void>
   handleOpenChange: (open: boolean) => void
   saveStatus: UserStatus
   isFormDirty: boolean
@@ -309,7 +308,10 @@ interface UserEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: UserWatchlistInfo | null
-  onSave: (userId: number, updates: CreateUser) => Promise<void>
+  onSave: (
+    userId: number,
+    updates: z.input<typeof plexUserSchema>,
+  ) => Promise<void>
   saveStatus: UserStatus
 }
 
@@ -333,7 +335,7 @@ export default function UserEditModal({
 }: UserEditModalProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  const form = useForm<PlexUserSchema>({
+  const form = useForm<z.input<typeof plexUserSchema>>({
     resolver: zodResolver(plexUserSchema),
     defaultValues: {
       name: '',
@@ -366,7 +368,7 @@ export default function UserEditModal({
     }
   }, [user, form])
 
-  const handleSubmit = async (values: PlexUserSchema) => {
+  const handleSubmit = async (values: z.input<typeof plexUserSchema>) => {
     if (!user) return
 
     await onSave(user.id, values)

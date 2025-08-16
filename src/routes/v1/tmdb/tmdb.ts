@@ -32,9 +32,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         description:
           'Accepts GUID format IDs (tmdb:123, tvdb:456) and resolves to fetch TMDB metadata',
         params: z.object({
-          id: z
-            .string()
-            .min(1, 'GUID is required (format: tmdb:123 or tvdb:456)'),
+          id: z.string().min(1, {
+            error: 'GUID is required (format: tmdb:123 or tvdb:456)',
+          }),
         }),
         querystring: GetTmdbMetadataQuerySchema,
         response: {

@@ -4,9 +4,9 @@ import { z } from 'zod'
 
 // Zod schema for Radarr instance configuration
 const RadarrInstanceSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  baseUrl: z.string().url({ message: 'Invalid base URL' }),
-  apiKey: z.string().min(1, { message: 'API Key is required' }),
+  name: z.string().min(1, { error: 'Name is required' }),
+  baseUrl: z.string().url({ error: 'Invalid base URL' }),
+  apiKey: z.string().min(1, { error: 'API Key is required' }),
   qualityProfile: z.union([z.string(), z.number()]).nullish(),
   rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean().optional().default(false),

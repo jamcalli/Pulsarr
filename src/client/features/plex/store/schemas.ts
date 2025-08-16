@@ -2,7 +2,7 @@ import { CreateUserSchema } from '@root/schemas/users/users.schema'
 import { z } from 'zod'
 
 export const plexTokenSchema = z.object({
-  plexToken: z.string().min(5, { message: 'Plex Token is required' }),
+  plexToken: z.string().min(5, { error: 'Plex Token is required' }),
 })
 
 export type PlexTokenSchema = z.infer<typeof plexTokenSchema>

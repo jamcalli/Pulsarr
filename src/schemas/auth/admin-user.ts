@@ -9,11 +9,25 @@ export const CreateAdminResponseSchema = z.object({
 export { ErrorSchema as CreateAdminErrorSchema }
 
 export const CreateAdminSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
-  username: z.string().min(3).max(255),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  email: z.email({ error: 'Please enter a valid email address' }),
+  username: z
+    .string()
+    .min(3, { error: 'Username must be at least 3 characters' })
+    .max(255, { error: 'Username must be less than 255 characters' }),
+  password: z
+    .string()
+    .min(8, { error: 'Password must be at least 8 characters' }),
+})
+
+// For forms that need password confirmation
+export const CreateAdminFormSchema = CreateAdminSchema.extend({
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
 })
 
 export type CreateAdminResponse = z.infer<typeof CreateAdminResponseSchema>
 export type CreateAdminError = z.infer<typeof ErrorSchema>
 export type CreateAdmin = z.infer<typeof CreateAdminSchema>
+export type CreateAdminForm = z.infer<typeof CreateAdminFormSchema>

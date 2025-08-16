@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
+import type { z } from 'zod'
 import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
-import { BulkQuotaEditModal } from '@/features/plex/components/user/bulk-quota-edit-modal'
+import {
+  BulkQuotaEditModal,
+  type BulkQuotaFormSchema,
+} from '@/features/plex/components/user/bulk-quota-edit-modal'
 import { QuotaEditModal } from '@/features/plex/components/user/quota-edit-modal'
 import UserEditModal from '@/features/plex/components/user/user-edit-modal'
 import UserTable from '@/features/plex/components/user/user-table'
@@ -8,6 +12,7 @@ import { useBulkQuotaManagement } from '@/features/plex/hooks/useBulkQuotaManage
 import { usePlexBulkUpdate } from '@/features/plex/hooks/usePlexBulkUpdate'
 import { usePlexUser } from '@/features/plex/hooks/usePlexUser'
 import { useQuotaManagement } from '@/features/plex/hooks/useQuotaManagement'
+import type { QuotaFormData } from '@/features/plex/quota/form-schema'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { useApprovalEvents } from '@/hooks/useApprovalEvents'
@@ -129,16 +134,7 @@ export default function PlexUsersPage() {
     }
   }
 
-  const handleSaveQuota = async (formData: {
-    hasMovieQuota: boolean
-    movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-    movieQuotaLimit?: number
-    movieBypassApproval: boolean
-    hasShowQuota: boolean
-    showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-    showQuotaLimit?: number
-    showBypassApproval: boolean
-  }) => {
+  const handleSaveQuota = async (formData: QuotaFormData) => {
     if (!selectedQuotaUser) return
 
     await saveQuota(selectedQuotaUser, formData, () => {
@@ -162,17 +158,9 @@ export default function PlexUsersPage() {
     }
   }
 
-  const handleBulkQuotaSave = async (formData: {
-    clearQuotas: boolean
-    setMovieQuota: boolean
-    movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-    movieQuotaLimit?: number
-    movieBypassApproval: boolean
-    setShowQuota: boolean
-    showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-    showQuotaLimit?: number
-    showBypassApproval: boolean
-  }) => {
+  const handleBulkQuotaSave = async (
+    formData: z.input<typeof BulkQuotaFormSchema>,
+  ) => {
     await performBulkOperation(selectedQuotaRows, formData, () => {
       setIsBulkQuotaModalOpen(false)
       setSelectedQuotaRows([])

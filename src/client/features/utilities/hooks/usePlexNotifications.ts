@@ -1,10 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { PlexNotificationResponse } from '@root/schemas/plex/configure-notifications.schema'
+import {
+  PlexNotificationConfigSchema,
+  type PlexNotificationResponse,
+} from '@root/schemas/plex/configure-notifications.schema'
 import type { PlexNotificationStatusResponse } from '@root/schemas/plex/get-notification-status.schema'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { z } from 'zod'
+import type { z } from 'zod'
 import { useConfigStore } from '@/stores/configStore'
 
 // Minimum loading delay
@@ -21,16 +24,8 @@ interface ExtendedPlexNotificationStatusResponse
   }
 }
 
-// Schema for the form
-const plexNotificationsSchema = z.object({
-  plexToken: z.string().optional(),
-  plexHost: z.string().min(1, 'Plex host is required'),
-  plexPort: z.coerce.number().int().positive().default(32400),
-  useSsl: z.boolean().default(false),
-})
-
-export type PlexNotificationsFormValues = z.infer<
-  typeof plexNotificationsSchema
+export type PlexNotificationsFormValues = z.input<
+  typeof PlexNotificationConfigSchema
 >
 
 /**
@@ -51,8 +46,8 @@ export function usePlexNotifications() {
   >(null)
 
   // Initialize form with default values
-  const form = useForm<PlexNotificationsFormValues>({
-    resolver: zodResolver(plexNotificationsSchema),
+  const form = useForm<z.input<typeof PlexNotificationConfigSchema>>({
+    resolver: zodResolver(PlexNotificationConfigSchema),
     defaultValues: {
       plexToken: '',
       plexHost: '',
@@ -205,6 +200,9 @@ export function usePlexNotifications() {
       const timeoutId = setTimeout(() => controller.abort(), 5000)
 
       try {
+        // Transform form data to ensure proper types for backend
+        const transformedData = PlexNotificationConfigSchema.parse(data)
+
         // Create a minimum loading time promise
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, MIN_LOADING_DELAY),
@@ -216,7 +214,7 @@ export function usePlexNotifications() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify(transformedData),
           signal: signal, // Add the abort signal to the fetch request
         })
 

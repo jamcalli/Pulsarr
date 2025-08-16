@@ -5,6 +5,7 @@ import { InfoIcon, Loader2, Save, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -21,11 +22,31 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  type GeneralFormSchema,
-  generalFormSchema,
-} from '@/features/notifications/schemas/form-schemas'
 import { useConfigStore } from '@/stores/configStore'
+
+// Frontend form schema with user-friendly validation (before conversion to milliseconds)
+const generalFormSchema = z.object({
+  queueWaitTime: z.coerce
+    .number()
+    .int()
+    .min(0, { error: 'Queue wait time must be at least 0 minutes' })
+    .max(5, { error: 'Queue wait time cannot exceed 5 minutes' })
+    .optional(),
+  newEpisodeThreshold: z.coerce
+    .number()
+    .int()
+    .min(0, { error: 'New episode threshold must be at least 0 hours' })
+    .max(720, {
+      error: 'New episode threshold cannot exceed 720 hours (1 month)',
+    })
+    .optional(),
+  upgradeBufferTime: z.coerce
+    .number()
+    .int()
+    .min(0, { error: 'Upgrade buffer time must be at least 0 seconds' })
+    .max(10, { error: 'Upgrade buffer time cannot exceed 10 seconds' })
+    .optional(),
+})
 
 interface GeneralSettingsFormProps {
   isInitialized: boolean
@@ -37,12 +58,16 @@ const DEFAULT_NEW_EPISODE_THRESHOLD = 172800000 // 48 hours (2 days)
 const DEFAULT_UPGRADE_BUFFER_TIME = 2000 // 2 seconds
 
 /**
- * Renders a form for editing general notification settings, including queue wait time, new episode threshold, and upgrade buffer time.
+ * Render a form for editing general notification settings.
  *
- * Converts between user-friendly units and internal storage, validates input, and provides contextual tooltips and feedback for submission status.
+ * Displays and edits queue wait time (minutes), new episode threshold (hours),
+ * and upgrade buffer time (seconds). Values are presented in user-friendly units,
+ * validated against the schema, converted back to milliseconds for storage, and
+ * persisted to the central config store on submit. Provides loading, success,
+ * and error states plus form reset/cancel behavior.
  *
- * @param isInitialized - Indicates whether the configuration data has loaded and the form is ready for interaction.
- * @returns The React element representing the general settings form.
+ * @param isInitialized - True when initial configuration has been loaded and the form may be submitted.
+ * @returns The React element for the general settings form.
  */
 export function GeneralSettingsForm({
   isInitialized,
@@ -53,13 +78,10 @@ export function GeneralSettingsForm({
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
 
-  const generalForm = useForm<GeneralFormSchema>({
+  const generalForm = useForm<z.input<typeof generalFormSchema>>({
     resolver: zodResolver(generalFormSchema),
-    defaultValues: {
-      queueWaitTime: 0,
-      newEpisodeThreshold: 0,
-      upgradeBufferTime: 0,
-    },
+    mode: 'onBlur',
+    defaultValues: {},
   })
 
   // Helper functions to convert between storage and display units
@@ -68,14 +90,14 @@ export function GeneralSettingsForm({
 
     return {
       queueWaitTime: Math.round(
-        (configData.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
+        (configData.queueWaitTime ?? DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
       ),
       newEpisodeThreshold: Math.round(
-        (configData.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
+        (configData.newEpisodeThreshold ?? DEFAULT_NEW_EPISODE_THRESHOLD) /
           (60 * 60 * 1000),
       ),
       upgradeBufferTime: Math.round(
-        (configData.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
+        (configData.upgradeBufferTime ?? DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
       ),
     }
   }, [])
@@ -84,12 +106,6 @@ export function GeneralSettingsForm({
   useEffect(() => {
     const displayValues = getDisplayValues(config)
     if (displayValues) {
-      generalForm.setValue('queueWaitTime', displayValues.queueWaitTime)
-      generalForm.setValue(
-        'newEpisodeThreshold',
-        displayValues.newEpisodeThreshold,
-      )
-      generalForm.setValue('upgradeBufferTime', displayValues.upgradeBufferTime)
       generalForm.reset(displayValues)
     }
   }, [config, generalForm, getDisplayValues])
@@ -101,7 +117,10 @@ export function GeneralSettingsForm({
     }
   }
 
-  const onSubmitGeneral = async (data: GeneralFormSchema) => {
+  const onSubmitGeneral = async (data: z.input<typeof generalFormSchema>) => {
+    // Transform the form data to ensure proper types
+    const transformedData: z.output<typeof generalFormSchema> =
+      generalFormSchema.parse(data)
     setGeneralStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
@@ -111,16 +130,16 @@ export function GeneralSettingsForm({
       // Convert back to milliseconds for storage
       const updatedConfig = {
         queueWaitTime:
-          data.queueWaitTime !== undefined
-            ? data.queueWaitTime * 60 * 1000
+          transformedData.queueWaitTime !== undefined
+            ? transformedData.queueWaitTime * 60 * 1000
             : DEFAULT_QUEUE_WAIT_TIME,
         newEpisodeThreshold:
-          data.newEpisodeThreshold !== undefined
-            ? data.newEpisodeThreshold * 60 * 60 * 1000
+          transformedData.newEpisodeThreshold !== undefined
+            ? transformedData.newEpisodeThreshold * 60 * 60 * 1000
             : DEFAULT_NEW_EPISODE_THRESHOLD,
         upgradeBufferTime:
-          data.upgradeBufferTime !== undefined
-            ? data.upgradeBufferTime * 1000
+          transformedData.upgradeBufferTime !== undefined
+            ? transformedData.upgradeBufferTime * 1000
             : DEFAULT_UPGRADE_BUFFER_TIME,
       }
 
@@ -129,7 +148,7 @@ export function GeneralSettingsForm({
       setGeneralStatus('success')
 
       // Keep the display values in the form
-      generalForm.reset(data)
+      generalForm.reset(transformedData)
 
       toast.success('General notification settings have been updated')
 
@@ -179,9 +198,20 @@ export function GeneralSettingsForm({
                 <FormControl>
                   <Input
                     {...field}
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) => {
+                      const v = e.currentTarget.valueAsNumber
+                      field.onChange(
+                        e.currentTarget.value === '' || Number.isNaN(v)
+                          ? undefined
+                          : v,
+                      )
+                    }}
                     placeholder="Enter queue wait time"
                     type="number"
                     min="0"
+                    max="5"
+                    step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"
                   />
@@ -215,9 +245,20 @@ export function GeneralSettingsForm({
                 <FormControl>
                   <Input
                     {...field}
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) => {
+                      const v = e.currentTarget.valueAsNumber
+                      field.onChange(
+                        e.currentTarget.value === '' || Number.isNaN(v)
+                          ? undefined
+                          : v,
+                      )
+                    }}
                     placeholder="Enter new episode threshold"
                     type="number"
                     min="0"
+                    max="720"
+                    step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"
                   />
@@ -251,9 +292,20 @@ export function GeneralSettingsForm({
                 <FormControl>
                   <Input
                     {...field}
+                    value={field.value?.toString() ?? ''}
+                    onChange={(e) => {
+                      const v = e.currentTarget.valueAsNumber
+                      field.onChange(
+                        e.currentTarget.value === '' || Number.isNaN(v)
+                          ? undefined
+                          : v,
+                      )
+                    }}
                     placeholder="Enter upgrade buffer time"
                     type="number"
                     min="0"
+                    max="10"
+                    step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"
                   />
