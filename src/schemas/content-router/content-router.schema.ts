@@ -324,25 +324,25 @@ export function normalizeSeasonMonitoring(value: unknown): string | undefined {
     return undefined
   }
 
-  const validValues = [
+  const validValues = new Set([
     'unknown',
     'all',
     'future',
     'missing',
     'existing',
-    'firstSeason',
-    'lastSeason',
-    'latestSeason',
+    'firstseason',
+    'lastseason',
+    'latestseason',
     'pilot',
     'recent',
-    'monitorSpecials',
-    'unmonitorSpecials',
+    'monitorspecials',
+    'unmonitorspecials',
     'none',
     'skip',
-  ]
+  ])
   const strValue = String(value).toLowerCase()
 
-  return validValues.includes(strValue) ? strValue : 'all'
+  return validValues.has(strValue) ? strValue : 'all'
 }
 export type ContentRouterRuleToggle = z.infer<
   typeof ContentRouterRuleToggleSchema
