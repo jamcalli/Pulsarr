@@ -5,6 +5,15 @@ import {
 import { z } from 'zod'
 import { ROUTER_SERIES_TYPES } from '../constants'
 
+// Helper function to check if a value is considered "non-empty" for validation
+// (Keep in sync with server-side helper in content-router.schema.ts)
+function isNonEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false
+  if (typeof value === 'string') return value.trim() !== ''
+  if (Array.isArray(value)) return value.length > 0
+  return true
+}
+
 export type ConditionValue = z.infer<typeof ConditionValueSchema>
 
 // Define interface for a basic condition
@@ -43,7 +52,7 @@ const isValidGroup = (
   visited = new WeakSet(),
 ): boolean => {
   // Guard against excessive nesting
-  if (depth >= 20) {
+  if (depth > 20) {
     return false
   }
 
@@ -91,11 +100,7 @@ export const ConditionalRouteFormSchema = z.object({
         if ('field' in cond && 'operator' in cond && 'value' in cond) {
           const hasField = Boolean(cond.field)
           const hasOperator = Boolean(cond.operator)
-          const hasValue =
-            cond.value !== undefined &&
-            cond.value !== null &&
-            (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
-            (!Array.isArray(cond.value) || cond.value.length > 0)
+          const hasValue = isNonEmptyValue(cond.value)
 
           return hasField && hasOperator && hasValue
         }
@@ -108,7 +113,7 @@ export const ConditionalRouteFormSchema = z.object({
         depth = 0,
         visited = new WeakSet(),
       ): boolean => {
-        if (depth >= 20) return false
+        if (depth > 20) return false
         if (visited.has(group)) return false
         visited.add(group)
 
