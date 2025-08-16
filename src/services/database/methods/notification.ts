@@ -126,6 +126,11 @@ export async function processNotifications(
     }
 
     await this.updateWatchlistItem(item.user_id, item.key, updateData)
+    await this.addStatusHistoryEntry(
+      Number(item.id),
+      'notified',
+      updateData.last_notified_at,
+    )
 
     // Create notification record atomically
     let notificationCreated = false

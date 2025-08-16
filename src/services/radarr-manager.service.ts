@@ -225,6 +225,7 @@ export class RadarrManagerService {
       await this.fastify.db.updateWatchlistItem(userId, key, {
         radarr_instance_id: targetInstanceId,
         syncing: syncing,
+        status: 'requested',
       })
 
       this.log.info(
