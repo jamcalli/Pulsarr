@@ -39,10 +39,11 @@ export function StatusTransitionsChart() {
 
   // Request to Notify chart data
   const requestToNotifyData = useMemo(() => {
-    // Filter the data to only include grabbed → notified transitions
+    // Filter the data to include transitions that lead to notification
     const filteredData = statusTransitions.filter(
       (transition) =>
-        transition.from_status === 'grabbed' &&
+        (transition.from_status === 'grabbed' ||
+          transition.from_status === 'requested') &&
         transition.to_status === 'notified',
     )
 
