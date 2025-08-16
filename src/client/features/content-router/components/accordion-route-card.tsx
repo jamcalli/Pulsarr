@@ -312,7 +312,7 @@ const AccordionRouteCard = ({
       // If condition field changes, trigger validation
       if (name && (name === 'condition' || name.startsWith('condition.'))) {
         setTimeout(() => {
-          form.trigger()
+          form.trigger('condition')
         }, 0)
       }
     })
@@ -894,7 +894,7 @@ const AccordionRouteCard = ({
                     <FormField
                       control={form.control}
                       name="condition"
-                      render={({ field, fieldState }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center space-x-2">
                             <FormLabel className="text-foreground">
@@ -973,7 +973,14 @@ const AccordionRouteCard = ({
                                     value={
                                       field.value as unknown as IConditionGroup
                                     }
-                                    onChange={field.onChange}
+                                    onChange={(value) => {
+                                      field.onChange(value)
+                                      // Trigger validation immediately after condition changes
+                                      setTimeout(
+                                        () => form.trigger('condition'),
+                                        0,
+                                      )
+                                    }}
                                     evaluatorMetadata={evaluatorMetadata}
                                     genres={genres}
                                     onGenreDropdownOpen={onGenreDropdownOpen}
@@ -987,14 +994,7 @@ const AccordionRouteCard = ({
                             Content that matches these conditions will be routed
                             to the selected instance
                           </FormDescription>
-                          {fieldState.error ? (
-                            <p className="text-error">
-                              Please set up at least one complete condition with
-                              field, operator, and value
-                            </p>
-                          ) : (
-                            <FormMessage />
-                          )}
+                          <FormMessage />
                         </FormItem>
                       )}
                     />

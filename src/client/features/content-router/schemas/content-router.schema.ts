@@ -69,7 +69,7 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
       operator: z.enum(['AND', 'OR']),
       conditions: z
         .array(z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]))
-        .min(1, { message: 'At least one condition is required' }),
+        .min(1, { error: 'At least one condition is required.' }),
       negate: z.boolean().optional().default(false),
       _cid: z.string().optional(),
     })
@@ -84,7 +84,50 @@ export const ConditionalRouteFormSchema = z.object({
   name: z.string().min(2, {
     error: 'Route name must be at least 2 characters.',
   }),
-  condition: ConditionGroupSchema,
+  condition: ConditionGroupSchema.refine(
+    (val) => {
+      // Helper function to validate a single condition (checks for complete data)
+      const isValidCondition = (cond: ICondition) => {
+        if ('field' in cond && 'operator' in cond && 'value' in cond) {
+          const hasField = Boolean(cond.field)
+          const hasOperator = Boolean(cond.operator)
+          const hasValue =
+            cond.value !== undefined &&
+            cond.value !== null &&
+            (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
+            (!Array.isArray(cond.value) || cond.value.length > 0)
+
+          return hasField && hasOperator && hasValue
+        }
+        return false
+      }
+
+      // Helper function to recursively validate condition groups
+      const isValidGroup = (
+        group: IConditionGroup,
+        depth = 0,
+        visited = new WeakSet(),
+      ): boolean => {
+        if (depth > 20) return false
+        if (visited.has(group)) return false
+        visited.add(group)
+
+        if (!group.conditions || group.conditions.length === 0) return false
+
+        return group.conditions.every((cond) => {
+          if ('conditions' in cond) {
+            return isValidGroup(cond as IConditionGroup, depth + 1, visited)
+          }
+          return isValidCondition(cond as ICondition)
+        })
+      }
+
+      return isValidGroup(val)
+    },
+    {
+      message: 'All conditions must be completely filled out',
+    },
+  ),
   target_instance_id: z.coerce.number().int().min(1, {
     error: 'Instance selection is required.',
   }),
@@ -92,7 +135,7 @@ export const ConditionalRouteFormSchema = z.object({
     error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    error: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -118,7 +161,9 @@ export const GenreRouteFormSchema = z.object({
   genre: z
     .union([
       z.string().min(1, { error: 'Genre is required.' }),
-      z.array(z.string().min(1, { error: 'Each genre must not be empty.' })),
+      z
+        .array(z.string().min(1, { error: 'Each genre must not be empty.' }))
+        .min(1, { error: 'Select at least one genre.' }),
     ])
     .transform((val) => (Array.isArray(val) ? val : [val])),
   target_instance_id: z.coerce.number().int().min(1, {
@@ -128,7 +173,7 @@ export const GenreRouteFormSchema = z.object({
     error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    error: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -214,7 +259,7 @@ export const YearRouteFormSchema = z.object({
     error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    error: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -239,7 +284,7 @@ export const LanguageRouteFormSchema = z.object({
     error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    error: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
@@ -262,7 +307,7 @@ export const UserRouteFormSchema = z.object({
     error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    error: 'Quality Profile is required',
+    error: 'Quality Profile is required.',
   }),
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),

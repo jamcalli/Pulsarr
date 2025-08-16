@@ -54,13 +54,31 @@ export interface ICondition {
 }
 
 export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
-  z.object({
-    field: z.string(),
-    operator: ComparisonOperatorSchema,
-    value: ConditionValueSchema,
-    negate: z.boolean().optional().default(false),
-    _cid: z.string().optional(),
-  }),
+  z
+    .object({
+      field: z.string(),
+      operator: ComparisonOperatorSchema,
+      value: ConditionValueSchema,
+      negate: z.boolean().optional().default(false),
+      _cid: z.string().optional(),
+    })
+    .refine(
+      (cond) => {
+        // Validate that condition has complete data
+        const hasField = Boolean(cond.field)
+        const hasOperator = Boolean(cond.operator)
+        const hasValue =
+          cond.value !== undefined &&
+          cond.value !== null &&
+          (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
+          (!Array.isArray(cond.value) || cond.value.length > 0)
+
+        return hasField && hasOperator && hasValue
+      },
+      {
+        message: 'Condition must have field, operator, and value',
+      },
+    ),
 )
 
 export interface IConditionGroup {
@@ -152,6 +170,7 @@ export const ConditionalRouteFormSchema = z.object({
           const hasOperator = Boolean(cond.operator)
           const hasValue =
             cond.value !== undefined &&
+            cond.value !== null &&
             (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
             (!Array.isArray(cond.value) || cond.value.length > 0)
 

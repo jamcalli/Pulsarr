@@ -1,7 +1,11 @@
 import { z } from 'zod'
 
 // Shared homepage schema: allow valid URL strings, null, or empty string from TMDB
-export const TmdbHomepageSchema = z.union([z.url(), z.literal(''), z.null()])
+export const TmdbHomepageSchema = z.union([
+  z.string().pipe(z.url({ error: 'Invalid URL format' })),
+  z.literal(''),
+  z.null(),
+])
 
 // Radarr Rating Source Schema
 export const RadarrRatingSourceSchema = z.object({
