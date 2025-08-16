@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { toast } from 'sonner'
 import semver from 'semver'
+import { toast } from 'sonner'
 
 interface GitHubRelease {
   tag_name: string

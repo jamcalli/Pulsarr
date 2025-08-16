@@ -1,7 +1,7 @@
-import fastifySession from '@fastify/session'
-import fp from 'fastify-plugin'
-import type { Auth } from '@schemas/auth/auth.js'
 import fastifyCookie from '@fastify/cookie'
+import fastifySession from '@fastify/session'
+import type { Auth } from '@schemas/auth/auth.js'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface Session {

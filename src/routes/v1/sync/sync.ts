@@ -1,13 +1,13 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
   ErrorSchema,
   InstanceIdParamsSchema,
   InstanceTypeQuerySchema,
-  SyncInstanceResultSchema,
   SyncAllInstancesResultSchema,
+  SyncInstanceResultSchema,
 } from '@schemas/sync/sync.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Sync a specific instance (radarr or sonarr)

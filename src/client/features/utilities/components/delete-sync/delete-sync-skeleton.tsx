@@ -1,12 +1,12 @@
-import { Skeleton } from '@/components/ui/skeleton'
+import { Clock } from 'lucide-react'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { Clock } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**

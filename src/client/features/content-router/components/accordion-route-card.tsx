@@ -1,28 +1,15 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import { Separator } from '@/components/ui/separator'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form'
-import { Slider } from '@/components/ui/slider'
-import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import type {
+  ConditionGroup,
+  ConditionValue,
+  ContentRouterRule,
+  ContentRouterRuleUpdate,
+  IConditionGroup,
+} from '@root/schemas/content-router/content-router.schema'
+import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
+import type { RadarrInstance } from '@root/types/radarr.types'
+import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
+import type { SonarrInstance } from '@root/types/sonarr.types'
 import {
   AlertCircle,
   HelpCircle,
@@ -30,22 +17,33 @@ import {
   Loader2,
   Pen,
   Plus,
+  Power,
   Save,
   Trash2,
   X,
-  Power,
 } from 'lucide-react'
-import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import ConditionGroupComponent from '@/features/content-router/components/condition-group'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Resolver } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import { useConfigStore } from '@/stores/configStore'
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -53,23 +51,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
-import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
-import type {
-  ConditionValue,
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
-  ConditionGroup,
-  IConditionGroup,
-} from '@root/schemas/content-router/content-router.schema'
-import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
+import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import ConditionGroupComponent from '@/features/content-router/components/condition-group'
+import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
 import {
   ConditionalRouteFormSchema,
   type ConditionalRouteFormValues,
 } from '@/features/content-router/schemas/content-router.schema'
-import type { RadarrInstance } from '@root/types/radarr.types'
-import type { SonarrInstance } from '@root/types/sonarr.types'
+import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
+import { cn } from '@/lib/utils'
+import { useConfigStore } from '@/stores/configStore'
 
 // Define criteria interface to match backend schema
 interface Criteria {
@@ -86,6 +87,45 @@ interface ExtendedContentRouterRule extends ContentRouterRule {
   type?: string
   criteria?: Criteria
   condition?: ConditionGroup
+}
+
+/**
+ * Ensure a valid ConditionGroup is returned for form values.
+ *
+ * If `cg` is undefined or contains no conditions, returns a default empty group,
+ * preserving provided operator/negate when available
+ * ({ operator: cg?.operator ?? 'AND', conditions: [], negate: cg?.negate ?? false }).
+ * Otherwise returns `cg` unchanged.
+ *
+ * @param cg - Condition group from form values (may be undefined or empty)
+ * @returns A valid ConditionGroup suitable for use or persistence
+ */
+function normalizeConditionGroup(
+  cg: ConditionalRouteFormValues['condition'] | undefined,
+): ConditionGroup {
+  if (cg?.conditions?.length) return cg
+  return {
+    operator: cg?.operator ?? 'AND',
+    conditions: [],
+    negate: cg?.negate ?? false,
+  }
+}
+
+/**
+ * Normalizes series_type for Sonarr instances only.
+ *
+ * @param contentType - The content type ('sonarr' or 'radarr')
+ * @param value - The series_type value from form data
+ * @returns The normalized series_type value or undefined
+ */
+function normalizeSeriesType(
+  contentType: 'sonarr' | 'radarr',
+  value?: 'standard' | 'anime' | 'daily' | 'none' | null,
+): 'standard' | 'anime' | 'daily' | undefined {
+  if (contentType !== 'sonarr' || !value || value === 'none') {
+    return undefined
+  }
+  return value
 }
 
 interface AccordionRouteCardProps {
@@ -270,7 +310,10 @@ const AccordionRouteCard = ({
 
   // Setup form with validation
   const form = useForm<ConditionalRouteFormValues>({
-    resolver: zodResolver(ConditionalRouteFormSchema),
+    // Type cast required: Zod v4 recursive schema inference limitation with z.lazy()
+    resolver: zodResolver(
+      ConditionalRouteFormSchema,
+    ) as Resolver<ConditionalRouteFormValues>,
     defaultValues,
     mode: 'all',
   })
@@ -291,9 +334,9 @@ const AccordionRouteCard = ({
 
       // If condition field changes, trigger validation
       if (name && (name === 'condition' || name.startsWith('condition.'))) {
-        setTimeout(() => {
-          form.trigger()
-        }, 0)
+        queueMicrotask(() => {
+          form.trigger('condition')
+        })
       }
     })
 
@@ -438,7 +481,7 @@ const AccordionRouteCard = ({
 
     try {
       await onToggleEnabled(route.id, newEnabledState)
-    } catch (error) {
+    } catch (_error) {
       // Revert on error
       form.setValue('enabled', route.enabled, { shouldDirty: false })
     }
@@ -541,17 +584,12 @@ const AccordionRouteCard = ({
           tags: data.tags || [],
           enabled: data.enabled,
           order: data.order,
-          condition: Array.isArray(data.condition?.conditions)
-            ? (data.condition as ConditionGroup)
-            : { operator: 'AND', conditions: [], negate: false },
+          condition: normalizeConditionGroup(data.condition),
           search_on_add:
             data.search_on_add === null ? undefined : data.search_on_add,
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
-          series_type:
-            contentType === 'sonarr' && data.series_type
-              ? data.series_type
-              : undefined,
+          series_type: normalizeSeriesType(contentType, data.series_type),
           // Action fields
           always_require_approval: data.always_require_approval,
           bypass_user_quotas: data.bypass_user_quotas,
@@ -564,9 +602,7 @@ const AccordionRouteCard = ({
       else {
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          condition: Array.isArray(data.condition?.conditions)
-            ? (data.condition as ConditionGroup)
-            : { operator: 'AND', conditions: [], negate: false },
+          condition: normalizeConditionGroup(data.condition),
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
             ? Number(data.quality_profile)
@@ -579,10 +615,7 @@ const AccordionRouteCard = ({
             data.search_on_add === null ? undefined : data.search_on_add,
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
-          series_type:
-            contentType === 'sonarr' && data.series_type
-              ? data.series_type
-              : undefined,
+          series_type: normalizeSeriesType(contentType, data.series_type),
           // Action fields
           always_require_approval: data.always_require_approval,
           bypass_user_quotas: data.bypass_user_quotas,
@@ -718,6 +751,7 @@ const AccordionRouteCard = ({
                   <div className="flex items-center gap-2 flex-1">
                     <span className="truncate">{localTitle || 'Unnamed'}</span>
                     {!isSaving && (
+                      // biome-ignore lint/a11y/useSemanticElements: We need to use span with role="button" to avoid button nesting issues
                       <span
                         className={cn(
                           'inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
@@ -738,7 +772,6 @@ const AccordionRouteCard = ({
                             setIsEditing(true)
                           }
                         }}
-                        // biome-ignore lint/a11y/useSemanticElements: We need to use span with role="button" to avoid button nesting issues
                         role="button"
                         tabIndex={0}
                         aria-label="Edit title"
@@ -874,7 +907,7 @@ const AccordionRouteCard = ({
                     <FormField
                       control={form.control}
                       name="condition"
-                      render={({ field, fieldState }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center space-x-2">
                             <FormLabel className="text-foreground">
@@ -953,7 +986,13 @@ const AccordionRouteCard = ({
                                     value={
                                       field.value as unknown as IConditionGroup
                                     }
-                                    onChange={field.onChange}
+                                    onChange={(value) => {
+                                      field.onChange(value)
+                                      // Trigger validation immediately after condition changes
+                                      queueMicrotask(() =>
+                                        form.trigger('condition'),
+                                      )
+                                    }}
                                     evaluatorMetadata={evaluatorMetadata}
                                     genres={genres}
                                     onGenreDropdownOpen={onGenreDropdownOpen}
@@ -967,14 +1006,7 @@ const AccordionRouteCard = ({
                             Content that matches these conditions will be routed
                             to the selected instance
                           </FormDescription>
-                          {fieldState.error ? (
-                            <p className="text-error">
-                              Please set up at least one complete condition with
-                              field, operator, and value
-                            </p>
-                          ) : (
-                            <FormMessage />
-                          )}
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -1201,7 +1233,7 @@ const AccordionRouteCard = ({
                           </div>
                           <FormControl>
                             <Slider
-                              defaultValue={[field.value]}
+                              value={[field.value ?? 50]}
                               min={1}
                               max={100}
                               step={1}

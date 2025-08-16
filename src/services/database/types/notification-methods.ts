@@ -1,8 +1,8 @@
-import type {
-  SonarrEpisodeSchema,
-  NotificationResult,
-} from '@root/types/sonarr.types.js'
 import type { NotificationType } from '@root/types/notification.types.js'
+import type {
+  NotificationResult,
+  SonarrEpisodeSchema,
+} from '@root/types/sonarr.types.js'
 import type { Knex } from 'knex'
 
 declare module '@services/database.service.js' {

@@ -3,9 +3,10 @@
  *
  * Registers the PlexServerService for Plex server operations
  */
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
+
 import { PlexServerService } from '@utils/plex-server.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

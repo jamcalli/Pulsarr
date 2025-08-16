@@ -1,12 +1,12 @@
 import type * as React from 'react'
+import { FormControl } from '@/components/ui/form'
 import {
   Select,
   SelectContent,
+  SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectItem,
 } from '@/components/ui/select'
-import { FormControl } from '@/components/ui/form'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type SelectFieldProps = {

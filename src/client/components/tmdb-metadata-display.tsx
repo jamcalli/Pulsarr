@@ -1,6 +1,18 @@
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import type {
+  TmdbMetadataSuccessResponse,
+  TmdbRegion,
+  TmdbRegionsSuccessResponse,
+} from '@root/schemas/tmdb/tmdb.schema'
+import { Calendar, Clock, ExternalLink, Film, Globe, Tv } from 'lucide-react'
+import { useEffect, useState } from 'react'
+// Import local rating service icons
+import imdbIcon from '@/assets/images/rating-icons/imdb.svg'
+import metacriticIcon from '@/assets/images/rating-icons/metacritic.svg'
+import rottenTomatoesIcon from '@/assets/images/rating-icons/rotten-tomatoes.svg'
+import tmdbIcon from '@/assets/images/rating-icons/tmdb.svg'
+import traktIcon from '@/assets/images/rating-icons/trakt.svg'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -8,21 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Calendar, Clock, Tv, Film, ExternalLink, Globe } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
 import { useConfigStore } from '@/stores/configStore'
-import { useState, useEffect } from 'react'
-import type {
-  TmdbMetadataSuccessResponse,
-  TmdbRegion,
-  TmdbRegionsSuccessResponse,
-} from '@root/schemas/tmdb/tmdb.schema'
-
-// Import local rating service icons
-import imdbIcon from '@/assets/images/rating-icons/imdb.svg'
-import tmdbIcon from '@/assets/images/rating-icons/tmdb.svg'
-import metacriticIcon from '@/assets/images/rating-icons/metacritic.svg'
-import rottenTomatoesIcon from '@/assets/images/rating-icons/rotten-tomatoes.svg'
-import traktIcon from '@/assets/images/rating-icons/trakt.svg'
 
 interface TmdbMetadataDisplayProps {
   data: TmdbMetadataSuccessResponse
@@ -428,147 +427,146 @@ export function TmdbMetadataDisplay({
         )}
 
         {/* Watch Providers */}
-        <>
-          <Separator />
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h5 className="font-medium text-foreground">Where to Watch</h5>
-              {/* Region Selector */}
-              {availableRegions.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-muted-foreground" />
-                  <Select
-                    value={config?.tmdbRegion || 'US'}
-                    onValueChange={handleRegionChange}
-                    disabled={loadingRegions}
-                  >
-                    <SelectTrigger className="w-36 h-8 text-xs">
-                      <SelectValue
-                        placeholder={
-                          loadingRegions ? 'Loading...' : currentRegionName
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent align="end">
-                      {availableRegions.map((region) => (
-                        <SelectItem key={region.code} value={region.code}>
-                          {region.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
 
-            {watchProviders &&
-            ((watchProviders.flatrate?.length ?? 0) > 0 ||
-              (watchProviders.rent?.length ?? 0) > 0 ||
-              (watchProviders.buy?.length ?? 0) > 0) ? (
-              <div className="space-y-3">
-                {watchProviders.flatrate &&
-                  watchProviders.flatrate.length > 0 && (
-                    <div>
-                      <h6 className="text-sm font-medium text-foreground mb-1">
-                        Streaming
-                      </h6>
-                      <div className="flex flex-wrap gap-2">
-                        {watchProviders.flatrate.map((provider) => (
-                          <div
-                            key={provider.provider_id}
-                            className="flex items-center gap-2 bg-secondary rounded-lg px-2 py-1"
-                          >
-                            {provider.logo_path && (
-                              <img
-                                src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
-                                alt={provider.provider_name}
-                                className="w-4 h-4 rounded"
-                              />
-                            )}
-                            <span className="text-xs font-medium">
-                              {provider.provider_name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                {watchProviders.rent && watchProviders.rent.length > 0 && (
-                  <div>
-                    <h6 className="text-sm font-medium text-foreground mb-1">
-                      Rent
-                    </h6>
-                    <div className="flex flex-wrap gap-2">
-                      {watchProviders.rent.map((provider) => (
-                        <div
-                          key={provider.provider_id}
-                          className="flex items-center gap-2 bg-secondary rounded-lg px-2 py-1"
-                        >
-                          {provider.logo_path && (
-                            <img
-                              src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
-                              alt={provider.provider_name}
-                              className="w-4 h-4 rounded"
-                            />
-                          )}
-                          <span className="text-xs font-medium">
-                            {provider.provider_name}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {watchProviders.buy && watchProviders.buy.length > 0 && (
-                  <div>
-                    <h6 className="text-sm font-medium text-foreground mb-1">
-                      Buy
-                    </h6>
-                    <div className="flex flex-wrap gap-2">
-                      {watchProviders.buy.map((provider) => (
-                        <div
-                          key={provider.provider_id}
-                          className="flex items-center gap-2 bg-secondary rounded-lg px-2 py-1"
-                        >
-                          {provider.logo_path && (
-                            <img
-                              src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
-                              alt={provider.provider_name}
-                              className="w-4 h-4 rounded"
-                            />
-                          )}
-                          <span className="text-xs font-medium">
-                            {provider.provider_name}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {watchProviders.link && (
-                  <div className="pt-2">
-                    <a
-                      href={watchProviders.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      View more options on TMDB
-                    </a>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                No streaming services available in {currentRegionName}
+        <Separator />
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h5 className="font-medium text-foreground">Where to Watch</h5>
+            {/* Region Selector */}
+            {availableRegions.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-muted-foreground" />
+                <Select
+                  value={config?.tmdbRegion || 'US'}
+                  onValueChange={handleRegionChange}
+                  disabled={loadingRegions}
+                >
+                  <SelectTrigger className="w-36 h-8 text-xs">
+                    <SelectValue
+                      placeholder={
+                        loadingRegions ? 'Loading...' : currentRegionName
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {availableRegions.map((region) => (
+                      <SelectItem key={region.code} value={region.code}>
+                        {region.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
-        </>
+
+          {watchProviders &&
+          ((watchProviders.flatrate?.length ?? 0) > 0 ||
+            (watchProviders.rent?.length ?? 0) > 0 ||
+            (watchProviders.buy?.length ?? 0) > 0) ? (
+            <div className="space-y-3">
+              {watchProviders.flatrate &&
+                watchProviders.flatrate.length > 0 && (
+                  <div>
+                    <h6 className="text-sm font-medium text-foreground mb-1">
+                      Streaming
+                    </h6>
+                    <div className="flex flex-wrap gap-2">
+                      {watchProviders.flatrate.map((provider) => (
+                        <div
+                          key={provider.provider_id}
+                          className="flex items-center gap-2 bg-secondary rounded-lg px-2 py-1"
+                        >
+                          {provider.logo_path && (
+                            <img
+                              src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
+                              alt={provider.provider_name}
+                              className="w-4 h-4 rounded"
+                            />
+                          )}
+                          <span className="text-xs font-medium">
+                            {provider.provider_name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {watchProviders.rent && watchProviders.rent.length > 0 && (
+                <div>
+                  <h6 className="text-sm font-medium text-foreground mb-1">
+                    Rent
+                  </h6>
+                  <div className="flex flex-wrap gap-2">
+                    {watchProviders.rent.map((provider) => (
+                      <div
+                        key={provider.provider_id}
+                        className="flex items-center gap-2 bg-secondary rounded-lg px-2 py-1"
+                      >
+                        {provider.logo_path && (
+                          <img
+                            src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
+                            alt={provider.provider_name}
+                            className="w-4 h-4 rounded"
+                          />
+                        )}
+                        <span className="text-xs font-medium">
+                          {provider.provider_name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {watchProviders.buy && watchProviders.buy.length > 0 && (
+                <div>
+                  <h6 className="text-sm font-medium text-foreground mb-1">
+                    Buy
+                  </h6>
+                  <div className="flex flex-wrap gap-2">
+                    {watchProviders.buy.map((provider) => (
+                      <div
+                        key={provider.provider_id}
+                        className="flex items-center gap-2 bg-secondary rounded-lg px-2 py-1"
+                      >
+                        {provider.logo_path && (
+                          <img
+                            src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
+                            alt={provider.provider_name}
+                            className="w-4 h-4 rounded"
+                          />
+                        )}
+                        <span className="text-xs font-medium">
+                          {provider.provider_name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {watchProviders.link && (
+                <div className="pt-2">
+                  <a
+                    href={watchProviders.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View more options on TMDB
+                  </a>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No streaming services available in {currentRegionName}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

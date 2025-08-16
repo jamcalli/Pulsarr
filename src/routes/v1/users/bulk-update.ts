@@ -1,11 +1,11 @@
+import {
+  BulkUpdateRequestSchema,
+  BulkUpdateResponseSchema,
+  UserErrorSchema,
+} from '@schemas/users/users.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import { logRouteError } from '@utils/route-errors.js'
-import {
-  UserErrorSchema,
-  BulkUpdateResponseSchema,
-  BulkUpdateRequestSchema,
-} from '@schemas/users/users.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.patch<{

@@ -1,6 +1,6 @@
-import { z } from 'zod'
-import type { UseFormReturn } from 'react-hook-form'
 import type { Config } from '@root/schemas/config/config.schema'
+import type { UseFormReturn } from 'react-hook-form'
+import { z } from 'zod'
 
 // Extract the session monitoring configuration schema from the backend config
 export const SessionMonitoringConfigSchema = z.object({
@@ -21,8 +21,8 @@ export const SessionMonitoringConfigSchema = z.object({
   enableProgressiveCleanup: z.boolean().optional(),
 })
 
-// Infer the TypeScript type from the schema
-export type SessionMonitoringFormData = z.infer<
+// Form type - use z.input for better compatibility with form inputs
+export type SessionMonitoringFormData = z.input<
   typeof SessionMonitoringConfigSchema
 >
 

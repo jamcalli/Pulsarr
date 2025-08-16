@@ -1,11 +1,11 @@
-import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
 import type {
   ApprovalRequestResponse,
+  ApprovalStatsResponse,
   GetApprovalRequestsQuery,
   UpdateApprovalRequest,
-  ApprovalStatsResponse,
 } from '@root/schemas/approval/approval.schema'
+import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
 
 export interface ApprovalsState {
   // Data

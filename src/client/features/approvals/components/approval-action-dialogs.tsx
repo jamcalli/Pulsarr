@@ -1,21 +1,21 @@
-import { useState, useRef, useEffect } from 'react'
-import { Loader2, Check } from 'lucide-react'
+import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import { Check, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import {
   Credenza,
+  CredenzaBody,
+  CredenzaClose,
   CredenzaContent,
+  CredenzaDescription,
+  CredenzaFooter,
   CredenzaHeader,
   CredenzaTitle,
-  CredenzaDescription,
-  CredenzaBody,
-  CredenzaFooter,
-  CredenzaClose,
 } from '@/components/ui/credenza'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { toast } from 'sonner'
+import { Textarea } from '@/components/ui/textarea'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 
 interface ApprovalActionDialogsProps {
   selectedRequest: ApprovalRequestResponse | null

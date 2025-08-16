@@ -175,6 +175,18 @@
       "allowedVersions": "< 3.0.0"
     },
     {
+      "description": "Ignore regular updates for docs dependencies but keep security alerts",
+      "matchPaths": ["docs/**"],
+      "enabled": false
+    },
+    {
+      "description": "Enable vulnerability alerts for docs dependencies",
+      "matchPaths": ["docs/**"],
+      "vulnerabilityAlerts": {
+        "enabled": true
+      }
+    },
+    {
       "description": "High priority for vulnerability alerts",
       "matchDatasources": ["*"],
       "vulnerabilityAlerts": true,

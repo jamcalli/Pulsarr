@@ -22,7 +22,7 @@ export async function up(knex: Knex): Promise<void> {
  * It logs a message indicating that the normalized lowercase emails remain unchanged.
  * Primarily intended for testing rollback behavior.
  */
-export async function down(knex: Knex): Promise<void> {
+export async function down(_knex: Knex): Promise<void> {
   // No practical way to restore original case without storing it
   // This is primarily for testing rollback functionality
   console.log(

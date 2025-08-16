@@ -1,6 +1,6 @@
-import type { Knex } from 'knex'
-import type { SonarrInstance } from '@root/types/sonarr.types.js'
 import type { RadarrInstance } from '@root/types/radarr.types.js'
+import type { SonarrInstance } from '@root/types/sonarr.types.js'
+import type { Knex } from 'knex'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {

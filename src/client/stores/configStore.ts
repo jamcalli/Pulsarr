@@ -1,12 +1,14 @@
-import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
-import type { Config } from '@root/types/config.types'
-import type { UserWithCount } from '@root/schemas/users/users-list.schema'
 import type {
-  UserQuotaResponse,
   QuotaStatusResponse,
+  UserQuotaResponse,
 } from '@root/schemas/quota/quota.schema'
 import type { MeResponse } from '@root/schemas/users/me.schema'
+import type { UserWithCount } from '@root/schemas/users/users-list.schema'
+import type { Config } from '@root/types/config.types'
+import type { z } from 'zod'
+import { create } from 'zustand'
+import { devtools, persist } from 'zustand/middleware'
+import type { plexUserSchema } from '@/features/plex/store/schemas'
 
 export type UserWatchlistInfo = UserWithCount
 
@@ -81,7 +83,7 @@ interface ConfigState {
   } | null
   updateUser: (
     userId: number,
-    updates: Partial<UserWatchlistInfo>,
+    updates: z.input<typeof plexUserSchema>,
   ) => Promise<void>
   fetchCurrentUser: () => Promise<void>
   refreshCurrentUser: () => Promise<void>
@@ -428,7 +430,7 @@ export const useConfigStore = create<ConfigState>()(
 
         updateUser: async (
           userId: number,
-          updates: Partial<UserWatchlistInfo>,
+          updates: z.input<typeof plexUserSchema>,
         ) => {
           try {
             const response = await fetch(`/v1/users/users/${userId}`, {

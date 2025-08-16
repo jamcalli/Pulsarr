@@ -1,12 +1,12 @@
+import type { BulkUpdateRequest } from '@root/schemas/users/users.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type {
   PlexUserTableRow,
   PlexUserUpdates,
 } from '@/features/plex/store/types'
-import type { BulkUpdateRequest } from '@root/schemas/users/users.schema'
+import { useConfigStore } from '@/stores/configStore'
 
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
 

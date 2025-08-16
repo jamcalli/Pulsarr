@@ -1,5 +1,5 @@
-import { Skeleton } from '@/components/ui/skeleton'
 import { Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,

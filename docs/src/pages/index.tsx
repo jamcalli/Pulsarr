@@ -1,11 +1,10 @@
-import React from 'react'
-import { useEffect } from 'react'
-import { useHistory } from '@docusaurus/router'
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
-import useBaseUrl from '@docusaurus/useBaseUrl'
-import Layout from '@theme/Layout'
 import BrowserOnly from '@docusaurus/BrowserOnly'
+import { useHistory } from '@docusaurus/router'
+import useBaseUrl from '@docusaurus/useBaseUrl'
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 import Heading from '@theme/Heading'
+import Layout from '@theme/Layout'
+import React, { useEffect } from 'react'
 import DocFeatureExample from '../components/DocFeatureExample'
 
 export default function Home(): React.ReactElement {

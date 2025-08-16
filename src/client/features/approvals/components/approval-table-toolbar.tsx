@@ -1,29 +1,29 @@
+import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { Table } from '@tanstack/react-table'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import {
-  X,
-  Clock,
-  CheckCircle,
-  XCircle,
   AlertCircle,
-  User,
+  CheckCircle,
+  ChevronDown,
+  CircleCheckBig,
+  Clock,
+  Edit,
   Monitor,
   Tv,
-  Zap,
-  CircleCheckBig,
+  User,
   Users,
-  ChevronDown,
-  Edit,
+  X,
+  XCircle,
+  Zap,
 } from 'lucide-react'
 import { DataTableFacetedFilter } from '@/components/table/data-table-faceted-filter'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import { Input } from '@/components/ui/input'
 
 interface ApprovalTableToolbarProps {
   table: Table<ApprovalRequestResponse>

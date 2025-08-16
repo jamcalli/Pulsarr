@@ -3,9 +3,10 @@
  *
  * Provides anime lookup functionality and scheduled updates
  */
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
+
 import { AnimeService } from '@services/anime.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

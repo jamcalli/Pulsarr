@@ -1,17 +1,17 @@
-import {
-  Credenza,
-  CredenzaContent,
-  CredenzaHeader,
-  CredenzaTitle,
-  CredenzaDescription,
-  CredenzaBody,
-  CredenzaFooter,
-  CredenzaClose,
-} from '@/components/ui/credenza'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Credenza,
+  CredenzaBody,
+  CredenzaClose,
+  CredenzaContent,
+  CredenzaDescription,
+  CredenzaFooter,
+  CredenzaHeader,
+  CredenzaTitle,
+} from '@/components/ui/credenza'
 
 interface UserTagsDeleteConfirmationModalProps {
   open: boolean

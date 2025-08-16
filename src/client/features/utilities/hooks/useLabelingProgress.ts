@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
-import { useProgressStore } from '@/stores/progressStore'
 import type { ProgressEvent } from '@root/types/progress.types.js'
+import { useEffect, useState } from 'react'
+import { useProgressStore } from '@/stores/progressStore'
 
 /**
  * React hook that provides live progress percentage and status message for a specified labeling event type.

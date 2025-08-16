@@ -1,13 +1,13 @@
+import {
+  type GetUserWatchlistError,
+  GetUserWatchlistErrorSchema,
+  GetUserWatchlistParamsSchema,
+  type GetUserWatchlistResponse,
+  GetUserWatchlistResponseSchema,
+} from '@schemas/users/watchlist.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import { logRouteError } from '@utils/route-errors.js'
-import {
-  GetUserWatchlistParamsSchema,
-  GetUserWatchlistResponseSchema,
-  GetUserWatchlistErrorSchema,
-  type GetUserWatchlistResponse,
-  type GetUserWatchlistError,
-} from '@schemas/users/watchlist.schema.js'
 
 const watchlistRoute: FastifyPluginAsync = async (fastify) => {
   fastify.get<{

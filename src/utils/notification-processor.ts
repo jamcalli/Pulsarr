@@ -1,18 +1,13 @@
-import type {
-  Config,
-  DiscordWebhookKey,
-  AppriseUrlKey,
-  PublicContentKeyMap,
-} from '@root/types/config.types.js'
-import type {
-  SonarrEpisodeSchema,
-  NotificationResult,
-  MediaNotification,
-} from '@root/types/sonarr.types.js'
-import type { TokenWatchlistItem } from '@root/types/plex.types.js'
-import type { FastifyInstance, FastifyBaseLogger } from 'fastify'
-import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 import crypto from 'node:crypto'
+import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
+import type { Config, PublicContentKeyMap } from '@root/types/config.types.js'
+import type { TokenWatchlistItem } from '@root/types/plex.types.js'
+import type {
+  MediaNotification,
+  NotificationResult,
+  SonarrEpisodeSchema,
+} from '@root/types/sonarr.types.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
 // Webhook deduplication cache

@@ -1,5 +1,5 @@
-import { useTautulliStatus } from '@/hooks/notifications/useTautulliStatus'
 import { Badge } from '@/components/ui/badge'
+import { useTautulliStatus } from '@/hooks/notifications/useTautulliStatus'
 import { cn } from '@/lib/utils'
 
 /**

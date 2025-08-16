@@ -1,12 +1,12 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { logRouteError } from '@utils/route-errors.js'
 import {
-  MeResponseSchema,
+  type MeError,
   MeErrorSchema,
   type MeResponse,
-  type MeError,
+  MeResponseSchema,
 } from '@schemas/users/me.schema.js'
 import { fetchPlexAvatar } from '@utils/plex.js'
+import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{

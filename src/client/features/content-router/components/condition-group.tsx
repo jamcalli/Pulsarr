@@ -1,4 +1,13 @@
-import { useEffect, useCallback, useRef } from 'react'
+import type {
+  ComparisonOperator,
+  Condition,
+  ConditionGroup,
+} from '@root/schemas/content-router/content-router.schema'
+import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
+import { HelpCircle, LayoutList, PlusCircle, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useRef } from 'react'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -6,29 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Button } from '@/components/ui/button'
-import { PlusCircle, Trash2, HelpCircle, LayoutList } from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import ConditionBuilder from '@/features/content-router/components/condition-builder'
-import { generateUUID } from '@/features/content-router/utils/utils'
-import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
-import type {
-  Condition,
-  ConditionGroup,
-  ComparisonOperator,
-} from '@root/schemas/content-router/content-router.schema'
 import {
   isCondition,
   isConditionGroup,
 } from '@/features/content-router/types/route-types'
+import { generateUUID } from '@/features/content-router/utils/utils'
 
 interface ConditionGroupComponentProps {
   value: ConditionGroup

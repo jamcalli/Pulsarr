@@ -10,12 +10,12 @@ const rootStore = new Map()
 // Helper function to get or create a root for a container
 const getOrCreateRoot = (container) => {
   if (!container) return null
-  
+
   // If container is not in DOM anymore, remove from store
   if (!document.contains(container)) {
     rootStore.delete(container)
   }
-  
+
   let root = rootStore.get(container)
   if (!root) {
     try {
@@ -70,7 +70,7 @@ export default function Root({ children }): React.ReactElement {
 
     // Use the standard container ID
     const containerId = 'github-stats-button'
-    
+
     // Find the button container
     let container = document.getElementById(containerId)
 
@@ -78,12 +78,12 @@ export default function Root({ children }): React.ReactElement {
     if (!container) {
       // Check if we're in the navbar
       const navbarRight = document.querySelector('.navbar__items--right')
-      
+
       if (navbarRight) {
         // Create the container if it doesn't exist
         container = document.createElement('div')
         container.id = containerId
-        
+
         // Insert before the last child (usually the theme toggle)
         navbarRight.insertBefore(container, navbarRight.lastChild)
       }
@@ -266,16 +266,12 @@ export default function Root({ children }): React.ReactElement {
       // Disconnect observers
       if (bodyObserver) bodyObserver.disconnect()
       if (navObserver) navObserver.disconnect()
-      
+
       // Clean up React roots
       rootStore.clear()
     }
   }, [renderGitHubButton, scheduleRenders, clearAllTimeouts, addTimeout])
 
   // Use the enhanced Root approach only
-  return (
-    <>
-      {children}
-    </>
-  )
+  return <>{children}</>
 }

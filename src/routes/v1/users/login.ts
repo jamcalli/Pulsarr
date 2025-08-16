@@ -1,10 +1,10 @@
+import {
+  CredentialsSchema,
+  LoginErrorSchema,
+  LoginResponseSchema,
+} from '@schemas/auth/login.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import {
-  LoginResponseSchema,
-  LoginErrorSchema,
-  CredentialsSchema,
-} from '@schemas/auth/login.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -30,12 +30,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const user = await fastify.db.getAdminUser(email)
         if (!user || !(await fastify.compare(password, user.password))) {
-          reply.status(401)
-          return {
-            success: false,
-            message: 'Invalid email or password.',
-            username: '',
-          }
+          return reply.unauthorized('Invalid email or password.')
         }
 
         request.session.user = {
@@ -59,7 +54,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           username: user.username,
           redirectTo: hasPlexTokens ? '/dashboard' : '/plex',
         }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Login failed.')
       }
     },

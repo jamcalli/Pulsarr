@@ -1,18 +1,16 @@
-import { useEffect } from 'react'
-import { useConfigStore } from '@/stores/configStore'
-import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
-import { Button } from '@/components/ui/button'
 import {
-  Loader2,
   AlertTriangle,
-  RefreshCw,
-  Trash2,
-  Save,
-  X,
-  HelpCircle,
-  Power,
   Clock,
+  HelpCircle,
+  Loader2,
+  Power,
+  RefreshCw,
+  Save,
+  Trash2,
+  X,
 } from 'lucide-react'
+import { useEffect } from 'react'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -22,7 +20,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
+import { Progress } from '@/components/ui/progress'
 import {
   Select,
   SelectContent,
@@ -31,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { TimeSelector } from '@/components/ui/time-input'
 import {
   Tooltip,
@@ -38,18 +37,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  usePlexLabels,
-  isSyncLabelsResponse,
-  isCleanupLabelsResponse,
-} from '@/features/utilities/hooks/usePlexLabels'
-import { Progress } from '@/components/ui/progress'
-import { useProgressStore } from '@/stores/progressStore'
+import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { PlexLabelsDeleteConfirmationModal } from '@/features/utilities/components/plex-labels/plex-labels-delete-confirmation-modal'
 import { useLabelingProgress } from '@/features/utilities/hooks/useLabelingProgress'
-import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import {
+  isCleanupLabelsResponse,
+  isSyncLabelsResponse,
+  usePlexLabels,
+} from '@/features/utilities/hooks/usePlexLabels'
 import { PlexLabelsPageSkeleton } from '@/features/utilities/pages/plex-labels-page-skeleton'
+import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
 import { formatScheduleDisplay } from '@/lib/utils'
+import { useConfigStore } from '@/stores/configStore'
+import { useProgressStore } from '@/stores/progressStore'
 
 /**
  * Renders the Plex Labels management page for administrators to configure and control user-based labeling in Plex.
@@ -514,7 +514,12 @@ export function PlexLabelsPage() {
                   render={({ field }) => (
                     <div className="shrink-0">
                       <TimeSelector
-                        value={field.value || scheduleTime}
+                        value={
+                          field.value instanceof Date &&
+                          !Number.isNaN(field.value.getTime())
+                            ? field.value
+                            : scheduleTime
+                        }
                         onChange={handleTimeChange}
                         dayOfWeek={form.watch('dayOfWeek')}
                         disabled={
@@ -1027,7 +1032,12 @@ export function PlexLabelsPage() {
 
                 <Button
                   type="submit"
-                  disabled={isSaving || isToggling || !form.formState.isDirty}
+                  disabled={
+                    isSaving ||
+                    isToggling ||
+                    !form.formState.isDirty ||
+                    !form.formState.isValid
+                  }
                   className="flex items-center gap-2"
                   variant="blue"
                 >

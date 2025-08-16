@@ -1,6 +1,6 @@
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
 import { DiscordNotificationService } from '@services/discord-notifications.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

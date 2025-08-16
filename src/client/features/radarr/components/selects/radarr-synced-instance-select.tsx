@@ -1,10 +1,10 @@
+import { Computer } from 'lucide-react'
 import type { ControllerRenderProps } from 'react-hook-form'
+import { Badge } from '@/components/ui/badge'
+import { MultiSelect } from '@/components/ui/multi-select'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import type { RadarrInstance } from '@/features/radarr/store/radarrStore'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
-import { MultiSelect } from '@/components/ui/multi-select'
-import { Computer } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
  * Displays a multi-select UI for choosing Radarr instances to sync with, available only on the default instance.

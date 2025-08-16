@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { z } from 'zod'
 
 // Common schemas for statistics
 export const GenreStatSchema = z.object({

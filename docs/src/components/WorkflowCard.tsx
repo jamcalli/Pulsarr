@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
 import BrowserOnly from '@docusaurus/BrowserOnly'
 import useBaseUrl from '@docusaurus/useBaseUrl'
+import { useEffect, useState } from 'react'
 
 const WorkflowSequence = () => {
   const [currentStep, setCurrentStep] = useState(0)

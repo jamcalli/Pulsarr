@@ -1,10 +1,10 @@
-import { useDiscordStatus } from '@/hooks/notifications/useDiscordStatus'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Loader2, Square, Play } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Loader2, Play, Square } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { useDiscordStatus } from '@/hooks/notifications/useDiscordStatus'
+import { cn } from '@/lib/utils'
 
 /**
  * Displays a badge indicating the current Discord bot status and a button to start or stop the bot.

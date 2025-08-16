@@ -1,15 +1,15 @@
-import { Button } from '@/components/ui/button'
 import {
+  AlertTriangle,
+  Clock,
+  HelpCircle,
   Loader2,
   PlayCircle,
-  AlertTriangle,
   Power,
-  Clock,
   Save,
   X,
-  HelpCircle,
 } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
+import type { UseFormReturn } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -18,6 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -25,19 +26,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import { TimeSelector } from '@/components/ui/time-input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { TimeSelector } from '@/components/ui/time-input'
+import type { ApprovalConfigurationFormData } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useQuotaSystem } from '@/features/plex/hooks/useQuotaSystem'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { UseFormReturn } from 'react-hook-form'
-import type { ApprovalConfigurationFormData } from '@/features/plex/hooks/useApprovalConfiguration'
 
 /**
  * Helper function to get day name from day index

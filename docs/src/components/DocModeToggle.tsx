@@ -1,7 +1,8 @@
 // DocModeToggle.tsx - A direct wrapper around the client ModeToggle
-import React from 'react'
+
 import { useColorMode } from '@docusaurus/theme-common'
 import { Moon, Sun } from 'lucide-react'
+import React from 'react'
 
 // Re-implement the Button component from client to avoid import issues
 function Button({

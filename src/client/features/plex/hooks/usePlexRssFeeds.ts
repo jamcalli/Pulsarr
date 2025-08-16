@@ -1,7 +1,7 @@
+import type { RssFeedsResponse } from '@root/schemas/plex/generate-rss-feeds.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
-import type { RssFeedsResponse } from '@root/schemas/plex/generate-rss-feeds.schema'
 
 export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
 

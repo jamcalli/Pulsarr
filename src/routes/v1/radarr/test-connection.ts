@@ -1,11 +1,11 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
+  ErrorSchema,
   TestConnectionBodySchema,
   TestConnectionResponseSchema,
-  ErrorSchema,
 } from '@schemas/radarr/test-connection.schema.js'
 import { logServiceError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

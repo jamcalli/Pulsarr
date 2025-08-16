@@ -1,7 +1,7 @@
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
-import { PendingWebhooksService } from '@services/pending-webhooks.service.js'
 import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
+import { PendingWebhooksService } from '@services/pending-webhooks.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

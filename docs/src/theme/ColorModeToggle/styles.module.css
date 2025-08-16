@@ -1,93 +1,93 @@
 .buttonStyle {
-	position: relative;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	height: 40px;
-	width: 40px;
-	padding: 0;
-	border-radius: 5px;
-	background-color: var(--main);
-	border: 2px solid var(--border);
-	box-shadow: var(--shadow);
-	cursor: pointer;
-	transition: all 0.2s ease;
-	overflow: hidden;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 40px;
+  padding: 0;
+  border-radius: 5px;
+  background-color: var(--main);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .buttonStyle:hover {
-	transform: translate(var(--box-shadow-x), var(--box-shadow-y));
-	box-shadow: none;
+  transform: translate(var(--box-shadow-x), var(--box-shadow-y));
+  box-shadow: none;
 }
 
 .noShadow {
-	box-shadow: none;
+  box-shadow: none;
 }
 
 .noShadow:hover {
-	transform: none;
+  transform: none;
 }
 
 .neutral {
-	background-color: var(--bw);
-	color: var(--text);
+  background-color: var(--bw);
+  color: var(--text);
 }
 
 /* Custom button styling - matching the refresh button */
 .customButton {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	height: 40px;
-	width: 40px;
-	padding: 0;
-	border-radius: 5px;
-	background-color: var(--bw);
-	border: 2px solid var(--border);
-	color: var(--text);
-	cursor: pointer;
-	position: relative;
-	overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 40px;
+  padding: 0;
+  border-radius: 5px;
+  background-color: var(--bw);
+  border: 2px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Icon styling */
 .sunIcon,
 .moonIcon {
-	color: var(--text);
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Light mode - show sun */
 .sunIcon {
-	opacity: 1;
-	transform: translate(-50%, -50%) rotate(0) scale(1);
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(0) scale(1);
 }
 
 .moonIcon {
-	opacity: 0;
-	transform: translate(-50%, -50%) rotate(90deg) scale(0);
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(90deg) scale(0);
 }
 
 /* Icon color by theme */
 .lightIcon {
-	color: #000;
+  color: #000;
 }
 
 .darkIcon {
-	color: #e6e6e6;
+  color: #e6e6e6;
 }
 
 /* Dark mode - show moon */
 html[data-theme="dark"] .sunIcon {
-	opacity: 0;
-	transform: translate(-50%, -50%) rotate(-90deg) scale(0);
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(-90deg) scale(0);
 }
 
 html[data-theme="dark"] .moonIcon {
-	opacity: 1;
-	transform: translate(-50%, -50%) rotate(0) scale(1);
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(0) scale(1);
 }

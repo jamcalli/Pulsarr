@@ -4,10 +4,11 @@
  * Registers PlexLabelSyncService and PendingLabelSyncProcessorService
  * for label synchronization functionality
  */
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
-import { PlexLabelSyncService } from '@services/plex-label-sync.service.js'
+
 import { PendingLabelSyncProcessorService } from '@services/pending-label-sync-processor.service.js'
+import { PlexLabelSyncService } from '@services/plex-label-sync.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

@@ -1,11 +1,11 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
-  PlexTokenSchema,
-  PlexServerResponseSchema,
   PlexServerErrorSchema,
+  PlexServerResponseSchema,
+  PlexTokenSchema,
 } from '@schemas/plex/discover-servers.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 // Types for Plex API responses
 interface PlexResourceConnection {
@@ -114,7 +114,7 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
 
             try {
               const url = new URL(connection.uri)
-              const isSecure = url.protocol === 'https:'
+              const _isSecure = url.protocol === 'https:'
 
               // Add option with direct Plex URL (secure)
               if (url.hostname) {

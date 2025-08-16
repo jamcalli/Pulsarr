@@ -1,14 +1,14 @@
+import { Plus, X } from 'lucide-react'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { X, Plus } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 interface MultiInputProps {
   value?: string

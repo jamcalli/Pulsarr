@@ -1,6 +1,6 @@
-import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { rssWatchlistSchema } from '@schemas/plex/parse-rss-feeds.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
 export const rssWatchlistRoute: FastifyPluginAsyncZod = async (
   fastify,
@@ -18,9 +18,7 @@ export const rssWatchlistRoute: FastifyPluginAsyncZod = async (
         logRouteError(fastify.log, request, err, {
           message: 'Failed to process RSS watchlists',
         })
-        return reply
-          .code(500)
-          .send({ error: 'Unable to fetch RSS watchlist items' })
+        return reply.internalServerError('Unable to fetch RSS watchlist items')
       }
     },
   })

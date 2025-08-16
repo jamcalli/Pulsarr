@@ -1,5 +1,5 @@
-import type { DatabaseService } from '@services/database.service.js'
 import type { Config } from '@root/types/config.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 
 /**
  * Retrieves the application configuration from the database, normalizing all fields and applying defaults as needed.

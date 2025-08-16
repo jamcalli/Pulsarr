@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
-import { useWatchlistProgress } from '@/hooks/useProgress'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
+import { useWatchlistProgress } from '@/hooks/useProgress'
+import { useConfigStore } from '@/stores/configStore'
 
 interface SetupModalProps {
   open: boolean

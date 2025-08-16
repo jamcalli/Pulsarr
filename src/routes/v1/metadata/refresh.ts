@@ -1,11 +1,11 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { logRouteError } from '@utils/route-errors.js'
 import {
-  MetadataRefreshSuccessResponseSchema,
+  type MetadataRefreshErrorResponse,
   MetadataRefreshErrorResponseSchema,
   type MetadataRefreshSuccessResponse,
-  type MetadataRefreshErrorResponse,
+  MetadataRefreshSuccessResponseSchema,
 } from '@schemas/metadata/metadata.schema.js'
+import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

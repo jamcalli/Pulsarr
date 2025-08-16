@@ -1,11 +1,11 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
   CreateTagBodySchema,
   CreateTagResponseSchema,
   ErrorSchema,
 } from '@schemas/radarr/create-tag.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

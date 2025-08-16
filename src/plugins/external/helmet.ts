@@ -1,7 +1,7 @@
-import fp from 'fastify-plugin'
+import type { FastifyHelmetOptions } from '@fastify/helmet'
 import helmet from '@fastify/helmet'
 import type { FastifyInstance } from 'fastify'
-import type { FastifyHelmetOptions } from '@fastify/helmet'
+import fp from 'fastify-plugin'
 
 const createHelmetConfig = (allowIframes: boolean): FastifyHelmetOptions => ({
   global: true,

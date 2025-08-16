@@ -43,7 +43,7 @@ export async function getTopGenres(
             [],
             'watchlist_item.genres',
           ) as string[]
-        } catch (err) {
+        } catch (_err) {
           parseErrors++
           continue
         }

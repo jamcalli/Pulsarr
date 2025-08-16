@@ -1,9 +1,9 @@
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const AccordionRouteCardSkeleton = () => {
   return (

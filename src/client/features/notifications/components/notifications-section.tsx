@@ -1,10 +1,10 @@
-import { DiscordWebhookForm } from '@/features/notifications/components/discord/discord-webhook-form'
-import { DiscordBotForm } from '@/features/notifications/components/discord/discord-bot-form'
-import { AppriseForm } from '@/features/notifications/components/apprise/apprise-form'
-import { TautulliForm } from '@/features/notifications/components/tautulli/tautulli-form'
-import { GeneralSettingsForm } from '@/features/notifications/components/general/general-settings-form'
-import { Separator } from '@/components/ui/separator'
 import { useNavigate } from 'react-router-dom'
+import { Separator } from '@/components/ui/separator'
+import { AppriseForm } from '@/features/notifications/components/apprise/apprise-form'
+import { DiscordBotForm } from '@/features/notifications/components/discord/discord-bot-form'
+import { DiscordWebhookForm } from '@/features/notifications/components/discord/discord-webhook-form'
+import { GeneralSettingsForm } from '@/features/notifications/components/general/general-settings-form'
+import { TautulliForm } from '@/features/notifications/components/tautulli/tautulli-form'
 
 interface NotificationsSectionProps {
   isInitialized: boolean

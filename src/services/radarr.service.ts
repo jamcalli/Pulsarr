@@ -1,31 +1,29 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
-  RadarrAddOptions,
-  RadarrPost,
-  RadarrMovie,
-  Item,
-  RadarrConfiguration,
-  RootFolder,
-  QualityProfile,
-  PagedResult,
-  RadarrInstance,
-  PingResponse,
   ConnectionTestResult,
-  WebhookNotification,
+  Item,
   MinimumAvailability,
+  PagedResult,
+  QualityProfile,
+  RadarrAddOptions,
+  RadarrConfiguration,
+  RadarrInstance,
+  RadarrMovie,
+  RadarrPost,
+  RootFolder,
+  WebhookNotification,
 } from '@root/types/radarr.types.js'
-import type { SystemStatus } from '@root/types/system-status.types.js'
+import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import {
-  isSystemStatus,
   isRadarrStatus,
+  isSystemStatus,
 } from '@root/types/system-status.types.js'
 import {
-  extractTmdbId,
   extractRadarrId,
+  extractTmdbId,
   hasMatchingGuids,
   normalizeGuid,
 } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 // Custom error class to include HTTP status
 class HttpError extends Error {
@@ -100,7 +98,7 @@ export class RadarrService {
     try {
       // Try to parse as a complete URL
       url = new URL(this.appBaseUrl)
-    } catch (error) {
+    } catch (_error) {
       // If parsing fails, assume it's a hostname without protocol
       url = new URL(`http://${this.appBaseUrl}`)
     }
@@ -404,38 +402,6 @@ export class RadarrService {
       )
       throw error
     }
-  }
-
-  private async verifyConnection(
-    instance: RadarrInstance,
-  ): Promise<SystemStatus> {
-    // Normalize URL with protocol
-    const safeBaseUrl = this.ensureUrlHasProtocol(instance.baseUrl)
-    const url = new URL(`${safeBaseUrl}/api/v3/system/status`)
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'X-Api-Key': instance.apiKey,
-        Accept: 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Connection verification failed: ${response.statusText}`)
-    }
-
-    const status = await response.json()
-
-    if (!isSystemStatus(status)) {
-      throw new Error('Invalid status response from Radarr')
-    }
-
-    if (!isRadarrStatus(status)) {
-      throw new Error('Connected service is not a valid Radarr application')
-    }
-
-    return status
   }
 
   private toItem(movie: RadarrMovie): Item {
@@ -786,7 +752,7 @@ export class RadarrService {
   }
 
   async deleteFromRadarr(item: Item, deleteFiles: boolean): Promise<void> {
-    const config = this.radarrConfig
+    const _config = this.radarrConfig
     try {
       const radarrId = extractRadarrId(item.guids)
 
@@ -957,7 +923,7 @@ export class RadarrService {
           ? baseUrl
           : `http://${baseUrl}`
         new URL(safeBaseUrl)
-      } catch (urlError) {
+      } catch (_urlError) {
         return {
           success: false,
           message: 'Invalid URL format. Please check your base URL.',
@@ -1028,7 +994,7 @@ export class RadarrService {
               'Connected service does not appear to be a valid Radarr application',
           }
         }
-      } catch (parseError) {
+      } catch (_parseError) {
         return {
           success: false,
           message: 'Failed to parse response from server',
@@ -1065,7 +1031,7 @@ export class RadarrService {
             success: true,
             message: 'Connection successful and webhook API accessible',
           }
-        } catch (notificationError) {
+        } catch (_notificationError) {
           return {
             success: false,
             message:

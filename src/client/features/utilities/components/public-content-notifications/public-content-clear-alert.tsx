@@ -1,14 +1,14 @@
+import { Button } from '@/components/ui/button'
 import {
   Credenza,
+  CredenzaBody,
+  CredenzaClose,
   CredenzaContent,
+  CredenzaDescription,
+  CredenzaFooter,
   CredenzaHeader,
   CredenzaTitle,
-  CredenzaDescription,
-  CredenzaBody,
-  CredenzaFooter,
-  CredenzaClose,
 } from '@/components/ui/credenza'
-import { Button } from '@/components/ui/button'
 
 interface PublicContentClearAlertProps {
   open: boolean

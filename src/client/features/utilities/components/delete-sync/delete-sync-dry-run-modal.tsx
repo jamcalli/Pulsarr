@@ -1,31 +1,29 @@
-import { useState, useEffect } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent } from '@/components/ui/card'
+import { AlertTriangle, LoaderCircle, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, Search, LoaderCircle } from 'lucide-react'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { Input } from '@/components/ui/input'
-import { Progress } from '@/components/ui/progress'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
-  DrawerDescription,
 } from '@/components/ui/drawer'
+import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from '@/components/ui/sheet'
 import {
   Table,
@@ -35,8 +33,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useWatchlistProgress } from '@/hooks/useProgress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useWatchlistProgress } from '@/hooks/useProgress'
 
 interface MediaItem {
   title: string

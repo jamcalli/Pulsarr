@@ -1,11 +1,10 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
-  SyncNotifiersResponseSchema,
   ErrorSchema,
   type SyncNotifiersResponse,
+  SyncNotifiersResponseSchema,
 } from '@root/schemas/tautulli/tautulli.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

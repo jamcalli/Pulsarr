@@ -1,7 +1,7 @@
 import { useRef } from 'react'
+import { useDeleteSyncActions } from '@/features/utilities/hooks/useDeleteSyncActions'
 import { useDeleteSyncForm } from '@/features/utilities/hooks/useDeleteSyncForm'
 import { useDeleteSyncSchedule } from '@/features/utilities/hooks/useDeleteSyncSchedule'
-import { useDeleteSyncActions } from '@/features/utilities/hooks/useDeleteSyncActions'
 
 /**
  * Combines deletion sync logic from form, schedule, and action hooks.

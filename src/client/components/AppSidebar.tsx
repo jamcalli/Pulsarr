@@ -21,15 +21,11 @@ import {
 } from 'lucide-react'
 
 import * as React from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import pulsarrLogo from '@/assets/images/pulsarr.svg'
-
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useTheme } from '@/components/theme-provider'
 import { useSettings } from '@/components/settings-provider'
-import { LogoutAlert } from '@/components/ui/logout-alert'
-import { UserAvatarSkeleton } from '@/components/ui/user-avatar-skeleton'
-import { useConfigStore } from '@/stores/configStore'
+import { useTheme } from '@/components/theme-provider'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Collapsible,
   CollapsibleContent,
@@ -43,6 +39,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { LogoutAlert } from '@/components/ui/logout-alert'
 import {
   Sidebar,
   SidebarContent,
@@ -59,6 +56,8 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { UserAvatarSkeleton } from '@/components/ui/user-avatar-skeleton'
+import { useConfigStore } from '@/stores/configStore'
 
 // Navigation data
 const data = {

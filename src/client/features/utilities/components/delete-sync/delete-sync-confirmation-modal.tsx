@@ -1,15 +1,15 @@
+import { AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Credenza,
+  CredenzaBody,
+  CredenzaClose,
   CredenzaContent,
+  CredenzaDescription,
+  CredenzaFooter,
   CredenzaHeader,
   CredenzaTitle,
-  CredenzaDescription,
-  CredenzaBody,
-  CredenzaFooter,
-  CredenzaClose,
 } from '@/components/ui/credenza'
-import { Button } from '@/components/ui/button'
-import { AlertTriangle } from 'lucide-react'
 
 interface DeleteSyncConfirmationModalProps {
   open: boolean

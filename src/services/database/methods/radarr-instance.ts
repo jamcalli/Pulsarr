@@ -1,6 +1,6 @@
-import type { DatabaseService } from '@services/database.service.js'
-import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type { RadarrInstanceRow } from '@root/types/database-rows.types.js'
+import type { RadarrInstance } from '@root/types/radarr.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
 
 /**

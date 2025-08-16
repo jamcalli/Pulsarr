@@ -1,42 +1,41 @@
-import React, { useEffect } from 'react'
-import { Loader2, Check } from 'lucide-react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Check, Loader2 } from 'lucide-react'
+import React, { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import type { z } from 'zod'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import type { UserWatchlistInfo } from '@/stores/configStore'
-import { plexUserSchema } from '@/features/plex/store/schemas'
-import type { PlexUserSchema } from '@/features/plex/store/schemas'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import type { CreateUser } from '@root/schemas/users/users.schema'
+import { Input } from '@/components/ui/input'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Switch } from '@/components/ui/switch'
 import type { UserStatus } from '@/features/plex/hooks/usePlexUser'
+import { plexUserSchema } from '@/features/plex/store/schemas'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import type { UserWatchlistInfo } from '@/stores/configStore'
 
 interface FormContentProps {
-  form: ReturnType<typeof useForm<PlexUserSchema>>
-  handleSubmit: (values: PlexUserSchema) => Promise<void>
+  form: ReturnType<typeof useForm<z.input<typeof plexUserSchema>>>
+  handleSubmit: (values: z.input<typeof plexUserSchema>) => Promise<void>
   handleOpenChange: (open: boolean) => void
   saveStatus: UserStatus
   isFormDirty: boolean
@@ -309,7 +308,10 @@ interface UserEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: UserWatchlistInfo | null
-  onSave: (userId: number, updates: CreateUser) => Promise<void>
+  onSave: (
+    userId: number,
+    updates: z.input<typeof plexUserSchema>,
+  ) => Promise<void>
   saveStatus: UserStatus
 }
 
@@ -333,7 +335,7 @@ export default function UserEditModal({
 }: UserEditModalProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  const form = useForm<PlexUserSchema>({
+  const form = useForm<z.input<typeof plexUserSchema>>({
     resolver: zodResolver(plexUserSchema),
     defaultValues: {
       name: '',
@@ -366,7 +368,7 @@ export default function UserEditModal({
     }
   }, [user, form])
 
-  const handleSubmit = async (values: PlexUserSchema) => {
+  const handleSubmit = async (values: z.input<typeof plexUserSchema>) => {
     if (!user) return
 
     await onSave(user.id, values)

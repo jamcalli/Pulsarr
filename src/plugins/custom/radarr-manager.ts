@@ -1,6 +1,6 @@
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
 import { RadarrManagerService } from '@services/radarr-manager.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

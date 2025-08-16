@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
 import BrowserOnly from '@docusaurus/BrowserOnly'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
+import React, { useEffect, useRef, useState } from 'react'
 
 const RetroTerminalContent = () => {
   const { siteConfig } = useDocusaurusContext()
@@ -139,52 +139,51 @@ APPROVAL SYSTEM: ACTIVE
   }, [])
 
   return (
-    <>
+    <div
+      ref={terminalRef}
+      className="retro-terminal-screen"
+      style={{
+        position: 'relative',
+        backgroundColor: '#000000 !important', // Force black with !important
+        background: '#000000 !important', // Double ensure black background
+        borderRadius: '15px', // Original border radius
+        overflow: 'hidden',
+        boxShadow:
+          '0 0 2px 3px rgba(10, 10, 10, 0.7), inset 0 0 20px rgba(0, 0, 0, 0.9)',
+        border: `3px solid ${getColorForProgress(bootProgress)}33`,
+        transition: 'border-color 0.3s ease',
+        height: '520px', // Further increased height for better alignment
+      }}
+    >
+      {/* Screen reflection/glare */}
       <div
-        ref={terminalRef}
-        className="retro-terminal-screen"
         style={{
-          position: 'relative',
-          backgroundColor: '#000000 !important', // Force black with !important
-          background: '#000000 !important', // Double ensure black background
-          borderRadius: '15px', // Original border radius
-          overflow: 'hidden',
-          boxShadow:
-            '0 0 2px 3px rgba(10, 10, 10, 0.7), inset 0 0 20px rgba(0, 0, 0, 0.9)',
-          border: `3px solid ${getColorForProgress(bootProgress)}33`,
-          transition: 'border-color 0.3s ease',
-          height: '520px', // Further increased height for better alignment
-        }}
-      >
-        {/* Screen reflection/glare */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: `
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `
             radial-gradient(
               ellipse at 30% 30%,
               rgba(255, 255, 255, 0.05) 0%,
               transparent 40%
             )
           `,
-            pointerEvents: 'none',
-            zIndex: 200,
-          }}
-        />
+          pointerEvents: 'none',
+          zIndex: 200,
+        }}
+      />
 
-        {/* Vignette effect */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: `
+      {/* Vignette effect */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `
             radial-gradient(
               ellipse at center,
               transparent 0%,
@@ -192,36 +191,36 @@ APPROVAL SYSTEM: ACTIVE
               rgba(0, 0, 0, 0.4) 100%
             )
           `,
-            pointerEvents: 'none',
-            zIndex: 150,
-          }}
-        />
+          pointerEvents: 'none',
+          zIndex: 150,
+        }}
+      />
 
-        {/* Phosphor glow layer */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: `radial-gradient(ellipse at center, ${getColorForProgress(bootProgress)}08 0%, transparent 70%)`,
-            animation: 'glow 2s ease-in-out infinite',
-            pointerEvents: 'none',
-            zIndex: 90,
-            transition: 'background 0.3s ease',
-          }}
-        />
+      {/* Phosphor glow layer */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `radial-gradient(ellipse at center, ${getColorForProgress(bootProgress)}08 0%, transparent 70%)`,
+          animation: 'glow 2s ease-in-out infinite',
+          pointerEvents: 'none',
+          zIndex: 90,
+          transition: 'background 0.3s ease',
+        }}
+      />
 
-        {/* Interlace lines */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: `
+      {/* Interlace lines */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `
             repeating-linear-gradient(
               0deg,
               transparent,
@@ -230,179 +229,179 @@ APPROVAL SYSTEM: ACTIVE
               ${getColorForProgress(bootProgress)}08 4px
             )
           `,
-            pointerEvents: 'none',
-            zIndex: 110,
-            transition: 'background 0.3s ease',
-          }}
-        />
+          pointerEvents: 'none',
+          zIndex: 110,
+          transition: 'background 0.3s ease',
+        }}
+      />
 
-        {/* Moving scan line */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '100px',
-            background: `linear-gradient(
+      {/* Moving scan line */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '100px',
+          background: `linear-gradient(
             to bottom,
             transparent 0%,
             ${getColorForProgress(bootProgress)}0A 50%,
             transparent 100%
           )`,
-            animation: 'scanline 8s linear infinite',
-            pointerEvents: 'none',
-            zIndex: 100,
-            transition: 'background 0.3s ease',
-          }}
-        />
+          animation: 'scanline 8s linear infinite',
+          pointerEvents: 'none',
+          zIndex: 100,
+          transition: 'background 0.3s ease',
+        }}
+      />
 
-        {/* Flicker effect */}
+      {/* Flicker effect */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `${getColorForProgress(bootProgress)}02`,
+          animation: 'flicker 0.15s infinite',
+          pointerEvents: 'none',
+          zIndex: 95,
+          transition: 'background 0.3s ease',
+        }}
+      />
+
+      {/* Terminal content wrapper with envelope distortion */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          padding: '30px',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Terminal header */}
         <div
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: `${getColorForProgress(bootProgress)}02`,
-            animation: 'flicker 0.15s infinite',
-            pointerEvents: 'none',
-            zIndex: 95,
-            transition: 'background 0.3s ease',
-          }}
-        />
-
-        {/* Terminal content wrapper with envelope distortion */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            padding: '30px',
-            overflow: 'hidden',
+            borderBottom: `2px solid ${getColorForProgress(bootProgress)}`,
+            paddingBottom: '10px',
+            marginBottom: '15px',
             display: 'flex',
-            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '10px',
+            transition: 'border-color 0.3s ease',
           }}
         >
-          {/* Terminal header */}
           <div
+            className="status-indicator"
             style={{
-              borderBottom: `2px solid ${getColorForProgress(bootProgress)}`,
-              paddingBottom: '10px',
-              marginBottom: '15px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              transition: 'border-color 0.3s ease',
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              backgroundColor:
+                bootProgress >= 0 ? '#ff0000' : 'rgba(255, 0, 0, 0.3)',
+              boxShadow: bootProgress >= 0 ? '0 0 10px #ff0000' : 'none',
+              transition: 'all 0.3s ease',
+              zIndex: 300,
+              position: 'relative',
+            }}
+          />
+          <div
+            className="status-indicator"
+            style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              backgroundColor:
+                bootProgress >= 1 ? '#ff8800' : 'rgba(255, 136, 0, 0.3)',
+              boxShadow: bootProgress >= 1 ? '0 0 10px #ff8800' : 'none',
+              transition: 'all 0.3s ease',
+              zIndex: 300,
+              position: 'relative',
+            }}
+          />
+          <div
+            className="status-indicator"
+            style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              backgroundColor:
+                bootProgress >= 2 ? '#00ff41' : 'rgba(0, 255, 65, 0.3)',
+              boxShadow: bootProgress >= 2 ? '0 0 10px #00ff41' : 'none',
+              transition: 'all 0.3s ease',
+              zIndex: 300,
+              position: 'relative',
+            }}
+          />
+          <span
+            style={{
+              marginLeft: 'auto',
+              fontSize: '12px',
+              opacity: 0.8,
+              color: getColorForProgress(bootProgress),
+              textShadow: `0 0 5px ${getColorForProgress(bootProgress)}CC`,
+              fontFamily: 'Courier New, monospace',
+              transition: 'color 0.3s ease, text-shadow 0.3s ease',
             }}
           >
-            <div
-              className="status-indicator"
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor:
-                  bootProgress >= 0 ? '#ff0000' : 'rgba(255, 0, 0, 0.3)',
-                boxShadow: bootProgress >= 0 ? '0 0 10px #ff0000' : 'none',
-                transition: 'all 0.3s ease',
-                zIndex: 300,
-                position: 'relative',
-              }}
-            />
-            <div
-              className="status-indicator"
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor:
-                  bootProgress >= 1 ? '#ff8800' : 'rgba(255, 136, 0, 0.3)',
-                boxShadow: bootProgress >= 1 ? '0 0 10px #ff8800' : 'none',
-                transition: 'all 0.3s ease',
-                zIndex: 300,
-                position: 'relative',
-              }}
-            />
-            <div
-              className="status-indicator"
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor:
-                  bootProgress >= 2 ? '#00ff41' : 'rgba(0, 255, 65, 0.3)',
-                boxShadow: bootProgress >= 2 ? '0 0 10px #00ff41' : 'none',
-                transition: 'all 0.3s ease',
-                zIndex: 300,
-                position: 'relative',
-              }}
-            />
-            <span
-              style={{
-                marginLeft: 'auto',
-                fontSize: '12px',
-                opacity: 0.8,
-                color: getColorForProgress(bootProgress),
-                textShadow: `0 0 5px ${getColorForProgress(bootProgress)}CC`,
-                fontFamily: 'Courier New, monospace',
-                transition: 'color 0.3s ease, text-shadow 0.3s ease',
-              }}
-            >
-              PULSARR TERMINAL v{version}
-            </span>
-          </div>
-
-          {/* Terminal text container with fixed dimensions */}
-          <div
-            style={{
-              flex: 1,
-              overflow: 'hidden',
-              transform: 'perspective(1000px) rotateX(0.5deg)',
-              animation: 'pulse 4s ease-in-out infinite',
-            }}
-          >
-            {/* Terminal text content */}
-            <pre
-              style={{
-                margin: 0,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                textShadow: `0 0 5px ${getColorForProgress(bootProgress)}CC`,
-                color: getColorForProgress(bootProgress),
-                fontFamily: 'Courier New, monospace',
-                fontSize: '14px',
-                lineHeight: '1.4',
-                animation: 'textBlur 3s ease-in-out infinite',
-                transition: 'color 0.3s ease, text-shadow 0.3s ease',
-                height: '100%',
-                overflow: 'hidden',
-              }}
-            >
-              {displayText}
-              {showCursor && (
-                <span
-                  style={{
-                    backgroundColor: getColorForProgress(bootProgress),
-                    color: '#0a0a0a',
-                    padding: '0 2px',
-                    animation: 'blink 1s step-start infinite',
-                    display: 'inline-block',
-                    minWidth: '10px',
-                    minHeight: '1.4em',
-                  }}
-                >
-                  _
-                </span>
-              )}
-            </pre>
-          </div>
+            PULSARR TERMINAL v{version}
+          </span>
         </div>
 
-        <style>{`
+        {/* Terminal text container with fixed dimensions */}
+        <div
+          style={{
+            flex: 1,
+            overflow: 'hidden',
+            transform: 'perspective(1000px) rotateX(0.5deg)',
+            animation: 'pulse 4s ease-in-out infinite',
+          }}
+        >
+          {/* Terminal text content */}
+          <pre
+            style={{
+              margin: 0,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              textShadow: `0 0 5px ${getColorForProgress(bootProgress)}CC`,
+              color: getColorForProgress(bootProgress),
+              fontFamily: 'Courier New, monospace',
+              fontSize: '14px',
+              lineHeight: '1.4',
+              animation: 'textBlur 3s ease-in-out infinite',
+              transition: 'color 0.3s ease, text-shadow 0.3s ease',
+              height: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            {displayText}
+            {showCursor && (
+              <span
+                style={{
+                  backgroundColor: getColorForProgress(bootProgress),
+                  color: '#0a0a0a',
+                  padding: '0 2px',
+                  animation: 'blink 1s step-start infinite',
+                  display: 'inline-block',
+                  minWidth: '10px',
+                  minHeight: '1.4em',
+                }}
+              >
+                _
+              </span>
+            )}
+          </pre>
+        </div>
+      </div>
+
+      <style>{`
         /* Force black background in all themes */
         .retro-terminal-screen {
           background-color: #000000 !important;
@@ -479,8 +478,7 @@ APPROVAL SYSTEM: ACTIVE
           50% { opacity: 0; }
         }
       `}</style>
-      </div>
-    </>
+    </div>
   )
 }
 

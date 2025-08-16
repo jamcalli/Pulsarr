@@ -1,31 +1,29 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import type {
+  ConnectionTestResult,
+  SonarrItem as Item,
+  PagedResult,
+  QualityProfile,
+  RootFolder,
   SonarrAddOptions,
+  SonarrConfiguration,
+  SonarrEpisode,
+  SonarrInstance,
   SonarrPost,
   SonarrSeries,
-  SonarrEpisode,
-  SonarrItem as Item,
-  SonarrConfiguration,
-  PagedResult,
-  RootFolder,
-  QualityProfile,
-  SonarrInstance,
-  ConnectionTestResult,
-  PingResponse,
   WebhookNotification,
 } from '@root/types/sonarr.types.js'
-import type { SystemStatus } from '@root/types/system-status.types.js'
 import {
-  isSystemStatus,
   isSonarrStatus,
+  isSystemStatus,
 } from '@root/types/system-status.types.js'
 import {
-  extractTvdbId,
   extractSonarrId,
+  extractTvdbId,
   hasMatchingGuids,
   normalizeGuid,
 } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 // Custom error class to include HTTP status
 class HttpError extends Error {
@@ -101,7 +99,7 @@ export class SonarrService {
     try {
       // Try to parse as a complete URL
       url = new URL(this.appBaseUrl)
-    } catch (error) {
+    } catch (_error) {
       // If parsing fails, assume it's a hostname without protocol
       url = new URL(`http://${this.appBaseUrl}`)
     }
@@ -382,7 +380,7 @@ export class SonarrService {
           ? baseUrl
           : `http://${baseUrl}`
         new URL(safeBaseUrl)
-      } catch (urlError) {
+      } catch (_urlError) {
         return {
           success: false,
           message: 'Invalid URL format. Please check your base URL.',
@@ -453,7 +451,7 @@ export class SonarrService {
               'Connected service does not appear to be a valid Sonarr application',
           }
         }
-      } catch (parseError) {
+      } catch (_parseError) {
         return {
           success: false,
           message: 'Failed to parse response from server',
@@ -490,7 +488,7 @@ export class SonarrService {
             success: true,
             message: 'Connection successful and webhook API accessible',
           }
-        } catch (notificationError) {
+        } catch (_notificationError) {
           return {
             success: false,
             message:
@@ -529,38 +527,6 @@ export class SonarrService {
           'Connection test failed. Please check your settings and try again.',
       }
     }
-  }
-
-  private async verifyConnection(
-    instance: SonarrInstance,
-  ): Promise<SystemStatus> {
-    // Normalize URL with protocol
-    const safeBaseUrl = this.ensureUrlHasProtocol(instance.baseUrl)
-    const url = new URL(`${safeBaseUrl}/api/v3/system/status`)
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'X-Api-Key': instance.apiKey,
-        Accept: 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Connection verification failed: ${response.statusText}`)
-    }
-
-    const status = await response.json()
-
-    if (!isSystemStatus(status)) {
-      throw new Error('Invalid status response from Sonarr')
-    }
-
-    if (!isSonarrStatus(status)) {
-      throw new Error('Connected service is not a valid Sonarr application')
-    }
-
-    return status
   }
 
   private toItem(series: SonarrSeries): Item {
@@ -923,7 +889,7 @@ export class SonarrService {
   }
 
   async deleteFromSonarr(item: Item, deleteFiles: boolean): Promise<void> {
-    const config = this.sonarrConfig
+    const _config = this.sonarrConfig
     try {
       const sonarrId = extractSonarrId(item.guids)
 

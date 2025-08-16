@@ -1,9 +1,9 @@
-import { useEffect, useCallback, useRef } from 'react'
-import { toast } from 'sonner'
+import type { ApprovalMetadata, ProgressEvent } from '@root/types/progress.types'
+import { CheckCircle, FileText, Trash2, XCircle } from 'lucide-react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useProgressStore } from '@/stores/progressStore'
-import { FileText, CheckCircle, XCircle, Trash2 } from 'lucide-react'
-import type { ProgressEvent, ApprovalMetadata } from '@root/types/progress.types'
 
 interface UseApprovalEventsOptions {
   onApprovalCreated?: (event: ProgressEvent, metadata: ApprovalMetadata) => void

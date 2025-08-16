@@ -1,5 +1,5 @@
-import type { FastifyInstance } from 'fastify'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
+import type { FastifyInstance } from 'fastify'
 
 export default async function (fastify: FastifyInstance) {
   fastify.addHook('onRequest', async (request, reply) => {
@@ -26,7 +26,7 @@ export default async function (fastify: FastifyInstance) {
         })
         // Valid API key, allow access
         return
-      } catch (err) {
+      } catch (_err) {
         // Invalid API key
         return reply.unauthorized('Invalid API key')
       }

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
-import { formatDistanceToNow, parseISO } from 'date-fns'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { formatDistanceToNow, parseISO } from 'date-fns'
+import { useCallback, useEffect, useState } from 'react'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { parseCronExpression } from '@/lib/utils'
 
 /**
@@ -66,7 +66,7 @@ export function useDeleteSyncSchedule() {
 
       try {
         return formatDistanceToNow(parseISO(lastRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return lastRun.time
       }
     },
@@ -80,7 +80,7 @@ export function useDeleteSyncSchedule() {
 
       try {
         return formatDistanceToNow(parseISO(nextRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return nextRun.time
       }
     },

@@ -1,4 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import type { ConditionValue } from '@root/schemas/content-router/content-router.schema'
+import { useEffect, useRef, useState } from 'react'
+import type { ControllerRenderProps, FieldPath } from 'react-hook-form'
+import CertificationMultiSelect from '@/components/ui/certification-multi-select'
+import GenreMultiSelect from '@/components/ui/genre-multi-select'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -6,14 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import GenreMultiSelect from '@/components/ui/genre-multi-select'
 import UserMultiSelect from '@/components/ui/user-multi-select'
-import { useConfigStore } from '@/stores/configStore'
-import type { ControllerRenderProps, FieldPath } from 'react-hook-form'
-import type { ConditionValue } from '@root/schemas/content-router/content-router.schema'
-import CertificationMultiSelect from '@/components/ui/certification-multi-select'
 import { ContentCertifications } from '@/features/content-router/types/route-types'
+import { useConfigStore } from '@/stores/configStore'
 
 interface FieldState {
   [key: string]: string | string[]

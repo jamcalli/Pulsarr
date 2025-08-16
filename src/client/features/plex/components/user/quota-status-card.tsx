@@ -1,9 +1,9 @@
-import type { UserQuotas } from '@/stores/configStore'
-import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
 import type {
-  UserQuotaResponse,
   QuotaStatusResponse,
+  UserQuotaResponse,
 } from '@root/schemas/quota/quota.schema'
+import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
+import type { UserQuotas } from '@/stores/configStore'
 
 type QuotaWithStatus = UserQuotaResponse & Partial<QuotaStatusResponse>
 

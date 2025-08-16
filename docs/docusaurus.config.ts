@@ -1,9 +1,9 @@
-import { themes as prismThemes } from 'prism-react-renderer'
-import type { Config } from '@docusaurus/types'
-import type * as Preset from '@docusaurus/preset-classic'
-import path from 'node:path'
 import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import type * as Preset from '@docusaurus/preset-classic'
+import type { Config } from '@docusaurus/types'
 import dotenv from 'dotenv'
+import { themes as prismThemes } from 'prism-react-renderer'
 
 // Load environment variables
 dotenv.config()
@@ -69,9 +69,9 @@ const config: Config = {
         },
       },
     ],
-    (context, options) => ({
+    (_context, _options) => ({
       name: 'resolve-client-components',
-      configureWebpack(config, isServer, utils) {
+      configureWebpack(_config, _isServer, _utils) {
         return {
           resolve: {
             alias: {

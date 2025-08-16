@@ -1,15 +1,16 @@
 // File: src/routes/v1/notifications/discord-control.ts
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+
 import {
   DiscordBotResponseSchema,
-  WebhookValidationRequestSchema,
-  WebhookValidationResponseSchema,
   ErrorSchema,
   type WebhookValidationRequest,
+  WebhookValidationRequestSchema,
   type WebhookValidationResponse,
+  WebhookValidationResponseSchema,
 } from '@schemas/notifications/discord-control.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Start Discord Bot

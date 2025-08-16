@@ -1,9 +1,9 @@
 import { useCallback } from 'react'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
-import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
-import { toast } from 'sonner'
-import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
+import { toast } from 'sonner'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
+import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 
 /**
  * React hook for managing a specific Sonarr instance by ID, providing access to instance data and handlers for updating, deleting, and fetching instance information.

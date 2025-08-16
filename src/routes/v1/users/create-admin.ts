@@ -1,10 +1,10 @@
+import {
+  CreateAdminErrorSchema,
+  CreateAdminResponseSchema,
+  CreateAdminSchema,
+} from '@schemas/auth/admin-user.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import {
-  CreateAdminSchema,
-  CreateAdminResponseSchema,
-  CreateAdminErrorSchema,
-} from '@schemas/auth/admin-user.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -66,7 +66,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         reply.status(201)
         return { success: true, message: 'Admin user created successfully' }
-      } catch (error) {
+      } catch (_error) {
         return reply.internalServerError('Failed to create admin user')
       }
     },

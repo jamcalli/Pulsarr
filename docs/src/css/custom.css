@@ -19,200 +19,201 @@
 
 /* Override Infima defaults that conflict with our styles */
 :root {
-	--ifm-font-family-base: "Shuttleblock", system-ui, -apple-system,
-		BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-	--ifm-font-family-monospace: SFMono-Regular, Consolas, "Liberation Mono",
-		Menlo, Courier, monospace;
+  --ifm-font-family-base:
+    "Shuttleblock", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ifm-font-family-monospace:
+    SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
 
-	/* Match main app colors */
-	--ifm-color-primary: #48a9a6;
-	--ifm-color-primary-dark: #41989c;
-	--ifm-color-primary-darker: #3a8892;
-	--ifm-color-primary-darkest: #347888;
-	--ifm-color-primary-light: #4fbaaf;
-	--ifm-color-primary-lighter: #56cbba;
-	--ifm-color-primary-lightest: #5ddcc5;
+  /* Match main app colors */
+  --ifm-color-primary: #48a9a6;
+  --ifm-color-primary-dark: #41989c;
+  --ifm-color-primary-darker: #3a8892;
+  --ifm-color-primary-darkest: #347888;
+  --ifm-color-primary-light: #4fbaaf;
+  --ifm-color-primary-lighter: #56cbba;
+  --ifm-color-primary-lightest: #5ddcc5;
 
-	/* Asteroid variables */
-	--static-asteroid-fill: #948d89;
-	--static-asteroid-border: #dedede;
+  /* Asteroid variables */
+  --static-asteroid-fill: #948d89;
+  --static-asteroid-border: #dedede;
 
-	/* Starfield variables */
-	--color-secondary-black: #212121;
+  /* Starfield variables */
+  --color-secondary-black: #212121;
 
-	/* Make sure CSS variables from client match Docusaurus light mode */
-	--main: #48a9a6;
-	--mtext: #000;
-	--static-text: #c1666b;
-	--bg: #dfe5f2;
-	--bw: #e4dfda;
-	--blank: #000;
-	--border: #000;
-	--text: #000;
-	--box-shadow-x: 4px;
-	--box-shadow-y: 4px;
-	--border-radius: 5px;
-	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+  /* Make sure CSS variables from client match Docusaurus light mode */
+  --main: #48a9a6;
+  --mtext: #000;
+  --static-text: #c1666b;
+  --bg: #dfe5f2;
+  --bw: #e4dfda;
+  --blank: #000;
+  --border: #000;
+  --text: #000;
+  --box-shadow-x: 4px;
+  --box-shadow-y: 4px;
+  --border-radius: 5px;
+  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 }
 
 /* Match app dark theme */
 html[data-theme="dark"] {
-	--ifm-background-color: #272933;
-	--ifm-background-surface-color: #1e202a;
-	--ifm-navbar-background-color: #272933;
-	--ifm-footer-background-color: #1e202a;
+  --ifm-background-color: #272933;
+  --ifm-background-surface-color: #1e202a;
+  --ifm-navbar-background-color: #272933;
+  --ifm-footer-background-color: #1e202a;
 
-	/* Darker sidebar for contrast */
-	--ifm-menu-color-background-active: #1e202a;
-	--ifm-menu-color-background-hover: #323642;
+  /* Darker sidebar for contrast */
+  --ifm-menu-color-background-active: #1e202a;
+  --ifm-menu-color-background-hover: #323642;
 
-	/* Make sure CSS variables from client match Docusaurus dark mode */
-	--main: #48a9a6;
-	--mtext: #000;
-	--static-text: #c1666b;
-	--bg: #272933;
-	--bw: #212121;
-	--blank: #e4dfda;
-	--border: #000;
-	--text: #e6e6e6;
-	--box-shadow-x: 4px;
-	--box-shadow-y: 4px;
-	--border-radius: 5px;
-	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+  /* Make sure CSS variables from client match Docusaurus dark mode */
+  --main: #48a9a6;
+  --mtext: #000;
+  --static-text: #c1666b;
+  --bg: #272933;
+  --bw: #212121;
+  --blank: #e4dfda;
+  --border: #000;
+  --text: #e6e6e6;
+  --box-shadow-x: 4px;
+  --box-shadow-y: 4px;
+  --border-radius: 5px;
+  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 }
 
 /* Override the main app's global styles that prevent scrolling */
 body {
-	overflow: auto !important;
-	position: static !important;
-	width: auto !important;
-	height: auto !important;
-	font-weight: 400 !important;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
+  overflow: auto !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  font-weight: 400 !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
-	position: static !important;
-	overflow: auto !important;
-	width: auto !important;
-	height: auto !important;
+  position: static !important;
+  overflow: auto !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 /* Force button styles to override Infima */
 button {
-	border-color: var(--border) !important;
-	color: var(--text) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
 }
 
 button[class*="default"] {
-	background-color: var(--main) !important;
-	color: var(--mtext) !important;
-	border-color: var(--border) !important;
+  background-color: var(--main) !important;
+  color: var(--mtext) !important;
+  border-color: var(--border) !important;
 }
 
 /* Improve dark mode code blocks */
 html[data-theme="dark"] .prism-code {
-	background-color: #1e202a !important;
+  background-color: #1e202a !important;
 }
 
 /* Hero button size overrides on homepage */
 .home-page-layout button[class*="h-11"] {
-	font-size: 1.5rem !important;
-	padding: 1rem 2.5rem !important;
-	height: auto !important;
+  font-size: 1.5rem !important;
+  padding: 1rem 2.5rem !important;
+  height: auto !important;
 }
 
 /* Also target the link/anchor elements inside the buttons */
 .home-page-layout button[class*="h-11"] a,
 .home-page-layout a[class*="h-11"] {
-	font-size: 1.5rem !important;
+  font-size: 1.5rem !important;
 }
 
 /* Direct hero button styling - avoid !important to allow hover animations */
 .hero-button {
-	font-size: 1.5rem;
-	padding: 1rem 2.5rem;
-	height: auto;
-	min-height: 3.5rem;
+  font-size: 1.5rem;
+  padding: 1rem 2.5rem;
+  height: auto;
+  min-height: 3.5rem;
 }
 
 .hero-button > * {
-	font-size: 1.5rem;
+  font-size: 1.5rem;
 }
 
 /* Clip paths and masking for the hero content */
 .home-page-layout {
-	/* Enable clipping */
-	overflow-clip-margin: 0;
-}
-
-/* Fix API endpoint font size - target the specific element */
-.openapi-left-panel__container pre h2 {
-	font-size: 16px !important;
-}
-
-/* Make the endpoint background container full width */
-.openapi-left-panel__container pre {
-	width: 100% !important;
+  /* Enable clipping */
+  overflow-clip-margin: 0;
 }
 
 /* Card header text should always be black and properly centered */
 .docfeature-header h2 {
-	color: #000 !important;
-	display: flex !important;
-	align-items: center !important;
-	justify-content: center !important;
-	height: 100% !important;
-	margin: 0 !important;
+  color: #000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+  margin: 0 !important;
+}
+
+/* Fix API endpoint font size - target the specific element */
+.openapi-left-panel__container pre h2 {
+  font-size: 16px !important;
+}
+
+/* Make the endpoint background container full width */
+.openapi-left-panel__container pre {
+  width: 100% !important;
 }
 
 .docfeature-header h2 span {
-	color: #000 !important;
+  color: #000 !important;
 }
 
 /* Ensure proper vertical centering for card headers */
 .docfeature-header {
-	display: flex !important;
-	align-items: center !important;
-	justify-content: center !important;
-	height: 60px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 60px !important;
 }
 
 /* Get Started button should always have black text - only target default variant */
 .hero-button[class*="default"],
 button[class*="default"].hero-button {
-	color: #000 !important;
+  color: #000 !important;
 }
 
 /* More specific targeting for main background buttons only */
 button[class*="bg-main"].hero-button {
-	color: #000 !important;
+  color: #000 !important;
 }
 
 /* Planet responsive sizing - CSS-based to avoid hydration issues */
 .planet-sizing {
-	width: 1000px;
+  width: 1000px;
 }
 
 @media (max-width: 768px) {
-	.planet-sizing {
-		width: 600px;
-	}
+  .planet-sizing {
+    width: 600px;
+  }
 }
 
 /* Fix OpenAPI server variable input and button contrast */
 .openapi-explorer__floating-btn input,
 .openapi-explorer__floating-btn button {
-	background-color: var(--ifm-background-surface-color, #fff) !important;
-	color: var(--ifm-color-content, #000) !important;
-	border: 1px solid var(--ifm-color-emphasis-300, #ccc) !important;
+  background-color: var(--ifm-background-surface-color, #fff) !important;
+  color: var(--ifm-color-content, #000) !important;
+  border: 1px solid var(--ifm-color-emphasis-300, #ccc) !important;
 }
 
 /* Dark mode fixes */
 html[data-theme="dark"] .openapi-explorer__floating-btn input,
 html[data-theme="dark"] .openapi-explorer__floating-btn button {
-	background-color: var(--ifm-background-surface-color, #1e202a) !important;
-	color: var(--ifm-color-content, #e6e6e6) !important;
-	border-color: var(--ifm-color-emphasis-300, #555) !important;
+  background-color: var(--ifm-background-surface-color, #1e202a) !important;
+  color: var(--ifm-color-content, #e6e6e6) !important;
+  border-color: var(--ifm-color-emphasis-300, #555) !important;
 }

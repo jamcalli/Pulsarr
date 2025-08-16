@@ -1,4 +1,4 @@
-FROM node:23.6.0-alpine AS builder
+FROM node:22.18.0-alpine AS builder
 
 WORKDIR /app
 
@@ -13,11 +13,12 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 
 # Copy package files first (changes less often)
 COPY package*.json ./
+COPY .npmrc ./
 
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/app/.npm \
-    npm ci --prefer-offline --no-audit
+    HUSKY=0 npm ci --prefer-offline --no-audit
 
 # Copy build configuration files
 COPY vite.config.js tsconfig.json postcss.config.mjs ./
@@ -29,31 +30,28 @@ COPY src ./src
 RUN --mount=type=cache,target=/app/node_modules/.vite \
     npm run build
 
-# Ensure cache dir
-RUN mkdir -p ${CACHE_DIR}
+# Prune dev dependencies to produce production node_modules for runtime image
+RUN npm prune --omit=dev && mkdir -p ${CACHE_DIR}
 
-FROM node:23.6.0-alpine
+FROM node:22.18.0-alpine
 
 WORKDIR /app
 
 # cache dir in final
 ENV CACHE_DIR=/app/build-cache
 
-# Copy package files and install production dependencies with cache
+# Copy package files (runtime typically does not need .npmrc)
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --prefer-offline --no-audit --ignore-scripts && \
-    npm rebuild --verbose
+# Reuse production dependencies from the builder image
+COPY --from=builder /app/node_modules ./node_modules
 
 # Create necessary directories
 RUN mkdir -p /app/data/db && \
     mkdir -p /app/data/log && \
     mkdir -p ${CACHE_DIR}
 
-# Copy build artifacts, config, and cache
+# Copy build artifacts
 COPY --from=builder /app/dist ./dist
-COPY --from=builder ${CACHE_DIR} ${CACHE_DIR}
-COPY vite.config.js ./
 COPY migrations ./migrations
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
@@ -70,8 +68,8 @@ ENV NODE_ENV=production
 ENV tmdbApiKey=${TMDBAPIKEY}
 
 # Make volumes
-VOLUME ${CACHE_DIR}
-VOLUME /app/data
+VOLUME ["/app/build-cache"]
+VOLUME ["/app/data"]
 EXPOSE 3003
 
 CMD ["./docker-entrypoint.sh"]

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useProgressStore } from '@/stores/progressStore'
 import type { ProgressEvent } from '@root/types/progress.types'
+import { useCallback, useEffect, useState } from 'react'
+import { useProgressStore } from '@/stores/progressStore'
 
 /**
  * React hook that returns the current watchlist workflow status, synchronization mode, and RSS availability.

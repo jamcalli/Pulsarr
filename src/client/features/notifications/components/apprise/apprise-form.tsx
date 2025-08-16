@@ -1,30 +1,30 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ExternalLink, InfoIcon, Loader2, Save, Trash2, X } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Save, X, InfoIcon, Trash2, ExternalLink } from 'lucide-react'
+import { toast } from 'sonner'
+import { z } from 'zod'
+import { AppriseStatusBadge } from '@/components/ui/apprise-status-badge'
 import { Button } from '@/components/ui/button'
 import {
   Form,
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { MultiInput } from '@/components/ui/multi-input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Input } from '@/components/ui/input'
-import { MultiInput } from '@/components/ui/multi-input'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
-import { AppriseStatusBadge } from '@/components/ui/apprise-status-badge'
-import { z } from 'zod'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
+import { useConfigStore } from '@/stores/configStore'
 
 interface AppriseFormProps {
   isInitialized: boolean

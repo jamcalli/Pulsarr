@@ -1,6 +1,6 @@
-import type { DatabaseService } from '@services/database.service.js'
-import type { AdminUser } from '@schemas/auth/auth.js'
 import type { User } from '@root/types/config.types.js'
+import type { AdminUser } from '@schemas/auth/auth.js'
+import type { DatabaseService } from '@services/database.service.js'
 
 /**
  * Database row representation for users table

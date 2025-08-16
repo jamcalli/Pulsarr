@@ -1,12 +1,12 @@
-import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
-import fp from 'fastify-plugin'
 import auth from '@fastify/auth'
 import { ApiKeyService } from '@services/api-key.service.js'
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
+import fp from 'fastify-plugin'
 
 /**
  * Plugin to register the API key service and authentication strategy
  */
-const apiKeyPlugin: FastifyPluginAsync = async (fastify, opts) => {
+const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
   // Register the auth plugin
   await fastify.register(auth)
 
@@ -24,7 +24,7 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, opts) => {
     'verifyApiKey',
     async (
       request: FastifyRequest,
-      reply: FastifyReply,
+      _reply: FastifyReply,
       done: (error?: Error) => void,
     ) => {
       const apiKey = request.headers['x-api-key'] as string

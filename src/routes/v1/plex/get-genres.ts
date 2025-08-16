@@ -1,10 +1,10 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
-  WatchlistGenresResponseSchema,
   WatchlistGenresErrorSchema,
+  WatchlistGenresResponseSchema,
 } from '@schemas/plex/get-genres.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
   fastify.get<{

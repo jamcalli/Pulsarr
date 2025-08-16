@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
-import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
-import { plexTokenSchema } from '@/features/plex/store/schemas'
-import type { PlexTokenSchema } from '@/features/plex/store/schemas'
 import type { Config } from '@root/schemas/config/config.schema'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import type { PlexTokenSchema } from '@/features/plex/store/schemas'
+import { plexTokenSchema } from '@/features/plex/store/schemas'
+import { useConfigStore } from '@/stores/configStore'
 
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -86,7 +86,7 @@ export function usePlexConnection() {
       form.reset({ plexToken: '' })
       setStatus('idle')
       toast.success('Plex token has been removed')
-    } catch (error) {
+    } catch (_error) {
       setStatus('error')
       toast.error('Failed to remove token')
     } finally {

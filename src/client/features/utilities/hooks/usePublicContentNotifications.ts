@@ -1,84 +1,52 @@
-import { useState, useCallback, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
-import { useDebounce } from '@/hooks/useDebounce'
+import { ConfigSchema } from '@root/schemas/config/config.schema'
 import type { WebhookValidationResponse } from '@root/schemas/notifications/discord-control.schema'
+import { useCallback, useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
+import { useConfigStore } from '@/stores/configStore'
+import { discordWebhookStringSchema } from '@/utils/discord-webhook-validation'
 
-/**
- * Parses a comma-separated string into an array of trimmed, non-empty webhook URLs.
- *
- * @param value - A string containing webhook URLs separated by commas.
- * @returns An array of trimmed webhook URLs, or an empty array if the input is empty or undefined.
- */
-function parseWebhookUrls(value?: string): string[] {
-  const trimmed = value?.trim() ?? ''
-  if (trimmed.length === 0) return []
+// Extract API schema and extend with testing fields
+const ApiPublicContentNotificationsSchema =
+  ConfigSchema.shape.publicContentNotifications.unwrap()
 
-  return trimmed
-    .split(',')
-    .map((url) => url.trim())
-    .filter(Boolean)
-}
-
-// Reusable Discord webhook URL validator
-const discordWebhookString = z
-  .string()
-  .optional()
-  .refine(
-    (value): value is string => {
-      const urls = parseWebhookUrls(value)
-      if (urls.length === 0) {
-        return value === undefined || value.trim() === ''
-      }
-      return urls.every((url) => url.includes('discord.com/api/webhooks'))
-    },
-    {
-      message: 'All URLs must be valid Discord webhook URLs',
-    },
-  )
-  .superRefine((value, ctx) => {
-    const urls = parseWebhookUrls(value)
-    if (urls.length === 0) return
-
-    const invalidUrls = urls.filter(
-      (url) => !url.includes('discord.com/api/webhooks'),
-    )
-
-    if (invalidUrls.length > 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `Invalid Discord webhook URL${
-          invalidUrls.length > 1 ? 's' : ''
-        }: ${invalidUrls.join(', ')}`,
-      })
-    }
-  })
-
-// Create an enhanced schema with connection testing validation
-const publicContentNotificationsSchema = z
-  .object({
-    enabled: z.boolean().default(false),
-    discordWebhookUrls: discordWebhookString,
-    discordWebhookUrlsMovies: discordWebhookString,
-    discordWebhookUrlsShows: discordWebhookString,
-    appriseUrls: z.string().optional(),
-    appriseUrlsMovies: z.string().optional(),
-    appriseUrlsShows: z.string().optional(),
+const publicContentNotificationsSchema =
+  ApiPublicContentNotificationsSchema.extend({
+    // Replace simple strings with Discord webhook validation
+    discordWebhookUrls: discordWebhookStringSchema,
+    discordWebhookUrlsMovies: discordWebhookStringSchema,
+    discordWebhookUrlsShows: discordWebhookStringSchema,
     // Hidden fields to track connection testing
     _generalTested: z.boolean().default(false),
     _moviesTested: z.boolean().default(false),
     _showsTested: z.boolean().default(false),
-  })
-  .superRefine(() => {
-    // Only require testing if enabled and URLs are provided AND the field is dirty
-    // We'll handle the testing requirement in the component level validation
-    // The schema validation will be used for URL format validation only
+  }).superRefine((data, ctx) => {
+    // Enforce "test before save" for each Discord webhook field
+    const checks: Array<
+      [urlKey: keyof typeof data, testedKey: keyof typeof data]
+    > = [
+      ['discordWebhookUrls', '_generalTested'],
+      ['discordWebhookUrlsMovies', '_moviesTested'],
+      ['discordWebhookUrlsShows', '_showsTested'],
+    ]
+
+    for (const [urlKey, testedKey] of checks) {
+      const url = data[urlKey] as string | undefined
+      const tested = data[testedKey] as boolean | undefined
+
+      if (url && url.trim().length > 0 && !tested) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [urlKey as string],
+          message: 'Please test connection before saving',
+        })
+      }
+    }
   })
 
-export type PublicContentNotificationsFormValues = z.infer<
+export type PublicContentNotificationsFormValues = z.input<
   typeof publicContentNotificationsSchema
 >
 
@@ -117,7 +85,7 @@ export function usePublicContentNotifications() {
   })
 
   // Initialize form with default values
-  const form = useForm<PublicContentNotificationsFormValues>({
+  const form = useForm<z.input<typeof publicContentNotificationsSchema>>({
     resolver: zodResolver(publicContentNotificationsSchema),
     defaultValues: {
       enabled: config?.publicContentNotifications?.enabled || false,
@@ -173,19 +141,6 @@ export function usePublicContentNotifications() {
     return () => subscription.unsubscribe()
   }, [form])
 
-  // Debounced validation function
-  const debouncedValidation = useDebounce(
-    (fieldName: string, value: string) => {
-      if (value && value.length > 0) {
-        form.setError(fieldName as keyof PublicContentNotificationsFormValues, {
-          type: 'manual',
-          message: 'Please test connection before saving',
-        })
-      }
-    },
-    300,
-  )
-
   // Reset testing states when URLs change
   useEffect(() => {
     const subscription = form.watch((_, { name }) => {
@@ -195,28 +150,22 @@ export function usePublicContentNotifications() {
           ...prev,
           testResults: { ...prev.testResults, general: null },
         }))
-        const url = form.getValues('discordWebhookUrls')
-        debouncedValidation('discordWebhookUrls', url)
       } else if (name === 'discordWebhookUrlsMovies') {
         form.setValue('_moviesTested', false, { shouldValidate: true })
         setTestStatus((prev) => ({
           ...prev,
           testResults: { ...prev.testResults, movies: null },
         }))
-        const url = form.getValues('discordWebhookUrlsMovies')
-        debouncedValidation('discordWebhookUrlsMovies', url)
       } else if (name === 'discordWebhookUrlsShows') {
         form.setValue('_showsTested', false, { shouldValidate: true })
         setTestStatus((prev) => ({
           ...prev,
           testResults: { ...prev.testResults, shows: null },
         }))
-        const url = form.getValues('discordWebhookUrlsShows')
-        debouncedValidation('discordWebhookUrlsShows', url)
       }
     })
     return () => subscription.unsubscribe()
-  }, [form, debouncedValidation])
+  }, [form])
 
   // Helper function to validate Discord webhook URL using the same endpoint as notifications
   const validateDiscordWebhook = useCallback(
@@ -363,11 +312,7 @@ export function usePublicContentNotifications() {
             } removed)`
           }
 
-          if (result.duplicateCount && result.duplicateCount > 0) {
-            toast.error(countText)
-          } else {
-            toast.success(countText)
-          }
+          toast.success(countText)
         } else {
           form.setValue(testedField, false, { shouldValidate: true })
           form.setError(urlField, {
@@ -407,6 +352,9 @@ export function usePublicContentNotifications() {
       setIsSubmitting(true)
 
       try {
+        // Transform form data to ensure proper types for backend
+        const transformedData = publicContentNotificationsSchema.parse(data)
+
         // Apply minimum loading time for better UX
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
@@ -414,7 +362,7 @@ export function usePublicContentNotifications() {
 
         // Strip out testing fields before saving
         const { _generalTested, _moviesTested, _showsTested, ...configData } =
-          data
+          transformedData
 
         await Promise.all([
           updateConfig({

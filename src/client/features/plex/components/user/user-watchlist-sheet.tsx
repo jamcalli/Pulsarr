@@ -1,4 +1,4 @@
-import * as React from 'react'
+import type { WatchlistItem } from '@root/schemas/users/watchlist.schema'
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -16,27 +16,13 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  X,
   Film,
   Tv,
+  X,
 } from 'lucide-react'
-
+import * as React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import {
   Drawer,
   DrawerContent,
@@ -45,12 +31,26 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import {
   Table,
   TableBody,
@@ -61,7 +61,6 @@ import {
 } from '@/components/ui/table'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { WatchlistItem } from '@root/schemas/users/watchlist.schema'
 import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface ColumnMetaType {

@@ -1,8 +1,8 @@
-import { z } from 'zod'
 import {
-  TagPrefixSchema,
   RemovedTagPrefixSchema,
+  TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import { z } from 'zod'
 
 export const PlexLabelSyncConfigSchema = z
   .object({
@@ -11,7 +11,11 @@ export const PlexLabelSyncConfigSchema = z
     // Prefix for label naming (e.g., "pulsarr" results in "pulsarr:username")
     labelPrefix: TagPrefixSchema,
     // Maximum number of concurrent operations during processing
-    concurrencyLimit: z.number().int().positive(),
+    concurrencyLimit: z
+      .number()
+      .int()
+      .min(1, { error: 'Must be at least 1' })
+      .max(20, { error: 'Must be at most 20' }),
     // Whether to clean up orphaned labels during cleanup operations
     cleanupOrphanedLabels: z.boolean(),
     // How to handle label cleanup when users are removed from content
@@ -21,8 +25,8 @@ export const PlexLabelSyncConfigSchema = z
         'How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label',
       ),
     // Prefix for special "removed" labels (only used in special-label mode)
-    removedLabelPrefix: RemovedTagPrefixSchema.optional()
-      .default('pulsarr:removed')
+    removedLabelPrefix: RemovedTagPrefixSchema.default('pulsarr:removed')
+      .optional()
       .describe('Prefix for special labels indicating removed users'),
     // Whether to automatically reset labels before syncs
     autoResetOnScheduledSync: z

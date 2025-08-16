@@ -1,32 +1,32 @@
+import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import {
-  Loader2,
-  Check,
   AlertTriangle,
-  Clock,
+  Check,
   CheckCircle,
-  XCircle,
+  Clock,
+  Loader2,
   Trash2,
+  XCircle,
 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { toast } from 'sonner'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 
 type BulkActionType = 'approve' | 'reject' | 'delete'
 type BulkActionStatus = 'idle' | 'loading' | 'success' | 'error'

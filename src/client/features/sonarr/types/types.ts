@@ -1,4 +1,4 @@
-import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
+import type { QualityProfile, RootFolder } from '@root/types/sonarr.types'
 
 export type SonarrMonitoringType =
   | 'unknown'

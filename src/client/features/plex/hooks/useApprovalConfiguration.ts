@@ -1,10 +1,10 @@
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConfigSchema } from '@root/schemas/config/config.schema'
 import { useCallback, useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { useConfigStore } from '@/stores/configStore'
-import { ConfigSchema } from '@root/schemas/config/config.schema'
 
 // Define the form data type that includes both config and schedule fields
 const approvalConfigurationSchema = z.object({

@@ -1,4 +1,4 @@
-import type { FastifyRequest, FastifyReply, FastifyBaseLogger } from 'fastify'
+import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
 
 interface RouteErrorContext {
   /** The error that occurred */

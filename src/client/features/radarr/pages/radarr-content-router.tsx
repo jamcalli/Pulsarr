@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 
 /**
  * Renders the Radarr Content Router configuration page, initializing Radarr instances and genres on mount and displaying the routing rule management UI when data is ready.

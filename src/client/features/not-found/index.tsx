@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import { AlertCircle, Home } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 /**

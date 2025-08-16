@@ -1,19 +1,18 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
-import {
-  ContentRouterRuleSchema,
-  ContentRouterRuleUpdateSchema,
-  ContentRouterRuleResponseSchema,
-  ContentRouterRuleListResponseSchema,
-  ContentRouterRuleErrorSchema,
-  ContentRouterRuleToggleSchema,
-  ContentRouterRuleSuccessSchema,
-  type ContentRouterRule,
-} from '@schemas/content-router/content-router.schema.js'
 import type { RouterRule } from '@root/types/router.types.js'
-import { RuleBuilder } from '@utils/rule-builder.js'
+import {
+  ContentRouterRuleErrorSchema,
+  ContentRouterRuleListResponseSchema,
+  ContentRouterRuleResponseSchema,
+  ContentRouterRuleSchema,
+  ContentRouterRuleSuccessSchema,
+  ContentRouterRuleToggleSchema,
+  ContentRouterRuleUpdateSchema,
+} from '@schemas/content-router/content-router.schema.js'
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
+import { RuleBuilder } from '@utils/rule-builder.js'
+import type { FastifyPluginAsync } from 'fastify'
+import { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get all router rules

@@ -1,7 +1,7 @@
-import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { Skeleton } from '@/components/ui/skeleton'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**
  * Displays a skeleton loader that mimics the structure of the Delete Sync page while content is loading.

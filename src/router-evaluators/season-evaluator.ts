@@ -1,15 +1,15 @@
-import type { FastifyInstance } from 'fastify'
+import { isSonarrResponse } from '@root/types/content-lookup.types.js'
 import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
   Condition,
+  ContentItem,
   FieldInfo,
   OperatorInfo,
   RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
 } from '@root/types/router.types.js'
-import { isSonarrResponse } from '@root/types/content-lookup.types.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Determines whether a value is an array consisting exclusively of numbers.

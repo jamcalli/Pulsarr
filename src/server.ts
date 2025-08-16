@@ -1,13 +1,9 @@
+import { createLoggerConfig, validLogLevels } from '@utils/logger.js'
+import closeWithGrace from 'close-with-grace'
 import Fastify from 'fastify'
 import fp from 'fastify-plugin'
-import closeWithGrace from 'close-with-grace'
-import serviceApp from './app.js'
-import {
-  createLoggerConfig,
-  validLogLevels,
-  LogDestination,
-} from '@utils/logger.js'
 import type { LevelWithSilent } from 'pino'
+import serviceApp from './app.js'
 
 /**
  * Initializes and starts the Fastify server with configured plugins, logging, and graceful shutdown handling.

@@ -1,15 +1,15 @@
-import type { FastifyInstance } from 'fastify'
+import { extractYear } from '@root/types/content-lookup.types.js'
 import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
   Condition,
+  ContentItem,
   FieldInfo,
   OperatorInfo,
   RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
 } from '@root/types/router.types.js'
-import { extractYear } from '@root/types/content-lookup.types.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Determines whether the provided value is an array consisting exclusively of numbers.
@@ -145,7 +145,7 @@ export default function createYearEvaluator(
 
     async canEvaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): Promise<boolean> {
       if (item.metadata) {
         const year = extractYear(item.metadata)
@@ -263,7 +263,7 @@ export default function createYearEvaluator(
     evaluateCondition(
       condition: Condition,
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): boolean {
       if (!('field' in condition) || condition.field !== 'year') {
         return false
@@ -278,7 +278,7 @@ export default function createYearEvaluator(
         return false
       }
 
-      const { operator, value, negate = false } = condition
+      const { operator, value, negate: _ = false } = condition
 
       // Early exit on invalid value type
       if (!isValidYearValue(value)) return false

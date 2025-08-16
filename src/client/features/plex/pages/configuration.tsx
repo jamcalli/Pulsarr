@@ -1,26 +1,26 @@
+import { Check, Loader2, RefreshCw, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Loader2, RefreshCw, Check, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
-  FormControl,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { useConfigStore } from '@/stores/configStore'
-import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
-import { usePlexConnection } from '@/features/plex/hooks/usePlexConnection'
-import { usePlexRssFeeds } from '@/features/plex/hooks/usePlexRssFeeds'
-import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
-import { useWatchlistProgress } from '@/hooks/useProgress'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import PlexConnectionSkeleton from '@/features/plex/components/connection/connection-section-skeleton'
 import SetupModal from '@/features/plex/components/setup/setup-modal'
+import { usePlexConnection } from '@/features/plex/hooks/usePlexConnection'
+import { usePlexRssFeeds } from '@/features/plex/hooks/usePlexRssFeeds'
+import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
+import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { useWatchlistProgress } from '@/hooks/useProgress'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays the Plex Configuration page, allowing users to manage Plex integration settings.

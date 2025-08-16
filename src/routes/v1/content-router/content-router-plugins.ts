@@ -1,16 +1,16 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
   ContentRouterPluginsResponseSchema,
   ContentRouterRuleErrorSchema,
 } from '@schemas/content-router/content-router.schema.js'
 import {
-  EvaluatorMetadataResponseSchema,
   EvaluatorMetadataErrorSchema,
+  EvaluatorMetadataResponseSchema,
   type FieldInfo,
   type OperatorInfo,
 } from '@schemas/content-router/evaluator-metadata.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 // Local type for evaluator metadata with contentType
 interface EvaluatorMetadataWithContentType {

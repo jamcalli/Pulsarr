@@ -1,6 +1,34 @@
 import { z } from 'zod'
 import { SERIES_TYPES } from './constants.js'
 
+// Helper function to check if a value is considered "non-empty" for validation
+function isNonEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false
+  if (typeof value === 'string') return value.trim() !== ''
+  if (Array.isArray(value)) return value.length > 0
+  return true
+}
+
+// Valid season monitoring options (hoisted to avoid per-call allocation)
+const VALID_SEASON_MONITORING = new Set([
+  'unknown',
+  'all',
+  'future',
+  'missing',
+  'existing',
+  'firstseason',
+  'lastseason',
+  'latestseason',
+  'pilot',
+  'pilotrolling',
+  'firstseasonrolling',
+  'recent',
+  'monitorspecials',
+  'unmonitorspecials',
+  'none',
+  'skip',
+])
+
 // Base schemas for conditions
 export const ComparisonOperatorSchema = z.enum([
   'equals',
@@ -48,19 +76,33 @@ export const ConditionValueSchema = z.union([
 export interface ICondition {
   field: string
   operator: ComparisonOperator
-  value: z.infer<typeof ConditionValueSchema> | null
+  value: z.infer<typeof ConditionValueSchema>
   negate?: boolean
   _cid?: string
 }
 
 export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
-  z.object({
-    field: z.string(),
-    operator: ComparisonOperatorSchema,
-    value: ConditionValueSchema,
-    negate: z.boolean().optional().default(false),
-    _cid: z.string().optional(),
-  }),
+  z
+    .object({
+      field: z.string(),
+      operator: ComparisonOperatorSchema,
+      value: ConditionValueSchema,
+      negate: z.boolean().optional().default(false),
+      _cid: z.string().optional(),
+    })
+    .refine(
+      (cond) => {
+        // Validate that condition has complete data
+        const hasField = Boolean(cond.field)
+        const hasOperator = Boolean(cond.operator)
+        const hasValue = isNonEmptyValue(cond.value)
+
+        return hasField && hasOperator && hasValue
+      },
+      {
+        message: 'Condition must have field, operator, and value',
+      },
+    ),
 )
 
 export interface IConditionGroup {
@@ -118,7 +160,7 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
 
 // Base router rule schema
 export const BaseRouterRuleSchema = z.object({
-  name: z.string().min(1, { message: 'Name is required' }),
+  name: z.string().min(1, { error: 'Name is required' }),
   target_type: z.enum(['sonarr', 'radarr']),
   target_instance_id: z.number().min(1),
   condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),
@@ -141,7 +183,7 @@ export const BaseRouterRuleSchema = z.object({
 // For the ConditionalRouteFormSchema (used in the frontend)
 export const ConditionalRouteFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   condition: ConditionGroupSchema.refine(
     (val) => {
@@ -152,6 +194,7 @@ export const ConditionalRouteFormSchema = z.object({
           const hasOperator = Boolean(cond.operator)
           const hasValue =
             cond.value !== undefined &&
+            cond.value !== null &&
             (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
             (!Array.isArray(cond.value) || cond.value.length > 0)
 
@@ -199,13 +242,13 @@ export const ConditionalRouteFormSchema = z.object({
     },
   ),
   target_instance_id: z.number().min(1, {
-    message: 'Instance selection is required.',
+    error: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required',
   }),
   tags: z.array(z.string()).optional().default([]),
   enabled: z.boolean().default(true),
@@ -305,25 +348,9 @@ export function normalizeSeasonMonitoring(value: unknown): string | undefined {
     return undefined
   }
 
-  const validValues = [
-    'unknown',
-    'all',
-    'future',
-    'missing',
-    'existing',
-    'firstSeason',
-    'lastSeason',
-    'latestSeason',
-    'pilot',
-    'recent',
-    'monitorSpecials',
-    'unmonitorSpecials',
-    'none',
-    'skip',
-  ]
   const strValue = String(value).toLowerCase()
 
-  return validValues.includes(strValue) ? strValue : 'all'
+  return VALID_SEASON_MONITORING.has(strValue) ? strValue : 'all'
 }
 export type ContentRouterRuleToggle = z.infer<
   typeof ContentRouterRuleToggleSchema

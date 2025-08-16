@@ -1,4 +1,3 @@
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Accordion,
   AccordionContent,
@@ -6,6 +5,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /**
  * Renders a static skeleton UI that simulates the Plex Session Monitoring interface during data loading.

@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 const urlWithoutTrailingSlash = z
   .string()
-  .url({ message: 'Please enter a valid URL' })
+  .url({ error: 'Please enter a valid URL' })
   .refine((val) => !val.endsWith('/'), {
     message: 'URL should not end with a trailing slash (/)',
   })
@@ -10,9 +10,9 @@ const urlWithoutTrailingSlash = z
 const minimumAvailabilityEnum = z.enum(['announced', 'inCinemas', 'released'])
 
 const baseObjectSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, { error: 'Name is required' }),
   baseUrl: urlWithoutTrailingSlash,
-  apiKey: z.string().min(1, { message: 'API Key is required' }),
+  apiKey: z.string().min(1, { error: 'API Key is required' }),
   bypassIgnored: z.boolean(),
   searchOnAdd: z.boolean().default(true),
   minimumAvailability: minimumAvailabilityEnum.default('released'),
@@ -53,8 +53,8 @@ const initialObjectSchema = baseObjectSchema.extend({
 })
 
 const fullObjectSchema = baseObjectSchema.extend({
-  qualityProfile: z.string().min(1, 'Quality Profile is required'),
-  rootFolder: z.string().min(1, 'Root Folder is required'),
+  qualityProfile: z.string().min(1, { error: 'Quality Profile is required' }),
+  rootFolder: z.string().min(1, { error: 'Root Folder is required' }),
 })
 
 export const initialInstanceSchema = initialObjectSchema.superRefine(
@@ -106,23 +106,23 @@ export const fullInstanceSchema = fullObjectSchema.superRefine((data, ctx) => {
   }
 })
 
-export type RadarrInstanceSchema = z.infer<typeof fullObjectSchema>
+export type RadarrInstanceSchema = z.input<typeof fullInstanceSchema>
 
 export const genreRouteSchema = z.object({
   name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
+    error: 'Route name must be at least 2 characters.',
   }),
   genre: z.string().min(1, {
-    message: 'Genre is required.',
+    error: 'Genre is required.',
   }),
   radarrInstanceId: z.number().min(1, {
-    message: 'Instance selection is required.',
+    error: 'Instance selection is required.',
   }),
   rootFolder: z.string().min(1, {
-    message: 'Root folder is required.',
+    error: 'Root folder is required.',
   }),
   qualityProfile: z.string().min(1, {
-    message: 'Quality Profile is required',
+    error: 'Quality Profile is required',
   }),
 })
 

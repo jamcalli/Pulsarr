@@ -1,16 +1,15 @@
+import type { ApprovalRequest } from '@root/types/approval.types.js'
 import {
-  SlashCommandBuilder,
-  type ChatInputCommandInteraction,
-  type ButtonInteraction,
-  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
+  type ButtonInteraction,
   ButtonStyle,
+  type ChatInputCommandInteraction,
+  EmbedBuilder,
   MessageFlags,
+  SlashCommandBuilder,
 } from 'discord.js'
-import type { FastifyInstance } from 'fastify'
-import type { FastifyBaseLogger } from 'fastify'
-import type { ApprovalRequest } from '@root/types/approval.types.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 interface ApprovalCommandContext {
   fastify: FastifyInstance
@@ -340,7 +339,7 @@ async function createApprovalMessageWithNavigation(
     if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
       embed.setImage(watchlistItems[0].thumb)
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently ignore poster lookup errors
   }
 
@@ -623,7 +622,7 @@ async function showLoadingState(
       embeds: [embed],
       components: [loadingActionRow],
     })
-  } catch (error) {
+  } catch (_error) {
     // Fallback to defer if update fails
     await interaction.deferUpdate()
   }

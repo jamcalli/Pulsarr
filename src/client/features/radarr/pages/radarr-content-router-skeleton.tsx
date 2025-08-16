@@ -1,5 +1,5 @@
-import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /**
  * Displays a skeleton loader that visually mimics the Radarr Content Router page layout during loading states.

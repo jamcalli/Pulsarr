@@ -1,20 +1,20 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
-import { useConfigStore } from '@/stores/configStore'
-import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
-import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
-import { ApprovalTable } from '@/features/approvals/components/approval-table'
-import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-header'
-import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
-import BulkApprovalModal from '@/features/approvals/components/bulk-approval-modal'
 import type {
   ApprovalRequestResponse,
   BulkApprovalRequest,
-  BulkRejectRequest,
   BulkDeleteRequest,
+  BulkRejectRequest,
 } from '@root/schemas/approval/approval.schema'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
+import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-header'
+import { ApprovalTable } from '@/features/approvals/components/approval-table'
+import BulkApprovalModal from '@/features/approvals/components/bulk-approval-modal'
+import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
+import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
+import { useConfigStore } from '@/stores/configStore'
 
 type BulkActionStatus = 'idle' | 'loading' | 'success' | 'error'
 

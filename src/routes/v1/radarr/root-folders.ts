@@ -1,11 +1,11 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
+  ErrorSchema,
   QuerystringSchema,
   RootFoldersResponseSchema,
-  ErrorSchema,
 } from '@schemas/radarr/get-root-folders.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{

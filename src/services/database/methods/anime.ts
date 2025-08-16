@@ -1,6 +1,6 @@
-import type { Knex } from 'knex'
-import type { DatabaseService } from '@services/database.service.js'
 import type { AnimeIdRow, InsertAnimeId } from '@root/types/anime.types.js'
+import type { DatabaseService } from '@services/database.service.js'
+import type { Knex } from 'knex'
 
 /**
  * Determines whether a given external ID and source pair exists in the anime IDs table.

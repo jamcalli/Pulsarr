@@ -1,18 +1,18 @@
-import type { FastifyInstance, FastifyBaseLogger } from 'fastify'
-import type {
-  TautulliConfig,
-  TautulliMetadata,
-  TautulliNotifier,
-  TautulliNotificationRequest,
-  TautulliApiResponse,
-  TautulliEnabledUser,
-  PendingNotification,
-  RecentlyAddedItem,
-} from '@root/types/tautulli.types.js'
-import type { DatabaseService } from './database.service.js'
 import type { User } from '@root/types/config.types.js'
 import type { MediaNotification } from '@root/types/discord.types.js'
+import type {
+  PendingNotification,
+  RecentlyAddedItem,
+  TautulliApiResponse,
+  TautulliConfig,
+  TautulliEnabledUser,
+  TautulliMetadata,
+  TautulliNotificationRequest,
+  TautulliNotifier,
+} from '@root/types/tautulli.types.js'
 import { normalizeGuid } from '@root/utils/guid-handler.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { DatabaseService } from './database.service.js'
 
 export class TautulliService {
   private db: DatabaseService

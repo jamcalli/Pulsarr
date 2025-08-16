@@ -1,16 +1,16 @@
-import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import {
+  AlertTriangle,
+  Clock,
+  HelpCircle,
   Loader2,
   PlayCircle,
-  AlertTriangle,
   Power,
-  Clock,
   Save,
   X,
-  HelpCircle,
 } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
+import { useEffect } from 'react'
+import type { UseFormReturn } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -19,6 +19,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -26,22 +27,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import { TimeSelector } from '@/components/ui/time-input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { TimeSelector } from '@/components/ui/time-input'
-import { useQuotaSystem } from '@/features/plex/hooks/useQuotaSystem'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { QuotaSettingsPageSkeleton } from '@/features/approvals/pages/quota-settings-page-skeleton'
-import { useConfigStore } from '@/stores/configStore'
-import type { UseFormReturn } from 'react-hook-form'
 import type { ApprovalConfigurationFormData } from '@/features/plex/hooks/useApprovalConfiguration'
+import { useQuotaSystem } from '@/features/plex/hooks/useQuotaSystem'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Helper function to get day name from day index

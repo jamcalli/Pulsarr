@@ -1,4 +1,4 @@
-import type { RootFolder, QualityProfile } from '@root/types/radarr.types'
+import type { QualityProfile, RootFolder } from '@root/types/radarr.types'
 
 export interface RadarrInstanceData {
   rootFolders?: RootFolder[]

@@ -1,13 +1,12 @@
+import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { DefaultInstanceError } from '@root/types/errors.js'
-import { logRouteError } from '@utils/route-errors.js'
 
 // Zod schema for Sonarr instance configuration
 const SonarrInstanceSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  baseUrl: z.string().url({ message: 'Invalid base URL' }),
-  apiKey: z.string().min(1, { message: 'API Key is required' }),
+  name: z.string().min(1, { error: 'Name is required' }),
+  baseUrl: z.string().url({ error: 'Invalid base URL' }),
+  apiKey: z.string().min(1, { error: 'API Key is required' }),
   qualityProfile: z.union([z.string(), z.number()]).nullish(),
   rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean().optional().default(false),

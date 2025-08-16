@@ -1,6 +1,9 @@
-import { Eye, EyeOff, Trash2, Key } from 'lucide-react'
+import type { CreateApiKey } from '@root/schemas/api-keys/api-keys.schema'
+import type { ApiKey } from '@root/types/api-key.types'
+import { Eye, EyeOff, Key, Trash2 } from 'lucide-react'
+import type { UseFormReturn } from 'react-hook-form'
+import { CopyButton } from '@/components/CopyButton'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Form,
   FormControl,
@@ -9,17 +12,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { CopyButton } from '@/components/CopyButton'
-import { Separator } from '@/components/ui/separator'
-import type { UseFormReturn } from 'react-hook-form'
-import type { CreateApiKey } from '@root/schemas/api-keys/api-keys.schema'
-import type { ApiKey } from '@root/types/api-key.types'
 
 interface ApiKeysFormProps {
   form: UseFormReturn<CreateApiKey>

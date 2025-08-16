@@ -1,7 +1,8 @@
 // DocSearch.tsx - Custom search component using app button styling
-import React, { useCallback } from 'react'
+
 import { useColorMode } from '@docusaurus/theme-common'
 import { Search } from 'lucide-react'
+import React, { useCallback } from 'react'
 
 // Re-implement the Button component to match your blue variant
 function SearchButton({
@@ -14,7 +15,7 @@ function SearchButton({
   className?: string
 }) {
   const { colorMode } = useColorMode()
-  const isDark = colorMode === 'dark'
+  const _isDark = colorMode === 'dark'
 
   // These styles match your blue button variant: 'text-mtext bg-blue border-2 border-border'
   const style = {

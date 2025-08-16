@@ -4,9 +4,10 @@
  * Registers the PlexSessionMonitorService for monitoring Plex sessions
  * and triggering Sonarr searches based on viewing patterns
  */
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
+
 import { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

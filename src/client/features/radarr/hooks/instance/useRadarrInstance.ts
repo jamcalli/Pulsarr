@@ -1,9 +1,9 @@
 import { useCallback } from 'react'
-import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
-import { toast } from 'sonner'
-import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
+import { toast } from 'sonner'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
+import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 
 /**
  * React hook for managing a specific Radarr instance by its ID.

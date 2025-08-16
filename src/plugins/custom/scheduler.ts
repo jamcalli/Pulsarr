@@ -1,6 +1,6 @@
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
 import { SchedulerService } from '@services/scheduler.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 /**
  * Fastify plugin for job scheduling

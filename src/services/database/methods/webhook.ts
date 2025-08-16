@@ -1,8 +1,8 @@
-import type { DatabaseService } from '@services/database.service.js'
 import type {
   PendingWebhook,
   PendingWebhookCreate,
 } from '@root/types/pending-webhooks.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 
 /**
  * Inserts a new pending webhook record into the database and returns the created entry with its assigned ID.

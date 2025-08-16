@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
+import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useConfigStore } from '@/stores/configStore'
-import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
-import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
-import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
  * Renders the page for managing Sonarr instances, enabling users to add, view, and configure their Sonarr connections.

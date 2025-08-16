@@ -1,7 +1,7 @@
+import type { ContentRouterRule } from '@root/schemas/content-router/content-router.schema'
+import type { QualityProfile, RootFolder } from '@root/types/sonarr.types'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
-import type { ContentRouterRule } from '@root/schemas/content-router/content-router.schema'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 export interface SonarrInstance {

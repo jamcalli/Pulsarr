@@ -1,8 +1,8 @@
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { AspectRatio } from '@/components/ui/aspect-ratio'
-import { cn } from '@/lib/utils'
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
+import { AspectRatio } from '@/components/ui/aspect-ratio'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 interface MediaCardProps {
   item: ContentStat

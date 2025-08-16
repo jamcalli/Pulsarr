@@ -1,5 +1,12 @@
 import { z } from 'zod'
 
+// Shared homepage schema: allow valid URL strings, null, or empty string from TMDB
+export const TmdbHomepageSchema = z.union([
+  z.string().pipe(z.url({ error: 'Invalid URL format' })),
+  z.literal(''),
+  z.null(),
+])
+
 // Radarr Rating Source Schema
 export const RadarrRatingSourceSchema = z.object({
   votes: z.number(),
@@ -66,7 +73,7 @@ export const TmdbMovieDetailsSchema = z.object({
   belongs_to_collection: TmdbBelongsToCollectionSchema.nullable(),
   budget: z.number(),
   genres: z.array(TmdbGenreSchema),
-  homepage: z.string().url().nullable().or(z.literal('')),
+  homepage: TmdbHomepageSchema,
   id: z.number(),
   imdb_id: z.string().nullable(),
   origin_country: z.array(z.string()),
@@ -144,7 +151,7 @@ export const TmdbTvDetailsSchema = z.object({
   episode_run_time: z.array(z.number()),
   first_air_date: z.string().nullable(),
   genres: z.array(TmdbGenreSchema),
-  homepage: z.string().url().nullable().or(z.literal('')),
+  homepage: TmdbHomepageSchema,
   id: z.number(),
   in_production: z.boolean(),
   languages: z.array(z.string()),
@@ -209,7 +216,7 @@ export const TmdbContentMetadataSchema = z.union([
 
 // Request schemas
 export const GetTmdbMetadataParamsSchema = z.object({
-  id: z.string().min(1, 'TMDB ID is required'),
+  id: z.string().min(1, { error: 'TMDB ID is required' }),
 })
 
 export const GetTmdbMetadataQuerySchema = z.object({

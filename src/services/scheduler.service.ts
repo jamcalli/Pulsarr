@@ -20,18 +20,19 @@
  *   // Job implementation
  * });
  */
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import {
-  ToadScheduler,
-  AsyncTask,
-  SimpleIntervalJob,
-  CronJob,
-} from 'toad-scheduler'
+
 import type {
+  CronConfig,
   DbSchedule,
   IntervalConfig,
-  CronConfig,
 } from '@root/types/scheduler.types.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import {
+  AsyncTask,
+  CronJob,
+  SimpleIntervalJob,
+  ToadScheduler,
+} from 'toad-scheduler'
 
 /** Handler function type for scheduled jobs */
 export type JobHandler = (jobName: string) => Promise<void>
@@ -466,7 +467,7 @@ export class SchedulerService {
         }
       }
 
-      const updateResult = await this.fastify.db.updateSchedule(name, updates)
+      const _updateResult = await this.fastify.db.updateSchedule(name, updates)
 
       // Get job and handler
       const jobData = this.jobs.get(name)

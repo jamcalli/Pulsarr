@@ -1,8 +1,8 @@
-import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
-import { plexGetNotificationStatusSchema } from '@schemas/plex/get-notification-status.schema.js'
 import type { WebhookNotification } from '@root/types/radarr.types.js'
 import type { WebhookNotification as SonarrWebhookNotification } from '@root/types/sonarr.types.js'
+import { plexGetNotificationStatusSchema } from '@schemas/plex/get-notification-status.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
 export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
   fastify,

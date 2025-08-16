@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
+import { toast } from 'sonner'
 import {
-  useApprovalConfiguration,
   type ApprovalConfigurationFormData,
+  useApprovalConfiguration,
 } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { toast } from 'sonner'
 
 /**
  * Combines approval configuration form management with scheduling controls in a single React hook.

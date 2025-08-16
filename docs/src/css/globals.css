@@ -1,107 +1,107 @@
 @import "tw-animate-css";
 
 @theme {
-	--breakpoint-xs: 490px;
+  --breakpoint-xs: 490px;
 
-	--font-sans: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
-	--font-heading: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
+  --font-heading: Shuttleblock, ui-sans-serif, system-ui, sans-serif;
 
-	--color-main: var(--main);
-	--color-overlay: var(--overlay);
-	--color-background: var(--bg);
-	--color-secondary-background: var(--bw);
-	--color-blank: var(--blank);
-	--color-foreground: var(--text);
-	--color-main-foreground: var(--mtext);
-	--color-border: var(--border);
-	--color-ring: var(--ring);
-	--color-ring-offset: var(--ring-offset);
-	--color-secondary-black: #212121;
-	--color-static-asteroid-fill: var(--static-asteroid-fill);
-	--color-static-asteroid-border: var(--static-asteroid-border);
-	--color-error: var(--error);
-	--color-fun: var(--fun);
-	--color-orange: var(--orange);
-	--color-blue: var(--blue);
+  --color-main: var(--main);
+  --color-overlay: var(--overlay);
+  --color-background: var(--bg);
+  --color-secondary-background: var(--bw);
+  --color-blank: var(--blank);
+  --color-foreground: var(--text);
+  --color-main-foreground: var(--mtext);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-ring-offset: var(--ring-offset);
+  --color-secondary-black: #212121;
+  --color-static-asteroid-fill: var(--static-asteroid-fill);
+  --color-static-asteroid-border: var(--static-asteroid-border);
+  --color-error: var(--error);
+  --color-fun: var(--fun);
+  --color-orange: var(--orange);
+  --color-blue: var(--blue);
 
-	--radius-base: 5px;
+  --radius-base: 5px;
 
-	--shadow-shadow: var(--shadow);
+  --shadow-shadow: var(--shadow);
 
-	--spacing-boxShadowX: 4px;
-	--spacing-boxShadowY: 4px;
-	--spacing-reverseBoxShadowX: -4px;
-	--spacing-reverseBoxShadowY: -4px;
+  --spacing-boxShadowX: 4px;
+  --spacing-boxShadowY: 4px;
+  --spacing-reverseBoxShadowX: -4px;
+  --spacing-reverseBoxShadowY: -4px;
 
-	/* Custom utilities for button animations */
-	--translate-x-boxShadowX: var(--spacing-boxShadowX);
-	--translate-y-boxShadowY: var(--spacing-boxShadowY);
-	--translate-x-reverseBoxShadowX: var(--spacing-reverseBoxShadowX);
-	--translate-y-reverseBoxShadowY: var(--spacing-reverseBoxShadowY);
+  /* Custom utilities for button animations */
+  --translate-x-boxShadowX: var(--spacing-boxShadowX);
+  --translate-y-boxShadowY: var(--spacing-boxShadowY);
+  --translate-x-reverseBoxShadowX: var(--spacing-reverseBoxShadowX);
+  --translate-y-reverseBoxShadowY: var(--spacing-reverseBoxShadowY);
 
-	--animate-star-pulse: starPulse 16s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-	--animate-hard-flicker: hardFlicker 0.16s infinite;
-	--animate-soft-flicker: softFlicker 2s infinite;
-	--animate-marquee: marquee 15s linear infinite;
-	--animate-marquee2: marquee2 15s linear infinite;
+  --animate-star-pulse: starPulse 16s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-hard-flicker: hardFlicker 0.16s infinite;
+  --animate-soft-flicker: softFlicker 2s infinite;
+  --animate-marquee: marquee 15s linear infinite;
+  --animate-marquee2: marquee2 15s linear infinite;
 
-	@keyframes starPulse {
-		0%,
-		100% {
-			opacity: 1;
-			transform: scale(1);
-		}
-		50% {
-			opacity: 0.3;
-			transform: scale(0.95);
-		}
-	}
-	@keyframes hardFlicker {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0.85;
-		}
-		25%,
-		75% {
-			opacity: 0.95;
-		}
-	}
-	@keyframes softFlicker {
-		0%,
-		100% {
-			opacity: 0.1;
-		}
-		50% {
-			opacity: 0.15;
-		}
-	}
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-	@keyframes marquee {
-		0% {
-			transform: translateX(0%);
-		}
-		100% {
-			transform: translateX(-100%);
-		}
-	}
-	@keyframes marquee2 {
-		0% {
-			transform: translateX(100%);
-		}
-		100% {
-			transform: translateX(0%);
-		}
-	}
+  @keyframes starPulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.3;
+      transform: scale(0.95);
+    }
+  }
+  @keyframes hardFlicker {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.85;
+    }
+    25%,
+    75% {
+      opacity: 0.95;
+    }
+  }
+  @keyframes softFlicker {
+    0%,
+    100% {
+      opacity: 0.1;
+    }
+    50% {
+      opacity: 0.15;
+    }
+  }
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes marquee2 {
+    0% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(0%);
+    }
+  }
 }
 
 /*
@@ -113,409 +113,409 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
-	*,
-	::after,
-	::before,
-	::backdrop,
-	::file-selector-button {
-		border-color: var(--color-gray-200, currentColor);
-	}
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
 }
 
 :root {
-	--main: #48a9a6;
-	--overlay: rgba(0, 0, 0, 0.8);
-	--static-text: #c1666b;
-	--error: #c1666b;
-	--fun: #d4b483;
-	--orange: #f6723a;
-	--blue: #4a94b5;
-	/* Static asteroid variables */
-	--static-asteroid-fill: #948d89;
-	--static-asteroid-border: #dedede;
+  --main: #48a9a6;
+  --overlay: rgba(0, 0, 0, 0.8);
+  --static-text: #c1666b;
+  --error: #c1666b;
+  --fun: #d4b483;
+  --orange: #f6723a;
+  --blue: #4a94b5;
+  /* Static asteroid variables */
+  --static-asteroid-fill: #948d89;
+  --static-asteroid-border: #dedede;
 
-	--bg: #dfe5f2;
-	--bw: #e4dfda;
-	--blank: #000;
-	--border: #000;
-	--text: #000;
-	--mtext: #000;
-	--ring: #000;
-	--ring-offset: #e4dfda;
+  --bg: #dfe5f2;
+  --bw: #e4dfda;
+  --blank: #000;
+  --border: #000;
+  --text: #000;
+  --mtext: #000;
+  --ring: #000;
+  --ring-offset: #e4dfda;
 
-	--border-radius: 5px;
-	--box-shadow-x: 4px;
-	--box-shadow-y: 4px;
-	--reverse-box-shadow-x: -4px;
-	--reverse-box-shadow-y: -4px;
-	--base-font-weight: 500;
-	--heading-font-weight: 700;
+  --border-radius: 5px;
+  --box-shadow-x: 4px;
+  --box-shadow-y: 4px;
+  --reverse-box-shadow-x: -4px;
+  --reverse-box-shadow-y: -4px;
+  --base-font-weight: 500;
+  --heading-font-weight: 700;
 
-	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 
-	--chart-1: 196 39% 33%;
-	--chart-2: 183 37% 49%;
-	--chart-3: 29 85% 87%;
-	--chart-4: 19 91% 59%;
-	--chart-5: 1 54% 50%;
+  --chart-1: 196 39% 33%;
+  --chart-2: 183 37% 49%;
+  --chart-3: 29 85% 87%;
+  --chart-4: 19 91% 59%;
+  --chart-5: 1 54% 50%;
 
-	--color-movie: #1a5999;
-	--color-show: #39b978;
-	--color-count: #f47b30;
+  --color-movie: #1a5999;
+  --color-show: #39b978;
+  --color-count: #f47b30;
 }
 
 .dark {
-	--bg: #272933;
-	--bw: #212121;
-	--blank: #e4dfda;
-	--border: #000;
-	--text: #e6e6e6;
-	--mtext: #000;
-	--ring: #e4dfda;
-	--ring-offset: #000;
+  --bg: #272933;
+  --bw: #212121;
+  --blank: #e4dfda;
+  --border: #000;
+  --text: #e6e6e6;
+  --mtext: #000;
+  --ring: #e4dfda;
+  --ring-offset: #000;
 
-	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 }
 
 /* Card and component utilities */
 @layer utilities {
-	/* Background utilities - v4 naming */
-	.bg-main {
-		background-color: var(--main);
-	}
-
-	.bg-background {
-		background-color: var(--bg);
-	}
-
-	.bg-secondary-background {
-		background-color: var(--bw);
-	}
-
-	/* Legacy v3 support for existing components */
-	.bg-bg {
-		background-color: var(--bg);
-	}
-
-	.bg-bw {
-		background-color: var(--bw);
-	}
-
-	/* Text color utilities - v4 naming */
-	.text-foreground {
-		color: var(--text);
-	}
-
-	.text-main-foreground {
-		color: var(--mtext);
-	}
-
-	/* Legacy v3 support for existing components */
-	.text-text {
-		color: var(--text);
-	}
-
-	.text-mtext {
-		color: var(--mtext);
-	}
-
-	/* Additional text colors */
-	.text-black {
-		color: #000;
-	}
-
-	.text-white {
-		color: #fff;
-	}
-
-	/* Static text color for special elements */
-	.text-static {
-		color: var(--static-text);
-	}
-
-	/* Border utilities */
-	.border-border {
-		border-color: var(--border);
-	}
-
-	.border-main {
-		border-color: var(--main);
-	}
-
-	/* Shadow utilities */
-	.shadow-shadow {
-		box-shadow: var(--shadow);
-	}
-
-	/* Border radius utilities */
-	.rounded-base {
-		border-radius: var(--border-radius);
-	}
-
-	/* Z-index utilities */
-	.z-1 {
-		z-index: 1;
-	}
-
-	.z-10 {
-		z-index: 10;
-	}
-
-	.z-20 {
-		z-index: 20;
-	}
-
-	.z-30 {
-		z-index: 30;
-	}
-
-	.z-100 {
-		z-index: 100;
-	}
-
-	/* Position utilities */
-	.fixed {
-		position: fixed;
-	}
-
-	.absolute {
-		position: absolute;
-	}
-
-	.relative {
-		position: relative;
-	}
-
-	.inset-0 {
-		top: 0;
-		right: 0;
-		bottom: 0;
-		left: 0;
-	}
-
-	/* Display utilities */
-	.overflow-hidden {
-		overflow: hidden;
-	}
-
-	/* Pointer events */
-	.pointer-events-none {
-		pointer-events: none;
-	}
-
-	.pointer-events-auto {
-		pointer-events: auto;
-	}
-
-	/* Background utilities */
-	.bg-white {
-		background-color: white;
-	}
-
-	.bg-black {
-		background-color: black;
-	}
-
-	/* Border radius */
-	.rounded-full {
-		border-radius: 50%;
-	}
-
-	/* Height utilities */
-	.h-full {
-		height: 100%;
-	}
-
-	/* Transitions */
-	.transition-transform {
-		transition-property: transform;
-		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-		transition-duration: 150ms;
-	}
-
-	.duration-700 {
-		transition-duration: 700ms;
-	}
-
-	.ease-out {
-		transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
-	}
-
-	.transition-all {
-		transition-property: all;
-		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-		transition-duration: 150ms;
-	}
-
-	/* Initialize transform variables */
-	* {
-		--tw-translate-x: 0;
-		--tw-translate-y: 0;
-		--tw-rotate: 0;
-		--tw-skew-x: 0;
-		--tw-skew-y: 0;
-		--tw-scale-x: 1;
-		--tw-scale-y: 1;
-	}
-
-	/* Direct button hover animations - ONLY target button elements */
-	button[class*="bg-main"]:hover {
-		transform: translate(4px, 4px) !important;
-		box-shadow: none !important;
-	}
-
-	button[class*="bg-secondary-background"]:hover {
-		transform: translate(4px, 4px) !important;
-		box-shadow: none !important;
-	}
-
-	button[class*="bg-error"]:hover {
-		transform: translate(4px, 4px) !important;
-		box-shadow: none !important;
-	}
-
-	button[class*="bg-fun"]:hover {
-		transform: translate(4px, 4px) !important;
-		box-shadow: none !important;
-	}
-
-	/* Ensure transitions work */
-	button[class*="transition-all"],
-	.transition-all {
-		transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
-	}
-
-	/* Size utilities */
-	.h-10 {
-		height: 2.5rem;
-	}
-
-	.h-11 {
-		height: 2.75rem;
-	}
-
-	.px-4 {
-		padding-left: 1rem;
-		padding-right: 1rem;
-	}
-
-	.px-8 {
-		padding-left: 2rem;
-		padding-right: 2rem;
-	}
-
-	.py-2 {
-		padding-top: 0.5rem;
-		padding-bottom: 0.5rem;
-	}
-
-	/* Additional utilities */
-	.inline-flex {
-		display: inline-flex;
-	}
-
-	.items-center {
-		align-items: center;
-	}
-
-	.justify-center {
-		justify-content: center;
-	}
-
-	.whitespace-nowrap {
-		white-space: nowrap;
-	}
-
-	.text-sm {
-		font-size: 0.875rem;
-		line-height: 1.25rem;
-	}
-
-	.gap-2 {
-		gap: 0.5rem;
-	}
-
-	/* Font weight utilities - use standard values like main app */
-	.font-normal {
-		font-weight: 400;
-	}
-
-	.font-medium {
-		font-weight: 500;
-	}
-
-	.font-bold {
-		font-weight: 700;
-	}
-
-	/* Text sizes to match main app */
-	.text-xs {
-		font-size: 0.75rem;
-		line-height: 1;
-	}
-
-	.text-base {
-		font-size: 0.875rem;
-		line-height: 1.2;
-	}
-
-	.text-lg {
-		font-size: 1rem;
-		line-height: 1.3;
-	}
-
-	.text-xl {
-		font-size: 1.125rem;
-		line-height: 1.4;
-	}
-
-	.text-2xl {
-		font-size: 1.25rem;
-		line-height: 1.4;
-	}
-
-	.text-3xl {
-		font-size: 1.5rem;
-		line-height: 1.2;
-	}
-
-	/* Text styling utilities */
-	.leading-none {
-		line-height: 1;
-	}
-
-	.leading-\\[1\\.7\\] {
-		line-height: 1.7;
-	}
-
-	.tracking-tight {
-		letter-spacing: -0.025em;
-	}
-
-	.tracking-wider {
-		letter-spacing: 0.05em;
-	}
-
-	/* Font family utilities */
-	.font-sans {
-		font-family: var(--font-sans);
-	}
-
-	/* Stroke width utilities for asteroids - multiple selectors to ensure it works */
-	.stroke-\\[4px\\],
+  /* Background utilities - v4 naming */
+  .bg-main {
+    background-color: var(--main);
+  }
+
+  .bg-background {
+    background-color: var(--bg);
+  }
+
+  .bg-secondary-background {
+    background-color: var(--bw);
+  }
+
+  /* Legacy v3 support for existing components */
+  .bg-bg {
+    background-color: var(--bg);
+  }
+
+  .bg-bw {
+    background-color: var(--bw);
+  }
+
+  /* Text color utilities - v4 naming */
+  .text-foreground {
+    color: var(--text);
+  }
+
+  .text-main-foreground {
+    color: var(--mtext);
+  }
+
+  /* Legacy v3 support for existing components */
+  .text-text {
+    color: var(--text);
+  }
+
+  .text-mtext {
+    color: var(--mtext);
+  }
+
+  /* Additional text colors */
+  .text-black {
+    color: #000;
+  }
+
+  .text-white {
+    color: #fff;
+  }
+
+  /* Static text color for special elements */
+  .text-static {
+    color: var(--static-text);
+  }
+
+  /* Border utilities */
+  .border-border {
+    border-color: var(--border);
+  }
+
+  .border-main {
+    border-color: var(--main);
+  }
+
+  /* Shadow utilities */
+  .shadow-shadow {
+    box-shadow: var(--shadow);
+  }
+
+  /* Border radius utilities */
+  .rounded-base {
+    border-radius: var(--border-radius);
+  }
+
+  /* Z-index utilities */
+  .z-1 {
+    z-index: 1;
+  }
+
+  .z-10 {
+    z-index: 10;
+  }
+
+  .z-20 {
+    z-index: 20;
+  }
+
+  .z-30 {
+    z-index: 30;
+  }
+
+  .z-100 {
+    z-index: 100;
+  }
+
+  /* Position utilities */
+  .fixed {
+    position: fixed;
+  }
+
+  .absolute {
+    position: absolute;
+  }
+
+  .relative {
+    position: relative;
+  }
+
+  .inset-0 {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+
+  /* Display utilities */
+  .overflow-hidden {
+    overflow: hidden;
+  }
+
+  /* Pointer events */
+  .pointer-events-none {
+    pointer-events: none;
+  }
+
+  .pointer-events-auto {
+    pointer-events: auto;
+  }
+
+  /* Background utilities */
+  .bg-white {
+    background-color: white;
+  }
+
+  .bg-black {
+    background-color: black;
+  }
+
+  /* Border radius */
+  .rounded-full {
+    border-radius: 50%;
+  }
+
+  /* Height utilities */
+  .h-full {
+    height: 100%;
+  }
+
+  /* Transitions */
+  .transition-transform {
+    transition-property: transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  .duration-700 {
+    transition-duration: 700ms;
+  }
+
+  .ease-out {
+    transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  /* Initialize transform variables */
+  * {
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+  }
+
+  /* Direct button hover animations - ONLY target button elements */
+  button[class*="bg-main"]:hover {
+    transform: translate(4px, 4px) !important;
+    box-shadow: none !important;
+  }
+
+  button[class*="bg-secondary-background"]:hover {
+    transform: translate(4px, 4px) !important;
+    box-shadow: none !important;
+  }
+
+  button[class*="bg-error"]:hover {
+    transform: translate(4px, 4px) !important;
+    box-shadow: none !important;
+  }
+
+  button[class*="bg-fun"]:hover {
+    transform: translate(4px, 4px) !important;
+    box-shadow: none !important;
+  }
+
+  /* Ensure transitions work */
+  button[class*="transition-all"],
+  .transition-all {
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Size utilities */
+  .h-10 {
+    height: 2.5rem;
+  }
+
+  .h-11 {
+    height: 2.75rem;
+  }
+
+  .px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .px-8 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Additional utilities */
+  .inline-flex {
+    display: inline-flex;
+  }
+
+  .items-center {
+    align-items: center;
+  }
+
+  .justify-center {
+    justify-content: center;
+  }
+
+  .whitespace-nowrap {
+    white-space: nowrap;
+  }
+
+  .text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .gap-2 {
+    gap: 0.5rem;
+  }
+
+  /* Font weight utilities - use standard values like main app */
+  .font-normal {
+    font-weight: 400;
+  }
+
+  .font-medium {
+    font-weight: 500;
+  }
+
+  .font-bold {
+    font-weight: 700;
+  }
+
+  /* Text sizes to match main app */
+  .text-xs {
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+
+  .text-base {
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
+
+  .text-lg {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .text-xl {
+    font-size: 1.125rem;
+    line-height: 1.4;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem;
+    line-height: 1.4;
+  }
+
+  .text-3xl {
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  /* Text styling utilities */
+  .leading-none {
+    line-height: 1;
+  }
+
+  .leading-\\[1\\.7\\] {
+    line-height: 1.7;
+  }
+
+  .tracking-tight {
+    letter-spacing: -0.025em;
+  }
+
+  .tracking-wider {
+    letter-spacing: 0.05em;
+  }
+
+  /* Font family utilities */
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+
+  /* Stroke width utilities for asteroids - multiple selectors to ensure it works */
+  .stroke-\\[4px\\],
 	polygon[class*="stroke"] {
-		stroke-width: 4px !important;
-	}
+    stroke-width: 4px !important;
+  }
 
-	/* Direct targeting of asteroid polygons */
-	svg polygon {
-		stroke-width: 4px !important;
-	}
+  /* Direct targeting of asteroid polygons */
+  svg polygon {
+    stroke-width: 4px !important;
+  }
 
-	/* Match main app font rendering */
-	body {
-		font-family: var(--font-sans);
-		-webkit-font-smoothing: antialiased;
-		-moz-osx-font-smoothing: grayscale;
-	}
+  /* Match main app font rendering */
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }

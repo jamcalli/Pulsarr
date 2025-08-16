@@ -1,7 +1,7 @@
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
-import { PlexWatchlistService } from '@services/plex-watchlist.service.js'
 import type { PlexLabelSyncService } from '@services/plex-label-sync.service.js'
+import { PlexWatchlistService } from '@services/plex-watchlist.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {

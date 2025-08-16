@@ -1,10 +1,10 @@
+import type {
+  QuotaStatusResponse,
+  UserQuotaResponse,
+} from '@root/schemas/quota/quota.schema'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { UserQuotas } from '@/stores/configStore'
-import type {
-  UserQuotaResponse,
-  QuotaStatusResponse,
-} from '@root/schemas/quota/quota.schema'
 
 type QuotaWithStatus = UserQuotaResponse & Partial<QuotaStatusResponse>
 

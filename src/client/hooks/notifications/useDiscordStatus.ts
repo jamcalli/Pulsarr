@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useProgressStore } from '@/stores/progressStore'
 import type { ProgressEvent } from '@root/types/progress.types'
+import { useCallback, useEffect, useState } from 'react'
+import { useProgressStore } from '@/stores/progressStore'
 
 export function useDiscordStatus() {
   const [status, setStatus] = useState<string>('unknown')

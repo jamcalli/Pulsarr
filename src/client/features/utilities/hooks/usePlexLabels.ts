@@ -1,24 +1,24 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { formatDistanceToNow, parseISO } from 'date-fns'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { useConfigStore } from '@/stores/configStore'
-import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 import type {
-  SyncPlexLabelsResponse,
   CleanupPlexLabelsResponse,
   RemovePlexLabelsResponse,
+  SyncPlexLabelsResponse,
 } from '@root/schemas/labels/plex-labels.schema'
 import {
-  PlexLabelSyncConfigSchema,
   type PlexLabelSyncConfig,
+  PlexLabelSyncConfigSchema,
 } from '@root/schemas/plex/label-sync-config.schema'
+import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { formatDistanceToNow, parseISO } from 'date-fns'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import type { z } from 'zod'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { parseCronExpression } from '@/lib/utils'
+import { useConfigStore } from '@/stores/configStore'
 
-export type PlexLabelsFormValues = z.infer<typeof PlexLabelSyncConfigSchema>
+export type PlexLabelsFormValues = z.input<typeof PlexLabelSyncConfigSchema>
 
 // Union type for action results
 type ActionResult =
@@ -138,6 +138,7 @@ export function usePlexLabels() {
   // Initialize form with default values
   const form = useForm<PlexLabelsFormValues>({
     resolver: zodResolver(PlexLabelSyncConfigSchema),
+    mode: 'onChange',
     defaultValues: {
       enabled: false,
       labelPrefix: 'pulsarr',
@@ -249,7 +250,7 @@ export function usePlexLabels() {
       if (!lastRun?.time) return 'Never'
       try {
         return formatDistanceToNow(parseISO(lastRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return lastRun.time
       }
     },
@@ -262,7 +263,7 @@ export function usePlexLabels() {
       if (!nextRun?.time) return 'Not scheduled'
       try {
         return formatDistanceToNow(parseISO(nextRun.time), { addSuffix: true })
-      } catch (e) {
+      } catch (_e) {
         return nextRun.time
       }
     },
@@ -281,9 +282,15 @@ export function usePlexLabels() {
   // Handle time change for form integration (like Delete Sync)
   const handleTimeChange = useCallback(
     (newTime: Date, newDay?: string) => {
-      form.setValue('scheduleTime', newTime, { shouldDirty: true })
+      form.setValue('scheduleTime', newTime, {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
       if (newDay !== undefined) {
-        form.setValue('dayOfWeek', newDay, { shouldDirty: true })
+        form.setValue('dayOfWeek', newDay, {
+          shouldDirty: true,
+          shouldValidate: true,
+        })
       }
     },
     [form],
@@ -338,8 +345,9 @@ export function usePlexLabels() {
       setLoadingWithMinDuration(true)
 
       try {
-        // Create a copy of the data
-        const formDataCopy = { ...data }
+        // Transform the form data using the schema before using it
+        const transformedData = PlexLabelSyncConfigSchema.parse(data)
+        const formDataCopy = { ...transformedData }
 
         // Create minimum loading time promise
         const minimumLoadingTime = new Promise((resolve) =>
@@ -353,10 +361,10 @@ export function usePlexLabels() {
 
         // Handle schedule update based on scheduleTime
         let scheduleUpdatePromise = Promise.resolve()
-        if (data.scheduleTime) {
-          const hours = data.scheduleTime.getHours()
-          const minutes = data.scheduleTime.getMinutes()
-          const dayOfWeek = data.dayOfWeek || '*'
+        if (transformedData.scheduleTime) {
+          const hours = transformedData.scheduleTime.getHours()
+          const minutes = transformedData.scheduleTime.getMinutes()
+          const dayOfWeek = transformedData.dayOfWeek || '*'
 
           // Create cron expression (seconds minutes hours day month weekday)
           const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`
@@ -398,7 +406,7 @@ export function usePlexLabels() {
         await fetchSchedules()
 
         // If we enable labeling, we can no longer edit the label format
-        if (data.enabled) {
+        if (transformedData.enabled) {
           setLabelDefinitionsDeleted(false)
           setIsLabelDeletionComplete(false)
         }
@@ -461,7 +469,7 @@ export function usePlexLabels() {
       setLastActionResults(result)
 
       toast.success(result.message || 'Pulsarr labels synced successfully')
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [syncPlexLabels])
@@ -478,7 +486,7 @@ export function usePlexLabels() {
       toast.success(
         result.message || 'Orphaned Pulsarr labels cleaned up successfully',
       )
-    } catch (err) {
+    } catch (_err) {
       // Error is already handled in the store and displayed via toast
     }
   }, [cleanupPlexLabels])
@@ -542,9 +550,11 @@ export function usePlexLabels() {
           setTimeout(resolve, 500),
         )
 
-        // Get current form values and update enabled state
-        const currentValues = form.getValues()
-        const formData = { ...currentValues, enabled: newEnabledState }
+        // Get current config values and update enabled state
+        const currentConfig = config?.plexLabelSync
+        if (!currentConfig) throw new Error('Configuration not available')
+
+        const formData = { ...currentConfig, enabled: newEnabledState }
 
         // Update config through main config system
         await Promise.all([
@@ -591,7 +601,7 @@ export function usePlexLabels() {
         setLoadingWithMinDuration(false)
       }
     },
-    [form, updateConfig, setLoadingWithMinDuration],
+    [form, updateConfig, setLoadingWithMinDuration, config?.plexLabelSync],
   )
 
   return {

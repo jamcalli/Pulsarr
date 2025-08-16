@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
-import type { DatabaseService } from '@services/database.service.js'
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 
 /**
  * Generates a cryptographically secure API key as a 32-byte base64url-encoded string.

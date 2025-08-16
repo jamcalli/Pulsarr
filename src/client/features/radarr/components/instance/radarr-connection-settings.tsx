@@ -1,21 +1,21 @@
+import { Check, Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
-import { Loader2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Input } from '@/components/ui/input'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import type { ConnectionStatus } from '@/features/radarr/types/types'
 import { useMediaQuery } from '@/hooks/use-media-query'

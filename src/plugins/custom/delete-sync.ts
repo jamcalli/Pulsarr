@@ -4,9 +4,10 @@
  * This plugin registers the DeleteSyncService with the Fastify application
  * and connects it to the pre-existing scheduler job.
  */
-import fp from 'fastify-plugin'
-import type { FastifyInstance } from 'fastify'
+
 import { DeleteSyncService } from '@services/delete-sync.service.js'
+import type { FastifyInstance } from 'fastify'
+import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -25,7 +26,7 @@ export default fp(
     fastify.addHook('onReady', async () => {
       try {
         // Register the handler for the job
-        await fastify.scheduler.scheduleJob('delete-sync', async (jobName) => {
+        await fastify.scheduler.scheduleJob('delete-sync', async (_jobName) => {
           // First check if the schedule itself is enabled
           const schedule = await fastify.db.getScheduleByName('delete-sync')
           if (!schedule || !schedule.enabled) {

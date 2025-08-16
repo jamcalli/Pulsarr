@@ -1,6 +1,6 @@
-import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { plexRemoveNotificationSchema } from '@schemas/plex/remove-notifications.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
 export const removeNotificationsRoute: FastifyPluginAsyncZod = async (
   fastify,

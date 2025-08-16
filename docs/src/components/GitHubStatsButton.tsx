@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react'
-import { Github, Star, ArrowRight } from 'lucide-react'
+import { ArrowRight, Github, Star } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
 
 type GitHubStats = {
   stars: number

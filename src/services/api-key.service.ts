@@ -1,5 +1,5 @@
+import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
 import type { FastifyInstance } from 'fastify'
-import type { ApiKeyCreate, ApiKey } from '@root/types/api-key.types.js'
 
 /**
  * Service for managing API keys

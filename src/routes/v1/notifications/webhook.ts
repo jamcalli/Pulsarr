@@ -1,26 +1,26 @@
-import type { FastifyPluginAsync } from 'fastify'
 import {
-  WebhookPayloadSchema,
-  WebhookResponseSchema,
-  WebhookQuerySchema,
   ErrorSchema,
   type WebhookPayload,
-  type WebhookResponse,
+  WebhookPayloadSchema,
   type WebhookQuery,
+  WebhookQuerySchema,
+  type WebhookResponse,
+  WebhookResponseSchema,
 } from '@root/schemas/notifications/webhook.schema.js'
 import {
+  isWebhookProcessable,
+  processContentNotifications,
+} from '@root/utils/notification-processor.js'
+import {
+  checkForUpgrade,
+  isEpisodeAlreadyQueued,
   isRecentEpisode,
   processQueuedWebhooks,
-  webhookQueue,
-  checkForUpgrade,
   queuePendingWebhook,
-  isEpisodeAlreadyQueued,
+  webhookQueue,
 } from '@root/utils/webhookQueue.js'
-import {
-  processContentNotifications,
-  isWebhookProcessable,
-} from '@root/utils/notification-processor.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -35,39 +35,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'processMediaWebhook',
         description:
           'Process webhooks from Radarr (movies) or Sonarr (TV series) for media notifications',
-        body: {
-          ...WebhookPayloadSchema,
-          examples: [
-            {
-              instanceName: 'Radarr',
-              movie: {
-                id: 1,
-                title: 'Example Movie',
-                imdbId: 'tt1234567',
-                tmdbId: 123456,
-              },
-            },
-            {
-              instanceName: 'Sonarr',
-              series: {
-                id: 1,
-                title: 'Example Series',
-                tvdbId: 123456,
-                imdbId: 'tt1234567',
-              },
-              episodes: [
-                {
-                  episodeNumber: 1,
-                  seasonNumber: 1,
-                  title: 'Pilot',
-                  overview: 'First episode of the series',
-                  airDate: '2025-01-01',
-                  airDateUtc: '2025-01-01T00:00:00Z',
-                },
-              ],
-            },
-          ],
-        },
+        body: WebhookPayloadSchema,
         querystring: WebhookQuerySchema,
         response: {
           200: WebhookResponseSchema,
