@@ -1,19 +1,19 @@
-import type { FastifyInstance } from 'fastify'
-import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
-  Condition,
-  FieldInfo,
-  OperatorInfo,
-  RouterRule,
-} from '@root/types/router.types.js'
 import {
   isRadarrResponse,
   isSonarrResponse,
 } from '@root/types/content-lookup.types.js'
+import type {
+  Condition,
+  ContentItem,
+  FieldInfo,
+  OperatorInfo,
+  RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+} from '@root/types/router.types.js'
 import { evaluateRegexSafely } from '@utils/regex-safety.js'
+import type { FastifyInstance } from 'fastify'
 
 /**
  * Creates a routing evaluator that determines routing decisions and evaluates conditions based on the certification or rating metadata of Radarr and Sonarr content items.
@@ -124,7 +124,7 @@ export default function createCertificationEvaluator(
 
     async canEvaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): Promise<boolean> {
       return hasCertificationData(item)
     },
@@ -254,7 +254,7 @@ export default function createCertificationEvaluator(
     evaluateCondition(
       condition: Condition,
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): boolean {
       // Only support the 'certification' field
       if (!('field' in condition) || condition.field !== 'certification') {
@@ -270,7 +270,7 @@ export default function createCertificationEvaluator(
         return false
       }
 
-      const { operator, value, negate = false } = condition
+      const { operator, value, negate: _ = false } = condition
 
       // Normalize for comparison
       const normalizedCertification = certification.toUpperCase()

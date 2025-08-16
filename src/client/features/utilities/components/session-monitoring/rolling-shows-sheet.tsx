@@ -1,4 +1,3 @@
-import * as React from 'react'
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -12,19 +11,19 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table'
 import { formatDistanceToNow } from 'date-fns'
-
 import {
+  Activity,
   ArrowUpDown,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  X,
-  RotateCcw,
-  Trash2,
-  Activity,
   Clock,
   Loader2,
+  RotateCcw,
+  Trash2,
+  X,
 } from 'lucide-react'
+import * as React from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -70,13 +69,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-
+import { RollingShowActionAlert } from '@/features/utilities/components/session-monitoring/rolling-show-action-alert'
+import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useTablePagination } from '@/hooks/use-table-pagination'
-
-import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
-
-import { RollingShowActionAlert } from '@/features/utilities/components/session-monitoring/rolling-show-action-alert'
 
 interface ColumnMetaType {
   className?: string

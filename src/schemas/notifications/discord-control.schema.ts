@@ -1,6 +1,7 @@
 // File: src/schemas/notifications/discord-control.schema.ts
-import { z } from 'zod'
+
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { z } from 'zod'
 
 // Schema for Discord bot status responses
 export const DiscordBotResponseSchema = z.object({
@@ -11,7 +12,7 @@ export const DiscordBotResponseSchema = z.object({
 
 // Schema for webhook validation requests
 export const WebhookValidationRequestSchema = z.object({
-  webhookUrls: z.string().min(1, 'Webhook URLs are required'),
+  webhookUrls: z.string().min(1, { error: 'Webhook URLs are required' }),
 })
 
 // Schema for webhook validation responses

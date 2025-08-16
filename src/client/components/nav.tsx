@@ -1,14 +1,14 @@
+import { FileText } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { SettingsButton } from '@/components/ui/settings-button'
-import { cn } from '@/lib/utils'
-import { FileText } from 'lucide-react'
-import { DOCUMENTATION_URL } from '@/lib/constants'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { DOCUMENTATION_URL } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 
 interface NavProps {
   isMobile: boolean

@@ -1,12 +1,12 @@
 import type {
-  RouterRule,
-  Condition,
-  ConditionGroup,
-} from '@root/types/router.types.js'
-import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
+import type {
+  Condition,
+  ConditionGroup,
+  RouterRule,
+} from '@root/types/router.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {

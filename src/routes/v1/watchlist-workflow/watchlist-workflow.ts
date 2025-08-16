@@ -1,10 +1,11 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import {
-  WatchlistWorkflowResponseSchema,
   ErrorSchema,
+  StartWorkflowBodySchema,
+  WatchlistWorkflowResponseSchema,
 } from '@schemas/watchlist-workflow/watchlist-workflow.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Start Watchlist Workflow
@@ -18,11 +19,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         summary: 'Start watchlist workflow',
         operationId: 'startWatchlistWorkflow',
         description: 'Start the watchlist processing workflow',
-        body: z
-          .object({
-            autoStart: z.boolean().optional(),
-          })
-          .optional(),
+        body: StartWorkflowBodySchema,
         response: {
           200: WatchlistWorkflowResponseSchema,
           400: ErrorSchema,

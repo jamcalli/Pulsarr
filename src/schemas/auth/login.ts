@@ -1,5 +1,5 @@
-import { z } from 'zod'
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { z } from 'zod'
 
 export const LoginResponseSchema = z.object({
   success: z.boolean(),
@@ -12,7 +12,7 @@ export { ErrorSchema as LoginErrorSchema }
 
 export const PasswordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
+  .min(8, { error: 'Password must be at least 8 characters' })
 
 export const CredentialsSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(255),

@@ -1,36 +1,36 @@
-import {
-  Client,
-  GatewayIntentBits,
-  REST,
-  Routes,
-  type SlashCommandBuilder,
-  type InteractionReplyOptions,
-  type ChatInputCommandInteraction,
-  type ButtonInteraction,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  MessageFlags,
-} from 'discord.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { createHash } from 'node:crypto'
 import type {
-  MediaNotification,
   DiscordEmbed,
   DiscordWebhookPayload,
+  MediaNotification,
   SystemNotification,
 } from '@root/types/discord.types.js'
-import { getPublicContentUrls } from '@root/utils/notification-processor.js'
-import {
-  notificationsCommand,
-  handleNotificationButtons,
-  handlePlexUsernameModal,
-  handleProfileEditModal,
-} from '@root/utils/discord-commands/notifications-command.js'
 import {
   approvalCommand,
   handleApprovalButtons,
 } from '@root/utils/discord-commands/approval-command.js'
+import {
+  handleNotificationButtons,
+  handlePlexUsernameModal,
+  handleProfileEditModal,
+  notificationsCommand,
+} from '@root/utils/discord-commands/notifications-command.js'
+import { getPublicContentUrls } from '@root/utils/notification-processor.js'
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  type ButtonInteraction,
+  ButtonStyle,
+  type ChatInputCommandInteraction,
+  Client,
+  GatewayIntentBits,
+  type InteractionReplyOptions,
+  MessageFlags,
+  REST,
+  Routes,
+  type SlashCommandBuilder,
+} from 'discord.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping'
 type CommandHandler = (
@@ -701,7 +701,7 @@ export class DiscordNotificationService {
       let parsedUrl: URL
       try {
         parsedUrl = new URL(url)
-      } catch (e) {
+      } catch (_e) {
         return { valid: false, error: 'Invalid URL format' }
       }
 

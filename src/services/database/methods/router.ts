@@ -1,13 +1,13 @@
-import type { DatabaseService } from '@services/database.service.js'
-import type {
-  RouterRule,
-  Condition,
-  ConditionGroup,
-} from '@root/types/router.types.js'
 import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
+import type {
+  Condition,
+  ConditionGroup,
+  RouterRule,
+} from '@root/types/router.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 
 /**
  * Retrieves all router rules from the database, ordered by priority and ID.

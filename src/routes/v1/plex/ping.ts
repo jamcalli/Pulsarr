@@ -1,10 +1,10 @@
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
 import {
-  PingSuccessSchema,
   PingErrorSchema,
+  PingSuccessSchema,
 } from '@schemas/plex/ping.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 
 export const pingRoute: FastifyPluginAsync = async (fastify) => {
   fastify.get<{

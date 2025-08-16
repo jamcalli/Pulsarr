@@ -1,12 +1,24 @@
-import { useState, useRef, useEffect } from 'react'
+import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import { format } from 'date-fns'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+  AlertCircle,
+  ArrowLeftRight,
+  Calendar,
+  Check,
+  CheckCircle,
+  Clock,
+  Loader2,
+  Monitor,
+  Trash2,
+  Tv,
+  User,
+  XCircle,
+} from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { TmdbMetadataDisplay } from '@/components/tmdb-metadata-display'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Drawer,
   DrawerContent,
@@ -14,40 +26,28 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  CheckCircle,
-  XCircle,
-  User,
-  Calendar,
-  Monitor,
-  Tv,
-  AlertCircle,
-  Clock,
-  Loader2,
-  Check,
-  Trash2,
-  ArrowLeftRight,
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { useConfigStore } from '@/stores/configStore'
+import { ApprovalRadarrRoutingCard } from '@/features/approvals/components/approval-radarr-routing-card'
+import { ApprovalSonarrRoutingCard } from '@/features/approvals/components/approval-sonarr-routing-card'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { ApprovalSonarrRoutingCard } from '@/features/approvals/components/approval-sonarr-routing-card'
-import { ApprovalRadarrRoutingCard } from '@/features/approvals/components/approval-radarr-routing-card'
-import { TmdbMetadataDisplay } from '@/components/tmdb-metadata-display'
 import { useTmdbMetadata } from '@/hooks/useTmdbMetadata'
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import { useConfigStore } from '@/stores/configStore'
 
 interface ApprovalActionsModalProps {
   request: ApprovalRequestResponse
@@ -272,7 +272,7 @@ export default function ApprovalActionsModal({
           setDeleteStatus('idle')
         }, 300)
       }, 1500)
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete approval request')
     }
   }

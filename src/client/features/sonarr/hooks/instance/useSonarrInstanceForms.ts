@@ -1,16 +1,16 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import {
+  fullInstanceSchema,
+  initialInstanceSchema,
+  type SonarrInstanceSchema,
+} from '@/features/sonarr/store/schemas'
 import type {
   SonarrMonitoringType,
   UseSonarrInstanceFormProps,
 } from '@/features/sonarr/types/types'
-import {
-  initialInstanceSchema,
-  fullInstanceSchema,
-  type SonarrInstanceSchema,
-} from '@/features/sonarr/store/schemas'
-import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
  * React hook for managing the form state, validation, and behaviors for configuring a Sonarr instance.

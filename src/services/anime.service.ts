@@ -4,11 +4,12 @@
  * Handles fetching, parsing, and maintaining the anime lookup database
  * from the AniDB anime-list-full.xml file.
  */
-import type { FastifyBaseLogger } from 'fastify'
-import type { DatabaseService } from '@services/database.service.js'
+
 import type { InsertAnimeId } from '@root/types/anime.types.js'
-import { XMLParser } from 'fast-xml-parser'
 import { ANIME_LIST_URL, ANIME_SOURCES } from '@root/types/anime.types.js'
+import type { DatabaseService } from '@services/database.service.js'
+import { XMLParser } from 'fast-xml-parser'
+import type { FastifyBaseLogger } from 'fastify'
 
 export class AnimeService {
   private static readonly USER_AGENT =

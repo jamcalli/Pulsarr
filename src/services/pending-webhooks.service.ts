@@ -1,7 +1,7 @@
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
+import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
 import { processContentNotifications } from '@root/utils/notification-processor.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
 /**

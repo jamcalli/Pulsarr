@@ -1,12 +1,12 @@
-import { useState, useCallback, createContext } from 'react'
-import { toast } from 'sonner'
 import type {
   ContentRouterRule,
-  ContentRouterRuleUpdate,
-  ContentRouterRuleResponse,
   ContentRouterRuleListResponse,
+  ContentRouterRuleResponse,
   ContentRouterRuleToggle,
+  ContentRouterRuleUpdate,
 } from '@root/schemas/content-router/content-router.schema'
+import { createContext, useCallback, useState } from 'react'
+import { toast } from 'sonner'
 
 export interface UseContentRouterParams {
   targetType: 'radarr' | 'sonarr'

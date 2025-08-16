@@ -1,16 +1,16 @@
-import type { DatabaseService } from '@services/database.service.js'
 import type {
+  CreateUserQuotaData,
+  QuotaExceeded,
+  QuotaStatus,
+  QuotaType,
+  QuotaUsage,
+  QuotaUsageRow,
+  UpdateUserQuotaData,
   UserQuotaConfig,
   UserQuotaConfigs,
   UserQuotaRow,
-  QuotaUsage,
-  QuotaUsageRow,
-  QuotaStatus,
-  QuotaType,
-  QuotaExceeded,
-  CreateUserQuotaData,
-  UpdateUserQuotaData,
 } from '@root/types/approval.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
 
 /**

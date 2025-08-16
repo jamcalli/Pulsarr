@@ -1,5 +1,5 @@
-import type { DatabaseService } from '@services/database.service.js'
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 
 /**
  * Creates a new rolling monitored show record with initial progress and timestamps.

@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
+import { spawn } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { spawn } from 'node:child_process'
 import Fastify, { type FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import openapiApp from './openapi-app.js'

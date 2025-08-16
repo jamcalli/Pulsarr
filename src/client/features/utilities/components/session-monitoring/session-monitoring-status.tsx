@@ -1,28 +1,28 @@
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
+import type { SessionMonitoringResult } from '@root/types/plex-session.types'
 import {
-  Loader2,
   Activity,
-  Clock,
   AlertTriangle,
+  Clock,
   Eye,
+  Loader2,
   RotateCcw,
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import { toast } from 'sonner'
-import { useDebounce } from '@/hooks/useDebounce'
-import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
 import { BulkResetInactiveAlert } from '@/features/utilities/components/session-monitoring/bulk-reset-inactive-alert'
+import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
-import type { SessionMonitoringResult } from '@root/types/plex-session.types'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface RollingLoading {
   runningMonitor: boolean

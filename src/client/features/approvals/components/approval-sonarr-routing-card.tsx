@@ -1,22 +1,21 @@
-import { useState, useRef, useEffect } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
+import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
+import { Check, HelpCircle, Loader2, Plus } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
 import { Badge } from '@/components/ui/badge'
-import { HelpCircle, Plus, Loader2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -24,37 +23,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import {
-  SONARR_MONITORING_OPTIONS,
-  API_KEY_PLACEHOLDER,
-} from '@/features/sonarr/store/constants'
-import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
-import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+  TagsMultiSelect,
+  type TagsMultiSelectRef,
+} from '@/components/ui/tag-multi-select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   QualityProfileSelect,
   RootFolderSelect,
 } from '@/features/sonarr/components/selects/sonarr-selects'
 import SyncedInstancesSelect from '@/features/sonarr/components/selects/sonarr-synced-instance-select'
 import {
-  TagsMultiSelect,
-  type TagsMultiSelectRef,
-} from '@/components/ui/tag-multi-select'
-import { useConfigStore } from '@/stores/configStore'
-import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
-import {
-  SONARR_SERIES_TYPES,
   SERIES_TYPE_LABELS,
+  SONARR_SERIES_TYPES,
 } from '@/features/sonarr/constants'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from 'sonner'
+import {
+  API_KEY_PLACEHOLDER,
+  SONARR_MONITORING_OPTIONS,
+} from '@/features/sonarr/store/constants'
+import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
+import { useConfigStore } from '@/stores/configStore'
 
 const approvalRoutingSchema = z.object({
-  qualityProfile: z.string().min(1, 'Quality profile is required'),
-  rootFolder: z.string().min(1, 'Root folder is required'),
+  qualityProfile: z.string().min(1, { error: 'Quality profile is required' }),
+  rootFolder: z.string().min(1, { error: 'Root folder is required' }),
   searchOnAdd: z.boolean(),
   monitorNewItems: z.enum(['all', 'none']),
   bypassIgnored: z.boolean(),
@@ -200,7 +200,7 @@ export function ApprovalSonarrRoutingCard({
       }, setSavingStatus)
 
       toast.success('Routing configuration updated successfully')
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update routing configuration')
     }
   }

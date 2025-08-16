@@ -1,5 +1,5 @@
-import type { ContentRouterRule } from '@schemas/content-router/content-router.schema.js'
 import type { RouterRule } from '@root/types/router.types.js'
+import type { ContentRouterRule } from '@schemas/content-router/content-router.schema.js'
 
 /**
  * Converts a router rule into a normalized API response object.

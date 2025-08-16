@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useProgressStore } from '@/stores/progressStore'
 import type { ProgressEvent } from '@root/types/progress.types'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProgressStore } from '@/stores/progressStore'
 
 export interface RadarrSyncProgressState {
   progress: number

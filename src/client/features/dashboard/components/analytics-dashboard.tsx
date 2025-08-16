@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { StatusTransitionsChart } from '@/features/dashboard/components/charts/status-transition-chart'
-import { NotificationCharts } from '@/features/dashboard/components/charts/notification-charts'
 import { ContentDistributionChart } from '@/features/dashboard/components/charts/content-distribution-chart'
+import { NotificationCharts } from '@/features/dashboard/components/charts/notification-charts'
+import { StatusTransitionsChart } from '@/features/dashboard/components/charts/status-transition-chart'
 import { TopGenresChart } from '@/features/dashboard/components/charts/top-genres-chart'
+import { cn } from '@/lib/utils'
 
 const CHARTS = {
   STATUS_TRANSITIONS: 'status_transitions',
