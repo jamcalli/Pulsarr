@@ -1,7 +1,18 @@
 import { z } from 'zod'
 import { SERIES_TYPES } from './constants.js'
 
-// Helper function to check if a value is considered "non-empty" for validation
+// Re-export SERIES_TYPES for use by other modules
+export { SERIES_TYPES }
+
+/**
+ * Determines whether a value should be treated as "non-empty" for validation.
+ *
+ * Strings that are only whitespace, null, or undefined are considered empty.
+ * Empty arrays are considered empty. All other values are considered non-empty.
+ *
+ * @param value - The value to evaluate.
+ * @returns `true` if the value is non-empty; otherwise `false`.
+ */
 function isNonEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null) return false
   if (typeof value === 'string') return value.trim() !== ''
@@ -77,38 +88,36 @@ export interface ICondition {
   field: string
   operator: ComparisonOperator
   value: z.infer<typeof ConditionValueSchema>
-  negate?: boolean
+  negate: boolean
   _cid?: string
 }
 
-export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
-  z
-    .object({
-      field: z.string(),
-      operator: ComparisonOperatorSchema,
-      value: ConditionValueSchema,
-      negate: z.boolean().optional().default(false),
-      _cid: z.string().optional(),
-    })
-    .refine(
-      (cond) => {
-        // Validate that condition has complete data
-        const hasField = Boolean(cond.field)
-        const hasOperator = Boolean(cond.operator)
-        const hasValue = isNonEmptyValue(cond.value)
+export const ConditionSchema = z
+  .object({
+    field: z.string(),
+    operator: ComparisonOperatorSchema,
+    value: ConditionValueSchema,
+    negate: z.boolean().optional().default(false),
+    _cid: z.string().optional(),
+  })
+  .refine(
+    (cond) => {
+      // Validate that condition has complete data
+      const hasField = Boolean(cond.field)
+      const hasOperator = Boolean(cond.operator)
+      const hasValue = isNonEmptyValue(cond.value)
 
-        return hasField && hasOperator && hasValue
-      },
-      {
-        message: 'Condition must have field, operator, and value',
-      },
-    ),
-)
+      return hasField && hasOperator && hasValue
+    },
+    {
+      message: 'Condition must have field, operator, and value',
+    },
+  )
 
 export interface IConditionGroup {
   operator: 'AND' | 'OR'
   conditions: (ICondition | IConditionGroup)[]
-  negate?: boolean
+  negate: boolean
   _cid?: string
 }
 
@@ -134,29 +143,45 @@ const isValidConditionGroup = (
   }
 
   return group.conditions.every((cond) => {
-    if ('conditions' in cond) {
+    if (
+      cond !== null &&
+      typeof cond === 'object' &&
+      'conditions' in (cond as unknown as Record<string, unknown>)
+    ) {
       // Recursive check for nested groups with increased depth counter
       return isValidConditionGroup(cond as IConditionGroup, depth + 1, visited)
     }
-    return true // Individual conditions validated by their own schema
+    // Validate individual conditions explicitly since nested groups may accept any values in OpenAPI shape
+    return ConditionSchema.safeParse(cond).success
   })
 }
 
-export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
-  z
-    .object({
-      operator: z.enum(['AND', 'OR']),
-      conditions: z.array(
-        z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
-      ),
-      negate: z.boolean().optional().default(false),
-      _cid: z.string().optional(),
-    })
-    .refine((group) => isValidConditionGroup(group), {
-      message:
-        'Condition groups cannot contain circular references or exceed maximum nesting depth (20)',
-    }),
-)
+// For OpenAPI compatibility, define a simplified condition group that avoids infinite recursion
+// This allows conditions OR a simple object with operator/conditions but no deep nesting in OpenAPI docs
+export const ConditionGroupSchema = z
+  .object({
+    operator: z.enum(['AND', 'OR']),
+    conditions: z
+      .array(
+        z.union([
+          ConditionSchema,
+          // For docs, we'll allow any object structure for nested groups to avoid z.lazy()
+          z.object({
+            operator: z.enum(['AND', 'OR']),
+            conditions: z.array(z.any()).max(20),
+            negate: z.boolean().optional().default(false),
+            _cid: z.string().optional(),
+          }),
+        ]),
+      )
+      .max(20),
+    negate: z.boolean().optional().default(false),
+    _cid: z.string().optional(),
+  })
+  .refine((group) => isValidConditionGroup(group), {
+    message:
+      'Condition groups cannot contain circular references or exceed maximum nesting depth (20)',
+  })
 
 // Base router rule schema
 export const BaseRouterRuleSchema = z.object({
@@ -225,7 +250,11 @@ export const ConditionalRouteFormSchema = z.object({
         }
 
         return group.conditions.every((cond) => {
-          if ('conditions' in cond) {
+          if (
+            cond !== null &&
+            typeof cond === 'object' &&
+            'conditions' in (cond as unknown as Record<string, unknown>)
+          ) {
             // Recursive check for nested groups
             return isValidGroup(cond as IConditionGroup, depth + 1, visited)
           }

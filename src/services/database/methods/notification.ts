@@ -106,8 +106,8 @@ export async function processNotifications(
     const itemId =
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
-    // Update watchlist item status using proper updateWatchlistItem method
-    // This will record status history and update junction tables properly
+    // Update watchlist item status using updateWatchlistItem method
+    // This will record status history, prevent regression, and update junction tables
     const updateData: {
       status: 'notified'
       last_notified_at: string
