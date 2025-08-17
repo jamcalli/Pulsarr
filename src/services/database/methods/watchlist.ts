@@ -122,6 +122,91 @@ async function recordStatusHistory(
 }
 
 /**
+ * Performs a monotonic status update that prevents status regression using database-level constraints.
+ * Returns the number of rows actually updated (0 if the update was blocked due to status regression).
+ *
+ * @param trx - The Knex transaction to use
+ * @param whereClause - The where clause to identify the records to update
+ * @param updates - The updates to apply
+ * @param statusResult - The processed status result from processStatusUpdate
+ * @param timestamp - The timestamp to use for updated_at
+ * @returns Number of rows actually updated
+ */
+async function performMonotonicUpdate(
+  _trx: Knex.Transaction,
+  whereClause: Knex.QueryBuilder,
+  updates: Partial<WatchlistItemUpdate> & { updated_at?: string },
+  statusResult: {
+    shouldUpdateStatus: boolean
+    effectiveStatus: WatchlistStatus
+  },
+  timestamp: string,
+): Promise<number> {
+  const query = whereClause
+
+  // Prevent status regression with monotonic constraint
+  if (statusResult.shouldUpdateStatus) {
+    query.whereRaw(
+      `CASE status 
+       WHEN 'pending' THEN ? >= 1
+       WHEN 'requested' THEN ? >= 2  
+       WHEN 'grabbed' THEN ? >= 3
+       WHEN 'notified' THEN ? >= 4
+       ELSE true END`,
+      [
+        STATUS_RANK[statusResult.effectiveStatus],
+        STATUS_RANK[statusResult.effectiveStatus],
+        STATUS_RANK[statusResult.effectiveStatus],
+        STATUS_RANK[statusResult.effectiveStatus],
+      ],
+    )
+  }
+
+  const updated = await query.update({
+    ...updates,
+    updated_at: timestamp,
+  })
+
+  return Number(updated) || 0
+}
+
+/**
+ * Performs a monotonic status update on junction tables to prevent status regression.
+ * Only updates rows where the current status is at or below the target status rank.
+ *
+ * @param trx - The Knex transaction to use
+ * @param tableName - The junction table name ('watchlist_radarr_instances' or 'watchlist_sonarr_instances')
+ * @param whereClause - The where conditions to identify the junction record
+ * @param targetStatus - The target status to update to
+ * @param timestamp - The timestamp to use for updated_at
+ * @returns Number of rows actually updated
+ */
+async function performJunctionMonotonicUpdate(
+  trx: Knex.Transaction,
+  tableName: string,
+  whereClause: Record<string, string | number>,
+  targetStatus: WatchlistStatus,
+  timestamp: string,
+): Promise<number> {
+  const query = trx(tableName).where(whereClause)
+
+  // Only update if current status is at or below target status rank
+  query.whereIn(
+    'status',
+    (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
+      (s) => STATUS_RANK[s] <= STATUS_RANK[targetStatus],
+    ),
+  )
+
+  const updated = await query.update({
+    status: targetStatus,
+    updated_at: timestamp,
+  })
+
+  return Number(updated) || 0
+}
+
+/**
  * Updates a watchlist item for a specific user by key with the provided changes.
  *
  * Skips updates for temporary RSS items. Updates main watchlist item fields and manages associations with Radarr and Sonarr instances, including syncing status and primary instance designation.
@@ -179,17 +264,19 @@ export async function updateWatchlistItem(
       }
     }
 
+    let updatedRows = 0
     if (Object.keys(finalStatusUpdate).length > 0) {
-      await trx('watchlist_items')
-        .where({ user_id: userId, key })
-        .update({
-          ...finalStatusUpdate,
-          updated_at: this.timestamp,
-        })
+      updatedRows = await performMonotonicUpdate(
+        trx,
+        trx('watchlist_items').where({ user_id: userId, key }),
+        finalStatusUpdate,
+        statusResult,
+        this.timestamp,
+      )
     }
 
-    // Record status history if status actually changed
-    if (statusResult.shouldWriteHistory) {
+    // Record status history only if status actually changed and update succeeded
+    if (statusResult.shouldWriteHistory && updatedRows > 0) {
       await recordStatusHistory(
         trx,
         item.id,
@@ -217,7 +304,7 @@ export async function updateWatchlistItem(
             radarr_instance_id,
             effectiveStatus,
             true,
-            syncing || false,
+            syncing ?? false,
             trx,
           )
         } else {
@@ -225,15 +312,16 @@ export async function updateWatchlistItem(
 
           // Keep junction status in sync on progressions
           if (statusResult.shouldUpdateStatus) {
-            await trx('watchlist_radarr_instances')
-              .where({
+            await performJunctionMonotonicUpdate(
+              trx,
+              'watchlist_radarr_instances',
+              {
                 watchlist_id: item.id,
                 radarr_instance_id,
-              })
-              .update({
-                status: effectiveStatus,
-                updated_at: this.timestamp,
-              })
+              },
+              effectiveStatus,
+              this.timestamp,
+            )
           }
 
           if (syncing !== undefined) {
@@ -265,7 +353,7 @@ export async function updateWatchlistItem(
             sonarr_instance_id,
             effectiveStatus,
             true,
-            syncing || false,
+            syncing ?? false,
             trx,
           )
         } else {
@@ -273,15 +361,16 @@ export async function updateWatchlistItem(
 
           // Keep junction status in sync on progressions
           if (statusResult.shouldUpdateStatus) {
-            await trx('watchlist_sonarr_instances')
-              .where({
+            await performJunctionMonotonicUpdate(
+              trx,
+              'watchlist_sonarr_instances',
+              {
                 watchlist_id: item.id,
                 sonarr_instance_id,
-              })
-              .update({
-                status: effectiveStatus,
-                updated_at: this.timestamp,
-              })
+              },
+              effectiveStatus,
+              this.timestamp,
+            )
           }
 
           if (syncing !== undefined) {
@@ -362,19 +451,23 @@ export async function updateWatchlistItemByGuid(
       }
 
       // Apply updates if there are any
+      let updatedRows = 0
       if (Object.keys(finalUpdates).length > 0) {
-        await trx('watchlist_items')
-          .where('id', item.id)
-          .update({
-            ...finalUpdates,
-            updated_at: this.timestamp,
-          })
+        updatedRows = await performMonotonicUpdate(
+          trx,
+          trx('watchlist_items').where('id', item.id),
+          finalUpdates,
+          statusResult,
+          this.timestamp,
+        )
 
-        totalUpdated += 1
+        if (updatedRows > 0) {
+          totalUpdated += 1
+        }
       }
 
-      // Record status history if status actually changed
-      if (statusResult.shouldWriteHistory) {
+      // Record status history only if status actually changed and update succeeded
+      if (statusResult.shouldWriteHistory && updatedRows > 0) {
         await recordStatusHistory(
           trx,
           item.id,
@@ -612,15 +705,22 @@ export async function bulkUpdateWatchlistItems(
         }
 
         if (Object.keys(mainTableFields).length > 0) {
-          const updated = await trx('watchlist_items')
-            .where({
-              user_id: userId,
-              key: key,
-            })
-            .update({
-              ...mainTableFields,
-              updated_at: this.timestamp,
-            })
+          const builder = trx('watchlist_items').where({
+            user_id: userId,
+            key: key,
+          })
+          if (statusResult.shouldUpdateStatus) {
+            builder.whereIn(
+              'status',
+              (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
+                (s) => STATUS_RANK[s] <= STATUS_RANK[effectiveStatus],
+              ),
+            )
+          }
+          const updated = await builder.update({
+            ...mainTableFields,
+            updated_at: this.timestamp,
+          })
 
           const numericUpdated = Number(updated)
           if (!Number.isNaN(numericUpdated) && numericUpdated > 0) {
@@ -670,22 +770,29 @@ export async function bulkUpdateWatchlistItems(
                   updated_at: this.timestamp,
                 })
             } else {
-              await trx('watchlist_radarr_instances')
-                .where({
-                  watchlist_id: currentItem.id,
-                  radarr_instance_id: radarrInstanceId,
-                })
-                .update({
-                  ...(statusResult.shouldUpdateStatus
-                    ? { status: effectiveStatus }
-                    : {}),
-                  is_primary: true,
-                  last_notified_at:
-                    update.last_notified_at !== undefined
-                      ? update.last_notified_at
-                      : existingAssoc.last_notified_at,
-                  updated_at: this.timestamp,
-                })
+              const rb = trx('watchlist_radarr_instances').where({
+                watchlist_id: currentItem.id,
+                radarr_instance_id: radarrInstanceId,
+              })
+              if (statusResult.shouldUpdateStatus) {
+                rb.whereIn(
+                  'status',
+                  (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
+                    (s) => STATUS_RANK[s] <= STATUS_RANK[effectiveStatus],
+                  ),
+                )
+              }
+              await rb.update({
+                ...(statusResult.shouldUpdateStatus
+                  ? { status: effectiveStatus }
+                  : {}),
+                is_primary: true,
+                last_notified_at:
+                  update.last_notified_at !== undefined
+                    ? update.last_notified_at
+                    : existingAssoc.last_notified_at,
+                updated_at: this.timestamp,
+              })
 
               await trx('watchlist_radarr_instances')
                 .where({ watchlist_id: currentItem.id })
@@ -736,22 +843,29 @@ export async function bulkUpdateWatchlistItems(
                   updated_at: this.timestamp,
                 })
             } else {
-              await trx('watchlist_sonarr_instances')
-                .where({
-                  watchlist_id: currentItem.id,
-                  sonarr_instance_id: sonarrInstanceId,
-                })
-                .update({
-                  ...(statusResult.shouldUpdateStatus
-                    ? { status: effectiveStatus }
-                    : {}),
-                  is_primary: true,
-                  last_notified_at:
-                    update.last_notified_at !== undefined
-                      ? update.last_notified_at
-                      : existingAssoc.last_notified_at,
-                  updated_at: this.timestamp,
-                })
+              const sb = trx('watchlist_sonarr_instances').where({
+                watchlist_id: currentItem.id,
+                sonarr_instance_id: sonarrInstanceId,
+              })
+              if (statusResult.shouldUpdateStatus) {
+                sb.whereIn(
+                  'status',
+                  (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
+                    (s) => STATUS_RANK[s] <= STATUS_RANK[effectiveStatus],
+                  ),
+                )
+              }
+              await sb.update({
+                ...(statusResult.shouldUpdateStatus
+                  ? { status: effectiveStatus }
+                  : {}),
+                is_primary: true,
+                last_notified_at:
+                  update.last_notified_at !== undefined
+                    ? update.last_notified_at
+                    : existingAssoc.last_notified_at,
+                updated_at: this.timestamp,
+              })
 
               await trx('watchlist_sonarr_instances')
                 .where({ watchlist_id: currentItem.id })
