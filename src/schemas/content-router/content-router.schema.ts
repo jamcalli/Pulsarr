@@ -81,29 +81,27 @@ export interface ICondition {
   _cid?: string
 }
 
-export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
-  z
-    .object({
-      field: z.string(),
-      operator: ComparisonOperatorSchema,
-      value: ConditionValueSchema,
-      negate: z.boolean().optional().default(false),
-      _cid: z.string().optional(),
-    })
-    .refine(
-      (cond) => {
-        // Validate that condition has complete data
-        const hasField = Boolean(cond.field)
-        const hasOperator = Boolean(cond.operator)
-        const hasValue = isNonEmptyValue(cond.value)
+export const ConditionSchema = z
+  .object({
+    field: z.string(),
+    operator: ComparisonOperatorSchema,
+    value: ConditionValueSchema,
+    negate: z.boolean().optional(),
+    _cid: z.string().optional(),
+  })
+  .refine(
+    (cond) => {
+      // Validate that condition has complete data
+      const hasField = Boolean(cond.field)
+      const hasOperator = Boolean(cond.operator)
+      const hasValue = isNonEmptyValue(cond.value)
 
-        return hasField && hasOperator && hasValue
-      },
-      {
-        message: 'Condition must have field, operator, and value',
-      },
-    ),
-)
+      return hasField && hasOperator && hasValue
+    },
+    {
+      message: 'Condition must have field, operator, and value',
+    },
+  )
 
 export interface IConditionGroup {
   operator: 'AND' | 'OR'
@@ -142,21 +140,32 @@ const isValidConditionGroup = (
   })
 }
 
-export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
-  z
-    .object({
-      operator: z.enum(['AND', 'OR']),
-      conditions: z.array(
-        z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
-      ),
-      negate: z.boolean().optional().default(false),
-      _cid: z.string().optional(),
-    })
-    .refine((group) => isValidConditionGroup(group), {
-      message:
-        'Condition groups cannot contain circular references or exceed maximum nesting depth (20)',
-    }),
-)
+// For OpenAPI compatibility, define a simplified condition group that avoids infinite recursion
+// This allows conditions OR a simple object with operator/conditions but no deep nesting in OpenAPI docs
+export const ConditionGroupSchema = z
+  .object({
+    operator: z.enum(['AND', 'OR']),
+    conditions: z
+      .array(
+        z.union([
+          ConditionSchema,
+          // For docs, we'll allow any object structure for nested groups to avoid z.lazy()
+          z.object({
+            operator: z.enum(['AND', 'OR']),
+            conditions: z.array(z.any()).max(20),
+            negate: z.boolean().optional(),
+            _cid: z.string().optional(),
+          }),
+        ]),
+      )
+      .max(20),
+    negate: z.boolean().optional(),
+    _cid: z.string().optional(),
+  })
+  .refine((group) => isValidConditionGroup(group), {
+    message:
+      'Condition groups cannot contain circular references or exceed maximum nesting depth (20)',
+  })
 
 // Base router rule schema
 export const BaseRouterRuleSchema = z.object({
