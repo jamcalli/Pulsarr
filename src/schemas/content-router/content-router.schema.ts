@@ -4,7 +4,15 @@ import { SERIES_TYPES } from './constants.js'
 // Re-export SERIES_TYPES for use by other modules
 export { SERIES_TYPES }
 
-// Helper function to check if a value is considered "non-empty" for validation
+/**
+ * Determines whether a value should be treated as "non-empty" for validation.
+ *
+ * Strings that are only whitespace, null, or undefined are considered empty.
+ * Empty arrays are considered empty. All other values are considered non-empty.
+ *
+ * @param value - The value to evaluate.
+ * @returns `true` if the value is non-empty; otherwise `false`.
+ */
 function isNonEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null) return false
   if (typeof value === 'string') return value.trim() !== ''
