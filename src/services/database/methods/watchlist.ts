@@ -12,12 +12,12 @@ import { parseGuids } from '@utils/guid-handler.js'
 /**
  * Status progression ranks to prevent regression
  */
-const STATUS_RANK: Record<WatchlistStatus, number> = {
+const STATUS_RANK = Object.freeze({
   pending: 1,
   requested: 2,
   grabbed: 3,
   notified: 4,
-}
+} as const) satisfies Record<WatchlistStatus, number>
 
 /**
  * Helper function to handle status updates with regression prevention
@@ -124,6 +124,12 @@ export async function updateWatchlistItem(
       const { status: _, ...updatesWithoutStatus } = finalStatusUpdate
       finalStatusUpdate = updatesWithoutStatus
     }
+    if (statusResult.shouldUpdateStatus) {
+      finalStatusUpdate = {
+        ...finalStatusUpdate,
+        status: statusResult.effectiveStatus,
+      }
+    }
 
     if (Object.keys(finalStatusUpdate).length > 0) {
       await trx('watchlist_items')
@@ -188,6 +194,19 @@ export async function updateWatchlistItem(
         } else {
           await this.setPrimaryRadarrInstance(item.id, radarr_instance_id, trx)
 
+          // Keep junction status in sync on progressions
+          if (statusResult.shouldUpdateStatus) {
+            await trx('watchlist_radarr_instances')
+              .where({
+                watchlist_id: item.id,
+                radarr_instance_id,
+              })
+              .update({
+                status: effectiveStatus,
+                updated_at: this.timestamp,
+              })
+          }
+
           if (syncing !== undefined) {
             await this.updateRadarrSyncingStatus(
               item.id,
@@ -222,6 +241,19 @@ export async function updateWatchlistItem(
           )
         } else {
           await this.setPrimarySonarrInstance(item.id, sonarr_instance_id, trx)
+
+          // Keep junction status in sync on progressions
+          if (statusResult.shouldUpdateStatus) {
+            await trx('watchlist_sonarr_instances')
+              .where({
+                watchlist_id: item.id,
+                sonarr_instance_id,
+              })
+              .update({
+                status: effectiveStatus,
+                updated_at: this.timestamp,
+              })
+          }
 
           if (syncing !== undefined) {
             await this.updateSonarrSyncingStatus(
@@ -295,6 +327,9 @@ export async function updateWatchlistItemByGuid(
       if (!statusResult.shouldUpdateStatus && 'status' in finalUpdates) {
         const { status: __, ...updatesWithoutStatus } = finalUpdates
         finalUpdates = updatesWithoutStatus
+      }
+      if (statusResult.shouldUpdateStatus) {
+        finalUpdates = { ...finalUpdates, status: statusResult.effectiveStatus }
       }
 
       // Apply updates if there are any
