@@ -380,4 +380,3 @@ export type ContentRouterRuleSuccess = z.infer<
 export type ContentRouterRuleError = z.infer<
   typeof ContentRouterRuleErrorSchema
 >
-
