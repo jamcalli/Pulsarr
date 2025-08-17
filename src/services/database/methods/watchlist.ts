@@ -12,7 +12,7 @@ import { parseGuids } from '@utils/guid-handler.js'
 /**
  * Status progression ranks to prevent regression
  */
-const STATUS_RANK: Record<string, number> = {
+const STATUS_RANK: Record<WatchlistStatus, number> = {
   pending: 1,
   requested: 2,
   grabbed: 3,
@@ -180,7 +180,7 @@ export async function updateWatchlistItem(
           await this.addWatchlistToRadarrInstance(
             item.id,
             radarr_instance_id,
-            effectiveStatus || 'pending',
+            effectiveStatus,
             true,
             syncing || false,
             trx,
@@ -215,7 +215,7 @@ export async function updateWatchlistItem(
           await this.addWatchlistToSonarrInstance(
             item.id,
             sonarr_instance_id,
-            effectiveStatus || 'pending',
+            effectiveStatus,
             true,
             syncing || false,
             trx,
@@ -273,8 +273,13 @@ export async function updateWatchlistItemByGuid(
     let totalUpdated = 0
 
     for (const item of matchingItems) {
-      // Remove syncing field as it only exists in junction tables, not watchlist_items
-      const { syncing: _, ...validUpdates } = updates
+      // Strip junction-only fields; GUID-based updates only touch main table + history
+      const {
+        syncing: _,
+        radarr_instance_id: _ri,
+        sonarr_instance_id: _si,
+        ...validUpdates
+      } = updates
 
       // Process status update with regression prevention
       const statusResult = processStatusUpdate(
