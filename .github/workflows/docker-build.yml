@@ -88,7 +88,7 @@ jobs:
             type=gha,mode=max,scope=buildkit
 
       - name: Generate Release Notes
-        uses: release-drafter/release-drafter@09c613e259eb8d4e7c81c2cb00618eb5fc4575a7 # v5
+        uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
         id: release-drafter
         with:
           config-name: release-drafter.yml
