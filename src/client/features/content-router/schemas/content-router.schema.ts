@@ -68,7 +68,8 @@ const isValidGroup = (
     if ('conditions' in cond) {
       return isValidGroup(cond as IConditionGroup, depth + 1, visited)
     }
-    return true // Individual conditions validated by their own schema
+    // Validate individual conditions explicitly
+    return ConditionSchema.safeParse(cond).success
   })
 }
 
