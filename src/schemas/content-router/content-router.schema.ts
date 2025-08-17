@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { SERIES_TYPES } from './constants.js'
 
+// Re-export SERIES_TYPES for use by other modules
+export { SERIES_TYPES }
+
 // Helper function to check if a value is considered "non-empty" for validation
 function isNonEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null) return false
@@ -136,7 +139,8 @@ const isValidConditionGroup = (
       // Recursive check for nested groups with increased depth counter
       return isValidConditionGroup(cond as IConditionGroup, depth + 1, visited)
     }
-    return true // Individual conditions validated by their own schema
+    // Validate individual conditions explicitly since nested groups use z.any()
+    return ConditionSchema.safeParse(cond).success
   })
 }
 
@@ -376,3 +380,4 @@ export type ContentRouterRuleSuccess = z.infer<
 export type ContentRouterRuleError = z.infer<
   typeof ContentRouterRuleErrorSchema
 >
+
