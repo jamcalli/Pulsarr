@@ -80,7 +80,7 @@ export interface ICondition {
   field: string
   operator: ComparisonOperator
   value: z.infer<typeof ConditionValueSchema>
-  negate?: boolean
+  negate: boolean
   _cid?: string
 }
 
@@ -89,7 +89,7 @@ export const ConditionSchema = z
     field: z.string(),
     operator: ComparisonOperatorSchema,
     value: ConditionValueSchema,
-    negate: z.boolean().optional(),
+    negate: z.boolean().optional().default(false),
     _cid: z.string().optional(),
   })
   .refine(
@@ -109,7 +109,7 @@ export const ConditionSchema = z
 export interface IConditionGroup {
   operator: 'AND' | 'OR'
   conditions: (ICondition | IConditionGroup)[]
-  negate?: boolean
+  negate: boolean
   _cid?: string
 }
 
@@ -157,13 +157,13 @@ export const ConditionGroupSchema = z
           z.object({
             operator: z.enum(['AND', 'OR']),
             conditions: z.array(z.any()).max(20),
-            negate: z.boolean().optional(),
+            negate: z.boolean().optional().default(false),
             _cid: z.string().optional(),
           }),
         ]),
       )
       .max(20),
-    negate: z.boolean().optional(),
+    negate: z.boolean().optional().default(false),
     _cid: z.string().optional(),
   })
   .refine((group) => isValidConditionGroup(group), {

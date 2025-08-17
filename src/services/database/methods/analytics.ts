@@ -377,7 +377,10 @@ export async function getInstanceActivityStats(this: DatabaseService): Promise<
 }
 
 /**
- * Calculates the average, minimum, and maximum number of days between the first "grabbed" and first "notified" statuses for each content type.
+ * Calculates the average, minimum, and maximum number of days to notification for each content type,
+ * considering the earliest eligible start status:
+ *   - grabbed -> notified
+ *   - requested -> notified (only when no grabbed status exists)
  *
  * Only includes content types with at least 2 valid samples, excluding negative or excessively large time differences (over 365 days).
  *
@@ -425,6 +428,9 @@ export async function getAverageTimeFromGrabbedToNotified(
         'notified.watchlist_item_id',
       )
       .whereIn('wi.type', ['movie', 'show'])
+      .andWhere(
+        this.knex.raw('notified.first_notified > grabbed.first_grabbed'),
+      )
 
     // Also get requested->notified transitions where no grabbed status exists
     const requestedToNotified = await this.knex('watchlist_items as wi')
@@ -459,6 +465,9 @@ export async function getAverageTimeFromGrabbedToNotified(
           .select(1)
           .where('watchlist_item_id', this.knex.raw('wi.id'))
           .where('status', 'grabbed'),
+      )
+      .andWhere(
+        this.knex.raw('notified.first_notified > requested.first_requested'),
       )
 
     // Combine both datasets
