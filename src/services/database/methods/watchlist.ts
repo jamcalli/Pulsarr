@@ -98,32 +98,22 @@ async function recordStatusHistory(
   log: DatabaseService['log'],
 ): Promise<void> {
   try {
-    // Direct insert - let database handle any constraint violations
-    await trx('watchlist_status_history').insert({
-      watchlist_item_id: itemId,
-      status: status,
-      timestamp: timestamp,
-    })
+    // Use database-level deduplication via onConflict
+    await trx('watchlist_status_history')
+      .insert({
+        watchlist_item_id: itemId,
+        status: status,
+        timestamp: timestamp,
+      })
+      .onConflict(['watchlist_item_id', 'status'])
+      .ignore()
 
     log.debug(`Recorded status history for ${context}`)
   } catch (error) {
-    // Check if this is a duplicate entry error that we can safely ignore
-    const errorObj = error as { code?: string; message?: string }
-    const isDuplicateError =
-      errorObj?.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
-      errorObj?.code === '23505' || // PostgreSQL unique violation
-      errorObj?.message?.includes('duplicate') ||
-      errorObj?.message?.includes('unique')
-
-    if (isDuplicateError) {
-      // Silently ignore duplicate entries - this is expected in concurrent scenarios
-      log.debug(`Duplicate status history entry ignored for ${context}`)
-    } else {
-      log.error(
-        { error, itemId, status },
-        `Failed to record status history for ${context}`,
-      )
-    }
+    log.error(
+      { error, itemId, status },
+      `Failed to record status history for ${context}`,
+    )
     // Don't fail the whole transaction for history recording errors
   }
 }
@@ -149,14 +139,15 @@ async function performMonotonicUpdate(
   },
   timestamp: string,
 ): Promise<number> {
-  const query = whereClause
-
   // Prevent status regression with monotonic constraint
   if (statusResult.shouldUpdateStatus) {
-    query.whereIn('status', allowedStatusesUpTo(statusResult.effectiveStatus))
+    whereClause.whereIn(
+      'status',
+      allowedStatusesUpTo(statusResult.effectiveStatus),
+    )
   }
 
-  const updated = await query.update({
+  const updated = await whereClause.update({
     ...updates,
     updated_at: timestamp,
   })
@@ -761,12 +752,7 @@ export async function bulkUpdateWatchlistItems(
                 radarr_instance_id: radarrInstanceId,
               })
               if (statusResult.shouldUpdateStatus) {
-                rb.whereIn(
-                  'status',
-                  (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
-                    (s) => STATUS_RANK[s] <= STATUS_RANK[effectiveStatus],
-                  ),
-                )
+                rb.whereIn('status', allowedStatusesUpTo(effectiveStatus))
               }
               await rb.update({
                 ...(statusResult.shouldUpdateStatus
@@ -834,12 +820,7 @@ export async function bulkUpdateWatchlistItems(
                 sonarr_instance_id: sonarrInstanceId,
               })
               if (statusResult.shouldUpdateStatus) {
-                sb.whereIn(
-                  'status',
-                  (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
-                    (s) => STATUS_RANK[s] <= STATUS_RANK[effectiveStatus],
-                  ),
-                )
+                sb.whereIn('status', allowedStatusesUpTo(effectiveStatus))
               }
               await sb.update({
                 ...(statusResult.shouldUpdateStatus
