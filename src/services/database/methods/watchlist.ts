@@ -20,6 +20,13 @@ const STATUS_RANK: Readonly<Record<WatchlistStatus, number>> = Object.freeze({
   notified: 4,
 })
 
+function allowedStatusesUpTo(target: WatchlistStatus): WatchlistStatus[] {
+  const t = STATUS_RANK[target] ?? 0
+  return (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
+    (s) => (STATUS_RANK[s] ?? 0) <= t,
+  )
+}
+
 /**
  * Helper function to handle status updates with regression prevention
  * Returns the effective status that should be used for all operations
@@ -146,20 +153,7 @@ async function performMonotonicUpdate(
 
   // Prevent status regression with monotonic constraint
   if (statusResult.shouldUpdateStatus) {
-    query.whereRaw(
-      `CASE status 
-       WHEN 'pending' THEN ? >= 1
-       WHEN 'requested' THEN ? >= 2  
-       WHEN 'grabbed' THEN ? >= 3
-       WHEN 'notified' THEN ? >= 4
-       ELSE true END`,
-      [
-        STATUS_RANK[statusResult.effectiveStatus],
-        STATUS_RANK[statusResult.effectiveStatus],
-        STATUS_RANK[statusResult.effectiveStatus],
-        STATUS_RANK[statusResult.effectiveStatus],
-      ],
-    )
+    query.whereIn('status', allowedStatusesUpTo(statusResult.effectiveStatus))
   }
 
   const updated = await query.update({
@@ -191,12 +185,7 @@ async function performJunctionMonotonicUpdate(
   const query = trx(tableName).where(whereClause)
 
   // Only update if current status is at or below target status rank
-  query.whereIn(
-    'status',
-    (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
-      (s) => STATUS_RANK[s] <= STATUS_RANK[targetStatus],
-    ),
-  )
+  query.whereIn('status', allowedStatusesUpTo(targetStatus))
 
   const updated = await query.update({
     status: targetStatus,
@@ -704,18 +693,14 @@ export async function bulkUpdateWatchlistItems(
           }
         }
 
+        let wroteMain = false
         if (Object.keys(mainTableFields).length > 0) {
           const builder = trx('watchlist_items').where({
             user_id: userId,
             key: key,
           })
           if (statusResult.shouldUpdateStatus) {
-            builder.whereIn(
-              'status',
-              (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
-                (s) => STATUS_RANK[s] <= STATUS_RANK[effectiveStatus],
-              ),
-            )
+            builder.whereIn('status', allowedStatusesUpTo(effectiveStatus))
           }
           const updated = await builder.update({
             ...mainTableFields,
@@ -725,6 +710,7 @@ export async function bulkUpdateWatchlistItems(
           const numericUpdated = Number(updated)
           if (!Number.isNaN(numericUpdated) && numericUpdated > 0) {
             updatedCount += 1
+            wroteMain = true
           }
 
           // count pure-junction updates as well
@@ -878,8 +864,8 @@ export async function bulkUpdateWatchlistItems(
           }
         }
 
-        // Record status history if status actually changed
-        if (statusResult.shouldWriteHistory) {
+        // Record status history only when the main row actually progressed
+        if (statusResult.shouldWriteHistory && wroteMain) {
           await recordStatusHistory(
             trx,
             currentItem.id,
