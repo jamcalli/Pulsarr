@@ -10,44 +10,61 @@ import type { Knex } from 'knex'
  */
 export async function up(knex: Knex): Promise<void> {
   // Step 1: Clean up existing duplicates
-  // Find all duplicate combinations and keep only the earliest record
+  // Use optimized approach for PostgreSQL, fallback for SQLite
 
-  // Get all duplicate groups (watchlist_item_id, status combinations that appear multiple times)
-  const duplicateGroups = await knex('watchlist_status_history')
-    .select('watchlist_item_id', 'status')
-    .groupBy('watchlist_item_id', 'status')
-    .havingRaw('COUNT(*) > 1')
+  const clientConfig = knex.client.config
+  const isPostgreSQL = clientConfig.client === 'pg'
 
-  // For each duplicate group, delete all but the earliest record
-  for (const group of duplicateGroups) {
-    // Find the earliest record for this group
-    const earliestRecord = await knex('watchlist_status_history')
-      .where({
-        watchlist_item_id: group.watchlist_item_id,
-        status: group.status,
-      })
-      .orderBy('timestamp', 'asc')
-      .orderBy('id', 'asc') // tie-breaker for same timestamp
-      .first()
+  if (isPostgreSQL) {
+    // PostgreSQL: Use efficient window function DELETE for large datasets
+    await knex.raw(`
+      WITH ranked AS (
+        SELECT id,
+               row_number() OVER (
+                 PARTITION BY watchlist_item_id, status
+                 ORDER BY "timestamp" ASC, id ASC
+               ) AS rn
+        FROM watchlist_status_history
+      )
+      DELETE FROM watchlist_status_history h
+      USING ranked r
+      WHERE h.id = r.id
+        AND r.rn > 1
+    `)
+  } else {
+    // SQLite: Use per-group cleanup (safer for SQLite limitations)
+    const duplicateGroups = await knex('watchlist_status_history')
+      .select('watchlist_item_id', 'status')
+      .groupBy('watchlist_item_id', 'status')
+      .havingRaw('COUNT(*) > 1')
 
-    if (earliestRecord) {
-      // Delete all other records for this group
-      await knex('watchlist_status_history')
+    for (const group of duplicateGroups) {
+      const earliestRecord = await knex('watchlist_status_history')
         .where({
           watchlist_item_id: group.watchlist_item_id,
           status: group.status,
         })
-        .whereNot('id', earliestRecord.id)
-        .del()
+        .orderBy('timestamp', 'asc')
+        .orderBy('id', 'asc')
+        .first()
+
+      if (earliestRecord) {
+        await knex('watchlist_status_history')
+          .where({
+            watchlist_item_id: group.watchlist_item_id,
+            status: group.status,
+          })
+          .whereNot('id', earliestRecord.id)
+          .del()
+      }
     }
   }
 
   // Step 2: Add the unique constraint
   await knex.schema.alterTable('watchlist_status_history', (table) => {
-    table.unique(
-      ['watchlist_item_id', 'status'],
-      'uq_watchlist_status_history_item_status',
-    )
+    table.unique(['watchlist_item_id', 'status'], {
+      indexName: 'uq_watchlist_status_history_item_status',
+    })
   })
 }
 
