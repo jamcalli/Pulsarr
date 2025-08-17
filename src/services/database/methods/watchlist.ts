@@ -13,12 +13,12 @@ import type { Knex } from 'knex'
 /**
  * Status progression ranks to prevent regression
  */
-const STATUS_RANK = Object.freeze({
+const STATUS_RANK: Readonly<Record<WatchlistStatus, number>> = Object.freeze({
   pending: 1,
   requested: 2,
   grabbed: 3,
   notified: 4,
-} as const) satisfies Record<WatchlistStatus, number>
+})
 
 /**
  * Helper function to handle status updates with regression prevention
@@ -91,28 +91,32 @@ async function recordStatusHistory(
   log: DatabaseService['log'],
 ): Promise<void> {
   try {
-    // Check if this status entry already exists to avoid duplicates
-    const existing = await trx('watchlist_status_history')
-      .where({
-        watchlist_item_id: itemId,
-        status: status,
-      })
-      .first()
+    // Direct insert - let database handle any constraint violations
+    await trx('watchlist_status_history').insert({
+      watchlist_item_id: itemId,
+      status: status,
+      timestamp: timestamp,
+    })
 
-    if (!existing) {
-      await trx('watchlist_status_history').insert({
-        watchlist_item_id: itemId,
-        status: status,
-        timestamp: timestamp,
-      })
-
-      log.debug(`Recorded status history for ${context}`)
-    }
+    log.debug(`Recorded status history for ${context}`)
   } catch (error) {
-    log.error(
-      { error, itemId, status },
-      `Failed to record status history for ${context}`,
-    )
+    // Check if this is a duplicate entry error that we can safely ignore
+    const errorObj = error as { code?: string; message?: string }
+    const isDuplicateError =
+      errorObj?.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+      errorObj?.code === '23505' || // PostgreSQL unique violation
+      errorObj?.message?.includes('duplicate') ||
+      errorObj?.message?.includes('unique')
+
+    if (isDuplicateError) {
+      // Silently ignore duplicate entries - this is expected in concurrent scenarios
+      log.debug(`Duplicate status history entry ignored for ${context}`)
+    } else {
+      log.error(
+        { error, itemId, status },
+        `Failed to record status history for ${context}`,
+      )
+    }
     // Don't fail the whole transaction for history recording errors
   }
 }
