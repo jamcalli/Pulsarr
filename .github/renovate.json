@@ -146,8 +146,9 @@
     {
       "description": "Never pin or update own Docker images - users need latest tags",
       "matchPackageNames": ["lakker/pulsarr"],
+      "matchDatasources": ["docker"],
       "pinDigests": false,
-      "enabled": false
+      "enabled": true
     },
     {
       "description": "Pin all GitHub Actions to commit SHAs for security",

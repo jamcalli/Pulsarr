@@ -103,7 +103,25 @@ interface ExtendedContentRouterRule extends ContentRouterRule {
 function normalizeConditionGroup(
   cg: ConditionalRouteFormValues['condition'] | undefined,
 ): ConditionGroup {
-  if (cg?.conditions?.length) return cg
+  if (cg?.conditions?.length) {
+    return {
+      operator: cg.operator,
+      conditions: cg.conditions.map((condition) => {
+        if ('conditions' in condition) {
+          // Recursively normalize nested groups
+          return normalizeConditionGroup(condition)
+        } else {
+          // Normalize individual conditions
+          return {
+            ...condition,
+            negate: condition.negate ?? false,
+          }
+        }
+      }),
+      negate: cg.negate ?? false,
+      _cid: cg._cid,
+    }
+  }
   return {
     operator: cg?.operator ?? 'AND',
     conditions: [],
