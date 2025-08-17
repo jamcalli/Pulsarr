@@ -90,7 +90,11 @@ interface ExtendedContentRouterRule extends ContentRouterRule {
 }
 
 /**
- * Type guard to check if a condition is a condition group
+ * Type guard that determines whether a value is a ConditionGroup.
+ *
+ * Returns true when the provided value is a non-null object that contains a
+ * `conditions` property. Note: this check does not validate the shape or types
+ * of the `conditions` property's contents—only that the property exists.
  */
 function isConditionGroup(condition: unknown): condition is IConditionGroup {
   return (
@@ -101,15 +105,17 @@ function isConditionGroup(condition: unknown): condition is IConditionGroup {
 }
 
 /**
- * Ensure a valid ConditionGroup is returned for form values.
+ * Normalize a condition group (possibly from form values) into a well-formed ConditionGroup.
  *
- * If `cg` is undefined or contains no conditions, returns a default empty group,
- * preserving provided operator/negate when available
- * ({ operator: cg?.operator ?? 'AND', conditions: [], negate: cg?.negate ?? false }).
- * Otherwise returns `cg` unchanged.
+ * Recursively normalizes nested groups and individual conditions:
+ * - If `cg` has conditions, returns a new object with the same `operator`, an array of
+ *   normalized conditions/groups, a normalized `negate` boolean (defaults to `false`),
+ *   and preserves `_cid` when present.
+ * - If `cg` is missing or has no conditions, returns an empty group with `operator`
+ *   set to `cg?.operator ?? 'AND'`, empty `conditions`, and `negate` defaulting to `false`.
  *
- * @param cg - Condition group from form values (may be undefined or empty)
- * @returns A valid ConditionGroup suitable for use or persistence
+ * @param cg - The condition group value from the form (may be undefined, empty, or partially populated)
+ * @returns A fully normalized ConditionGroup ready for use or persistence
  */
 function normalizeConditionGroup(
   cg: ConditionalRouteFormValues['condition'] | IConditionGroup | undefined,
