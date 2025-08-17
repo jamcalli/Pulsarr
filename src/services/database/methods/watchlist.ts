@@ -108,7 +108,9 @@ async function recordStatusHistory(
       .onConflict(['watchlist_item_id', 'status'])
       .ignore()
 
-    log.debug(`Recorded status history for ${context}`)
+    log.debug(
+      `Attempted to record status history for ${context} (ignored if duplicate)`,
+    )
   } catch (error) {
     log.error(
       { error, itemId, status },
@@ -130,7 +132,6 @@ async function recordStatusHistory(
  * @returns Number of rows actually updated
  */
 async function performMonotonicUpdate(
-  _trx: Knex.Transaction,
   whereClause: Knex.QueryBuilder,
   updates: Partial<WatchlistItemUpdate> & { updated_at?: string },
   statusResult: {
@@ -247,7 +248,6 @@ export async function updateWatchlistItem(
     let updatedRows = 0
     if (Object.keys(finalStatusUpdate).length > 0) {
       updatedRows = await performMonotonicUpdate(
-        trx,
         trx('watchlist_items').where({ user_id: userId, key }),
         finalStatusUpdate,
         statusResult,
@@ -434,7 +434,6 @@ export async function updateWatchlistItemByGuid(
       let updatedRows = 0
       if (Object.keys(finalUpdates).length > 0) {
         updatedRows = await performMonotonicUpdate(
-          trx,
           trx('watchlist_items').where('id', item.id),
           finalUpdates,
           statusResult,
@@ -685,6 +684,7 @@ export async function bulkUpdateWatchlistItems(
         }
 
         let wroteMain = false
+        let wroteJunction = false
         if (Object.keys(mainTableFields).length > 0) {
           const builder = trx('watchlist_items').where({
             user_id: userId,
@@ -703,10 +703,6 @@ export async function bulkUpdateWatchlistItems(
             updatedCount += 1
             wroteMain = true
           }
-
-          // count pure-junction updates as well
-        } else if (Object.keys(junctionFields).length > 0) {
-          updatedCount += 1
         }
 
         // Handle Radarr instance junction updates
@@ -717,9 +713,10 @@ export async function bulkUpdateWatchlistItems(
             | undefined
 
           if (radarrInstanceId === null) {
-            await trx('watchlist_radarr_instances')
+            const del = await trx('watchlist_radarr_instances')
               .where({ watchlist_id: currentItem.id })
               .delete()
+            wroteJunction = wroteJunction || Number(del) > 0
           } else if (radarrInstanceId !== undefined) {
             const existingAssoc = await trx('watchlist_radarr_instances')
               .where({
@@ -738,14 +735,16 @@ export async function bulkUpdateWatchlistItems(
                 created_at: this.timestamp,
                 updated_at: this.timestamp,
               })
+              wroteJunction = true
 
-              await trx('watchlist_radarr_instances')
+              const nonPrimaryUpdated = await trx('watchlist_radarr_instances')
                 .where({ watchlist_id: currentItem.id })
                 .whereNot({ radarr_instance_id: radarrInstanceId })
                 .update({
                   is_primary: false,
                   updated_at: this.timestamp,
                 })
+              wroteJunction = wroteJunction || Number(nonPrimaryUpdated) > 0
             } else {
               const rb = trx('watchlist_radarr_instances').where({
                 watchlist_id: currentItem.id,
@@ -754,7 +753,7 @@ export async function bulkUpdateWatchlistItems(
               if (statusResult.shouldUpdateStatus) {
                 rb.whereIn('status', allowedStatusesUpTo(effectiveStatus))
               }
-              await rb.update({
+              const affected = await rb.update({
                 ...(statusResult.shouldUpdateStatus
                   ? { status: effectiveStatus }
                   : {}),
@@ -765,14 +764,16 @@ export async function bulkUpdateWatchlistItems(
                     : existingAssoc.last_notified_at,
                 updated_at: this.timestamp,
               })
+              wroteJunction = wroteJunction || Number(affected) > 0
 
-              await trx('watchlist_radarr_instances')
+              const demoted = await trx('watchlist_radarr_instances')
                 .where({ watchlist_id: currentItem.id })
                 .whereNot({ radarr_instance_id: radarrInstanceId })
                 .update({
                   is_primary: false,
                   updated_at: this.timestamp,
                 })
+              wroteJunction = wroteJunction || Number(demoted) > 0
             }
           }
         }
@@ -785,9 +786,10 @@ export async function bulkUpdateWatchlistItems(
             | undefined
 
           if (sonarrInstanceId === null) {
-            await trx('watchlist_sonarr_instances')
+            const del = await trx('watchlist_sonarr_instances')
               .where({ watchlist_id: currentItem.id })
               .delete()
+            wroteJunction = wroteJunction || Number(del) > 0
           } else if (sonarrInstanceId !== undefined) {
             const existingAssoc = await trx('watchlist_sonarr_instances')
               .where({
@@ -806,14 +808,16 @@ export async function bulkUpdateWatchlistItems(
                 created_at: this.timestamp,
                 updated_at: this.timestamp,
               })
+              wroteJunction = true
 
-              await trx('watchlist_sonarr_instances')
+              const nonPrimaryUpdated = await trx('watchlist_sonarr_instances')
                 .where({ watchlist_id: currentItem.id })
                 .whereNot({ sonarr_instance_id: sonarrInstanceId })
                 .update({
                   is_primary: false,
                   updated_at: this.timestamp,
                 })
+              wroteJunction = wroteJunction || Number(nonPrimaryUpdated) > 0
             } else {
               const sb = trx('watchlist_sonarr_instances').where({
                 watchlist_id: currentItem.id,
@@ -822,7 +826,7 @@ export async function bulkUpdateWatchlistItems(
               if (statusResult.shouldUpdateStatus) {
                 sb.whereIn('status', allowedStatusesUpTo(effectiveStatus))
               }
-              await sb.update({
+              const affected = await sb.update({
                 ...(statusResult.shouldUpdateStatus
                   ? { status: effectiveStatus }
                   : {}),
@@ -833,16 +837,23 @@ export async function bulkUpdateWatchlistItems(
                     : existingAssoc.last_notified_at,
                 updated_at: this.timestamp,
               })
+              wroteJunction = wroteJunction || Number(affected) > 0
 
-              await trx('watchlist_sonarr_instances')
+              const demoted = await trx('watchlist_sonarr_instances')
                 .where({ watchlist_id: currentItem.id })
                 .whereNot({ sonarr_instance_id: sonarrInstanceId })
                 .update({
                   is_primary: false,
                   updated_at: this.timestamp,
                 })
+              wroteJunction = wroteJunction || Number(demoted) > 0
             }
           }
+        }
+
+        // Count item updated when only junction changes occurred
+        if (!wroteMain && wroteJunction) {
+          updatedCount += 1
         }
 
         // Record status history only when the main row actually progressed
