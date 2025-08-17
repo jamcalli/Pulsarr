@@ -41,13 +41,74 @@ export async function updateWatchlistItem(
     const { radarr_instance_id, sonarr_instance_id, syncing, ...otherUpdates } =
       updates
 
-    if (Object.keys(otherUpdates).length > 0) {
+    // Handle status updates with regression prevention and history tracking
+    let shouldUpdateStatus = false
+    let finalStatusUpdate = { ...otherUpdates }
+
+    if (otherUpdates.status && otherUpdates.status !== item.status) {
+      // Define status progression ranks to prevent regression
+      const statusRank: Record<string, number> = {
+        pending: 1,
+        requested: 2,
+        grabbed: 3,
+        notified: 4,
+      }
+
+      const currentRank = statusRank[item.status] || 0
+      const newRank = statusRank[otherUpdates.status] || 0
+
+      if (newRank < currentRank) {
+        // Prevent status regression
+        this.log.warn(
+          `Preventing status regression for item ${key}: ${item.status} → ${otherUpdates.status}`,
+        )
+        // Remove status from update
+        const { status: _, ...updatesWithoutStatus } = otherUpdates
+        finalStatusUpdate = updatesWithoutStatus
+      } else {
+        // Allow status progression
+        shouldUpdateStatus = true
+      }
+    }
+
+    if (Object.keys(finalStatusUpdate).length > 0) {
       await trx('watchlist_items')
         .where({ user_id: userId, key })
         .update({
-          ...otherUpdates,
+          ...finalStatusUpdate,
           updated_at: this.timestamp,
         })
+    }
+
+    // Record status history if status actually changed
+    if (shouldUpdateStatus && otherUpdates.status) {
+      try {
+        // Check if this status entry already exists to avoid duplicates
+        const existing = await trx('watchlist_status_history')
+          .where({
+            watchlist_item_id: item.id,
+            status: otherUpdates.status,
+          })
+          .first()
+
+        if (!existing) {
+          await trx('watchlist_status_history').insert({
+            watchlist_item_id: item.id,
+            status: otherUpdates.status,
+            timestamp: this.timestamp,
+          })
+
+          this.log.debug(
+            `Recorded status history: ${item.status} → ${otherUpdates.status} for item ${key}`,
+          )
+        }
+      } catch (error) {
+        this.log.error(
+          { error, itemId: item.id, status: otherUpdates.status },
+          'Failed to record status history',
+        )
+        // Don't fail the whole transaction for history recording errors
+      }
     }
 
     if (radarr_instance_id !== undefined) {
