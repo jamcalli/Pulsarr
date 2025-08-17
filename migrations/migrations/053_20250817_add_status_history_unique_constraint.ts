@@ -12,10 +12,9 @@ export async function up(knex: Knex): Promise<void> {
   // Step 1: Clean up existing duplicates
   // Use optimized approach for PostgreSQL, fallback for SQLite
 
-  const clientConfig = knex.client.config
-  const isPostgreSQL = clientConfig.client === 'pg'
+  const isPostgres = knex.client.config.client === 'pg'
 
-  if (isPostgreSQL) {
+  if (isPostgres) {
     // PostgreSQL: Use efficient window function DELETE for large datasets
     await knex.raw(`
       WITH ranked AS (
@@ -62,9 +61,10 @@ export async function up(knex: Knex): Promise<void> {
 
   // Step 2: Add the unique constraint
   await knex.schema.alterTable('watchlist_status_history', (table) => {
-    table.unique(['watchlist_item_id', 'status'], {
-      indexName: 'uq_watchlist_status_history_item_status',
-    })
+    table.unique(
+      ['watchlist_item_id', 'status'],
+      'uq_watchlist_status_history_item_status',
+    )
   })
 }
 
