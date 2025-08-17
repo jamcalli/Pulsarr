@@ -1,43 +1,15 @@
-import type { ConditionValue } from '@/features/content-router/schemas/content-router.schema'
+import type {
+  ComparisonOperator,
+  Condition,
+  ConditionGroup,
+  ConditionValue,
+} from '@root/schemas/content-router/content-router.schema'
 
 /**
  * Types for the conditional route query builder.
  * These types define the structure of conditions and condition groups
  * used in the content router's conditional evaluator.
  */
-
-/**
- * Base interface for conditions and condition groups
- */
-export interface ConditionBase {
-  /** Whether to negate the condition (NOT) */
-  negate?: boolean
-}
-
-/**
- * Represents a single condition in a query
- */
-export interface Condition extends ConditionBase {
-  /** The field to evaluate (genre, year, language, user, etc.) */
-  field: ConditionField
-
-  /** The operator to apply (equals, contains, in, etc.) */
-  operator: ComparisonOperator
-
-  /** The value to compare against */
-  value: ConditionValue
-}
-
-/**
- * Represents a group of conditions combined with a logical operator
- */
-export interface ConditionGroup extends ConditionBase {
-  /** The logical operator to combine conditions (AND/OR) */
-  operator: 'AND' | 'OR'
-
-  /** The list of conditions or nested groups */
-  conditions: Array<Condition | ConditionGroup>
-}
 
 /**
  * Determines whether a given object is a {@link Condition}.
@@ -77,20 +49,7 @@ export function isConditionGroup(obj: unknown): obj is ConditionGroup {
   )
 }
 
-/**
- * Types of condition operators
- */
-export type ComparisonOperator =
-  | 'equals'
-  | 'notEquals'
-  | 'contains'
-  | 'notContains'
-  | 'in'
-  | 'notIn'
-  | 'greaterThan'
-  | 'lessThan'
-  | 'between'
-  | 'regex'
+// ComparisonOperator is imported from backend schema
 
 /**
  * Fields available for conditions

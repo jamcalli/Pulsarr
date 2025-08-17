@@ -377,7 +377,10 @@ export async function getInstanceActivityStats(this: DatabaseService): Promise<
 }
 
 /**
- * Calculates the average, minimum, and maximum number of days between the first "grabbed" and first "notified" statuses for each content type.
+ * Calculates the average, minimum, and maximum number of days to notification for each content type,
+ * considering the earliest eligible start status:
+ *   - grabbed -> notified
+ *   - requested -> notified (only when no grabbed status exists)
  *
  * Only includes content types with at least 2 valid samples, excluding negative or excessively large time differences (over 365 days).
  *
@@ -397,12 +400,12 @@ export async function getAverageTimeFromGrabbedToNotified(
   try {
     this.log.debug('Calculating average time from grabbed to notified status')
 
-    // Optimized approach: join in SQL, calculate in JS for database compatibility
-    const timeData = await this.knex('watchlist_items as wi')
+    // Include both grabbed->notified AND requested->notified transitions
+    const grabbedToNotified = await this.knex('watchlist_items as wi')
       .select(
         'wi.type as content_type',
-        'grabbed.first_grabbed',
-        'notified.first_notified',
+        'grabbed.first_grabbed as transition_start',
+        'notified.first_notified as transition_end',
       )
       .innerJoin(
         this.knex('watchlist_status_history')
@@ -425,6 +428,50 @@ export async function getAverageTimeFromGrabbedToNotified(
         'notified.watchlist_item_id',
       )
       .whereIn('wi.type', ['movie', 'show'])
+      .andWhere(
+        this.knex.raw('notified.first_notified > grabbed.first_grabbed'),
+      )
+
+    // Also get requested->notified transitions where no grabbed status exists
+    const requestedToNotified = await this.knex('watchlist_items as wi')
+      .select(
+        'wi.type as content_type',
+        'requested.first_requested as transition_start',
+        'notified.first_notified as transition_end',
+      )
+      .innerJoin(
+        this.knex('watchlist_status_history')
+          .select('watchlist_item_id')
+          .min('timestamp as first_requested')
+          .where('status', 'requested')
+          .groupBy('watchlist_item_id')
+          .as('requested'),
+        'wi.id',
+        'requested.watchlist_item_id',
+      )
+      .innerJoin(
+        this.knex('watchlist_status_history')
+          .select('watchlist_item_id')
+          .min('timestamp as first_notified')
+          .where('status', 'notified')
+          .groupBy('watchlist_item_id')
+          .as('notified'),
+        'wi.id',
+        'notified.watchlist_item_id',
+      )
+      .whereIn('wi.type', ['movie', 'show'])
+      .whereNotExists(
+        this.knex('watchlist_status_history')
+          .select(1)
+          .where('watchlist_item_id', this.knex.raw('wi.id'))
+          .where('status', 'grabbed'),
+      )
+      .andWhere(
+        this.knex.raw('notified.first_notified > requested.first_requested'),
+      )
+
+    // Combine both datasets
+    const timeData = [...grabbedToNotified, ...requestedToNotified]
 
     // Process the data to calculate time differences
     const contentGroups = new Map<string, number[]>()
@@ -432,13 +479,13 @@ export async function getAverageTimeFromGrabbedToNotified(
     const maxReasonableDays = 365 // Configurable threshold - 1 year seems more reasonable
 
     for (const row of timeData) {
-      const grabbedTime = new Date(row.first_grabbed).getTime()
-      const notifiedTime = new Date(row.first_notified).getTime()
+      const startTime = new Date(row.transition_start).getTime()
+      const endTime = new Date(row.transition_end).getTime()
 
-      // Ensure notified comes after grabbed
-      if (notifiedTime <= grabbedTime) continue
+      // Ensure notified comes after the start status (grabbed or requested)
+      if (endTime <= startTime) continue
 
-      const daysBetween = (notifiedTime - grabbedTime) / (1000 * 60 * 60 * 24)
+      const daysBetween = (endTime - startTime) / (1000 * 60 * 60 * 24)
 
       // Filter unreasonable values (negative already handled above, keep upper bound reasonable)
       if (daysBetween < 0 || daysBetween > maxReasonableDays) {
