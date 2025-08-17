@@ -8,6 +8,7 @@ import type {
 } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
+import type { Knex } from 'knex'
 
 /**
  * Status progression ranks to prevent regression
@@ -70,6 +71,49 @@ function processStatusUpdate(
       shouldUpdateStatus: true,
       shouldWriteHistory: true,
     }
+  }
+}
+
+/**
+ * Records status history for a watchlist item, avoiding duplicates within the same transaction.
+ *
+ * @param trx - Database transaction
+ * @param itemId - Watchlist item ID
+ * @param status - Status to record
+ * @param context - Context string for logging
+ */
+async function recordStatusHistory(
+  trx: Knex.Transaction,
+  itemId: number,
+  status: WatchlistStatus,
+  context: string,
+  timestamp: string,
+  log: DatabaseService['log'],
+): Promise<void> {
+  try {
+    // Check if this status entry already exists to avoid duplicates
+    const existing = await trx('watchlist_status_history')
+      .where({
+        watchlist_item_id: itemId,
+        status: status,
+      })
+      .first()
+
+    if (!existing) {
+      await trx('watchlist_status_history').insert({
+        watchlist_item_id: itemId,
+        status: status,
+        timestamp: timestamp,
+      })
+
+      log.debug(`Recorded status history for ${context}`)
+    }
+  } catch (error) {
+    log.error(
+      { error, itemId, status },
+      `Failed to record status history for ${context}`,
+    )
+    // Don't fail the whole transaction for history recording errors
   }
 }
 
@@ -142,33 +186,14 @@ export async function updateWatchlistItem(
 
     // Record status history if status actually changed
     if (statusResult.shouldWriteHistory) {
-      try {
-        // Check if this status entry already exists to avoid duplicates
-        const existing = await trx('watchlist_status_history')
-          .where({
-            watchlist_item_id: item.id,
-            status: effectiveStatus,
-          })
-          .first()
-
-        if (!existing) {
-          await trx('watchlist_status_history').insert({
-            watchlist_item_id: item.id,
-            status: effectiveStatus,
-            timestamp: this.timestamp,
-          })
-
-          this.log.debug(
-            `Recorded status history: ${item.status} → ${effectiveStatus} for item ${key}`,
-          )
-        }
-      } catch (error) {
-        this.log.error(
-          { error, itemId: item.id, status: effectiveStatus },
-          'Failed to record status history',
-        )
-        // Don't fail the whole transaction for history recording errors
-      }
+      await recordStatusHistory(
+        trx,
+        item.id,
+        effectiveStatus,
+        `${item.status} → ${effectiveStatus} for item ${key}`,
+        this.timestamp,
+        this.log,
+      )
     }
 
     if (radarr_instance_id !== undefined) {
@@ -346,33 +371,14 @@ export async function updateWatchlistItemByGuid(
 
       // Record status history if status actually changed
       if (statusResult.shouldWriteHistory) {
-        try {
-          // Check if this status entry already exists to avoid duplicates
-          const existing = await trx('watchlist_status_history')
-            .where({
-              watchlist_item_id: item.id,
-              status: statusResult.effectiveStatus,
-            })
-            .first()
-
-          if (!existing) {
-            await trx('watchlist_status_history').insert({
-              watchlist_item_id: item.id,
-              status: statusResult.effectiveStatus,
-              timestamp: this.timestamp,
-            })
-
-            this.log.debug(
-              `Recorded status history: ${item.status} → ${statusResult.effectiveStatus} for GUID ${guid} item ${item.key}`,
-            )
-          }
-        } catch (error) {
-          this.log.error(
-            { error, itemId: item.id, status: statusResult.effectiveStatus },
-            'Failed to record status history',
-          )
-          // Don't fail the whole transaction for history recording errors
-        }
+        await recordStatusHistory(
+          trx,
+          item.id,
+          statusResult.effectiveStatus,
+          `${item.status} → ${statusResult.effectiveStatus} for GUID ${guid} item ${item.key}`,
+          this.timestamp,
+          this.log,
+        )
       }
     }
 
@@ -666,7 +672,9 @@ export async function bulkUpdateWatchlistItems(
                   radarr_instance_id: radarrInstanceId,
                 })
                 .update({
-                  status: effectiveStatus,
+                  ...(statusResult.shouldUpdateStatus
+                    ? { status: effectiveStatus }
+                    : {}),
                   is_primary: true,
                   last_notified_at:
                     update.last_notified_at !== undefined
@@ -730,7 +738,9 @@ export async function bulkUpdateWatchlistItems(
                   sonarr_instance_id: sonarrInstanceId,
                 })
                 .update({
-                  status: effectiveStatus,
+                  ...(statusResult.shouldUpdateStatus
+                    ? { status: effectiveStatus }
+                    : {}),
                   is_primary: true,
                   last_notified_at:
                     update.last_notified_at !== undefined
@@ -752,33 +762,14 @@ export async function bulkUpdateWatchlistItems(
 
         // Record status history if status actually changed
         if (statusResult.shouldWriteHistory) {
-          try {
-            // Check if this status entry already exists to avoid duplicates
-            const existing = await trx('watchlist_status_history')
-              .where({
-                watchlist_item_id: currentItem.id,
-                status: effectiveStatus,
-              })
-              .first()
-
-            if (!existing) {
-              await trx('watchlist_status_history').insert({
-                watchlist_item_id: currentItem.id,
-                status: effectiveStatus,
-                timestamp: this.timestamp,
-              })
-
-              this.log.debug(
-                `Recorded status history: ${currentItem.status} → ${effectiveStatus} for bulk update item ${key}`,
-              )
-            }
-          } catch (error) {
-            this.log.error(
-              { error, itemId: currentItem.id, status: effectiveStatus },
-              'Failed to record status history',
-            )
-            // Don't fail the whole transaction for history recording errors
-          }
+          await recordStatusHistory(
+            trx,
+            currentItem.id,
+            effectiveStatus,
+            `${currentItem.status} → ${effectiveStatus} for bulk update item ${key}`,
+            this.timestamp,
+            this.log,
+          )
         }
       }
     }
