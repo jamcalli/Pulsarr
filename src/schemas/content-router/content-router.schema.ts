@@ -135,11 +135,15 @@ const isValidConditionGroup = (
   }
 
   return group.conditions.every((cond) => {
-    if ('conditions' in cond) {
+    if (
+      cond !== null &&
+      typeof cond === 'object' &&
+      'conditions' in (cond as unknown as Record<string, unknown>)
+    ) {
       // Recursive check for nested groups with increased depth counter
       return isValidConditionGroup(cond as IConditionGroup, depth + 1, visited)
     }
-    // Validate individual conditions explicitly since nested groups use z.any()
+    // Validate individual conditions explicitly since nested groups may accept any values in OpenAPI shape
     return ConditionSchema.safeParse(cond).success
   })
 }
@@ -238,7 +242,11 @@ export const ConditionalRouteFormSchema = z.object({
         }
 
         return group.conditions.every((cond) => {
-          if ('conditions' in cond) {
+          if (
+            cond !== null &&
+            typeof cond === 'object' &&
+            'conditions' in (cond as unknown as Record<string, unknown>)
+          ) {
             // Recursive check for nested groups
             return isValidGroup(cond as IConditionGroup, depth + 1, visited)
           }

@@ -2,9 +2,76 @@ import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
+import type {
+  WatchlistItemUpdate,
+  WatchlistStatus,
+} from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
+
+/**
+ * Status progression ranks to prevent regression
+ */
+const STATUS_RANK: Record<string, number> = {
+  pending: 1,
+  requested: 2,
+  grabbed: 3,
+  notified: 4,
+}
+
+/**
+ * Helper function to handle status updates with regression prevention
+ * Returns the effective status that should be used for all operations
+ */
+function processStatusUpdate(
+  currentStatus: WatchlistStatus,
+  newStatus: WatchlistStatus | undefined,
+  context: string,
+  log: DatabaseService['log'],
+): {
+  effectiveStatus: WatchlistStatus
+  shouldUpdateStatus: boolean
+  shouldWriteHistory: boolean
+} {
+  if (!newStatus) {
+    return {
+      effectiveStatus: currentStatus,
+      shouldUpdateStatus: false,
+      shouldWriteHistory: false,
+    }
+  }
+
+  if (newStatus === currentStatus) {
+    // No-op status change
+    return {
+      effectiveStatus: currentStatus,
+      shouldUpdateStatus: false,
+      shouldWriteHistory: false,
+    }
+  }
+
+  const currentRank = STATUS_RANK[currentStatus] || 0
+  const newRank = STATUS_RANK[newStatus] || 0
+
+  if (newRank < currentRank) {
+    // Prevent status regression
+    log.warn(
+      `Preventing status regression for ${context}: ${currentStatus} → ${newStatus}`,
+    )
+    return {
+      effectiveStatus: currentStatus,
+      shouldUpdateStatus: false,
+      shouldWriteHistory: false,
+    }
+  } else {
+    // Allow status progression
+    return {
+      effectiveStatus: newStatus,
+      shouldUpdateStatus: true,
+      shouldWriteHistory: true,
+    }
+  }
+}
 
 /**
  * Updates a watchlist item for a specific user by key with the provided changes.
@@ -42,33 +109,20 @@ export async function updateWatchlistItem(
       updates
 
     // Handle status updates with regression prevention and history tracking
-    let shouldUpdateStatus = false
+    const statusResult = processStatusUpdate(
+      item.status,
+      otherUpdates.status,
+      `item ${key}`,
+      this.log,
+    )
+
+    const effectiveStatus = statusResult.effectiveStatus
     let finalStatusUpdate = { ...otherUpdates }
 
-    if (otherUpdates.status && otherUpdates.status !== item.status) {
-      // Define status progression ranks to prevent regression
-      const statusRank: Record<string, number> = {
-        pending: 1,
-        requested: 2,
-        grabbed: 3,
-        notified: 4,
-      }
-
-      const currentRank = statusRank[item.status] || 0
-      const newRank = statusRank[otherUpdates.status] || 0
-
-      if (newRank < currentRank) {
-        // Prevent status regression
-        this.log.warn(
-          `Preventing status regression for item ${key}: ${item.status} → ${otherUpdates.status}`,
-        )
-        // Remove status from update
-        const { status: _, ...updatesWithoutStatus } = otherUpdates
-        finalStatusUpdate = updatesWithoutStatus
-      } else {
-        // Allow status progression
-        shouldUpdateStatus = true
-      }
+    // Remove status from update if it shouldn't be updated (no-op or regression)
+    if (!statusResult.shouldUpdateStatus && 'status' in finalStatusUpdate) {
+      const { status: _, ...updatesWithoutStatus } = finalStatusUpdate
+      finalStatusUpdate = updatesWithoutStatus
     }
 
     if (Object.keys(finalStatusUpdate).length > 0) {
@@ -81,30 +135,30 @@ export async function updateWatchlistItem(
     }
 
     // Record status history if status actually changed
-    if (shouldUpdateStatus && otherUpdates.status) {
+    if (statusResult.shouldWriteHistory) {
       try {
         // Check if this status entry already exists to avoid duplicates
         const existing = await trx('watchlist_status_history')
           .where({
             watchlist_item_id: item.id,
-            status: otherUpdates.status,
+            status: effectiveStatus,
           })
           .first()
 
         if (!existing) {
           await trx('watchlist_status_history').insert({
             watchlist_item_id: item.id,
-            status: otherUpdates.status,
+            status: effectiveStatus,
             timestamp: this.timestamp,
           })
 
           this.log.debug(
-            `Recorded status history: ${item.status} → ${otherUpdates.status} for item ${key}`,
+            `Recorded status history: ${item.status} → ${effectiveStatus} for item ${key}`,
           )
         }
       } catch (error) {
         this.log.error(
-          { error, itemId: item.id, status: otherUpdates.status },
+          { error, itemId: item.id, status: effectiveStatus },
           'Failed to record status history',
         )
         // Don't fail the whole transaction for history recording errors
@@ -126,7 +180,7 @@ export async function updateWatchlistItem(
           await this.addWatchlistToRadarrInstance(
             item.id,
             radarr_instance_id,
-            updates.status || item.status || 'pending',
+            effectiveStatus || 'pending',
             true,
             syncing || false,
             trx,
@@ -161,7 +215,7 @@ export async function updateWatchlistItem(
           await this.addWatchlistToSonarrInstance(
             item.id,
             sonarr_instance_id,
-            updates.status || item.status || 'pending',
+            effectiveStatus || 'pending',
             true,
             syncing || false,
             trx,
@@ -195,37 +249,96 @@ export async function updateWatchlistItemByGuid(
   guid: string,
   updates: WatchlistItemUpdate,
 ): Promise<number> {
-  // Use database-specific JSON functions to filter efficiently
-  const matchingIds = this.isPostgres
-    ? await this.knex('watchlist_items')
-        .whereRaw(
-          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
-          [guid],
-        )
-        .pluck('id')
-    : await this.knex('watchlist_items')
-        .whereRaw(
-          "EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
-          [guid],
-        )
-        .pluck('id')
+  return await this.knex.transaction(async (trx) => {
+    // Use database-specific JSON functions to get matching items with their current status
+    const matchingItems = this.isPostgres
+      ? await trx('watchlist_items')
+          .select('id', 'status', 'key')
+          .whereRaw(
+            'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
+            [guid],
+          )
+      : await trx('watchlist_items')
+          .select('id', 'status', 'key')
+          .whereRaw(
+            "EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
+            [guid],
+          )
 
-  if (matchingIds.length === 0) {
-    this.log.warn(`No items found with GUID: ${guid}`)
-    return 0
-  }
+    if (matchingItems.length === 0) {
+      this.log.warn(`No items found with GUID: ${guid}`)
+      return 0
+    }
 
-  // Remove syncing field as it only exists in junction tables, not watchlist_items
-  const { syncing: _, ...validUpdates } = updates
-  const updateCount = await this.knex('watchlist_items')
-    .whereIn('id', matchingIds)
-    .update({
-      ...validUpdates,
-      updated_at: this.timestamp,
-    })
+    let totalUpdated = 0
 
-  this.log.debug(`Updated ${updateCount} items by GUID ${guid}`)
-  return updateCount
+    for (const item of matchingItems) {
+      // Remove syncing field as it only exists in junction tables, not watchlist_items
+      const { syncing: _, ...validUpdates } = updates
+
+      // Process status update with regression prevention
+      const statusResult = processStatusUpdate(
+        item.status,
+        validUpdates.status,
+        `GUID ${guid} item ${item.key}`,
+        this.log,
+      )
+
+      let finalUpdates = { ...validUpdates }
+
+      // Remove status from update if it shouldn't be updated (no-op or regression)
+      if (!statusResult.shouldUpdateStatus && 'status' in finalUpdates) {
+        const { status: __, ...updatesWithoutStatus } = finalUpdates
+        finalUpdates = updatesWithoutStatus
+      }
+
+      // Apply updates if there are any
+      if (Object.keys(finalUpdates).length > 0) {
+        await trx('watchlist_items')
+          .where('id', item.id)
+          .update({
+            ...finalUpdates,
+            updated_at: this.timestamp,
+          })
+
+        totalUpdated += 1
+      }
+
+      // Record status history if status actually changed
+      if (statusResult.shouldWriteHistory) {
+        try {
+          // Check if this status entry already exists to avoid duplicates
+          const existing = await trx('watchlist_status_history')
+            .where({
+              watchlist_item_id: item.id,
+              status: statusResult.effectiveStatus,
+            })
+            .first()
+
+          if (!existing) {
+            await trx('watchlist_status_history').insert({
+              watchlist_item_id: item.id,
+              status: statusResult.effectiveStatus,
+              timestamp: this.timestamp,
+            })
+
+            this.log.debug(
+              `Recorded status history: ${item.status} → ${statusResult.effectiveStatus} for GUID ${guid} item ${item.key}`,
+            )
+          }
+        } catch (error) {
+          this.log.error(
+            { error, itemId: item.id, status: statusResult.effectiveStatus },
+            'Failed to record status history',
+          )
+          // Don't fail the whole transaction for history recording errors
+        }
+      }
+    }
+
+    this.log.debug(`Updated ${totalUpdated} items by GUID ${guid}`)
+    return totalUpdated
+  })
 }
 
 /**
@@ -407,6 +520,16 @@ export async function bulkUpdateWatchlistItems(
 
         if (!currentItem) continue
 
+        // Process status update with regression prevention
+        const statusResult = processStatusUpdate(
+          currentItem.status,
+          updateFields.status,
+          `bulk update item ${key}`,
+          this.log,
+        )
+
+        const effectiveStatus = statusResult.effectiveStatus
+
         const mainTableFields: Record<string, unknown> = {}
         const junctionFields: Record<string, unknown> = {}
 
@@ -427,6 +550,11 @@ export async function bulkUpdateWatchlistItems(
               junctionFields[field] = Number.isNaN(numericValue)
                 ? null
                 : numericValue
+            }
+          } else if (field === 'status') {
+            // Only include status in main table update if it should be updated
+            if (statusResult.shouldUpdateStatus) {
+              mainTableFields[field] = effectiveStatus
             }
           } else {
             mainTableFields[field] = value
@@ -477,7 +605,7 @@ export async function bulkUpdateWatchlistItems(
               await trx('watchlist_radarr_instances').insert({
                 watchlist_id: currentItem.id,
                 radarr_instance_id: radarrInstanceId,
-                status: update.status || currentItem.status,
+                status: effectiveStatus,
                 is_primary: true,
                 last_notified_at: update.last_notified_at,
                 created_at: this.timestamp,
@@ -498,7 +626,7 @@ export async function bulkUpdateWatchlistItems(
                   radarr_instance_id: radarrInstanceId,
                 })
                 .update({
-                  status: update.status || existingAssoc.status,
+                  status: effectiveStatus,
                   is_primary: true,
                   last_notified_at:
                     update.last_notified_at !== undefined
@@ -541,7 +669,7 @@ export async function bulkUpdateWatchlistItems(
               await trx('watchlist_sonarr_instances').insert({
                 watchlist_id: currentItem.id,
                 sonarr_instance_id: sonarrInstanceId,
-                status: update.status || currentItem.status,
+                status: effectiveStatus,
                 is_primary: true,
                 last_notified_at: update.last_notified_at,
                 created_at: this.timestamp,
@@ -562,7 +690,7 @@ export async function bulkUpdateWatchlistItems(
                   sonarr_instance_id: sonarrInstanceId,
                 })
                 .update({
-                  status: update.status || existingAssoc.status,
+                  status: effectiveStatus,
                   is_primary: true,
                   last_notified_at:
                     update.last_notified_at !== undefined
@@ -582,16 +710,35 @@ export async function bulkUpdateWatchlistItems(
           }
         }
 
-        if (update.status && update.status !== currentItem.status) {
-          await trx('watchlist_status_history').insert({
-            watchlist_item_id: currentItem.id,
-            status: update.status,
-            timestamp: this.timestamp,
-          })
+        // Record status history if status actually changed
+        if (statusResult.shouldWriteHistory) {
+          try {
+            // Check if this status entry already exists to avoid duplicates
+            const existing = await trx('watchlist_status_history')
+              .where({
+                watchlist_item_id: currentItem.id,
+                status: effectiveStatus,
+              })
+              .first()
 
-          this.log.debug(
-            `Status change for item ${currentItem.id}: ${currentItem.status} -> ${update.status}`,
-          )
+            if (!existing) {
+              await trx('watchlist_status_history').insert({
+                watchlist_item_id: currentItem.id,
+                status: effectiveStatus,
+                timestamp: this.timestamp,
+              })
+
+              this.log.debug(
+                `Recorded status history: ${currentItem.status} → ${effectiveStatus} for bulk update item ${key}`,
+              )
+            }
+          } catch (error) {
+            this.log.error(
+              { error, itemId: currentItem.id, status: effectiveStatus },
+              'Failed to record status history',
+            )
+            // Don't fail the whole transaction for history recording errors
+          }
         }
       }
     }

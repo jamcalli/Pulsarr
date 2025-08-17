@@ -90,6 +90,17 @@ interface ExtendedContentRouterRule extends ContentRouterRule {
 }
 
 /**
+ * Type guard to check if a condition is a condition group
+ */
+function isConditionGroup(condition: unknown): condition is IConditionGroup {
+  return (
+    condition !== null &&
+    typeof condition === 'object' &&
+    'conditions' in (condition as unknown as Record<string, unknown>)
+  )
+}
+
+/**
  * Ensure a valid ConditionGroup is returned for form values.
  *
  * If `cg` is undefined or contains no conditions, returns a default empty group,
@@ -101,13 +112,13 @@ interface ExtendedContentRouterRule extends ContentRouterRule {
  * @returns A valid ConditionGroup suitable for use or persistence
  */
 function normalizeConditionGroup(
-  cg: ConditionalRouteFormValues['condition'] | undefined,
+  cg: ConditionalRouteFormValues['condition'] | IConditionGroup | undefined,
 ): ConditionGroup {
   if (cg?.conditions?.length) {
     return {
       operator: cg.operator,
       conditions: cg.conditions.map((condition) => {
-        if ('conditions' in condition) {
+        if (isConditionGroup(condition)) {
           // Recursively normalize nested groups
           return normalizeConditionGroup(condition)
         } else {
