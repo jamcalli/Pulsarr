@@ -101,15 +101,17 @@ function isConditionGroup(condition: unknown): condition is IConditionGroup {
 }
 
 /**
- * Ensure a valid ConditionGroup is returned for form values.
+ * Normalize a possibly-partial form condition into a complete ConditionGroup.
  *
- * If `cg` is undefined or contains no conditions, returns a default empty group,
- * preserving provided operator/negate when available
- * ({ operator: cg?.operator ?? 'AND', conditions: [], negate: cg?.negate ?? false }).
- * Otherwise returns `cg` unchanged.
+ * Recursively converts nested groups and individual conditions into a stable
+ * ConditionGroup shape suitable for persistence or evaluation. Individual
+ * conditions will have `negate` defaulted to `false` when unspecified. When the
+ * input is undefined or contains no conditions, returns an empty group with
+ * `operator` defaulting to `'AND'`. Preserves `_cid` and explicit `negate` and
+ * `operator` values from the input when present.
  *
- * @param cg - Condition group from form values (may be undefined or empty)
- * @returns A valid ConditionGroup suitable for use or persistence
+ * @param cg - The form-provided condition (may be a ConditionGroup, an empty/partial value, or undefined)
+ * @returns A fully normalized ConditionGroup
  */
 function normalizeConditionGroup(
   cg: ConditionalRouteFormValues['condition'] | IConditionGroup | undefined,

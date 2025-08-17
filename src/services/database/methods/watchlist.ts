@@ -20,6 +20,14 @@ const STATUS_RANK: Readonly<Record<WatchlistStatus, number>> = Object.freeze({
   notified: 4,
 })
 
+/**
+ * Returns all watchlist statuses whose rank is less-than-or-equal to the rank of `target`.
+ *
+ * If `target` is unknown, it is treated as rank 0 and the result will only include statuses with rank ≤ 0 (typically none).
+ *
+ * @param target - The status to compare against
+ * @returns An array of statuses allowed up to and including `target`'s rank
+ */
 function allowedStatusesUpTo(target: WatchlistStatus): WatchlistStatus[] {
   const t = STATUS_RANK[target] ?? 0
   return (Object.keys(STATUS_RANK) as WatchlistStatus[]).filter(
@@ -28,8 +36,20 @@ function allowedStatusesUpTo(target: WatchlistStatus): WatchlistStatus[] {
 }
 
 /**
- * Helper function to handle status updates with regression prevention
- * Returns the effective status that should be used for all operations
+ * Compute an effective watchlist status update while preventing regressions.
+ *
+ * Determines whether an incoming `newStatus` should be applied relative to
+ * `currentStatus` using the file's configured status ranking. Prevents moving to
+ * a lower-ranked status (regression) and treats identical or undefined `newStatus`
+ * as a no-op.
+ *
+ * @param currentStatus - The item's current watchlist status.
+ * @param newStatus - The proposed new status (may be `undefined` to indicate no change).
+ * @param context - Short identifier used in warning logs when a regression is prevented.
+ * @returns An object with:
+ *  - `effectiveStatus`: the status that should be used for downstream updates,
+ *  - `shouldUpdateStatus`: true when the status should be written to the DB,
+ *  - `shouldWriteHistory`: true when a status-history entry should be recorded.
  */
 function processStatusUpdate(
   currentStatus: WatchlistStatus,
@@ -82,12 +102,13 @@ function processStatusUpdate(
 }
 
 /**
- * Records status history for a watchlist item, avoiding duplicates within the same transaction.
+ * Insert a status entry for a watchlist item into the status history table, ignoring duplicate (watchlist_item_id, status) rows.
  *
- * @param trx - Database transaction
- * @param itemId - Watchlist item ID
- * @param status - Status to record
- * @param context - Context string for logging
+ * This function is safe to call inside a transaction: it uses database-level deduplication (ON CONFLICT ... DO NOTHING)
+ * and will log errors without throwing, so history-recording failures do not abort the surrounding transaction.
+ *
+ * @param context - Short context string included in log messages to identify the operation source.
+ * @param timestamp - ISO 8601 timestamp to record for the history entry.
  */
 async function recordStatusHistory(
   trx: Knex.Transaction,
@@ -121,15 +142,17 @@ async function recordStatusHistory(
 }
 
 /**
- * Performs a monotonic status update that prevents status regression using database-level constraints.
- * Returns the number of rows actually updated (0 if the update was blocked due to status regression).
+ * Apply updates to rows while enforcing monotonic (non-regressing) status progression.
  *
- * @param trx - The Knex transaction to use
- * @param whereClause - The where clause to identify the records to update
- * @param updates - The updates to apply
- * @param statusResult - The processed status result from processStatusUpdate
- * @param timestamp - The timestamp to use for updated_at
- * @returns Number of rows actually updated
+ * If `statusResult.shouldUpdateStatus` is true, the update is constrained to rows whose current
+ * status rank is less than or equal to `statusResult.effectiveStatus` to prevent status regression.
+ * The function always sets `updated_at` to the provided `timestamp`.
+ *
+ * @param whereClause - A Knex query builder selecting the target rows (will be augmented when status progression is enforced)
+ * @param updates - Columns to update on the selected rows; `updated_at` will be overwritten with `timestamp`
+ * @param statusResult - Result from `processStatusUpdate`; when `shouldUpdateStatus` is true, `effectiveStatus` is used to restrict updates
+ * @param timestamp - ISO timestamp string to set on `updated_at`
+ * @returns The number of rows actually updated (0 if no rows matched or the update was blocked by the monotonic constraint)
  */
 async function performMonotonicUpdate(
   whereClause: Knex.QueryBuilder,
@@ -157,15 +180,16 @@ async function performMonotonicUpdate(
 }
 
 /**
- * Performs a monotonic status update on junction tables to prevent status regression.
- * Only updates rows where the current status is at or below the target status rank.
+ * Atomically updates a junction row's status to a newer status without allowing regression.
  *
- * @param trx - The Knex transaction to use
- * @param tableName - The junction table name ('watchlist_radarr_instances' or 'watchlist_sonarr_instances')
- * @param whereClause - The where conditions to identify the junction record
- * @param targetStatus - The target status to update to
- * @param timestamp - The timestamp to use for updated_at
- * @returns Number of rows actually updated
+ * Updates only rows that match `whereClause` and whose current status rank is less than or
+ * equal to `targetStatus`'s rank, setting `status` to `targetStatus` and `updated_at` to `timestamp`.
+ *
+ * @param tableName - Junction table name; expected to be 'watchlist_radarr_instances' or 'watchlist_sonarr_instances'
+ * @param whereClause - Column/value conditions identifying the target junction row(s)
+ * @param targetStatus - Status to apply (update occurs only if current status is at or below this rank)
+ * @param timestamp - Value to set for the `updated_at` column
+ * @returns The number of rows that were updated
  */
 async function performJunctionMonotonicUpdate(
   trx: Knex.Transaction,
@@ -188,13 +212,29 @@ async function performJunctionMonotonicUpdate(
 }
 
 /**
- * Updates a watchlist item for a specific user by key with the provided changes.
+ * Update a single watchlist item (by user and key) with provided changes.
  *
- * Skips updates for temporary RSS items. Updates main watchlist item fields and manages associations with Radarr and Sonarr instances, including syncing status and primary instance designation.
+ * Runs inside a transaction. No-ops and early-returns for temporary RSS keys (prefixes
+ * "selfRSS_" or "friendsRSS_") or when the item does not exist. Status updates are
+ * applied monotonically (regressions are prevented) and, when progressed, a status
+ * history row is inserted (non-fatal on failure). Main item fields are updated with
+ * monotonic constraints, and Radarr/Sonarr junctions are created, deleted, or adjusted
+ * as requested:
+ * - Passing `{ radarr_instance_id: null }` or `{ sonarr_instance_id: null }` deletes all
+ *   corresponding associations for the item.
+ * - Providing an instance id will create the junction if missing or set that instance as
+ *   primary if already present.
+ * - When status progresses, junction rows are updated to the effective status using the
+ *   same monotonic rules.
+ * - If `syncing` is provided it will update the syncing flag on the relevant junction.
  *
- * @param userId - ID of the user who owns the watchlist item
- * @param key - Unique key identifying the watchlist item
- * @param updates - Fields and associations to update on the watchlist item
+ * This function does not return a value; it performs updates atomically within the
+ * transaction context.
+ *
+ * @param userId - Owner user id for the watchlist item (used to locate the row)
+ * @param key - Item key unique to the user identifying the watchlist item
+ * @param updates - Partial fields to apply; may include `status`, `radarr_instance_id`,
+ *                  `sonarr_instance_id`, and `syncing` among other watchlist fields
  */
 export async function updateWatchlistItem(
   this: DatabaseService,
@@ -368,11 +408,21 @@ export async function updateWatchlistItem(
 }
 
 /**
- * Updates all watchlist items whose GUIDs array contains the specified GUID.
+ * Update all watchlist items whose `guids` array contains the given GUID.
  *
- * @param guid - The GUID to search for within each item's GUIDs array
- * @param updates - The fields to apply to each matching watchlist item
- * @returns The number of watchlist items that were updated
+ * Runs inside a transaction. For each matching item this updates only the main
+ * watchlist_items row (junction-related fields such as `radarr_instance_id`,
+ * `sonarr_instance_id`, and `syncing` are ignored for GUID-based updates) and
+ * may record a status history entry when the status advances.
+ *
+ * Status updates are applied monotically: regressions are prevented and
+ * no-op status changes are skipped. The function returns the number of items
+ * that were actually updated in the database.
+ *
+ * @param guid - The GUID to match (case-insensitive) against each item's `guids` array
+ * @param updates - Fields to apply to matching watchlist items; `status` will be
+ *                  applied only when it represents a permitted progression
+ * @returns The count of watchlist items that were updated
  */
 export async function updateWatchlistItemByGuid(
   this: DatabaseService,
@@ -602,12 +652,15 @@ export async function getWatchlistItemsByKeys(
 }
 
 /**
- * Performs a bulk update of multiple watchlist items, including main item fields and associated Radarr/Sonarr instance relationships.
+ * Bulk-updates multiple watchlist items and their Radarr/Sonarr associations in a single transactional operation.
  *
- * Updates are processed in batches within a transaction. Instance associations are created, updated, or deleted as needed, and status changes are recorded in the status history.
+ * Processes the provided updates in chunks (100 per batch) inside a transaction. Status changes are applied monotonically (regressions are ignored) via the status-rank rules; status history rows are recorded only when the main watchlist row actually progresses. Radarr/Sonarr junction handling:
+ * - A numeric instance ID creates or updates an association (new association becomes primary and others are demoted).
+ * - A null instance ID deletes all associations for that service on the item.
+ * - Omitting an instance field leaves junctions unchanged.
  *
- * @param updates - List of updates specifying user ID, key, and fields to modify for each watchlist item
- * @returns The number of watchlist items updated
+ * @param updates - Array of update objects (each must include userId and key). Supported fields: added, status, series_status, movie_status, last_notified_at, sonarr_instance_id, radarr_instance_id. Status updates are applied only when they represent allowed progression; last_notified_at is propagated to new/updated junction rows.
+ * @returns The number of watchlist items that were modified (counts an item once even if both main and junction changes occurred)
  */
 export async function bulkUpdateWatchlistItems(
   this: DatabaseService,

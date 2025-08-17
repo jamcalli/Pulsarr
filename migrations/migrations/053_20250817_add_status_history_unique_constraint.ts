@@ -1,12 +1,11 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds a unique constraint to watchlist_status_history to prevent duplicate status entries.
+ * Remove duplicate status-history rows (keeping the earliest per item/status) and add a unique constraint on (watchlist_item_id, status).
  *
- * This migration:
- * 1. Cleans up any existing duplicate records (keeps the earliest timestamp)
- * 2. Adds a unique constraint on (watchlist_item_id, status)
- * 3. Uses Knex query builder for database agnostic operations
+ * Performs a destructive cleanup of duplicate rows in the watchlist_status_history table, using a set-based DELETE via a window function on PostgreSQL and a per-group removal on SQLite, then creates the unique constraint named `uq_watchlist_status_history_item_status`.
+ *
+ * Note: This migration mutates data (deletes rows) and alters the schema.
  */
 export async function up(knex: Knex): Promise<void> {
   // Step 1: Clean up existing duplicates
