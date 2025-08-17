@@ -5221,19 +5221,13 @@
                                     ]
                                   },
                                   "negate": {
-                                    "default": false,
                                     "type": "boolean"
                                   },
                                   "_cid": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "field",
-                                  "operator",
-                                  "value",
-                                  "negate"
-                                ],
+                                "required": ["field", "operator", "value"],
                                 "additionalProperties": false
                               },
                               {
@@ -5244,152 +5238,175 @@
                                     "enum": ["AND", "OR"]
                                   },
                                   "conditions": {
+                                    "maxItems": 20,
                                     "type": "array",
                                     "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "field": {
-                                          "type": "string"
-                                        },
-                                        "operator": {
-                                          "type": "string",
-                                          "enum": [
-                                            "equals",
-                                            "notEquals",
-                                            "contains",
-                                            "notContains",
-                                            "in",
-                                            "notIn",
-                                            "greaterThan",
-                                            "lessThan",
-                                            "between",
-                                            "regex"
-                                          ]
-                                        },
-                                        "value": {
-                                          "anyOf": [
-                                            {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "field": {
                                               "type": "string"
                                             },
-                                            {
-                                              "type": "number"
+                                            "operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "equals",
+                                                "notEquals",
+                                                "contains",
+                                                "notContains",
+                                                "in",
+                                                "notIn",
+                                                "greaterThan",
+                                                "lessThan",
+                                                "between",
+                                                "regex"
+                                              ]
                                             },
-                                            {
-                                              "type": "boolean"
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "string"
-                                              }
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "number"
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "id": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    }
-                                                  ]
-                                                },
-                                                "name": {
+                                            "value": {
+                                              "anyOf": [
+                                                {
                                                   "type": "string"
-                                                }
-                                              },
-                                              "required": ["id", "name"],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "id": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    }
-                                                  ]
                                                 },
-                                                "name": {
-                                                  "type": "string"
-                                                }
-                                              },
-                                              "required": ["id", "name"],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "anyOf": [
-                                                  {
+                                                {
+                                                  "type": "number"
+                                                },
+                                                {
+                                                  "type": "boolean"
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
                                                     "type": "string"
-                                                  },
-                                                  {
+                                                  }
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
                                                     "type": "number"
                                                   }
-                                                ]
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "min": {
-                                                  "type": "number"
                                                 },
-                                                "max": {
-                                                  "type": "number"
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "id": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": ["id", "name"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "id": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": ["id", "name"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "min": {
+                                                      "type": "number"
+                                                    },
+                                                    "max": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "nullable": true,
+                                                  "enum": [null]
                                                 }
-                                              },
-                                              "additionalProperties": false
+                                              ]
                                             },
-                                            {
-                                              "nullable": true,
-                                              "enum": [null]
+                                            "negate": {
+                                              "type": "boolean"
+                                            },
+                                            "_cid": {
+                                              "type": "string"
                                             }
-                                          ]
+                                          },
+                                          "required": [
+                                            "field",
+                                            "operator",
+                                            "value"
+                                          ],
+                                          "additionalProperties": false
                                         },
-                                        "negate": {
-                                          "default": false,
-                                          "type": "boolean"
-                                        },
-                                        "_cid": {
-                                          "type": "string"
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "operator": {
+                                              "type": "string",
+                                              "enum": ["AND", "OR"]
+                                            },
+                                            "conditions": {
+                                              "maxItems": 20,
+                                              "type": "array",
+                                              "items": {}
+                                            },
+                                            "negate": {
+                                              "type": "boolean"
+                                            },
+                                            "_cid": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "operator",
+                                            "conditions"
+                                          ],
+                                          "additionalProperties": false
                                         }
-                                      },
-                                      "required": [
-                                        "field",
-                                        "operator",
-                                        "value",
-                                        "negate"
-                                      ],
-                                      "additionalProperties": false
+                                      ]
                                     }
                                   },
                                   "negate": {
-                                    "default": false,
                                     "type": "boolean"
                                   },
                                   "_cid": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "operator",
-                                  "conditions",
-                                  "negate"
-                                ],
+                                "required": ["operator", "conditions"],
                                 "additionalProperties": false
                               }
                             ]
@@ -5655,7 +5672,6 @@
                             ]
                           },
                           "negate": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "_cid": {
@@ -5672,132 +5688,156 @@
                             "enum": ["AND", "OR"]
                           },
                           "conditions": {
+                            "maxItems": 20,
                             "type": "array",
                             "items": {
-                              "type": "object",
-                              "properties": {
-                                "field": {
-                                  "type": "string"
-                                },
-                                "operator": {
-                                  "type": "string",
-                                  "enum": [
-                                    "equals",
-                                    "notEquals",
-                                    "contains",
-                                    "notContains",
-                                    "in",
-                                    "notIn",
-                                    "greaterThan",
-                                    "lessThan",
-                                    "between",
-                                    "regex"
-                                  ]
-                                },
-                                "value": {
-                                  "anyOf": [
-                                    {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "field": {
                                       "type": "string"
                                     },
-                                    {
-                                      "type": "number"
+                                    "operator": {
+                                      "type": "string",
+                                      "enum": [
+                                        "equals",
+                                        "notEquals",
+                                        "contains",
+                                        "notContains",
+                                        "in",
+                                        "notIn",
+                                        "greaterThan",
+                                        "lessThan",
+                                        "between",
+                                        "regex"
+                                      ]
                                     },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "id": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            }
-                                          ]
-                                        },
-                                        "name": {
+                                    "value": {
+                                      "anyOf": [
+                                        {
                                           "type": "string"
-                                        }
-                                      },
-                                      "required": ["id", "name"]
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "id": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            }
-                                          ]
                                         },
-                                        "name": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "required": ["id", "name"]
-                                    },
-                                    {
-                                      "type": "array",
-                                      "items": {
-                                        "anyOf": [
-                                          {
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "boolean"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
                                             "type": "string"
-                                          },
-                                          {
+                                          }
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
                                             "type": "number"
                                           }
-                                        ]
-                                      }
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "min": {
-                                          "type": "number"
                                         },
-                                        "max": {
-                                          "type": "number"
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "number"
+                                                }
+                                              ]
+                                            },
+                                            "name": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": ["id", "name"]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "number"
+                                                }
+                                              ]
+                                            },
+                                            "name": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": ["id", "name"]
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "number"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "nullable": true,
+                                          "enum": [null]
                                         }
-                                      }
+                                      ]
                                     },
-                                    {
-                                      "nullable": true,
-                                      "enum": [null]
+                                    "negate": {
+                                      "type": "boolean"
+                                    },
+                                    "_cid": {
+                                      "type": "string"
                                     }
-                                  ]
+                                  },
+                                  "required": ["field", "operator", "value"]
                                 },
-                                "negate": {
-                                  "default": false,
-                                  "type": "boolean"
-                                },
-                                "_cid": {
-                                  "type": "string"
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "operator": {
+                                      "type": "string",
+                                      "enum": ["AND", "OR"]
+                                    },
+                                    "conditions": {
+                                      "maxItems": 20,
+                                      "type": "array",
+                                      "items": {}
+                                    },
+                                    "negate": {
+                                      "type": "boolean"
+                                    },
+                                    "_cid": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": ["operator", "conditions"]
                                 }
-                              },
-                              "required": ["field", "operator", "value"]
+                              ]
                             }
                           },
                           "negate": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "_cid": {
@@ -6034,19 +6074,13 @@
                                   ]
                                 },
                                 "negate": {
-                                  "default": false,
                                   "type": "boolean"
                                 },
                                 "_cid": {
                                   "type": "string"
                                 }
                               },
-                              "required": [
-                                "field",
-                                "operator",
-                                "value",
-                                "negate"
-                              ],
+                              "required": ["field", "operator", "value"],
                               "additionalProperties": false
                             },
                             {
@@ -6057,148 +6091,172 @@
                                   "enum": ["AND", "OR"]
                                 },
                                 "conditions": {
+                                  "maxItems": 20,
                                   "type": "array",
                                   "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "field": {
-                                        "type": "string"
-                                      },
-                                      "operator": {
-                                        "type": "string",
-                                        "enum": [
-                                          "equals",
-                                          "notEquals",
-                                          "contains",
-                                          "notContains",
-                                          "in",
-                                          "notIn",
-                                          "greaterThan",
-                                          "lessThan",
-                                          "between",
-                                          "regex"
-                                        ]
-                                      },
-                                      "value": {
-                                        "anyOf": [
-                                          {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "field": {
                                             "type": "string"
                                           },
-                                          {
-                                            "type": "number"
+                                          "operator": {
+                                            "type": "string",
+                                            "enum": [
+                                              "equals",
+                                              "notEquals",
+                                              "contains",
+                                              "notContains",
+                                              "in",
+                                              "notIn",
+                                              "greaterThan",
+                                              "lessThan",
+                                              "between",
+                                              "regex"
+                                            ]
                                           },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "number"
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "id": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "string"
-                                                  },
-                                                  {
-                                                    "type": "number"
-                                                  }
-                                                ]
-                                              },
-                                              "name": {
+                                          "value": {
+                                            "anyOf": [
+                                              {
                                                 "type": "string"
-                                              }
-                                            },
-                                            "required": ["id", "name"],
-                                            "additionalProperties": false
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "id": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "string"
-                                                  },
-                                                  {
-                                                    "type": "number"
-                                                  }
-                                                ]
                                               },
-                                              "name": {
-                                                "type": "string"
-                                              }
-                                            },
-                                            "required": ["id", "name"],
-                                            "additionalProperties": false
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "anyOf": [
-                                                {
+                                              {
+                                                "type": "number"
+                                              },
+                                              {
+                                                "type": "boolean"
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
                                                   "type": "string"
-                                                },
-                                                {
+                                                }
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
                                                   "type": "number"
                                                 }
-                                              ]
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "min": {
-                                                "type": "number"
                                               },
-                                              "max": {
-                                                "type": "number"
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "id": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "name": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "required": ["id", "name"],
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "id": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "name": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "required": ["id", "name"],
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "min": {
+                                                    "type": "number"
+                                                  },
+                                                  "max": {
+                                                    "type": "number"
+                                                  }
+                                                },
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "nullable": true,
+                                                "enum": [null]
                                               }
-                                            },
-                                            "additionalProperties": false
+                                            ]
                                           },
-                                          {
-                                            "nullable": true,
-                                            "enum": [null]
+                                          "negate": {
+                                            "type": "boolean"
+                                          },
+                                          "_cid": {
+                                            "type": "string"
                                           }
-                                        ]
+                                        },
+                                        "required": [
+                                          "field",
+                                          "operator",
+                                          "value"
+                                        ],
+                                        "additionalProperties": false
                                       },
-                                      "negate": {
-                                        "default": false,
-                                        "type": "boolean"
-                                      },
-                                      "_cid": {
-                                        "type": "string"
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "operator": {
+                                            "type": "string",
+                                            "enum": ["AND", "OR"]
+                                          },
+                                          "conditions": {
+                                            "maxItems": 20,
+                                            "type": "array",
+                                            "items": {}
+                                          },
+                                          "negate": {
+                                            "type": "boolean"
+                                          },
+                                          "_cid": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": ["operator", "conditions"],
+                                        "additionalProperties": false
                                       }
-                                    },
-                                    "required": [
-                                      "field",
-                                      "operator",
-                                      "value",
-                                      "negate"
-                                    ],
-                                    "additionalProperties": false
+                                    ]
                                   }
                                 },
                                 "negate": {
-                                  "default": false,
                                   "type": "boolean"
                                 },
                                 "_cid": {
                                   "type": "string"
                                 }
                               },
-                              "required": ["operator", "conditions", "negate"],
+                              "required": ["operator", "conditions"],
                               "additionalProperties": false
                             }
                           ]
@@ -6517,19 +6575,13 @@
                                     ]
                                   },
                                   "negate": {
-                                    "default": false,
                                     "type": "boolean"
                                   },
                                   "_cid": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "field",
-                                  "operator",
-                                  "value",
-                                  "negate"
-                                ],
+                                "required": ["field", "operator", "value"],
                                 "additionalProperties": false
                               },
                               {
@@ -6540,152 +6592,175 @@
                                     "enum": ["AND", "OR"]
                                   },
                                   "conditions": {
+                                    "maxItems": 20,
                                     "type": "array",
                                     "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "field": {
-                                          "type": "string"
-                                        },
-                                        "operator": {
-                                          "type": "string",
-                                          "enum": [
-                                            "equals",
-                                            "notEquals",
-                                            "contains",
-                                            "notContains",
-                                            "in",
-                                            "notIn",
-                                            "greaterThan",
-                                            "lessThan",
-                                            "between",
-                                            "regex"
-                                          ]
-                                        },
-                                        "value": {
-                                          "anyOf": [
-                                            {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "field": {
                                               "type": "string"
                                             },
-                                            {
-                                              "type": "number"
+                                            "operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "equals",
+                                                "notEquals",
+                                                "contains",
+                                                "notContains",
+                                                "in",
+                                                "notIn",
+                                                "greaterThan",
+                                                "lessThan",
+                                                "between",
+                                                "regex"
+                                              ]
                                             },
-                                            {
-                                              "type": "boolean"
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "string"
-                                              }
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "number"
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "id": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    }
-                                                  ]
-                                                },
-                                                "name": {
+                                            "value": {
+                                              "anyOf": [
+                                                {
                                                   "type": "string"
-                                                }
-                                              },
-                                              "required": ["id", "name"],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "id": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    }
-                                                  ]
                                                 },
-                                                "name": {
-                                                  "type": "string"
-                                                }
-                                              },
-                                              "required": ["id", "name"],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "anyOf": [
-                                                  {
+                                                {
+                                                  "type": "number"
+                                                },
+                                                {
+                                                  "type": "boolean"
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
                                                     "type": "string"
-                                                  },
-                                                  {
+                                                  }
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
                                                     "type": "number"
                                                   }
-                                                ]
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "min": {
-                                                  "type": "number"
                                                 },
-                                                "max": {
-                                                  "type": "number"
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "id": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": ["id", "name"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "id": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": ["id", "name"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "min": {
+                                                      "type": "number"
+                                                    },
+                                                    "max": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "nullable": true,
+                                                  "enum": [null]
                                                 }
-                                              },
-                                              "additionalProperties": false
+                                              ]
                                             },
-                                            {
-                                              "nullable": true,
-                                              "enum": [null]
+                                            "negate": {
+                                              "type": "boolean"
+                                            },
+                                            "_cid": {
+                                              "type": "string"
                                             }
-                                          ]
+                                          },
+                                          "required": [
+                                            "field",
+                                            "operator",
+                                            "value"
+                                          ],
+                                          "additionalProperties": false
                                         },
-                                        "negate": {
-                                          "default": false,
-                                          "type": "boolean"
-                                        },
-                                        "_cid": {
-                                          "type": "string"
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "operator": {
+                                              "type": "string",
+                                              "enum": ["AND", "OR"]
+                                            },
+                                            "conditions": {
+                                              "maxItems": 20,
+                                              "type": "array",
+                                              "items": {}
+                                            },
+                                            "negate": {
+                                              "type": "boolean"
+                                            },
+                                            "_cid": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "operator",
+                                            "conditions"
+                                          ],
+                                          "additionalProperties": false
                                         }
-                                      },
-                                      "required": [
-                                        "field",
-                                        "operator",
-                                        "value",
-                                        "negate"
-                                      ],
-                                      "additionalProperties": false
+                                      ]
                                     }
                                   },
                                   "negate": {
-                                    "default": false,
                                     "type": "boolean"
                                   },
                                   "_cid": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "operator",
-                                  "conditions",
-                                  "negate"
-                                ],
+                                "required": ["operator", "conditions"],
                                 "additionalProperties": false
                               }
                             ]
@@ -6988,19 +7063,13 @@
                                     ]
                                   },
                                   "negate": {
-                                    "default": false,
                                     "type": "boolean"
                                   },
                                   "_cid": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "field",
-                                  "operator",
-                                  "value",
-                                  "negate"
-                                ],
+                                "required": ["field", "operator", "value"],
                                 "additionalProperties": false
                               },
                               {
@@ -7011,152 +7080,175 @@
                                     "enum": ["AND", "OR"]
                                   },
                                   "conditions": {
+                                    "maxItems": 20,
                                     "type": "array",
                                     "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "field": {
-                                          "type": "string"
-                                        },
-                                        "operator": {
-                                          "type": "string",
-                                          "enum": [
-                                            "equals",
-                                            "notEquals",
-                                            "contains",
-                                            "notContains",
-                                            "in",
-                                            "notIn",
-                                            "greaterThan",
-                                            "lessThan",
-                                            "between",
-                                            "regex"
-                                          ]
-                                        },
-                                        "value": {
-                                          "anyOf": [
-                                            {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "field": {
                                               "type": "string"
                                             },
-                                            {
-                                              "type": "number"
+                                            "operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "equals",
+                                                "notEquals",
+                                                "contains",
+                                                "notContains",
+                                                "in",
+                                                "notIn",
+                                                "greaterThan",
+                                                "lessThan",
+                                                "between",
+                                                "regex"
+                                              ]
                                             },
-                                            {
-                                              "type": "boolean"
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "string"
-                                              }
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "number"
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "id": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    }
-                                                  ]
-                                                },
-                                                "name": {
+                                            "value": {
+                                              "anyOf": [
+                                                {
                                                   "type": "string"
-                                                }
-                                              },
-                                              "required": ["id", "name"],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "id": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    }
-                                                  ]
                                                 },
-                                                "name": {
-                                                  "type": "string"
-                                                }
-                                              },
-                                              "required": ["id", "name"],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "anyOf": [
-                                                  {
+                                                {
+                                                  "type": "number"
+                                                },
+                                                {
+                                                  "type": "boolean"
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
                                                     "type": "string"
-                                                  },
-                                                  {
+                                                  }
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
                                                     "type": "number"
                                                   }
-                                                ]
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "min": {
-                                                  "type": "number"
                                                 },
-                                                "max": {
-                                                  "type": "number"
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "id": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": ["id", "name"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "id": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": ["id", "name"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "min": {
+                                                      "type": "number"
+                                                    },
+                                                    "max": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "nullable": true,
+                                                  "enum": [null]
                                                 }
-                                              },
-                                              "additionalProperties": false
+                                              ]
                                             },
-                                            {
-                                              "nullable": true,
-                                              "enum": [null]
+                                            "negate": {
+                                              "type": "boolean"
+                                            },
+                                            "_cid": {
+                                              "type": "string"
                                             }
-                                          ]
+                                          },
+                                          "required": [
+                                            "field",
+                                            "operator",
+                                            "value"
+                                          ],
+                                          "additionalProperties": false
                                         },
-                                        "negate": {
-                                          "default": false,
-                                          "type": "boolean"
-                                        },
-                                        "_cid": {
-                                          "type": "string"
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "operator": {
+                                              "type": "string",
+                                              "enum": ["AND", "OR"]
+                                            },
+                                            "conditions": {
+                                              "maxItems": 20,
+                                              "type": "array",
+                                              "items": {}
+                                            },
+                                            "negate": {
+                                              "type": "boolean"
+                                            },
+                                            "_cid": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "operator",
+                                            "conditions"
+                                          ],
+                                          "additionalProperties": false
                                         }
-                                      },
-                                      "required": [
-                                        "field",
-                                        "operator",
-                                        "value",
-                                        "negate"
-                                      ],
-                                      "additionalProperties": false
+                                      ]
                                     }
                                   },
                                   "negate": {
-                                    "default": false,
                                     "type": "boolean"
                                   },
                                   "_cid": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "operator",
-                                  "conditions",
-                                  "negate"
-                                ],
+                                "required": ["operator", "conditions"],
                                 "additionalProperties": false
                               }
                             ]
@@ -7448,19 +7540,13 @@
                                   ]
                                 },
                                 "negate": {
-                                  "default": false,
                                   "type": "boolean"
                                 },
                                 "_cid": {
                                   "type": "string"
                                 }
                               },
-                              "required": [
-                                "field",
-                                "operator",
-                                "value",
-                                "negate"
-                              ],
+                              "required": ["field", "operator", "value"],
                               "additionalProperties": false
                             },
                             {
@@ -7471,148 +7557,172 @@
                                   "enum": ["AND", "OR"]
                                 },
                                 "conditions": {
+                                  "maxItems": 20,
                                   "type": "array",
                                   "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "field": {
-                                        "type": "string"
-                                      },
-                                      "operator": {
-                                        "type": "string",
-                                        "enum": [
-                                          "equals",
-                                          "notEquals",
-                                          "contains",
-                                          "notContains",
-                                          "in",
-                                          "notIn",
-                                          "greaterThan",
-                                          "lessThan",
-                                          "between",
-                                          "regex"
-                                        ]
-                                      },
-                                      "value": {
-                                        "anyOf": [
-                                          {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "field": {
                                             "type": "string"
                                           },
-                                          {
-                                            "type": "number"
+                                          "operator": {
+                                            "type": "string",
+                                            "enum": [
+                                              "equals",
+                                              "notEquals",
+                                              "contains",
+                                              "notContains",
+                                              "in",
+                                              "notIn",
+                                              "greaterThan",
+                                              "lessThan",
+                                              "between",
+                                              "regex"
+                                            ]
                                           },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "number"
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "id": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "string"
-                                                  },
-                                                  {
-                                                    "type": "number"
-                                                  }
-                                                ]
-                                              },
-                                              "name": {
+                                          "value": {
+                                            "anyOf": [
+                                              {
                                                 "type": "string"
-                                              }
-                                            },
-                                            "required": ["id", "name"],
-                                            "additionalProperties": false
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "id": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "string"
-                                                  },
-                                                  {
-                                                    "type": "number"
-                                                  }
-                                                ]
                                               },
-                                              "name": {
-                                                "type": "string"
-                                              }
-                                            },
-                                            "required": ["id", "name"],
-                                            "additionalProperties": false
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "anyOf": [
-                                                {
+                                              {
+                                                "type": "number"
+                                              },
+                                              {
+                                                "type": "boolean"
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
                                                   "type": "string"
-                                                },
-                                                {
+                                                }
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
                                                   "type": "number"
                                                 }
-                                              ]
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "min": {
-                                                "type": "number"
                                               },
-                                              "max": {
-                                                "type": "number"
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "id": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "name": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "required": ["id", "name"],
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "id": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "name": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "required": ["id", "name"],
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "min": {
+                                                    "type": "number"
+                                                  },
+                                                  "max": {
+                                                    "type": "number"
+                                                  }
+                                                },
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "nullable": true,
+                                                "enum": [null]
                                               }
-                                            },
-                                            "additionalProperties": false
+                                            ]
                                           },
-                                          {
-                                            "nullable": true,
-                                            "enum": [null]
+                                          "negate": {
+                                            "type": "boolean"
+                                          },
+                                          "_cid": {
+                                            "type": "string"
                                           }
-                                        ]
+                                        },
+                                        "required": [
+                                          "field",
+                                          "operator",
+                                          "value"
+                                        ],
+                                        "additionalProperties": false
                                       },
-                                      "negate": {
-                                        "default": false,
-                                        "type": "boolean"
-                                      },
-                                      "_cid": {
-                                        "type": "string"
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "operator": {
+                                            "type": "string",
+                                            "enum": ["AND", "OR"]
+                                          },
+                                          "conditions": {
+                                            "maxItems": 20,
+                                            "type": "array",
+                                            "items": {}
+                                          },
+                                          "negate": {
+                                            "type": "boolean"
+                                          },
+                                          "_cid": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": ["operator", "conditions"],
+                                        "additionalProperties": false
                                       }
-                                    },
-                                    "required": [
-                                      "field",
-                                      "operator",
-                                      "value",
-                                      "negate"
-                                    ],
-                                    "additionalProperties": false
+                                    ]
                                   }
                                 },
                                 "negate": {
-                                  "default": false,
                                   "type": "boolean"
                                 },
                                 "_cid": {
                                   "type": "string"
                                 }
                               },
-                              "required": ["operator", "conditions", "negate"],
+                              "required": ["operator", "conditions"],
                               "additionalProperties": false
                             }
                           ]
@@ -7894,7 +8004,6 @@
                             ]
                           },
                           "negate": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "_cid": {
@@ -7911,132 +8020,156 @@
                             "enum": ["AND", "OR"]
                           },
                           "conditions": {
+                            "maxItems": 20,
                             "type": "array",
                             "items": {
-                              "type": "object",
-                              "properties": {
-                                "field": {
-                                  "type": "string"
-                                },
-                                "operator": {
-                                  "type": "string",
-                                  "enum": [
-                                    "equals",
-                                    "notEquals",
-                                    "contains",
-                                    "notContains",
-                                    "in",
-                                    "notIn",
-                                    "greaterThan",
-                                    "lessThan",
-                                    "between",
-                                    "regex"
-                                  ]
-                                },
-                                "value": {
-                                  "anyOf": [
-                                    {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "field": {
                                       "type": "string"
                                     },
-                                    {
-                                      "type": "number"
+                                    "operator": {
+                                      "type": "string",
+                                      "enum": [
+                                        "equals",
+                                        "notEquals",
+                                        "contains",
+                                        "notContains",
+                                        "in",
+                                        "notIn",
+                                        "greaterThan",
+                                        "lessThan",
+                                        "between",
+                                        "regex"
+                                      ]
                                     },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "id": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            }
-                                          ]
-                                        },
-                                        "name": {
+                                    "value": {
+                                      "anyOf": [
+                                        {
                                           "type": "string"
-                                        }
-                                      },
-                                      "required": ["id", "name"]
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "id": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            }
-                                          ]
                                         },
-                                        "name": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "required": ["id", "name"]
-                                    },
-                                    {
-                                      "type": "array",
-                                      "items": {
-                                        "anyOf": [
-                                          {
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "boolean"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
                                             "type": "string"
-                                          },
-                                          {
+                                          }
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
                                             "type": "number"
                                           }
-                                        ]
-                                      }
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "min": {
-                                          "type": "number"
                                         },
-                                        "max": {
-                                          "type": "number"
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "number"
+                                                }
+                                              ]
+                                            },
+                                            "name": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": ["id", "name"]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "number"
+                                                }
+                                              ]
+                                            },
+                                            "name": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": ["id", "name"]
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "number"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "nullable": true,
+                                          "enum": [null]
                                         }
-                                      }
+                                      ]
                                     },
-                                    {
-                                      "nullable": true,
-                                      "enum": [null]
+                                    "negate": {
+                                      "type": "boolean"
+                                    },
+                                    "_cid": {
+                                      "type": "string"
                                     }
-                                  ]
+                                  },
+                                  "required": ["field", "operator", "value"]
                                 },
-                                "negate": {
-                                  "default": false,
-                                  "type": "boolean"
-                                },
-                                "_cid": {
-                                  "type": "string"
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "operator": {
+                                      "type": "string",
+                                      "enum": ["AND", "OR"]
+                                    },
+                                    "conditions": {
+                                      "maxItems": 20,
+                                      "type": "array",
+                                      "items": {}
+                                    },
+                                    "negate": {
+                                      "type": "boolean"
+                                    },
+                                    "_cid": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": ["operator", "conditions"]
                                 }
-                              },
-                              "required": ["field", "operator", "value"]
+                              ]
                             }
                           },
                           "negate": {
-                            "default": false,
                             "type": "boolean"
                           },
                           "_cid": {
@@ -8281,19 +8414,13 @@
                                   ]
                                 },
                                 "negate": {
-                                  "default": false,
                                   "type": "boolean"
                                 },
                                 "_cid": {
                                   "type": "string"
                                 }
                               },
-                              "required": [
-                                "field",
-                                "operator",
-                                "value",
-                                "negate"
-                              ],
+                              "required": ["field", "operator", "value"],
                               "additionalProperties": false
                             },
                             {
@@ -8304,148 +8431,172 @@
                                   "enum": ["AND", "OR"]
                                 },
                                 "conditions": {
+                                  "maxItems": 20,
                                   "type": "array",
                                   "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "field": {
-                                        "type": "string"
-                                      },
-                                      "operator": {
-                                        "type": "string",
-                                        "enum": [
-                                          "equals",
-                                          "notEquals",
-                                          "contains",
-                                          "notContains",
-                                          "in",
-                                          "notIn",
-                                          "greaterThan",
-                                          "lessThan",
-                                          "between",
-                                          "regex"
-                                        ]
-                                      },
-                                      "value": {
-                                        "anyOf": [
-                                          {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "field": {
                                             "type": "string"
                                           },
-                                          {
-                                            "type": "number"
+                                          "operator": {
+                                            "type": "string",
+                                            "enum": [
+                                              "equals",
+                                              "notEquals",
+                                              "contains",
+                                              "notContains",
+                                              "in",
+                                              "notIn",
+                                              "greaterThan",
+                                              "lessThan",
+                                              "between",
+                                              "regex"
+                                            ]
                                           },
-                                          {
-                                            "type": "boolean"
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "string"
-                                            }
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "type": "number"
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "id": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "string"
-                                                  },
-                                                  {
-                                                    "type": "number"
-                                                  }
-                                                ]
-                                              },
-                                              "name": {
+                                          "value": {
+                                            "anyOf": [
+                                              {
                                                 "type": "string"
-                                              }
-                                            },
-                                            "required": ["id", "name"],
-                                            "additionalProperties": false
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "id": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "string"
-                                                  },
-                                                  {
-                                                    "type": "number"
-                                                  }
-                                                ]
                                               },
-                                              "name": {
-                                                "type": "string"
-                                              }
-                                            },
-                                            "required": ["id", "name"],
-                                            "additionalProperties": false
-                                          },
-                                          {
-                                            "type": "array",
-                                            "items": {
-                                              "anyOf": [
-                                                {
+                                              {
+                                                "type": "number"
+                                              },
+                                              {
+                                                "type": "boolean"
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
                                                   "type": "string"
-                                                },
-                                                {
+                                                }
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
                                                   "type": "number"
                                                 }
-                                              ]
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "min": {
-                                                "type": "number"
                                               },
-                                              "max": {
-                                                "type": "number"
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "id": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "name": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "required": ["id", "name"],
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "id": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "name": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "required": ["id", "name"],
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "min": {
+                                                    "type": "number"
+                                                  },
+                                                  "max": {
+                                                    "type": "number"
+                                                  }
+                                                },
+                                                "additionalProperties": false
+                                              },
+                                              {
+                                                "nullable": true,
+                                                "enum": [null]
                                               }
-                                            },
-                                            "additionalProperties": false
+                                            ]
                                           },
-                                          {
-                                            "nullable": true,
-                                            "enum": [null]
+                                          "negate": {
+                                            "type": "boolean"
+                                          },
+                                          "_cid": {
+                                            "type": "string"
                                           }
-                                        ]
+                                        },
+                                        "required": [
+                                          "field",
+                                          "operator",
+                                          "value"
+                                        ],
+                                        "additionalProperties": false
                                       },
-                                      "negate": {
-                                        "default": false,
-                                        "type": "boolean"
-                                      },
-                                      "_cid": {
-                                        "type": "string"
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "operator": {
+                                            "type": "string",
+                                            "enum": ["AND", "OR"]
+                                          },
+                                          "conditions": {
+                                            "maxItems": 20,
+                                            "type": "array",
+                                            "items": {}
+                                          },
+                                          "negate": {
+                                            "type": "boolean"
+                                          },
+                                          "_cid": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": ["operator", "conditions"],
+                                        "additionalProperties": false
                                       }
-                                    },
-                                    "required": [
-                                      "field",
-                                      "operator",
-                                      "value",
-                                      "negate"
-                                    ],
-                                    "additionalProperties": false
+                                    ]
                                   }
                                 },
                                 "negate": {
-                                  "default": false,
                                   "type": "boolean"
                                 },
                                 "_cid": {
                                   "type": "string"
                                 }
                               },
-                              "required": ["operator", "conditions", "negate"],
+                              "required": ["operator", "conditions"],
                               "additionalProperties": false
                             }
                           ]
@@ -8828,19 +8979,13 @@
                                     ]
                                   },
                                   "negate": {
-                                    "default": false,
                                     "type": "boolean"
                                   },
                                   "_cid": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "field",
-                                  "operator",
-                                  "value",
-                                  "negate"
-                                ],
+                                "required": ["field", "operator", "value"],
                                 "additionalProperties": false
                               },
                               {
@@ -8851,152 +8996,175 @@
                                     "enum": ["AND", "OR"]
                                   },
                                   "conditions": {
+                                    "maxItems": 20,
                                     "type": "array",
                                     "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "field": {
-                                          "type": "string"
-                                        },
-                                        "operator": {
-                                          "type": "string",
-                                          "enum": [
-                                            "equals",
-                                            "notEquals",
-                                            "contains",
-                                            "notContains",
-                                            "in",
-                                            "notIn",
-                                            "greaterThan",
-                                            "lessThan",
-                                            "between",
-                                            "regex"
-                                          ]
-                                        },
-                                        "value": {
-                                          "anyOf": [
-                                            {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "field": {
                                               "type": "string"
                                             },
-                                            {
-                                              "type": "number"
+                                            "operator": {
+                                              "type": "string",
+                                              "enum": [
+                                                "equals",
+                                                "notEquals",
+                                                "contains",
+                                                "notContains",
+                                                "in",
+                                                "notIn",
+                                                "greaterThan",
+                                                "lessThan",
+                                                "between",
+                                                "regex"
+                                              ]
                                             },
-                                            {
-                                              "type": "boolean"
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "string"
-                                              }
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "number"
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "id": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    }
-                                                  ]
-                                                },
-                                                "name": {
+                                            "value": {
+                                              "anyOf": [
+                                                {
                                                   "type": "string"
-                                                }
-                                              },
-                                              "required": ["id", "name"],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "id": {
-                                                  "anyOf": [
-                                                    {
-                                                      "type": "string"
-                                                    },
-                                                    {
-                                                      "type": "number"
-                                                    }
-                                                  ]
                                                 },
-                                                "name": {
-                                                  "type": "string"
-                                                }
-                                              },
-                                              "required": ["id", "name"],
-                                              "additionalProperties": false
-                                            },
-                                            {
-                                              "type": "array",
-                                              "items": {
-                                                "anyOf": [
-                                                  {
+                                                {
+                                                  "type": "number"
+                                                },
+                                                {
+                                                  "type": "boolean"
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
                                                     "type": "string"
-                                                  },
-                                                  {
+                                                  }
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
                                                     "type": "number"
                                                   }
-                                                ]
-                                              }
-                                            },
-                                            {
-                                              "type": "object",
-                                              "properties": {
-                                                "min": {
-                                                  "type": "number"
                                                 },
-                                                "max": {
-                                                  "type": "number"
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "id": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": ["id", "name"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "id": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "number"
+                                                        }
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": ["id", "name"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "min": {
+                                                      "type": "number"
+                                                    },
+                                                    "max": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "nullable": true,
+                                                  "enum": [null]
                                                 }
-                                              },
-                                              "additionalProperties": false
+                                              ]
                                             },
-                                            {
-                                              "nullable": true,
-                                              "enum": [null]
+                                            "negate": {
+                                              "type": "boolean"
+                                            },
+                                            "_cid": {
+                                              "type": "string"
                                             }
-                                          ]
+                                          },
+                                          "required": [
+                                            "field",
+                                            "operator",
+                                            "value"
+                                          ],
+                                          "additionalProperties": false
                                         },
-                                        "negate": {
-                                          "default": false,
-                                          "type": "boolean"
-                                        },
-                                        "_cid": {
-                                          "type": "string"
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "operator": {
+                                              "type": "string",
+                                              "enum": ["AND", "OR"]
+                                            },
+                                            "conditions": {
+                                              "maxItems": 20,
+                                              "type": "array",
+                                              "items": {}
+                                            },
+                                            "negate": {
+                                              "type": "boolean"
+                                            },
+                                            "_cid": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "operator",
+                                            "conditions"
+                                          ],
+                                          "additionalProperties": false
                                         }
-                                      },
-                                      "required": [
-                                        "field",
-                                        "operator",
-                                        "value",
-                                        "negate"
-                                      ],
-                                      "additionalProperties": false
+                                      ]
                                     }
                                   },
                                   "negate": {
-                                    "default": false,
                                     "type": "boolean"
                                   },
                                   "_cid": {
                                     "type": "string"
                                   }
                                 },
-                                "required": [
-                                  "operator",
-                                  "conditions",
-                                  "negate"
-                                ],
+                                "required": ["operator", "conditions"],
                                 "additionalProperties": false
                               }
                             ]
