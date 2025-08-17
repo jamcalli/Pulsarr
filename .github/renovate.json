@@ -10,7 +10,6 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "branchPrefix": "renovate/",
-  "pinDigests": false,
   "labels": ["dependencies"],
   "assignees": ["jamcalli"],
   "reviewers": ["jamcalli"],
@@ -145,10 +144,13 @@
     },
     {
       "description": "Never pin or update own Docker images - users need latest tags",
-      "matchPackageNames": ["lakker/pulsarr"],
+      "matchPackagePatterns": [
+        "^lakker\\/pulsarr$",
+        "^ghcr\\.io\\/lakker\\/pulsarr$"
+      ],
       "matchDatasources": ["docker"],
-      "pinDigests": false,
-      "enabled": true
+      "enabled": false,
+      "pinDigests": false
     },
     {
       "description": "Pin all GitHub Actions to commit SHAs for security",
