@@ -88,7 +88,7 @@ export interface ICondition {
   field: string
   operator: ComparisonOperator
   value: z.infer<typeof ConditionValueSchema>
-  negate: boolean
+  negate?: boolean
   _cid?: string
 }
 
@@ -117,8 +117,19 @@ export const ConditionSchema = z
 export interface IConditionGroup {
   operator: 'AND' | 'OR'
   conditions: (ICondition | IConditionGroup)[]
-  negate: boolean
+  negate?: boolean
   _cid?: string
+}
+
+// Helper function to check if a value is a condition group
+function isConditionGroupObject(value: unknown): value is IConditionGroup {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'operator' in value &&
+    'conditions' in value &&
+    Array.isArray((value as unknown as Record<string, unknown>).conditions)
+  )
 }
 
 // Helper function to validate group recursion safely, preventing stack overflow and circular references
@@ -143,13 +154,10 @@ const isValidConditionGroup = (
   }
 
   return group.conditions.every((cond) => {
-    if (
-      cond !== null &&
-      typeof cond === 'object' &&
-      'conditions' in (cond as unknown as Record<string, unknown>)
-    ) {
+    // Check if this is a nested condition group
+    if (isConditionGroupObject(cond)) {
       // Recursive check for nested groups with increased depth counter
-      return isValidConditionGroup(cond as IConditionGroup, depth + 1, visited)
+      return isValidConditionGroup(cond, depth + 1, visited)
     }
     // Validate individual conditions explicitly since nested groups may accept any values in OpenAPI shape
     return ConditionSchema.safeParse(cond).success
@@ -250,13 +258,9 @@ export const ConditionalRouteFormSchema = z.object({
         }
 
         return group.conditions.every((cond) => {
-          if (
-            cond !== null &&
-            typeof cond === 'object' &&
-            'conditions' in (cond as unknown as Record<string, unknown>)
-          ) {
+          if (isConditionGroupObject(cond)) {
             // Recursive check for nested groups
-            return isValidGroup(cond as IConditionGroup, depth + 1, visited)
+            return isValidGroup(cond, depth + 1, visited)
           }
 
           // Check individual condition

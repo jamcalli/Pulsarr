@@ -96,8 +96,32 @@ function isConditionGroup(condition: unknown): condition is IConditionGroup {
   return (
     condition !== null &&
     typeof condition === 'object' &&
-    'conditions' in (condition as unknown as Record<string, unknown>)
+    'operator' in (condition as Record<string, unknown>) &&
+    'conditions' in (condition as Record<string, unknown>) &&
+    Array.isArray((condition as Record<string, unknown>).conditions)
   )
+}
+
+/**
+ * Normalize a condition group to ensure all negate fields have defaults
+ * Returns a properly typed ConditionGroup for the component
+ */
+function normalizeConditionGroupForComponent(
+  group: IConditionGroup,
+): ConditionGroup {
+  return {
+    ...group,
+    negate: group.negate ?? false,
+    conditions: group.conditions.map((condition) => {
+      if (isConditionGroup(condition)) {
+        return normalizeConditionGroupForComponent(condition)
+      }
+      return {
+        ...condition,
+        negate: condition.negate ?? false,
+      }
+    }),
+  } as ConditionGroup
 }
 
 /**
@@ -118,7 +142,7 @@ function normalizeConditionGroup(
 ): ConditionGroup {
   if (cg?.conditions?.length) {
     return {
-      operator: cg.operator,
+      operator: cg.operator ?? 'AND',
       conditions: cg.conditions.map((condition) => {
         if (isConditionGroup(condition)) {
           // Recursively normalize nested groups
@@ -1014,9 +1038,9 @@ const AccordionRouteCard = ({
                                   value={{ contentType }}
                                 >
                                   <ConditionGroupComponent
-                                    value={
-                                      field.value as unknown as IConditionGroup
-                                    }
+                                    value={normalizeConditionGroupForComponent(
+                                      field.value as unknown as IConditionGroup,
+                                    )}
                                     onChange={(value) => {
                                       field.onChange(value)
                                       // Trigger validation immediately after condition changes

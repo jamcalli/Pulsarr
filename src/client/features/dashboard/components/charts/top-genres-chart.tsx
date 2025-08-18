@@ -28,7 +28,7 @@ export function TopGenresChart() {
 
   // Top Genres data
   const topGenresData = useMemo((): GenreChartData[] => {
-    return [...topGenres]
+    return [...(topGenres ?? [])]
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
       .map((genre) => ({

@@ -36,24 +36,31 @@ export async function up(knex: Knex): Promise<void> {
       .groupBy('watchlist_item_id', 'status')
       .havingRaw('COUNT(*) > 1')
 
+    // Collect all IDs to delete in batches for better performance
+    const idsToDelete: number[] = []
+
     for (const group of duplicateGroups) {
-      const earliestRecord = await knex('watchlist_status_history')
+      const records = await knex('watchlist_status_history')
         .where({
           watchlist_item_id: group.watchlist_item_id,
           status: group.status,
         })
         .orderBy('timestamp', 'asc')
         .orderBy('id', 'asc')
-        .first()
+        .select('id')
 
-      if (earliestRecord) {
-        await knex('watchlist_status_history')
-          .where({
-            watchlist_item_id: group.watchlist_item_id,
-            status: group.status,
-          })
-          .whereNot('id', earliestRecord.id)
-          .del()
+      // Keep the first record, delete the rest
+      if (records.length > 1) {
+        idsToDelete.push(...records.slice(1).map((r) => r.id))
+      }
+    }
+
+    // Batch delete in chunks to avoid query size limits (matches database service pattern)
+    const chunkSize = 50
+    for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+      const chunk = idsToDelete.slice(i, i + chunkSize)
+      if (chunk.length > 0) {
+        await knex('watchlist_status_history').whereIn('id', chunk).del()
       }
     }
   }

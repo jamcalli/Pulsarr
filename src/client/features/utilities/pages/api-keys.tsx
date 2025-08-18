@@ -115,7 +115,7 @@ export function ApiKeysPage() {
             <>
               <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
                 <h3 className="font-medium text-foreground mb-2">
-                  Current Status
+                  API Keys Status
                 </h3>
                 <p className="text-sm text-foreground mb-3">
                   API keys created and configured for external access:

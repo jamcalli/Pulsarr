@@ -111,14 +111,16 @@ export default function PlexNotificationsPage() {
         {/* Status section */}
         {lastResults && (
           <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
-            <h3 className="font-medium text-foreground mb-2">Current Status</h3>
+            <h3 className="font-medium text-foreground mb-2">
+              Plex Notifications Status
+            </h3>
             <p className="text-sm text-foreground">{lastResults.message}</p>
 
             {/* Radarr instances */}
             {lastResults.results?.radarr?.length > 0 && (
               <div className="mt-3">
                 <h4 className="font-medium text-sm text-foreground">
-                  Radarr Instances
+                  Plex Notifications - Radarr Instances
                 </h4>
                 <ul className="mt-1 space-y-1">
                   {lastResults.results.radarr.map((result) => (
@@ -141,7 +143,7 @@ export default function PlexNotificationsPage() {
             {lastResults.results?.sonarr?.length > 0 && (
               <div className="mt-3">
                 <h4 className="font-medium text-sm text-foreground">
-                  Sonarr Instances
+                  Plex Notifications - Sonarr Instances
                 </h4>
                 <ul className="mt-1 space-y-1">
                   {lastResults.results.sonarr.map((result) => (
@@ -309,14 +311,13 @@ export default function PlexNotificationsPage() {
                           type="number"
                           min={1}
                           max={65535}
+                          step={1}
                           onChange={(e) => {
-                            const raw = e.target.value
-                            const parsed = Number.parseInt(raw, 10)
-                            field.onChange(
-                              raw === '' || Number.isNaN(parsed)
-                                ? undefined
-                                : parsed,
-                            )
+                            const n = e.currentTarget.valueAsNumber
+                            const next = Number.isNaN(n)
+                              ? undefined
+                              : Math.min(65535, Math.max(1, Math.trunc(n)))
+                            field.onChange(next)
                           }}
                           placeholder="32400"
                         />
