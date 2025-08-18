@@ -1,5 +1,5 @@
 import { BookmarkCheck, Loader2, Play, Square } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ export function WatchlistStatusBadge() {
   
   // Change to use a default value of false when null
   const [autoStart, setAutoStart] = useState<boolean>(false)
+  const autoStartId = useId()
   
   // Initialize autoStart with _isReady from config when config is loaded
   useEffect(() => {
@@ -171,13 +172,13 @@ export function WatchlistStatusBadge() {
               <div className="flex items-center gap-1.5 h-7">
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="auto-start"
+                    id={autoStartId}
                     checked={autoStart}
                     onCheckedChange={setAutoStart}
                     disabled={isDisabled}
                   />
                   <Label
-                    htmlFor="auto-start"
+                    htmlFor={autoStartId}
                     className="text-xs text-foreground cursor-pointer flex items-center gap-1"
                   >
                     <BookmarkCheck className="h-3.5 w-3.5" />

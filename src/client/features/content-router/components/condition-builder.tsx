@@ -9,7 +9,7 @@ import type {
   OperatorInfo,
 } from '@root/schemas/content-router/evaluator-metadata.schema'
 import { HelpCircle, Trash2 } from 'lucide-react'
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -54,6 +54,8 @@ const ConditionBuilder = ({
 }: ConditionBuilderProps) => {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const inputId = `condition-input-${value._cid}`
+  const fieldSelectId = useId()
+  const operatorSelectId = useId()
   const [fields, setFields] = useState<FieldInfo[]>([])
   const [operators, setOperators] = useState<OperatorInfo[]>([])
   const [valueTypes, setValueTypes] = useState<string[]>([])
@@ -368,12 +370,9 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <label
-                htmlFor="condition-field-select"
-                className="text-sm font-medium"
-              >
+              <Label htmlFor={fieldSelectId} className="text-sm font-medium">
                 Field
-              </label>
+              </Label>
               {fieldDescription && (
                 <TooltipProvider>
                   <Tooltip>
@@ -391,7 +390,7 @@ const ConditionBuilder = ({
               value={value.field || ''}
               onValueChange={handlers.current.handleFieldChange}
             >
-              <SelectTrigger id="condition-field-select" className="w-full">
+              <SelectTrigger id={fieldSelectId} className="w-full">
                 <SelectValue placeholder="Select field" />
               </SelectTrigger>
               <SelectContent>
@@ -409,12 +408,9 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-3')}>
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <label
-                htmlFor="condition-operator-select"
-                className="text-sm font-medium"
-              >
+              <Label htmlFor={operatorSelectId} className="text-sm font-medium">
                 Operator
-              </label>
+              </Label>
               {operatorDescription && (
                 <TooltipProvider>
                   <Tooltip>
@@ -433,7 +429,7 @@ const ConditionBuilder = ({
               onValueChange={handlers.current.handleOperatorChange}
               disabled={!value.field}
             >
-              <SelectTrigger id="condition-operator-select" className="w-full">
+              <SelectTrigger id={operatorSelectId} className="w-full">
                 <SelectValue placeholder="Select operator" />
               </SelectTrigger>
               <SelectContent>

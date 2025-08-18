@@ -89,8 +89,8 @@ export function useDeleteSyncForm() {
       try {
         const cronParts = deleteSyncJob.config.expression.split(' ')
         if (cronParts.length >= 6) {
-          const hour = Number.parseInt(cronParts[2])
-          const minute = Number.parseInt(cronParts[1])
+          const hour = Number.parseInt(cronParts[2], 10)
+          const minute = Number.parseInt(cronParts[1], 10)
 
           if (Number.isFinite(hour) && Number.isFinite(minute)) {
             const date = new Date()

@@ -1,16 +1,13 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.1.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
   "files": {
     "maxSize": 2097152,
     "includes": [
       "**",
-      "!**/dist/**",
-      "!**/tests/**",
-      "!**/docs/build/**",
-      "!**/docs/.docusaurus/**",
-      "!**/docs/node_modules/**",
-      "!**/docs/src/theme/**",
-      "!**/src/client/dist/**"
+      "!**/dist",
+      "!**/tests",
+      "!**/docs",
+      "!**/src/client/dist"
     ]
   },
   "formatter": {
@@ -89,6 +86,16 @@
           "style": {
             "noUselessElse": "off",
             "useSingleVarDeclarator": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.css"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUnknownAtRules": "off"
           }
         }
       }
