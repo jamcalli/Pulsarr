@@ -75,6 +75,7 @@ const isValidGroup = (
     if (
       cond !== null &&
       typeof cond === 'object' &&
+      'operator' in cond &&
       'conditions' in cond &&
       Array.isArray((cond as IConditionGroup).conditions)
     ) {
@@ -91,7 +92,10 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
       operator: z.enum(['AND', 'OR']),
       conditions: z
         .array(z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]))
-        .min(1, { error: 'At least one condition is required.' }),
+        .min(1, { error: 'At least one condition is required.' })
+        .max(20, {
+          error: 'No more than 20 conditions are allowed per group.',
+        }),
       negate: z.boolean().optional().default(false),
       _cid: z.string().optional(),
     })
