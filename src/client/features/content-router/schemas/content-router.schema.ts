@@ -71,15 +71,17 @@ const isValidGroup = (
   // Note: Array length check moved to schema .min(1) validation
 
   return group.conditions.every((cond) => {
-    if ('conditions' in cond) {
+    // Safe nested group detection without any/unknown
+    if (
+      cond !== null &&
+      typeof cond === 'object' &&
+      'conditions' in cond &&
+      Array.isArray((cond as IConditionGroup).conditions)
+    ) {
       return isValidGroup(cond as IConditionGroup, depth + 1, visited)
     }
-    // Check if individual condition is complete (has field, operator, and value)
-    return (
-      Boolean(cond.field) &&
-      Boolean(cond.operator) &&
-      isNonEmptyValue(cond.value)
-    )
+    // Delegate leaf validation to the schema to avoid duplication/drift
+    return ConditionSchema.safeParse(cond).success
   })
 }
 

@@ -217,60 +217,11 @@ export const ConditionalRouteFormSchema = z.object({
     error: 'Route name must be at least 2 characters.',
   }),
   condition: ConditionGroupSchema.refine(
-    (val) => {
-      // Helper function to validate a single condition (checks for complete data)
-      const isValidCondition = (cond: ICondition) => {
-        if ('field' in cond && 'operator' in cond && 'value' in cond) {
-          const hasField = Boolean(cond.field)
-          const hasOperator = Boolean(cond.operator)
-          const hasValue =
-            cond.value !== undefined &&
-            cond.value !== null &&
-            (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
-            (!Array.isArray(cond.value) || cond.value.length > 0)
-
-          return hasField && hasOperator && hasValue
-        }
-        return false
-      }
-
-      // Helper function to recursively validate condition groups with safeguards
-      const isValidGroup = (
-        group: IConditionGroup,
-        depth = 0,
-        visited = new WeakSet(),
-      ): boolean => {
-        // Guard against excessive nesting
-        if (depth > 20) {
-          return false
-        }
-
-        // Guard against circular references
-        if (visited.has(group)) {
-          return false
-        }
-        visited.add(group)
-
-        if (!group.conditions || group.conditions.length === 0) {
-          return false // Frontend validation requires at least one condition
-        }
-
-        return group.conditions.every((cond) => {
-          if (isConditionGroupObject(cond)) {
-            // Recursive check for nested groups
-            return isValidGroup(cond, depth + 1, visited)
-          }
-
-          // Check individual condition
-          return isValidCondition(cond as ICondition)
-        })
-      }
-
-      return isValidGroup(val)
-    },
-    {
-      message: 'All conditions must be completely filled out',
-    },
+    (val) =>
+      isValidConditionGroup(val) &&
+      Array.isArray(val.conditions) &&
+      val.conditions.length > 0,
+    { message: 'All conditions must be completely filled out' },
   ),
   target_instance_id: z.number().min(1, {
     error: 'Instance selection is required.',
