@@ -659,7 +659,7 @@ export function PlexLabelsPage() {
                             {...field}
                             onChange={(e) =>
                               field.onChange(
-                                Number.parseInt(e.target.value) || 5,
+                                Number.parseInt(e.target.value, 10) || 5,
                               )
                             }
                           />

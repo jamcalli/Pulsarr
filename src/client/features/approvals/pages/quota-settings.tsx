@@ -81,7 +81,9 @@ const formatScheduleDisplay = (
       : 'Not set'
 
   const dayStr =
-    day === '*' ? 'every day' : `on ${getDayName(Number.parseInt(day || '0'))}`
+    day === '*'
+      ? 'every day'
+      : `on ${getDayName(Number.parseInt(day || '0', 10))}`
 
   return `${timeStr} ${dayStr}`
 }

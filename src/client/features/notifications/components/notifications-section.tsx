@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Separator } from '@/components/ui/separator'
 import { AppriseForm } from '@/features/notifications/components/apprise/apprise-form'
@@ -21,6 +22,10 @@ export function NotificationsSection({
   isInitialized,
 }: NotificationsSectionProps) {
   const navigate = useNavigate()
+  const discordId = useId()
+  const appriseId = useId()
+  const tautulliId = useId()
+  const generalId = useId()
 
   return (
     <div className="grid gap-6">
@@ -45,7 +50,7 @@ export function NotificationsSection({
       </div>
 
       {/* Discord Notifications Section */}
-      <div id="discord-notifications">
+      <div id={discordId}>
         <h2 className="text-2xl font-bold text-foreground">
           Discord Notifications
         </h2>
@@ -60,7 +65,7 @@ export function NotificationsSection({
       <Separator className="my-4" />
 
       {/* Apprise Notifications Section */}
-      <div id="apprise-notifications">
+      <div id={appriseId}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">
             Apprise Notifications
@@ -74,7 +79,7 @@ export function NotificationsSection({
       <Separator className="my-4" />
 
       {/* Tautulli Notifications Section */}
-      <div id="tautulli-notifications">
+      <div id={tautulliId}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">
             Tautulli Notifications
@@ -88,7 +93,7 @@ export function NotificationsSection({
       <Separator className="my-4" />
 
       {/* General Notifications Section */}
-      <div id="general-notifications">
+      <div id={generalId}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">
             General Notification Settings

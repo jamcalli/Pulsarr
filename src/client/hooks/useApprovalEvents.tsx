@@ -233,7 +233,9 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      queueTimerRef.current.forEach(timer => clearTimeout(timer))
+      queueTimerRef.current.forEach(timer => {
+        clearTimeout(timer)
+      })
       queueTimerRef.current.clear()
     }
   }, [])

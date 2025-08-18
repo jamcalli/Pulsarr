@@ -1,12 +1,8 @@
 import { useMemo } from 'react'
-import type { TooltipProps } from 'recharts'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
-import type {
-  NameType,
-  ValueType,
-} from 'recharts/types/component/DefaultTooltipContent'
 import { Card, CardContent } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer } from '@/components/ui/chart'
+import { InstanceContentBreakdownTooltip } from '@/features/dashboard/components/charts/instance-content-breakdown-tooltip'
 import { useInstanceContentData } from '@/features/dashboard/hooks/useChartData'
 
 /**
@@ -77,63 +73,6 @@ export default function InstanceContentBreakdownChart() {
     }
   }, [])
 
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: TooltipProps<ValueType, NameType>) => {
-    if (!active || !payload || !payload.length) {
-      return null
-    }
-
-    const data = payload[0].payload as {
-      name: string
-      type: string
-      total: number
-      grabbed: number
-      notified: number
-      requested: number
-    }
-
-    const totalItemsInInstance = data.grabbed + data.notified + data.requested
-
-    return (
-      <div className="bg-background border border-border p-2 rounded-xs shadow-md text-xs">
-        <p className="font-medium text-foreground">{label}</p>
-        <p className="text-foreground">
-          <span className="font-medium">Total Items: </span>
-          {data.total.toLocaleString()}
-        </p>
-
-        <div className="mt-1">
-          <p className="text-foreground">
-            <span className="font-medium">Grabbed: </span>
-            {data.grabbed.toLocaleString()}
-            <span className="ml-1">
-              ({Math.round((data.grabbed / totalItemsInInstance) * 100)}%)
-            </span>
-          </p>
-
-          <p className="text-foreground">
-            <span className="font-medium">Notified: </span>
-            {data.notified.toLocaleString()}
-            <span className="ml-1">
-              ({Math.round((data.notified / totalItemsInInstance) * 100)}%)
-            </span>
-          </p>
-
-          <p className="text-foreground">
-            <span className="font-medium">Requested: </span>
-            {data.requested.toLocaleString()}
-            <span className="ml-1">
-              ({Math.round((data.requested / totalItemsInInstance) * 100)}%)
-            </span>
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   if (
     isLoading ||
     !instanceContentBreakdown ||
@@ -185,7 +124,7 @@ export default function InstanceContentBreakdownChart() {
                   axisLine={false}
                 />
                 <YAxis tickLine={false} axisLine={false} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<InstanceContentBreakdownTooltip />} />
 
                 <Bar
                   dataKey="grabbed"
