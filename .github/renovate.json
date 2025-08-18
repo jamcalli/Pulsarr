@@ -186,13 +186,11 @@
     },
     {
       "description": "Never pin or update own Docker images - users need latest tags",
-      "matchPackagePatterns": [
-        "^lakker\\/pulsarr$",
-        "^ghcr\\.io\\/lakker\\/pulsarr$"
+      "matchPackageNames": [
+        "/^(?:ghcr\\.io\\/)?lakker\\/pulsarr$/"
       ],
       "matchDatasources": ["docker"],
-      "enabled": false,
-      "pinDigests": false
+      "enabled": false
     },
     {
       "description": "Pin all GitHub Actions to commit SHAs for security",
