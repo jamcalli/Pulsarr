@@ -14,7 +14,7 @@ import {
   User,
   XCircle,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { TmdbMetadataDisplay } from '@/components/tmdb-metadata-display'
 import { Badge } from '@/components/ui/badge'
@@ -99,6 +99,7 @@ export default function ApprovalActionsModal({
     null,
   )
   const [notes, setNotes] = useState('')
+  const actionNotesId = useId()
   const [approveStatus, setApproveStatus] = useState<
     'idle' | 'loading' | 'success'
   >('idle')
@@ -749,7 +750,7 @@ export default function ApprovalActionsModal({
                     ) : (
                       <div className="space-y-2">
                         <Label
-                          htmlFor="action-notes"
+                          htmlFor={actionNotesId}
                           className="text-foreground"
                         >
                           {action === 'approve'
@@ -758,7 +759,7 @@ export default function ApprovalActionsModal({
                           (Optional)
                         </Label>
                         <Textarea
-                          id="action-notes"
+                          id={actionNotesId}
                           placeholder={
                             action === 'approve'
                               ? 'Add any notes about this approval...'

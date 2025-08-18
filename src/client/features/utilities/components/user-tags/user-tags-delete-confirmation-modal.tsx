@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -37,6 +37,7 @@ export function UserTagsDeleteConfirmationModal({
   isSubmitting = false,
 }: UserTagsDeleteConfirmationModalProps) {
   const [deleteTagDefinitions, setDeleteTagDefinitions] = useState(false)
+  const deleteDefinitionsId = useId()
 
   const handleConfirm = () => {
     onConfirm(deleteTagDefinitions)
@@ -66,12 +67,12 @@ export function UserTagsDeleteConfirmationModal({
 
           <div className="flex items-center space-x-2 mt-4">
             <Checkbox
-              id="delete-definitions"
+              id={deleteDefinitionsId}
               checked={deleteTagDefinitions}
               onCheckedChange={(checked) => setDeleteTagDefinitions(!!checked)}
             />
             <label
-              htmlFor="delete-definitions"
+              htmlFor={deleteDefinitionsId}
               className="text-sm font-medium text-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               Also delete tag definitions

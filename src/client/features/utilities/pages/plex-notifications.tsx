@@ -308,7 +308,7 @@ export default function PlexNotificationsPage() {
                           {...field}
                           type="number"
                           onChange={(e) =>
-                            field.onChange(Number.parseInt(e.target.value))
+                            field.onChange(Number.parseInt(e.target.value, 10))
                           }
                           placeholder="32400"
                         />

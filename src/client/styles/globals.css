@@ -206,7 +206,7 @@ body {
   h4.font-heading,
   h5.font-heading,
   h6.font-heading {
-    font-family: var(--font-heading) !important;
-    font-weight: 700 !important;
+    font-family: var(--font-heading);
+    font-weight: 700;
   }
 }

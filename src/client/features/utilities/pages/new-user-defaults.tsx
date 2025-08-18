@@ -420,7 +420,9 @@ export default function NewUserDefaultsPage() {
                               max="1000"
                               {...field}
                               onChange={(e) =>
-                                field.onChange(Number.parseInt(e.target.value))
+                                field.onChange(
+                                  Number.parseInt(e.target.value, 10),
+                                )
                               }
                             />
                           </FormControl>
@@ -558,7 +560,9 @@ export default function NewUserDefaultsPage() {
                               max="1000"
                               {...field}
                               onChange={(e) =>
-                                field.onChange(Number.parseInt(e.target.value))
+                                field.onChange(
+                                  Number.parseInt(e.target.value, 10),
+                                )
                               }
                             />
                           </FormControl>

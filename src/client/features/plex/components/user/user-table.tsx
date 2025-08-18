@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react'
 import * as React from 'react'
+import { useId } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -99,6 +100,7 @@ export default function UserTable({
   onBulkEdit,
   onBulkEditQuotas,
 }: UserTableProps) {
+  const editIconTitleId = useId()
   // Table state
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -522,9 +524,9 @@ export default function UserTable({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     className="lucide lucide-edit"
-                    aria-labelledby="editIconTitle"
+                    aria-labelledby={editIconTitleId}
                   >
-                    <title id="editIconTitle">Edit Icon</title>
+                    <title id={editIconTitleId}>Edit Icon</title>
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>

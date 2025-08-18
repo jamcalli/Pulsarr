@@ -177,7 +177,7 @@ export function ApprovalSystemForm() {
                       (approvalInterval?.toString() ?? '')
                     }
                     onValueChange={(value) =>
-                      field.onChange(Number.parseInt(value))
+                      field.onChange(Number.parseInt(value, 10))
                     }
                     disabled={!isScheduleEnabled || isSaving}
                   >
