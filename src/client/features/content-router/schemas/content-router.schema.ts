@@ -74,8 +74,12 @@ const isValidGroup = (
     if ('conditions' in cond) {
       return isValidGroup(cond as IConditionGroup, depth + 1, visited)
     }
-    // Leaves are already validated by the array union's ConditionSchema
-    return true
+    // Check if individual condition is complete (has field, operator, and value)
+    return (
+      Boolean(cond.field) &&
+      Boolean(cond.operator) &&
+      isNonEmptyValue(cond.value)
+    )
   })
 }
 
