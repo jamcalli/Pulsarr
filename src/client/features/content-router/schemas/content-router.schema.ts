@@ -34,15 +34,21 @@ export interface IConditionGroup {
 }
 
 // Define schema for a basic condition - with proper type annotation and stricter value typing
-export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
-  z.object({
+export const ConditionSchema: z.ZodType<ICondition> = z
+  .object({
     field: z.string(),
     operator: ComparisonOperatorSchema,
     value: ConditionValueSchema, // Using our strictly typed value schema
     negate: z.boolean().optional().default(false),
     _cid: z.string().optional(),
-  }),
-)
+  })
+  .refine(
+    (cond) =>
+      Boolean(cond.field) &&
+      Boolean(cond.operator) &&
+      isNonEmptyValue(cond.value),
+    { message: 'Condition must have field, operator, and value' },
+  )
 
 // Define schema for a condition group - with proper type annotation
 // Helper function to validate group recursion safely
@@ -65,10 +71,18 @@ const isValidGroup = (
   // Note: Array length check moved to schema .min(1) validation
 
   return group.conditions.every((cond) => {
-    if ('conditions' in cond) {
+    // Safe nested group detection without any/unknown
+    if (
+      cond !== null &&
+      typeof cond === 'object' &&
+      'operator' in cond &&
+      'conditions' in cond &&
+      Array.isArray((cond as IConditionGroup).conditions)
+    ) {
       return isValidGroup(cond as IConditionGroup, depth + 1, visited)
     }
-    return true // Individual conditions validated by their own schema
+    // Delegate leaf validation to the schema to avoid duplication/drift
+    return ConditionSchema.safeParse(cond).success
   })
 }
 
@@ -78,13 +92,15 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
       operator: z.enum(['AND', 'OR']),
       conditions: z
         .array(z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]))
-        .min(1, { error: 'At least one condition is required.' }),
+        .min(1, { error: 'At least one condition is required.' })
+        .max(20, {
+          error: 'No more than 20 conditions are allowed per group.',
+        }),
       negate: z.boolean().optional().default(false),
       _cid: z.string().optional(),
     })
     .refine((group) => isValidGroup(group), {
-      message:
-        'Condition groups cannot exceed 20 levels or contain circular references',
+      message: 'All conditions must be completely filled out',
     }),
 )
 
@@ -93,46 +109,7 @@ export const ConditionalRouteFormSchema = z.object({
   name: z.string().min(2, {
     error: 'Route name must be at least 2 characters.',
   }),
-  condition: ConditionGroupSchema.refine(
-    (val) => {
-      // Helper function to validate a single condition (checks for complete data)
-      const isValidCondition = (cond: ICondition) => {
-        if ('field' in cond && 'operator' in cond && 'value' in cond) {
-          const hasField = Boolean(cond.field)
-          const hasOperator = Boolean(cond.operator)
-          const hasValue = isNonEmptyValue(cond.value)
-
-          return hasField && hasOperator && hasValue
-        }
-        return false
-      }
-
-      // Helper function to recursively validate condition groups
-      const isValidGroup = (
-        group: IConditionGroup,
-        depth = 0,
-        visited = new WeakSet(),
-      ): boolean => {
-        if (depth > 20) return false
-        if (visited.has(group)) return false
-        visited.add(group)
-
-        if (!group.conditions || group.conditions.length === 0) return false
-
-        return group.conditions.every((cond) => {
-          if ('conditions' in cond) {
-            return isValidGroup(cond as IConditionGroup, depth + 1, visited)
-          }
-          return isValidCondition(cond as ICondition)
-        })
-      }
-
-      return isValidGroup(val)
-    },
-    {
-      message: 'All conditions must be completely filled out',
-    },
-  ),
+  condition: ConditionGroupSchema,
   target_instance_id: z.coerce.number().int().min(1, {
     error: 'Instance selection is required.',
   }),

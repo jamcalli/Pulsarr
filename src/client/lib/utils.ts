@@ -133,3 +133,18 @@ export function parseCronExpression(
 
   return [undefined, '*']
 }
+
+// Chart calculation utilities
+
+/**
+ * Safely calculates a percentage from a value and total, guarding against division by zero.
+ *
+ * Returns 0% when the total is 0 or negative, preventing Infinity or NaN values in percentage displays.
+ *
+ * @param value - The numerator value
+ * @param total - The denominator total
+ * @returns The percentage as a rounded integer (0-100)
+ */
+export function calculatePercentage(value: number, total: number): number {
+  return total > 0 ? Math.round((value / total) * 100) : 0
+}

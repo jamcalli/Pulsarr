@@ -90,20 +90,75 @@ interface ExtendedContentRouterRule extends ContentRouterRule {
 }
 
 /**
- * Ensure a valid ConditionGroup is returned for form values.
+ * Type guard to check if a condition is a condition group
+ */
+function isConditionGroup(condition: unknown): condition is IConditionGroup {
+  return (
+    condition !== null &&
+    typeof condition === 'object' &&
+    'operator' in (condition as Record<string, unknown>) &&
+    'conditions' in (condition as Record<string, unknown>) &&
+    Array.isArray((condition as Record<string, unknown>).conditions)
+  )
+}
+
+/**
+ * Normalize a condition group to ensure all negate fields have defaults
+ * Returns a properly typed ConditionGroup for the component
+ */
+function normalizeConditionGroupForComponent(
+  group: IConditionGroup,
+): ConditionGroup {
+  return {
+    ...group,
+    negate: group.negate ?? false,
+    conditions: group.conditions.map((condition) => {
+      if (isConditionGroup(condition)) {
+        return normalizeConditionGroupForComponent(condition)
+      }
+      return {
+        ...condition,
+        negate: condition.negate ?? false,
+      }
+    }),
+  } as ConditionGroup
+}
+
+/**
+ * Normalize a possibly-partial form condition into a complete ConditionGroup.
  *
- * If `cg` is undefined or contains no conditions, returns a default empty group,
- * preserving provided operator/negate when available
- * ({ operator: cg?.operator ?? 'AND', conditions: [], negate: cg?.negate ?? false }).
- * Otherwise returns `cg` unchanged.
+ * Recursively converts nested groups and individual conditions into a stable
+ * ConditionGroup shape suitable for persistence or evaluation. Individual
+ * conditions will have `negate` defaulted to `false` when unspecified. When the
+ * input is undefined or contains no conditions, returns an empty group with
+ * `operator` defaulting to `'AND'`. Preserves `_cid` and explicit `negate` and
+ * `operator` values from the input when present.
  *
- * @param cg - Condition group from form values (may be undefined or empty)
- * @returns A valid ConditionGroup suitable for use or persistence
+ * @param cg - The form-provided condition (may be a ConditionGroup, an empty/partial value, or undefined)
+ * @returns A fully normalized ConditionGroup
  */
 function normalizeConditionGroup(
-  cg: ConditionalRouteFormValues['condition'] | undefined,
+  cg: ConditionalRouteFormValues['condition'] | IConditionGroup | undefined,
 ): ConditionGroup {
-  if (cg?.conditions?.length) return cg
+  if (cg?.conditions?.length) {
+    return {
+      operator: cg.operator ?? 'AND',
+      conditions: cg.conditions.map((condition) => {
+        if (isConditionGroup(condition)) {
+          // Recursively normalize nested groups
+          return normalizeConditionGroup(condition)
+        } else {
+          // Normalize individual conditions
+          return {
+            ...condition,
+            negate: condition.negate ?? false,
+          }
+        }
+      }),
+      negate: cg.negate ?? false,
+      _cid: cg._cid,
+    }
+  }
   return {
     operator: cg?.operator ?? 'AND',
     conditions: [],
@@ -983,9 +1038,9 @@ const AccordionRouteCard = ({
                                   value={{ contentType }}
                                 >
                                   <ConditionGroupComponent
-                                    value={
-                                      field.value as unknown as IConditionGroup
-                                    }
+                                    value={normalizeConditionGroupForComponent(
+                                      field.value as unknown as IConditionGroup,
+                                    )}
                                     onChange={(value) => {
                                       field.onChange(value)
                                       // Trigger validation immediately after condition changes

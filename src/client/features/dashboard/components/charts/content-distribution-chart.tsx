@@ -1,14 +1,10 @@
 import { useMemo } from 'react'
-import type { TooltipProps } from 'recharts'
 import { Cell, Label, Pie, PieChart, Tooltip } from 'recharts'
-import type {
-  NameType,
-  ValueType,
-} from 'recharts/types/component/DefaultTooltipContent'
 import { useTheme } from '@/components/theme-provider'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Card, CardContent } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer } from '@/components/ui/chart'
+import { ContentDistributionTooltip } from '@/features/dashboard/components/charts/content-distribution-tooltip'
 import InstanceContentBreakdownChart from '@/features/dashboard/components/charts/instance-content-breakdown-chart'
 import { useContentDistributionData } from '@/features/dashboard/hooks/useChartData'
 
@@ -87,29 +83,6 @@ export function ContentDistributionChart() {
 
   const borderColor = isDarkMode ? '#f8f9fa' : '#1a1a1a'
 
-  const ContentDistributionTooltip = ({
-    active,
-    payload,
-  }: TooltipProps<ValueType, NameType>) => {
-    if (!active || !payload || !payload.length) {
-      return null
-    }
-    const data = payload[0].payload as { name: string; count: number }
-    return (
-      <div className="bg-background border border-border p-2 rounded-xs shadow-md text-xs">
-        <p className="font-medium text-foreground">{data.name}</p>
-        <p className="text-foreground">
-          <span className="font-medium">Count: </span>
-          {data.count.toLocaleString()}
-        </p>
-        <p className="text-foreground">
-          <span className="font-medium">Percentage: </span>
-          {Math.round((data.count / totalContentItems) * 100)}%
-        </p>
-      </div>
-    )
-  }
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Content Type Distribution Card */}
@@ -134,7 +107,12 @@ export function ContentDistributionChart() {
                 >
                   <Tooltip
                     cursor={false}
-                    content={ContentDistributionTooltip}
+                    content={(props) => (
+                      <ContentDistributionTooltip
+                        {...props}
+                        totalContentItems={totalContentItems}
+                      />
+                    )}
                   />
                   <Pie
                     data={contentDistributionData}

@@ -1,6 +1,6 @@
 import type { GetApprovalRequestsQuery } from '@root/schemas/approval/approval.schema'
 import { Filter, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -29,6 +29,7 @@ export default function ApprovalFilters() {
     triggeredBy: currentQuery.triggeredBy || '',
     userId: currentQuery.userId?.toString() || '',
   })
+  const userFilterId = useId()
 
   // Sync local filters with current query when it changes
   useEffect(() => {
@@ -282,11 +283,11 @@ export default function ApprovalFilters() {
 
               {/* User ID filter */}
               <div>
-                <Label htmlFor="user-filter" className="text-sm font-medium">
+                <Label htmlFor={userFilterId} className="text-sm font-medium">
                   User ID
                 </Label>
                 <Input
-                  id="user-filter"
+                  id={userFilterId}
                   type="number"
                   placeholder="Enter user ID"
                   value={localFilters.userId}

@@ -58,7 +58,7 @@ function SyncedInstancesSelect({
     <MultiSelect
       options={availableInstances}
       onValueChange={(values) => {
-        field.onChange(values.map((v) => Number.parseInt(v)))
+        field.onChange(values.map((v) => Number.parseInt(v, 10)))
       }}
       value={field.value?.map((id) => id.toString()) || []}
       placeholder="Select instances to sync with"
