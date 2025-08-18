@@ -92,8 +92,7 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
       _cid: z.string().optional(),
     })
     .refine((group) => isValidGroup(group), {
-      message:
-        'All conditions must be completely filled out',
+      message: 'All conditions must be completely filled out',
     }),
 )
 
