@@ -93,7 +93,7 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
     })
     .refine((group) => isValidGroup(group), {
       message:
-        'Condition groups cannot exceed 20 levels or contain circular references',
+        'All conditions must be completely filled out',
     }),
 )
 
