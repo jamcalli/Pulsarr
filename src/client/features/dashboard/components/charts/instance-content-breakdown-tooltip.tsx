@@ -14,16 +14,27 @@ export function InstanceContentBreakdownTooltip({
     return null
   }
 
-  const data = payload[0].payload as {
+  const raw = payload[0]?.payload as Partial<{
     name: string
     type: string
     total: number
     grabbed: number
     notified: number
     requested: number
+  }>
+  if (!raw) return null
+
+  const data = {
+    name: raw.name ?? '',
+    type: raw.type ?? '',
+    total: raw.total ?? 0,
+    grabbed: raw.grabbed ?? 0,
+    notified: raw.notified ?? 0,
+    requested: raw.requested ?? 0,
   }
 
-  const totalItemsInInstance = data.grabbed + data.notified + data.requested
+  // Use data.total as denominator to match displayed "Total Items"
+  const totalItemsInInstance = data.total
 
   return (
     <div className="bg-background border border-border p-2 rounded-xs shadow-md text-xs">
