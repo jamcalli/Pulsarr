@@ -216,9 +216,10 @@ export default function ApprovalSettingsPage() {
                         field.value?.toString() ||
                         (approvalInterval?.toString() ?? '')
                       }
-                      onValueChange={(value) =>
-                        field.onChange(Number.parseInt(value, 10))
-                      }
+                      onValueChange={(value) => {
+                        const next = Number.parseInt(value, 10)
+                        field.onChange(Number.isNaN(next) ? undefined : next)
+                      }}
                       disabled={!isScheduleEnabled || isSaving}
                     >
                       <SelectTrigger className="font-normal focus:ring-0 w-[192px] focus:ring-offset-0">

@@ -3,6 +3,7 @@ import type {
   NameType,
   ValueType,
 } from 'recharts/types/component/DefaultTooltipContent'
+import { calculatePercentage } from '@/lib/utils'
 
 export function InstanceContentBreakdownTooltip({
   active,
@@ -37,7 +38,7 @@ export function InstanceContentBreakdownTooltip({
           <span className="font-medium">Grabbed: </span>
           {data.grabbed.toLocaleString()}
           <span className="ml-1">
-            ({Math.round((data.grabbed / totalItemsInInstance) * 100)}%)
+            ({calculatePercentage(data.grabbed, totalItemsInInstance)}%)
           </span>
         </p>
 
@@ -45,7 +46,7 @@ export function InstanceContentBreakdownTooltip({
           <span className="font-medium">Notified: </span>
           {data.notified.toLocaleString()}
           <span className="ml-1">
-            ({Math.round((data.notified / totalItemsInInstance) * 100)}%)
+            ({calculatePercentage(data.notified, totalItemsInInstance)}%)
           </span>
         </p>
 
@@ -53,7 +54,7 @@ export function InstanceContentBreakdownTooltip({
           <span className="font-medium">Requested: </span>
           {data.requested.toLocaleString()}
           <span className="ml-1">
-            ({Math.round((data.requested / totalItemsInInstance) * 100)}%)
+            ({calculatePercentage(data.requested, totalItemsInInstance)}%)
           </span>
         </p>
       </div>
