@@ -418,6 +418,7 @@ export default function NewUserDefaultsPage() {
                               type="number"
                               min="1"
                               max="1000"
+                              step="1"
                               {...field}
                               onChange={(e) =>
                                 field.onChange(
@@ -558,6 +559,7 @@ export default function NewUserDefaultsPage() {
                               type="number"
                               min="1"
                               max="1000"
+                              step="1"
                               {...field}
                               onChange={(e) =>
                                 field.onChange(

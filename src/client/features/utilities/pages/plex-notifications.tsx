@@ -307,9 +307,17 @@ export default function PlexNotificationsPage() {
                         <Input
                           {...field}
                           type="number"
-                          onChange={(e) =>
-                            field.onChange(Number.parseInt(e.target.value, 10))
-                          }
+                          min={1}
+                          max={65535}
+                          onChange={(e) => {
+                            const raw = e.target.value
+                            const parsed = Number.parseInt(raw, 10)
+                            field.onChange(
+                              raw === '' || Number.isNaN(parsed)
+                                ? undefined
+                                : parsed,
+                            )
+                          }}
                           placeholder="32400"
                         />
                       </FormControl>

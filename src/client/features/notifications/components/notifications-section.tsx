@@ -1,4 +1,3 @@
-import { useId } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Separator } from '@/components/ui/separator'
 import { AppriseForm } from '@/features/notifications/components/apprise/apprise-form'
@@ -22,10 +21,11 @@ export function NotificationsSection({
   isInitialized,
 }: NotificationsSectionProps) {
   const navigate = useNavigate()
-  const discordId = useId()
-  const appriseId = useId()
-  const tautulliId = useId()
-  const generalId = useId()
+  // Section IDs are stable anchors for deep-linking
+  const discordId = 'discord-notifications'
+  const appriseId = 'apprise-notifications'
+  const tautulliId = 'tautulli-notifications'
+  const generalId = 'general-notifications'
 
   return (
     <div className="grid gap-6">

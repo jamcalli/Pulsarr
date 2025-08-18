@@ -3,6 +3,7 @@ import type {
   NameType,
   ValueType,
 } from 'recharts/types/component/DefaultTooltipContent'
+import { calculatePercentage } from '@/lib/utils'
 
 interface ContentDistributionTooltipProps
   extends TooltipProps<ValueType, NameType> {
@@ -18,6 +19,7 @@ export function ContentDistributionTooltip({
     return null
   }
   const data = payload[0].payload as { name: string; count: number }
+  const percentage = calculatePercentage(data.count, totalContentItems)
   return (
     <div className="bg-background border border-border p-2 rounded-xs shadow-md text-xs">
       <p className="font-medium text-foreground">{data.name}</p>
@@ -27,7 +29,7 @@ export function ContentDistributionTooltip({
       </p>
       <p className="text-foreground">
         <span className="font-medium">Percentage: </span>
-        {Math.round((data.count / totalContentItems) * 100)}%
+        {percentage}%
       </p>
     </div>
   )

@@ -370,9 +370,9 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <label htmlFor={fieldSelectId} className="text-sm font-medium">
+              <Label htmlFor={fieldSelectId} className="text-sm font-medium">
                 Field
-              </label>
+              </Label>
               {fieldDescription && (
                 <TooltipProvider>
                   <Tooltip>
@@ -408,9 +408,9 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-3')}>
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <label htmlFor={operatorSelectId} className="text-sm font-medium">
+              <Label htmlFor={operatorSelectId} className="text-sm font-medium">
                 Operator
-              </label>
+              </Label>
               {operatorDescription && (
                 <TooltipProvider>
                   <Tooltip>
