@@ -25,7 +25,7 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
       },
       servers: [
         {
-          url: '{protocol}://{host}:{port}{basePath}',
+          url: '{protocol}://{host}:{port}',
           description: 'Custom Server',
           variables: {
             protocol: {
@@ -40,11 +40,6 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
             port: {
               default: fastify.config.port.toString(),
               description: 'The port on which Pulsarr is running',
-            },
-            basePath: {
-              default: '',
-              description:
-                'The base path (if running behind a reverse proxy with path prefix)',
             },
           },
         },
