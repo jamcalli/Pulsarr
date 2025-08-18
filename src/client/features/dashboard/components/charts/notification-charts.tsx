@@ -1,14 +1,10 @@
 import { useMemo } from 'react'
-import type { TooltipProps } from 'recharts'
 import { Cell, Label, Pie, PieChart, Tooltip } from 'recharts'
-import type {
-  NameType,
-  ValueType,
-} from 'recharts/types/component/DefaultTooltipContent'
 import { useTheme } from '@/components/theme-provider'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Card, CardContent } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer } from '@/components/ui/chart'
+import { NotificationTooltip } from '@/features/dashboard/components/charts/notification-tooltip'
 import { useNotificationStatsData } from '@/features/dashboard/hooks/useChartData'
 
 interface NotificationChartData {
@@ -124,33 +120,6 @@ export function NotificationCharts() {
     return `hsl(${chartVars[index % 5]})`
   }
 
-  const NotificationTooltip = ({
-    active,
-    payload,
-  }: TooltipProps<ValueType, NameType>) => {
-    if (!active || !payload || !payload.length) {
-      return null
-    }
-    const data = payload[0].payload as {
-      name: string
-      value: number
-      total: number
-    }
-    return (
-      <div className="bg-background border border-border p-2 rounded-xs shadow-md">
-        <p className="font-medium text-foreground">{data.name}</p>
-        <p className="text-foreground">
-          <span className="font-medium">Count: </span>
-          {data.value}
-        </p>
-        <p className="text-foreground">
-          <span className="font-medium">Percentage: </span>
-          {Math.round((data.value / data.total) * 100)}%
-        </p>
-      </div>
-    )
-  }
-
   const getTotalByChannel = useMemo(() => {
     return notificationsData.byChannel.reduce(
       (sum, item) => sum + item.value,
@@ -197,7 +166,7 @@ export function NotificationCharts() {
                     left: 5,
                   }}
                 >
-                  <Tooltip content={NotificationTooltip} />
+                  <Tooltip content={<NotificationTooltip />} />
                   <Pie
                     data={notificationsData.byChannel.map((item) => ({
                       ...item,
@@ -302,7 +271,7 @@ export function NotificationCharts() {
                     left: 5,
                   }}
                 >
-                  <Tooltip content={NotificationTooltip} />
+                  <Tooltip content={<NotificationTooltip />} />
                   <Pie
                     data={notificationsData.byType.map((item) => ({
                       ...item,

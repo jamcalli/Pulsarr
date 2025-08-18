@@ -1,6 +1,6 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import { Check, Loader2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -66,6 +66,9 @@ export function ApprovalActionDialogs({
   >('idle')
   const { approveRequest, rejectRequest, deleteApprovalRequest } =
     useApprovalsStore()
+
+  const approveNotesId = useId()
+  const rejectReasonId = useId()
 
   // Track timeout IDs for cleanup
   const timeoutIdsRef = useRef<NodeJS.Timeout[]>([])
@@ -205,13 +208,13 @@ export function ApprovalActionDialogs({
             <div className="grid gap-4 mb-6">
               <div className="grid gap-2">
                 <Label
-                  htmlFor="approve-notes"
+                  htmlFor={approveNotesId}
                   className="text-foreground text-sm italic"
                 >
                   Notes (optional)
                 </Label>
                 <Textarea
-                  id="approve-notes"
+                  id={approveNotesId}
                   placeholder="Add any approval notes..."
                   value={approveNotes}
                   onChange={(e) => setApproveNotes(e.target.value)}
@@ -279,13 +282,13 @@ export function ApprovalActionDialogs({
             <div className="grid gap-4 mb-6">
               <div className="grid gap-2">
                 <Label
-                  htmlFor="reject-reason"
+                  htmlFor={rejectReasonId}
                   className="text-foreground text-sm italic"
                 >
                   Reason (optional)
                 </Label>
                 <Textarea
-                  id="reject-reason"
+                  id={rejectReasonId}
                   placeholder="Reason for rejection..."
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}

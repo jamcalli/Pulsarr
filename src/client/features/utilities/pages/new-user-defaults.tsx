@@ -418,9 +418,12 @@ export default function NewUserDefaultsPage() {
                               type="number"
                               min="1"
                               max="1000"
+                              step="1"
                               {...field}
                               onChange={(e) =>
-                                field.onChange(Number.parseInt(e.target.value))
+                                field.onChange(
+                                  Number.parseInt(e.target.value, 10),
+                                )
                               }
                             />
                           </FormControl>
@@ -556,9 +559,12 @@ export default function NewUserDefaultsPage() {
                               type="number"
                               min="1"
                               max="1000"
+                              step="1"
                               {...field}
                               onChange={(e) =>
-                                field.onChange(Number.parseInt(e.target.value))
+                                field.onChange(
+                                  Number.parseInt(e.target.value, 10),
+                                )
                               }
                             />
                           </FormControl>

@@ -657,11 +657,15 @@ export function PlexLabelsPage() {
                             min={1}
                             max={20}
                             {...field}
-                            onChange={(e) =>
-                              field.onChange(
-                                Number.parseInt(e.target.value) || 5,
-                              )
-                            }
+                            onChange={(e) => {
+                              const raw = e.target.value
+                              const num = Number.parseInt(raw, 10)
+                              const next =
+                                raw === '' || Number.isNaN(num)
+                                  ? undefined
+                                  : Math.max(1, Math.min(20, num))
+                              field.onChange(next)
+                            }}
                           />
                         </FormControl>
                         <p className="text-xs text-gray-500 mt-1">

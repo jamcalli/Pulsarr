@@ -7,6 +7,11 @@ import { Skeleton } from '@/components/ui/skeleton'
  * This component visually mimics the layout of the notifications page, including sections for Discord, Apprise, Tautulli, and general notification settings, using skeleton placeholders for headings, inputs, buttons, badges, toggles, and informational text.
  */
 export function NotificationsSkeleton() {
+  // Use fixed IDs to preserve deep-linking
+  const discordId = 'discord-notifications'
+  const appriseId = 'apprise-notifications'
+  const tautulliId = 'tautulli-notifications'
+  const generalId = 'general-notifications'
   return (
     <div className="grid gap-6">
       {/* Public Content Notifications Info Section - Static */}
@@ -27,7 +32,7 @@ export function NotificationsSkeleton() {
       </div>
 
       {/* Discord Notifications Section */}
-      <div id="discord-notifications">
+      <div id={discordId}>
         <h2 className="text-2xl font-bold text-foreground">
           Discord Notifications
         </h2>
@@ -83,7 +88,7 @@ export function NotificationsSkeleton() {
       <Separator className="my-4" />
 
       {/* Apprise Notifications Section */}
-      <div id="apprise-notifications">
+      <div id={appriseId}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">
             Apprise Notifications
@@ -129,7 +134,7 @@ export function NotificationsSkeleton() {
       <Separator className="my-4" />
 
       {/* Tautulli Notifications Section */}
-      <div id="tautulli-notifications">
+      <div id={tautulliId}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">
             Tautulli Notifications
@@ -194,7 +199,7 @@ export function NotificationsSkeleton() {
       <Separator className="my-4" />
 
       {/* General Notifications Section */}
-      <div id="general-notifications">
+      <div id={generalId}>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">
             General Notification Settings
