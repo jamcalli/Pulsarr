@@ -100,7 +100,7 @@ jobs:
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2
         with:
           body: ${{ steps.release-drafter.outputs.body }}
-          draft: false
+          draft: true
           prerelease: ${{ steps.check-prerelease.outputs.is_prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

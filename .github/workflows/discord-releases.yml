@@ -1,0 +1,24 @@
+name: Discord Release Notifications
+
+on:
+  release:
+    types: [published, prereleased, edited]  # Include prereleases; 'edited' allows post-publish updates
+
+jobs:
+  github-releases-to-discord:
+    if: ${{ !github.event.release.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: GitHub Releases to Discord
+        uses: SethCohen/github-releases-to-discord@b96a33520f8ad5e6dcdecee6f1212bdf88b16550 # v1.19.0
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+          color: "4760230"
+          username: "Pulsarr Releases"
+          avatar_url: "https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png"
+          content: "🚀 New Pulsarr release is available!"
+          footer_title: "Pulsarr"
+          footer_icon_url: "https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png"
+          reduce_headings: true
