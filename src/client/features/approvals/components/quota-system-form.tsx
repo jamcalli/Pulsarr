@@ -80,7 +80,7 @@ const formatScheduleDisplay = (
     ? 'unknown day'
     : day === '*'
       ? 'every day'
-      : `on ${getDayName(Number.parseInt(day))}`
+      : `on ${getDayName(Number.parseInt(day, 10))}`
 
   return `${timeStr} ${dayStr}`
 }

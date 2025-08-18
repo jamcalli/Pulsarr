@@ -13,7 +13,7 @@ import {
   ErrorSchema as SonarrErrorSchema
 } from '@root/schemas/sonarr/create-tag.schema'
 import { Check, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { 
@@ -66,6 +66,7 @@ export function TagCreationDialog({
 }: TagCreationDialogProps) {
   const [tagLabel, setTagLabel] = useState('')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  const tagNameId = useId()
   
   // Handle dialog open state changes
   const handleOpenChange = (newOpen: boolean) => {
@@ -187,9 +188,9 @@ export function TagCreationDialog({
           </DialogHeader>
           
           <div className="py-4">
-            <Label htmlFor="tag-name" className="text-foreground">Tag Name</Label>
+            <Label htmlFor={tagNameId} className="text-foreground">Tag Name</Label>
             <Input
-              id="tag-name"
+              id={tagNameId}
               value={tagLabel}
               onChange={(e) => setTagLabel(e.target.value)}
               placeholder="Enter tag name"

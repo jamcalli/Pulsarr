@@ -93,7 +93,7 @@ export function ApprovalSystemSchedule({
             <Select
               value={interval?.toString() || ''}
               onValueChange={(value) =>
-                onIntervalChange(Number.parseInt(value))
+                onIntervalChange(Number.parseInt(value, 10))
               }
               disabled={isDisabled}
             >

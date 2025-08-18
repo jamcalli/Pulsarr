@@ -62,9 +62,13 @@ function SyncedInstancesSelect({
     <MultiSelect
       options={availableInstances}
       onValueChange={(values) => {
-        field.onChange(values.map((v) => Number.parseInt(v)))
+        field.onChange(
+          values
+            .map((v) => Number.parseInt(v, 10))
+            .filter((n) => Number.isInteger(n)),
+        )
       }}
-      defaultValue={field.value?.map((id) => id.toString()) || []}
+      value={field.value?.map((id) => id.toString()) || []}
       placeholder="Select instances to sync with"
       variant="default"
       maxCount={1}

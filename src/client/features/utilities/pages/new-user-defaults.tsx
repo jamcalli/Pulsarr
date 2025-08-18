@@ -155,7 +155,9 @@ export default function NewUserDefaultsPage() {
       <div className="space-y-6">
         {/* Current Status section */}
         <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
-          <h3 className="font-medium text-foreground mb-2">Current Status</h3>
+          <h3 className="font-medium text-foreground mb-2">
+            New User Defaults Status
+          </h3>
           <p className="text-sm text-foreground mb-3">
             New Plex users will be created with the following default settings:
           </p>
@@ -418,10 +420,16 @@ export default function NewUserDefaultsPage() {
                               type="number"
                               min="1"
                               max="1000"
+                              step="1"
                               {...field}
-                              onChange={(e) =>
-                                field.onChange(Number.parseInt(e.target.value))
-                              }
+                              onChange={(e) => {
+                                const n = Number.parseInt(e.target.value, 10)
+                                field.onChange(
+                                  Number.isNaN(n)
+                                    ? field.value
+                                    : Math.max(1, Math.min(1000, n)),
+                                )
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
@@ -556,10 +564,16 @@ export default function NewUserDefaultsPage() {
                               type="number"
                               min="1"
                               max="1000"
+                              step="1"
                               {...field}
-                              onChange={(e) =>
-                                field.onChange(Number.parseInt(e.target.value))
-                              }
+                              onChange={(e) => {
+                                const n = Number.parseInt(e.target.value, 10)
+                                field.onChange(
+                                  Number.isNaN(n)
+                                    ? field.value
+                                    : Math.max(1, Math.min(1000, n)),
+                                )
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
