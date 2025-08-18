@@ -1,7 +1,5 @@
 import { z } from 'zod'
-import { SERIES_TYPES } from './constants.js'
-
-// Re-export SERIES_TYPES for use by other modules
+import { SERIES_TYPES } from '@root/schemas/content-router/constants.js'
 export { SERIES_TYPES }
 
 /**

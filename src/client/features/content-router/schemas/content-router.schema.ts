@@ -34,23 +34,21 @@ export interface IConditionGroup {
 }
 
 // Define schema for a basic condition - with proper type annotation and stricter value typing
-export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
-  z
-    .object({
-      field: z.string(),
-      operator: ComparisonOperatorSchema,
-      value: ConditionValueSchema, // Using our strictly typed value schema
-      negate: z.boolean().optional().default(false),
-      _cid: z.string().optional(),
-    })
-    .refine(
-      (cond) =>
-        Boolean(cond.field) &&
-        Boolean(cond.operator) &&
-        isNonEmptyValue(cond.value),
-      { message: 'Condition must have field, operator, and value' },
-    ),
-)
+export const ConditionSchema: z.ZodType<ICondition> = z
+  .object({
+    field: z.string(),
+    operator: ComparisonOperatorSchema,
+    value: ConditionValueSchema, // Using our strictly typed value schema
+    negate: z.boolean().optional().default(false),
+    _cid: z.string().optional(),
+  })
+  .refine(
+    (cond) =>
+      Boolean(cond.field) &&
+      Boolean(cond.operator) &&
+      isNonEmptyValue(cond.value),
+    { message: 'Condition must have field, operator, and value' },
+  )
 
 // Define schema for a condition group - with proper type annotation
 // Helper function to validate group recursion safely
@@ -76,8 +74,8 @@ const isValidGroup = (
     if ('conditions' in cond) {
       return isValidGroup(cond as IConditionGroup, depth + 1, visited)
     }
-    // Validate individual conditions explicitly
-    return ConditionSchema.safeParse(cond).success
+    // Leaves are already validated by the array union's ConditionSchema
+    return true
   })
 }
 

@@ -5,26 +5,30 @@ import type {
 } from 'recharts/types/component/DefaultTooltipContent'
 import { calculatePercentage } from '@/lib/utils'
 
+type InstanceContentBreakdownDatum = {
+  name: string
+  type: string
+  total: number
+  grabbed: number
+  notified: number
+  requested: number
+}
+
 export function InstanceContentBreakdownTooltip({
   active,
   payload,
   label,
 }: TooltipProps<ValueType, NameType>) {
-  if (!active || !payload || !payload.length) {
+  if (!active || !payload?.length) {
     return null
   }
 
-  const raw = payload[0]?.payload as Partial<{
-    name: string
-    type: string
-    total: number
-    grabbed: number
-    notified: number
-    requested: number
-  }>
+  const raw = payload[0]?.payload as
+    | Partial<InstanceContentBreakdownDatum>
+    | undefined
   if (!raw) return null
 
-  const data = {
+  const data: InstanceContentBreakdownDatum = {
     name: raw.name ?? '',
     type: raw.type ?? '',
     total: raw.total ?? 0,
@@ -37,8 +41,11 @@ export function InstanceContentBreakdownTooltip({
   const totalItemsInInstance = data.total
 
   return (
-    <div className="bg-background border border-border p-2 rounded-xs shadow-md text-xs">
-      <p className="font-medium text-foreground">{label}</p>
+    <div
+      role="tooltip"
+      className="bg-background border border-border p-2 rounded-xs shadow-md text-xs"
+    >
+      <p className="font-medium text-foreground">{label ?? data.name}</p>
       <p className="text-foreground">
         <span className="font-medium">Total Items: </span>
         {data.total.toLocaleString()}
