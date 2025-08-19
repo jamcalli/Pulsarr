@@ -7,6 +7,7 @@
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
   ![Node](https://img.shields.io/badge/node-22%20LTS-green?style=flat-square)
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
+  [![Discord](https://img.shields.io/discord/1407082466958774313?label=Discord&logo=discord&style=flat-square)](https://discord.gg/9csTEJn5cR)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
   ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr?style=flat-square)
   ![GitHub Stars](https://img.shields.io/github/stars/jamcalli/pulsarr?style=flat-square)
@@ -127,10 +128,10 @@ We welcome contributions! Please see our [Contributing Guidelines](https://jamca
 
 ## 💬 Support
 
+- 💬 Join our [Discord community](https://discord.gg/9csTEJn5cR) for help, discussions, and updates
 - Need help? [Open an issue](https://github.com/jamcalli/pulsarr/issues) on GitHub
 - 🐛 Report bugs or request features
 - 📖 Contribute to documentation
-- 💬 Share with the community
 
 Your support helps keep this project active and growing!
 
