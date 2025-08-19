@@ -217,14 +217,14 @@ export class DeleteSyncService {
           `Running tag-based deletion using tag "${this.config.removedTagPrefix}"`,
         )
 
-        // Process tag-based deletion workflow
+        // Process tag-based delete sync workflow
         result = await this.processTagBasedDeleteSync(
           existingSeries,
           existingMovies,
           dryRun,
         )
       } else {
-        // Watchlist-based deletion workflow
+        // Watchlist-based delete sync workflow
 
         // Step 4: Refresh watchlists to ensure current data
         const refreshResult = await this.refreshWatchlists()
