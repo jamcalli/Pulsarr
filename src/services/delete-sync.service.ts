@@ -860,8 +860,7 @@ export class DeleteSyncService {
       )
     }
 
-    // Reset workflow caches before processing
-    this.plexServer.clearWorkflowCaches()
+    // Cache is already cleared at the start of run() method
 
     // Check if Plex playlist protection is enabled
     if (this.config.enablePlexPlaylistProtection) {
@@ -1370,9 +1369,7 @@ export class DeleteSyncService {
       },
     )
 
-    // Release cached resources after processing completes
-    this.plexServer.clearWorkflowCaches()
-    this.protectedGuids = null
+    // Resources will be cleared in finally block of run() method
 
     return deletionSummary
   }
@@ -2225,9 +2222,7 @@ export class DeleteSyncService {
       },
     )
 
-    // Release cached resources after processing completes
-    this.plexServer.clearWorkflowCaches()
-    this.protectedGuids = null
+    // Resources will be cleared in finally block of run() method
 
     return deletionSummary
   }
