@@ -51,8 +51,9 @@ export class DeleteSyncService {
 
   /**
    * Cache of tags by instance for efficient lookup during tag-based deletion
+   * Key format: "{instanceType}-{instanceId}" to avoid collisions between Sonarr and Radarr
    */
-  private tagCache: Map<number, Map<number, string>> = new Map()
+  private tagCache: Map<string, Map<number, string>> = new Map()
 
   /**
    * Flag to prevent concurrent runs of the delete sync process
@@ -1133,7 +1134,15 @@ export class DeleteSyncService {
         `Processing ${existingSeries.length} TV shows for tag-based deletion${dryRun ? ' (DRY RUN)' : ''}`,
       )
 
+      let showsProcessed = 0
+      let showsWithValidSonarrId = 0
+      let showsWithMatchingType = 0
+      let showsWithInstanceId = 0
+      let showsReachedTagCheck = 0
+
       for (const show of existingSeries) {
+        showsProcessed++
+
         // Extract Sonarr ID
         const sonarrId = extractSonarrId(show.guids)
         if (sonarrId === 0) {
@@ -1147,6 +1156,8 @@ export class DeleteSyncService {
           }
           continue
         }
+
+        showsWithValidSonarrId++
 
         // Determine if this is a continuing or ended show
         const isContinuing = show.series_status !== 'ended'
@@ -1169,6 +1180,8 @@ export class DeleteSyncService {
           continue
         }
 
+        showsWithMatchingType++
+
         const instanceId = show.sonarr_instance_id
 
         // Skip shows without instance ID
@@ -1184,6 +1197,8 @@ export class DeleteSyncService {
           }
           continue
         }
+
+        showsWithInstanceId++
 
         try {
           // Get the appropriate Sonarr service for this instance
@@ -1206,6 +1221,8 @@ export class DeleteSyncService {
           const seriesDetails = await service.getFromSonarr<SonarrSeries>(
             `series/${sonarrId}`,
           )
+
+          showsReachedTagCheck++
 
           // Check if the series has our removal tag
           const hasRemovalTag = await this.hasRemovalTag(
@@ -1379,14 +1396,19 @@ export class DeleteSyncService {
    *
    * @param instanceId - The instance ID
    * @param service - The media service (Sonarr or Radarr)
+   * @param instanceType - Type of instance ('sonarr' or 'radarr') to avoid cache collisions
    * @returns Promise resolving to a map of tag IDs to lowercase tag labels
    */
   private async getTagsForInstance(
     instanceId: number,
     service: { getTags: () => Promise<Array<{ id: number; label: string }>> },
+    instanceType: 'sonarr' | 'radarr' = 'sonarr',
   ): Promise<Map<number, string>> {
+    // Create unique cache key with instance type and ID
+    const cacheKey = `${instanceType}-${instanceId}`
+
     // Check if we have cached tags for this instance
-    const cachedTags = this.tagCache.get(instanceId)
+    const cachedTags = this.tagCache.get(cacheKey)
     if (cachedTags) {
       return cachedTags
     }
@@ -1400,8 +1422,8 @@ export class DeleteSyncService {
         allTags.map((tag) => [tag.id, tag.label.toLowerCase()]),
       )
 
-      // Cache the result
-      this.tagCache.set(instanceId, tagMap)
+      // Cache the result with unique key
+      this.tagCache.set(cacheKey, tagMap)
 
       return tagMap
     } catch (error) {
@@ -1447,8 +1469,17 @@ export class DeleteSyncService {
         return false
       }
 
-      // Get tags from cache or fetch them
-      const tagMap = await this.getTagsForInstance(instanceId, service)
+      // Get tags from cache or fetch them (determine type from service context)
+      const instanceType = service.constructor.name
+        .toLowerCase()
+        .includes('sonarr')
+        ? 'sonarr'
+        : 'radarr'
+      const tagMap = await this.getTagsForInstance(
+        instanceId,
+        service,
+        instanceType as 'sonarr' | 'radarr',
+      )
 
       // Check if any of the item's tags match our removal tag (using startsWith for prefix matching)
       for (const tagId of itemTags) {
@@ -1510,7 +1541,11 @@ export class DeleteSyncService {
       }
 
       // Get tags from cache (reusing existing cache infrastructure)
-      const tagMap = await this.getTagsForInstance(instanceId, service)
+      const tagMap = await this.getTagsForInstance(
+        instanceId,
+        service,
+        'sonarr',
+      )
       const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
         // Avoid treating every tag as a removal tag when prefix is blank
@@ -1617,7 +1652,11 @@ export class DeleteSyncService {
       }
 
       // Get tags from cache (reusing existing cache infrastructure)
-      const tagMap = await this.getTagsForInstance(instanceId, service)
+      const tagMap = await this.getTagsForInstance(
+        instanceId,
+        service,
+        'radarr',
+      )
       const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
         // Avoid treating every tag as a removal tag when prefix is blank
