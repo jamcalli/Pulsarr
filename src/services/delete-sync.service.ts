@@ -32,6 +32,7 @@ import type {
 import {
   extractRadarrId,
   extractSonarrId,
+  hasMatchingGuids,
   parseGuids,
 } from '@utils/guid-handler.js'
 import { PlexServerService } from '@utils/plex-server.js'
@@ -263,6 +264,7 @@ export class DeleteSyncService {
           try {
             this.log.info('Beginning deletion analysis based on configuration')
             this.log.info('Clearing workflow-specific caches')
+            this.plexServer.clearWorkflowCaches()
             this.log.info(
               `Plex playlist protection is enabled with playlist name "${this.getProtectionPlaylistName()}"`,
             )
@@ -426,32 +428,59 @@ export class DeleteSyncService {
   }
 
   /**
-   * Refreshes all watchlists to ensure current data
+   * Refreshes all watchlists to ensure current data with retry logic
    */
   private async refreshWatchlists(): Promise<{
     success: boolean
     message: string
   }> {
-    this.log.info('Refreshing watchlists to ensure we have current data')
-    try {
-      await Promise.all([
-        this.fastify.plexWatchlist.getSelfWatchlist(),
-        this.fastify.plexWatchlist.getOthersWatchlists(),
-      ])
-      this.log.info('Watchlists refreshed successfully')
-      return { success: true, message: 'Watchlists refreshed successfully' }
-    } catch (refreshError) {
-      const errorMessage = `Failed to refresh watchlist data: ${
-        refreshError instanceof Error
-          ? refreshError.message
-          : String(refreshError)
-      }`
-      this.log.error(
-        { error: refreshError },
-        'Error refreshing watchlist data:',
-      )
-      return { success: false, message: errorMessage }
+    const maxRetries = 2
+    const baseDelay = 1000 // 1 second
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          this.log.info(
+            `Refreshing watchlists attempt ${attempt + 1}/${maxRetries + 1}`,
+          )
+        } else {
+          this.log.info('Refreshing watchlists to ensure we have current data')
+        }
+
+        await Promise.all([
+          this.fastify.plexWatchlist.getSelfWatchlist(),
+          this.fastify.plexWatchlist.getOthersWatchlists(),
+        ])
+
+        this.log.info('Watchlists refreshed successfully')
+        return { success: true, message: 'Watchlists refreshed successfully' }
+      } catch (refreshError) {
+        const isLastAttempt = attempt === maxRetries
+        const errorMessage = `Failed to refresh watchlist data: ${
+          refreshError instanceof Error
+            ? refreshError.message
+            : String(refreshError)
+        }`
+
+        if (isLastAttempt) {
+          this.log.error(
+            { error: refreshError, attempts: attempt + 1 },
+            'Error refreshing watchlist data after all retry attempts',
+          )
+          return { success: false, message: errorMessage }
+        } else {
+          const delay = baseDelay * 2 ** attempt // Exponential backoff
+          this.log.warn(
+            { error: refreshError, attempt: attempt + 1, retryIn: delay },
+            `Watchlist refresh failed, retrying in ${delay}ms`,
+          )
+          await new Promise((resolve) => setTimeout(resolve, delay))
+        }
+      }
     }
+
+    // This should never be reached, but TypeScript needs it
+    return { success: false, message: 'Unexpected error in retry logic' }
   }
 
   /**
@@ -484,35 +513,52 @@ export class DeleteSyncService {
     // Calculate deletion percentages by doing a count of items that would be deleted
     let potentialMovieDeletes = 0
     let potentialShowDeletes = 0
-    const totalMediaItems = existingSeries.length + existingMovies.length
+    const considerMovies = this.config.deleteMovie === true
+    const considerEnded = this.config.deleteEndedShow === true
+    const considerContinuing = this.config.deleteContinuingShow === true
+    let totalConsideredItems = 0
 
-    // Count movies not in watchlist and not protected
-    for (const movie of existingMovies) {
-      const movieGuidList = parseGuids(movie.guids)
-      const existsInWatchlist = movieGuidList.some((guid) =>
-        allWatchlistItems.has(guid),
-      )
-      if (!existsInWatchlist) {
-        // Check if movie is protected by playlist
-        const isProtected = protectedGuids
-          ? movieGuidList.some((guid) => protectedGuids.has(guid))
-          : false
-        if (!isProtected) {
-          potentialMovieDeletes++
+    // Convert Sets to arrays once for efficient reuse
+    const watchlistGuidsArray = Array.from(allWatchlistItems)
+    const protectedGuidsArray = protectedGuids
+      ? Array.from(protectedGuids)
+      : null
+
+    // Count movies not in watchlist and not protected (only if we actually delete movies)
+    if (considerMovies) {
+      for (const movie of existingMovies) {
+        totalConsideredItems++
+        const existsInWatchlist = hasMatchingGuids(
+          movie.guids,
+          watchlistGuidsArray,
+        )
+        if (!existsInWatchlist) {
+          // Check if movie is protected by playlist
+          const isProtected = protectedGuidsArray
+            ? hasMatchingGuids(movie.guids, protectedGuidsArray)
+            : false
+          if (!isProtected) {
+            potentialMovieDeletes++
+          }
         }
       }
     }
 
-    // Count shows not in watchlist and not protected
+    // Count shows not in watchlist and not protected, but only for show types configured for deletion
     for (const show of existingSeries) {
-      const showGuidList = parseGuids(show.guids)
-      const existsInWatchlist = showGuidList.some((guid) =>
-        allWatchlistItems.has(guid),
+      const isContinuing = show.series_status !== 'ended'
+      const shouldConsider = isContinuing ? considerContinuing : considerEnded
+      if (!shouldConsider) continue
+      totalConsideredItems++
+
+      const existsInWatchlist = hasMatchingGuids(
+        show.guids,
+        watchlistGuidsArray,
       )
       if (!existsInWatchlist) {
         // Check if show is protected by playlist
-        const isProtected = protectedGuids
-          ? showGuidList.some((guid) => protectedGuids.has(guid))
+        const isProtected = protectedGuidsArray
+          ? hasMatchingGuids(show.guids, protectedGuidsArray)
           : false
         if (!isProtected) {
           potentialShowDeletes++
@@ -522,23 +568,29 @@ export class DeleteSyncService {
 
     const totalPotentialDeletes = potentialMovieDeletes + potentialShowDeletes
     const potentialDeletionPercentage =
-      totalMediaItems > 0 ? (totalPotentialDeletes / totalMediaItems) * 100 : 0
+      totalConsideredItems > 0
+        ? (totalPotentialDeletes / totalConsideredItems) * 100
+        : 0
 
     // Prevent mass deletion if percentage is too high
     const MAX_DELETION_PERCENTAGE = Number(
       this.config.maxDeletionPrevention ?? 10,
     ) // Default to 10% as configured in the database
 
-    if (Number.isNaN(MAX_DELETION_PERCENTAGE) || MAX_DELETION_PERCENTAGE <= 0) {
+    if (
+      Number.isNaN(MAX_DELETION_PERCENTAGE) ||
+      MAX_DELETION_PERCENTAGE <= 0 ||
+      MAX_DELETION_PERCENTAGE > 100
+    ) {
       throw new Error(
-        `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage > 0.`,
+        `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100.`,
       )
     }
 
     if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
       return {
         safe: false,
-        message: `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalMediaItems} items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
+        message: `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalConsideredItems} eligible items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
       }
     }
 
@@ -1413,14 +1465,14 @@ export class DeleteSyncService {
         continue
       }
 
-      // Get all tags for this instance once
-      const allTags = await service.getTags()
+      // Get tags from cache (reusing existing cache infrastructure)
+      const tagMap = await this.getTagsForInstance(instanceId, service)
       const removalTagPrefix = (
         this.config.removedTagPrefix ?? ''
       ).toLowerCase()
-      const removedTagIds = allTags
-        .filter((tag) => tag.label.toLowerCase().startsWith(removalTagPrefix))
-        .map((tag) => tag.id)
+      const removedTagIds = Array.from(tagMap.entries())
+        .filter(([, label]) => label.startsWith(removalTagPrefix))
+        .map(([id]) => id)
 
       if (removedTagIds.length === 0) {
         // No matching tags in this instance
@@ -1505,14 +1557,14 @@ export class DeleteSyncService {
         continue
       }
 
-      // Get all tags for this instance once
-      const allTags = await service.getTags()
+      // Get tags from cache (reusing existing cache infrastructure)
+      const tagMap = await this.getTagsForInstance(instanceId, service)
       const removalTagPrefix = (
         this.config.removedTagPrefix ?? ''
       ).toLowerCase()
-      const removedTagIds = allTags
-        .filter((tag) => tag.label.toLowerCase().startsWith(removalTagPrefix))
-        .map((tag) => tag.id)
+      const removedTagIds = Array.from(tagMap.entries())
+        .filter(([, label]) => label.startsWith(removalTagPrefix))
+        .map(([id]) => id)
 
       if (removedTagIds.length === 0) {
         // No matching tags in this instance
@@ -1638,7 +1690,7 @@ export class DeleteSyncService {
         )
       }
 
-      // Create a set of unique GUIDs and KEYs for efficient lookup
+      // Create a set of unique GUIDs for efficient lookup
       const guidSet = new Set<string>()
       let malformedItems = 0
 
@@ -1676,10 +1728,10 @@ export class DeleteSyncService {
 
       // Debug sample of collected identifiers (limited to 5)
       if (this.log.level === 'debug' || this.log.level === 'trace') {
-        this.log.debug('Sample of watchlist keys (first 5):')
-        const sampleKeys = Array.from(guidSet).slice(0, 5)
-        for (const item of sampleKeys) {
-          this.log.debug(`  Watchlist key: "${item}"`)
+        this.log.debug('Sample of watchlist GUIDs (first 5):')
+        const sampleGuids = Array.from(guidSet).slice(0, 5)
+        for (const guid of sampleGuids) {
+          this.log.debug(`  Watchlist GUID: "${guid}"`)
         }
       }
 
