@@ -133,7 +133,7 @@ export class DeleteSyncService {
 
       if (playlistMap.size === 0) {
         throw new Error(
-          `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users`,
+          `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`,
         )
       }
 
@@ -840,6 +840,16 @@ export class DeleteSyncService {
     this.log.info(
       `Beginning tag-based deletion ${dryRun ? 'analysis' : 'process'} using tag "${this.config.removedTagPrefix}"`,
     )
+
+    // Validate once to avoid per-item warnings/work
+    const removalTagPrefix = (this.config.removedTagPrefix ?? '')
+      .trim()
+      .toLowerCase()
+    if (!removalTagPrefix) {
+      return this.createEmptyResult(
+        'Tag-based deletion requested but removedTagPrefix is blank – skipping operation',
+      )
+    }
 
     // Reset workflow caches before processing
     this.plexServer.clearWorkflowCaches()
