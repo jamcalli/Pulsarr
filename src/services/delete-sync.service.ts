@@ -125,7 +125,7 @@ export class DeleteSyncService {
     }
 
     try {
-      this.log.debug('Loading protection playlists (cached)...')
+      this.log.debug('Loading protection playlists and caching results...')
 
       // Create protection playlists for users if missing
       const playlistMap =
@@ -218,28 +218,7 @@ export class DeleteSyncService {
    *
    * @returns Promise resolving to detailed results of the delete operation
    */
-  async run(dryRun = false): Promise<{
-    total: {
-      deleted: number
-      skipped: number
-      processed: number
-      protected?: number
-    }
-    movies: {
-      deleted: number
-      skipped: number
-      protected?: number
-      items: Array<{ title: string; guid: string; instance: string }>
-    }
-    shows: {
-      deleted: number
-      skipped: number
-      protected?: number
-      items: Array<{ title: string; guid: string; instance: string }>
-    }
-    safetyTriggered?: boolean
-    safetyMessage?: string
-  }> {
+  async run(dryRun = false): Promise<DeleteSyncResult> {
     // Check if delete sync is already running
     if (this._running) {
       this.log.warn(
@@ -364,8 +343,6 @@ export class DeleteSyncService {
 
           try {
             this.log.info('Beginning deletion analysis based on configuration')
-            this.log.info('Clearing workflow-specific caches')
-            this.plexServer.clearWorkflowCaches()
             this.log.info(
               `Plex playlist protection is enabled with playlist name "${this.getProtectionPlaylistName()}"`,
             )
