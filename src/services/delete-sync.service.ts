@@ -36,6 +36,7 @@ import {
 } from '@utils/guid-handler.js'
 import { PlexServerService } from '@utils/plex-server.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
 
 export class DeleteSyncService {
   /**
@@ -861,15 +862,12 @@ export class DeleteSyncService {
           `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${this.protectedGuids.size} protected GUIDs`,
         )
 
-        // Debug sample of protected identifiers (limited to 5)
-        if (
-          this.protectedGuids.size > 0 &&
-          (this.log.level === 'debug' || this.log.level === 'trace')
-        ) {
+        // Trace sample of protected identifiers (limited to 5)
+        if (this.protectedGuids.size > 0 && this.log.level === 'trace') {
           const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
-          this.log.debug('Sample protected GUIDs:')
+          this.log.trace('Sample protected GUIDs:')
           for (const guid of sampleGuids) {
-            this.log.debug(`  Protected GUID: "${guid}"`)
+            this.log.trace(`  Protected GUID: "${guid}"`)
           }
         }
       } catch (protectedItemsError) {
@@ -1502,9 +1500,14 @@ export class DeleteSyncService {
 
       // Get tags from cache (reusing existing cache infrastructure)
       const tagMap = await this.getTagsForInstance(instanceId, service)
-      const removalTagPrefix = (
-        this.config.removedTagPrefix ?? ''
-      ).toLowerCase()
+      const removalTagPrefix = (this.config.removedTagPrefix ?? '')
+        .trim()
+        .toLowerCase()
+      if (!removalTagPrefix) {
+        // Avoid treating every tag as a removal tag when prefix is blank
+        processed += instanceSeries.length
+        continue
+      }
       const removedTagIds = Array.from(tagMap.entries())
         .filter(([, label]) => label.startsWith(removalTagPrefix))
         .map(([id]) => id)
@@ -1515,13 +1518,12 @@ export class DeleteSyncService {
         continue
       }
 
-      // Check each series in this instance in batches
-      const BATCH_SIZE = 25
+      // Process each series with limited concurrency to avoid API rate limits
+      const limit = pLimit(10)
 
-      for (let i = 0; i < instanceSeries.length; i += BATCH_SIZE) {
-        const batch = instanceSeries.slice(i, i + BATCH_SIZE)
-        const batchResults = await Promise.all(
-          batch.map(async (show) => {
+      const results = await Promise.allSettled(
+        instanceSeries.map((show) =>
+          limit(async () => {
             try {
               const sonarrId = extractSonarrId(show.guids)
               if (sonarrId === 0) {
@@ -1543,18 +1545,17 @@ export class DeleteSyncService {
               return false
             }
           }),
-        )
+        ),
+      )
 
-        count += batchResults.filter((hasTag) => hasTag).length
-        processed += batch.length
+      count += results.filter(
+        (result) => result.status === 'fulfilled' && result.value,
+      ).length
+      processed += instanceSeries.length
 
-        // Log progress periodically
-        if (processed % 50 === 0 || processed === series.length) {
-          this.log.debug(
-            `Checked ${processed}/${series.length} series for removal tag, found ${count} so far`,
-          )
-        }
-      }
+      this.log.debug(
+        `Checked ${processed} series for removal tag, found ${count} tagged`,
+      )
     }
 
     return count
@@ -1598,9 +1599,14 @@ export class DeleteSyncService {
 
       // Get tags from cache (reusing existing cache infrastructure)
       const tagMap = await this.getTagsForInstance(instanceId, service)
-      const removalTagPrefix = (
-        this.config.removedTagPrefix ?? ''
-      ).toLowerCase()
+      const removalTagPrefix = (this.config.removedTagPrefix ?? '')
+        .trim()
+        .toLowerCase()
+      if (!removalTagPrefix) {
+        // Avoid treating every tag as a removal tag when prefix is blank
+        processed += instanceMovies.length
+        continue
+      }
       const removedTagIds = Array.from(tagMap.entries())
         .filter(([, label]) => label.startsWith(removalTagPrefix))
         .map(([id]) => id)
@@ -1611,13 +1617,12 @@ export class DeleteSyncService {
         continue
       }
 
-      // Check each movie in this instance in batches
-      const BATCH_SIZE = 25
+      // Process each movie with limited concurrency to avoid API rate limits
+      const limit = pLimit(10)
 
-      for (let i = 0; i < instanceMovies.length; i += BATCH_SIZE) {
-        const batch = instanceMovies.slice(i, i + BATCH_SIZE)
-        const batchResults = await Promise.all(
-          batch.map(async (movie) => {
+      const results = await Promise.allSettled(
+        instanceMovies.map((movie) =>
+          limit(async () => {
             try {
               const radarrId = extractRadarrId(movie.guids)
               if (radarrId === 0) {
@@ -1639,18 +1644,17 @@ export class DeleteSyncService {
               return false
             }
           }),
-        )
+        ),
+      )
 
-        count += batchResults.filter((hasTag) => hasTag).length
-        processed += batch.length
+      count += results.filter(
+        (result) => result.status === 'fulfilled' && result.value,
+      ).length
+      processed += instanceMovies.length
 
-        // Log progress periodically
-        if (processed % 50 === 0 || processed === movies.length) {
-          this.log.debug(
-            `Checked ${processed}/${movies.length} movies for removal tag, found ${count} so far`,
-          )
-        }
-      }
+      this.log.debug(
+        `Checked ${processed} movies for removal tag, found ${count} tagged`,
+      )
     }
 
     return count
@@ -1765,12 +1769,12 @@ export class DeleteSyncService {
         `Extracted ${guidSet.size} unique GUIDs from watchlist items`,
       )
 
-      // Debug sample of collected identifiers (limited to 5)
-      if (this.log.level === 'debug' || this.log.level === 'trace') {
-        this.log.debug('Sample of watchlist GUIDs (first 5):')
+      // Trace sample of collected identifiers (limited to 5)
+      if (this.log.level === 'trace') {
+        this.log.trace('Sample of watchlist GUIDs (first 5):')
         const sampleGuids = Array.from(guidSet).slice(0, 5)
         for (const guid of sampleGuids) {
-          this.log.debug(`  Watchlist GUID: "${guid}"`)
+          this.log.trace(`  Watchlist GUID: "${guid}"`)
         }
       }
 
