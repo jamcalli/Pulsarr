@@ -903,14 +903,21 @@ export class DeleteSyncService {
           this.countTaggedMovies(existingMovies),
         ])
 
-      const eligibleSeries = existingSeries.filter((s) =>
-        s.series_status !== 'ended'
-          ? this.config.deleteContinuingShow
-          : this.config.deleteEndedShow,
+      const eligibleSeriesCount = existingSeries.reduce(
+        (acc, s) =>
+          acc +
+          (s.series_status !== 'ended'
+            ? this.config.deleteContinuingShow
+              ? 1
+              : 0
+            : this.config.deleteEndedShow
+              ? 1
+              : 0),
+        0,
       )
       const totalItems =
         (this.config.deleteMovie ? existingMovies.length : 0) +
-        eligibleSeries.length
+        eligibleSeriesCount
       const totalTaggedItems = taggedForDeletionSeries + taggedForDeletionMovies
 
       if (totalItems === 0) {
@@ -1018,6 +1025,9 @@ export class DeleteSyncService {
             continue
           }
 
+          // Parse GUIDs once and reuse for both protection check and deletion
+          const movieGuidList = parseGuids(movie.guids)
+
           // Check if the movie is protected based on its GUIDs
           if (this.config.enablePlexPlaylistProtection) {
             // Double-check if protectedGuids is correctly initialized
@@ -1033,7 +1043,6 @@ export class DeleteSyncService {
             }
 
             // Check for any movie GUID in the protected set
-            const movieGuidList = parseGuids(movie.guids)
             let isProtected = false
 
             for (const guid of movieGuidList) {
@@ -1056,7 +1065,6 @@ export class DeleteSyncService {
           }
 
           // Add to the list of movies to delete (or would delete in dry run)
-          const movieGuidList = parseGuids(movie.guids)
           moviesToDelete.push({
             title: movie.title,
             guid: movieGuidList[0] || 'unknown',
@@ -1209,6 +1217,9 @@ export class DeleteSyncService {
             continue
           }
 
+          // Parse GUIDs once and reuse for both protection check and deletion
+          const showGuidList = parseGuids(show.guids)
+
           // Check if the show is protected based on its GUIDs
           if (this.config.enablePlexPlaylistProtection) {
             // Double-check if protectedGuids is correctly initialized
@@ -1224,7 +1235,6 @@ export class DeleteSyncService {
             }
 
             // Check for any show GUID in the protected set
-            const showGuidList = parseGuids(show.guids)
             let isProtected = false
 
             for (const guid of showGuidList) {
@@ -1247,7 +1257,6 @@ export class DeleteSyncService {
           }
 
           // Add to the list of shows to delete (or would delete in dry run)
-          const showGuidList = parseGuids(show.guids)
           showsToDelete.push({
             title: show.title,
             guid: showGuidList[0] || 'unknown',
