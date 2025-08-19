@@ -1561,9 +1561,19 @@ export class DeleteSyncService {
                 `series/${sonarrId}`,
               )
 
-              return removedTagIds.some((id) =>
+              const hasRemoval = removedTagIds.some((id) =>
                 (seriesDetails.tags || []).includes(id),
               )
+              if (!hasRemoval) return false
+              if (
+                this.config.enablePlexPlaylistProtection &&
+                this.protectedGuids
+              ) {
+                const guids = parseGuids(show.guids)
+                // Count only if NOT protected
+                return !this.isAnyGuidProtected(guids)
+              }
+              return true
             } catch (error) {
               this.log.error(
                 `Error checking tags for series "${show.title}":`,
@@ -1660,9 +1670,19 @@ export class DeleteSyncService {
                 `movie/${radarrId}`,
               )
 
-              return removedTagIds.some((id) =>
+              const hasRemoval = removedTagIds.some((id) =>
                 (movieDetails.tags || []).includes(id),
               )
+              if (!hasRemoval) return false
+              if (
+                this.config.enablePlexPlaylistProtection &&
+                this.protectedGuids
+              ) {
+                const guids = parseGuids(movie.guids)
+                // Count only if NOT protected
+                return !this.isAnyGuidProtected(guids)
+              }
+              return true
             } catch (error) {
               this.log.error(
                 `Error checking tags for movie "${movie.title}":`,
