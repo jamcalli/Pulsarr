@@ -32,7 +32,6 @@ import type {
 import {
   extractRadarrId,
   extractSonarrId,
-  hasMatchingGuids,
   parseGuids,
 } from '@utils/guid-handler.js'
 import { PlexServerService } from '@utils/plex-server.js'
@@ -99,6 +98,64 @@ export class DeleteSyncService {
    */
   private get radarrManager() {
     return this.fastify.radarrManager
+  }
+
+  /**
+   * Ensures protection cache is loaded once per workflow
+   * Avoids redundant API calls for protection playlist loading
+   */
+  private async ensureProtectionCache(): Promise<Set<string> | null> {
+    // Return cached value if already loaded
+    if (this.protectedGuids !== null) {
+      return this.protectedGuids
+    }
+
+    // Only load if protection is enabled
+    if (!this.config.enablePlexPlaylistProtection) {
+      this.protectedGuids = null
+      return null
+    }
+
+    // Ensure Plex server is initialized
+    if (!this.plexServer.isInitialized()) {
+      throw new Error(
+        'Plex server not initialized for protection playlist access',
+      )
+    }
+
+    try {
+      this.log.debug('Loading protection playlists (cached)...')
+
+      // Create protection playlists for users if missing
+      const playlistMap =
+        await this.plexServer.getOrCreateProtectionPlaylists(true)
+
+      if (playlistMap.size === 0) {
+        throw new Error(
+          `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users`,
+        )
+      }
+
+      // Load and cache protected GUIDs
+      this.protectedGuids = await this.plexServer.getProtectedItems()
+
+      if (!this.protectedGuids) {
+        throw new Error('Failed to retrieve protected items from playlists')
+      }
+
+      this.log.debug(
+        `Cached ${this.protectedGuids.size} protected item GUIDs from ${playlistMap.size} user playlists`,
+      )
+
+      return this.protectedGuids
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Error loading protection playlists for caching',
+      )
+      this.protectedGuids = null
+      throw error
+    }
   }
 
   /**
@@ -202,7 +259,12 @@ export class DeleteSyncService {
         // Refresh watchlists to ensure we detect newly removed items
         const refreshResult = await this.refreshWatchlists()
         if (!refreshResult.success) {
-          return this.createSafetyTriggeredResult(refreshResult.message, dryRun)
+          return this.createSafetyTriggeredResult(
+            refreshResult.message,
+            dryRun,
+            existingSeries.length,
+            existingMovies.length,
+          )
         }
 
         await this.updateUserTags(existingSeries, existingMovies)
@@ -229,7 +291,12 @@ export class DeleteSyncService {
         // Step 4: Refresh watchlists to ensure current data
         const refreshResult = await this.refreshWatchlists()
         if (!refreshResult.success) {
-          return this.createSafetyTriggeredResult(refreshResult.message, dryRun)
+          return this.createSafetyTriggeredResult(
+            refreshResult.message,
+            dryRun,
+            existingSeries.length,
+            existingMovies.length,
+          )
         }
 
         // Step 5: Get all watchlisted content GUIDs
@@ -242,6 +309,8 @@ export class DeleteSyncService {
           return this.createSafetyTriggeredResult(
             'No watchlist items found - this could be an error condition. Aborting delete sync to prevent mass deletion.',
             dryRun,
+            existingSeries.length,
+            existingMovies.length,
           )
         }
 
@@ -269,30 +338,15 @@ export class DeleteSyncService {
               `Plex playlist protection is enabled with playlist name "${this.getProtectionPlaylistName()}"`,
             )
 
-            // Create protection playlists for users if missing
-            const playlistMap =
-              await this.plexServer.getOrCreateProtectionPlaylists(true)
-
-            if (playlistMap.size === 0) {
-              const errorMsg = `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`
-              this.log.error(errorMsg)
-              return this.createSafetyTriggeredResult(
-                errorMsg,
-                dryRun,
-                existingSeries.length,
-                existingMovies.length,
-              )
-            }
-
-            // Populate protected GUIDs cache for lookup operations
-            protectedGuids = await this.plexServer.getProtectedItems()
+            // Use cached protection loading to avoid redundant API calls
+            protectedGuids = await this.ensureProtectionCache()
 
             if (!protectedGuids) {
               throw new Error('Failed to retrieve protected items')
             }
 
             this.log.info(
-              `Protection playlists "${this.getProtectionPlaylistName()}" for ${playlistMap.size} users contain a total of ${protectedGuids.size} protected GUIDs`,
+              `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${protectedGuids.size} protected GUIDs`,
             )
             this.log.info(
               'Protection uses standardized GUIDs for maximum compatibility across all systems',
@@ -327,8 +381,7 @@ export class DeleteSyncService {
         }
 
         // Step 9: If everything is safe, proceed with the actual watchlist-based processing
-        // Set the protectedGuids cache for use in processDeleteSync
-        this.protectedGuids = protectedGuids
+        // Protection cache is already set by ensureProtectionCache()
         result = await this.processDeleteSync(
           existingSeries,
           existingMovies,
@@ -518,25 +571,24 @@ export class DeleteSyncService {
     const considerContinuing = this.config.deleteContinuingShow === true
     let totalConsideredItems = 0
 
-    // Convert Sets to arrays once for efficient reuse
-    const watchlistGuidsArray = Array.from(allWatchlistItems)
-    const protectedGuidsArray = protectedGuids
-      ? Array.from(protectedGuids)
-      : null
+    // Use Set membership directly for O(1) lookups
+    const watchlistGuidsSet = allWatchlistItems
+    const protectedGuidsSet = protectedGuids ?? null
 
     // Count movies not in watchlist and not protected (only if we actually delete movies)
     if (considerMovies) {
       for (const movie of existingMovies) {
         totalConsideredItems++
-        const existsInWatchlist = hasMatchingGuids(
-          movie.guids,
-          watchlistGuidsArray,
+        const movieGuidList = parseGuids(movie.guids)
+        const existsInWatchlist = movieGuidList.some((g) =>
+          watchlistGuidsSet.has(g),
         )
         if (!existsInWatchlist) {
           // Check if movie is protected by playlist
-          const isProtected = protectedGuidsArray
-            ? hasMatchingGuids(movie.guids, protectedGuidsArray)
-            : false
+          const isProtected =
+            protectedGuidsSet != null
+              ? movieGuidList.some((g) => protectedGuidsSet.has(g))
+              : false
           if (!isProtected) {
             potentialMovieDeletes++
           }
@@ -551,15 +603,16 @@ export class DeleteSyncService {
       if (!shouldConsider) continue
       totalConsideredItems++
 
-      const existsInWatchlist = hasMatchingGuids(
-        show.guids,
-        watchlistGuidsArray,
+      const showGuidList = parseGuids(show.guids)
+      const existsInWatchlist = showGuidList.some((g) =>
+        watchlistGuidsSet.has(g),
       )
       if (!existsInWatchlist) {
         // Check if show is protected by playlist
-        const isProtected = protectedGuidsArray
-          ? hasMatchingGuids(show.guids, protectedGuidsArray)
-          : false
+        const isProtected =
+          protectedGuidsSet != null
+            ? showGuidList.some((g) => protectedGuidsSet.has(g))
+            : false
         if (!isProtected) {
           potentialShowDeletes++
         }
@@ -812,15 +865,15 @@ export class DeleteSyncService {
         }
 
         try {
-          // Populate protected GUIDs cache for lookup operations
-          this.protectedGuids = await this.plexServer.getProtectedItems()
+          // Use cached protection loading to avoid redundant API calls
+          await this.ensureProtectionCache()
 
           if (!this.protectedGuids) {
             throw new Error('Failed to retrieve protected items')
           }
 
           this.log.info(
-            `Protection playlists "${this.getProtectionPlaylistName()}" for ${playlistMap.size} users contain a total of ${this.protectedGuids.size} protected GUIDs`,
+            `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${this.protectedGuids.size} protected GUIDs`,
           )
 
           // Debug sample of protected identifiers (limited to 5)
@@ -1063,11 +1116,6 @@ export class DeleteSyncService {
         }
       }
 
-      const _movieSummary = {
-        deleted: moviesDeleted,
-        skipped: moviesSkipped,
-        protected: moviesProtected,
-      }
       this.log.info(
         `Tag-based movie deletion ${dryRun ? 'analysis' : ''} summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
       )
@@ -1272,17 +1320,6 @@ export class DeleteSyncService {
         }
       }
 
-      const _tvShowSummary = {
-        endedShows: {
-          deleted: endedShowsDeleted,
-          skipped: endedShowsSkipped,
-        },
-        continuingShows: {
-          deleted: continuingShowsDeleted,
-          skipped: continuingShowsSkipped,
-        },
-        protected: showsProtected,
-      }
       this.log.info(
         `TV show tag-based deletion ${dryRun ? 'analysis' : ''} summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
       )
@@ -1481,7 +1518,7 @@ export class DeleteSyncService {
       }
 
       // Check each series in this instance in batches
-      const BATCH_SIZE = 10
+      const BATCH_SIZE = 25
 
       for (let i = 0; i < instanceSeries.length; i += BATCH_SIZE) {
         const batch = instanceSeries.slice(i, i + BATCH_SIZE)
@@ -1573,7 +1610,7 @@ export class DeleteSyncService {
       }
 
       // Check each movie in this instance in batches
-      const BATCH_SIZE = 10
+      const BATCH_SIZE = 25
 
       for (let i = 0; i < instanceMovies.length; i += BATCH_SIZE) {
         const batch = instanceMovies.slice(i, i + BATCH_SIZE)
@@ -1933,11 +1970,6 @@ export class DeleteSyncService {
         }
       }
 
-      const _movieSummary = {
-        deleted: moviesDeleted,
-        skipped: moviesSkipped,
-        protected: moviesProtected,
-      }
       this.log.info(
         `Movie deletion ${dryRun ? 'analysis' : ''} summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
       )
@@ -2115,17 +2147,6 @@ export class DeleteSyncService {
         }
       }
 
-      const _tvShowSummary = {
-        endedShows: {
-          deleted: endedShowsDeleted,
-          skipped: endedShowsSkipped,
-        },
-        continuingShows: {
-          deleted: continuingShowsDeleted,
-          skipped: continuingShowsSkipped,
-        },
-        protected: showsProtected,
-      }
       this.log.info(
         `TV show deletion ${dryRun ? 'analysis' : ''} summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
       )
