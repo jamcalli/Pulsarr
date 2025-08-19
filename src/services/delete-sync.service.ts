@@ -180,6 +180,14 @@ export class DeleteSyncService {
   }
 
   /**
+   * Gets the normalized removal tag prefix (trimmed and lowercased)
+   * @returns The normalized removal tag prefix, or empty string if not configured
+   */
+  private getRemovalTagPrefixNormalized(): string {
+    return (this.config.removedTagPrefix ?? '').trim().toLowerCase()
+  }
+
+  /**
    * Initialize the service and its dependencies
    */
   async initialize(): Promise<boolean> {
@@ -249,6 +257,9 @@ export class DeleteSyncService {
 
       // Clear tag cache at the start of each run
       this.clearTagCache()
+      // Reset per-run caches to ensure fresh protection data every run
+      this.protectedGuids = null
+      this.plexServer.clearWorkflowCaches()
 
       // Make sure the Plex server is initialized if needed
       if (
@@ -424,6 +435,9 @@ export class DeleteSyncService {
       throw error
     } finally {
       this._running = false
+      // Always reset caches, even if we exited early
+      this.plexServer.clearWorkflowCaches()
+      this.protectedGuids = null
     }
   }
 
@@ -862,9 +876,7 @@ export class DeleteSyncService {
     )
 
     // Validate once to avoid per-item warnings/work
-    const removalTagPrefix = (this.config.removedTagPrefix ?? '')
-      .trim()
-      .toLowerCase()
+    const removalTagPrefix = this.getRemovalTagPrefixNormalized()
     if (!removalTagPrefix) {
       return this.createEmptyResult(
         'Tag-based deletion requested but removedTagPrefix is blank – skipping operation',
@@ -1453,9 +1465,7 @@ export class DeleteSyncService {
 
     try {
       // Safeguard against missing configuration
-      const removalTagPrefix = (this.config.removedTagPrefix ?? '')
-        .trim()
-        .toLowerCase()
+      const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
         this.log.warn(
           'removedTagPrefix is blank – tag-based deletion will never match any items',
@@ -1527,9 +1537,7 @@ export class DeleteSyncService {
 
       // Get tags from cache (reusing existing cache infrastructure)
       const tagMap = await this.getTagsForInstance(instanceId, service)
-      const removalTagPrefix = (this.config.removedTagPrefix ?? '')
-        .trim()
-        .toLowerCase()
+      const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
         // Avoid treating every tag as a removal tag when prefix is blank
         processed += instanceSeries.length
@@ -1636,9 +1644,7 @@ export class DeleteSyncService {
 
       // Get tags from cache (reusing existing cache infrastructure)
       const tagMap = await this.getTagsForInstance(instanceId, service)
-      const removalTagPrefix = (this.config.removedTagPrefix ?? '')
-        .trim()
-        .toLowerCase()
+      const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
         // Avoid treating every tag as a removal tag when prefix is blank
         processed += instanceMovies.length
