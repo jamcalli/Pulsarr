@@ -632,12 +632,13 @@ export class DeleteSyncService {
 
     if (
       Number.isNaN(MAX_DELETION_PERCENTAGE) ||
-      MAX_DELETION_PERCENTAGE <= 0 ||
+      MAX_DELETION_PERCENTAGE < 0 ||
       MAX_DELETION_PERCENTAGE > 100
     ) {
-      throw new Error(
-        `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100.`,
-      )
+      return {
+        safe: false,
+        message: `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100 inclusive.`,
+      }
     }
 
     if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
@@ -849,56 +850,30 @@ export class DeleteSyncService {
       )
 
       try {
-        // Create protection playlists for users if missing
-        const playlistMap =
-          await this.plexServer.getOrCreateProtectionPlaylists(true)
+        // Use cached protection loading to avoid redundant API calls
+        await this.ensureProtectionCache()
 
-        if (playlistMap.size === 0) {
-          const errorMsg = `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`
-          this.log.error(errorMsg)
-          return this.createSafetyTriggeredResult(
-            errorMsg,
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
+        if (!this.protectedGuids) {
+          throw new Error('Failed to retrieve protected items')
         }
 
-        try {
-          // Use cached protection loading to avoid redundant API calls
-          await this.ensureProtectionCache()
+        this.log.info(
+          `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${this.protectedGuids.size} protected GUIDs`,
+        )
 
-          if (!this.protectedGuids) {
-            throw new Error('Failed to retrieve protected items')
+        // Debug sample of protected identifiers (limited to 5)
+        if (
+          this.protectedGuids.size > 0 &&
+          (this.log.level === 'debug' || this.log.level === 'trace')
+        ) {
+          const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
+          this.log.debug('Sample protected GUIDs:')
+          for (const guid of sampleGuids) {
+            this.log.debug(`  Protected GUID: "${guid}"`)
           }
-
-          this.log.info(
-            `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${this.protectedGuids.size} protected GUIDs`,
-          )
-
-          // Debug sample of protected identifiers (limited to 5)
-          if (
-            this.protectedGuids.size > 0 &&
-            (this.log.level === 'debug' || this.log.level === 'trace')
-          ) {
-            const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
-            this.log.debug('Sample protected GUIDs:')
-            for (const guid of sampleGuids) {
-              this.log.debug(`  Protected GUID: "${guid}"`)
-            }
-          }
-        } catch (protectedItemsError) {
-          const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
-          this.log.error(errorMsg)
-          return this.createSafetyTriggeredResult(
-            errorMsg,
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
         }
-      } catch (playlistError) {
-        const errorMsg = `Error creating or retrieving protection playlists: ${playlistError instanceof Error ? playlistError.message : String(playlistError)}`
+      } catch (protectedItemsError) {
+        const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
         this.log.error(errorMsg)
         return this.createSafetyTriggeredResult(
           errorMsg,
@@ -920,7 +895,14 @@ export class DeleteSyncService {
           this.countTaggedMovies(existingMovies),
         ])
 
-      const totalItems = existingSeries.length + existingMovies.length
+      const eligibleSeries = existingSeries.filter((s) =>
+        s.series_status !== 'ended'
+          ? this.config.deleteContinuingShow
+          : this.config.deleteEndedShow,
+      )
+      const totalItems =
+        (this.config.deleteMovie ? existingMovies.length : 0) +
+        eligibleSeries.length
       const totalTaggedItems = taggedForDeletionSeries + taggedForDeletionMovies
 
       if (totalItems === 0) {
@@ -940,10 +922,14 @@ export class DeleteSyncService {
       )
       if (
         Number.isNaN(MAX_DELETION_PERCENTAGE) ||
-        MAX_DELETION_PERCENTAGE <= 0
+        MAX_DELETION_PERCENTAGE < 0 ||
+        MAX_DELETION_PERCENTAGE > 100
       ) {
-        throw new Error(
-          `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage > 0.`,
+        return this.createSafetyTriggeredResult(
+          `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100 inclusive.`,
+          dryRun,
+          existingSeries.length,
+          existingMovies.length,
         )
       }
       if (taggedPercentage > MAX_DELETION_PERCENTAGE) {
@@ -1480,10 +1466,22 @@ export class DeleteSyncService {
     let count = 0
     let processed = 0
 
+    // Quick exit if both continuing and ended show deletions are disabled
+    if (!this.config.deleteEndedShow && !this.config.deleteContinuingShow) {
+      return 0
+    }
+
     // Group series by instance for efficient processing
     const seriesByInstance = new Map<number, SonarrItem[]>()
 
     for (const show of series) {
+      // Respect configured show types
+      const isContinuing = show.series_status !== 'ended'
+      const shouldConsider = isContinuing
+        ? this.config.deleteContinuingShow
+        : this.config.deleteEndedShow
+      if (!shouldConsider) continue
+
       if (show.sonarr_instance_id) {
         if (!seriesByInstance.has(show.sonarr_instance_id)) {
           seriesByInstance.set(show.sonarr_instance_id, [])
@@ -1571,6 +1569,10 @@ export class DeleteSyncService {
   private async countTaggedMovies(movies: RadarrItem[]): Promise<number> {
     let count = 0
     let processed = 0
+
+    if (!this.config.deleteMovie) {
+      return 0
+    }
 
     // Group movies by instance for efficient processing
     const moviesByInstance = new Map<number, RadarrItem[]>()
