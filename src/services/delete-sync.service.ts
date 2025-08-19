@@ -160,6 +160,26 @@ export class DeleteSyncService {
   }
 
   /**
+   * Returns true if any of the provided GUIDs exist in the protected set.
+   * Optional onHit callback lets callers log the first matching GUID.
+   */
+  private isAnyGuidProtected(
+    guidList: string[],
+    onHit?: (guid: string) => void,
+  ): boolean {
+    if (!this.config.enablePlexPlaylistProtection || !this.protectedGuids) {
+      return false
+    }
+    for (const guid of guidList) {
+      if (this.protectedGuids.has(guid)) {
+        onHit?.(guid)
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
    * Initialize the service and its dependencies
    */
   async initialize(): Promise<boolean> {
@@ -1043,17 +1063,11 @@ export class DeleteSyncService {
             }
 
             // Check for any movie GUID in the protected set
-            let isProtected = false
-
-            for (const guid of movieGuidList) {
-              if (this.protectedGuids.has(guid)) {
-                this.log.debug(
-                  `Movie "${movie.title}" is protected by GUID "${guid}"`,
-                )
-                isProtected = true
-                break
-              }
-            }
+            const isProtected = this.isAnyGuidProtected(movieGuidList, (guid) =>
+              this.log.debug(
+                `Movie "${movie.title}" is protected by GUID "${guid}"`,
+              ),
+            )
 
             if (isProtected) {
               this.log.info(
@@ -1235,17 +1249,11 @@ export class DeleteSyncService {
             }
 
             // Check for any show GUID in the protected set
-            let isProtected = false
-
-            for (const guid of showGuidList) {
-              if (this.protectedGuids.has(guid)) {
-                this.log.debug(
-                  `Show "${show.title}" is protected by GUID "${guid}"`,
-                )
-                isProtected = true
-                break
-              }
-            }
+            const isProtected = this.isAnyGuidProtected(showGuidList, (guid) =>
+              this.log.debug(
+                `Show "${show.title}" is protected by GUID "${guid}"`,
+              ),
+            )
 
             if (isProtected) {
               this.log.info(
@@ -1908,17 +1916,13 @@ export class DeleteSyncService {
               }
 
               // Check for any movie GUID in the protected set
-              let isProtected = false
-
-              for (const guid of movieGuidList) {
-                if (this.protectedGuids.has(guid)) {
+              const isProtected = this.isAnyGuidProtected(
+                movieGuidList,
+                (guid) =>
                   this.log.debug(
                     `Movie "${movie.title}" is protected by GUID "${guid}"`,
-                  )
-                  isProtected = true
-                  break
-                }
-              }
+                  ),
+              )
 
               if (isProtected) {
                 this.log.info(
@@ -2067,17 +2071,13 @@ export class DeleteSyncService {
               }
 
               // Check for any show GUID in the protected set
-              let isProtected = false
-
-              for (const guid of showGuidList) {
-                if (this.protectedGuids.has(guid)) {
+              const isProtected = this.isAnyGuidProtected(
+                showGuidList,
+                (guid) =>
                   this.log.debug(
                     `Show "${show.title}" is protected by GUID "${guid}"`,
-                  )
-                  isProtected = true
-                  break
-                }
-              }
+                  ),
+              )
 
               if (isProtected) {
                 this.log.info(
