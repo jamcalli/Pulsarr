@@ -21,7 +21,7 @@ jobs:
           color: "4760230"
           username: "Pulsarr Releases"
           avatar_url: "https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png"
-          content: "🚀 New Pulsarr release is available! ||@everyone||"
+          content: "🚀 New Pulsarr release is available!"
           footer_title: "Pulsarr"
           footer_timestamp: true
           reduce_headings: true
