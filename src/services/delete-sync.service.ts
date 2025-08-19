@@ -216,27 +216,27 @@ export class DeleteSyncService {
           `Running tag-based deletion using tag "${this.config.removedTagPrefix}"`,
         )
 
-        // Step 3: If tag-based mode, process using tag-based workflow
+        // Process tag-based deletion workflow
         result = await this.processTagBasedDeleteSync(
           existingSeries,
           existingMovies,
           dryRun,
         )
       } else {
-        // Traditional watchlist-based deletion workflow
+        // Watchlist-based deletion workflow
 
-        // Step 3: Refresh watchlists to ensure current data
+        // Step 4: Refresh watchlists to ensure current data
         const refreshResult = await this.refreshWatchlists()
         if (!refreshResult.success) {
           return this.createSafetyTriggeredResult(refreshResult.message, dryRun)
         }
 
-        // Step 4: Get all watchlisted content GUIDs
+        // Step 5: Get all watchlisted content GUIDs
         const allWatchlistItems = await this.getAllWatchlistItems(
           this.config.respectUserSyncSetting,
         )
 
-        // Step 5: Ensure we have at least some watchlist items (safety check)
+        // Step 6: Ensure we have at least some watchlist items (safety check)
         if (allWatchlistItems.size === 0) {
           return this.createSafetyTriggeredResult(
             'No watchlist items found - this could be an error condition. Aborting delete sync to prevent mass deletion.',
@@ -248,11 +248,71 @@ export class DeleteSyncService {
           `Found ${allWatchlistItems.size} unique GUIDs across all watchlists${this.config.respectUserSyncSetting ? ' (respecting user sync settings)' : ''}`,
         )
 
-        // Step 6: Perform safety check for mass deletion prevention
+        // Step 7: Load protection playlists if enabled (needed for accurate safety check)
+        let protectedGuids: Set<string> | null = null
+        if (this.config.enablePlexPlaylistProtection) {
+          if (!this.plexServer.isInitialized()) {
+            return this.createSafetyTriggeredResult(
+              'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
+              dryRun,
+              existingSeries.length,
+              existingMovies.length,
+            )
+          }
+
+          try {
+            this.log.info('Beginning deletion analysis based on configuration')
+            this.log.info('Clearing workflow-specific caches')
+            this.log.info(
+              `Plex playlist protection is enabled with playlist name "${this.getProtectionPlaylistName()}"`,
+            )
+
+            // Create protection playlists for users if missing
+            const playlistMap =
+              await this.plexServer.getOrCreateProtectionPlaylists(true)
+
+            if (playlistMap.size === 0) {
+              const errorMsg = `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`
+              this.log.error(errorMsg)
+              return this.createSafetyTriggeredResult(
+                errorMsg,
+                dryRun,
+                existingSeries.length,
+                existingMovies.length,
+              )
+            }
+
+            // Populate protected GUIDs cache for lookup operations
+            protectedGuids = await this.plexServer.getProtectedItems()
+
+            if (!protectedGuids) {
+              throw new Error('Failed to retrieve protected items')
+            }
+
+            this.log.info(
+              `Protection playlists "${this.getProtectionPlaylistName()}" for ${playlistMap.size} users contain a total of ${protectedGuids.size} protected GUIDs`,
+            )
+            this.log.info(
+              'Protection uses standardized GUIDs for maximum compatibility across all systems',
+            )
+          } catch (protectedItemsError) {
+            const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
+            this.log.error(errorMsg)
+            return this.createSafetyTriggeredResult(
+              errorMsg,
+              dryRun,
+              existingSeries.length,
+              existingMovies.length,
+            )
+          }
+        }
+
+        // Step 8: Perform safety check for mass deletion prevention (with protection awareness)
         const safetyResult = this.performSafetyCheck(
           existingSeries,
           existingMovies,
           allWatchlistItems,
+          protectedGuids,
         )
 
         if (!safetyResult.safe) {
@@ -264,20 +324,9 @@ export class DeleteSyncService {
           )
         }
 
-        // Additional safety check: If Plex playlist protection is enabled but Plex server isn't properly initialized
-        if (
-          this.config.enablePlexPlaylistProtection &&
-          !this.plexServer.isInitialized()
-        ) {
-          return this.createSafetyTriggeredResult(
-            'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
-        }
-
-        // Step 7: If everything is safe, proceed with the actual watchlist-based processing
+        // Step 9: If everything is safe, proceed with the actual watchlist-based processing
+        // Set the protectedGuids cache for use in processDeleteSync
+        this.protectedGuids = protectedGuids
         result = await this.processDeleteSync(
           existingSeries,
           existingMovies,
@@ -290,7 +339,7 @@ export class DeleteSyncService {
         `Delete sync operation ${dryRun ? 'simulation' : ''} completed successfully`,
       )
 
-      // Step 8: Send notifications about results if enabled
+      // Step 10: Send notifications about results if enabled
       await this.sendNotificationsIfEnabled(result, dryRun)
 
       return result
@@ -430,25 +479,44 @@ export class DeleteSyncService {
     existingSeries: SonarrItem[],
     existingMovies: RadarrItem[],
     allWatchlistItems: Set<string>,
+    protectedGuids: Set<string> | null = null,
   ): { safe: boolean; message: string } {
     // Calculate deletion percentages by doing a count of items that would be deleted
     let potentialMovieDeletes = 0
     let potentialShowDeletes = 0
     const totalMediaItems = existingSeries.length + existingMovies.length
 
-    // Count movies not in watchlist
+    // Count movies not in watchlist and not protected
     for (const movie of existingMovies) {
-      const exists = movie.guids.some((guid) => allWatchlistItems.has(guid))
-      if (!exists) {
-        potentialMovieDeletes++
+      const movieGuidList = parseGuids(movie.guids)
+      const existsInWatchlist = movieGuidList.some((guid) =>
+        allWatchlistItems.has(guid),
+      )
+      if (!existsInWatchlist) {
+        // Check if movie is protected by playlist
+        const isProtected = protectedGuids
+          ? movieGuidList.some((guid) => protectedGuids.has(guid))
+          : false
+        if (!isProtected) {
+          potentialMovieDeletes++
+        }
       }
     }
 
-    // Count shows not in watchlist
+    // Count shows not in watchlist and not protected
     for (const show of existingSeries) {
-      const exists = show.guids.some((guid) => allWatchlistItems.has(guid))
-      if (!exists) {
-        potentialShowDeletes++
+      const showGuidList = parseGuids(show.guids)
+      const existsInWatchlist = showGuidList.some((guid) =>
+        allWatchlistItems.has(guid),
+      )
+      if (!existsInWatchlist) {
+        // Check if show is protected by playlist
+        const isProtected = protectedGuids
+          ? showGuidList.some((guid) => protectedGuids.has(guid))
+          : false
+        if (!isProtected) {
+          potentialShowDeletes++
+        }
       }
     }
 
@@ -1574,17 +1642,14 @@ export class DeleteSyncService {
       const guidSet = new Set<string>()
       let malformedItems = 0
 
-      // Process all items to extract GUIDs and KEYs
+      // Process all items to extract GUIDs using the standardized GUID handler
       for (const item of watchlistItems) {
         try {
-          // Handle GUIDs stored as either JSON string or array
-          const guids =
-            typeof item.guids === 'string'
-              ? JSON.parse(item.guids)
-              : item.guids || []
+          // Use parseGuids utility for consistent GUID parsing and normalization
+          const parsedGuids = parseGuids(item.guids)
 
-          // Add each GUID to the set for efficient lookup
-          for (const guid of guids) {
+          // Add each parsed and normalized GUID to the set for efficient lookup
+          for (const guid of parsedGuids) {
             guidSet.add(guid)
           }
 
@@ -1687,84 +1752,8 @@ export class DeleteSyncService {
       `Beginning deletion ${dryRun ? 'analysis' : 'process'} based on configuration`,
     )
 
-    // Reset workflow caches before processing
-    this.plexServer.clearWorkflowCaches()
-
-    // Check if Plex playlist protection is enabled
-    if (this.config.enablePlexPlaylistProtection) {
-      this.log.info(
-        `Plex playlist protection is enabled with playlist name "${this.getProtectionPlaylistName()}"`,
-      )
-
-      try {
-        // Create protection playlists for users if missing
-        const playlistMap =
-          await this.plexServer.getOrCreateProtectionPlaylists(true)
-
-        if (playlistMap.size === 0) {
-          const errorMsg = `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`
-          this.log.error(errorMsg)
-          return this.createSafetyTriggeredResult(
-            errorMsg,
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
-        }
-
-        try {
-          // Populate protected GUIDs cache for lookup operations
-          this.protectedGuids = await this.plexServer.getProtectedItems()
-
-          if (!this.protectedGuids) {
-            throw new Error('Failed to retrieve protected items')
-          }
-
-          this.log.info(
-            `Protection playlists "${this.getProtectionPlaylistName()}" for ${playlistMap.size} users contain a total of ${this.protectedGuids.size} protected GUIDs`,
-          )
-
-          // Debug sample of protected identifiers (limited to 5)
-          if (
-            this.protectedGuids.size > 0 &&
-            (this.log.level === 'debug' || this.log.level === 'trace')
-          ) {
-            const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
-            this.log.debug('Sample protected GUIDs:')
-            for (const guid of sampleGuids) {
-              this.log.debug(`  Protected GUID: "${guid}"`)
-            }
-          }
-        } catch (protectedItemsError) {
-          const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
-          this.log.error(errorMsg)
-          return this.createSafetyTriggeredResult(
-            errorMsg,
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
-        }
-      } catch (playlistError) {
-        const errorMsg = `Error creating or retrieving protection playlists: ${playlistError instanceof Error ? playlistError.message : String(playlistError)}`
-        this.log.error(errorMsg)
-        return this.createSafetyTriggeredResult(
-          errorMsg,
-          dryRun,
-          existingSeries.length,
-          existingMovies.length,
-        )
-      }
-
-      // Direct GUID comparison using pre-cached protected GUIDs
-      // Efficient approach that avoids individual isItemProtected calls
-
-      this.log.info(
-        'Protection uses standardized GUIDs for maximum compatibility across all systems',
-      )
-    } else {
-      this.log.debug('Plex playlist protection is disabled')
-    }
+    // Note: Protection playlists are now loaded before the safety check
+    // this.protectedGuids should already be populated if protection is enabled
 
     // Process movies if movie deletion is enabled
     if (this.config.deleteMovie) {
