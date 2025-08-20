@@ -19,6 +19,7 @@ import {
   ErrorBar,
   ReferenceLine,
   Tooltip,
+  type TooltipProps,
   XAxis,
   YAxis,
 } from 'recharts'
@@ -34,20 +35,19 @@ export function StatusTransitionsChart() {
   const { data: statusTransitions, isLoading } = useStatusTransitionData()
 
   // CSS Custom Properties
-  const cssColors = {
-    movie:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--color-movie')
-        .trim() || '#1a5999',
-    show:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--color-show')
-        .trim() || '#39b978',
-    error:
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--error')
-        .trim() || '#c1666b',
-  }
+  const cssColors = useMemo(() => {
+    if (typeof window === 'undefined' || !document?.documentElement) {
+      return { movie: '#1a5999', show: '#39b978', error: '#c1666b' }
+    }
+    const root = getComputedStyle(document.documentElement)
+    const read = (name: string, fallback: string) =>
+      root.getPropertyValue(name).trim() || fallback
+    return {
+      movie: read('--color-movie', '#1a5999'),
+      show: read('--color-show', '#39b978'),
+      error: read('--error', '#c1666b'),
+    }
+  }, [])
 
   // All transitions to notified chart data
   const notifiedByContentTypeData = useMemo(() => {
@@ -109,7 +109,10 @@ export function StatusTransitionsChart() {
     const toMinutes = (days: number) =>
       Math.round(days * MINUTES_PER_DAY * 100) / 100
 
-    return Object.values(groupedData)
+    const groups = Object.values(groupedData).filter(
+      Boolean,
+    ) as GroupedDataItem[]
+    return groups
       .filter(
         (g) =>
           g.totalCount > 0 &&
@@ -193,11 +196,17 @@ export function StatusTransitionsChart() {
             axisLine={false}
           />
           <Tooltip
-            content={(props) => {
+            content={(props: TooltipProps<number, string>) => {
               if (!props.active || !props.payload || !props.payload.length) {
                 return null
               }
-              const data = props.payload[0].payload
+              const data = props.payload[0].payload as {
+                contentType: string
+                avgMinutes: number
+                minMinutes: number
+                maxMinutes: number
+                count: number
+              }
               return (
                 <div className="bg-background border border-border p-2 rounded-xs shadow-md">
                   <p className="font-medium text-foreground">
@@ -278,13 +287,12 @@ export function StatusTransitionsChart() {
             const lineColor =
               entry.contentType === 'Movies' ? cssColors.movie : cssColors.show
 
-            const transparentLineColor = `${lineColor}99` // 60% opacity
-
             return [
               <ReferenceLine
                 key={`refline-min-${index}-${entry.contentType}-${entry.minMinutes}`}
                 x={entry.minMinutes}
-                stroke={transparentLineColor}
+                stroke={lineColor}
+                strokeOpacity={0.6}
                 strokeDasharray="3 3"
                 isFront={true}
                 ifOverflow="extendDomain"
@@ -292,7 +300,8 @@ export function StatusTransitionsChart() {
               <ReferenceLine
                 key={`refline-max-${index}-${entry.contentType}-${entry.maxMinutes}`}
                 x={entry.maxMinutes}
-                stroke={transparentLineColor}
+                stroke={lineColor}
+                strokeOpacity={0.6}
                 strokeDasharray="3 3"
                 isFront={true}
                 ifOverflow="extendDomain"
