@@ -1,3 +1,4 @@
+import type { StatusTransitionTime } from '@root/schemas/stats/stats.schema'
 import { useMemo } from 'react'
 import {
   Bar,
@@ -39,36 +40,72 @@ export function StatusTransitionsChart() {
 
   // Request to Notify chart data
   const requestToNotifyData = useMemo(() => {
-    // Filter the data to include transitions that lead to notification
-    const filteredData = (statusTransitions ?? []).filter(
-      (transition) =>
-        (transition.from_status === 'grabbed' ||
-          transition.from_status === 'requested') &&
-        transition.to_status === 'notified',
+    // Filter status transitions for those that end in "notified" status
+    const notifiedTransitions = (statusTransitions ?? []).filter(
+      (transition: StatusTransitionTime) => transition.to_status === 'notified',
     )
 
-    return filteredData.map((transition) => ({
-      contentType: transition.content_type === 'movie' ? 'Movies' : 'Shows',
-      // Convert from days to minutes
-      avgMinutes: Math.round(transition.avg_days * 24 * 60 * 100) / 100,
-      minMinutes: Math.round(transition.min_days * 24 * 60 * 100) / 100,
-      maxMinutes: Math.round(transition.max_days * 24 * 60 * 100) / 100,
-      count: transition.count,
+    // Group by content type and aggregate data
+    interface GroupedDataItem {
+      contentType: string
+      totalCount: number
+      totalAvgDays: number
+      minDays: number
+      maxDays: number
+      transitions: StatusTransitionTime[]
+    }
 
-      // Add these properties that the ErrorBar component will use automatically
-      // Only add error bars if min != max to avoid duplicate keys
-      errorX:
-        transition.min_days !== transition.max_days
-          ? [
-              Math.round(
-                (transition.avg_days - transition.min_days) * 24 * 60 * 100,
-              ) / 100,
-              Math.round(
-                (transition.max_days - transition.avg_days) * 24 * 60 * 100,
-              ) / 100,
-            ]
-          : [0, 0],
-    }))
+    const groupedData = notifiedTransitions.reduce(
+      (
+        acc: Record<string, GroupedDataItem>,
+        transition: StatusTransitionTime,
+      ) => {
+        const key = transition.content_type === 'movie' ? 'Movies' : 'Shows'
+
+        if (!acc[key]) {
+          acc[key] = {
+            contentType: key,
+            totalCount: 0,
+            totalAvgDays: 0,
+            minDays: Number.POSITIVE_INFINITY,
+            maxDays: Number.NEGATIVE_INFINITY,
+            transitions: [],
+          }
+        }
+
+        acc[key].totalCount += transition.count
+        acc[key].totalAvgDays += transition.avg_days * transition.count
+        acc[key].minDays = Math.min(acc[key].minDays, transition.min_days)
+        acc[key].maxDays = Math.max(acc[key].maxDays, transition.max_days)
+        acc[key].transitions.push(transition)
+
+        return acc
+      },
+      {},
+    )
+
+    // Convert grouped data to chart format
+    return Object.values(groupedData).map((group: GroupedDataItem) => {
+      const avgDays = group.totalAvgDays / group.totalCount
+      return {
+        contentType: group.contentType,
+        // Convert from days to minutes
+        avgMinutes: Math.round(avgDays * 24 * 60 * 100) / 100,
+        minMinutes: Math.round(group.minDays * 24 * 60 * 100) / 100,
+        maxMinutes: Math.round(group.maxDays * 24 * 60 * 100) / 100,
+        count: group.totalCount,
+
+        // Add these properties that the ErrorBar component will use automatically
+        // Only add error bars if min != max to avoid duplicate keys
+        errorX:
+          group.minDays !== group.maxDays
+            ? [
+                Math.round((avgDays - group.minDays) * 24 * 60 * 100) / 100,
+                Math.round((group.maxDays - avgDays) * 24 * 60 * 100) / 100,
+              ]
+            : [0, 0],
+      }
+    })
   }, [statusTransitions])
 
   if (isLoading) {
