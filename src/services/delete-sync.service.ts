@@ -395,7 +395,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Delete sync operation ${dryRun ? 'simulation' : ''} completed successfully`,
+        `Delete sync operation${dryRun ? ' (simulation)' : ''} completed successfully`,
       )
 
       // Step 10: Send notifications about results if enabled
