@@ -416,6 +416,7 @@ export class DeleteSyncService {
       // Always reset caches, even if we exited early
       this.plexServer.clearWorkflowCaches()
       this.protectedGuids = null
+      this.clearTagCache()
     }
   }
 
@@ -1027,6 +1028,7 @@ export class DeleteSyncService {
             instanceId,
             service,
             movieDetails.tags || [],
+            'radarr',
           )
 
           if (!hasRemovalTag) {
@@ -1213,6 +1215,7 @@ export class DeleteSyncService {
             instanceId,
             service,
             seriesDetails.tags || [],
+            'sonarr',
           )
 
           if (!hasRemovalTag) {
@@ -1433,12 +1436,14 @@ export class DeleteSyncService {
    * @param instanceId - The instance ID
    * @param service - The media service (Sonarr or Radarr)
    * @param itemTags - The tag IDs on the media item
+   * @param instanceType - Type of instance ('sonarr' or 'radarr') for proper cache keying
    * @returns Promise resolving to true if the item has the removal tag
    */
   private async hasRemovalTag(
     instanceId: number,
     service: { getTags: () => Promise<Array<{ id: number; label: string }>> },
     itemTags: number[],
+    instanceType: 'sonarr' | 'radarr',
   ): Promise<boolean> {
     if (itemTags.length === 0) {
       return false
@@ -1454,16 +1459,11 @@ export class DeleteSyncService {
         return false
       }
 
-      // Get tags from cache or fetch them (determine type from service context)
-      const instanceType = service.constructor.name
-        .toLowerCase()
-        .includes('sonarr')
-        ? 'sonarr'
-        : 'radarr'
+      // Get tags from cache or fetch them using the explicit instance type
       const tagMap = await this.getTagsForInstance(
         instanceId,
         service,
-        instanceType as 'sonarr' | 'radarr',
+        instanceType,
       )
 
       // Check if any of the item's tags match our removal tag (using startsWith for prefix matching)
