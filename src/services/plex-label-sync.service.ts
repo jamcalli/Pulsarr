@@ -1666,7 +1666,10 @@ export class PlexLabelSyncService {
           totalLabelsAdded += contentResult.labelsAdded || 0
           totalLabelsRemoved += contentResult.labelsRemoved || 0
         } else {
-          this.log.error('Error processing content item:', promiseResult.reason)
+          this.log.error(
+            { error: promiseResult.reason },
+            'Error processing content item:',
+          )
           result.failed++
         }
       }
@@ -2823,7 +2826,10 @@ export class PlexLabelSyncService {
           result.failed += syncResult.failed
           result.pending += syncResult.pending
         } else {
-          this.log.error('Error processing pending sync:', promiseResult.reason)
+          this.log.error(
+            { error: promiseResult.reason },
+            'Error processing pending sync:',
+          )
           result.failed++
         }
       }

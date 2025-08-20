@@ -99,6 +99,11 @@ function createErrorSerializer() {
       serialized.stack = err.stack
     }
 
+    // Include cause if provided (often non-enumerable on Error)
+    if ('cause' in err && err.cause) {
+      serialized.cause = err.cause
+    }
+
     // Include any other enumerable properties
     for (const key of Object.keys(err)) {
       if (
