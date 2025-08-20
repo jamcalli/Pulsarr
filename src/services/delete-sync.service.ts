@@ -243,7 +243,13 @@ export class DeleteSyncService {
         this.log.info(
           'Plex playlist protection enabled but not initialized - initializing now',
         )
-        await this.initialize()
+        const ok = await this.initialize()
+        if (!ok) {
+          return this.createSafetyTriggeredResult(
+            'Plex playlist protection is enabled but the Plex server failed to initialize',
+            dryRun,
+          )
+        }
       }
 
       // Step 1: Skip if deletion features are not enabled in configuration
@@ -356,7 +362,15 @@ export class DeleteSyncService {
             )
           } catch (protectedItemsError) {
             const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
-            this.log.error(errorMsg)
+            this.log.error(
+              {
+                error:
+                  protectedItemsError instanceof Error
+                    ? protectedItemsError
+                    : new Error(String(protectedItemsError)),
+              },
+              errorMsg,
+            )
             return this.createSafetyTriggeredResult(
               errorMsg,
               dryRun,
@@ -906,7 +920,15 @@ export class DeleteSyncService {
         }
       } catch (protectedItemsError) {
         const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
-        this.log.error(errorMsg)
+        this.log.error(
+          {
+            error:
+              protectedItemsError instanceof Error
+                ? protectedItemsError
+                : new Error(String(protectedItemsError)),
+          },
+          errorMsg,
+        )
         return this.createSafetyTriggeredResult(
           errorMsg,
           dryRun,
