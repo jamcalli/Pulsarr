@@ -15,7 +15,7 @@ import { ChartContainer } from '@/components/ui/chart'
 import { useStatusTransitionData } from '@/features/dashboard/hooks/useChartData'
 
 /**
- * Renders a vertical bar chart comparing the average, minimum, and maximum time in minutes for status transitions that lead to "notified" (from "grabbed" or "requested") for movies and shows.
+ * Renders a vertical bar chart comparing the average, minimum, and maximum time in minutes for status transitions that lead to "notified" status (from "grabbed" or "requested") for movies and shows.
  *
  * Shows a loading indicator while data is being fetched. The chart displays error bars for average values, reference lines for min/max values, and a legend that distinguishes movies and shows by color and line style.
  */
@@ -38,21 +38,25 @@ export function StatusTransitionsChart() {
         .trim() || '#c1666b',
   }
 
-  // Request to Notify chart data
-  const requestToNotifyData = useMemo(() => {
+  // All transitions to notified chart data
+  const notifiedByContentTypeData = useMemo(() => {
     // Filter status transitions for those that end in "notified" status
-    const notifiedTransitions = (statusTransitions ?? []).filter(
-      (transition: StatusTransitionTime) => transition.to_status === 'notified',
+    const notifiedTransitions = (
+      (statusTransitions ?? []) as StatusTransitionTime[]
+    ).filter(
+      (t) =>
+        t.to_status === 'notified' &&
+        (t.from_status === 'grabbed' || t.from_status === 'requested'),
     )
 
     // Group by content type and aggregate data
+    type ContentGroup = 'Movies' | 'Shows'
     interface GroupedDataItem {
-      contentType: string
+      contentType: ContentGroup
       totalCount: number
       totalAvgDays: number
       minDays: number
       maxDays: number
-      transitions: StatusTransitionTime[]
     }
 
     const groupedData = notifiedTransitions.reduce(
@@ -60,7 +64,19 @@ export function StatusTransitionsChart() {
         acc: Record<string, GroupedDataItem>,
         transition: StatusTransitionTime,
       ) => {
-        const key = transition.content_type === 'movie' ? 'Movies' : 'Shows'
+        const mapContentType = (t?: string): ContentGroup => {
+          switch (t?.toLowerCase()) {
+            case 'movie':
+              return 'Movies'
+            case 'show':
+            case 'series':
+            case 'episode':
+              return 'Shows'
+            default:
+              return 'Shows'
+          }
+        }
+        const key = mapContentType(transition.content_type)
 
         if (!acc[key]) {
           acc[key] = {
@@ -69,7 +85,6 @@ export function StatusTransitionsChart() {
             totalAvgDays: 0,
             minDays: Number.POSITIVE_INFINITY,
             maxDays: Number.NEGATIVE_INFINITY,
-            transitions: [],
           }
         }
 
@@ -77,7 +92,6 @@ export function StatusTransitionsChart() {
         acc[key].totalAvgDays += transition.avg_days * transition.count
         acc[key].minDays = Math.min(acc[key].minDays, transition.min_days)
         acc[key].maxDays = Math.max(acc[key].maxDays, transition.max_days)
-        acc[key].transitions.push(transition)
 
         return acc
       },
@@ -85,27 +99,38 @@ export function StatusTransitionsChart() {
     )
 
     // Convert grouped data to chart format
-    return Object.values(groupedData).map((group: GroupedDataItem) => {
-      const avgDays = group.totalAvgDays / group.totalCount
-      return {
-        contentType: group.contentType,
-        // Convert from days to minutes
-        avgMinutes: Math.round(avgDays * 24 * 60 * 100) / 100,
-        minMinutes: Math.round(group.minDays * 24 * 60 * 100) / 100,
-        maxMinutes: Math.round(group.maxDays * 24 * 60 * 100) / 100,
-        count: group.totalCount,
+    const MINUTES_PER_DAY = 1440
+    const toMinutes = (days: number) =>
+      Math.round(days * MINUTES_PER_DAY * 100) / 100
 
-        // Add these properties that the ErrorBar component will use automatically
-        // Only add error bars if min != max to avoid duplicate keys
-        errorX:
-          group.minDays !== group.maxDays
-            ? [
-                Math.round((avgDays - group.minDays) * 24 * 60 * 100) / 100,
-                Math.round((group.maxDays - avgDays) * 24 * 60 * 100) / 100,
-              ]
-            : [0, 0],
-      }
-    })
+    return Object.values(groupedData)
+      .filter(
+        (g) =>
+          g.totalCount > 0 &&
+          Number.isFinite(g.minDays) &&
+          Number.isFinite(g.maxDays),
+      )
+      .sort((a) => (a.contentType === 'Movies' ? -1 : 1))
+      .map((group: GroupedDataItem) => {
+        const avgDays = group.totalAvgDays / group.totalCount
+        const avgMinutes = toMinutes(avgDays)
+        const minMinutes = toMinutes(group.minDays)
+        const maxMinutes = toMinutes(group.maxDays)
+        return {
+          contentType: group.contentType,
+          avgMinutes,
+          minMinutes,
+          maxMinutes,
+          count: group.totalCount,
+          errorX:
+            group.minDays !== group.maxDays
+              ? [
+                  toMinutes(avgDays - group.minDays),
+                  toMinutes(group.maxDays - avgDays),
+                ]
+              : ([0, 0] as [number, number]),
+        }
+      })
   }, [statusTransitions])
 
   if (isLoading) {
@@ -130,7 +155,7 @@ export function StatusTransitionsChart() {
         className="aspect-auto h-[350px] w-full"
       >
         <BarChart
-          data={requestToNotifyData}
+          data={notifiedByContentTypeData}
           layout="vertical"
           margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
         >
@@ -195,7 +220,7 @@ export function StatusTransitionsChart() {
             barSize={30}
           >
             {/* Display sample size (count) as a label on each bar */}
-            {requestToNotifyData.map((entry, index) => (
+            {notifiedByContentTypeData.map((entry, index) => (
               <text
                 key={`text-${entry.contentType}-${entry.avgMinutes}-${entry.count}-${index}`}
                 x={entry.avgMinutes > 5 ? 25 : entry.avgMinutes + 3}
@@ -220,7 +245,7 @@ export function StatusTransitionsChart() {
             />
 
             {/* Apply different color for each content type */}
-            {requestToNotifyData.map((entry, index) => (
+            {notifiedByContentTypeData.map((entry, index) => (
               <defs key={`grad-${entry.contentType}-${index}`}>
                 <linearGradient
                   id={`colorBar-${entry.contentType}`}
@@ -249,7 +274,7 @@ export function StatusTransitionsChart() {
               </defs>
             ))}
 
-            {requestToNotifyData.map((entry, index) => (
+            {notifiedByContentTypeData.map((entry, index) => (
               <Cell
                 key={`bar-cell-${entry.contentType}-${entry.avgMinutes}-${entry.count}-${index}`}
                 fill={
@@ -262,7 +287,7 @@ export function StatusTransitionsChart() {
           </Bar>
 
           {/* Add reference lines for each data point's min and max */}
-          {requestToNotifyData.flatMap((entry, index) => {
+          {notifiedByContentTypeData.flatMap((entry, index) => {
             // Only show reference lines if min != max
             if (entry.minMinutes === entry.maxMinutes) {
               return []
