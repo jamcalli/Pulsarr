@@ -21,14 +21,8 @@
  */
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type {
-  Item as RadarrItem,
-  RadarrMovie,
-} from '@root/types/radarr.types.js'
-import type {
-  Item as SonarrItem,
-  SonarrSeries,
-} from '@root/types/sonarr.types.js'
+import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   extractRadarrId,
   extractSonarrId,
@@ -36,6 +30,7 @@ import {
 } from '@utils/guid-handler.js'
 import { PlexServerService } from '@utils/plex-server.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
 
 export class DeleteSyncService {
   /**
@@ -50,8 +45,9 @@ export class DeleteSyncService {
 
   /**
    * Cache of tags by instance for efficient lookup during tag-based deletion
+   * Key format: "{instanceType}-{instanceId}" to avoid collisions between Sonarr and Radarr
    */
-  private tagCache: Map<number, Map<number, string>> = new Map()
+  private tagCache: Map<string, Map<number, string>> = new Map()
 
   /**
    * Flag to prevent concurrent runs of the delete sync process
@@ -101,6 +97,92 @@ export class DeleteSyncService {
   }
 
   /**
+   * Ensures protection cache is loaded once per workflow
+   * Avoids redundant API calls for protection playlist loading
+   */
+  private async ensureProtectionCache(): Promise<Set<string> | null> {
+    // Return cached value if already loaded
+    if (this.protectedGuids !== null) {
+      return this.protectedGuids
+    }
+
+    // Only load if protection is enabled
+    if (!this.config.enablePlexPlaylistProtection) {
+      this.protectedGuids = null
+      return null
+    }
+
+    // Ensure Plex server is initialized
+    if (!this.plexServer.isInitialized()) {
+      throw new Error(
+        'Plex server not initialized for protection playlist access',
+      )
+    }
+
+    try {
+      this.log.debug('Loading protection playlists and caching results...')
+
+      // Create protection playlists for users if missing
+      const playlistMap =
+        await this.plexServer.getOrCreateProtectionPlaylists(true)
+
+      if (playlistMap.size === 0) {
+        throw new Error(
+          `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`,
+        )
+      }
+
+      // Load and cache protected GUIDs
+      this.protectedGuids = await this.plexServer.getProtectedItems()
+
+      if (!this.protectedGuids) {
+        throw new Error('Failed to retrieve protected items from playlists')
+      }
+
+      this.log.debug(
+        `Cached ${this.protectedGuids.size} protected item GUIDs from ${playlistMap.size} user playlists`,
+      )
+
+      return this.protectedGuids
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Error loading protection playlists for caching',
+      )
+      this.protectedGuids = null
+      throw error
+    }
+  }
+
+  /**
+   * Returns true if any of the provided GUIDs exist in the protected set.
+   * Optional onHit callback lets callers log the first matching GUID.
+   */
+  private isAnyGuidProtected(
+    guidList: string[],
+    onHit?: (guid: string) => void,
+  ): boolean {
+    if (!this.config.enablePlexPlaylistProtection || !this.protectedGuids) {
+      return false
+    }
+    for (const guid of guidList) {
+      if (this.protectedGuids.has(guid)) {
+        onHit?.(guid)
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * Gets the normalized removal tag prefix (trimmed and lowercased)
+   * @returns The normalized removal tag prefix, or empty string if not configured
+   */
+  private getRemovalTagPrefixNormalized(): string {
+    return (this.config.removedTagPrefix ?? '').trim().toLowerCase()
+  }
+
+  /**
    * Initialize the service and its dependencies
    */
   async initialize(): Promise<boolean> {
@@ -131,28 +213,7 @@ export class DeleteSyncService {
    *
    * @returns Promise resolving to detailed results of the delete operation
    */
-  async run(dryRun = false): Promise<{
-    total: {
-      deleted: number
-      skipped: number
-      processed: number
-      protected?: number
-    }
-    movies: {
-      deleted: number
-      skipped: number
-      protected?: number
-      items: Array<{ title: string; guid: string; instance: string }>
-    }
-    shows: {
-      deleted: number
-      skipped: number
-      protected?: number
-      items: Array<{ title: string; guid: string; instance: string }>
-    }
-    safetyTriggered?: boolean
-    safetyMessage?: string
-  }> {
+  async run(dryRun = false): Promise<DeleteSyncResult> {
     // Check if delete sync is already running
     if (this._running) {
       this.log.warn(
@@ -170,6 +231,9 @@ export class DeleteSyncService {
 
       // Clear tag cache at the start of each run
       this.clearTagCache()
+      // Reset per-run caches to ensure fresh protection data every run
+      this.protectedGuids = null
+      this.plexServer.clearWorkflowCaches()
 
       // Make sure the Plex server is initialized if needed
       if (
@@ -179,7 +243,13 @@ export class DeleteSyncService {
         this.log.info(
           'Plex playlist protection enabled but not initialized - initializing now',
         )
-        await this.initialize()
+        const ok = await this.initialize()
+        if (!ok) {
+          return this.createSafetyTriggeredResult(
+            'Plex playlist protection is enabled but the Plex server failed to initialize',
+            dryRun,
+          )
+        }
       }
 
       // Step 1: Skip if deletion features are not enabled in configuration
@@ -201,7 +271,12 @@ export class DeleteSyncService {
         // Refresh watchlists to ensure we detect newly removed items
         const refreshResult = await this.refreshWatchlists()
         if (!refreshResult.success) {
-          return this.createSafetyTriggeredResult(refreshResult.message, dryRun)
+          return this.createSafetyTriggeredResult(
+            refreshResult.message,
+            dryRun,
+            existingSeries.length,
+            existingMovies.length,
+          )
         }
 
         await this.updateUserTags(existingSeries, existingMovies)
@@ -216,31 +291,38 @@ export class DeleteSyncService {
           `Running tag-based deletion using tag "${this.config.removedTagPrefix}"`,
         )
 
-        // Step 3: If tag-based mode, process using tag-based workflow
+        // Process tag-based delete sync workflow
         result = await this.processTagBasedDeleteSync(
           existingSeries,
           existingMovies,
           dryRun,
         )
       } else {
-        // Traditional watchlist-based deletion workflow
+        // Watchlist-based delete sync workflow
 
-        // Step 3: Refresh watchlists to ensure current data
+        // Step 4: Refresh watchlists to ensure current data
         const refreshResult = await this.refreshWatchlists()
         if (!refreshResult.success) {
-          return this.createSafetyTriggeredResult(refreshResult.message, dryRun)
+          return this.createSafetyTriggeredResult(
+            refreshResult.message,
+            dryRun,
+            existingSeries.length,
+            existingMovies.length,
+          )
         }
 
-        // Step 4: Get all watchlisted content GUIDs
+        // Step 5: Get all watchlisted content GUIDs
         const allWatchlistItems = await this.getAllWatchlistItems(
           this.config.respectUserSyncSetting,
         )
 
-        // Step 5: Ensure we have at least some watchlist items (safety check)
+        // Step 6: Ensure we have at least some watchlist items (safety check)
         if (allWatchlistItems.size === 0) {
           return this.createSafetyTriggeredResult(
             'No watchlist items found - this could be an error condition. Aborting delete sync to prevent mass deletion.',
             dryRun,
+            existingSeries.length,
+            existingMovies.length,
           )
         }
 
@@ -248,11 +330,62 @@ export class DeleteSyncService {
           `Found ${allWatchlistItems.size} unique GUIDs across all watchlists${this.config.respectUserSyncSetting ? ' (respecting user sync settings)' : ''}`,
         )
 
-        // Step 6: Perform safety check for mass deletion prevention
+        // Step 7: Load protection playlists if enabled (needed for accurate safety check)
+        let protectedGuids: Set<string> | null = null
+        if (this.config.enablePlexPlaylistProtection) {
+          if (!this.plexServer.isInitialized()) {
+            return this.createSafetyTriggeredResult(
+              'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
+              dryRun,
+              existingSeries.length,
+              existingMovies.length,
+            )
+          }
+
+          try {
+            this.log.info(
+              `Beginning deletion analysis; Plex playlist protection enabled with playlist "${this.getProtectionPlaylistName()}"`,
+            )
+
+            // Use cached protection loading to avoid redundant API calls
+            protectedGuids = await this.ensureProtectionCache()
+
+            if (!protectedGuids) {
+              throw new Error('Failed to retrieve protected items')
+            }
+
+            this.log.info(
+              `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${protectedGuids.size} protected GUIDs`,
+            )
+            this.log.info(
+              'Protection uses standardized GUIDs for maximum compatibility across all systems',
+            )
+          } catch (protectedItemsError) {
+            const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
+            this.log.error(
+              {
+                error:
+                  protectedItemsError instanceof Error
+                    ? protectedItemsError
+                    : new Error(String(protectedItemsError)),
+              },
+              errorMsg,
+            )
+            return this.createSafetyTriggeredResult(
+              errorMsg,
+              dryRun,
+              existingSeries.length,
+              existingMovies.length,
+            )
+          }
+        }
+
+        // Step 8: Perform safety check for mass deletion prevention (with protection awareness)
         const safetyResult = this.performSafetyCheck(
           existingSeries,
           existingMovies,
           allWatchlistItems,
+          protectedGuids,
         )
 
         if (!safetyResult.safe) {
@@ -264,20 +397,8 @@ export class DeleteSyncService {
           )
         }
 
-        // Additional safety check: If Plex playlist protection is enabled but Plex server isn't properly initialized
-        if (
-          this.config.enablePlexPlaylistProtection &&
-          !this.plexServer.isInitialized()
-        ) {
-          return this.createSafetyTriggeredResult(
-            'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
-        }
-
-        // Step 7: If everything is safe, proceed with the actual watchlist-based processing
+        // Step 9: If everything is safe, proceed with the actual watchlist-based processing
+        // Protection cache is already set by ensureProtectionCache()
         result = await this.processDeleteSync(
           existingSeries,
           existingMovies,
@@ -287,10 +408,10 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Delete sync operation ${dryRun ? 'simulation' : ''} completed successfully`,
+        `Delete sync operation${dryRun ? ' (DRY RUN)' : ''} completed successfully`,
       )
 
-      // Step 8: Send notifications about results if enabled
+      // Step 10: Send notifications about results if enabled
       await this.sendNotificationsIfEnabled(result, dryRun)
 
       return result
@@ -299,6 +420,10 @@ export class DeleteSyncService {
       throw error
     } finally {
       this._running = false
+      // Always reset caches, even if we exited early
+      this.plexServer.clearWorkflowCaches()
+      this.protectedGuids = null
+      this.clearTagCache()
     }
   }
 
@@ -377,32 +502,59 @@ export class DeleteSyncService {
   }
 
   /**
-   * Refreshes all watchlists to ensure current data
+   * Refreshes all watchlists to ensure current data with retry logic
    */
   private async refreshWatchlists(): Promise<{
     success: boolean
     message: string
   }> {
-    this.log.info('Refreshing watchlists to ensure we have current data')
-    try {
-      await Promise.all([
-        this.fastify.plexWatchlist.getSelfWatchlist(),
-        this.fastify.plexWatchlist.getOthersWatchlists(),
-      ])
-      this.log.info('Watchlists refreshed successfully')
-      return { success: true, message: 'Watchlists refreshed successfully' }
-    } catch (refreshError) {
-      const errorMessage = `Failed to refresh watchlist data: ${
-        refreshError instanceof Error
-          ? refreshError.message
-          : String(refreshError)
-      }`
-      this.log.error(
-        { error: refreshError },
-        'Error refreshing watchlist data:',
-      )
-      return { success: false, message: errorMessage }
+    const maxRetries = 2
+    const baseDelay = 1000 // 1 second
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          this.log.info(
+            `Refreshing watchlists attempt ${attempt + 1}/${maxRetries + 1}`,
+          )
+        } else {
+          this.log.info('Refreshing watchlists to ensure we have current data')
+        }
+
+        await Promise.all([
+          this.fastify.plexWatchlist.getSelfWatchlist(),
+          this.fastify.plexWatchlist.getOthersWatchlists(),
+        ])
+
+        this.log.info('Watchlists refreshed successfully')
+        return { success: true, message: 'Watchlists refreshed successfully' }
+      } catch (refreshError) {
+        const isLastAttempt = attempt === maxRetries
+        const errorMessage = `Failed to refresh watchlist data: ${
+          refreshError instanceof Error
+            ? refreshError.message
+            : String(refreshError)
+        }`
+
+        if (isLastAttempt) {
+          this.log.error(
+            { error: refreshError, attempts: attempt + 1 },
+            'Error refreshing watchlist data after all retry attempts',
+          )
+          return { success: false, message: errorMessage }
+        } else {
+          const delay = baseDelay * 2 ** attempt // Exponential backoff
+          this.log.warn(
+            { error: refreshError, attempt: attempt + 1, retryIn: delay },
+            `Watchlist refresh failed, retrying in ${delay}ms`,
+          )
+          await new Promise((resolve) => setTimeout(resolve, delay))
+        }
+      }
     }
+
+    // This should never be reached, but TypeScript needs it
+    return { success: false, message: 'Unexpected error in retry logic' }
   }
 
   /**
@@ -430,47 +582,96 @@ export class DeleteSyncService {
     existingSeries: SonarrItem[],
     existingMovies: RadarrItem[],
     allWatchlistItems: Set<string>,
+    protectedGuids: Set<string> | null = null,
   ): { safe: boolean; message: string } {
     // Calculate deletion percentages by doing a count of items that would be deleted
     let potentialMovieDeletes = 0
     let potentialShowDeletes = 0
-    const totalMediaItems = existingSeries.length + existingMovies.length
+    const considerMovies = this.config.deleteMovie === true
+    const considerEnded = this.config.deleteEndedShow === true
+    const considerContinuing = this.config.deleteContinuingShow === true
+    let totalConsideredItems = 0
 
-    // Count movies not in watchlist
-    for (const movie of existingMovies) {
-      const exists = movie.guids.some((guid) => allWatchlistItems.has(guid))
-      if (!exists) {
-        potentialMovieDeletes++
+    // Use Set membership directly for O(1) lookups
+    const watchlistGuidsSet = allWatchlistItems
+    const protectedGuidsSet = protectedGuids ?? null
+
+    // Count movies not in watchlist and not protected (only if we actually delete movies)
+    if (considerMovies) {
+      for (const movie of existingMovies) {
+        totalConsideredItems++
+        const movieGuidList = parseGuids(movie.guids)
+        const existsInWatchlist = movieGuidList.some((g) =>
+          watchlistGuidsSet.has(g),
+        )
+        if (!existsInWatchlist) {
+          // Check if movie is protected by playlist
+          const isProtected =
+            protectedGuidsSet != null
+              ? movieGuidList.some((g) => protectedGuidsSet.has(g))
+              : false
+          if (!isProtected) {
+            potentialMovieDeletes++
+          }
+        }
       }
     }
 
-    // Count shows not in watchlist
+    // Count shows not in watchlist and not protected, but only for show types configured for deletion
     for (const show of existingSeries) {
-      const exists = show.guids.some((guid) => allWatchlistItems.has(guid))
-      if (!exists) {
-        potentialShowDeletes++
+      const isContinuing = show.series_status !== 'ended'
+      const shouldConsider = isContinuing ? considerContinuing : considerEnded
+      if (!shouldConsider) continue
+      totalConsideredItems++
+
+      const showGuidList = parseGuids(show.guids)
+      const existsInWatchlist = showGuidList.some((g) =>
+        watchlistGuidsSet.has(g),
+      )
+      if (!existsInWatchlist) {
+        // Check if show is protected by playlist
+        const isProtected =
+          protectedGuidsSet != null
+            ? showGuidList.some((g) => protectedGuidsSet.has(g))
+            : false
+        if (!isProtected) {
+          potentialShowDeletes++
+        }
       }
     }
 
     const totalPotentialDeletes = potentialMovieDeletes + potentialShowDeletes
     const potentialDeletionPercentage =
-      totalMediaItems > 0 ? (totalPotentialDeletes / totalMediaItems) * 100 : 0
+      totalConsideredItems > 0
+        ? (totalPotentialDeletes / totalConsideredItems) * 100
+        : 0
 
     // Prevent mass deletion if percentage is too high
     const MAX_DELETION_PERCENTAGE = Number(
       this.config.maxDeletionPrevention ?? 10,
     ) // Default to 10% as configured in the database
 
-    if (Number.isNaN(MAX_DELETION_PERCENTAGE) || MAX_DELETION_PERCENTAGE <= 0) {
-      throw new Error(
-        `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage > 0.`,
-      )
+    if (
+      Number.isNaN(MAX_DELETION_PERCENTAGE) ||
+      MAX_DELETION_PERCENTAGE < 0 ||
+      MAX_DELETION_PERCENTAGE > 100
+    ) {
+      // Debug breadcrumbs for config validation failures
+      this.log.debug({
+        rawMaxDeletionPrevention: this.config.maxDeletionPrevention,
+        parsed: MAX_DELETION_PERCENTAGE,
+        type: typeof this.config.maxDeletionPrevention,
+      })
+      return {
+        safe: false,
+        message: `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100 inclusive.`,
+      }
     }
 
     if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
       return {
         safe: false,
-        message: `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalMediaItems} items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
+        message: `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalConsideredItems} eligible items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
       }
     }
 
@@ -506,6 +707,7 @@ export class DeleteSyncService {
     }
 
     const sendDiscord = [
+      // Modern values
       'all',
       'discord-only',
       'discord-webhook',
@@ -513,6 +715,10 @@ export class DeleteSyncService {
       'discord-both',
       'webhook-only',
       'dm-only',
+      // Legacy values (back-compat)
+      'message',
+      'webhook',
+      'both',
     ].includes(notifySetting)
 
     const sendApprise = ['all', 'apprise-only'].includes(notifySetting)
@@ -528,8 +734,13 @@ export class DeleteSyncService {
         )
       } catch (notifyError) {
         this.log.error(
+          {
+            error:
+              notifyError instanceof Error
+                ? notifyError
+                : new Error(String(notifyError)),
+          },
           'Error sending delete sync Discord notification:',
-          notifyError,
         )
       }
     }
@@ -540,8 +751,13 @@ export class DeleteSyncService {
         await this.fastify.apprise?.sendDeleteSyncNotification(result, dryRun)
       } catch (notifyError) {
         this.log.error(
+          {
+            error:
+              notifyError instanceof Error
+                ? notifyError
+                : new Error(String(notifyError)),
+          },
           'Error sending delete sync Apprise notification:',
-          notifyError,
         )
       }
     }
@@ -663,11 +879,18 @@ export class DeleteSyncService {
     }> = []
 
     this.log.info(
-      `Beginning tag-based deletion ${dryRun ? 'analysis' : 'process'} using tag "${this.config.removedTagPrefix}"`,
+      `Beginning tag-based deletion ${dryRun ? '(DRY RUN)' : 'process'} using tag "${this.config.removedTagPrefix}"`,
     )
 
-    // Reset workflow caches before processing
-    this.plexServer.clearWorkflowCaches()
+    // Validate once to avoid per-item warnings/work
+    const removalTagPrefix = this.getRemovalTagPrefixNormalized()
+    if (!removalTagPrefix) {
+      return this.createEmptyResult(
+        'Tag-based deletion requested but removedTagPrefix is blank – skipping operation',
+      )
+    }
+
+    // Cache is already cleared at the start of run() method
 
     // Check if Plex playlist protection is enabled
     if (this.config.enablePlexPlaylistProtection) {
@@ -676,57 +899,36 @@ export class DeleteSyncService {
       )
 
       try {
-        // Create protection playlists for users if missing
-        const playlistMap =
-          await this.plexServer.getOrCreateProtectionPlaylists(true)
+        // Use cached protection loading to avoid redundant API calls
+        await this.ensureProtectionCache()
 
-        if (playlistMap.size === 0) {
-          const errorMsg = `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`
-          this.log.error(errorMsg)
-          return this.createSafetyTriggeredResult(
-            errorMsg,
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
+        if (!this.protectedGuids) {
+          throw new Error('Failed to retrieve protected items')
         }
 
-        try {
-          // Populate protected GUIDs cache for lookup operations
-          this.protectedGuids = await this.plexServer.getProtectedItems()
+        this.log.info(
+          `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${this.protectedGuids.size} protected GUIDs`,
+        )
 
-          if (!this.protectedGuids) {
-            throw new Error('Failed to retrieve protected items')
+        // Trace sample of protected identifiers (limited to 5)
+        if (this.protectedGuids.size > 0 && this.log.level === 'trace') {
+          const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
+          this.log.trace('Sample protected GUIDs:')
+          for (const guid of sampleGuids) {
+            this.log.trace(`  Protected GUID: "${guid}"`)
           }
-
-          this.log.info(
-            `Protection playlists "${this.getProtectionPlaylistName()}" for ${playlistMap.size} users contain a total of ${this.protectedGuids.size} protected GUIDs`,
-          )
-
-          // Debug sample of protected identifiers (limited to 5)
-          if (
-            this.protectedGuids.size > 0 &&
-            (this.log.level === 'debug' || this.log.level === 'trace')
-          ) {
-            const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
-            this.log.debug('Sample protected GUIDs:')
-            for (const guid of sampleGuids) {
-              this.log.debug(`  Protected GUID: "${guid}"`)
-            }
-          }
-        } catch (protectedItemsError) {
-          const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
-          this.log.error(errorMsg)
-          return this.createSafetyTriggeredResult(
-            errorMsg,
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
         }
-      } catch (playlistError) {
-        const errorMsg = `Error creating or retrieving protection playlists: ${playlistError instanceof Error ? playlistError.message : String(playlistError)}`
-        this.log.error(errorMsg)
+      } catch (protectedItemsError) {
+        const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
+        this.log.error(
+          {
+            error:
+              protectedItemsError instanceof Error
+                ? protectedItemsError
+                : new Error(String(protectedItemsError)),
+          },
+          errorMsg,
+        )
         return this.createSafetyTriggeredResult(
           errorMsg,
           dryRun,
@@ -747,7 +949,21 @@ export class DeleteSyncService {
           this.countTaggedMovies(existingMovies),
         ])
 
-      const totalItems = existingSeries.length + existingMovies.length
+      const eligibleSeriesCount = existingSeries.reduce(
+        (acc, s) =>
+          acc +
+          (s.series_status !== 'ended'
+            ? this.config.deleteContinuingShow
+              ? 1
+              : 0
+            : this.config.deleteEndedShow
+              ? 1
+              : 0),
+        0,
+      )
+      const totalItems =
+        (this.config.deleteMovie ? existingMovies.length : 0) +
+        eligibleSeriesCount
       const totalTaggedItems = taggedForDeletionSeries + taggedForDeletionMovies
 
       if (totalItems === 0) {
@@ -767,10 +983,14 @@ export class DeleteSyncService {
       )
       if (
         Number.isNaN(MAX_DELETION_PERCENTAGE) ||
-        MAX_DELETION_PERCENTAGE <= 0
+        MAX_DELETION_PERCENTAGE < 0 ||
+        MAX_DELETION_PERCENTAGE > 100
       ) {
-        throw new Error(
-          `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage > 0.`,
+        return this.createSafetyTriggeredResult(
+          `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100 inclusive.`,
+          dryRun,
+          existingSeries.length,
+          existingMovies.length,
         )
       }
       if (taggedPercentage > MAX_DELETION_PERCENTAGE) {
@@ -783,8 +1003,8 @@ export class DeleteSyncService {
       }
     } catch (error) {
       this.log.error(
+        { error: error instanceof Error ? error : new Error(String(error)) },
         'Error during safety analysis for tag-based deletion:',
-        error,
       )
       return this.createSafetyTriggeredResult(
         `Error during safety analysis: ${error instanceof Error ? error.message : String(error)}`,
@@ -834,22 +1054,21 @@ export class DeleteSyncService {
             continue
           }
 
-          // Get full movie details to check for tags
-          const movieDetails = await service.getFromRadarr<RadarrMovie>(
-            `movie/${radarrId}`,
-          )
-
-          // Check if the movie has our removal tag
+          // Check if the movie has our removal tag using tags from initial fetch
           const hasRemovalTag = await this.hasRemovalTag(
             instanceId,
             service,
-            movieDetails.tags || [],
+            movie.tags || [],
+            'radarr',
           )
 
           if (!hasRemovalTag) {
             // Skip this movie as it doesn't have the removal tag
             continue
           }
+
+          // Parse GUIDs once and reuse for both protection check and deletion
+          const movieGuidList = parseGuids(movie.guids)
 
           // Check if the movie is protected based on its GUIDs
           if (this.config.enablePlexPlaylistProtection) {
@@ -866,18 +1085,11 @@ export class DeleteSyncService {
             }
 
             // Check for any movie GUID in the protected set
-            const movieGuidList = parseGuids(movie.guids)
-            let isProtected = false
-
-            for (const guid of movieGuidList) {
-              if (this.protectedGuids.has(guid)) {
-                this.log.debug(
-                  `Movie "${movie.title}" is protected by GUID "${guid}"`,
-                )
-                isProtected = true
-                break
-              }
-            }
+            const isProtected = this.isAnyGuidProtected(movieGuidList, (guid) =>
+              this.log.debug(
+                `Movie "${movie.title}" is protected by GUID "${guid}"`,
+              ),
+            )
 
             if (isProtected) {
               this.log.info(
@@ -889,7 +1101,6 @@ export class DeleteSyncService {
           }
 
           // Add to the list of movies to delete (or would delete in dry run)
-          const movieGuidList = parseGuids(movie.guids)
           moviesToDelete.push({
             title: movie.title,
             guid: movieGuidList[0] || 'unknown',
@@ -929,27 +1140,22 @@ export class DeleteSyncService {
           }
         } catch (error) {
           this.log.error(
-            `Error ${dryRun ? 'analyzing' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
             {
-              error: error instanceof Error ? error.message : String(error),
+              error: error instanceof Error ? error : new Error(String(error)),
               movie: {
                 title: movie.title,
                 instanceId: movie.radarr_instance_id,
                 guids: movie.guids,
               },
             },
+            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
           )
           moviesSkipped++
         }
       }
 
-      const _movieSummary = {
-        deleted: moviesDeleted,
-        skipped: moviesSkipped,
-        protected: moviesProtected,
-      }
       this.log.info(
-        `Tag-based movie deletion ${dryRun ? 'analysis' : ''} summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `Tag-based movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('Movie deletion disabled in configuration, skipping')
@@ -1030,22 +1236,21 @@ export class DeleteSyncService {
             continue
           }
 
-          // Get full series details to check for tags
-          const seriesDetails = await service.getFromSonarr<SonarrSeries>(
-            `series/${sonarrId}`,
-          )
-
-          // Check if the series has our removal tag
+          // Check if the series has our removal tag using tags from initial fetch
           const hasRemovalTag = await this.hasRemovalTag(
             instanceId,
             service,
-            seriesDetails.tags || [],
+            show.tags || [],
+            'sonarr',
           )
 
           if (!hasRemovalTag) {
             // Skip this series as it doesn't have the removal tag
             continue
           }
+
+          // Parse GUIDs once and reuse for both protection check and deletion
+          const showGuidList = parseGuids(show.guids)
 
           // Check if the show is protected based on its GUIDs
           if (this.config.enablePlexPlaylistProtection) {
@@ -1062,18 +1267,11 @@ export class DeleteSyncService {
             }
 
             // Check for any show GUID in the protected set
-            const showGuidList = parseGuids(show.guids)
-            let isProtected = false
-
-            for (const guid of showGuidList) {
-              if (this.protectedGuids.has(guid)) {
-                this.log.debug(
-                  `Show "${show.title}" is protected by GUID "${guid}"`,
-                )
-                isProtected = true
-                break
-              }
-            }
+            const isProtected = this.isAnyGuidProtected(showGuidList, (guid) =>
+              this.log.debug(
+                `Show "${show.title}" is protected by GUID "${guid}"`,
+              ),
+            )
 
             if (isProtected) {
               this.log.info(
@@ -1085,7 +1283,6 @@ export class DeleteSyncService {
           }
 
           // Add to the list of shows to delete (or would delete in dry run)
-          const showGuidList = parseGuids(show.guids)
           showsToDelete.push({
             title: show.title,
             guid: showGuidList[0] || 'unknown',
@@ -1132,9 +1329,8 @@ export class DeleteSyncService {
           }
         } catch (error) {
           this.log.error(
-            `Error ${dryRun ? 'analyzing' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
             {
-              error: error instanceof Error ? error.message : String(error),
+              error: error instanceof Error ? error : new Error(String(error)),
               show: {
                 title: show.title,
                 instanceId: show.sonarr_instance_id,
@@ -1142,6 +1338,7 @@ export class DeleteSyncService {
                 guids: show.guids,
               },
             },
+            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
           )
 
           if (isContinuing) {
@@ -1152,19 +1349,8 @@ export class DeleteSyncService {
         }
       }
 
-      const _tvShowSummary = {
-        endedShows: {
-          deleted: endedShowsDeleted,
-          skipped: endedShowsSkipped,
-        },
-        continuingShows: {
-          deleted: continuingShowsDeleted,
-          skipped: continuingShowsSkipped,
-        },
-        protected: showsProtected,
-      }
       this.log.info(
-        `TV show tag-based deletion ${dryRun ? 'analysis' : ''} summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `TV show tag-based deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('TV show deletion disabled in configuration, skipping')
@@ -1201,21 +1387,19 @@ export class DeleteSyncService {
     }
 
     this.log.info(
-      `Tag-based delete sync ${dryRun ? 'analysis' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
+      `Tag-based delete sync ${dryRun ? '(DRY RUN)' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
     )
 
     // Log detailed summary at debug level
     this.log.debug(
-      `Detailed tag-based deletion ${dryRun ? 'analysis' : 'operation'} summary:`,
+      `Detailed tag-based deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary:`,
       {
         ...deletionSummary,
         dryRun,
       },
     )
 
-    // Release cached resources after processing completes
-    this.plexServer.clearWorkflowCaches()
-    this.protectedGuids = null
+    // Resources will be cleared in finally block of run() method
 
     return deletionSummary
   }
@@ -1225,14 +1409,19 @@ export class DeleteSyncService {
    *
    * @param instanceId - The instance ID
    * @param service - The media service (Sonarr or Radarr)
+   * @param instanceType - Type of instance ('sonarr' or 'radarr') to avoid cache collisions
    * @returns Promise resolving to a map of tag IDs to lowercase tag labels
    */
   private async getTagsForInstance(
     instanceId: number,
     service: { getTags: () => Promise<Array<{ id: number; label: string }>> },
+    instanceType: 'sonarr' | 'radarr',
   ): Promise<Map<number, string>> {
+    // Create unique cache key with instance type and ID
+    const cacheKey = `${instanceType}-${instanceId}`
+
     // Check if we have cached tags for this instance
-    const cachedTags = this.tagCache.get(instanceId)
+    const cachedTags = this.tagCache.get(cacheKey)
     if (cachedTags) {
       return cachedTags
     }
@@ -1241,20 +1430,21 @@ export class DeleteSyncService {
       // Fetch tags from the service
       const allTags = await service.getTags()
 
-      // Create a map of tag IDs to lowercase tag labels
+      // Create a map of tag IDs to normalized tag labels (trimmed and lowercase)
       const tagMap = new Map(
-        allTags.map((tag) => [tag.id, tag.label.toLowerCase()]),
+        allTags.map((tag) => [tag.id, tag.label.trim().toLowerCase()]),
       )
 
-      // Cache the result
-      this.tagCache.set(instanceId, tagMap)
+      // Cache the result with unique key
+      this.tagCache.set(cacheKey, tagMap)
 
       return tagMap
     } catch (error) {
       this.log.error(
         { error },
-        `Error fetching tags for instance ${instanceId}:`,
+        `Critical error fetching tags for ${instanceType} instance ${instanceId} - this may affect deletion accuracy`,
       )
+      // Return empty map to prevent deletions when tag data is unavailable
       return new Map()
     }
   }
@@ -1272,12 +1462,14 @@ export class DeleteSyncService {
    * @param instanceId - The instance ID
    * @param service - The media service (Sonarr or Radarr)
    * @param itemTags - The tag IDs on the media item
+   * @param instanceType - Type of instance ('sonarr' or 'radarr') for proper cache keying
    * @returns Promise resolving to true if the item has the removal tag
    */
   private async hasRemovalTag(
     instanceId: number,
     service: { getTags: () => Promise<Array<{ id: number; label: string }>> },
     itemTags: number[],
+    instanceType: 'sonarr' | 'radarr',
   ): Promise<boolean> {
     if (itemTags.length === 0) {
       return false
@@ -1285,18 +1477,20 @@ export class DeleteSyncService {
 
     try {
       // Safeguard against missing configuration
-      const removalTagPrefix = (this.config.removedTagPrefix ?? '')
-        .trim()
-        .toLowerCase()
+      const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
-        this.log.warn(
+        this.log.debug(
           'removedTagPrefix is blank – tag-based deletion will never match any items',
         )
         return false
       }
 
-      // Get tags from cache or fetch them
-      const tagMap = await this.getTagsForInstance(instanceId, service)
+      // Get tags from cache or fetch them using the explicit instance type
+      const tagMap = await this.getTagsForInstance(
+        instanceId,
+        service,
+        instanceType,
+      )
 
       // Check if any of the item's tags match our removal tag (using startsWith for prefix matching)
       for (const tagId of itemTags) {
@@ -1323,10 +1517,22 @@ export class DeleteSyncService {
     let count = 0
     let processed = 0
 
+    // Quick exit if both continuing and ended show deletions are disabled
+    if (!this.config.deleteEndedShow && !this.config.deleteContinuingShow) {
+      return 0
+    }
+
     // Group series by instance for efficient processing
     const seriesByInstance = new Map<number, SonarrItem[]>()
 
     for (const show of series) {
+      // Respect configured show types
+      const isContinuing = show.series_status !== 'ended'
+      const shouldConsider = isContinuing
+        ? this.config.deleteContinuingShow
+        : this.config.deleteEndedShow
+      if (!shouldConsider) continue
+
       if (show.sonarr_instance_id) {
         if (!seriesByInstance.has(show.sonarr_instance_id)) {
           seriesByInstance.set(show.sonarr_instance_id, [])
@@ -1345,14 +1551,21 @@ export class DeleteSyncService {
         continue
       }
 
-      // Get all tags for this instance once
-      const allTags = await service.getTags()
-      const removalTagPrefix = (
-        this.config.removedTagPrefix ?? ''
-      ).toLowerCase()
-      const removedTagIds = allTags
-        .filter((tag) => tag.label.toLowerCase().startsWith(removalTagPrefix))
-        .map((tag) => tag.id)
+      // Get tags from cache (reusing existing cache infrastructure)
+      const tagMap = await this.getTagsForInstance(
+        instanceId,
+        service,
+        'sonarr',
+      )
+      const removalTagPrefix = this.getRemovalTagPrefixNormalized()
+      if (!removalTagPrefix) {
+        // Avoid treating every tag as a removal tag when prefix is blank
+        processed += instanceSeries.length
+        continue
+      }
+      const removedTagIds = Array.from(tagMap.entries())
+        .filter(([, label]) => label.startsWith(removalTagPrefix))
+        .map(([id]) => id)
 
       if (removedTagIds.length === 0) {
         // No matching tags in this instance
@@ -1360,46 +1573,49 @@ export class DeleteSyncService {
         continue
       }
 
-      // Check each series in this instance in batches
-      const BATCH_SIZE = 10
+      // Process each series with limited concurrency to avoid API rate limits
+      const limit = pLimit(10)
 
-      for (let i = 0; i < instanceSeries.length; i += BATCH_SIZE) {
-        const batch = instanceSeries.slice(i, i + BATCH_SIZE)
-        const batchResults = await Promise.all(
-          batch.map(async (show) => {
+      const results = await Promise.allSettled(
+        instanceSeries.map((show) =>
+          limit(async () => {
             try {
-              const sonarrId = extractSonarrId(show.guids)
-              if (sonarrId === 0) {
-                return false
+              const hasRemoval = removedTagIds.some((id) =>
+                (show.tags || []).includes(id),
+              )
+              if (!hasRemoval) return false
+              if (
+                this.config.enablePlexPlaylistProtection &&
+                this.protectedGuids
+              ) {
+                const guids = parseGuids(show.guids)
+                // Count only if NOT protected
+                return !this.isAnyGuidProtected(guids)
               }
-
-              const seriesDetails = await service.getFromSonarr<SonarrSeries>(
-                `series/${sonarrId}`,
-              )
-
-              return removedTagIds.some((id) =>
-                (seriesDetails.tags || []).includes(id),
-              )
+              return true
             } catch (error) {
               this.log.error(
+                {
+                  error:
+                    error instanceof Error ? error : new Error(String(error)),
+                  show: { title: show.title, guids: show.guids },
+                },
                 `Error checking tags for series "${show.title}":`,
-                error,
               )
               return false
             }
           }),
-        )
+        ),
+      )
 
-        count += batchResults.filter((hasTag) => hasTag).length
-        processed += batch.length
+      count += results.filter(
+        (result) => result.status === 'fulfilled' && result.value,
+      ).length
+      processed += instanceSeries.length
 
-        // Log progress periodically
-        if (processed % 50 === 0 || processed === series.length) {
-          this.log.debug(
-            `Checked ${processed}/${series.length} series for removal tag, found ${count} so far`,
-          )
-        }
-      }
+      this.log.debug(
+        `Checked ${processed} series for removal tag, found ${count} tagged`,
+      )
     }
 
     return count
@@ -1414,6 +1630,10 @@ export class DeleteSyncService {
   private async countTaggedMovies(movies: RadarrItem[]): Promise<number> {
     let count = 0
     let processed = 0
+
+    if (!this.config.deleteMovie) {
+      return 0
+    }
 
     // Group movies by instance for efficient processing
     const moviesByInstance = new Map<number, RadarrItem[]>()
@@ -1437,14 +1657,21 @@ export class DeleteSyncService {
         continue
       }
 
-      // Get all tags for this instance once
-      const allTags = await service.getTags()
-      const removalTagPrefix = (
-        this.config.removedTagPrefix ?? ''
-      ).toLowerCase()
-      const removedTagIds = allTags
-        .filter((tag) => tag.label.toLowerCase().startsWith(removalTagPrefix))
-        .map((tag) => tag.id)
+      // Get tags from cache (reusing existing cache infrastructure)
+      const tagMap = await this.getTagsForInstance(
+        instanceId,
+        service,
+        'radarr',
+      )
+      const removalTagPrefix = this.getRemovalTagPrefixNormalized()
+      if (!removalTagPrefix) {
+        // Avoid treating every tag as a removal tag when prefix is blank
+        processed += instanceMovies.length
+        continue
+      }
+      const removedTagIds = Array.from(tagMap.entries())
+        .filter(([, label]) => label.startsWith(removalTagPrefix))
+        .map(([id]) => id)
 
       if (removedTagIds.length === 0) {
         // No matching tags in this instance
@@ -1452,46 +1679,49 @@ export class DeleteSyncService {
         continue
       }
 
-      // Check each movie in this instance in batches
-      const BATCH_SIZE = 10
+      // Process each movie with limited concurrency to avoid API rate limits
+      const limit = pLimit(10)
 
-      for (let i = 0; i < instanceMovies.length; i += BATCH_SIZE) {
-        const batch = instanceMovies.slice(i, i + BATCH_SIZE)
-        const batchResults = await Promise.all(
-          batch.map(async (movie) => {
+      const results = await Promise.allSettled(
+        instanceMovies.map((movie) =>
+          limit(async () => {
             try {
-              const radarrId = extractRadarrId(movie.guids)
-              if (radarrId === 0) {
-                return false
+              const hasRemoval = removedTagIds.some((id) =>
+                (movie.tags || []).includes(id),
+              )
+              if (!hasRemoval) return false
+              if (
+                this.config.enablePlexPlaylistProtection &&
+                this.protectedGuids
+              ) {
+                const guids = parseGuids(movie.guids)
+                // Count only if NOT protected
+                return !this.isAnyGuidProtected(guids)
               }
-
-              const movieDetails = await service.getFromRadarr<RadarrMovie>(
-                `movie/${radarrId}`,
-              )
-
-              return removedTagIds.some((id) =>
-                (movieDetails.tags || []).includes(id),
-              )
+              return true
             } catch (error) {
               this.log.error(
+                {
+                  error:
+                    error instanceof Error ? error : new Error(String(error)),
+                  movie: { title: movie.title, guids: movie.guids },
+                },
                 `Error checking tags for movie "${movie.title}":`,
-                error,
               )
               return false
             }
           }),
-        )
+        ),
+      )
 
-        count += batchResults.filter((hasTag) => hasTag).length
-        processed += batch.length
+      count += results.filter(
+        (result) => result.status === 'fulfilled' && result.value,
+      ).length
+      processed += instanceMovies.length
 
-        // Log progress periodically
-        if (processed % 50 === 0 || processed === movies.length) {
-          this.log.debug(
-            `Checked ${processed}/${movies.length} movies for removal tag, found ${count} so far`,
-          )
-        }
-      }
+      this.log.debug(
+        `Checked ${processed} movies for removal tag, found ${count} tagged`,
+      )
     }
 
     return count
@@ -1518,7 +1748,8 @@ export class DeleteSyncService {
     respectUserSyncSetting = false,
   ): Promise<Set<string>> {
     try {
-      let watchlistItems = []
+      let watchlistItems: Array<{ title: string; guids?: string | string[] }> =
+        []
 
       if (respectUserSyncSetting) {
         // Get all users to check their sync permissions
@@ -1570,21 +1801,18 @@ export class DeleteSyncService {
         )
       }
 
-      // Create a set of unique GUIDs and KEYs for efficient lookup
+      // Create a set of unique GUIDs for efficient lookup
       const guidSet = new Set<string>()
       let malformedItems = 0
 
-      // Process all items to extract GUIDs and KEYs
+      // Process all items to extract GUIDs using the standardized GUID handler
       for (const item of watchlistItems) {
         try {
-          // Handle GUIDs stored as either JSON string or array
-          const guids =
-            typeof item.guids === 'string'
-              ? JSON.parse(item.guids)
-              : item.guids || []
+          // Use parseGuids utility for consistent GUID parsing and normalization
+          const parsedGuids = parseGuids(item.guids)
 
-          // Add each GUID to the set for efficient lookup
-          for (const guid of guids) {
+          // Add each parsed and normalized GUID to the set for efficient lookup
+          for (const guid of parsedGuids) {
             guidSet.add(guid)
           }
 
@@ -1609,12 +1837,12 @@ export class DeleteSyncService {
         `Extracted ${guidSet.size} unique GUIDs from watchlist items`,
       )
 
-      // Debug sample of collected identifiers (limited to 5)
-      if (this.log.level === 'debug' || this.log.level === 'trace') {
-        this.log.debug('Sample of watchlist keys (first 5):')
-        const sampleKeys = Array.from(guidSet).slice(0, 5)
-        for (const item of sampleKeys) {
-          this.log.debug(`  Watchlist key: "${item}"`)
+      // Trace sample of collected identifiers (limited to 5)
+      if (this.log.level === 'trace') {
+        this.log.trace('Sample of watchlist GUIDs (first 5):')
+        const sampleGuids = Array.from(guidSet).slice(0, 5)
+        for (const guid of sampleGuids) {
+          this.log.trace(`  Watchlist GUID: "${guid}"`)
         }
       }
 
@@ -1642,26 +1870,7 @@ export class DeleteSyncService {
     existingMovies: RadarrItem[],
     watchlistGuids: Set<string>,
     dryRun = false,
-  ): Promise<{
-    total: {
-      deleted: number
-      skipped: number
-      processed: number
-      protected?: number
-    }
-    movies: {
-      deleted: number
-      skipped: number
-      protected?: number
-      items: Array<{ title: string; guid: string; instance: string }>
-    }
-    shows: {
-      deleted: number
-      skipped: number
-      protected?: number
-      items: Array<{ title: string; guid: string; instance: string }>
-    }
-  }> {
+  ): Promise<DeleteSyncResult> {
     let moviesDeleted = 0
     let moviesSkipped = 0
     let moviesProtected = 0
@@ -1684,87 +1893,11 @@ export class DeleteSyncService {
     }> = []
 
     this.log.info(
-      `Beginning deletion ${dryRun ? 'analysis' : 'process'} based on configuration`,
+      `Beginning deletion ${dryRun ? '(DRY RUN)' : 'process'} based on configuration`,
     )
 
-    // Reset workflow caches before processing
-    this.plexServer.clearWorkflowCaches()
-
-    // Check if Plex playlist protection is enabled
-    if (this.config.enablePlexPlaylistProtection) {
-      this.log.info(
-        `Plex playlist protection is enabled with playlist name "${this.getProtectionPlaylistName()}"`,
-      )
-
-      try {
-        // Create protection playlists for users if missing
-        const playlistMap =
-          await this.plexServer.getOrCreateProtectionPlaylists(true)
-
-        if (playlistMap.size === 0) {
-          const errorMsg = `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`
-          this.log.error(errorMsg)
-          return this.createSafetyTriggeredResult(
-            errorMsg,
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
-        }
-
-        try {
-          // Populate protected GUIDs cache for lookup operations
-          this.protectedGuids = await this.plexServer.getProtectedItems()
-
-          if (!this.protectedGuids) {
-            throw new Error('Failed to retrieve protected items')
-          }
-
-          this.log.info(
-            `Protection playlists "${this.getProtectionPlaylistName()}" for ${playlistMap.size} users contain a total of ${this.protectedGuids.size} protected GUIDs`,
-          )
-
-          // Debug sample of protected identifiers (limited to 5)
-          if (
-            this.protectedGuids.size > 0 &&
-            (this.log.level === 'debug' || this.log.level === 'trace')
-          ) {
-            const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
-            this.log.debug('Sample protected GUIDs:')
-            for (const guid of sampleGuids) {
-              this.log.debug(`  Protected GUID: "${guid}"`)
-            }
-          }
-        } catch (protectedItemsError) {
-          const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
-          this.log.error(errorMsg)
-          return this.createSafetyTriggeredResult(
-            errorMsg,
-            dryRun,
-            existingSeries.length,
-            existingMovies.length,
-          )
-        }
-      } catch (playlistError) {
-        const errorMsg = `Error creating or retrieving protection playlists: ${playlistError instanceof Error ? playlistError.message : String(playlistError)}`
-        this.log.error(errorMsg)
-        return this.createSafetyTriggeredResult(
-          errorMsg,
-          dryRun,
-          existingSeries.length,
-          existingMovies.length,
-        )
-      }
-
-      // Direct GUID comparison using pre-cached protected GUIDs
-      // Efficient approach that avoids individual isItemProtected calls
-
-      this.log.info(
-        'Protection uses standardized GUIDs for maximum compatibility across all systems',
-      )
-    } else {
-      this.log.debug('Plex playlist protection is disabled')
-    }
+    // Note: Protection playlists are now loaded before the safety check
+    // this.protectedGuids should already be populated if protection is enabled
 
     // Process movies if movie deletion is enabled
     if (this.config.deleteMovie) {
@@ -1805,17 +1938,13 @@ export class DeleteSyncService {
               }
 
               // Check for any movie GUID in the protected set
-              let isProtected = false
-
-              for (const guid of movieGuidList) {
-                if (this.protectedGuids.has(guid)) {
+              const isProtected = this.isAnyGuidProtected(
+                movieGuidList,
+                (guid) =>
                   this.log.debug(
                     `Movie "${movie.title}" is protected by GUID "${guid}"`,
-                  )
-                  isProtected = true
-                  break
-                }
-              }
+                  ),
+              )
 
               if (isProtected) {
                 this.log.info(
@@ -1877,28 +2006,24 @@ export class DeleteSyncService {
             }
           } catch (error) {
             this.log.error(
-              `Error ${dryRun ? 'analyzing' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
               {
-                error: error instanceof Error ? error.message : String(error),
+                error:
+                  error instanceof Error ? error : new Error(String(error)),
                 movie: {
                   title: movie.title,
                   instanceId: movie.radarr_instance_id,
                   guids: movieGuidList,
                 },
               },
+              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
             )
             moviesSkipped++
           }
         }
       }
 
-      const _movieSummary = {
-        deleted: moviesDeleted,
-        skipped: moviesSkipped,
-        protected: moviesProtected,
-      }
       this.log.info(
-        `Movie deletion ${dryRun ? 'analysis' : ''} summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `Movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('Movie deletion disabled in configuration, skipping')
@@ -1969,17 +2094,13 @@ export class DeleteSyncService {
               }
 
               // Check for any show GUID in the protected set
-              let isProtected = false
-
-              for (const guid of showGuidList) {
-                if (this.protectedGuids.has(guid)) {
+              const isProtected = this.isAnyGuidProtected(
+                showGuidList,
+                (guid) =>
                   this.log.debug(
                     `Show "${show.title}" is protected by GUID "${guid}"`,
-                  )
-                  isProtected = true
-                  break
-                }
-              }
+                  ),
+              )
 
               if (isProtected) {
                 this.log.info(
@@ -2053,9 +2174,9 @@ export class DeleteSyncService {
             }
           } catch (error) {
             this.log.error(
-              `Error ${dryRun ? 'analyzing' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
               {
-                error: error instanceof Error ? error.message : String(error),
+                error:
+                  error instanceof Error ? error : new Error(String(error)),
                 show: {
                   title: show.title,
                   instanceId: show.sonarr_instance_id,
@@ -2063,6 +2184,7 @@ export class DeleteSyncService {
                   guids: showGuidList,
                 },
               },
+              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
             )
 
             if (isContinuing) {
@@ -2074,19 +2196,8 @@ export class DeleteSyncService {
         }
       }
 
-      const _tvShowSummary = {
-        endedShows: {
-          deleted: endedShowsDeleted,
-          skipped: endedShowsSkipped,
-        },
-        continuingShows: {
-          deleted: continuingShowsDeleted,
-          skipped: continuingShowsSkipped,
-        },
-        protected: showsProtected,
-      }
       this.log.info(
-        `TV show deletion ${dryRun ? 'analysis' : ''} summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `TV show deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('TV show deletion disabled in configuration, skipping')
@@ -2123,21 +2234,19 @@ export class DeleteSyncService {
     }
 
     this.log.info(
-      `Delete sync ${dryRun ? 'analysis' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
+      `Delete sync ${dryRun ? '(DRY RUN)' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${totalProtected} protected` : ''}, ${totalDeleted + totalSkipped + totalProtected} total processed`,
     )
 
     // Log detailed summary at debug level
     this.log.debug(
-      `Detailed deletion ${dryRun ? 'analysis' : 'operation'} summary:`,
+      `Detailed deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary:`,
       {
         ...deletionSummary,
         dryRun,
       },
     )
 
-    // Release cached resources after processing completes
-    this.plexServer.clearWorkflowCaches()
-    this.protectedGuids = null
+    // Resources will be cleared in finally block of run() method
 
     return deletionSummary
   }
