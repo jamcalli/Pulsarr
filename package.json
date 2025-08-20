@@ -1,6 +1,6 @@
 {
   "name": "pulsarr",
-  "version": "0.5.5-beta.1",
+  "version": "0.5.5-beta.2",
   "description": "Plex watchlist tracker and notification center that integrates with the Arr stack",
   "main": "build/server.js",
   "type": "module",
@@ -118,6 +118,7 @@
     "knex": "^3.1.0",
     "lucide-react": "^0.539.0",
     "next-themes": "^0.4.6",
+    "p-limit": "^7.1.0",
     "pg": "^8.16.0",
     "pino": "9.7.0",
     "pino-pretty": "^13.0.0",

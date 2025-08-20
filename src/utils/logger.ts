@@ -22,8 +22,7 @@ interface FileLoggerOptions extends LoggerOptions {
   stream: rfs.RotatingFileStream | NodeJS.WriteStream
 }
 
-interface MultiStreamLoggerOptions {
-  level: string
+interface MultiStreamLoggerOptions extends LoggerOptions {
   stream: pino.MultiStreamRes
 }
 
@@ -43,13 +42,19 @@ const projectRoot = resolve(__dirname, '..', '..')
  */
 function createErrorSerializer() {
   return (err: Error | Record<string, unknown> | string | number | boolean) => {
-    if (!err) {
+    if (err == null) {
       return err
     }
 
     // Handle primitive values (string, number, boolean)
     if (typeof err !== 'object') {
-      return { message: String(err) }
+      const primitiveType =
+        typeof err === 'string'
+          ? 'StringError'
+          : typeof err === 'number'
+            ? 'NumberError'
+            : 'BooleanError'
+      return { message: String(err), type: primitiveType }
     }
 
     // Handle the case where err might be a plain object or Error instance
@@ -62,10 +67,26 @@ function createErrorSerializer() {
       serialized.status = err.status
     if ('statusCode' in err && err.statusCode !== undefined)
       serialized.statusCode = err.statusCode
-    if ('constructor' in err && err.constructor?.name)
-      serialized.type = err.constructor.name
+    // Determine error type using robust instanceof checks with fallbacks
+    if (err instanceof TypeError) {
+      serialized.type = 'TypeError'
+    } else if (err instanceof ReferenceError) {
+      serialized.type = 'ReferenceError'
+    } else if (err instanceof SyntaxError) {
+      serialized.type = 'SyntaxError'
+    } else if (err instanceof RangeError) {
+      serialized.type = 'RangeError'
+    } else if (err instanceof AggregateError) {
+      serialized.type = 'AggregateError'
+    } else if (err instanceof Error) {
+      serialized.type = 'Error'
+    } else if ('name' in err && typeof err.name === 'string' && err.name) {
+      serialized.type = err.name
+    } else {
+      serialized.type = 'UnknownError'
+    }
 
-    // Conditionally include stack trace - exclude for auth errors (401)
+    // Conditionally include stack trace - exclude for 4xx client errors to reduce noise
     const statusCode =
       'statusCode' in err && typeof err.statusCode === 'number'
         ? err.statusCode
@@ -75,6 +96,19 @@ function createErrorSerializer() {
     const shouldIncludeStack = !statusCode || statusCode >= 500
     if ('stack' in err && err.stack && shouldIncludeStack) {
       serialized.stack = err.stack
+    }
+
+    // Include cause if provided (often non-enumerable on Error)
+    if ('cause' in err && err.cause) {
+      // Recursively serialize the cause to maintain structure and avoid losing details
+      serialized.cause = createErrorSerializer()(
+        err.cause as
+          | Error
+          | Record<string, unknown>
+          | string
+          | number
+          | boolean,
+      )
     }
 
     // Include any other enumerable properties
@@ -250,6 +284,11 @@ export function createLoggerConfig(
       // Use pino's built-in multistream
       const fileStream = getFileStream()
 
+      // Graceful fallback: avoid double-logging if file stream fell back to stdout
+      if (fileStream === process.stdout) {
+        return getTerminalOptions()
+      }
+
       // Create a pretty stream for terminal output
       const prettyStream = pino.transport({
         target: 'pino-pretty',
@@ -271,7 +310,6 @@ export function createLoggerConfig(
         stream: multistream,
         serializers: {
           req: createRequestSerializer(),
-          err: createErrorSerializer(),
           error: createErrorSerializer(),
         },
       }

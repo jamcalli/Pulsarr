@@ -315,7 +315,10 @@ export class PendingWebhooksService {
       // Count successful deletions
       const deletedCount = results.reduce((count, result) => {
         if (result.status === 'fulfilled') return count + result.value
-        this.log.error('Webhook processing promise rejected:', result.reason)
+        this.log.error(
+          { error: result.reason },
+          'Webhook processing promise rejected:',
+        )
         return count
       }, 0)
 
