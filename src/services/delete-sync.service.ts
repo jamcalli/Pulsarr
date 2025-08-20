@@ -21,14 +21,8 @@
  */
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type {
-  Item as RadarrItem,
-  RadarrMovie,
-} from '@root/types/radarr.types.js'
-import type {
-  Item as SonarrItem,
-  SonarrSeries,
-} from '@root/types/sonarr.types.js'
+import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   extractRadarrId,
   extractSonarrId,
@@ -1018,16 +1012,11 @@ export class DeleteSyncService {
             continue
           }
 
-          // Get full movie details to check for tags
-          const movieDetails = await service.getFromRadarr<RadarrMovie>(
-            `movie/${radarrId}`,
-          )
-
-          // Check if the movie has our removal tag
+          // Check if the movie has our removal tag using tags from initial fetch
           const hasRemovalTag = await this.hasRemovalTag(
             instanceId,
             service,
-            movieDetails.tags || [],
+            movie.tags || [],
             'radarr',
           )
 
@@ -1205,16 +1194,11 @@ export class DeleteSyncService {
             continue
           }
 
-          // Get full series details to check for tags
-          const seriesDetails = await service.getFromSonarr<SonarrSeries>(
-            `series/${sonarrId}`,
-          )
-
-          // Check if the series has our removal tag
+          // Check if the series has our removal tag using tags from initial fetch
           const hasRemovalTag = await this.hasRemovalTag(
             instanceId,
             service,
-            seriesDetails.tags || [],
+            show.tags || [],
             'sonarr',
           )
 
@@ -1404,9 +1388,9 @@ export class DeleteSyncService {
       // Fetch tags from the service
       const allTags = await service.getTags()
 
-      // Create a map of tag IDs to lowercase tag labels
+      // Create a map of tag IDs to normalized tag labels (trimmed and lowercase)
       const tagMap = new Map(
-        allTags.map((tag) => [tag.id, tag.label.toLowerCase()]),
+        allTags.map((tag) => [tag.id, tag.label.trim().toLowerCase()]),
       )
 
       // Cache the result with unique key
@@ -1554,17 +1538,8 @@ export class DeleteSyncService {
         instanceSeries.map((show) =>
           limit(async () => {
             try {
-              const sonarrId = extractSonarrId(show.guids)
-              if (sonarrId === 0) {
-                return false
-              }
-
-              const seriesDetails = await service.getFromSonarr<SonarrSeries>(
-                `series/${sonarrId}`,
-              )
-
               const hasRemoval = removedTagIds.some((id) =>
-                (seriesDetails.tags || []).includes(id),
+                (show.tags || []).includes(id),
               )
               if (!hasRemoval) return false
               if (
@@ -1665,17 +1640,8 @@ export class DeleteSyncService {
         instanceMovies.map((movie) =>
           limit(async () => {
             try {
-              const radarrId = extractRadarrId(movie.guids)
-              if (radarrId === 0) {
-                return false
-              }
-
-              const movieDetails = await service.getFromRadarr<RadarrMovie>(
-                `movie/${radarrId}`,
-              )
-
               const hasRemoval = removedTagIds.some((id) =>
-                (movieDetails.tags || []).includes(id),
+                (movie.tags || []).includes(id),
               )
               if (!hasRemoval) return false
               if (
