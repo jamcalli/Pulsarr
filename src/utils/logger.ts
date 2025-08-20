@@ -22,8 +22,7 @@ interface FileLoggerOptions extends LoggerOptions {
   stream: rfs.RotatingFileStream | NodeJS.WriteStream
 }
 
-interface MultiStreamLoggerOptions {
-  level: LevelWithSilent
+interface MultiStreamLoggerOptions extends LoggerOptions {
   stream: pino.MultiStreamRes
 }
 
@@ -101,7 +100,15 @@ function createErrorSerializer() {
 
     // Include cause if provided (often non-enumerable on Error)
     if ('cause' in err && err.cause) {
-      serialized.cause = err.cause
+      // Recursively serialize the cause to maintain structure and avoid losing details
+      serialized.cause = createErrorSerializer()(
+        err.cause as
+          | Error
+          | Record<string, unknown>
+          | string
+          | number
+          | boolean,
+      )
     }
 
     // Include any other enumerable properties
