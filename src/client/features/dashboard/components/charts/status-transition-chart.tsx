@@ -151,8 +151,16 @@ export function StatusTransitionsChart() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <span className="text-foreground text-muted-foreground">
-          Loading chart data...
+        <span className="text-muted-foreground">Loading chart data...</span>
+      </div>
+    )
+  }
+
+  if (!notifiedByContentTypeData.length) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <span className="text-muted-foreground">
+          No notified transitions found.
         </span>
       </div>
     )
@@ -172,7 +180,7 @@ export function StatusTransitionsChart() {
         <BarChart
           data={notifiedByContentTypeData}
           layout="vertical"
-          margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+          margin={{ top: 0, right: 24, left: 0, bottom: 0 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
@@ -181,6 +189,15 @@ export function StatusTransitionsChart() {
           />
           <XAxis
             type="number"
+            domain={[
+              0,
+              Math.ceil(
+                Math.max(
+                  ...notifiedByContentTypeData.map((d) => d.maxMinutes || 0),
+                ) * 1.05,
+              ),
+            ]}
+            allowDataOverflow
             label={{
               value: 'Minutes',
               position: 'insideBottom',
