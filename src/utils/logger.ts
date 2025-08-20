@@ -43,7 +43,7 @@ const projectRoot = resolve(__dirname, '..', '..')
  */
 function createErrorSerializer() {
   return (err: Error | Record<string, unknown> | string | number | boolean) => {
-    if (!err) {
+    if (err == null) {
       return err
     }
 
