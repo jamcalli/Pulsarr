@@ -333,6 +333,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       // Check if it's an external URL
       if (url.startsWith('http://') || url.startsWith('https://')) {
+        // Close mobile sidebar for consistent UX
+        if (isMobile) {
+          setOpenMobile(false)
+        }
         // Let the browser handle external links normally (new tab)
         return
       }

@@ -57,7 +57,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           plexConnected = false
           fastify.log.warn(
             {
-              err: error,
+              error: error,
               route: `${request.method} ${request.routeOptions?.url || request.url}`,
             },
             'Failed to fetch Plex token or avatar',
