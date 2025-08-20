@@ -1113,7 +1113,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Tag-based movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `Tag-based movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('Movie deletion disabled in configuration, skipping')
@@ -1308,7 +1308,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `TV show tag-based deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `TV show tag-based deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('TV show deletion disabled in configuration, skipping')
@@ -1437,7 +1437,7 @@ export class DeleteSyncService {
       // Safeguard against missing configuration
       const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
-        this.log.warn(
+        this.log.debug(
           'removedTagPrefix is blank – tag-based deletion will never match any items',
         )
         return false
@@ -1990,7 +1990,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `Movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('Movie deletion disabled in configuration, skipping')
@@ -2163,7 +2163,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `TV show deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `TV show deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('TV show deletion disabled in configuration, skipping')
@@ -2200,7 +2200,7 @@ export class DeleteSyncService {
     }
 
     this.log.info(
-      `Delete sync ${dryRun ? '(DRY RUN)' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
+      `Delete sync ${dryRun ? '(DRY RUN)' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${totalProtected} protected` : ''}, ${totalDeleted + totalSkipped + totalProtected} total processed`,
     )
 
     // Log detailed summary at debug level
