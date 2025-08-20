@@ -1,5 +1,16 @@
 import type { StatusTransitionTime } from '@root/schemas/stats/stats.schema'
 import { useMemo } from 'react'
+
+// Chart-specific types
+type ContentGroup = 'Movies' | 'Shows'
+interface GroupedDataItem {
+  contentType: ContentGroup
+  totalCount: number
+  totalAvgDays: number
+  minDays: number
+  maxDays: number
+}
+
 import {
   Bar,
   BarChart,
@@ -50,53 +61,48 @@ export function StatusTransitionsChart() {
     )
 
     // Group by content type and aggregate data
-    type ContentGroup = 'Movies' | 'Shows'
-    interface GroupedDataItem {
-      contentType: ContentGroup
-      totalCount: number
-      totalAvgDays: number
-      minDays: number
-      maxDays: number
-    }
 
-    const groupedData = notifiedTransitions.reduce(
-      (
-        acc: Record<string, GroupedDataItem>,
-        transition: StatusTransitionTime,
-      ) => {
-        const mapContentType = (t?: string): ContentGroup => {
-          switch (t?.toLowerCase()) {
-            case 'movie':
-              return 'Movies'
-            case 'show':
-            case 'series':
-            case 'episode':
-              return 'Shows'
-            default:
-              return 'Shows'
-          }
+    const groupedData = notifiedTransitions.reduce<
+      Partial<Record<ContentGroup, GroupedDataItem>>
+    >((acc, transition: StatusTransitionTime) => {
+      const mapContentType = (t?: string): ContentGroup => {
+        switch (t?.toLowerCase()) {
+          case 'movie':
+            return 'Movies'
+          case 'show':
+          case 'series':
+          case 'episode':
+            return 'Shows'
+          default:
+            return 'Shows'
         }
-        const key = mapContentType(transition.content_type)
+      }
+      const key = mapContentType(transition.content_type)
 
-        if (!acc[key]) {
-          acc[key] = {
-            contentType: key,
-            totalCount: 0,
-            totalAvgDays: 0,
-            minDays: Number.POSITIVE_INFINITY,
-            maxDays: Number.NEGATIVE_INFINITY,
-          }
+      const existingGroup = acc[key]
+      if (!existingGroup) {
+        acc[key] = {
+          contentType: key,
+          totalCount: transition.count,
+          totalAvgDays: transition.avg_days * transition.count,
+          minDays: transition.min_days,
+          maxDays: transition.max_days,
         }
+      } else {
+        existingGroup.totalCount += transition.count
+        existingGroup.totalAvgDays += transition.avg_days * transition.count
+        existingGroup.minDays = Math.min(
+          existingGroup.minDays,
+          transition.min_days,
+        )
+        existingGroup.maxDays = Math.max(
+          existingGroup.maxDays,
+          transition.max_days,
+        )
+      }
 
-        acc[key].totalCount += transition.count
-        acc[key].totalAvgDays += transition.avg_days * transition.count
-        acc[key].minDays = Math.min(acc[key].minDays, transition.min_days)
-        acc[key].maxDays = Math.max(acc[key].maxDays, transition.max_days)
-
-        return acc
-      },
-      {},
-    )
+      return acc
+    }, {})
 
     // Convert grouped data to chart format
     const MINUTES_PER_DAY = 1440
@@ -110,7 +116,13 @@ export function StatusTransitionsChart() {
           Number.isFinite(g.minDays) &&
           Number.isFinite(g.maxDays),
       )
-      .sort((a) => (a.contentType === 'Movies' ? -1 : 1))
+      .sort((a, b) =>
+        a.contentType === b.contentType
+          ? 0
+          : a.contentType === 'Movies'
+            ? -1
+            : 1,
+      )
       .map((group: GroupedDataItem) => {
         const avgDays = group.totalAvgDays / group.totalCount
         const avgMinutes = toMinutes(avgDays)
@@ -243,36 +255,6 @@ export function StatusTransitionsChart() {
               direction="x"
               key="errorbar-x"
             />
-
-            {/* Apply different color for each content type */}
-            {notifiedByContentTypeData.map((entry, index) => (
-              <defs key={`grad-${entry.contentType}-${index}`}>
-                <linearGradient
-                  id={`colorBar-${entry.contentType}`}
-                  x1="0"
-                  y1="0"
-                  x2="1"
-                  y2="0"
-                >
-                  <stop
-                    offset="0%"
-                    stopColor={
-                      entry.contentType === 'Movies'
-                        ? cssColors.movie
-                        : cssColors.show
-                    }
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor={
-                      entry.contentType === 'Movies'
-                        ? cssColors.movie
-                        : cssColors.show
-                    }
-                  />
-                </linearGradient>
-              </defs>
-            ))}
 
             {notifiedByContentTypeData.map((entry, index) => (
               <Cell
