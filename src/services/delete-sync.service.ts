@@ -21,14 +21,8 @@
  */
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type {
-  Item as RadarrItem,
-  RadarrMovie,
-} from '@root/types/radarr.types.js'
-import type {
-  Item as SonarrItem,
-  SonarrSeries,
-} from '@root/types/sonarr.types.js'
+import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   extractRadarrId,
   extractSonarrId,
@@ -51,8 +45,9 @@ export class DeleteSyncService {
 
   /**
    * Cache of tags by instance for efficient lookup during tag-based deletion
+   * Key format: "{instanceType}-{instanceId}" to avoid collisions between Sonarr and Radarr
    */
-  private tagCache: Map<number, Map<number, string>> = new Map()
+  private tagCache: Map<string, Map<number, string>> = new Map()
 
   /**
    * Flag to prevent concurrent runs of the delete sync process
@@ -400,7 +395,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Delete sync operation ${dryRun ? 'simulation' : ''} completed successfully`,
+        `Delete sync operation${dryRun ? ' (DRY RUN)' : ''} completed successfully`,
       )
 
       // Step 10: Send notifications about results if enabled
@@ -415,6 +410,7 @@ export class DeleteSyncService {
       // Always reset caches, even if we exited early
       this.plexServer.clearWorkflowCaches()
       this.protectedGuids = null
+      this.clearTagCache()
     }
   }
 
@@ -849,7 +845,7 @@ export class DeleteSyncService {
     }> = []
 
     this.log.info(
-      `Beginning tag-based deletion ${dryRun ? 'analysis' : 'process'} using tag "${this.config.removedTagPrefix}"`,
+      `Beginning tag-based deletion ${dryRun ? '(DRY RUN)' : 'process'} using tag "${this.config.removedTagPrefix}"`,
     )
 
     // Validate once to avoid per-item warnings/work
@@ -860,8 +856,7 @@ export class DeleteSyncService {
       )
     }
 
-    // Reset workflow caches before processing
-    this.plexServer.clearWorkflowCaches()
+    // Cache is already cleared at the start of run() method
 
     // Check if Plex playlist protection is enabled
     if (this.config.enablePlexPlaylistProtection) {
@@ -1017,16 +1012,12 @@ export class DeleteSyncService {
             continue
           }
 
-          // Get full movie details to check for tags
-          const movieDetails = await service.getFromRadarr<RadarrMovie>(
-            `movie/${radarrId}`,
-          )
-
-          // Check if the movie has our removal tag
+          // Check if the movie has our removal tag using tags from initial fetch
           const hasRemovalTag = await this.hasRemovalTag(
             instanceId,
             service,
-            movieDetails.tags || [],
+            movie.tags || [],
+            'radarr',
           )
 
           if (!hasRemovalTag) {
@@ -1107,7 +1098,7 @@ export class DeleteSyncService {
           }
         } catch (error) {
           this.log.error(
-            `Error ${dryRun ? 'analyzing' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
+            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
             {
               error: error instanceof Error ? error.message : String(error),
               movie: {
@@ -1122,7 +1113,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Tag-based movie deletion ${dryRun ? 'analysis' : ''} summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `Tag-based movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('Movie deletion disabled in configuration, skipping')
@@ -1203,16 +1194,12 @@ export class DeleteSyncService {
             continue
           }
 
-          // Get full series details to check for tags
-          const seriesDetails = await service.getFromSonarr<SonarrSeries>(
-            `series/${sonarrId}`,
-          )
-
-          // Check if the series has our removal tag
+          // Check if the series has our removal tag using tags from initial fetch
           const hasRemovalTag = await this.hasRemovalTag(
             instanceId,
             service,
-            seriesDetails.tags || [],
+            show.tags || [],
+            'sonarr',
           )
 
           if (!hasRemovalTag) {
@@ -1300,7 +1287,7 @@ export class DeleteSyncService {
           }
         } catch (error) {
           this.log.error(
-            `Error ${dryRun ? 'analyzing' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
+            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
             {
               error: error instanceof Error ? error.message : String(error),
               show: {
@@ -1321,7 +1308,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `TV show tag-based deletion ${dryRun ? 'analysis' : ''} summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `TV show tag-based deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('TV show deletion disabled in configuration, skipping')
@@ -1358,21 +1345,19 @@ export class DeleteSyncService {
     }
 
     this.log.info(
-      `Tag-based delete sync ${dryRun ? 'analysis' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
+      `Tag-based delete sync ${dryRun ? '(DRY RUN)' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
     )
 
     // Log detailed summary at debug level
     this.log.debug(
-      `Detailed tag-based deletion ${dryRun ? 'analysis' : 'operation'} summary:`,
+      `Detailed tag-based deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary:`,
       {
         ...deletionSummary,
         dryRun,
       },
     )
 
-    // Release cached resources after processing completes
-    this.plexServer.clearWorkflowCaches()
-    this.protectedGuids = null
+    // Resources will be cleared in finally block of run() method
 
     return deletionSummary
   }
@@ -1382,14 +1367,19 @@ export class DeleteSyncService {
    *
    * @param instanceId - The instance ID
    * @param service - The media service (Sonarr or Radarr)
+   * @param instanceType - Type of instance ('sonarr' or 'radarr') to avoid cache collisions
    * @returns Promise resolving to a map of tag IDs to lowercase tag labels
    */
   private async getTagsForInstance(
     instanceId: number,
     service: { getTags: () => Promise<Array<{ id: number; label: string }>> },
+    instanceType: 'sonarr' | 'radarr',
   ): Promise<Map<number, string>> {
+    // Create unique cache key with instance type and ID
+    const cacheKey = `${instanceType}-${instanceId}`
+
     // Check if we have cached tags for this instance
-    const cachedTags = this.tagCache.get(instanceId)
+    const cachedTags = this.tagCache.get(cacheKey)
     if (cachedTags) {
       return cachedTags
     }
@@ -1398,20 +1388,21 @@ export class DeleteSyncService {
       // Fetch tags from the service
       const allTags = await service.getTags()
 
-      // Create a map of tag IDs to lowercase tag labels
+      // Create a map of tag IDs to normalized tag labels (trimmed and lowercase)
       const tagMap = new Map(
-        allTags.map((tag) => [tag.id, tag.label.toLowerCase()]),
+        allTags.map((tag) => [tag.id, tag.label.trim().toLowerCase()]),
       )
 
-      // Cache the result
-      this.tagCache.set(instanceId, tagMap)
+      // Cache the result with unique key
+      this.tagCache.set(cacheKey, tagMap)
 
       return tagMap
     } catch (error) {
       this.log.error(
         { error },
-        `Error fetching tags for instance ${instanceId}:`,
+        `Critical error fetching tags for ${instanceType} instance ${instanceId} - this may affect deletion accuracy`,
       )
+      // Return empty map to prevent deletions when tag data is unavailable
       return new Map()
     }
   }
@@ -1429,12 +1420,14 @@ export class DeleteSyncService {
    * @param instanceId - The instance ID
    * @param service - The media service (Sonarr or Radarr)
    * @param itemTags - The tag IDs on the media item
+   * @param instanceType - Type of instance ('sonarr' or 'radarr') for proper cache keying
    * @returns Promise resolving to true if the item has the removal tag
    */
   private async hasRemovalTag(
     instanceId: number,
     service: { getTags: () => Promise<Array<{ id: number; label: string }>> },
     itemTags: number[],
+    instanceType: 'sonarr' | 'radarr',
   ): Promise<boolean> {
     if (itemTags.length === 0) {
       return false
@@ -1444,14 +1437,18 @@ export class DeleteSyncService {
       // Safeguard against missing configuration
       const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
-        this.log.warn(
+        this.log.debug(
           'removedTagPrefix is blank – tag-based deletion will never match any items',
         )
         return false
       }
 
-      // Get tags from cache or fetch them
-      const tagMap = await this.getTagsForInstance(instanceId, service)
+      // Get tags from cache or fetch them using the explicit instance type
+      const tagMap = await this.getTagsForInstance(
+        instanceId,
+        service,
+        instanceType,
+      )
 
       // Check if any of the item's tags match our removal tag (using startsWith for prefix matching)
       for (const tagId of itemTags) {
@@ -1513,7 +1510,11 @@ export class DeleteSyncService {
       }
 
       // Get tags from cache (reusing existing cache infrastructure)
-      const tagMap = await this.getTagsForInstance(instanceId, service)
+      const tagMap = await this.getTagsForInstance(
+        instanceId,
+        service,
+        'sonarr',
+      )
       const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
         // Avoid treating every tag as a removal tag when prefix is blank
@@ -1537,17 +1538,8 @@ export class DeleteSyncService {
         instanceSeries.map((show) =>
           limit(async () => {
             try {
-              const sonarrId = extractSonarrId(show.guids)
-              if (sonarrId === 0) {
-                return false
-              }
-
-              const seriesDetails = await service.getFromSonarr<SonarrSeries>(
-                `series/${sonarrId}`,
-              )
-
               const hasRemoval = removedTagIds.some((id) =>
-                (seriesDetails.tags || []).includes(id),
+                (show.tags || []).includes(id),
               )
               if (!hasRemoval) return false
               if (
@@ -1620,7 +1612,11 @@ export class DeleteSyncService {
       }
 
       // Get tags from cache (reusing existing cache infrastructure)
-      const tagMap = await this.getTagsForInstance(instanceId, service)
+      const tagMap = await this.getTagsForInstance(
+        instanceId,
+        service,
+        'radarr',
+      )
       const removalTagPrefix = this.getRemovalTagPrefixNormalized()
       if (!removalTagPrefix) {
         // Avoid treating every tag as a removal tag when prefix is blank
@@ -1644,17 +1640,8 @@ export class DeleteSyncService {
         instanceMovies.map((movie) =>
           limit(async () => {
             try {
-              const radarrId = extractRadarrId(movie.guids)
-              if (radarrId === 0) {
-                return false
-              }
-
-              const movieDetails = await service.getFromRadarr<RadarrMovie>(
-                `movie/${radarrId}`,
-              )
-
               const hasRemoval = removedTagIds.some((id) =>
-                (movieDetails.tags || []).includes(id),
+                (movie.tags || []).includes(id),
               )
               if (!hasRemoval) return false
               if (
@@ -1874,7 +1861,7 @@ export class DeleteSyncService {
     }> = []
 
     this.log.info(
-      `Beginning deletion ${dryRun ? 'analysis' : 'process'} based on configuration`,
+      `Beginning deletion ${dryRun ? '(DRY RUN)' : 'process'} based on configuration`,
     )
 
     // Note: Protection playlists are now loaded before the safety check
@@ -1987,7 +1974,7 @@ export class DeleteSyncService {
             }
           } catch (error) {
             this.log.error(
-              `Error ${dryRun ? 'analyzing' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
+              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
               {
                 error: error instanceof Error ? error.message : String(error),
                 movie: {
@@ -2003,7 +1990,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Movie deletion ${dryRun ? 'analysis' : ''} summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `Movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('Movie deletion disabled in configuration, skipping')
@@ -2154,7 +2141,7 @@ export class DeleteSyncService {
             }
           } catch (error) {
             this.log.error(
-              `Error ${dryRun ? 'analyzing' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
+              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
               {
                 error: error instanceof Error ? error.message : String(error),
                 show: {
@@ -2176,7 +2163,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `TV show deletion ${dryRun ? 'analysis' : ''} summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `TV show deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"` : ''}`,
       )
     } else {
       this.log.info('TV show deletion disabled in configuration, skipping')
@@ -2213,21 +2200,19 @@ export class DeleteSyncService {
     }
 
     this.log.info(
-      `Delete sync ${dryRun ? 'analysis' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
+      `Delete sync ${dryRun ? '(DRY RUN)' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped${this.config.enablePlexPlaylistProtection ? `, ${totalProtected} protected` : ''}, ${totalDeleted + totalSkipped + totalProtected} total processed`,
     )
 
     // Log detailed summary at debug level
     this.log.debug(
-      `Detailed deletion ${dryRun ? 'analysis' : 'operation'} summary:`,
+      `Detailed deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary:`,
       {
         ...deletionSummary,
         dryRun,
       },
     )
 
-    // Release cached resources after processing completes
-    this.plexServer.clearWorkflowCaches()
-    this.protectedGuids = null
+    // Resources will be cleared in finally block of run() method
 
     return deletionSummary
   }

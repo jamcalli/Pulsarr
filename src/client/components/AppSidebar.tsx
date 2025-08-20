@@ -23,6 +23,7 @@ import {
 import * as React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import pulsarrLogo from '@/assets/images/pulsarr.svg'
+import { DiscordIcon } from '@/components/icons/DiscordIcon'
 import { useSettings } from '@/components/settings-provider'
 import { useTheme } from '@/components/theme-provider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -196,6 +197,11 @@ const data = {
   ],
   helpResources: [
     {
+      name: 'Discord Community',
+      url: 'https://discord.com/invite/9csTEJn5cR',
+      icon: DiscordIcon,
+    },
+    {
       name: 'Documentation',
       url: 'https://jamcalli.github.io/Pulsarr/docs/intro',
       icon: BookOpen,
@@ -327,6 +333,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       // Check if it's an external URL
       if (url.startsWith('http://') || url.startsWith('https://')) {
+        // Close mobile sidebar for consistent UX
+        if (isMobile) {
+          setOpenMobile(false)
+        }
         // Let the browser handle external links normally (new tab)
         return
       }
