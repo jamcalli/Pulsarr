@@ -49,7 +49,13 @@ function createErrorSerializer() {
 
     // Handle primitive values (string, number, boolean)
     if (typeof err !== 'object') {
-      return { message: String(err) }
+      const primitiveType =
+        typeof err === 'string'
+          ? 'StringError'
+          : typeof err === 'number'
+            ? 'NumberError'
+            : 'BooleanError'
+      return { message: String(err), type: primitiveType }
     }
 
     // Handle the case where err might be a plain object or Error instance
@@ -71,12 +77,12 @@ function createErrorSerializer() {
       serialized.type = 'SyntaxError'
     } else if (err instanceof RangeError) {
       serialized.type = 'RangeError'
+    } else if (err instanceof AggregateError) {
+      serialized.type = 'AggregateError'
     } else if (err instanceof Error) {
       serialized.type = 'Error'
     } else if ('name' in err && typeof err.name === 'string' && err.name) {
       serialized.type = err.name
-    } else if (typeof err === 'string') {
-      serialized.type = 'StringError'
     } else {
       serialized.type = 'UnknownError'
     }
@@ -287,7 +293,6 @@ export function createLoggerConfig(
         stream: multistream,
         serializers: {
           req: createRequestSerializer(),
-          err: createErrorSerializer(),
           error: createErrorSerializer(),
         },
       }
