@@ -337,9 +337,8 @@ export class DeleteSyncService {
           }
 
           try {
-            this.log.info('Beginning deletion analysis based on configuration')
             this.log.info(
-              `Plex playlist protection is enabled with playlist name "${this.getProtectionPlaylistName()}"`,
+              `Beginning deletion analysis; Plex playlist protection enabled with playlist "${this.getProtectionPlaylistName()}"`,
             )
 
             // Use cached protection loading to avoid redundant API calls
@@ -643,6 +642,12 @@ export class DeleteSyncService {
       MAX_DELETION_PERCENTAGE < 0 ||
       MAX_DELETION_PERCENTAGE > 100
     ) {
+      // Debug breadcrumbs for config validation failures
+      this.log.debug({
+        rawMaxDeletionPrevention: this.config.maxDeletionPrevention,
+        parsed: MAX_DELETION_PERCENTAGE,
+        type: typeof this.config.maxDeletionPrevention,
+      })
       return {
         safe: false,
         message: `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100 inclusive.`,
