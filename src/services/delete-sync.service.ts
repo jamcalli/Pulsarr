@@ -1134,15 +1134,7 @@ export class DeleteSyncService {
         `Processing ${existingSeries.length} TV shows for tag-based deletion${dryRun ? ' (DRY RUN)' : ''}`,
       )
 
-      let showsProcessed = 0
-      let showsWithValidSonarrId = 0
-      let showsWithMatchingType = 0
-      let showsWithInstanceId = 0
-      let showsReachedTagCheck = 0
-
       for (const show of existingSeries) {
-        showsProcessed++
-
         // Extract Sonarr ID
         const sonarrId = extractSonarrId(show.guids)
         if (sonarrId === 0) {
@@ -1156,8 +1148,6 @@ export class DeleteSyncService {
           }
           continue
         }
-
-        showsWithValidSonarrId++
 
         // Determine if this is a continuing or ended show
         const isContinuing = show.series_status !== 'ended'
@@ -1180,8 +1170,6 @@ export class DeleteSyncService {
           continue
         }
 
-        showsWithMatchingType++
-
         const instanceId = show.sonarr_instance_id
 
         // Skip shows without instance ID
@@ -1197,8 +1185,6 @@ export class DeleteSyncService {
           }
           continue
         }
-
-        showsWithInstanceId++
 
         try {
           // Get the appropriate Sonarr service for this instance
@@ -1221,8 +1207,6 @@ export class DeleteSyncService {
           const seriesDetails = await service.getFromSonarr<SonarrSeries>(
             `series/${sonarrId}`,
           )
-
-          showsReachedTagCheck++
 
           // Check if the series has our removal tag
           const hasRemovalTag = await this.hasRemovalTag(
@@ -1402,7 +1386,7 @@ export class DeleteSyncService {
   private async getTagsForInstance(
     instanceId: number,
     service: { getTags: () => Promise<Array<{ id: number; label: string }>> },
-    instanceType: 'sonarr' | 'radarr' = 'sonarr',
+    instanceType: 'sonarr' | 'radarr',
   ): Promise<Map<number, string>> {
     // Create unique cache key with instance type and ID
     const cacheKey = `${instanceType}-${instanceId}`
@@ -1429,8 +1413,9 @@ export class DeleteSyncService {
     } catch (error) {
       this.log.error(
         { error },
-        `Error fetching tags for instance ${instanceId}:`,
+        `Critical error fetching tags for ${instanceType} instance ${instanceId} - this may affect deletion accuracy`,
       )
+      // Return empty map to prevent deletions when tag data is unavailable
       return new Map()
     }
   }
