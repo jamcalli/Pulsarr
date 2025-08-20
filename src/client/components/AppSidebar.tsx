@@ -23,6 +23,7 @@ import {
 import * as React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import pulsarrLogo from '@/assets/images/pulsarr.svg'
+import { DiscordIcon } from '@/components/icons/DiscordIcon'
 import { useSettings } from '@/components/settings-provider'
 import { useTheme } from '@/components/theme-provider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -195,6 +196,11 @@ const data = {
     },
   ],
   helpResources: [
+    {
+      name: 'Discord Community',
+      url: 'https://discord.com/invite/9csTEJn5cR',
+      icon: DiscordIcon,
+    },
     {
       name: 'Documentation',
       url: 'https://jamcalli.github.io/Pulsarr/docs/intro',
