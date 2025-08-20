@@ -688,6 +688,7 @@ export class DeleteSyncService {
     }
 
     const sendDiscord = [
+      // Modern values
       'all',
       'discord-only',
       'discord-webhook',
@@ -695,6 +696,10 @@ export class DeleteSyncService {
       'discord-both',
       'webhook-only',
       'dm-only',
+      // Legacy values (back-compat)
+      'message',
+      'webhook',
+      'both',
     ].includes(notifySetting)
 
     const sendApprise = ['all', 'apprise-only'].includes(notifySetting)
@@ -971,8 +976,8 @@ export class DeleteSyncService {
       }
     } catch (error) {
       this.log.error(
+        { error: error instanceof Error ? error : new Error(String(error)) },
         'Error during safety analysis for tag-based deletion:',
-        error,
       )
       return this.createSafetyTriggeredResult(
         `Error during safety analysis: ${error instanceof Error ? error.message : String(error)}`,
@@ -1563,8 +1568,12 @@ export class DeleteSyncService {
               return true
             } catch (error) {
               this.log.error(
+                {
+                  error:
+                    error instanceof Error ? error : new Error(String(error)),
+                  show: { title: show.title, guids: show.guids },
+                },
                 `Error checking tags for series "${show.title}":`,
-                error,
               )
               return false
             }
@@ -1665,8 +1674,12 @@ export class DeleteSyncService {
               return true
             } catch (error) {
               this.log.error(
+                {
+                  error:
+                    error instanceof Error ? error : new Error(String(error)),
+                  movie: { title: movie.title, guids: movie.guids },
+                },
                 `Error checking tags for movie "${movie.title}":`,
-                error,
               )
               return false
             }
@@ -1708,7 +1721,8 @@ export class DeleteSyncService {
     respectUserSyncSetting = false,
   ): Promise<Set<string>> {
     try {
-      let watchlistItems = []
+      let watchlistItems: Array<{ title: string; guids?: string | string[] }> =
+        []
 
       if (respectUserSyncSetting) {
         // Get all users to check their sync permissions
@@ -1829,26 +1843,7 @@ export class DeleteSyncService {
     existingMovies: RadarrItem[],
     watchlistGuids: Set<string>,
     dryRun = false,
-  ): Promise<{
-    total: {
-      deleted: number
-      skipped: number
-      processed: number
-      protected?: number
-    }
-    movies: {
-      deleted: number
-      skipped: number
-      protected?: number
-      items: Array<{ title: string; guid: string; instance: string }>
-    }
-    shows: {
-      deleted: number
-      skipped: number
-      protected?: number
-      items: Array<{ title: string; guid: string; instance: string }>
-    }
-  }> {
+  ): Promise<DeleteSyncResult> {
     let moviesDeleted = 0
     let moviesSkipped = 0
     let moviesProtected = 0
