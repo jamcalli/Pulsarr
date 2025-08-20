@@ -83,7 +83,7 @@ function processStatusUpdate(
 
   if (newRank < currentRank) {
     // Prevent status regression
-    log.warn(
+    log.debug(
       `Preventing status regression for ${context}: ${currentStatus} → ${newStatus}`,
     )
     return {

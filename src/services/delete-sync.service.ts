@@ -395,7 +395,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Delete sync operation${dryRun ? ' (simulation)' : ''} completed successfully`,
+        `Delete sync operation${dryRun ? ' (DRY RUN)' : ''} completed successfully`,
       )
 
       // Step 10: Send notifications about results if enabled
@@ -845,7 +845,7 @@ export class DeleteSyncService {
     }> = []
 
     this.log.info(
-      `Beginning tag-based deletion ${dryRun ? 'analysis' : 'process'} using tag "${this.config.removedTagPrefix}"`,
+      `Beginning tag-based deletion ${dryRun ? '(DRY RUN)' : 'process'} using tag "${this.config.removedTagPrefix}"`,
     )
 
     // Validate once to avoid per-item warnings/work
@@ -1098,7 +1098,7 @@ export class DeleteSyncService {
           }
         } catch (error) {
           this.log.error(
-            `Error ${dryRun ? 'analyzing' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
+            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
             {
               error: error instanceof Error ? error.message : String(error),
               movie: {
@@ -1113,7 +1113,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Tag-based movie deletion ${dryRun ? 'analysis' : ''} summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `Tag-based movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
       )
     } else {
       this.log.info('Movie deletion disabled in configuration, skipping')
@@ -1287,7 +1287,7 @@ export class DeleteSyncService {
           }
         } catch (error) {
           this.log.error(
-            `Error ${dryRun ? 'analyzing' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
+            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
             {
               error: error instanceof Error ? error.message : String(error),
               show: {
@@ -1308,7 +1308,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `TV show tag-based deletion ${dryRun ? 'analysis' : ''} summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `TV show tag-based deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
       )
     } else {
       this.log.info('TV show deletion disabled in configuration, skipping')
@@ -1345,12 +1345,12 @@ export class DeleteSyncService {
     }
 
     this.log.info(
-      `Tag-based delete sync ${dryRun ? 'analysis' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
+      `Tag-based delete sync ${dryRun ? '(DRY RUN)' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
     )
 
     // Log detailed summary at debug level
     this.log.debug(
-      `Detailed tag-based deletion ${dryRun ? 'analysis' : 'operation'} summary:`,
+      `Detailed tag-based deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary:`,
       {
         ...deletionSummary,
         dryRun,
@@ -1861,7 +1861,7 @@ export class DeleteSyncService {
     }> = []
 
     this.log.info(
-      `Beginning deletion ${dryRun ? 'analysis' : 'process'} based on configuration`,
+      `Beginning deletion ${dryRun ? '(DRY RUN)' : 'process'} based on configuration`,
     )
 
     // Note: Protection playlists are now loaded before the safety check
@@ -1974,7 +1974,7 @@ export class DeleteSyncService {
             }
           } catch (error) {
             this.log.error(
-              `Error ${dryRun ? 'analyzing' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
+              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
               {
                 error: error instanceof Error ? error.message : String(error),
                 movie: {
@@ -1990,7 +1990,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `Movie deletion ${dryRun ? 'analysis' : ''} summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `Movie deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${moviesDeleted} identified for deletion, ${moviesSkipped} skipped, ${moviesProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
       )
     } else {
       this.log.info('Movie deletion disabled in configuration, skipping')
@@ -2141,7 +2141,7 @@ export class DeleteSyncService {
             }
           } catch (error) {
             this.log.error(
-              `Error ${dryRun ? 'analyzing' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
+              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
               {
                 error: error instanceof Error ? error.message : String(error),
                 show: {
@@ -2163,7 +2163,7 @@ export class DeleteSyncService {
       }
 
       this.log.info(
-        `TV show deletion ${dryRun ? 'analysis' : ''} summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
+        `TV show deletion ${dryRun ? '(DRY RUN) ' : ''}summary: ${endedShowsDeleted + continuingShowsDeleted} identified for deletion (${endedShowsDeleted} ended, ${continuingShowsDeleted} continuing), ${endedShowsSkipped + continuingShowsSkipped} skipped, ${showsProtected} protected by playlist "${this.getProtectionPlaylistName()}"`,
       )
     } else {
       this.log.info('TV show deletion disabled in configuration, skipping')
@@ -2200,12 +2200,12 @@ export class DeleteSyncService {
     }
 
     this.log.info(
-      `Delete sync ${dryRun ? 'analysis' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
+      `Delete sync ${dryRun ? '(DRY RUN)' : 'operation'} complete: ${totalDeleted} items identified for deletion, ${totalSkipped} skipped, ${totalProtected} protected, ${totalDeleted + totalSkipped + totalProtected} total processed`,
     )
 
     // Log detailed summary at debug level
     this.log.debug(
-      `Detailed deletion ${dryRun ? 'analysis' : 'operation'} summary:`,
+      `Detailed deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary:`,
       {
         ...deletionSummary,
         dryRun,
