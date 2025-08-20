@@ -62,8 +62,24 @@ function createErrorSerializer() {
       serialized.status = err.status
     if ('statusCode' in err && err.statusCode !== undefined)
       serialized.statusCode = err.statusCode
-    if ('constructor' in err && err.constructor?.name)
-      serialized.type = err.constructor.name
+    // Determine error type using robust instanceof checks with fallbacks
+    if (err instanceof TypeError) {
+      serialized.type = 'TypeError'
+    } else if (err instanceof ReferenceError) {
+      serialized.type = 'ReferenceError'
+    } else if (err instanceof SyntaxError) {
+      serialized.type = 'SyntaxError'
+    } else if (err instanceof RangeError) {
+      serialized.type = 'RangeError'
+    } else if (err instanceof Error) {
+      serialized.type = 'Error'
+    } else if ('name' in err && typeof err.name === 'string' && err.name) {
+      serialized.type = err.name
+    } else if (typeof err === 'string') {
+      serialized.type = 'StringError'
+    } else {
+      serialized.type = 'UnknownError'
+    }
 
     // Conditionally include stack trace - exclude for auth errors (401)
     const statusCode =
