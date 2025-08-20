@@ -710,8 +710,13 @@ export class DeleteSyncService {
         )
       } catch (notifyError) {
         this.log.error(
+          {
+            error:
+              notifyError instanceof Error
+                ? notifyError
+                : new Error(String(notifyError)),
+          },
           'Error sending delete sync Discord notification:',
-          notifyError,
         )
       }
     }
@@ -722,8 +727,13 @@ export class DeleteSyncService {
         await this.fastify.apprise?.sendDeleteSyncNotification(result, dryRun)
       } catch (notifyError) {
         this.log.error(
+          {
+            error:
+              notifyError instanceof Error
+                ? notifyError
+                : new Error(String(notifyError)),
+          },
           'Error sending delete sync Apprise notification:',
-          notifyError,
         )
       }
     }
@@ -1098,15 +1108,15 @@ export class DeleteSyncService {
           }
         } catch (error) {
           this.log.error(
-            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
             {
-              error: error instanceof Error ? error.message : String(error),
+              error: error instanceof Error ? error : new Error(String(error)),
               movie: {
                 title: movie.title,
                 instanceId: movie.radarr_instance_id,
                 guids: movie.guids,
               },
             },
+            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
           )
           moviesSkipped++
         }
@@ -1287,9 +1297,8 @@ export class DeleteSyncService {
           }
         } catch (error) {
           this.log.error(
-            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
             {
-              error: error instanceof Error ? error.message : String(error),
+              error: error instanceof Error ? error : new Error(String(error)),
               show: {
                 title: show.title,
                 instanceId: show.sonarr_instance_id,
@@ -1297,6 +1306,7 @@ export class DeleteSyncService {
                 guids: show.guids,
               },
             },
+            `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
           )
 
           if (isContinuing) {
@@ -1974,15 +1984,16 @@ export class DeleteSyncService {
             }
           } catch (error) {
             this.log.error(
-              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
               {
-                error: error instanceof Error ? error.message : String(error),
+                error:
+                  error instanceof Error ? error : new Error(String(error)),
                 movie: {
                   title: movie.title,
                   instanceId: movie.radarr_instance_id,
                   guids: movieGuidList,
                 },
               },
+              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
             )
             moviesSkipped++
           }
@@ -2141,9 +2152,9 @@ export class DeleteSyncService {
             }
           } catch (error) {
             this.log.error(
-              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
               {
-                error: error instanceof Error ? error.message : String(error),
+                error:
+                  error instanceof Error ? error : new Error(String(error)),
                 show: {
                   title: show.title,
                   instanceId: show.sonarr_instance_id,
@@ -2151,6 +2162,7 @@ export class DeleteSyncService {
                   guids: showGuidList,
                 },
               },
+              `Error ${dryRun ? 'processing (DRY RUN)' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
             )
 
             if (isContinuing) {

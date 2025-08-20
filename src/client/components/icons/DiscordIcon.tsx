@@ -13,8 +13,8 @@ export function DiscordIcon({
 }: DiscordIconProps) {
   return (
     <svg
-      role="img"
-      aria-label={title ? undefined : 'Discord'}
+      role={title ? 'img' : undefined}
+      aria-hidden={title ? undefined : true}
       width={size}
       height={size}
       viewBox="0 0 24 24"
