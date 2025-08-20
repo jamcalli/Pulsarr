@@ -23,7 +23,7 @@ interface FileLoggerOptions extends LoggerOptions {
 }
 
 interface MultiStreamLoggerOptions {
-  level: string
+  level: LevelWithSilent
   stream: pino.MultiStreamRes
 }
 
@@ -87,7 +87,7 @@ function createErrorSerializer() {
       serialized.type = 'UnknownError'
     }
 
-    // Conditionally include stack trace - exclude for auth errors (401)
+    // Conditionally include stack trace - exclude for 4xx client errors to reduce noise
     const statusCode =
       'statusCode' in err && typeof err.statusCode === 'number'
         ? err.statusCode
@@ -271,6 +271,11 @@ export function createLoggerConfig(
     case 'both': {
       // Use pino's built-in multistream
       const fileStream = getFileStream()
+
+      // Graceful fallback: avoid double-logging if file stream fell back to stdout
+      if (fileStream === process.stdout) {
+        return getTerminalOptions()
+      }
 
       // Create a pretty stream for terminal output
       const prettyStream = pino.transport({
