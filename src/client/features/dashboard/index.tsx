@@ -3,13 +3,16 @@ import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-da
 import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
 import { StatsHeader } from '@/features/dashboard/components/stats-header'
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboardStats'
+import { useConfigStore } from '@/stores/configStore'
 
 export function DashboardPage() {
   const { refreshStats, isLoading } = useDashboardStats()
+  const configInitialize = useConfigStore((state) => state.initialize)
 
   useEffect(() => {
+    configInitialize()
     refreshStats()
-  }, [refreshStats])
+  }, [refreshStats, configInitialize])
 
   const handleRefresh = useCallback(async () => {
     if (!isLoading) {

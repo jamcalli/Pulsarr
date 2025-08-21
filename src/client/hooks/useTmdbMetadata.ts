@@ -46,7 +46,10 @@ export function useTmdbMetadata(
       const tmdbGuid = approvalRequest.contentGuids.find(guid => guid.startsWith('tmdb:'))
       const tvdbGuid = approvalRequest.contentGuids.find(guid => guid.startsWith('tvdb:'))
       
-      const guidToUse = tmdbGuid || tvdbGuid
+      // For TV shows, prioritize TVDB to avoid TMDB ID conflicts with movies
+      const guidToUse = approvalRequest.contentType === 'show'
+        ? (tvdbGuid || tmdbGuid)
+        : (tmdbGuid || tvdbGuid)
       
       if (!guidToUse) {
         throw new Error(
@@ -55,10 +58,18 @@ export function useTmdbMetadata(
       }
 
       // Use the new intelligent TMDB endpoint that accepts GUID format
+      const queryParams = new URLSearchParams()
+      if (options.region) {
+        queryParams.set('region', options.region)
+      }
+      // Pass content type to help API choose correct endpoint for TMDB IDs
+      if (approvalRequest.contentType) {
+        queryParams.set('type', approvalRequest.contentType)
+      }
+      
+      const queryString = queryParams.toString()
       const metadataResponse = await fetch(
-        `/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}${
-          options.region ? `?region=${options.region}` : ''
-        }`,
+        `/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}${queryString ? `?${queryString}` : ''}`,
       )
 
       if (!metadataResponse.ok) {

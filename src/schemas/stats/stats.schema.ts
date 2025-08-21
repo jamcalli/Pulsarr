@@ -11,6 +11,8 @@ export const ContentStatSchema = z.object({
   title: z.string(),
   count: z.number(),
   thumb: z.string().nullable(),
+  guids: z.array(z.string()).optional(),
+  content_type: z.enum(['movie', 'show']).optional(),
 })
 
 export const UserStatSchema = z.object({

@@ -226,6 +226,7 @@ export const GetTmdbMetadataQuerySchema = z.object({
       z.string().length(2, 'Region must be a 2-letter country code'),
     )
     .optional(),
+  type: z.enum(['movie', 'show']).optional(),
 })
 
 // Response schemas

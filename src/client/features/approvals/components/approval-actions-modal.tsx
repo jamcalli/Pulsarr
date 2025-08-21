@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { TmdbMetadataDisplay } from '@/components/tmdb-metadata-display'
+import { TmdbContentViewer } from '@/components/tmdb-content-viewer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -46,7 +46,6 @@ import { ApprovalRadarrRoutingCard } from '@/features/approvals/components/appro
 import { ApprovalSonarrRoutingCard } from '@/features/approvals/components/approval-sonarr-routing-card'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { useTmdbMetadata } from '@/hooks/useTmdbMetadata'
 import { useConfigStore } from '@/stores/configStore'
 
 interface ApprovalActionsModalProps {
@@ -121,12 +120,9 @@ export default function ApprovalActionsModal({
   const users = useConfigStore((state) => state.users)
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isDesktop = !isMobile
-  const tmdbMetadata = useTmdbMetadata()
 
-  // Clear TMDB metadata when modal opens with a new request
-  // biome-ignore lint/correctness/useExhaustiveDependencies: request.id is intentionally included to reset state when switching between requests
+  // Reset media details view when modal opens with a new request
   useEffect(() => {
-    tmdbMetadata.clearData()
     setShowMediaDetails(false)
   }, [request.id])
 
@@ -362,15 +358,8 @@ export default function ApprovalActionsModal({
     setNotes('')
   }
 
-  const handleShowMediaDetails = async () => {
-    if (showMediaDetails) {
-      setShowMediaDetails(false)
-      return
-    }
-
-    // Always fetch fresh metadata for the current request
-    await tmdbMetadata.fetchMetadata(request)
-    setShowMediaDetails(true)
+  const handleShowMediaDetails = () => {
+    setShowMediaDetails(!showMediaDetails)
   }
 
   const getStatusBadge = () => {
@@ -437,33 +426,7 @@ export default function ApprovalActionsModal({
           Media Details
         </h3>
 
-        {tmdbMetadata.error ? (
-          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">
-                  Unable to Load Media Details
-                </h4>
-                <p className="text-sm text-red-700 dark:text-red-300">
-                  {tmdbMetadata.error}
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : tmdbMetadata.data ? (
-          <TmdbMetadataDisplay
-            data={tmdbMetadata.data}
-            onRegionChange={() => tmdbMetadata.fetchMetadata(request, true)}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Loading media details...</span>
-            </div>
-          </div>
-        )}
+        <TmdbContentViewer approvalRequest={request} />
       </div>
     </div>
   )
@@ -880,22 +843,12 @@ export default function ApprovalActionsModal({
                   variant="neutralnoShadow"
                   size="sm"
                   onClick={handleShowMediaDetails}
-                  disabled={tmdbMetadata.loading}
                   className="flex items-center gap-2"
                 >
-                  {tmdbMetadata.loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <ArrowLeftRight className="w-4 h-4" />
-                      {showMediaDetails
-                        ? 'Request Info'
-                        : `${request.contentType === 'movie' ? 'Movie' : 'Show'} Info`}
-                    </>
-                  )}
+                  <ArrowLeftRight className="w-4 h-4" />
+                  {showMediaDetails
+                    ? 'Request Info'
+                    : `${request.contentType === 'movie' ? 'Movie' : 'Show'} Info`}
                 </Button>
               </div>
               <SheetDescription>
@@ -946,22 +899,12 @@ export default function ApprovalActionsModal({
                 variant="neutralnoShadow"
                 size="sm"
                 onClick={handleShowMediaDetails}
-                disabled={tmdbMetadata.loading}
                 className="flex items-center gap-2"
               >
-                {tmdbMetadata.loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <ArrowLeftRight className="w-4 h-4" />
-                    {showMediaDetails
-                      ? 'Request Info'
-                      : `${request.contentType === 'movie' ? 'Movie' : 'Show'} Info`}
-                  </>
-                )}
+                <ArrowLeftRight className="w-4 h-4" />
+                {showMediaDetails
+                  ? 'Request Info'
+                  : `${request.contentType === 'movie' ? 'Movie' : 'Show'} Info`}
               </Button>
             </div>
             <DrawerDescription className="text-foreground">
