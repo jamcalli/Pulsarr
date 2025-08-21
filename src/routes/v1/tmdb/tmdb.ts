@@ -49,6 +49,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const inputGuid = request.params.id
         const region = request.query.region
+        const contentType = request.query.type
 
         // Check if TMDB is configured
         if (!fastify.tmdb.isConfigured()) {
@@ -60,45 +61,126 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if it's already a TMDB GUID
         const directTmdbId = extractTmdbId([inputGuid])
         if (directTmdbId > 0) {
-          // Try movie first, then TV
-          try {
-            const movieMetadata = await fastify.tmdb.getMovieMetadata(
-              directTmdbId,
-              region,
-            )
-            if (movieMetadata) {
-              return {
-                success: true,
-                message: 'Movie metadata retrieved successfully',
-                metadata: movieMetadata,
+          // If content type is provided, try that specific type first
+          if (contentType === 'show') {
+            try {
+              const tvMetadata = await fastify.tmdb.getTvMetadata(
+                directTmdbId,
+                region,
+              )
+              if (tvMetadata) {
+                return {
+                  success: true,
+                  message: 'TV show metadata retrieved successfully',
+                  metadata: tvMetadata,
+                }
               }
+            } catch (error) {
+              // TV failed, try movie as fallback
+              fastify.log.warn(
+                `TV metadata fetch failed for TMDB ID ${directTmdbId}:`,
+                error,
+              )
             }
-          } catch (error) {
-            // Movie failed, try TV
-            fastify.log.warn(
-              `Movie metadata fetch failed for TMDB ID ${directTmdbId}:`,
-              error,
-            )
-          }
 
-          try {
-            const tvMetadata = await fastify.tmdb.getTvMetadata(
-              directTmdbId,
-              region,
-            )
-            if (tvMetadata) {
-              return {
-                success: true,
-                message: 'TV show metadata retrieved successfully',
-                metadata: tvMetadata,
+            try {
+              const movieMetadata = await fastify.tmdb.getMovieMetadata(
+                directTmdbId,
+                region,
+              )
+              if (movieMetadata) {
+                return {
+                  success: true,
+                  message: 'Movie metadata retrieved successfully',
+                  metadata: movieMetadata,
+                }
               }
+            } catch (error) {
+              fastify.log.warn(
+                `Movie metadata fetch failed for TMDB ID ${directTmdbId}:`,
+                error,
+              )
             }
-          } catch (error) {
-            // Both failed
-            fastify.log.warn(
-              `TV metadata fetch failed for TMDB ID ${directTmdbId}:`,
-              error,
-            )
+          } else if (contentType === 'movie') {
+            try {
+              const movieMetadata = await fastify.tmdb.getMovieMetadata(
+                directTmdbId,
+                region,
+              )
+              if (movieMetadata) {
+                return {
+                  success: true,
+                  message: 'Movie metadata retrieved successfully',
+                  metadata: movieMetadata,
+                }
+              }
+            } catch (error) {
+              // Movie failed, try TV as fallback
+              fastify.log.warn(
+                `Movie metadata fetch failed for TMDB ID ${directTmdbId}:`,
+                error,
+              )
+            }
+
+            try {
+              const tvMetadata = await fastify.tmdb.getTvMetadata(
+                directTmdbId,
+                region,
+              )
+              if (tvMetadata) {
+                return {
+                  success: true,
+                  message: 'TV show metadata retrieved successfully',
+                  metadata: tvMetadata,
+                }
+              }
+            } catch (error) {
+              fastify.log.warn(
+                `TV metadata fetch failed for TMDB ID ${directTmdbId}:`,
+                error,
+              )
+            }
+          } else {
+            // No content type provided, try movie first (original behavior)
+            try {
+              const movieMetadata = await fastify.tmdb.getMovieMetadata(
+                directTmdbId,
+                region,
+              )
+              if (movieMetadata) {
+                return {
+                  success: true,
+                  message: 'Movie metadata retrieved successfully',
+                  metadata: movieMetadata,
+                }
+              }
+            } catch (error) {
+              // Movie failed, try TV
+              fastify.log.warn(
+                `Movie metadata fetch failed for TMDB ID ${directTmdbId}:`,
+                error,
+              )
+            }
+
+            try {
+              const tvMetadata = await fastify.tmdb.getTvMetadata(
+                directTmdbId,
+                region,
+              )
+              if (tvMetadata) {
+                return {
+                  success: true,
+                  message: 'TV show metadata retrieved successfully',
+                  metadata: tvMetadata,
+                }
+              }
+            } catch (error) {
+              // Both failed
+              fastify.log.warn(
+                `TV metadata fetch failed for TMDB ID ${directTmdbId}:`,
+                error,
+              )
+            }
           }
 
           return reply.notFound(`No metadata found for TMDB ID ${directTmdbId}`)
