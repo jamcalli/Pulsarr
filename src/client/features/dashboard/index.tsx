@@ -1,26 +1,33 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-dashboard'
 import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
 import { StatsHeader } from '@/features/dashboard/components/stats-header'
 import { useDashboardStats } from '@/features/dashboard/hooks/useDashboardStats'
+import { toast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 
 export function DashboardPage() {
   const { refreshStats, isLoading } = useDashboardStats()
   const configInitialize = useConfigStore((state) => state.initialize)
-  const isInitializedRef = useRef(false)
+  const isConfigInitialized = useConfigStore((state) => state.isInitialized)
 
   useEffect(() => {
-    // Guard against React 18 StrictMode double-invocation
-    if (isInitializedRef.current) return
-    isInitializedRef.current = true
-
     let cancelled = false
     ;(async () => {
       try {
-        await configInitialize()
+        if (!isConfigInitialized) {
+          await configInitialize()
+        }
       } catch (e) {
         console.error('Dashboard init error:', e)
+        if (!cancelled) {
+          toast({
+            variant: 'destructive',
+            title: 'Configuration Error',
+            description:
+              'Failed to load application configuration. Please refresh the page or check your connection.',
+          })
+        }
       } finally {
         if (!cancelled) {
           await refreshStats()
@@ -30,7 +37,7 @@ export function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [refreshStats, configInitialize])
+  }, [refreshStats, configInitialize, isConfigInitialized])
 
   const handleRefresh = useCallback(async () => {
     if (!isLoading) {
