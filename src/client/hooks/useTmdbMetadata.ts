@@ -72,12 +72,10 @@ export function useTmdbMetadata(
 
     try {
       // Find a TMDB or TVDB GUID from the approval request's content GUIDs
-      const tmdbGuid = approvalRequest.contentGuids
-        .map((g) => g.trim().toLowerCase())
-        .find((g) => g.startsWith('tmdb:') && /^tmdb:\d+$/.test(g))
-      const tvdbGuid = approvalRequest.contentGuids
-        .map((g) => g.trim().toLowerCase())
-        .find((g) => g.startsWith('tvdb:') && /^tvdb:\d+$/.test(g))
+      const normalizedGuids =
+        (approvalRequest.contentGuids ?? []).map((g) => g.trim().toLowerCase())
+      const tmdbGuid = normalizedGuids.find((g) => /^tmdb:\d+$/.test(g))
+      const tvdbGuid = normalizedGuids.find((g) => /^tvdb:\d+$/.test(g))
       
       // For TV shows, prioritize TVDB to avoid TMDB ID conflicts with movies
       const guidToUse = approvalRequest.contentType === 'show'
@@ -124,18 +122,23 @@ export function useTmdbMetadata(
       
       if (regionOnly) {
         // Only update watch providers for region changes
-        setData((prev) =>
-          prev
-            ? {
-                ...prev,
-                metadata: {
-                  ...prev.metadata,
-                  watchProviders:
-                    metadataData?.metadata?.watchProviders ?? prev.metadata.watchProviders,
-                },
-              }
-            : metadataData,
-        )
+        setData((prev) => {
+          if (!prev) return metadataData
+          const hasWatchProviders =
+            Object.prototype.hasOwnProperty.call(
+              metadataData.metadata ?? {},
+              'watchProviders',
+            )
+          return {
+            ...prev,
+            metadata: {
+              ...prev.metadata,
+              watchProviders: hasWatchProviders
+                ? metadataData.metadata!.watchProviders
+                : prev.metadata.watchProviders,
+            },
+          }
+        })
       } else {
         setData(metadataData)
       }
