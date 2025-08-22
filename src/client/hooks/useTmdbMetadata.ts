@@ -1,6 +1,6 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface UseTmdbMetadataOptions {
   region?: string
@@ -30,12 +30,25 @@ export function useTmdbMetadata(
   const requestSeqRef = useRef(0)
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  useEffect(() => {
+    return () => {
+      // Invalidate any in-flight request and abort on unmount
+      requestSeqRef.current++
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+    }
+  }, [])
+
   const clearData = () => {
     // Cancel any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
+    // Invalidate any pending handlers tied to the previous seq
+    requestSeqRef.current++
     setData(null)
     setError(null)
     setLoading(false)
@@ -59,12 +72,12 @@ export function useTmdbMetadata(
 
     try {
       // Find a TMDB or TVDB GUID from the approval request's content GUIDs
-      const tmdbGuid = approvalRequest.contentGuids.find(guid => 
-        guid.toLowerCase().startsWith('tmdb:') && /^tmdb:\d+$/.test(guid.toLowerCase())
-      )
-      const tvdbGuid = approvalRequest.contentGuids.find(guid => 
-        guid.toLowerCase().startsWith('tvdb:') && /^tvdb:\d+$/.test(guid.toLowerCase())
-      )
+      const tmdbGuid = approvalRequest.contentGuids
+        .map((g) => g.trim().toLowerCase())
+        .find((g) => g.startsWith('tmdb:') && /^tmdb:\d+$/.test(g))
+      const tvdbGuid = approvalRequest.contentGuids
+        .map((g) => g.trim().toLowerCase())
+        .find((g) => g.startsWith('tvdb:') && /^tvdb:\d+$/.test(g))
       
       // For TV shows, prioritize TVDB to avoid TMDB ID conflicts with movies
       const guidToUse = approvalRequest.contentType === 'show'
@@ -73,24 +86,28 @@ export function useTmdbMetadata(
       
       if (!guidToUse) {
         throw new Error(
-          'No valid TMDB or TVDB GUID found in approval request. GUIDs must be in format tmdb:123 or tvdb:456.',
+          'No valid TMDB or TVDB GUID found in approval request. Expected formats: tmdb:123 or tvdb:456 (case-insensitive).',
         )
       }
 
       // Use the new intelligent TMDB endpoint that accepts GUID format
       const queryParams = new URLSearchParams()
       if (options.region) {
-        queryParams.set('region', options.region)
+        queryParams.set('region', options.region.length === 2 ? options.region.toUpperCase() : options.region)
       }
       // Pass content type to help API choose correct endpoint for TMDB IDs
-      if (approvalRequest.contentType) {
+      if (approvalRequest.contentType === 'movie' || approvalRequest.contentType === 'show') {
         queryParams.set('type', approvalRequest.contentType)
       }
       
       const queryString = queryParams.toString()
       const metadataResponse = await fetch(
         `/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}${queryString ? `?${queryString}` : ''}`,
-        { signal: abortController.signal }
+        {
+          signal: abortController.signal,
+          cache: regionOnly ? 'no-store' : 'default',
+          headers: { Accept: 'application/json' }
+        }
       )
 
       if (!metadataResponse.ok) {
@@ -113,7 +130,8 @@ export function useTmdbMetadata(
                 ...prev,
                 metadata: {
                   ...prev.metadata,
-                  watchProviders: metadataData.metadata.watchProviders,
+                  watchProviders:
+                    metadataData?.metadata?.watchProviders ?? prev.metadata.watchProviders,
                 },
               }
             : metadataData,
@@ -125,7 +143,10 @@ export function useTmdbMetadata(
       if (requestSeqRef.current !== seq) return
       
       // Don't show error for cancelled requests
-      if (err instanceof Error && err.name === 'AbortError') {
+      const name = (err as any)?.name
+      const code = (err as any)?.code
+      // Covers browser (DOMException: AbortError) and Node/undici variants
+      if (name === 'AbortError' || code === 'ERR_ABORTED') {
         return
       }
       
