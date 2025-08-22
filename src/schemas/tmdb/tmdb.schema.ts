@@ -223,10 +223,15 @@ export const GetTmdbMetadataQuerySchema = z.object({
   region: z
     .preprocess(
       (val) => (typeof val === 'string' ? val.toUpperCase() : val),
-      z.string().length(2, 'Region must be a 2-letter country code'),
+      z.string().length(2, { error: 'Region must be a 2-letter country code' }),
     )
     .optional(),
-  type: z.enum(['movie', 'show']).optional(),
+  type: z
+    .preprocess(
+      (val) => (typeof val === 'string' ? val.toLowerCase() : val),
+      z.enum(['movie', 'show']),
+    )
+    .optional(),
 })
 
 // Response schemas

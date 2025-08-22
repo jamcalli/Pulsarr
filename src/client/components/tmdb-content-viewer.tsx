@@ -22,10 +22,14 @@ export function TmdbContentViewer({ approvalRequest }: TmdbContentViewerProps) {
     region: config?.tmdbRegion,
   })
 
-  // Auto-fetch metadata when component mounts or region changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Only re-fetch when approval request ID or region changes
+  // Auto-fetch metadata: full fetch on mount/item change; region-only refresh on region changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentional deps
   useEffect(() => {
-    tmdbMetadata.fetchMetadata(approvalRequest)
+    if (!tmdbMetadata.data) {
+      tmdbMetadata.fetchMetadata(approvalRequest)
+    } else if (config?.tmdbRegion) {
+      tmdbMetadata.fetchMetadata(approvalRequest, true)
+    }
   }, [approvalRequest.id, config?.tmdbRegion])
 
   if (tmdbMetadata.error) {
@@ -47,12 +51,7 @@ export function TmdbContentViewer({ approvalRequest }: TmdbContentViewerProps) {
   }
 
   if (tmdbMetadata.data) {
-    return (
-      <TmdbMetadataDisplay
-        data={tmdbMetadata.data}
-        onRegionChange={() => tmdbMetadata.fetchMetadata(approvalRequest, true)}
-      />
-    )
+    return <TmdbMetadataDisplay data={tmdbMetadata.data} />
   }
 
   // Loading state

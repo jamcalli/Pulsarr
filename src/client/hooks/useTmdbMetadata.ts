@@ -43,8 +43,8 @@ export function useTmdbMetadata(
 
     try {
       // Find a TMDB or TVDB GUID from the approval request's content GUIDs
-      const tmdbGuid = approvalRequest.contentGuids.find(guid => guid.startsWith('tmdb:'))
-      const tvdbGuid = approvalRequest.contentGuids.find(guid => guid.startsWith('tvdb:'))
+      const tmdbGuid = approvalRequest.contentGuids.find(guid => guid.toLowerCase().startsWith('tmdb:'))
+      const tvdbGuid = approvalRequest.contentGuids.find(guid => guid.toLowerCase().startsWith('tvdb:'))
       
       // For TV shows, prioritize TVDB to avoid TMDB ID conflicts with movies
       const guidToUse = approvalRequest.contentType === 'show'
@@ -83,15 +83,19 @@ export function useTmdbMetadata(
 
       const metadataData = await metadataResponse.json()
       
-      if (regionOnly && data) {
+      if (regionOnly) {
         // Only update watch providers for region changes
-        setData({
-          ...data,
-          metadata: {
-            ...data.metadata,
-            watchProviders: metadataData.metadata.watchProviders
-          }
-        })
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                metadata: {
+                  ...prev.metadata,
+                  watchProviders: metadataData.metadata.watchProviders,
+                },
+              }
+            : metadataData,
+        )
       } else {
         setData(metadataData)
       }

@@ -121,10 +121,10 @@ export default function ApprovalActionsModal({
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isDesktop = !isMobile
 
-  // Reset media details view when modal opens with a new request
+  // Reset media details when modal opens or request changes
   useEffect(() => {
-    setShowMediaDetails(false)
-  }, [])
+    if (open) setShowMediaDetails(false)
+  }, [open])
 
   const getUserName = (userId: number) => {
     const user = users?.find((u) => u.id === userId)
@@ -359,7 +359,7 @@ export default function ApprovalActionsModal({
   }
 
   const handleShowMediaDetails = () => {
-    setShowMediaDetails(!showMediaDetails)
+    setShowMediaDetails((v) => !v)
   }
 
   const getStatusBadge = () => {
@@ -426,7 +426,7 @@ export default function ApprovalActionsModal({
           Media Details
         </h3>
 
-        <TmdbContentViewer approvalRequest={request} />
+        {showMediaDetails && <TmdbContentViewer approvalRequest={request} />}
       </div>
     </div>
   )
@@ -844,6 +844,7 @@ export default function ApprovalActionsModal({
                   size="sm"
                   onClick={handleShowMediaDetails}
                   className="flex items-center gap-2"
+                  aria-pressed={showMediaDetails}
                 >
                   <ArrowLeftRight className="w-4 h-4" />
                   {showMediaDetails
@@ -900,6 +901,7 @@ export default function ApprovalActionsModal({
                 size="sm"
                 onClick={handleShowMediaDetails}
                 className="flex items-center gap-2"
+                aria-pressed={showMediaDetails}
               >
                 <ArrowLeftRight className="w-4 h-4" />
                 {showMediaDetails
