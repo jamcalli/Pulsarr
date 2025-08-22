@@ -17,9 +17,9 @@ interface TmdbContentViewerProps {
  */
 export function TmdbContentViewer({ approvalRequest }: TmdbContentViewerProps) {
   const { config } = useConfigStore()
-  
+
   const tmdbMetadata = useTmdbMetadata({
-    region: config?.tmdbRegion
+    region: config?.tmdbRegion,
   })
 
   // Auto-fetch metadata when component mounts or region changes

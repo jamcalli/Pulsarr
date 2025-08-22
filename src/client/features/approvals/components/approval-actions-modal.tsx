@@ -124,7 +124,7 @@ export default function ApprovalActionsModal({
   // Reset media details view when modal opens with a new request
   useEffect(() => {
     setShowMediaDetails(false)
-  }, [request.id])
+  }, [])
 
   const getUserName = (userId: number) => {
     const user = users?.find((u) => u.id === userId)

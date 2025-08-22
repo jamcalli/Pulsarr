@@ -38,13 +38,14 @@ export function ContentDetailModal({
 
   // Create a mock ApprovalRequestResponse structure for the TMDB hook
   // For TV shows, prioritize TVDB GUID if available to avoid TMDB ID conflicts
-  const prioritizedGuids = contentType === 'show' 
-    ? [...guids].sort((a, b) => {
-        if (a.startsWith('tvdb:')) return -1
-        if (b.startsWith('tvdb:')) return 1
-        return 0
-      })
-    : guids
+  const prioritizedGuids =
+    contentType === 'show'
+      ? [...guids].sort((a, b) => {
+          if (a.startsWith('tvdb:')) return -1
+          if (b.startsWith('tvdb:')) return 1
+          return 0
+        })
+      : guids
 
   const mockApprovalRequest = {
     id: 0,
