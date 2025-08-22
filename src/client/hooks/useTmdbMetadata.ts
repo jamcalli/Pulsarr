@@ -28,15 +28,29 @@ export function useTmdbMetadata(
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestSeqRef = useRef(0)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const clearData = () => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
     setData(null)
     setError(null)
     setLoading(false)
   }
 
   const fetchMetadata = async (approvalRequest: ApprovalRequestResponse, regionOnly = false) => {
+    // Cancel any previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
     const seq = ++requestSeqRef.current
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+    
     setLoading(true)
     setError(null)
     if (!regionOnly) {
@@ -45,8 +59,12 @@ export function useTmdbMetadata(
 
     try {
       // Find a TMDB or TVDB GUID from the approval request's content GUIDs
-      const tmdbGuid = approvalRequest.contentGuids.find(guid => guid.toLowerCase().startsWith('tmdb:'))
-      const tvdbGuid = approvalRequest.contentGuids.find(guid => guid.toLowerCase().startsWith('tvdb:'))
+      const tmdbGuid = approvalRequest.contentGuids.find(guid => 
+        guid.toLowerCase().startsWith('tmdb:') && /^tmdb:\d+$/.test(guid.toLowerCase())
+      )
+      const tvdbGuid = approvalRequest.contentGuids.find(guid => 
+        guid.toLowerCase().startsWith('tvdb:') && /^tvdb:\d+$/.test(guid.toLowerCase())
+      )
       
       // For TV shows, prioritize TVDB to avoid TMDB ID conflicts with movies
       const guidToUse = approvalRequest.contentType === 'show'
@@ -55,7 +73,7 @@ export function useTmdbMetadata(
       
       if (!guidToUse) {
         throw new Error(
-          'No TMDB or TVDB GUID found in approval request. Cannot fetch metadata.',
+          'No valid TMDB or TVDB GUID found in approval request. GUIDs must be in format tmdb:123 or tvdb:456.',
         )
       }
 
@@ -72,6 +90,7 @@ export function useTmdbMetadata(
       const queryString = queryParams.toString()
       const metadataResponse = await fetch(
         `/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}${queryString ? `?${queryString}` : ''}`,
+        { signal: abortController.signal }
       )
 
       if (!metadataResponse.ok) {
@@ -104,13 +123,25 @@ export function useTmdbMetadata(
       }
     } catch (err) {
       if (requestSeqRef.current !== seq) return
+      
+      // Don't show error for cancelled requests
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
+      
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       setError(errorMessage)
       if (!regionOnly) {
         setData(null)
       }
     } finally {
-      if (requestSeqRef.current === seq) setLoading(false)
+      if (requestSeqRef.current === seq) {
+        setLoading(false)
+        // Clear the abort controller for this request
+        if (abortControllerRef.current === abortController) {
+          abortControllerRef.current = null
+        }
+      }
     }
   }
 
