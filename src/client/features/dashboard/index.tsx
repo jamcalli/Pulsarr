@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-dashboard'
 import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
 import { StatsHeader } from '@/features/dashboard/components/stats-header'
@@ -8,10 +8,31 @@ import { useConfigStore } from '@/stores/configStore'
 export function DashboardPage() {
   const { refreshStats, isLoading } = useDashboardStats()
   const configInitialize = useConfigStore((state) => state.initialize)
+  const isInitializedRef = useRef(false)
 
   useEffect(() => {
-    configInitialize()
-    refreshStats()
+    // Guard against React 18 StrictMode double-invocation
+    if (isInitializedRef.current) return
+    isInitializedRef.current = true
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        await configInitialize()
+        if (!cancelled) {
+          await refreshStats()
+        }
+      } catch (e) {
+        console.error('Dashboard init error:', e)
+        // Fallback to at least show stats
+        if (!cancelled) {
+          await refreshStats()
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [refreshStats, configInitialize])
 
   const handleRefresh = useCallback(async () => {

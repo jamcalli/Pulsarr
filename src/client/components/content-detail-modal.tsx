@@ -1,5 +1,6 @@
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { Monitor, Tv } from 'lucide-react'
+import { useMemo } from 'react'
 import { TmdbContentViewer } from '@/components/tmdb-content-viewer'
 import {
   Credenza,
@@ -38,14 +39,15 @@ export function ContentDetailModal({
 
   // Create a mock ApprovalRequestResponse structure for the TMDB hook
   // For TV shows, prioritize TVDB GUID if available to avoid TMDB ID conflicts
-  const prioritizedGuids =
-    contentType === 'show'
+  const prioritizedGuids = useMemo(() => {
+    return contentType === 'show'
       ? [...guids].sort((a, b) => {
           if (a.startsWith('tvdb:')) return -1
           if (b.startsWith('tvdb:')) return 1
           return 0
         })
       : guids
+  }, [contentType, guids])
 
   const mockApprovalRequest = {
     id: 0,
