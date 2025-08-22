@@ -46,7 +46,10 @@ export function MediaCard({
                 </div>
               )}
             </AspectRatio>
-            <Badge variant="neutral" className="absolute top-0 right-0 rounded-bl-md rounded-br-none rounded-tr-md rounded-tl-none">
+            <Badge
+              variant="neutral"
+              className="absolute top-0 right-0 rounded-bl-md rounded-br-none rounded-tr-md rounded-tl-none"
+            >
               {item.count} {item.count === 1 ? 'watchlist' : 'watchlists'}
             </Badge>
             {hasGuids && (
