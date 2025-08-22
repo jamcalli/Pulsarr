@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { shallow } from 'zustand/shallow'
 import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-dashboard'
 import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
 import { StatsHeader } from '@/features/dashboard/components/stats-header'
@@ -9,18 +8,9 @@ import { useConfigStore } from '@/stores/configStore'
 
 export function DashboardPage() {
   const { refreshStats, isLoading } = useDashboardStats()
-  const {
-    initialize: configInitialize,
-    isInitialized: isConfigInitialized,
-    error: configError,
-  } = useConfigStore(
-    (s) => ({
-      initialize: s.initialize,
-      isInitialized: s.isInitialized,
-      error: s.error,
-    }),
-    shallow,
-  )
+  const configInitialize = useConfigStore((state) => state.initialize)
+  const isConfigInitialized = useConfigStore((state) => state.isInitialized)
+  const configError = useConfigStore((state) => state.error)
 
   const hasInitialRefresh = useRef(false)
   const initInFlight = useRef(false)
