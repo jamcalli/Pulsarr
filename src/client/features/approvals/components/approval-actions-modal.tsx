@@ -121,10 +121,11 @@ export default function ApprovalActionsModal({
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isDesktop = !isMobile
 
-  // Reset media details when modal opens or request changes
+  // Reset media details when modal opens or the request changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Need request.id to reset when request changes while modal stays open
   useEffect(() => {
     if (open) setShowMediaDetails(false)
-  }, [open])
+  }, [open, request.id])
 
   const getUserName = (userId: number) => {
     const user = users?.find((u) => u.id === userId)
@@ -863,11 +864,13 @@ export default function ApprovalActionsModal({
               <div className="content-container h-full">
                 <div
                   className={`content-view ${showMediaDetails ? 'hidden' : ''}`}
+                  aria-hidden={showMediaDetails}
                 >
                   {renderContent()}
                 </div>
                 <div
                   className={`content-view ${!showMediaDetails ? 'hidden' : ''}`}
+                  aria-hidden={!showMediaDetails}
                 >
                   {renderMediaDetailsContent()}
                 </div>
@@ -919,11 +922,13 @@ export default function ApprovalActionsModal({
             <div className="content-container h-full">
               <div
                 className={`content-view ${showMediaDetails ? 'hidden' : ''}`}
+                aria-hidden={showMediaDetails}
               >
                 {renderContent()}
               </div>
               <div
                 className={`content-view ${!showMediaDetails ? 'hidden' : ''}`}
+                aria-hidden={!showMediaDetails}
               >
                 {renderMediaDetailsContent()}
               </div>

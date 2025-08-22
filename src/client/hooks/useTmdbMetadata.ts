@@ -1,6 +1,6 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 interface UseTmdbMetadataOptions {
   region?: string
@@ -27,6 +27,7 @@ export function useTmdbMetadata(
   const [data, setData] = useState<TmdbMetadataSuccessResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const requestSeqRef = useRef(0)
 
   const clearData = () => {
     setData(null)
@@ -35,6 +36,7 @@ export function useTmdbMetadata(
   }
 
   const fetchMetadata = async (approvalRequest: ApprovalRequestResponse, regionOnly = false) => {
+    const seq = ++requestSeqRef.current
     setLoading(true)
     setError(null)
     if (!regionOnly) {
@@ -82,6 +84,7 @@ export function useTmdbMetadata(
       }
 
       const metadataData = await metadataResponse.json()
+      if (requestSeqRef.current !== seq) return
       
       if (regionOnly) {
         // Only update watch providers for region changes
@@ -100,13 +103,14 @@ export function useTmdbMetadata(
         setData(metadataData)
       }
     } catch (err) {
+      if (requestSeqRef.current !== seq) return
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       setError(errorMessage)
       if (!regionOnly) {
         setData(null)
       }
     } finally {
-      setLoading(false)
+      if (requestSeqRef.current === seq) setLoading(false)
     }
   }
 

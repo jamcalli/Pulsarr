@@ -19,12 +19,9 @@ export function DashboardPage() {
     ;(async () => {
       try {
         await configInitialize()
-        if (!cancelled) {
-          await refreshStats()
-        }
       } catch (e) {
         console.error('Dashboard init error:', e)
-        // Fallback to at least show stats
+      } finally {
         if (!cancelled) {
           await refreshStats()
         }

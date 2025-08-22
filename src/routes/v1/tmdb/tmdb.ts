@@ -63,11 +63,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (directTmdbId > 0) {
           // Decide order based on hint; default to movie → tv (original behavior)
           const order: Array<'movie' | 'tv'> =
-            contentType === 'show'
-              ? ['tv', 'movie']
-              : contentType === 'movie'
-                ? ['movie', 'tv']
-                : ['movie', 'tv']
+            contentType === 'show' ? ['tv', 'movie'] : ['movie', 'tv']
 
           for (const kind of order) {
             try {
