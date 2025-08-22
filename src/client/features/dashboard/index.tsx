@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { shallow } from 'zustand/shallow'
 import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-dashboard'
 import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
 import { StatsHeader } from '@/features/dashboard/components/stats-header'
@@ -8,16 +9,20 @@ import { useConfigStore } from '@/stores/configStore'
 
 export function DashboardPage() {
   const { refreshStats, isLoading } = useDashboardStats()
-  const configInitialize = useConfigStore((state) => state.initialize)
-  const isConfigInitialized = useConfigStore((state) => state.isInitialized)
-  const configError = useConfigStore((state) => state.error)
+  const { initialize: configInitialize, isInitialized: isConfigInitialized, error: configError } =
+    useConfigStore(
+      (s) => ({ initialize: s.initialize, isInitialized: s.isInitialized, error: s.error }),
+      shallow
+    )
 
   const hasInitialRefresh = useRef(false)
+  const initInFlight = useRef(false)
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (hasInitialRefresh.current) return
+      if (hasInitialRefresh.current || initInFlight.current) return
+      initInFlight.current = true
       try {
         if (!isConfigInitialized) {
           await configInitialize()
@@ -27,8 +32,16 @@ export function DashboardPage() {
         // Errors are handled in store; we surface via a separate effect below.
       } finally {
         if (!cancelled) {
-          await refreshStats()
-          hasInitialRefresh.current = true
+          try {
+            await refreshStats()
+            hasInitialRefresh.current = true
+          } catch (err) {
+            console.error('Dashboard stats refresh error:', err)
+          } finally {
+            initInFlight.current = false
+          }
+        } else {
+          initInFlight.current = false
         }
       }
     })()
@@ -43,7 +56,12 @@ export function DashboardPage() {
     toast({
       variant: 'destructive',
       title: 'Configuration Error',
-      description: configError,
+      description:
+        typeof configError === 'string'
+          ? configError
+          : configError instanceof Error
+            ? configError.message
+            : String(configError),
     })
   }, [configError])
 
