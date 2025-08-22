@@ -9,11 +9,18 @@ import { useConfigStore } from '@/stores/configStore'
 
 export function DashboardPage() {
   const { refreshStats, isLoading } = useDashboardStats()
-  const { initialize: configInitialize, isInitialized: isConfigInitialized, error: configError } =
-    useConfigStore(
-      (s) => ({ initialize: s.initialize, isInitialized: s.isInitialized, error: s.error }),
-      shallow
-    )
+  const {
+    initialize: configInitialize,
+    isInitialized: isConfigInitialized,
+    error: configError,
+  } = useConfigStore(
+    (s) => ({
+      initialize: s.initialize,
+      isInitialized: s.isInitialized,
+      error: s.error,
+    }),
+    shallow,
+  )
 
   const hasInitialRefresh = useRef(false)
   const initInFlight = useRef(false)
@@ -37,12 +44,9 @@ export function DashboardPage() {
             hasInitialRefresh.current = true
           } catch (err) {
             console.error('Dashboard stats refresh error:', err)
-          } finally {
-            initInFlight.current = false
           }
-        } else {
-          initInFlight.current = false
         }
+        initInFlight.current = false
       }
     })()
     return () => {
@@ -57,11 +61,7 @@ export function DashboardPage() {
       variant: 'destructive',
       title: 'Configuration Error',
       description:
-        typeof configError === 'string'
-          ? configError
-          : configError instanceof Error
-            ? configError.message
-            : String(configError),
+        typeof configError === 'string' ? configError : String(configError),
     })
   }, [configError])
 

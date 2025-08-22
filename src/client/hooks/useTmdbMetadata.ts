@@ -125,7 +125,7 @@ export function useTmdbMetadata(
         setData((prev) => {
           if (!prev) return metadataData
           const hasWatchProviders =
-            Object.prototype.hasOwnProperty.call(
+            Object.hasOwn(
               metadataData.metadata ?? {},
               'watchProviders',
             )
@@ -134,7 +134,7 @@ export function useTmdbMetadata(
             metadata: {
               ...prev.metadata,
               watchProviders: hasWatchProviders
-                ? metadataData.metadata!.watchProviders
+                ? metadataData.metadata?.watchProviders
                 : prev.metadata.watchProviders,
             },
           }
