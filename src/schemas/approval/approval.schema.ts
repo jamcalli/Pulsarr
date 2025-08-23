@@ -74,7 +74,6 @@ export const CreateApprovalRequestSchema = z.object({
 
 export const UpdateApprovalRequestSchema = z.object({
   status: ApprovalStatusSchema.optional(),
-  approvedBy: z.number().optional(),
   approvalNotes: z.string().optional(),
   proposedRouterDecision: RouterDecisionSchema.optional(),
 })
