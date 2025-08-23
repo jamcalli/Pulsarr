@@ -94,6 +94,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           201: ApprovalRequestCreateResponseSchema,
           400: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -165,6 +166,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: ApprovalRequestsListResponseSchema,
           400: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -242,6 +244,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: ApprovalRequestCreateResponseSchema,
           404: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -308,6 +311,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           200: ApprovalRequestUpdateResponseSchema,
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -421,6 +425,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: ApprovalSuccessResponseSchema,
           404: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -473,8 +478,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }),
         response: {
           200: ApprovalSuccessResponseSchema,
+          401: ApprovalErrorSchema,
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -587,8 +594,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }),
         response: {
           200: ApprovalSuccessResponseSchema,
+          401: ApprovalErrorSchema,
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -666,6 +675,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: BulkOperationResponseSchema,
           400: ApprovalErrorSchema,
+          401: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -716,6 +727,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: BulkOperationResponseSchema,
           400: ApprovalErrorSchema,
+          401: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -766,6 +779,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: BulkOperationResponseSchema,
           400: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },

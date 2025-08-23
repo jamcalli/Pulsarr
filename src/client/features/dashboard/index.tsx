@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { useShallow } from 'zustand/shallow'
 import { AnalyticsDashboard } from '@/features/dashboard/components/analytics-dashboard'
 import { PopularityRankings } from '@/features/dashboard/components/popularity-rankings'
 import { StatsHeader } from '@/features/dashboard/components/stats-header'
@@ -8,9 +9,13 @@ import { useConfigStore } from '@/stores/configStore'
 
 export function DashboardPage() {
   const { refreshStats, isLoading } = useDashboardStats()
-  const configInitialize = useConfigStore((state) => state.initialize)
-  const isConfigInitialized = useConfigStore((state) => state.isInitialized)
-  const configError = useConfigStore((state) => state.error)
+  const { configInitialize, isConfigInitialized, configError } = useConfigStore(
+    useShallow((state) => ({
+      configInitialize: state.initialize,
+      isConfigInitialized: state.isInitialized,
+      configError: state.error,
+    })),
+  )
 
   const hasInitialRefresh = useRef(false)
   const initInFlight = useRef(false)
@@ -34,6 +39,12 @@ export function DashboardPage() {
             hasInitialRefresh.current = true
           } catch (err) {
             console.error('Dashboard stats refresh error:', err)
+            toast({
+              variant: 'destructive',
+              title: 'Stats Refresh Failed',
+              description:
+                'Unable to refresh dashboard statistics. Please try again.',
+            })
           }
         }
         initInFlight.current = false
@@ -57,7 +68,17 @@ export function DashboardPage() {
 
   const handleRefresh = useCallback(async () => {
     if (!isLoading) {
-      await refreshStats()
+      try {
+        await refreshStats()
+      } catch (err) {
+        console.error('Dashboard stats refresh error:', err)
+        toast({
+          variant: 'destructive',
+          title: 'Stats Refresh Failed',
+          description:
+            'Unable to refresh dashboard statistics. Please try again.',
+        })
+      }
     }
   }, [refreshStats, isLoading])
 
