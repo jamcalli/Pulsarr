@@ -1,6 +1,6 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface UseTmdbMetadataOptions {
   region?: string
@@ -27,14 +27,43 @@ export function useTmdbMetadata(
   const [data, setData] = useState<TmdbMetadataSuccessResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const requestSeqRef = useRef(0)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
-  const clearData = () => {
+  useEffect(() => {
+    return () => {
+      // Invalidate any in-flight request and abort on unmount
+      requestSeqRef.current++
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+    }
+  }, [])
+
+  const clearData = useCallback(() => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    // Invalidate any pending handlers tied to the previous seq
+    requestSeqRef.current++
     setData(null)
     setError(null)
     setLoading(false)
-  }
+  }, [])
 
-  const fetchMetadata = async (approvalRequest: ApprovalRequestResponse, regionOnly = false) => {
+  const fetchMetadata = useCallback(async (approvalRequest: ApprovalRequestResponse, regionOnly = false) => {
+    // Cancel any previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
+    const seq = ++requestSeqRef.current
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+    
     setLoading(true)
     setError(null)
     if (!regionOnly) {
@@ -43,22 +72,40 @@ export function useTmdbMetadata(
 
     try {
       // Find a TMDB or TVDB GUID from the approval request's content GUIDs
-      const tmdbGuid = approvalRequest.contentGuids.find(guid => guid.startsWith('tmdb:'))
-      const tvdbGuid = approvalRequest.contentGuids.find(guid => guid.startsWith('tvdb:'))
+      const normalizedGuids =
+        (approvalRequest.contentGuids ?? []).map((g) => g.trim().toLowerCase())
+      const tmdbGuid = normalizedGuids.find((g) => /^tmdb:\d+$/.test(g))
+      const tvdbGuid = normalizedGuids.find((g) => /^tvdb:\d+$/.test(g))
       
-      const guidToUse = tmdbGuid || tvdbGuid
+      // For TV shows, prioritize TVDB to avoid TMDB ID conflicts with movies
+      const guidToUse = approvalRequest.contentType === 'show'
+        ? (tvdbGuid || tmdbGuid)
+        : (tmdbGuid || tvdbGuid)
       
       if (!guidToUse) {
         throw new Error(
-          'No TMDB or TVDB GUID found in approval request. Cannot fetch metadata.',
+          'No valid TMDB or TVDB GUID found in approval request. Expected formats: tmdb:123 or tvdb:456 (case-insensitive).',
         )
       }
 
       // Use the new intelligent TMDB endpoint that accepts GUID format
+      const queryParams = new URLSearchParams()
+      if (options.region) {
+        queryParams.set('region', options.region.length === 2 ? options.region.toUpperCase() : options.region)
+      }
+      // Pass content type to help API choose correct endpoint for TMDB IDs
+      if (approvalRequest.contentType === 'movie' || approvalRequest.contentType === 'show') {
+        queryParams.set('type', approvalRequest.contentType)
+      }
+      
+      const queryString = queryParams.toString()
       const metadataResponse = await fetch(
-        `/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}${
-          options.region ? `?region=${options.region}` : ''
-        }`,
+        `/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}${queryString ? `?${queryString}` : ''}`,
+        {
+          signal: abortController.signal,
+          cache: regionOnly ? 'no-store' : 'default',
+          headers: { Accept: 'application/json' }
+        }
       )
 
       if (!metadataResponse.ok) {
@@ -71,29 +118,56 @@ export function useTmdbMetadata(
       }
 
       const metadataData = await metadataResponse.json()
+      if (requestSeqRef.current !== seq) return
       
-      if (regionOnly && data) {
+      if (regionOnly) {
         // Only update watch providers for region changes
-        setData({
-          ...data,
-          metadata: {
-            ...data.metadata,
-            watchProviders: metadataData.metadata.watchProviders
+        setData((prev) => {
+          if (!prev) return metadataData
+          const hasWatchProviders =
+            Object.hasOwn(
+              metadataData.metadata ?? {},
+              'watchProviders',
+            )
+          return {
+            ...prev,
+            metadata: {
+              ...prev.metadata,
+              watchProviders: hasWatchProviders
+                ? metadataData.metadata?.watchProviders
+                : prev.metadata.watchProviders,
+            },
           }
         })
       } else {
         setData(metadataData)
       }
     } catch (err) {
+      if (requestSeqRef.current !== seq) return
+      
+      // Don't show error for cancelled requests
+      const name = (err as any)?.name
+      const code = (err as any)?.code
+      // Covers browser (DOMException: AbortError) and Node/undici variants
+      if (name === 'AbortError' || code === 'ERR_ABORTED') {
+        return
+      }
+      
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       setError(errorMessage)
       if (!regionOnly) {
         setData(null)
       }
     } finally {
-      setLoading(false)
+      if (requestSeqRef.current === seq) {
+        setLoading(false)
+        // Clear the abort controller for this request
+        if (abortControllerRef.current === abortController) {
+          abortControllerRef.current = null
+        }
+      }
     }
-  }
+  }, [options.region])
 
   return {
     data,

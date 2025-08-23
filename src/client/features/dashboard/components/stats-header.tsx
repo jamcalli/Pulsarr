@@ -41,7 +41,10 @@ export function StatsHeader({ onRefresh }: StatsHeaderProps) {
           <span>Refresh</span>
         </Button>
         <p className="text-sm text-gray-500">
-          Last updated: {lastRefreshed.toLocaleTimeString()}
+          Last updated:{' '}
+          {lastRefreshed
+            ? lastRefreshed.toLocaleTimeString()
+            : 'Not yet fetched'}
         </p>
       </div>
     </>
