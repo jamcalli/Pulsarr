@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { z } from 'zod'
 
@@ -145,7 +146,7 @@ export const ApprovalStatsResponseSchema = z.object({
   }),
 })
 
-export const ApprovalErrorSchema = z.object({
+export const ApprovalSuccessResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
 })
@@ -205,10 +206,13 @@ export type ApprovalRequestUpdateResponse = z.infer<
   typeof ApprovalRequestUpdateResponseSchema
 >
 export type ApprovalStatsResponse = z.infer<typeof ApprovalStatsResponseSchema>
-export type ApprovalError = z.infer<typeof ApprovalErrorSchema>
 
 // Bulk operation types
 export type BulkApprovalRequest = z.infer<typeof BulkApprovalRequestSchema>
 export type BulkRejectRequest = z.infer<typeof BulkRejectRequestSchema>
 export type BulkDeleteRequest = z.infer<typeof BulkDeleteRequestSchema>
 export type BulkOperationResponse = z.infer<typeof BulkOperationResponseSchema>
+
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as ApprovalErrorSchema }
+export type ApprovalError = z.infer<typeof ErrorSchema>

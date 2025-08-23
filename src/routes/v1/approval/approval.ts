@@ -4,6 +4,7 @@ import {
   ApprovalRequestsListResponseSchema,
   ApprovalRequestUpdateResponseSchema,
   ApprovalStatsResponseSchema,
+  ApprovalSuccessResponseSchema,
   type BulkApprovalRequest,
   BulkApprovalRequestSchema,
   type BulkDeleteRequest,
@@ -404,7 +405,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Delete approval request (hard delete from database)
   fastify.delete<{
     Params: { id: string }
-    Reply: z.infer<typeof ApprovalErrorSchema>
+    Reply:
+      | z.infer<typeof ApprovalSuccessResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
   }>(
     '/requests/:id',
     {
@@ -416,7 +419,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           id: z.string(),
         }),
         response: {
-          200: ApprovalErrorSchema,
+          200: ApprovalSuccessResponseSchema,
           404: ApprovalErrorSchema,
         },
         tags: ['Approval'],
@@ -452,7 +455,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: { id: string }
     Body: { reason?: string }
-    Reply: z.infer<typeof ApprovalErrorSchema>
+    Reply:
+      | z.infer<typeof ApprovalSuccessResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
   }>(
     '/requests/:id/reject',
     {
@@ -467,7 +472,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           reason: z.string().optional(),
         }),
         response: {
-          200: ApprovalErrorSchema,
+          200: ApprovalSuccessResponseSchema,
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
         },
@@ -563,7 +568,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: { id: string }
     Body: { notes?: string }
-    Reply: z.infer<typeof ApprovalErrorSchema>
+    Reply:
+      | z.infer<typeof ApprovalSuccessResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
   }>(
     '/requests/:id/approve',
     {
@@ -579,7 +586,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           notes: z.string().optional(),
         }),
         response: {
-          200: ApprovalErrorSchema,
+          200: ApprovalSuccessResponseSchema,
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
         },
