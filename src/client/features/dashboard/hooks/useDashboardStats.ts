@@ -1,6 +1,6 @@
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { useCallback, useEffect, useState } from 'react'
-import { useShallow } from 'zustand/shallow'
+import { useShallow } from 'zustand/react/shallow'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -36,9 +36,10 @@ export function useDashboardStats(): DashboardStatsState {
   } = useDashboardStore()
 
   const refreshStats = useCallback(
-    async (params?: { limit?: number; days?: number }) => {
+    async (params: { limit?: number; days?: number } = {}) => {
       try {
-        await fetchAllStats(params || { limit: 10 })
+        const { limit = 10, days } = params
+        await fetchAllStats({ limit, days })
         setLastRefreshed(new Date())
       } catch (error) {
         console.error('Error refreshing stats:', error)
