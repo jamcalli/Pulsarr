@@ -6,7 +6,7 @@ import { useConfigStore } from '@/stores/configStore'
 
 interface DashboardStatsState {
   isLoading: boolean
-  lastRefreshed: Date
+  lastRefreshed: Date | null
   mostWatchedShows: ContentStat[] | null
   mostWatchedMovies: ContentStat[] | null
   loadingStates: {
@@ -23,7 +23,7 @@ interface DashboardStatsState {
 }
 
 export function useDashboardStats(): DashboardStatsState {
-  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date())
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const initialFetchDoneRef = useRef(false)
 
   const isConfigInitialized = useConfigStore(useShallow((s) => s.isInitialized))
@@ -34,19 +34,33 @@ export function useDashboardStats(): DashboardStatsState {
     mostWatchedShows,
     loading,
     errors,
-  } = useDashboardStore()
+  } = useDashboardStore(
+    useShallow((s) => ({
+      fetchAllStats: s.fetchAllStats,
+      mostWatchedMovies: s.mostWatchedMovies,
+      mostWatchedShows: s.mostWatchedShows,
+      loading: s.loading,
+      errors: s.errors,
+    })),
+  )
 
   const refreshStats = useCallback(
     async (params: { limit?: number; days?: number } = {}) => {
       try {
+        if (loading.all) return
         const { limit = 10, days } = params
-        await fetchAllStats({ limit, days })
+        const safeLimit = Math.max(1, Math.floor(limit))
+        const safeDays =
+          typeof days === 'number' && Number.isFinite(days) && days > 0
+            ? Math.floor(days)
+            : undefined
+        await fetchAllStats({ limit: safeLimit, days: safeDays })
         setLastRefreshed(new Date())
       } catch (error) {
         console.error('Error refreshing stats:', error)
       }
     },
-    [fetchAllStats],
+    [fetchAllStats, loading],
   )
 
   // Auto-initialize stats on mount, but only after config is ready
@@ -57,7 +71,8 @@ export function useDashboardStats(): DashboardStatsState {
   }, [refreshStats, isConfigInitialized])
 
   return {
-    isLoading: loading.all,
+    // Keep loading true until config is initialized, then reflect store loading
+    isLoading: !isConfigInitialized || loading.all,
     lastRefreshed,
     mostWatchedShows,
     mostWatchedMovies,
