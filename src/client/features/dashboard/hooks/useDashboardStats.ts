@@ -47,6 +47,11 @@ export function useDashboardStats(): DashboardStatsState {
     [fetchAllStats],
   )
 
+  // Auto-initialize stats on mount
+  useEffect(() => {
+    refreshStats()
+  }, [refreshStats])
+
   useEffect(() => {
     if (!loading.all && isLoading) {
       setIsLoading(false)
