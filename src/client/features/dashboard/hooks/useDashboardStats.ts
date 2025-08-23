@@ -1,6 +1,8 @@
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { useCallback, useEffect, useState } from 'react'
+import { useShallow } from 'zustand/shallow'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
+import { useConfigStore } from '@/stores/configStore'
 
 interface DashboardStatsState {
   isLoading: boolean
@@ -23,6 +25,8 @@ interface DashboardStatsState {
 export function useDashboardStats(): DashboardStatsState {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date())
 
+  const isConfigInitialized = useConfigStore(useShallow((s) => s.isInitialized))
+
   const {
     fetchAllStats,
     mostWatchedMovies,
@@ -43,10 +47,11 @@ export function useDashboardStats(): DashboardStatsState {
     [fetchAllStats],
   )
 
-  // Auto-initialize stats on mount
+  // Auto-initialize stats on mount, but only after config is ready
   useEffect(() => {
+    if (!isConfigInitialized) return
     refreshStats()
-  }, [refreshStats])
+  }, [refreshStats, isConfigInitialized])
 
   return {
     isLoading: loading.all,
