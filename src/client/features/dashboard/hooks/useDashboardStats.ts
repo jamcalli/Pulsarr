@@ -22,7 +22,6 @@ interface DashboardStatsState {
 
 export function useDashboardStats(): DashboardStatsState {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date())
-  const [isLoading, setIsLoading] = useState<boolean>(true)
 
   const {
     fetchAllStats,
@@ -34,14 +33,11 @@ export function useDashboardStats(): DashboardStatsState {
 
   const refreshStats = useCallback(
     async (params?: { limit?: number; days?: number }) => {
-      setIsLoading(true)
       try {
         await fetchAllStats(params || { limit: 10 })
+        setLastRefreshed(new Date())
       } catch (error) {
         console.error('Error refreshing stats:', error)
-      } finally {
-        setIsLoading(false)
-        setLastRefreshed(new Date())
       }
     },
     [fetchAllStats],
@@ -52,14 +48,8 @@ export function useDashboardStats(): DashboardStatsState {
     refreshStats()
   }, [refreshStats])
 
-  useEffect(() => {
-    if (!loading.all && isLoading) {
-      setIsLoading(false)
-    }
-  }, [loading.all, isLoading])
-
   return {
-    isLoading,
+    isLoading: loading.all,
     lastRefreshed,
     mostWatchedShows,
     mostWatchedMovies,

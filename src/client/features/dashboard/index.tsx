@@ -35,18 +35,7 @@ export function DashboardPage() {
         // Errors are handled in store; we surface via a separate effect below.
       } finally {
         if (!cancelled) {
-          try {
-            await refreshStats()
-            hasInitialRefresh.current = true
-          } catch (err) {
-            console.error('Dashboard stats refresh error:', err)
-            const message = err instanceof Error ? err.message : String(err)
-            toast({
-              variant: 'destructive',
-              title: 'Stats Refresh Failed',
-              description: `Unable to refresh dashboard statistics. ${message}`,
-            })
-          }
+          hasInitialRefresh.current = true
         }
         initInFlight.current = false
       }
@@ -54,7 +43,7 @@ export function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [refreshStats, configInitialize, isConfigInitialized])
+  }, [configInitialize, isConfigInitialized])
 
   // React to config errors from the store
   useEffect(() => {
