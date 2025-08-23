@@ -9,7 +9,6 @@ import {
   BulkApprovalRequestSchema,
   type BulkDeleteRequest,
   BulkDeleteRequestSchema,
-  type BulkOperationResponse,
   BulkOperationResponseSchema,
   type BulkRejectRequest,
   BulkRejectRequestSchema,
@@ -664,7 +663,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk approve requests
-  fastify.post<{ Body: BulkApprovalRequest; Reply: BulkOperationResponse }>(
+  fastify.post<{
+    Body: BulkApprovalRequest
+    Reply:
+      | z.infer<typeof BulkOperationResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
+  }>(
     '/requests/bulk/approve',
     {
       schema: {
@@ -716,7 +720,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk reject requests
-  fastify.post<{ Body: BulkRejectRequest; Reply: BulkOperationResponse }>(
+  fastify.post<{
+    Body: BulkRejectRequest
+    Reply:
+      | z.infer<typeof BulkOperationResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
+  }>(
     '/requests/bulk/reject',
     {
       schema: {
@@ -768,7 +777,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk delete requests
-  fastify.delete<{ Body: BulkDeleteRequest; Reply: BulkOperationResponse }>(
+  fastify.delete<{
+    Body: BulkDeleteRequest
+    Reply:
+      | z.infer<typeof BulkOperationResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
+  }>(
     '/requests/bulk/delete',
     {
       schema: {
