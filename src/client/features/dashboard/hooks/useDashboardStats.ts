@@ -1,5 +1,5 @@
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
 import { useConfigStore } from '@/stores/configStore'
@@ -24,6 +24,7 @@ interface DashboardStatsState {
 
 export function useDashboardStats(): DashboardStatsState {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date())
+  const initialFetchDoneRef = useRef(false)
 
   const isConfigInitialized = useConfigStore(useShallow((s) => s.isInitialized))
 
@@ -50,7 +51,8 @@ export function useDashboardStats(): DashboardStatsState {
 
   // Auto-initialize stats on mount, but only after config is ready
   useEffect(() => {
-    if (!isConfigInitialized) return
+    if (!isConfigInitialized || initialFetchDoneRef.current) return
+    initialFetchDoneRef.current = true
     refreshStats()
   }, [refreshStats, isConfigInitialized])
 
