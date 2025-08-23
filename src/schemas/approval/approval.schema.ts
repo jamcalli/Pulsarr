@@ -151,6 +151,10 @@ export const ApprovalSuccessResponseSchema = z.object({
   message: z.string(),
 })
 
+export type ApprovalSuccessResponse = z.infer<
+  typeof ApprovalSuccessResponseSchema
+>
+
 // Bulk operation schemas
 export const BulkApprovalRequestSchema = z.object({
   requestIds: z

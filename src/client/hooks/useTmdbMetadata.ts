@@ -1,6 +1,6 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface UseTmdbMetadataOptions {
   region?: string
@@ -41,7 +41,7 @@ export function useTmdbMetadata(
     }
   }, [])
 
-  const clearData = () => {
+  const clearData = useCallback(() => {
     // Cancel any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -52,9 +52,9 @@ export function useTmdbMetadata(
     setData(null)
     setError(null)
     setLoading(false)
-  }
+  }, [])
 
-  const fetchMetadata = async (approvalRequest: ApprovalRequestResponse, regionOnly = false) => {
+  const fetchMetadata = useCallback(async (approvalRequest: ApprovalRequestResponse, regionOnly = false) => {
     // Cancel any previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -167,7 +167,7 @@ export function useTmdbMetadata(
         }
       }
     }
-  }
+  }, [options.region])
 
   return {
     data,
