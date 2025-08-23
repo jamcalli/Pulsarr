@@ -19,6 +19,7 @@ export function DashboardPage() {
 
   const hasInitialRefresh = useRef(false)
   const initInFlight = useRef(false)
+  const lastConfigErrorRef = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -39,11 +40,11 @@ export function DashboardPage() {
             hasInitialRefresh.current = true
           } catch (err) {
             console.error('Dashboard stats refresh error:', err)
+            const message = err instanceof Error ? err.message : String(err)
             toast({
               variant: 'destructive',
               title: 'Stats Refresh Failed',
-              description:
-                'Unable to refresh dashboard statistics. Please try again.',
+              description: `Unable to refresh dashboard statistics. ${message}`,
             })
           }
         }
@@ -58,12 +59,15 @@ export function DashboardPage() {
   // React to config errors from the store
   useEffect(() => {
     if (!configError) return
+    const msg =
+      typeof configError === 'string' ? configError : String(configError)
+    if (lastConfigErrorRef.current === msg) return
     toast({
       variant: 'destructive',
       title: 'Configuration Error',
-      description:
-        typeof configError === 'string' ? configError : String(configError),
+      description: msg,
     })
+    lastConfigErrorRef.current = msg
   }, [configError])
 
   const handleRefresh = useCallback(async () => {
@@ -72,11 +76,11 @@ export function DashboardPage() {
         await refreshStats()
       } catch (err) {
         console.error('Dashboard stats refresh error:', err)
+        const message = err instanceof Error ? err.message : String(err)
         toast({
           variant: 'destructive',
           title: 'Stats Refresh Failed',
-          description:
-            'Unable to refresh dashboard statistics. Please try again.',
+          description: `Unable to refresh dashboard statistics. ${message}`,
         })
       }
     }
