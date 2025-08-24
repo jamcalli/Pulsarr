@@ -27,7 +27,7 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
       progressService.addConnection(connectionId)
 
       request.socket.once('close', () => {
-        abortController.abort()
+        abortController.abort(new Error('client disconnected'))
         try {
           progressService.removeConnection(connectionId)
         } catch (error) {
