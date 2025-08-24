@@ -40,7 +40,7 @@ const projectRoot = resolve(__dirname, '..', '..')
  *
  * @returns A function that properly serializes error objects with message, stack, name, and custom properties.
  */
-function createErrorSerializer() {
+export function createErrorSerializer() {
   return (err: Error | Record<string, unknown> | string | number | boolean) => {
     if (err == null) {
       return err
@@ -133,7 +133,7 @@ function createErrorSerializer() {
  *
  * @returns A function that serializes a Fastify request with sensitive query parameters redacted from the URL.
  */
-function createRequestSerializer() {
+export function createRequestSerializer() {
   return (req: FastifyRequest) => {
     // Get the default serialization
     const serialized = {
@@ -301,7 +301,6 @@ export function createLoggerConfig(
 
       const multistream = pino.multistream([
         { stream: prettyStream },
-
         { stream: fileStream },
       ])
 

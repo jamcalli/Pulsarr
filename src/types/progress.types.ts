@@ -13,6 +13,13 @@ export type ApprovalMetadata = {
   status: 'pending' | 'approved' | 'rejected' | 'expired'
 }
 
+export type LogMetadata = {
+  module?: string
+  requestId?: string
+  userId?: number
+  [key: string]: unknown
+}
+
 export type ProgressMetadata =
   | WorkflowMetadata
   | ApprovalMetadata
@@ -39,6 +46,24 @@ export interface ProgressEvent {
   metadata?: ProgressMetadata
 }
 
+export interface LogEvent {
+  timestamp: string
+  level: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace'
+  message: string
+  metadata?: LogMetadata
+}
+
+export type StreamEvent =
+  | ({ eventType: 'progress' } & ProgressEvent)
+  | ({ eventType: 'log' } & LogEvent)
+
+export interface EventStreamService {
+  emitProgress(event: ProgressEvent): void
+  emitLog(event: LogEvent): void
+  hasActiveConnections(): boolean
+}
+
+// Legacy interface for backward compatibility
 export interface ProgressService {
   emit(event: ProgressEvent): void
   hasActiveConnections(): boolean
