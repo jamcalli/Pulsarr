@@ -26,10 +26,10 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
 
       progressService.addConnection(connectionId)
 
-      request.socket.on('close', () => {
+      request.socket.once('close', () => {
+        abortController.abort()
         try {
           progressService.removeConnection(connectionId)
-          abortController.abort()
         } catch (error) {
           logRouteError(fastify.log, request, error, {
             message: 'Failed to remove progress connection',
