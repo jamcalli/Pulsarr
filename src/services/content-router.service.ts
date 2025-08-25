@@ -1489,12 +1489,12 @@ export class ContentRouterService {
             const matches = this.evaluateCondition(condition, item, context)
 
             if (matches) {
-              // Track quota bypass for later use
+              // Use only the highest weight matching rule for all decisions
               if (rule.bypass_user_quotas) {
                 quotasBypassedByRule = true
               }
 
-              // Router rule approval requirement trumps everything else
+              // Router rule decision trumps everything else - use highest weight matching rule
               if (rule.always_require_approval) {
                 return {
                   required: true,
@@ -1508,6 +1508,20 @@ export class ContentRouterService {
                     criteriaValue: rule.name,
                   },
                 }
+              } else {
+                // Highest weight rule doesn't require approval - bypass router rule approval
+                this.log.debug(
+                  {
+                    scope: 'checkApprovalRequirements',
+                    ruleName: rule.name,
+                    ruleWeight: rule.order, // aka "weight" in docs/PR
+                    ruleId: rule.id,
+                    itemTitle: item.title,
+                  },
+                  'Router rule bypassing approval for item',
+                )
+                // Highest-weight match handled; skip remaining router rules
+                break
               }
             }
           } catch (error) {
