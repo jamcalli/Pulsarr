@@ -1,10 +1,6 @@
 import type { User } from '@root/types/config.types.js'
 import type { NotificationType } from '@root/types/notification.types.js'
 import type {
-  PendingWebhook,
-  PendingWebhookCreate,
-} from '@root/types/pending-webhooks.types.js'
-import type {
   MediaNotification,
   NotificationResult,
   SonarrEpisodeSchema,
@@ -605,90 +601,6 @@ export async function getNotificationStats(
 }
 
 /**
- * Inserts a new pending webhook notification into the database.
- *
- * Serializes the payload, sets the received timestamp, and returns the created webhook object with assigned ID and timestamps.
- *
- * @param webhook - The pending webhook data to be stored
- * @returns The created pending webhook object, including its assigned ID and timestamps
- */
-export async function createPendingWebhook(
-  this: DatabaseService,
-  webhook: PendingWebhookCreate,
-): Promise<PendingWebhook> {
-  const { payload, expires_at, ...webhookData } = webhook
-  const result = await this.knex('pending_webhooks')
-    .insert({
-      ...webhookData,
-      received_at: this.timestamp,
-      expires_at: expires_at.toISOString(),
-      payload: JSON.stringify(payload),
-    })
-    .returning('id')
-
-  const id = this.extractId(result)
-
-  return {
-    id,
-    ...webhook,
-    received_at: new Date(this.timestamp),
-    expires_at: webhook.expires_at,
-  }
-}
-
-/**
- * Retrieves active pending webhooks that have not expired, ordered by received time.
- *
- * @param limit - The maximum number of webhooks to return
- * @returns An array of pending webhook objects with parsed payloads and timestamp fields as Date objects
- */
-export async function getPendingWebhooks(
-  this: DatabaseService,
-  limit = 50,
-): Promise<PendingWebhook[]> {
-  const webhooks = await this.knex('pending_webhooks')
-    .where('expires_at', '>', new Date().toISOString())
-    .orderBy('received_at', 'asc')
-    .limit(limit)
-
-  return webhooks.map((webhook) => ({
-    ...webhook,
-    payload: this.safeJsonParse(webhook.payload, {}, 'pending_webhook.payload'),
-    received_at: new Date(webhook.received_at),
-    expires_at: new Date(webhook.expires_at),
-  }))
-}
-
-/**
- * Deletes a pending webhook by its unique ID.
- *
- * @param id - The ID of the pending webhook to delete.
- * @returns True if a webhook was deleted; false if no matching webhook was found.
- */
-export async function deletePendingWebhook(
-  this: DatabaseService,
-  id: number,
-): Promise<boolean> {
-  const deleted = await this.knex('pending_webhooks').where({ id }).delete()
-  return deleted > 0
-}
-
-/**
- * Deletes all expired pending webhooks from the database.
- *
- * @returns The number of pending webhooks that were deleted
- */
-export async function cleanupExpiredWebhooks(
-  this: DatabaseService,
-): Promise<number> {
-  const deleted = await this.knex('pending_webhooks')
-    .where('expires_at', '<', new Date().toISOString())
-    .delete()
-
-  return deleted
-}
-
-/**
  * Adds a status history entry for a watchlist item at a given timestamp, ensuring no duplicate status entries are created.
  *
  * Intended for use when backfilling missing status transitions detected during synchronization.
@@ -735,28 +647,4 @@ export async function addStatusHistoryEntry(
     )
     throw error
   }
-}
-
-/**
- * Retrieves all non-expired pending webhooks matching the specified GUID and media type.
- *
- * @param guid - The unique identifier of the media item.
- * @param mediaType - The type of media, either 'movie' or 'show'.
- * @returns An array of pending webhook objects with parsed payloads and converted timestamps.
- */
-export async function getWebhooksByGuid(
-  this: DatabaseService,
-  guid: string,
-  mediaType: 'movie' | 'show',
-): Promise<PendingWebhook[]> {
-  const webhooks = await this.knex('pending_webhooks')
-    .where({ guid, media_type: mediaType })
-    .where('expires_at', '>', new Date().toISOString())
-
-  return webhooks.map((webhook) => ({
-    ...webhook,
-    payload: this.safeJsonParse(webhook.payload, {}, 'pending_webhook.payload'),
-    received_at: new Date(webhook.received_at),
-    expires_at: new Date(webhook.expires_at),
-  }))
 }
