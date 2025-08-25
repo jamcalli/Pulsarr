@@ -896,7 +896,7 @@ export class PlexSessionMonitorService {
   ): Promise<void> {
     try {
       this.log.debug(
-        `Progressive cleanup check for ${rollingShow.show_title}: current season ${currentSeason}, last watched season ${rollingShow.last_watched_season}`,
+        `Progressive cleanup check for ${rollingShow.show_title}: current season ${currentSeason}, current monitored season ${rollingShow.current_monitored_season}, last watched season ${rollingShow.last_watched_season}`,
       )
 
       this.log.debug(
@@ -937,7 +937,15 @@ export class PlexSessionMonitorService {
         )
 
         // For pilot rolling: clean up Season 2+ (never clean Season 1 as it should stay pilot-only)
-        for (let season = 2; season < currentSeason; season++) {
+        // Never clean up seasons at or above current monitored season to prevent cleanup of newly downloaded content
+        const maxSeasonToCheck = Math.min(
+          currentSeason,
+          rollingShow.current_monitored_season,
+        )
+        this.log.debug(
+          `Progressive cleanup range (pilot): checking seasons 2 to ${maxSeasonToCheck - 1} (currentSeason: ${currentSeason}, monitored: ${rollingShow.current_monitored_season})`,
+        )
+        for (let season = 2; season < maxSeasonToCheck; season++) {
           const anyUserWatchingSeason = allUsersWatchingShow.some(
             (show) =>
               show.last_watched_season <= season &&
@@ -995,7 +1003,15 @@ export class PlexSessionMonitorService {
         }
       } else if (rollingShow.monitoring_type === 'firstSeasonRolling') {
         // For first season rolling: clean up Season 2+ (keep Season 1 fully monitored)
-        for (let season = 2; season < currentSeason; season++) {
+        // Never clean up seasons at or above current monitored season to prevent cleanup of newly downloaded content
+        const maxSeasonToCheck = Math.min(
+          currentSeason,
+          rollingShow.current_monitored_season,
+        )
+        this.log.debug(
+          `Progressive cleanup range (firstSeason): checking seasons 2 to ${maxSeasonToCheck - 1} (currentSeason: ${currentSeason}, monitored: ${rollingShow.current_monitored_season})`,
+        )
+        for (let season = 2; season < maxSeasonToCheck; season++) {
           const anyUserWatchingSeason = allUsersWatchingShow.some(
             (show) =>
               show.last_watched_season <= season &&
