@@ -249,6 +249,8 @@ function getFileOptions(): FileLoggerOptions {
  * Generates logger configuration options based on environment variables.
  *
  * Always logs to file. Console output and request logging controlled by environment variables.
+ * Note: logLevel is handled by Fastify's environment configuration plugin, not here.
+ *
  * Environment variables:
  * - enableConsoleOutput: Show logs in terminal (default: true)
  * - enableRequestLogging: Fastify HTTP request logging (default: true)
