@@ -8,6 +8,7 @@ import {
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import pino from 'pino'
+import type { LogFn } from 'pino'
 
 class LogEventStream extends Writable {
   constructor(private readonly eventService: EventStreamServiceImpl) {
@@ -96,28 +97,45 @@ export default fp(
       // Create a new stream that includes SSE logging
       const logEventStream = new LogEventStream(eventService)
 
-      // Add the SSE stream to the existing logger by creating a new multistream
-      const streams = [
-        { stream: process.stdout }, // Default stream
-        { stream: logEventStream }, // SSE stream
-      ]
+      // Set SSE log level to 'info' by default - clients can override via query params
+      // This ensures we capture reasonable logs for SSE without being too verbose
+      const sseLogLevel = 'info'
 
-      const newMultistream = pino.multistream(streams)
-
-      // Replace the logger with a new one that includes SSE streaming
-      const newLogger = pino.default(
+      // Create a separate logger instance specifically for SSE streaming
+      // This allows SSE streaming even when main application logger is 'silent'
+      const sseLogger = pino.default(
         {
-          level: fastify.log.level,
+          level: sseLogLevel,
           serializers: {
             req: createRequestSerializer(),
             error: createErrorSerializer(),
           },
         },
-        newMultistream,
+        logEventStream,
       )
 
-      // Copy log methods to new logger (preserving existing functionality)
-      fastify.log = newLogger as typeof fastify.log
+      // Store original log methods
+      const originalFatal = fastify.log.fatal
+      const originalError = fastify.log.error
+      const originalWarn = fastify.log.warn
+      const originalInfo = fastify.log.info
+      const originalDebug = fastify.log.debug
+      const originalTrace = fastify.log.trace
+
+      // Wrap each log level to send to both loggers using proper LogFn signature
+      const wrapLogFn = (originalFn: LogFn, sseFn: LogFn): LogFn => {
+        return ((obj: unknown, msg?: string, ...args: unknown[]): void => {
+          originalFn(obj, msg, ...args)
+          sseFn(obj, msg, ...args)
+        }) as LogFn
+      }
+
+      fastify.log.fatal = wrapLogFn(originalFatal, sseLogger.fatal)
+      fastify.log.error = wrapLogFn(originalError, sseLogger.error)
+      fastify.log.warn = wrapLogFn(originalWarn, sseLogger.warn)
+      fastify.log.info = wrapLogFn(originalInfo, sseLogger.info)
+      fastify.log.debug = wrapLogFn(originalDebug, sseLogger.debug)
+      fastify.log.trace = wrapLogFn(originalTrace, sseLogger.trace)
 
       fastify.log.info('Log streaming enabled for SSE clients')
     }

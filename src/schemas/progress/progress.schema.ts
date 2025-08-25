@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-// Log levels enum
+// Log levels enum - matches Pino's LevelWithSilent but excludes 'silent' for streaming
+// Note: 'silent' omitted as it disables all logging (not useful for streaming)
 export const LogLevelEnum = z.enum([
   'fatal',
   'error',

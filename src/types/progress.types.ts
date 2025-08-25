@@ -48,7 +48,7 @@ export interface ProgressEvent {
 
 export interface LogEvent {
   timestamp: string
-  level: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace'
+  level: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace' // Excludes 'silent' - not useful for streaming
   message: string
   metadata?: LogMetadata
 }
