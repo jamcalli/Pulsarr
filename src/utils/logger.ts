@@ -172,7 +172,7 @@ function createRequestSerializer() {
  * @param index - Optional index to append for rotated log files.
  * @returns The generated log filename.
  */
-function filename(time: number | Date, index?: number): string {
+function filename(time: number | Date | null, index?: number): string {
   if (!time) return 'pulsarr-current.log'
   const date = typeof time === 'number' ? new Date(time) : time
   const year = date.getFullYear()
@@ -226,6 +226,7 @@ function getTerminalOptions(): LoggerOptions {
     serializers: {
       req: createRequestSerializer(),
       error: createErrorSerializer(),
+      err: createErrorSerializer(),
     },
   }
 }
@@ -242,6 +243,7 @@ function getFileOptions(): FileLoggerOptions {
     serializers: {
       req: createRequestSerializer(),
       error: createErrorSerializer(),
+      err: createErrorSerializer(),
     },
   }
 }
@@ -299,6 +301,7 @@ export function createLoggerConfig(): PulsarrLoggerOptions {
       serializers: {
         req: createRequestSerializer(),
         error: createErrorSerializer(),
+        err: createErrorSerializer(),
       },
     }
   } else {
