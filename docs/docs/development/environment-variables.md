@@ -17,7 +17,8 @@ Below is an example showcasing all available environment variables:
 ```env
 # Application Runtime (Docker/System Level)
 TZ=America/Los_Angeles                 # Timezone for the application container
-NODE_ARGS=--log-both                   # Node.js logging configuration for Docker
+enableConsoleOutput=true               # Show logs in terminal (default: true)
+enableRequestLogging=true              # Enable HTTP request logging (default: true)
 
 # Server Configuration
 baseUrl=http://x.x.x.x                 # Local network address
@@ -209,7 +210,7 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 
 ### Core Application
 - `baseUrl`, `port`, `TZ` - Essential server configuration
-- `logLevel`, `NODE_ARGS` - Logging configuration
+- `logLevel`, `enableConsoleOutput`, `enableRequestLogging` - Logging configuration
 - `authenticationMethod` - Security settings
 
 ### Database
