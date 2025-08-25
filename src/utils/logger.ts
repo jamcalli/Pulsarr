@@ -7,9 +7,6 @@ import type { LevelWithSilent, LoggerOptions } from 'pino'
 import pino from 'pino'
 import * as rfs from 'rotating-file-stream'
 
-// Load .env file early for logger configuration
-config({ path: './.env' })
-
 export const validLogLevels: LevelWithSilent[] = [
   'fatal',
   'error',
@@ -38,6 +35,9 @@ type PulsarrLoggerOptions =
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
+
+// Load .env file early for logger configuration
+config({ path: resolve(projectRoot, '.env') })
 
 /**
  * Creates a custom error serializer that handles both standard errors and custom HttpError objects.
@@ -246,24 +246,6 @@ function getFileOptions(): FileLoggerOptions {
 }
 
 /**
- * Determines the log output destination based on command line arguments.
- *
- * Checks for `--log-terminal`, `--log-file`, or `--log-both` flags in the process arguments and returns the corresponding log destination. Defaults to `'terminal'` if no relevant flag is found.
- *
- * @returns The selected log destination: `'terminal'`, `'file'`, or `'both'`.
- */
-export function parseLogDestinationFromArgs(): LogDestination {
-  const args = process.argv.slice(2)
-
-  if (args.includes('--log-terminal')) return 'terminal'
-  if (args.includes('--log-file')) return 'file'
-  if (args.includes('--log-both')) return 'both'
-
-  // Default destination if no argument is found
-  return 'terminal'
-}
-
-/**
  * Generates logger configuration options based on environment variables.
  *
  * Always logs to file. Console output and request logging controlled by environment variables.
@@ -271,41 +253,24 @@ export function parseLogDestinationFromArgs(): LogDestination {
  * - enableConsoleOutput: Show logs in terminal (default: true)
  * - enableRequestLogging: Fastify HTTP request logging (default: true)
  *
- * @param destination - Optional destination override for legacy CLI argument compatibility
  * @returns Logger configuration options suitable for initializing a logger.
  */
-export function createLoggerConfig(
-  destination?: LogDestination,
-): PulsarrLoggerOptions {
+export function createLoggerConfig(): PulsarrLoggerOptions {
   // Read from environment variables with sensible defaults
   const enableConsoleOutput = process.env.enableConsoleOutput !== 'false' // Default true
   const enableRequestLogging = process.env.enableRequestLogging !== 'false' // Default true
 
-  console.log(
-    `Setting up logger - Console: ${enableConsoleOutput}, Request: ${enableRequestLogging}, File: always`,
-  )
-
-  // Legacy CLI argument support - only if explicitly provided
-  if (destination) {
-    console.log(`Using explicit destination override: ${destination}`)
-
-    switch (destination) {
-      case 'terminal':
-        return getTerminalOptions()
-      case 'file':
-        return getFileOptions()
-      case 'both':
-        // Fall through to multistream below
-        break
-      default:
-        break
-    }
+  // Only log setup message if console output is enabled
+  if (enableConsoleOutput) {
+    console.log(
+      `Setting up logger - Console: ${enableConsoleOutput}, Request: ${enableRequestLogging}, File: always`,
+    )
   }
 
   // Always set up file logging
   const fileStream = getFileStream()
 
-  if (enableConsoleOutput || destination === 'both') {
+  if (enableConsoleOutput) {
     // Log to both terminal and file
 
     // Graceful fallback: avoid double-logging if file stream fell back to stdout
