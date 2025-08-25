@@ -5,7 +5,7 @@
 
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
-  ![Node](https://img.shields.io/badge/node-20%20LTS-green?style=flat-square)
+  ![Node](https://img.shields.io/badge/node-22%20LTS-green?style=flat-square)
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
   ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
   ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr?style=flat-square)
@@ -188,7 +188,7 @@ Alternatively, you can use the Docker Installation method described above.
 #### Manual Installation
 
 **Prerequisites**
-- Node.js 20 LTS or higher (for local build)
+- Node.js 22 LTS or higher (for local build)
 
 ```bash
 # Clone the repository

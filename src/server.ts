@@ -12,7 +12,10 @@ import serviceApp from './app.js'
  */
 async function init() {
   // Read request logging setting from env var (default: true)
-  const enableRequestLogging = process.env.enableRequestLogging !== 'false'
+  // Accept common falsy variants: false, 0, no, off (case-insensitive)
+  const enableRequestLogging = !/^(\s*(false|0|no|off)\s*)$/i.test(
+    process.env.enableRequestLogging ?? '',
+  )
 
   const app = Fastify({
     logger: createLoggerConfig(),
