@@ -5,6 +5,7 @@ import { config } from 'dotenv'
 import type { FastifyRequest } from 'fastify'
 import type { LevelWithSilent, LoggerOptions } from 'pino'
 import pino from 'pino'
+import pretty from 'pino-pretty'
 import * as rfs from 'rotating-file-stream'
 
 export const validLogLevels: LevelWithSilent[] = [
@@ -248,24 +249,24 @@ function getFileOptions(): FileLoggerOptions {
 /**
  * Generates logger configuration options based on environment variables.
  *
- * Always logs to file. Console output and request logging controlled by environment variables.
+ * Attempts to always log to file; falls back to console-only if file stream setup fails.
+ * Console output controlled by environment variables. Request logging controlled by server.ts.
  * Note: logLevel is handled by Fastify's environment configuration plugin, not here.
  *
  * Environment variables:
  * - enableConsoleOutput: Show logs in terminal (default: true)
- * - enableRequestLogging: Fastify HTTP request logging (default: true)
+ * - enableRequestLogging: Controls Fastify request logging in server.ts (default: true)
  *
  * @returns Logger configuration options suitable for initializing a logger.
  */
 export function createLoggerConfig(): PulsarrLoggerOptions {
   // Read from environment variables with sensible defaults
   const enableConsoleOutput = process.env.enableConsoleOutput !== 'false' // Default true
-  const enableRequestLogging = process.env.enableRequestLogging !== 'false' // Default true
 
   // Only log setup message if console output is enabled
   if (enableConsoleOutput) {
     console.log(
-      `Setting up logger - Console: ${enableConsoleOutput}, Request: ${enableRequestLogging}, File: always`,
+      `Setting up logger - Console: ${enableConsoleOutput}, File: always`,
     )
   }
 
@@ -280,14 +281,11 @@ export function createLoggerConfig(): PulsarrLoggerOptions {
       return getTerminalOptions()
     }
 
-    // Create a pretty stream for terminal output
-    const prettyStream = pino.transport({
-      target: 'pino-pretty',
-      options: {
-        translateTime: 'HH:MM:ss Z',
-        ignore: 'pid,hostname',
-        colorize: true, // Force colors even in Docker
-      },
+    // Create a proper pretty stream for terminal output
+    const prettyStream = pretty({
+      translateTime: 'HH:MM:ss Z',
+      ignore: 'pid,hostname',
+      colorize: true, // Force colors even in Docker
     })
 
     const multistream = pino.multistream([
