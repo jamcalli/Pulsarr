@@ -9,7 +9,4 @@ npm run migrate
 
 # Start the application
 echo "Starting application..."
-echo "Logging controlled by environment variables:"
-echo "  enableConsoleOutput: ${enableConsoleOutput:-true}"
-echo "  enableRequestLogging: ${enableRequestLogging:-true}"
 exec node dist/server.js "$@"
