@@ -464,7 +464,7 @@ The `.env` file is required for the initial setup and contains essential configu
 | `baseUrl` | Base URL where Pulsarr can be reached by Sonarr/Radarr (e.g., `http://pulsarr` for Docker network or `http://your-server-ip`) | Yes | `http://localhost` |
 | `port` | Port where Pulsarr is accessible - works with baseUrl to form complete address | Yes | `3003` |
 | `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
-| `logLevel` | Logging level (silent, error, warn, info, debug, trace) | Recommended | `info` |
+| `logLevel` | Logging level (silent, fatal, error, warn, info, debug, trace) | Recommended | `info` |
 | `enableConsoleOutput` | Show logs in terminal (default: true) | No | `true` |
 | `enableRequestLogging` | Enable HTTP request logging (default: true) | No | `true` |
 | `cookieSecured` | Set to true ONLY if serving UI over HTTPS | No | `false` |
@@ -495,7 +495,7 @@ cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
 **Logging Configuration**: Pulsarr now uses environment variables for logging control:
 - `enableConsoleOutput=true` - Show logs in terminal (default: true)
 - `enableRequestLogging=true` - Enable HTTP request logging (default: true)
-- Files are always logged to `./data/logs/` directory
+- Logs are written to the `./data/logs/` directory when available; falls back to console if file setup fails
 
 ### Authentication Configuration
 
