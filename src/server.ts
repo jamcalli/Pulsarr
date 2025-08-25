@@ -11,6 +11,9 @@ import serviceApp from './app.js'
  * Sets up JSON schema validation, logging level, and ensures persistent connections are forcibly closed during shutdown. Handles server startup errors by logging and terminating the process.
  */
 async function init() {
+  // Read request logging setting from env var (default: true)
+  const enableRequestLogging = process.env.enableRequestLogging !== 'false'
+
   const app = Fastify({
     logger: createLoggerConfig(),
     ajv: {
@@ -22,6 +25,8 @@ async function init() {
     pluginTimeout: 60000,
     // Force close persistent connections (like SSE) during shutdown
     forceCloseConnections: true,
+    // Control request logging based on env var
+    disableRequestLogging: !enableRequestLogging,
   })
 
   await app.register(fp(serviceApp))

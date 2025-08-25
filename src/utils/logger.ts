@@ -1,10 +1,14 @@
 import fs from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { config } from 'dotenv'
 import type { FastifyRequest } from 'fastify'
 import type { LevelWithSilent, LoggerOptions } from 'pino'
 import pino from 'pino'
 import * as rfs from 'rotating-file-stream'
+
+// Load .env file early for logger configuration
+config({ path: './.env' })
 
 export const validLogLevels: LevelWithSilent[] = [
   'fatal',
@@ -260,61 +264,80 @@ export function parseLogDestinationFromArgs(): LogDestination {
 }
 
 /**
- * Generates logger configuration options for terminal, file, or both destinations, with sensitive data redaction in HTTP request logs.
+ * Generates logger configuration options based on environment variables.
  *
- * Determines the log output destination based on the provided argument or command line flags, and configures the logger accordingly. When logging to both terminal and file, combines pretty-printed terminal output with file logging, applying request serializers that redact sensitive query parameters.
+ * Always logs to file. Console output and request logging controlled by environment variables.
+ * Environment variables:
+ * - enableConsoleOutput: Show logs in terminal (default: true)
+ * - enableRequestLogging: Fastify HTTP request logging (default: true)
  *
- * @param destination - The desired log output destination; if omitted, the destination is inferred from command line arguments.
- * @returns Logger configuration options suitable for initializing a logger with the specified output destination(s).
+ * @param destination - Optional destination override for legacy CLI argument compatibility
+ * @returns Logger configuration options suitable for initializing a logger.
  */
 export function createLoggerConfig(
   destination?: LogDestination,
 ): PulsarrLoggerOptions {
-  // If no destination provided, try to get it from command line args
-  const logDestination = destination || parseLogDestinationFromArgs()
+  // Read from environment variables with sensible defaults
+  const enableConsoleOutput = process.env.enableConsoleOutput !== 'false' // Default true
+  const enableRequestLogging = process.env.enableRequestLogging !== 'false' // Default true
 
-  console.log(`Setting up logger with destination: ${logDestination}`)
+  console.log(
+    `Setting up logger - Console: ${enableConsoleOutput}, Request: ${enableRequestLogging}, File: always`,
+  )
 
-  switch (logDestination) {
-    case 'terminal':
-      return getTerminalOptions()
-    case 'file':
-      return getFileOptions()
-    case 'both': {
-      // Use pino's built-in multistream
-      const fileStream = getFileStream()
+  // Legacy CLI argument support - only if explicitly provided
+  if (destination) {
+    console.log(`Using explicit destination override: ${destination}`)
 
-      // Graceful fallback: avoid double-logging if file stream fell back to stdout
-      if (fileStream === process.stdout) {
+    switch (destination) {
+      case 'terminal':
         return getTerminalOptions()
-      }
-
-      // Create a pretty stream for terminal output
-      const prettyStream = pino.transport({
-        target: 'pino-pretty',
-        options: {
-          translateTime: 'HH:MM:ss Z',
-          ignore: 'pid,hostname',
-          colorize: true, // Force colors even in Docker
-        },
-      })
-
-      const multistream = pino.multistream([
-        { stream: prettyStream },
-
-        { stream: fileStream },
-      ])
-
-      return {
-        level: 'info',
-        stream: multistream,
-        serializers: {
-          req: createRequestSerializer(),
-          error: createErrorSerializer(),
-        },
-      }
+      case 'file':
+        return getFileOptions()
+      case 'both':
+        // Fall through to multistream below
+        break
+      default:
+        break
     }
-    default:
+  }
+
+  // Always set up file logging
+  const fileStream = getFileStream()
+
+  if (enableConsoleOutput || destination === 'both') {
+    // Log to both terminal and file
+
+    // Graceful fallback: avoid double-logging if file stream fell back to stdout
+    if (fileStream === process.stdout) {
       return getTerminalOptions()
+    }
+
+    // Create a pretty stream for terminal output
+    const prettyStream = pino.transport({
+      target: 'pino-pretty',
+      options: {
+        translateTime: 'HH:MM:ss Z',
+        ignore: 'pid,hostname',
+        colorize: true, // Force colors even in Docker
+      },
+    })
+
+    const multistream = pino.multistream([
+      { stream: prettyStream },
+      { stream: fileStream },
+    ])
+
+    return {
+      level: 'info',
+      stream: multistream,
+      serializers: {
+        req: createRequestSerializer(),
+        error: createErrorSerializer(),
+      },
+    }
+  } else {
+    // File logging only
+    return getFileOptions()
   }
 }

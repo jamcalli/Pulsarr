@@ -31,7 +31,8 @@ TZ=America/Los_Angeles          # Set to your local timezone
 
 # Recommended settings
 logLevel=info                   # Default is 'silent', but 'info' is recommended
-NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
+enableConsoleOutput=true        # Show logs in terminal (default: true)
+enableRequestLogging=true       # Enable HTTP request logging (default: true)
 ```
 
 2. Create a `docker-compose.yml` file and add the following:

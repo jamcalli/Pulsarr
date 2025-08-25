@@ -57,7 +57,8 @@ baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
 port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
 logLevel=info                   # Default is 'silent', but 'info' is recommended
-NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
+enableConsoleOutput=true        # Show logs in terminal (default: true)
+enableRequestLogging=true       # Enable HTTP request logging (default: true)
 ```
 
 2. Create `docker-compose.yml`:
