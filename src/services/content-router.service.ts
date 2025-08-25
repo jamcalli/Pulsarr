@@ -1514,12 +1514,13 @@ export class ContentRouterService {
                   {
                     scope: 'checkApprovalRequirements',
                     ruleName: rule.name,
-                    ruleWeight: rule.order,
+                    ruleWeight: rule.order, // aka "weight" in docs/PR
+                    ruleId: rule.id,
                     itemTitle: item.title,
                   },
                   'Router rule bypassing approval for item',
                 )
-                // Continue to other approval checks (user-level, etc.) but skip remaining router rules
+                // Highest-weight match handled; skip remaining router rules
                 break
               }
             }
