@@ -29,7 +29,8 @@ If you're using the Apprise integration, additional configuration values like `a
 | `port` | Port where Pulsarr is accessible - works with baseUrl to form complete address | Yes | `3003` |
 | `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
 | `logLevel` | Logging level (silent, error, warn, info, debug, trace) | Recommended | `silent` |
-| `NODE_ARGS` | Logger configuration for Docker (`--log-both` recommended for most users) | Recommended | `--log-file` |
+| `enableConsoleOutput` | Show logs in terminal (default: true) | No | `true` |
+| `enableRequestLogging` | Enable HTTP request logging (default: true) | No | `true` |
 | `cookieSecured` | Set to true ONLY if serving UI over HTTPS | No | `false` |
 | `appriseUrl` | URL for the Apprise server (only if using Apprise) | No* | None |
 
@@ -92,7 +93,8 @@ TZ=America/Los_Angeles          # Set to your local timezone
 
 # Recommended settings
 logLevel=info                   # Default is 'silent', but 'info' is recommended
-NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
+enableConsoleOutput=true        # Show logs in terminal (default: true)
+enableRequestLogging=true       # Enable HTTP request logging (default: true)
 
 # Optional settings
 cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
@@ -111,7 +113,8 @@ TZ=America/Los_Angeles          # Set to your local timezone
 
 # Recommended settings
 logLevel=info                   # Default is 'silent', but 'info' is recommended
-NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
+enableConsoleOutput=true        # Show logs in terminal (default: true)
+enableRequestLogging=true       # Enable HTTP request logging (default: true)
 
 # PostgreSQL Database Configuration
 dbType=postgres                 # Enable PostgreSQL support
@@ -129,11 +132,11 @@ cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
 # appriseUrl=http://apprise:8000  # URL to your Apprise container
 ```
 
-:::info NODE_ARGS Options
-Controls logging behavior in Docker. Options are:
-- `--log-terminal` - Log to terminal only
-- `--log-file` - Log to file only (default)
-- `--log-both` - Log to both terminal and file
+:::info Logging Configuration
+Pulsarr now uses environment variables for logging control:
+- `enableConsoleOutput=true` - Show logs in terminal (default: true)
+- `enableRequestLogging=true` - Enable HTTP request logging (default: true)  
+- Files are always logged to `./data/logs/` directory
 :::
 
 ## Authentication Configuration
