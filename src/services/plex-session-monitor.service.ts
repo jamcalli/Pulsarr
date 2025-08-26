@@ -459,20 +459,21 @@ export class PlexSessionMonitorService {
           `Creating per-user rolling show entry for ${globalShow.show_title} for user ${session.User.title}`,
         )
 
-        const userEntryId = await this.db.createRollingMonitoredShow({
-          sonarr_series_id: globalShow.sonarr_series_id,
-          sonarr_instance_id: globalShow.sonarr_instance_id,
-          tvdb_id: globalShow.tvdb_id,
-          imdb_id: globalShow.imdb_id,
-          show_title: globalShow.show_title,
-          monitoring_type: globalShow.monitoring_type,
-          current_monitored_season: 1, // New users always start from season 1
-          plex_user_id: session.User.id,
-          plex_username: session.User.title,
-        })
+        const userEntryId = await this.db.createOrFindUserRollingMonitoredShow(
+          globalShow,
+          session.User.id,
+          session.User.title,
+        )
 
-        // Get the newly created per-user entry
-        rollingShow = await this.db.getRollingMonitoredShowById(userEntryId)
+        // Get the newly created or existing per-user entry
+        const byId = await this.db.getRollingMonitoredShowById(userEntryId)
+        if (!byId) {
+          this.log.warn(
+            `Per-user entry (ID: ${userEntryId}) not found after createOrFind for ${globalShow.show_title} (${session.User.title})`,
+          )
+          return null
+        }
+        rollingShow = byId
       }
 
       return rollingShow
@@ -883,6 +884,17 @@ export class PlexSessionMonitorService {
   }
 
   /**
+   * Compute the upper bound for progressive cleanup season checking
+   */
+  private computeCleanupUpperBound(
+    currentSeason: number,
+    currentMonitored: number,
+  ): number {
+    // Never clean S1; never clean >= current monitored; never look beyond the season being watched
+    return Math.min(currentSeason, currentMonitored)
+  }
+
+  /**
    * Progressive cleanup for rolling monitored shows
    * Removes previous seasons when a user progresses to the next season,
    * but only if no filtered users (including current user) have watched those
@@ -896,7 +908,7 @@ export class PlexSessionMonitorService {
   ): Promise<void> {
     try {
       this.log.debug(
-        `Progressive cleanup check for ${rollingShow.show_title}: current season ${currentSeason}, last watched season ${rollingShow.last_watched_season}`,
+        `Progressive cleanup check for ${rollingShow.show_title}: currentSeason=${currentSeason}, currentMonitored=${rollingShow.current_monitored_season}, lastWatched=${rollingShow.last_watched_season ?? 'n/a'}`,
       )
 
       this.log.debug(
@@ -916,6 +928,7 @@ export class PlexSessionMonitorService {
         (show) =>
           show.sonarr_series_id === rollingShow.sonarr_series_id &&
           show.sonarr_instance_id === rollingShow.sonarr_instance_id &&
+          show.plex_user_id != null &&
           new Date(show.last_session_date) >= cutoffDate &&
           // Only consider users that are allowed to trigger monitoring actions
           this.isUserAllowedToTriggerActions(
@@ -937,7 +950,21 @@ export class PlexSessionMonitorService {
         )
 
         // For pilot rolling: clean up Season 2+ (never clean Season 1 as it should stay pilot-only)
-        for (let season = 2; season < currentSeason; season++) {
+        // Never clean up seasons at or above current monitored season to prevent cleanup of newly downloaded content
+        const maxSeasonToCheck = this.computeCleanupUpperBound(
+          currentSeason,
+          rollingShow.current_monitored_season,
+        )
+        if (maxSeasonToCheck <= 2) {
+          this.log.debug(
+            'Progressive cleanup range (pilot): no seasons eligible for cleanup (≤ S1)',
+          )
+        } else {
+          this.log.debug(
+            `Progressive cleanup range (pilot): checking seasons 2 to ${maxSeasonToCheck - 1} (currentSeason: ${currentSeason}, monitored: ${rollingShow.current_monitored_season})`,
+          )
+        }
+        for (let season = 2; season < maxSeasonToCheck; season++) {
           const anyUserWatchingSeason = allUsersWatchingShow.some(
             (show) =>
               show.last_watched_season <= season &&
@@ -995,7 +1022,21 @@ export class PlexSessionMonitorService {
         }
       } else if (rollingShow.monitoring_type === 'firstSeasonRolling') {
         // For first season rolling: clean up Season 2+ (keep Season 1 fully monitored)
-        for (let season = 2; season < currentSeason; season++) {
+        // Never clean up seasons at or above current monitored season to prevent cleanup of newly downloaded content
+        const maxSeasonToCheck = this.computeCleanupUpperBound(
+          currentSeason,
+          rollingShow.current_monitored_season,
+        )
+        if (maxSeasonToCheck <= 2) {
+          this.log.debug(
+            'Progressive cleanup range (firstSeason): no seasons eligible for cleanup (≤ S1)',
+          )
+        } else {
+          this.log.debug(
+            `Progressive cleanup range (firstSeason): checking seasons 2 to ${maxSeasonToCheck - 1} (currentSeason: ${currentSeason}, monitored: ${rollingShow.current_monitored_season})`,
+          )
+        }
+        for (let season = 2; season < maxSeasonToCheck; season++) {
           const anyUserWatchingSeason = allUsersWatchingShow.some(
             (show) =>
               show.last_watched_season <= season &&
@@ -1021,7 +1062,19 @@ export class PlexSessionMonitorService {
         )
       }
     } catch (error) {
-      this.log.error({ error }, 'Error in progressive cleanup:')
+      this.log.error(
+        {
+          error,
+          showTitle: rollingShow.show_title,
+          sonarrSeriesId: rollingShow.sonarr_series_id,
+          currentSeason,
+          monitoringType: rollingShow.monitoring_type,
+        },
+        'Error in progressive cleanup - storage cleanup may be incomplete',
+      )
+
+      // Don't re-throw - progressive cleanup failures shouldn't break session processing
+      // But log with enough context for debugging storage issues
     }
   }
 
@@ -1092,7 +1145,6 @@ export class PlexSessionMonitorService {
 
       const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
       if (!sonarr) {
-        this.log.debug(`ERROR: Sonarr instance ${sonarrInstanceId} not found`)
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }
 

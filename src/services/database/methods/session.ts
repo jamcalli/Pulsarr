@@ -47,6 +47,119 @@ export async function createRollingMonitoredShow(
 }
 
 /**
+ * Creates or finds an existing per-user rolling monitored show entry.
+ * Handles race conditions safely using database-level unique constraint.
+ * Requires a unique database constraint on (sonarr_series_id, sonarr_instance_id, plex_user_id).
+ *
+ * @param globalShow - The master/global rolling show configuration to base the per-user entry on
+ * New per-user entries always start with current_monitored_season = 1.
+ * @param plexUserId - The Plex user ID
+ * @param plexUsername - The Plex username
+ * @returns The ID of the created or existing per-user entry
+ */
+export async function createOrFindUserRollingMonitoredShow(
+  this: DatabaseService,
+  globalShow: RollingMonitoredShow,
+  plexUserId: string,
+  plexUsername: string,
+): Promise<number> {
+  const now = this.timestamp
+  const values = {
+    sonarr_series_id: globalShow.sonarr_series_id,
+    sonarr_instance_id: globalShow.sonarr_instance_id,
+    tvdb_id: globalShow.tvdb_id,
+    imdb_id: globalShow.imdb_id,
+    show_title: globalShow.show_title,
+    monitoring_type: globalShow.monitoring_type,
+    current_monitored_season: 1, // New users always start from season 1
+    plex_user_id: plexUserId,
+    plex_username: plexUsername,
+    last_watched_season: 0,
+    last_watched_episode: 0,
+    last_session_date: now,
+    created_at: now,
+    updated_at: now,
+    last_updated_at: now,
+  }
+
+  try {
+    if (this.isPostgres) {
+      // PostgreSQL: Use DO UPDATE to return existing ID and update last_updated_at
+      const result = await this.knex('rolling_monitored_shows')
+        .insert(values)
+        .onConflict(['sonarr_series_id', 'sonarr_instance_id', 'plex_user_id'])
+        .merge({
+          last_updated_at: now,
+          updated_at: now,
+        })
+        .returning('id')
+
+      // If we got an ID back, return it
+      if (result && result.length > 0) {
+        const id = this.extractId(result)
+        this.log.info(
+          `Created/updated per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${id})`,
+        )
+        return id
+      }
+    } else {
+      // SQLite: Use DO NOTHING and fall back to select
+      const result = await this.knex('rolling_monitored_shows')
+        .insert(values)
+        .onConflict(['sonarr_series_id', 'sonarr_instance_id', 'plex_user_id'])
+        .ignore()
+        .returning('id')
+
+      // If we got an ID back, return it
+      if (result && result.length > 0) {
+        const id = this.extractId(result)
+        this.log.info(
+          `Created/updated per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${id})`,
+        )
+        return id
+      }
+    }
+  } catch (error) {
+    // Only swallow expected unique/constraint conflicts; rethrow others
+    const errorObj = error as Record<string, unknown>
+    const msg = String(errorObj?.message || '')
+    const code = (errorObj && (errorObj.code || errorObj.errno)) || ''
+    const isConflict =
+      code === '23505' || // Postgres unique violation
+      msg.includes('SQLITE_CONSTRAINT') || // SQLite unique
+      msg.includes('UNIQUE constraint failed') // SQLite unique
+    if (!isConflict) {
+      this.log.error({ error }, 'Unexpected error inserting per-user entry')
+      throw error
+    }
+    this.log.debug(
+      { error },
+      `Insert conflict for per-user entry (${globalShow.show_title}, user: ${plexUsername}), looking up existing entry`,
+    )
+  }
+
+  // Insert was ignored due to conflict or we caught a unique violation - find the existing entry
+  const existingEntry = await this.knex('rolling_monitored_shows')
+    .where({
+      sonarr_series_id: globalShow.sonarr_series_id,
+      sonarr_instance_id: globalShow.sonarr_instance_id,
+      plex_user_id: plexUserId,
+    })
+    .first()
+
+  if (existingEntry) {
+    this.log.debug(
+      `Using existing per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${existingEntry.id})`,
+    )
+    return existingEntry.id
+  }
+
+  throw new Error(
+    `Failed to create or find per-user rolling show entry for ${globalShow.show_title} (user: ${plexUsername})`,
+  )
+}
+
+/**
  * Retrieves all rolling monitored shows ordered by show title.
  *
  * @returns An array of rolling monitored show records, or an empty array if an error occurs.
@@ -298,6 +411,7 @@ export async function resetRollingMonitoredShowToOriginal(
           last_watched_season: 0,
           last_watched_episode: 0,
           updated_at: this.timestamp,
+          last_updated_at: this.timestamp,
         })
 
       this.log.info(
@@ -317,9 +431,11 @@ export async function resetRollingMonitoredShowToOriginal(
 
 /**
  * Retrieves rolling monitored shows that have not been updated within the specified number of days.
+ * Only returns shows where ALL records (master + all per-user records) are past the inactivity threshold.
+ * This prevents cleanup of shows where some users are still actively watching.
  *
  * @param inactivityDays - The minimum number of days since the last update for a show to be considered inactive.
- * @returns An array of rolling monitored shows that are inactive.
+ * @returns An array of rolling monitored shows that are completely inactive (one representative record per show).
  */
 export async function getInactiveRollingMonitoredShows(
   this: DatabaseService,
@@ -329,9 +445,38 @@ export async function getInactiveRollingMonitoredShows(
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - inactivityDays)
 
-    return await this.knex('rolling_monitored_shows')
-      .where('last_updated_at', '<', cutoffDate.toISOString())
-      .orderBy('last_updated_at', 'asc')
+    const allShows = await this.knex('rolling_monitored_shows').orderBy(
+      'last_updated_at',
+      'asc',
+    )
+
+    // Group by unique show identifier
+    const showMap = new Map<string, RollingMonitoredShow[]>()
+
+    for (const show of allShows) {
+      const showKey = `${show.sonarr_series_id}-${show.sonarr_instance_id}`
+      if (!showMap.has(showKey)) {
+        showMap.set(showKey, [])
+      }
+      showMap.get(showKey)?.push(show)
+    }
+
+    // Find shows where ALL records are inactive
+    const inactiveShows: RollingMonitoredShow[] = []
+
+    for (const shows of showMap.values()) {
+      const hasActiveRecord = shows.some(
+        (show) => new Date(show.last_updated_at) >= cutoffDate,
+      )
+
+      if (!hasActiveRecord) {
+        // All records inactive - prefer master record, fall back to any record
+        const masterRecord = shows.find((show) => show.plex_user_id === null)
+        inactiveShows.push(masterRecord || shows[0])
+      }
+    }
+
+    return inactiveShows
   } catch (error) {
     this.log.error({ error }, 'Error getting inactive rolling monitored shows:')
     return []
