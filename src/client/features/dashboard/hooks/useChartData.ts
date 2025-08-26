@@ -6,8 +6,8 @@ export function useStatusTransitionData() {
 
   return {
     data: statusTransitions || [],
-    isLoading: loading.statusTransitions,
-    error: errors.statusTransitions,
+    isLoading: loading.all,
+    error: errors.all,
   }
 }
 
@@ -32,8 +32,8 @@ export function useNotificationStatsData() {
 
   return {
     data: notificationStats,
-    isLoading: loading.notifications,
-    error: errors.notifications,
+    isLoading: loading.all,
+    error: errors.all,
   }
 }
 
@@ -47,8 +47,8 @@ export function useTopGenresData() {
 
   return {
     data: topGenres || [],
-    isLoading: loading.genres,
-    error: errors.genres,
+    isLoading: loading.all,
+    error: errors.all,
   }
 }
 
@@ -62,8 +62,8 @@ export function useGrabbedToNotifiedData() {
 
   return {
     data: grabbedToNotifiedTimes || [],
-    isLoading: loading.grabbedToNotified,
-    error: errors.grabbedToNotified,
+    isLoading: loading.all,
+    error: errors.all,
   }
 }
 
@@ -77,7 +77,7 @@ export function useInstanceContentData() {
 
   return {
     data: instanceContentBreakdown || [],
-    isLoading: loading.instanceContent,
-    error: errors.instanceContent,
+    isLoading: loading.all,
+    error: errors.all,
   }
 }
