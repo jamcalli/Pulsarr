@@ -22,7 +22,7 @@ export function MediaCard({
   const [modalOpen, setModalOpen] = useState(false)
 
   // Only show info button if we have GUIDs available for TMDB lookup
-  const hasGuids = item.guids && item.guids.length > 0
+  const hasGuids = Boolean(item.guids?.length)
 
   return (
     <>
@@ -63,6 +63,7 @@ export function MediaCard({
                   setModalOpen(true)
                 }}
                 title="View detailed information"
+                aria-label="View detailed information"
               >
                 <Eye className="h-3 w-3" />
                 <span className="sr-only">View detailed information</span>

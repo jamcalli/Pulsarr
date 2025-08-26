@@ -17,8 +17,18 @@ Below is an example showcasing all available environment variables:
 ```env
 # Application Runtime (Docker/System Level)
 TZ=America/Los_Angeles                 # Timezone for the application container
-enableConsoleOutput=true               # Show logs in terminal (default: true)
-enableRequestLogging=true              # Enable HTTP request logging (default: true)
+
+# Logging Configuration
+logLevel=info                          # Log level (default: info)
+                                       # Accepts: fatal | error | warn | info | debug | trace | silent
+
+enableConsoleOutput=true               # Console logging (default: true)
+                                       # Any value other than "false" enables terminal output
+                                       # Logs are always written to ./data/logs/ regardless of this setting
+
+enableRequestLogging=true              # HTTP request logging (default: true)
+                                       # Logs HTTP method, URL, host, remote IP/port, response codes, response times
+                                       # Sensitive query parameters (token, apiKey, password) are automatically redacted
 
 # Server Configuration
 baseUrl=http://x.x.x.x                 # Local network address
@@ -37,7 +47,6 @@ cookieSecret=xxxxxxxxxxxxxxxxxxxxxxxx  # Secret key for cookies (randomly genera
 cookieName=pulsarr                     # Name of the cookie
 cookieSecured=false                    # Set to true for HTTPS only
 allowIframes=false                     # Set to true to allow embedding in dashboard apps like Organizr
-logLevel=info                          # Logging level: 'fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent' (default: info)
 authenticationMethod=required          # Authentication method: 'required', 'requiredExceptLocal', 'disabled' (default: required)
 closeGraceDelay=10000                  # Shutdown grace period in ms
 rateLimitMax=500                       # Max requests per time window
@@ -210,7 +219,7 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 
 ### Core Application
 - `baseUrl`, `port`, `TZ` - Essential server configuration
-- `logLevel`, `enableConsoleOutput`, `enableRequestLogging` - Logging configuration
+- `logLevel`, `enableConsoleOutput`, `enableRequestLogging` - Comprehensive logging configuration
 - `authenticationMethod` - Security settings
 
 ### Database

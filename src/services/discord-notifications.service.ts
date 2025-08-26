@@ -245,9 +245,12 @@ export class DiscordNotificationService {
       return
     }
 
-    this.botClient.once(Events.ClientReady, () => {
+    this.botClient.once(Events.ClientReady, (client) => {
       this.botStatus = 'running'
-      this.log.info('Discord bot is ready')
+      this.log.info(
+        { botUsername: client.user.username },
+        'Discord bot is ready',
+      )
     })
 
     this.botClient.on('error', (error) => {

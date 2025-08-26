@@ -86,15 +86,21 @@ Here is how your .env should look:
 
 ### SQLite Configuration (Default)
 ```env
-# Required settings
-baseUrl=http://your-server-ip   # Address where Pulsarr can be reached by Sonarr/Radarr
+baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
 port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
 
-# Recommended settings
-logLevel=info                   # Default is 'silent', but 'info' is recommended
-enableConsoleOutput=true        # Show logs in terminal (default: true)
-enableRequestLogging=true       # Enable HTTP request logging (default: true)
+# Logging Configuration
+logLevel=info                   # Log level (default: info)
+                                # Accepts: fatal | error | warn | info | debug | trace | silent
+
+enableConsoleOutput=true        # Console logging (default: true)
+                                # Any value other than "false" enables terminal output
+                                # Logs are always written to ./data/logs/ regardless of this setting
+
+enableRequestLogging=true       # HTTP request logging (default: true)
+                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
+                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
 
 # Optional settings
 cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
@@ -106,15 +112,21 @@ dbPath=./data/db/pulsarr.db     # SQLite database path (optional, this is defaul
 
 ### PostgreSQL Configuration
 ```env
-# Required settings
-baseUrl=http://your-server-ip   # Address where Pulsarr can be reached by Sonarr/Radarr
+baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
 port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
 
-# Recommended settings
-logLevel=info                   # Default is 'silent', but 'info' is recommended
-enableConsoleOutput=true        # Show logs in terminal (default: true)
-enableRequestLogging=true       # Enable HTTP request logging (default: true)
+# Logging Configuration
+logLevel=info                   # Log level (default: info)
+                                # Accepts: fatal | error | warn | info | debug | trace | silent
+
+enableConsoleOutput=true        # Console logging (default: true)
+                                # Any value other than "false" enables terminal output
+                                # Logs are always written to ./data/logs/ regardless of this setting
+
+enableRequestLogging=true       # HTTP request logging (default: true)
+                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
+                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
 
 # PostgreSQL Database Configuration
 dbType=postgres                 # Enable PostgreSQL support
@@ -133,10 +145,28 @@ cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
 ```
 
 :::info Logging Configuration
-Pulsarr now uses environment variables for logging control:
-- `enableConsoleOutput=true` - Show logs in terminal (default: true)
-- `enableRequestLogging=true` - Enable HTTP request logging (default: true)  
-- Files are always logged to `./data/logs/` directory
+Pulsarr provides comprehensive logging configuration through environment variables:
+
+**Log Levels** (`logLevel`)
+- **Default**: `info`
+- **Options**: `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`
+- Controls the minimum log level displayed and recorded
+
+**Console Output** (`enableConsoleOutput`)
+- **Default**: `true`
+- **Behavior**: Any value other than `"false"` enables terminal output
+- When disabled, logs are only written to files
+
+**Request Logging** (`enableRequestLogging`)
+- **Default**: `true`
+- **Logs**: HTTP method, URL, host, remote IP/port, response codes, response times
+- **Security**: Sensitive query parameters (`token`, `apiKey`, `password`) are automatically redacted
+
+**File Logging**
+- **Always enabled** - Cannot be disabled
+- **Location**: `./data/logs/` directory
+- **Format**: `pulsarr-YYYY-MM-DD.log` (with `pulsarr-current.log` for active file)
+- Console and file logging operate independently
 :::
 
 ## Authentication Configuration
