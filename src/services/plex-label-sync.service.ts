@@ -1019,18 +1019,26 @@ export class PlexLabelSyncService {
         // Keep all existing labels and add new ones
         finalLabels = [...new Set([...currentLabels, ...labelsToAdd])]
       } else if (this.removedLabelMode === 'special-label') {
-        // Remove app labels but add special "removed" label if needed
-        if (labelsToRemove.length > 0) {
+        // Handle special "removed" label logic:
+        // - Only add removed label if NO user labels exist (safe for deletion)
+        // - If user labels exist, removed label should be cleaned up (content still wanted)
+        if (allDesiredLabels.length === 0 && labelsToRemove.length > 0) {
+          // No user labels exist, safe to add removed label for deletion
           specialRemovedLabel = await this.getRemovedLabel(content.title)
-          finalLabels = [
-            ...new Set([
-              ...nonAppLabels,
-              ...allDesiredLabels,
-              specialRemovedLabel,
-            ]),
-          ]
+          finalLabels = [...new Set([...nonAppLabels, specialRemovedLabel])]
+          this.log.debug(
+            `Added removed label for "${content.title}" - no active users, safe for deletion`,
+          )
         } else {
+          // User labels exist OR no labels being removed - preserve current user labels
+          // This also cleans up any existing removed labels when users are present
           finalLabels = [...new Set([...nonAppLabels, ...allDesiredLabels])]
+
+          if (labelsToRemove.length > 0 && allDesiredLabels.length > 0) {
+            this.log.debug(
+              `Cleaned up removed label for "${content.title}" - active users still want this content`,
+            )
+          }
         }
       } else {
         // Default 'remove' mode - clean removal of obsolete labels

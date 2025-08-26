@@ -527,8 +527,10 @@ export class UserTagService {
                   },
                 )
 
-                // If we have tags being removed, add special "removed" tag
-                if (removedUserTagIds.length > 0) {
+                // Handle special "removed" tag logic:
+                // - Only add removed tag if NO user tags exist (safe for deletion)
+                // - If user tags exist, removed tag should be cleaned up (content still wanted)
+                if (userTagIds.length === 0 && removedUserTagIds.length > 0) {
                   try {
                     // Get or create the "removed" tag using our helper
                     const removedTagId = await this.ensureRemovedTag(
@@ -538,14 +540,12 @@ export class UserTagService {
                       `show "${show.title}"`,
                     )
 
-                    // Combine non-user tags with current user tags and removed tag
-                    newTags = [
-                      ...new Set([
-                        ...nonUserTagIds,
-                        ...userTagIds,
-                        removedTagId,
-                      ]),
-                    ]
+                    // Only non-user tags and removed tag (no user tags = safe to delete)
+                    newTags = [...new Set([...nonUserTagIds, removedTagId])]
+
+                    this.log.debug(
+                      `Added removed tag for "${show.title}" - no active users, safe for deletion`,
+                    )
                   } catch (tagError) {
                     this.log.error(
                       { error: tagError },
@@ -554,8 +554,15 @@ export class UserTagService {
                     throw tagError
                   }
                 } else {
-                  // No tags being removed, just use current tags
+                  // User tags exist OR no tags being removed - preserve current user tags
+                  // This also cleans up any existing removed tags when users are present
                   newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+
+                  if (removedUserTagIds.length > 0 && userTagIds.length > 0) {
+                    this.log.debug(
+                      `Cleaned up removed tag for "${show.title}" - active users still want this content`,
+                    )
+                  }
                 }
               } else {
                 // Default 'remove' mode
@@ -848,8 +855,10 @@ export class UserTagService {
                   },
                 )
 
-                // If we have tags being removed, add special "removed" tag
-                if (removedUserTagIds.length > 0) {
+                // Handle special "removed" tag logic:
+                // - Only add removed tag if NO user tags exist (safe for deletion)
+                // - If user tags exist, removed tag should be cleaned up (content still wanted)
+                if (userTagIds.length === 0 && removedUserTagIds.length > 0) {
                   try {
                     // Get or create the "removed" tag using our helper
                     const removedTagId = await this.ensureRemovedTag(
@@ -859,14 +868,12 @@ export class UserTagService {
                       `movie "${movie.title}"`,
                     )
 
-                    // Combine non-user tags with current user tags and removed tag
-                    newTags = [
-                      ...new Set([
-                        ...nonUserTagIds,
-                        ...userTagIds,
-                        removedTagId,
-                      ]),
-                    ]
+                    // Only non-user tags and removed tag (no user tags = safe to delete)
+                    newTags = [...new Set([...nonUserTagIds, removedTagId])]
+
+                    this.log.debug(
+                      `Added removed tag for "${movie.title}" - no active users, safe for deletion`,
+                    )
                   } catch (tagError) {
                     this.log.error(
                       { error: tagError },
@@ -875,8 +882,15 @@ export class UserTagService {
                     throw tagError
                   }
                 } else {
-                  // No tags being removed, just use current tags
+                  // User tags exist OR no tags being removed - preserve current user tags
+                  // This also cleans up any existing removed tags when users are present
                   newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+
+                  if (removedUserTagIds.length > 0 && userTagIds.length > 0) {
+                    this.log.debug(
+                      `Cleaned up removed tag for "${movie.title}" - active users still want this content`,
+                    )
+                  }
                 }
               } else {
                 // Default 'remove' mode
