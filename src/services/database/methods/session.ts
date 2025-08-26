@@ -48,9 +48,11 @@ export async function createRollingMonitoredShow(
 
 /**
  * Creates or finds an existing per-user rolling monitored show entry.
- * Handles race conditions by checking for existing entries after failed inserts.
+ * Handles race conditions safely using database-level unique constraint.
+ * Requires a unique database constraint on (sonarr_series_id, sonarr_instance_id, plex_user_id).
  *
  * @param globalShow - The master/global rolling show configuration to base the per-user entry on
+ * New per-user entries always start with current_monitored_season = 1.
  * @param plexUserId - The Plex user ID
  * @param plexUsername - The Plex username
  * @returns The ID of the created or existing per-user entry
@@ -61,41 +63,63 @@ export async function createOrFindUserRollingMonitoredShow(
   plexUserId: string,
   plexUsername: string,
 ): Promise<number> {
-  try {
-    // Try to create the per-user entry
-    return await this.createRollingMonitoredShow({
-      sonarr_series_id: globalShow.sonarr_series_id,
-      sonarr_instance_id: globalShow.sonarr_instance_id,
-      tvdb_id: globalShow.tvdb_id,
-      imdb_id: globalShow.imdb_id,
-      show_title: globalShow.show_title,
-      monitoring_type: globalShow.monitoring_type,
-      current_monitored_season: 1, // New users always start from season 1
-      plex_user_id: plexUserId,
-      plex_username: plexUsername,
-    })
-  } catch (error) {
-    // If insert fails, it might be due to race condition - check if entry now exists
-    this.log.debug(
-      `Insert failed for per-user entry (${globalShow.show_title}, user: ${plexUsername}), checking for existing entry`,
-    )
-
-    const existingEntry = await this.getRollingMonitoredShow(
-      globalShow.tvdb_id,
-      globalShow.show_title,
-      plexUserId,
-    )
-
-    if (existingEntry) {
-      this.log.info(
-        `Found existing per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${existingEntry.id})`,
-      )
-      return existingEntry.id
-    }
-
-    // If still not found, re-throw the original error
-    throw error
+  const values = {
+    sonarr_series_id: globalShow.sonarr_series_id,
+    sonarr_instance_id: globalShow.sonarr_instance_id,
+    tvdb_id: globalShow.tvdb_id,
+    imdb_id: globalShow.imdb_id,
+    show_title: globalShow.show_title,
+    monitoring_type: globalShow.monitoring_type,
+    current_monitored_season: 1, // New users always start from season 1
+    plex_user_id: plexUserId,
+    plex_username: plexUsername,
+    last_watched_season: 0,
+    last_watched_episode: 0,
+    last_session_date: this.timestamp,
+    created_at: this.timestamp,
+    updated_at: this.timestamp,
+    last_updated_at: this.timestamp,
   }
+
+  try {
+    // Try database-native upsert using the unique constraint
+    const result = await this.knex('rolling_monitored_shows')
+      .insert(values)
+      .onConflict(['sonarr_series_id', 'sonarr_instance_id', 'plex_user_id'])
+      .ignore()
+      .returning('id')
+
+    // If insert succeeded, return the new ID
+    if (result && result.length > 0) {
+      const id = this.extractId(result)
+      this.log.info(
+        `Created per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${id})`,
+      )
+      return id
+    }
+  } catch (_error) {
+    this.log.debug(
+      `Insert failed for per-user entry (${globalShow.show_title}, user: ${plexUsername}), looking up existing entry`,
+    )
+  }
+
+  // Insert was ignored due to conflict or we caught a unique violation - find the existing entry
+  const existingEntry = await this.getRollingMonitoredShow(
+    globalShow.tvdb_id,
+    globalShow.show_title,
+    plexUserId,
+  )
+
+  if (existingEntry) {
+    this.log.debug(
+      `Using existing per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${existingEntry.id})`,
+    )
+    return existingEntry.id
+  }
+
+  throw new Error(
+    `Failed to create or find per-user rolling show entry for ${globalShow.show_title} (user: ${plexUsername})`,
+  )
 }
 
 /**
