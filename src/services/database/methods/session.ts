@@ -82,20 +82,41 @@ export async function createOrFindUserRollingMonitoredShow(
   }
 
   try {
-    // Try database-native upsert using the unique constraint
-    const result = await this.knex('rolling_monitored_shows')
-      .insert(values)
-      .onConflict(['sonarr_series_id', 'sonarr_instance_id', 'plex_user_id'])
-      .ignore()
-      .returning('id')
+    if (this.isPostgres) {
+      // PostgreSQL: Use DO UPDATE to return existing ID and update last_updated_at
+      const result = await this.knex('rolling_monitored_shows')
+        .insert(values)
+        .onConflict(['sonarr_series_id', 'sonarr_instance_id', 'plex_user_id'])
+        .merge({
+          last_updated_at: this.timestamp,
+          updated_at: this.timestamp,
+        })
+        .returning('id')
 
-    // If insert succeeded, return the new ID
-    if (result && result.length > 0) {
-      const id = this.extractId(result)
-      this.log.info(
-        `Created per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${id})`,
-      )
-      return id
+      // If we got an ID back, return it
+      if (result && result.length > 0) {
+        const id = this.extractId(result)
+        this.log.info(
+          `Created/updated per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${id})`,
+        )
+        return id
+      }
+    } else {
+      // SQLite: Use DO NOTHING and fall back to select
+      const result = await this.knex('rolling_monitored_shows')
+        .insert(values)
+        .onConflict(['sonarr_series_id', 'sonarr_instance_id', 'plex_user_id'])
+        .ignore()
+        .returning('id')
+
+      // If we got an ID back, return it
+      if (result && result.length > 0) {
+        const id = this.extractId(result)
+        this.log.info(
+          `Created/updated per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${id})`,
+        )
+        return id
+      }
     }
   } catch (_error) {
     this.log.debug(
@@ -374,6 +395,7 @@ export async function resetRollingMonitoredShowToOriginal(
           last_watched_season: 0,
           last_watched_episode: 0,
           updated_at: this.timestamp,
+          last_updated_at: this.timestamp,
         })
 
       this.log.info(
