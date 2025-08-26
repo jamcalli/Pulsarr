@@ -29,14 +29,14 @@ export function useDashboardStats(): DashboardStatsState {
   const isConfigInitialized = useConfigStore(useShallow((s) => s.isInitialized))
 
   const {
-    fetchAllStats,
+    refreshAllStats,
     mostWatchedMovies,
     mostWatchedShows,
     loading,
     errors,
   } = useDashboardStore(
     useShallow((s) => ({
-      fetchAllStats: s.fetchAllStats,
+      refreshAllStats: s.refreshAllStats,
       mostWatchedMovies: s.mostWatchedMovies,
       mostWatchedShows: s.mostWatchedShows,
       loading: s.loading,
@@ -54,13 +54,18 @@ export function useDashboardStats(): DashboardStatsState {
           typeof days === 'number' && Number.isFinite(days) && days > 0
             ? Math.floor(days)
             : undefined
-        await fetchAllStats({ limit: safeLimit, days: safeDays })
-        setLastRefreshed(new Date())
+        const didFetch = await refreshAllStats({
+          limit: safeLimit,
+          days: safeDays,
+        })
+        if (didFetch) {
+          setLastRefreshed(new Date())
+        }
       } catch (error) {
         console.error('Error refreshing stats:', error)
       }
     },
-    [fetchAllStats, loading],
+    [refreshAllStats, loading.all],
   )
 
   // Auto-initialize stats on mount, but only after config is ready
@@ -78,13 +83,13 @@ export function useDashboardStats(): DashboardStatsState {
     mostWatchedMovies,
     loadingStates: {
       all: loading.all,
-      shows: loading.shows,
-      movies: loading.movies,
+      shows: loading.all,
+      movies: loading.all,
     },
     errorStates: {
       all: errors.all,
-      shows: errors.shows,
-      movies: errors.movies,
+      shows: errors.all,
+      movies: errors.all,
     },
     refreshStats,
   }

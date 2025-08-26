@@ -23,6 +23,7 @@ import {
   ButtonStyle,
   type ChatInputCommandInteraction,
   Client,
+  Events,
   GatewayIntentBits,
   type InteractionReplyOptions,
   MessageFlags,
@@ -244,7 +245,7 @@ export class DiscordNotificationService {
       return
     }
 
-    this.botClient.on('ready', () => {
+    this.botClient.once(Events.ClientReady, () => {
       this.botStatus = 'running'
       this.log.info('Discord bot is ready')
     })
