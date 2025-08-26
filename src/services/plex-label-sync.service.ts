@@ -1025,7 +1025,15 @@ export class PlexLabelSyncService {
         if (allDesiredLabels.length === 0 && labelsToRemove.length > 0) {
           // No user labels exist, safe to add removed label for deletion
           specialRemovedLabel = await this.getRemovedLabel(content.title)
-          finalLabels = [...new Set([...nonAppLabels, specialRemovedLabel])]
+          const nonAppWithoutRemoved = nonAppLabels.filter(
+            (label) =>
+              !label
+                .toLowerCase()
+                .startsWith(this.removedLabelPrefix.toLowerCase()),
+          )
+          finalLabels = [
+            ...new Set([...nonAppWithoutRemoved, specialRemovedLabel]),
+          ]
           this.log.debug(
             `Added removed label for "${content.title}" - no active users, safe for deletion`,
           )
