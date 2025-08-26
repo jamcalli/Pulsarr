@@ -1145,7 +1145,7 @@ export class PlexSessionMonitorService {
 
       const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
       if (!sonarr) {
-        this.log.debug(`ERROR: Sonarr instance ${sonarrInstanceId} not found`)
+        this.log.warn({ sonarrInstanceId }, 'Sonarr instance not found')
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }
 
