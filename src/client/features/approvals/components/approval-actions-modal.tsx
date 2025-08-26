@@ -56,15 +56,20 @@ interface ApprovalActionsModalProps {
 }
 
 /**
- * Renders a responsive modal interface for viewing and managing an approval request, including actions to approve, reject, delete, edit routing, and toggle TMDB media metadata.
+ * Render a responsive modal/drawer UI for viewing and managing a single approval request.
  *
- * The modal displays request metadata, routing configuration, approval history, and action controls with optional notes. It manages loading and success states for actions, supports an external update callback, and adapts its layout for desktop and mobile devices. Users can toggle between request details and media information fetched from TMDB.
+ * The component displays request metadata, proposed routing (with editable routing cards),
+ * approval history, optional TMDB media details, and action controls to approve, reject, or
+ * delete the request. It manages local loading/success states for those actions, enforces a
+ * short minimum loading duration for UX consistency, and adapts layout for desktop (Sheet)
+ * and mobile (Drawer). Media details are toggled on demand and reset when the modal opens or
+ * the request changes.
  *
- * @param request - The approval request to display and manage
- * @param open - Whether the modal is visible
- * @param onOpenChange - Callback to control modal visibility
- * @param onUpdate - Optional callback invoked after an action to refresh data
- * @returns The modal UI for approval request actions
+ * @param request - The ApprovalRequestResponse to show and act on.
+ * @param open - Whether the modal/drawer is open.
+ * @param onOpenChange - Callback invoked with the new open state to control visibility.
+ * @param onUpdate - Optional callback invoked after a successful approve/reject/delete or routing save to allow the parent to refresh data.
+ * @returns A React element containing the approval actions modal UI.
  */
 export default function ApprovalActionsModal({
   request,

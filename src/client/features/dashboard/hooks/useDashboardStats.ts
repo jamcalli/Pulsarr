@@ -22,6 +22,33 @@ interface DashboardStatsState {
   refreshStats: (params?: { limit?: number; days?: number }) => Promise<void>
 }
 
+/**
+ * React hook that exposes dashboard statistics state and a refresh function.
+ *
+ * Provides most-watched shows and movies, loading/error states, a nullable
+ * `lastRefreshed` timestamp, and a `refreshStats` method to re-fetch stats.
+ *
+ * The returned `isLoading` is true until the application configuration is
+ * initialized, then mirrors the dashboard store's loading flag. `lastRefreshed`
+ * is null until a successful fetch occurs and is updated only when a fetch
+ * actually ran and returned a positive result.
+ *
+ * Calling `refreshStats(params?)` will:
+ * - no-op if a global loading is already in progress,
+ * - coerce `limit` to an integer >= 1 (default 10),
+ * - accept an optional positive integer `days` or omit it,
+ * - invoke the store refresh action and update `lastRefreshed` only if a fetch ran.
+ *
+ * The hook also triggers one automatic refresh after the config becomes
+ * initialized (runs once per component lifetime).
+ *
+ * @returns DashboardStatsState containing:
+ * - isLoading: whether stats are currently loading (considers config readiness),
+ * - lastRefreshed: Date | null — time of the last successful fetch,
+ * - mostWatchedShows / mostWatchedMovies: arrays or null,
+ * - loadingStates / errorStates: mapped from the store's global flags,
+ * - refreshStats: function to manually request a refresh.
+ */
 export function useDashboardStats(): DashboardStatsState {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const initialFetchDoneRef = useRef(false)
