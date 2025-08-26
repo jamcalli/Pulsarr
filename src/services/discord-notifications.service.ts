@@ -244,7 +244,7 @@ export class DiscordNotificationService {
       return
     }
 
-    this.botClient.on('ready', () => {
+    this.botClient.on('clientReady', () => {
       this.botStatus = 'running'
       this.log.info('Discord bot is ready')
     })
