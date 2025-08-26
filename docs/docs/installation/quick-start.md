@@ -24,14 +24,21 @@ Pulsarr can be installed using Docker (recommended), Unraid, or manual installat
 1. Create a `.env` file with your configuration:
 
 ```plaintext
-# Required settings
-baseUrl=http://your-server-ip   # Address where Pulsarr can be reached by Sonarr/Radarr
+baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
 port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
 
-# Recommended settings
-logLevel=info                   # Default is 'silent', but 'info' is recommended
-NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
+# Logging Configuration
+logLevel=info                   # Log level (default: info)
+                                # Accepts: fatal | error | warn | info | debug | trace | silent
+
+enableConsoleOutput=true        # Console logging (default: true)
+                                # Any value other than "false" enables terminal output
+                                # Logs are always written to ./data/logs/ regardless of this setting
+
+enableRequestLogging=true       # HTTP request logging (default: true)
+                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
+                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
 ```
 
 2. Create a `docker-compose.yml` file and add the following:

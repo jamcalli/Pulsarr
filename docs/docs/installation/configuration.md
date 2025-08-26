@@ -29,7 +29,8 @@ If you're using the Apprise integration, additional configuration values like `a
 | `port` | Port where Pulsarr is accessible - works with baseUrl to form complete address | Yes | `3003` |
 | `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
 | `logLevel` | Logging level (silent, error, warn, info, debug, trace) | Recommended | `silent` |
-| `NODE_ARGS` | Logger configuration for Docker (`--log-both` recommended for most users) | Recommended | `--log-file` |
+| `enableConsoleOutput` | Show logs in terminal (default: true) | No | `true` |
+| `enableRequestLogging` | Enable HTTP request logging (default: true) | No | `true` |
 | `cookieSecured` | Set to true ONLY if serving UI over HTTPS | No | `false` |
 | `appriseUrl` | URL for the Apprise server (only if using Apprise) | No* | None |
 
@@ -85,14 +86,21 @@ Here is how your .env should look:
 
 ### SQLite Configuration (Default)
 ```env
-# Required settings
-baseUrl=http://your-server-ip   # Address where Pulsarr can be reached by Sonarr/Radarr
+baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
 port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
 
-# Recommended settings
-logLevel=info                   # Default is 'silent', but 'info' is recommended
-NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
+# Logging Configuration
+logLevel=info                   # Log level (default: info)
+                                # Accepts: fatal | error | warn | info | debug | trace | silent
+
+enableConsoleOutput=true        # Console logging (default: true)
+                                # Any value other than "false" enables terminal output
+                                # Logs are always written to ./data/logs/ regardless of this setting
+
+enableRequestLogging=true       # HTTP request logging (default: true)
+                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
+                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
 
 # Optional settings
 cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
@@ -104,14 +112,21 @@ dbPath=./data/db/pulsarr.db     # SQLite database path (optional, this is defaul
 
 ### PostgreSQL Configuration
 ```env
-# Required settings
-baseUrl=http://your-server-ip   # Address where Pulsarr can be reached by Sonarr/Radarr
+baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
 port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
 
-# Recommended settings
-logLevel=info                   # Default is 'silent', but 'info' is recommended
-NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
+# Logging Configuration
+logLevel=info                   # Log level (default: info)
+                                # Accepts: fatal | error | warn | info | debug | trace | silent
+
+enableConsoleOutput=true        # Console logging (default: true)
+                                # Any value other than "false" enables terminal output
+                                # Logs are always written to ./data/logs/ regardless of this setting
+
+enableRequestLogging=true       # HTTP request logging (default: true)
+                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
+                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
 
 # PostgreSQL Database Configuration
 dbType=postgres                 # Enable PostgreSQL support
@@ -129,11 +144,29 @@ cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
 # appriseUrl=http://apprise:8000  # URL to your Apprise container
 ```
 
-:::info NODE_ARGS Options
-Controls logging behavior in Docker. Options are:
-- `--log-terminal` - Log to terminal only
-- `--log-file` - Log to file only (default)
-- `--log-both` - Log to both terminal and file
+:::info Logging Configuration
+Pulsarr provides comprehensive logging configuration through environment variables:
+
+**Log Levels** (`logLevel`)
+- **Default**: `info`
+- **Options**: `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`
+- Controls the minimum log level displayed and recorded
+
+**Console Output** (`enableConsoleOutput`)
+- **Default**: `true`
+- **Behavior**: Any value other than `"false"` enables terminal output
+- When disabled, logs are only written to files
+
+**Request Logging** (`enableRequestLogging`)
+- **Default**: `true`
+- **Logs**: HTTP method, URL, host, remote IP/port, response codes, response times
+- **Security**: Sensitive query parameters (`token`, `apiKey`, `password`) are automatically redacted
+
+**File Logging**
+- **Always enabled** - Cannot be disabled
+- **Location**: `./data/logs/` directory
+- **Format**: `pulsarr-YYYY-MM-DD.log` (with `pulsarr-current.log` for active file)
+- Console and file logging operate independently
 :::
 
 ## Authentication Configuration

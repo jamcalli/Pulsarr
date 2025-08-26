@@ -87,21 +87,29 @@ export async function getTopGenres(
 }
 
 /**
- * Retrieves the most frequently watchlisted shows, returning their titles, watchlist counts, and thumbnails.
+ * Retrieves the most frequently watchlisted shows, returning their titles, watchlist counts, thumbnails, and GUIDs.
  *
  * @param limit - Maximum number of shows to return (default: 10)
- * @returns An array of objects containing the show title, count of watchlist entries, and thumbnail (if available)
+ * @returns An array of objects containing the show title, count of watchlist entries, thumbnail, GUIDs, and content type
  */
 export async function getMostWatchlistedShows(
   this: DatabaseService,
   limit = 10,
-): Promise<{ title: string; count: number; thumb: string | null }[]> {
+): Promise<
+  {
+    title: string
+    count: number
+    thumb: string | null
+    guids: string[]
+    content_type: 'show'
+  }[]
+> {
   const results = await this.knex('watchlist_items')
     .where('type', 'show')
-    .select('title')
+    .select('title', 'guids')
     .select(this.knex.raw('MIN(thumb) as thumb'))
     .count('* as count')
-    .groupBy('title')
+    .groupBy('title', 'guids')
     .orderBy('count', 'desc')
     .limit(limit)
 
@@ -111,27 +119,35 @@ export async function getMostWatchlistedShows(
     title: String(row.title),
     count: Number(row.count),
     thumb: row.thumb ? String(row.thumb) : null,
+    guids: this.safeJsonParse(row.guids as string, [], 'watchlist_item.guids'),
+    content_type: 'show' as const,
   }))
 }
 
 /**
- * Retrieves the most frequently watchlisted movies.
- *
- * Returns an array of movies with their title, watchlist count, and thumbnail, limited to the specified number of top entries.
+ * Retrieves the most frequently watchlisted movies, returning their titles, watchlist counts, thumbnails, and GUIDs.
  *
  * @param limit - Maximum number of movies to return (default: 10)
- * @returns Array of objects containing movie title, count, and thumbnail (nullable)
+ * @returns Array of objects containing movie title, count, thumbnail, GUIDs, and content type
  */
 export async function getMostWatchlistedMovies(
   this: DatabaseService,
   limit = 10,
-): Promise<{ title: string; count: number; thumb: string | null }[]> {
+): Promise<
+  {
+    title: string
+    count: number
+    thumb: string | null
+    guids: string[]
+    content_type: 'movie'
+  }[]
+> {
   const results = await this.knex('watchlist_items')
     .where('type', 'movie')
-    .select('title')
+    .select('title', 'guids')
     .select(this.knex.raw('MIN(thumb) as thumb'))
     .count('* as count')
-    .groupBy('title')
+    .groupBy('title', 'guids')
     .orderBy('count', 'desc')
     .limit(limit)
 
@@ -141,6 +157,8 @@ export async function getMostWatchlistedMovies(
     title: String(row.title),
     count: Number(row.count),
     thumb: row.thumb ? String(row.thumb) : null,
+    guids: this.safeJsonParse(row.guids as string, [], 'watchlist_item.guids'),
+    content_type: 'movie' as const,
   }))
 }
 

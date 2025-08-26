@@ -6,7 +6,6 @@ import type {
   DashboardStats,
   GenreStat,
   GrabbedToNotifiedTime,
-  InstanceContentBreakdown,
   InstanceStat,
   NotificationStats,
   StatusDistribution,
@@ -16,6 +15,16 @@ import type {
 } from '@root/schemas/stats/stats.schema'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+
+// Cache management for dashboard stats
+// - Prevents duplicate API calls within CACHE_DURATION window
+// - Scoped to all dashboard statistics as a single unit
+// - Parameter-aware: different limit/days combinations bypass cache
+// - Reset by refreshAllStats for manual refresh scenarios
+let lastAllStatsFetch = 0
+let lastParamsKey = ''
+let isRefreshing = false // Prevents race conditions during manual refresh
+const CACHE_DURATION = 5000 // 5 seconds
 
 export interface StatsState {
   // All dashboard stats
@@ -76,18 +85,27 @@ export interface StatsState {
   }
 
   // Fetch functions
-  fetchAllStats: (params?: { limit?: number; days?: number }) => Promise<void>
-  fetchTopGenres: (limit?: number) => Promise<void>
-  fetchMostWatchedShows: (limit?: number) => Promise<void>
-  fetchMostWatchedMovies: (limit?: number) => Promise<void>
-  fetchTopUsers: (limit?: number) => Promise<void>
-  fetchRecentActivity: (days?: number) => Promise<void>
-  fetchAvailabilityTimes: () => Promise<void>
-  fetchGrabbedToNotifiedTimes: () => Promise<void>
-  fetchStatusTransitions: () => Promise<void>
-  fetchStatusFlow: () => Promise<void>
-  fetchNotificationStats: (days?: number) => Promise<void>
-  fetchInstanceContentBreakdown: () => Promise<void>
+  fetchAllStats: (params?: {
+    limit?: number
+    days?: number
+  }) => Promise<boolean>
+  fetchTopGenres: (limit?: number) => Promise<boolean>
+  fetchMostWatchedShows: (limit?: number) => Promise<boolean>
+  fetchMostWatchedMovies: (limit?: number) => Promise<boolean>
+  fetchTopUsers: (limit?: number) => Promise<boolean>
+  fetchRecentActivity: (days?: number) => Promise<boolean>
+  fetchAvailabilityTimes: () => Promise<boolean>
+  fetchGrabbedToNotifiedTimes: () => Promise<boolean>
+  fetchStatusTransitions: () => Promise<boolean>
+  fetchStatusFlow: () => Promise<boolean>
+  fetchNotificationStats: (days?: number) => Promise<boolean>
+  fetchInstanceContentBreakdown: () => Promise<boolean>
+
+  // Cache management
+  refreshAllStats: (params?: {
+    limit?: number
+    days?: number
+  }) => Promise<boolean>
 
   // Initialization
   initialize: () => Promise<void>
@@ -143,9 +161,22 @@ export const useDashboardStore = create<StatsState>()(
       instanceContent: null,
     },
 
-    // Fetch all dashboard stats at once
+    // Fetch all dashboard stats at once with caching
     fetchAllStats: async (params = {}) => {
+      // In-flight guard to prevent duplicate requests
+      if (get().loading.all) {
+        return false
+      }
+
       const { limit = 10, days = 30 } = params
+      const paramsKey = `${limit}|${days}`
+      const now = Date.now()
+      if (
+        now - lastAllStatsFetch < CACHE_DURATION &&
+        paramsKey === lastParamsKey
+      ) {
+        return false
+      }
       set((state) => ({
         ...state,
         loading: { ...state.loading, all: true },
@@ -184,6 +215,10 @@ export const useDashboardStore = create<StatsState>()(
           instanceContentBreakdown: data.instance_content_breakdown || [],
           loading: { ...state.loading, all: false },
         }))
+        // Update cache timestamp and params key only on success
+        lastAllStatsFetch = Date.now()
+        lastParamsKey = paramsKey
+        return true
       } catch (error) {
         console.error('Error fetching all stats:', error)
         set((state) => ({
@@ -194,376 +229,71 @@ export const useDashboardStore = create<StatsState>()(
             all: error instanceof Error ? error.message : 'Unknown error',
           },
         }))
+        return false // Network call failed
       }
     },
 
-    // Individual fetch functions for specific stats
+    // Individual fetch functions redirect to centralized fetchAllStats
     fetchTopGenres: async (limit = 10) => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, genres: true },
-        errors: { ...state.errors, genres: null },
-      }))
-
-      try {
-        const response = await fetch(`/v1/stats/genres?limit=${limit}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch top genres')
-        }
-
-        const data: GenreStat[] = await response.json()
-
-        set((state) => ({
-          ...state,
-          topGenres: data,
-          loading: { ...state.loading, genres: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching top genres:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, genres: false },
-          errors: {
-            ...state.errors,
-            genres: error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats({ limit })
     },
 
     fetchInstanceContentBreakdown: async () => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, instanceContent: true },
-        errors: { ...state.errors, instanceContent: null },
-      }))
-
-      try {
-        const response = await fetch('/v1/stats/instance-content')
-        if (!response.ok) {
-          throw new Error('Failed to fetch instance content breakdown')
-        }
-
-        const data: InstanceContentBreakdown = await response.json()
-
-        set((state) => ({
-          ...state,
-          instanceContentBreakdown: data.instances,
-          loading: { ...state.loading, instanceContent: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching instance content breakdown:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, instanceContent: false },
-          errors: {
-            ...state.errors,
-            instanceContent:
-              error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats()
     },
 
     fetchMostWatchedShows: async (limit = 10) => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, shows: true },
-        errors: { ...state.errors, shows: null },
-      }))
-
-      try {
-        const response = await fetch(`/v1/stats/shows?limit=${limit}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch most watched shows')
-        }
-
-        const data: ContentStat[] = await response.json()
-
-        set((state) => ({
-          ...state,
-          mostWatchedShows: data,
-          loading: { ...state.loading, shows: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching most watched shows:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, shows: false },
-          errors: {
-            ...state.errors,
-            shows: error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats({ limit })
     },
 
     fetchMostWatchedMovies: async (limit = 10) => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, movies: true },
-        errors: { ...state.errors, movies: null },
-      }))
-
-      try {
-        const response = await fetch(`/v1/stats/movies?limit=${limit}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch most watched movies')
-        }
-
-        const data: ContentStat[] = await response.json()
-
-        set((state) => ({
-          ...state,
-          mostWatchedMovies: data,
-          loading: { ...state.loading, movies: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching most watched movies:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, movies: false },
-          errors: {
-            ...state.errors,
-            movies: error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats({ limit })
     },
 
     fetchTopUsers: async (limit = 10) => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, users: true },
-        errors: { ...state.errors, users: null },
-      }))
-
-      try {
-        const response = await fetch(`/v1/stats/users?limit=${limit}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch top users')
-        }
-
-        const data: UserStat[] = await response.json()
-
-        set((state) => ({
-          ...state,
-          topUsers: data,
-          loading: { ...state.loading, users: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching top users:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, users: false },
-          errors: {
-            ...state.errors,
-            users: error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats({ limit })
     },
 
     fetchRecentActivity: async (days = 30) => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, activity: true },
-        errors: { ...state.errors, activity: null },
-      }))
-
-      try {
-        const response = await fetch(`/v1/stats/activity?days=${days}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch recent activity')
-        }
-
-        const data: ActivityStats = await response.json()
-
-        set((state) => ({
-          ...state,
-          recentActivity: data,
-          loading: { ...state.loading, activity: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching recent activity:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, activity: false },
-          errors: {
-            ...state.errors,
-            activity: error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats({ days })
     },
 
     fetchAvailabilityTimes: async () => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, availability: true },
-        errors: { ...state.errors, availability: null },
-      }))
-
-      try {
-        const response = await fetch('/v1/stats/availability')
-        if (!response.ok) {
-          throw new Error('Failed to fetch availability times')
-        }
-
-        const data: AvailabilityTime[] = await response.json()
-
-        set((state) => ({
-          ...state,
-          availabilityTimes: data,
-          loading: { ...state.loading, availability: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching availability times:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, availability: false },
-          errors: {
-            ...state.errors,
-            availability:
-              error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats()
     },
 
     fetchGrabbedToNotifiedTimes: async () => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, grabbedToNotified: true },
-        errors: { ...state.errors, grabbedToNotified: null },
-      }))
-
-      try {
-        const response = await fetch('/v1/stats/grabbed-to-notified')
-        if (!response.ok) {
-          throw new Error('Failed to fetch grabbed-to-notified times')
-        }
-
-        const data: GrabbedToNotifiedTime[] = await response.json()
-
-        set((state) => ({
-          ...state,
-          grabbedToNotifiedTimes: data,
-          loading: { ...state.loading, grabbedToNotified: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching grabbed-to-notified times:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, grabbedToNotified: false },
-          errors: {
-            ...state.errors,
-            grabbedToNotified:
-              error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats()
     },
 
     fetchStatusTransitions: async () => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, statusTransitions: true },
-        errors: { ...state.errors, statusTransitions: null },
-      }))
-
-      try {
-        const response = await fetch('/v1/stats/status-transitions')
-        if (!response.ok) {
-          throw new Error('Failed to fetch status transitions')
-        }
-
-        const data: StatusTransitionTime[] = await response.json()
-
-        set((state) => ({
-          ...state,
-          statusTransitions: data,
-          loading: { ...state.loading, statusTransitions: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching status transitions:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, statusTransitions: false },
-          errors: {
-            ...state.errors,
-            statusTransitions:
-              error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats()
     },
 
     fetchStatusFlow: async () => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, statusFlow: true },
-        errors: { ...state.errors, statusFlow: null },
-      }))
-
-      try {
-        const response = await fetch('/v1/stats/status-flow')
-        if (!response.ok) {
-          throw new Error('Failed to fetch status flow data')
-        }
-
-        const data: StatusFlowData[] = await response.json()
-
-        set((state) => ({
-          ...state,
-          statusFlow: data,
-          loading: { ...state.loading, statusFlow: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching status flow data:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, statusFlow: false },
-          errors: {
-            ...state.errors,
-            statusFlow:
-              error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
-      }
+      return await get().fetchAllStats()
     },
 
     fetchNotificationStats: async (days = 30) => {
-      set((state) => ({
-        ...state,
-        loading: { ...state.loading, notifications: true },
-        errors: { ...state.errors, notifications: null },
-      }))
+      return await get().fetchAllStats({ days })
+    },
 
+    // Force refresh all stats, bypassing cache
+    // Note: Currently waits for in-flight requests to complete.
+    // Future enhancement: AbortController could cancel slow requests for true force refresh.
+    refreshAllStats: async (params = {}) => {
+      if (isRefreshing) {
+        return false // Another refresh is already in progress
+      }
+
+      isRefreshing = true
       try {
-        const response = await fetch(`/v1/stats/notifications?days=${days}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch notification statistics')
-        }
-
-        const data: NotificationStats = await response.json()
-
-        set((state) => ({
-          ...state,
-          notificationStats: data,
-          loading: { ...state.loading, notifications: false },
-        }))
-      } catch (error) {
-        console.error('Error fetching notification statistics:', error)
-        set((state) => ({
-          ...state,
-          loading: { ...state.loading, notifications: false },
-          errors: {
-            ...state.errors,
-            notifications:
-              error instanceof Error ? error.message : 'Unknown error',
-          },
-        }))
+        lastAllStatsFetch = 0 // Reset cache
+        lastParamsKey = '' // Reset params key
+        const result = await get().fetchAllStats(params)
+        return result
+      } finally {
+        isRefreshing = false
       }
     },
 

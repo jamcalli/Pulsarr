@@ -22,10 +22,12 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const connectionId = randomUUID()
       const progressService = fastify.progress
+      const abortController = new AbortController()
 
       progressService.addConnection(connectionId)
 
-      request.socket.on('close', () => {
+      request.socket.once('close', () => {
+        abortController.abort(new Error('client disconnected'))
         try {
           progressService.removeConnection(connectionId)
         } catch (error) {
@@ -42,6 +44,7 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
             for await (const [event] of on(
               progressService.getEventEmitter(),
               'progress',
+              { signal: abortController.signal },
             )) {
               yield {
                 id: event.operationId,
@@ -49,11 +52,13 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
               }
             }
           } catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') {
+              return
+            }
             logRouteError(fastify.log, request, error, {
               message: 'SSE stream error',
               connectionId,
             })
-            // The generator will terminate, closing the SSE connection
           }
         })(),
       )

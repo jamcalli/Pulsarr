@@ -21,6 +21,21 @@ declare module '@services/database.service.js' {
     }): Promise<number>
 
     /**
+     * Creates or finds an existing per-user rolling monitored show entry.
+     * Handles race conditions safely using database-level unique constraint.
+     * Requires a unique database constraint on (sonarr_series_id, sonarr_instance_id, plex_user_id).
+     * @param globalShow - The master/global rolling show configuration
+     * @param plexUserId - The Plex user ID
+     * @param plexUsername - The Plex username
+     * @returns Promise resolving to the created or existing entry ID
+     */
+    createOrFindUserRollingMonitoredShow(
+      globalShow: RollingMonitoredShow,
+      plexUserId: string,
+      plexUsername: string,
+    ): Promise<number>
+
+    /**
      * Gets all rolling monitored shows
      * @returns Promise resolving to array of rolling monitored shows
      */

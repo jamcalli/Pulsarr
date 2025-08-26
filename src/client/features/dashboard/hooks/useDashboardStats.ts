@@ -1,10 +1,12 @@
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
+import { useConfigStore } from '@/stores/configStore'
 
 interface DashboardStatsState {
   isLoading: boolean
-  lastRefreshed: Date
+  lastRefreshed: Date | null
   mostWatchedShows: ContentStat[] | null
   mostWatchedMovies: ContentStat[] | null
   loadingStates: {
@@ -21,52 +23,73 @@ interface DashboardStatsState {
 }
 
 export function useDashboardStats(): DashboardStatsState {
-  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date())
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
+  const initialFetchDoneRef = useRef(false)
+
+  const isConfigInitialized = useConfigStore((s) => s.isInitialized)
 
   const {
-    fetchAllStats,
+    refreshAllStats,
     mostWatchedMovies,
     mostWatchedShows,
     loading,
     errors,
-  } = useDashboardStore()
-
-  const refreshStats = useCallback(
-    async (params?: { limit?: number; days?: number }) => {
-      setIsLoading(true)
-      try {
-        await fetchAllStats(params || { limit: 10 })
-      } catch (error) {
-        console.error('Error refreshing stats:', error)
-      } finally {
-        setIsLoading(false)
-        setLastRefreshed(new Date())
-      }
-    },
-    [fetchAllStats],
+  } = useDashboardStore(
+    useShallow((s) => ({
+      refreshAllStats: s.refreshAllStats,
+      mostWatchedMovies: s.mostWatchedMovies,
+      mostWatchedShows: s.mostWatchedShows,
+      loading: s.loading,
+      errors: s.errors,
+    })),
   )
 
+  const refreshStats = useCallback(
+    async (params: { limit?: number; days?: number } = {}) => {
+      try {
+        if (loading.all) return
+        const { limit = 10, days } = params
+        const safeLimit = Math.max(1, Math.floor(limit))
+        const safeDays =
+          typeof days === 'number' && Number.isFinite(days) && days > 0
+            ? Math.floor(days)
+            : undefined
+        const didFetch = await refreshAllStats({
+          limit: safeLimit,
+          days: safeDays,
+        })
+        if (didFetch) {
+          setLastRefreshed(new Date())
+        }
+      } catch (error) {
+        console.error('Error refreshing stats:', error)
+      }
+    },
+    [refreshAllStats, loading.all],
+  )
+
+  // Auto-initialize stats on mount, but only after config is ready
   useEffect(() => {
-    if (!loading.all && isLoading) {
-      setIsLoading(false)
-    }
-  }, [loading.all, isLoading])
+    if (!isConfigInitialized || initialFetchDoneRef.current) return
+    initialFetchDoneRef.current = true
+    refreshStats()
+  }, [refreshStats, isConfigInitialized])
 
   return {
-    isLoading,
+    // Keep loading true until config is initialized, then reflect store loading
+    isLoading: !isConfigInitialized || loading.all,
     lastRefreshed,
     mostWatchedShows,
     mostWatchedMovies,
     loadingStates: {
       all: loading.all,
-      shows: loading.shows,
-      movies: loading.movies,
+      shows: loading.all,
+      movies: loading.all,
     },
     errorStates: {
       all: errors.all,
-      shows: errors.shows,
-      movies: errors.movies,
+      shows: errors.all,
+      movies: errors.all,
     },
     refreshStats,
   }
