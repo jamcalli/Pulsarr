@@ -1,6 +1,6 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import { AlertCircle, Loader2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { TmdbMetadataDisplay } from '@/components/tmdb-metadata-display'
 import { useTmdbMetadata } from '@/hooks/useTmdbMetadata'
 import { useConfigStore } from '@/stores/configStore'
@@ -22,12 +22,20 @@ export function TmdbContentViewer({ approvalRequest }: TmdbContentViewerProps) {
     region: config?.tmdbRegion,
   })
 
-  // Auto-fetch metadata: full fetch on mount/item change; region-only refresh on region changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentional deps
+  // Auto-fetch metadata:
+  // - Full fetch on mount or when the selected item changes
+  // - Region-only refresh when the region changes for the same item
+  const lastIdRef = useRef(approvalRequest.id)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate deps
   useEffect(() => {
-    if (!tmdbMetadata.data) {
+    const idChanged = lastIdRef.current !== approvalRequest.id
+    if (idChanged || !tmdbMetadata.data) {
+      lastIdRef.current = approvalRequest.id
       tmdbMetadata.fetchMetadata(approvalRequest)
-    } else if (config?.tmdbRegion) {
+      return
+    }
+    // Same item, region changed -> refresh providers only
+    if (config?.tmdbRegion) {
       tmdbMetadata.fetchMetadata(approvalRequest, true)
     }
   }, [approvalRequest.id, config?.tmdbRegion])
