@@ -965,11 +965,12 @@ export class PlexSessionMonitorService {
           )
         }
         for (let season = 2; season < maxSeasonToCheck; season++) {
-          const anyUserWatchingSeason = allUsersWatchingShow.some(
-            (show) =>
-              show.last_watched_season <= season &&
-              show.current_monitored_season >= season,
-          )
+          // Consider a season unsafe to clean if any active filtered user is still at or before it
+          const anyUserWatchingSeason = allUsersWatchingShow.some((show) => {
+            const last = show.last_watched_season ?? 0
+            const monitored = show.current_monitored_season ?? 0
+            return last <= season && monitored >= season
+          })
           this.log.debug(
             `Season ${season} check - any filtered user watching: ${anyUserWatchingSeason}`,
           )
@@ -1037,11 +1038,12 @@ export class PlexSessionMonitorService {
           )
         }
         for (let season = 2; season < maxSeasonToCheck; season++) {
-          const anyUserWatchingSeason = allUsersWatchingShow.some(
-            (show) =>
-              show.last_watched_season <= season &&
-              show.current_monitored_season >= season,
-          )
+          // Consider a season unsafe to clean if any active filtered user is still at or before it
+          const anyUserWatchingSeason = allUsersWatchingShow.some((show) => {
+            const last = show.last_watched_season ?? 0
+            const monitored = show.current_monitored_season ?? 0
+            return last <= season && monitored >= season
+          })
           if (!anyUserWatchingSeason) {
             seasonsToCleanup.push(season)
           }

@@ -26,7 +26,7 @@ export function useDashboardStats(): DashboardStatsState {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const initialFetchDoneRef = useRef(false)
 
-  const isConfigInitialized = useConfigStore(useShallow((s) => s.isInitialized))
+  const isConfigInitialized = useConfigStore((s) => s.isInitialized)
 
   const {
     refreshAllStats,
