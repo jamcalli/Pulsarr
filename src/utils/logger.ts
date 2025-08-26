@@ -164,12 +164,13 @@ function createRequestSerializer() {
 }
 
 /**
- * Generates a log filename using the given date and optional index.
+ * Build a Pulsarr log filename from a date (or return the current-log name).
  *
- * If no date or timestamp is provided, returns 'pulsarr-current.log'. Otherwise, formats the filename as 'pulsarr-YYYY-MM-DD[-index].log'.
+ * If `time` is falsy (null/undefined/0) the function returns `pulsarr-current.log`.
+ * Otherwise it returns `pulsarr-YYYY-MM-DD[-index].log`.
  *
- * @param time - The date or timestamp for the log filename. If falsy, returns the default current log filename.
- * @param index - Optional index to append for rotated log files.
+ * @param time - Date or timestamp to base the filename on; falsy returns the current log name.
+ * @param index - Optional rotation index appended as `-index`; only included when a truthy number is provided.
  * @returns The generated log filename.
  */
 function filename(time: number | Date | null, index?: number): string {
@@ -208,9 +209,11 @@ function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
 }
 
 /**
- * Returns logger options configured for terminal output with human-readable formatting and redacted sensitive request data.
+ * Build LoggerOptions for terminal (console) output with human-readable formatting.
  *
- * Uses the 'info' log level, formats logs with `pino-pretty` (including colorized output), and applies a serializer that redacts sensitive query parameters from Fastify request logs.
+ * Returns options configured for an interactive terminal: level set to "info",
+ * output formatted via `pino-pretty` with timestamps and forced colorization, and
+ * serializers that redact sensitive request query parameters and serialize errors.
  */
 function getTerminalOptions(): LoggerOptions {
   return {
@@ -249,17 +252,21 @@ function getFileOptions(): FileLoggerOptions {
 }
 
 /**
- * Generates logger configuration options based on environment variables.
+ * Build Pulsarr pino logger options based on environment configuration.
  *
- * Attempts to always log to file; falls back to console-only if file stream setup fails.
- * Console output controlled by environment variables. Request logging controlled by server.ts.
- * Note: logLevel is handled by Fastify's environment configuration plugin, not here.
+ * Attempts to always enable file-based logging (rotating file stream); if file setup fails
+ * the logger falls back to terminal output. When the environment variable `enableConsoleOutput`
+ * is not set to the string `'false'` (default: true) the function configures both a pretty
+ * terminal stream and a rotating file stream (unless the file stream is `process.stdout`,
+ * in which case terminal-only options are returned to avoid double-writing). When console output
+ * is disabled, file-only logger options are returned.
+ *
+ * Note: request-level logging and log level are controlled elsewhere (Fastify configuration/server).
  *
  * Environment variables:
- * - enableConsoleOutput: Show logs in terminal (default: true)
- * - enableRequestLogging: Controls Fastify request logging in server.ts (default: true)
+ * - enableConsoleOutput — `'false'` disables terminal output; any other value (or unset) enables it.
  *
- * @returns Logger configuration options suitable for initializing a logger.
+ * @returns PulsarrLoggerOptions configured for terminal, file, or combined output as described above.
  */
 export function createLoggerConfig(): PulsarrLoggerOptions {
   // Read from environment variables with sensible defaults

@@ -1,6 +1,17 @@
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
 
-// This hook provides the status transition data
+/**
+ * Returns status transition data and its loading/error state from the dashboard store.
+ *
+ * The hook reads `statusTransitions` from the dashboard store and returns an object
+ * with `data` (falls back to an empty array when undefined), `isLoading` (mapped to
+ * `loading.all`), and `error` (mapped to `errors.all`).
+ *
+ * @returns An object containing:
+ *  - `data`: the `statusTransitions` array or `[]` if undefined
+ *  - `isLoading`: boolean indicating the global loading state (`loading.all`)
+ *  - `error`: the global error state (`errors.all`)
+ */
 export function useStatusTransitionData() {
   const { statusTransitions, loading, errors } = useDashboardStore()
 
@@ -23,9 +34,12 @@ export function useContentDistributionData() {
 }
 
 /**
- * Returns notification statistics data, loading state, and error information from the dashboard store.
+ * Read notification statistics and related load/error state from the dashboard store.
  *
- * @returns An object with `data` containing notification statistics, `isLoading` indicating if the data is loading, and `error` for any related errors.
+ * Returns the raw `notificationStats` value from the store (may be `undefined`), along with
+ * the store's aggregate loading flag and aggregate error.
+ *
+ * @returns An object with `data` (notification statistics or `undefined`), `isLoading` (aggregate loading state), and `error` (aggregate error)
  */
 export function useNotificationStatsData() {
   const { notificationStats, loading, errors } = useDashboardStore()
@@ -38,9 +52,14 @@ export function useNotificationStatsData() {
 }
 
 /**
- * Retrieves the top genres data, loading status, and error from the dashboard store.
+ * Return the dashboard's top genres data along with global loading and error states.
  *
- * @returns An object containing `data` (an array of top genres, or an empty array if unavailable), `isLoading` (whether the genres data is loading), and `error` (any error related to genres data)
+ * The hook returns an object with:
+ * - `data`: the `topGenres` slice from the dashboard store (falls back to an empty array if undefined).
+ * - `isLoading`: the global `loading.all` flag from the store.
+ * - `error`: the global `errors.all` value from the store.
+ *
+ * @returns An object containing `data`, `isLoading`, and `error`.
  */
 export function useTopGenresData() {
   const { topGenres, loading, errors } = useDashboardStore()
@@ -68,9 +87,15 @@ export function useGrabbedToNotifiedData() {
 }
 
 /**
- * Retrieves the instance content breakdown data, loading state, and error from the dashboard store.
+ * Return instance content breakdown along with loading and error states from the dashboard store.
  *
- * @returns An object containing the `instanceContentBreakdown` array (empty if unavailable), a loading flag, and any related error.
+ * The returned `data` is the `instanceContentBreakdown` slice or an empty array if unavailable.
+ * `isLoading` reflects the aggregate `loading.all` flag and `error` is `errors.all`.
+ *
+ * @returns An object with:
+ *  - `data`: the instance content breakdown array (defaults to `[]`),
+ *  - `isLoading`: boolean loading state (`loading.all`),
+ *  - `error`: any aggregated error (`errors.all`).
  */
 export function useInstanceContentData() {
   const { instanceContentBreakdown, loading, errors } = useDashboardStore()
