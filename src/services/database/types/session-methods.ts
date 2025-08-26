@@ -22,7 +22,8 @@ declare module '@services/database.service.js' {
 
     /**
      * Creates or finds an existing per-user rolling monitored show entry.
-     * Handles race conditions safely.
+     * Handles race conditions safely using database-level unique constraint.
+     * Requires a unique database constraint on (sonarr_series_id, sonarr_instance_id, plex_user_id).
      * @param globalShow - The master/global rolling show configuration
      * @param plexUserId - The Plex user ID
      * @param plexUsername - The Plex username
