@@ -459,19 +459,13 @@ export class PlexSessionMonitorService {
           `Creating per-user rolling show entry for ${globalShow.show_title} for user ${session.User.title}`,
         )
 
-        const userEntryId = await this.db.createRollingMonitoredShow({
-          sonarr_series_id: globalShow.sonarr_series_id,
-          sonarr_instance_id: globalShow.sonarr_instance_id,
-          tvdb_id: globalShow.tvdb_id,
-          imdb_id: globalShow.imdb_id,
-          show_title: globalShow.show_title,
-          monitoring_type: globalShow.monitoring_type,
-          current_monitored_season: 1, // New users always start from season 1
-          plex_user_id: session.User.id,
-          plex_username: session.User.title,
-        })
+        const userEntryId = await this.db.createOrFindUserRollingMonitoredShow(
+          globalShow,
+          session.User.id,
+          session.User.title,
+        )
 
-        // Get the newly created per-user entry
+        // Get the newly created or existing per-user entry
         rollingShow = await this.db.getRollingMonitoredShowById(userEntryId)
       }
 
@@ -1037,7 +1031,19 @@ export class PlexSessionMonitorService {
         )
       }
     } catch (error) {
-      this.log.error({ error }, 'Error in progressive cleanup:')
+      this.log.error(
+        {
+          error,
+          showTitle: rollingShow.show_title,
+          sonarrSeriesId: rollingShow.sonarr_series_id,
+          currentSeason,
+          monitoringType: rollingShow.monitoring_type,
+        },
+        'Error in progressive cleanup - storage cleanup may be incomplete',
+      )
+
+      // Don't re-throw - progressive cleanup failures shouldn't break session processing
+      // But log with enough context for debugging storage issues
     }
   }
 
