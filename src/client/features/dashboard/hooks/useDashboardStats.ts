@@ -78,13 +78,13 @@ export function useDashboardStats(): DashboardStatsState {
     mostWatchedMovies,
     loadingStates: {
       all: loading.all,
-      shows: loading.shows,
-      movies: loading.movies,
+      shows: loading.all,
+      movies: loading.all,
     },
     errorStates: {
       all: errors.all,
-      shows: errors.shows,
-      movies: errors.movies,
+      shows: errors.all,
+      movies: errors.all,
     },
     refreshStats,
   }
