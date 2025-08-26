@@ -1,12 +1,12 @@
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
- * Returns the most frequently occurring genres across all watchlist items.
+ * Return the most frequent genres across all watchlist items.
  *
- * Processes genres in batches to efficiently count and normalize genre occurrences, then returns the top genres by frequency up to the specified limit.
+ * Counts normalized genres (trimmed, lowercased) across the watchlist and returns the top results sorted by frequency.
  *
  * @param limit - Maximum number of genres to return (default: 10)
- * @returns Array of genres with their occurrence counts, sorted by count descending
+ * @returns Array of objects with `genre` and its occurrence `count`, ordered by `count` descending
  */
 export async function getTopGenres(
   this: DatabaseService,

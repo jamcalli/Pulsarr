@@ -2,10 +2,16 @@ import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
- * Creates a new rolling monitored show record with initial progress and timestamps.
+ * Insert a new rolling monitored show record and return its id.
  *
- * @param data - Object containing show identifiers, title, monitoring type, monitored season, and optional user information.
- * @returns Promise resolving to the ID of the newly created record.
+ * Inserts `data` into `rolling_monitored_shows`, initializes progress fields
+ * (`last_watched_season` and `last_watched_episode` to 0), sets session and
+ * audit timestamps (`last_session_date`, `created_at`, `updated_at`, `last_updated_at`)
+ * to the current service timestamp, and returns the new record id.
+ *
+ * @param data - Show details. `plex_user_id`/`plex_username` may be supplied for per-user entries.
+ * @returns The id of the newly created rolling monitored show.
+ * @throws Error when the insert fails.
  */
 export async function createRollingMonitoredShow(
   this: DatabaseService,
@@ -47,15 +53,19 @@ export async function createRollingMonitoredShow(
 }
 
 /**
- * Creates or finds an existing per-user rolling monitored show entry.
- * Handles race conditions safely using database-level unique constraint.
- * Requires a unique database constraint on (sonarr_series_id, sonarr_instance_id, plex_user_id).
+ * Create or locate a per-user rolling monitored show entry derived from a global/master show.
  *
- * @param globalShow - The master/global rolling show configuration to base the per-user entry on
- * New per-user entries always start with current_monitored_season = 1.
- * @param plexUserId - The Plex user ID
- * @param plexUsername - The Plex username
- * @returns The ID of the created or existing per-user entry
+ * Uses a database-level unique constraint on (sonarr_series_id, sonarr_instance_id, plex_user_id)
+ * to avoid races and performs an upsert-style insert so concurrent callers will either create
+ * the row or return the existing row's id.
+ *
+ * New per-user entries are initialized with current_monitored_season = 1 and zeroed last-watched progress.
+ *
+ * @param globalShow - Master/global rolling show used as the template for the per-user entry
+ * @param plexUserId - Plex user identifier for the per-user entry
+ * @param plexUsername - Plex username (used for logging)
+ * @returns The id of the created or existing per-user rolling monitored show
+ * @throws If a non-constraint database error occurs or if the function cannot create or locate an entry
  */
 export async function createOrFindUserRollingMonitoredShow(
   this: DatabaseService,
@@ -371,10 +381,12 @@ export async function deleteAllRollingMonitoredShowEntries(
 }
 
 /**
- * Resets a rolling monitored show to its original state by deleting all user-specific entries and resetting the master record to season 1 with cleared progress.
+ * Reset a show's rolling monitored data to its original (master) state.
  *
- * @param id - The ID of any rolling monitored show entry for the show
- * @returns The number of user entries deleted
+ * Deletes all per-user entries for the show identified by `id`'s series/instance and updates the master record (plex_user_id IS NULL) to season 1 with cleared progress and refreshed timestamps. The provided `id` may be any entry (master or user) for the target show.
+ *
+ * @param id - ID of any rolling monitored show entry for the target show
+ * @returns The number of user-specific entries deleted. Returns 0 if the show was not found or an error occurred.
  */
 export async function resetRollingMonitoredShowToOriginal(
   this: DatabaseService,

@@ -14,6 +14,16 @@ interface MediaCardProps {
   priority?: boolean
 }
 
+/**
+ * Renders a media item as a card with poster (or a "No image" placeholder), title, and watchlist badge.
+ *
+ * If the item includes GUIDs, an info button is shown to open a detail modal. The badge displays the item's
+ * watchlist count and pluralizes "watchlist(s)". The title is truncated visually and exposed via the title attribute.
+ *
+ * @param item - The media item to render (ContentStat). Used for thumb, title, count, and GUIDs for the detail modal.
+ * @param className - Optional additional CSS class names to apply to the Card container.
+ * @param priority - When true, forces eager image loading and high fetch priority; defaults to false (lazy/auto).
+ */
 export function MediaCard({
   item,
   className,
