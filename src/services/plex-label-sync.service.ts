@@ -1084,17 +1084,32 @@ export class PlexLabelSyncService {
       const success = await this.plexServer.updateLabels(ratingKey, finalLabels)
 
       if (success) {
+        // Recompute deltas across all Pulsarr-managed labels, including the special "removed" marker
+        const isManagedLabel = (label: string) =>
+          this.isAppUserLabel(label) ||
+          label.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase())
+        const toLowerSet = (arr: string[]) =>
+          new Set(arr.map((s) => s.toLowerCase()))
+        const currentManaged = toLowerSet(currentLabels.filter(isManagedLabel))
+        const finalManaged = toLowerSet(finalLabels.filter(isManagedLabel))
+        const addedCount = [...finalManaged].filter(
+          (l) => !currentManaged.has(l),
+        ).length
+        const removedCount = [...currentManaged].filter(
+          (l) => !finalManaged.has(l),
+        ).length
+
         this.log.debug('Successfully updated labels for Plex item', {
           ratingKey,
           contentTitle: content.title,
-          labelsAdded: labelsToAdd.length,
-          labelsRemoved: labelsToRemove.length,
+          labelsAdded: addedCount,
+          labelsRemoved: removedCount,
         })
 
         return {
           success: true,
-          labelsAdded: labelsToAdd.length,
-          labelsRemoved: labelsToRemove.length,
+          labelsAdded: addedCount,
+          labelsRemoved: removedCount,
         }
       }
 
