@@ -65,7 +65,7 @@ export function useDashboardStats(): DashboardStatsState {
         console.error('Error refreshing stats:', error)
       }
     },
-    [refreshAllStats, loading],
+    [refreshAllStats, loading.all],
   )
 
   // Auto-initialize stats on mount, but only after config is ready

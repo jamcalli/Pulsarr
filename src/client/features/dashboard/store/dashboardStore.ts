@@ -19,8 +19,10 @@ import { devtools } from 'zustand/middleware'
 // Cache management for dashboard stats
 // - Prevents duplicate API calls within CACHE_DURATION window
 // - Scoped to all dashboard statistics as a single unit
+// - Parameter-aware: different limit/days combinations bypass cache
 // - Reset by refreshAllStats for manual refresh scenarios
 let lastAllStatsFetch = 0
+let lastParamsKey = ''
 let isRefreshing = false // Prevents race conditions during manual refresh
 const CACHE_DURATION = 5000 // 5 seconds
 
@@ -87,17 +89,17 @@ export interface StatsState {
     limit?: number
     days?: number
   }) => Promise<boolean>
-  fetchTopGenres: (limit?: number) => Promise<void>
-  fetchMostWatchedShows: (limit?: number) => Promise<void>
-  fetchMostWatchedMovies: (limit?: number) => Promise<void>
-  fetchTopUsers: (limit?: number) => Promise<void>
-  fetchRecentActivity: (days?: number) => Promise<void>
-  fetchAvailabilityTimes: () => Promise<void>
-  fetchGrabbedToNotifiedTimes: () => Promise<void>
-  fetchStatusTransitions: () => Promise<void>
-  fetchStatusFlow: () => Promise<void>
-  fetchNotificationStats: (days?: number) => Promise<void>
-  fetchInstanceContentBreakdown: () => Promise<void>
+  fetchTopGenres: (limit?: number) => Promise<boolean>
+  fetchMostWatchedShows: (limit?: number) => Promise<boolean>
+  fetchMostWatchedMovies: (limit?: number) => Promise<boolean>
+  fetchTopUsers: (limit?: number) => Promise<boolean>
+  fetchRecentActivity: (days?: number) => Promise<boolean>
+  fetchAvailabilityTimes: () => Promise<boolean>
+  fetchGrabbedToNotifiedTimes: () => Promise<boolean>
+  fetchStatusTransitions: () => Promise<boolean>
+  fetchStatusFlow: () => Promise<boolean>
+  fetchNotificationStats: (days?: number) => Promise<boolean>
+  fetchInstanceContentBreakdown: () => Promise<boolean>
 
   // Cache management
   refreshAllStats: (params?: {
@@ -161,14 +163,20 @@ export const useDashboardStore = create<StatsState>()(
 
     // Fetch all dashboard stats at once with caching
     fetchAllStats: async (params = {}) => {
-      // Check if we've fetched recently
-      const now = Date.now()
-      if (now - lastAllStatsFetch < CACHE_DURATION) {
-        return false // No network call made
+      // In-flight guard to prevent duplicate requests
+      if (get().loading.all) {
+        return false
       }
 
-      lastAllStatsFetch = now
       const { limit = 10, days = 30 } = params
+      const paramsKey = `${limit}|${days}`
+      const now = Date.now()
+      if (
+        now - lastAllStatsFetch < CACHE_DURATION &&
+        paramsKey === lastParamsKey
+      ) {
+        return false
+      }
       set((state) => ({
         ...state,
         loading: { ...state.loading, all: true },
@@ -207,7 +215,10 @@ export const useDashboardStore = create<StatsState>()(
           instanceContentBreakdown: data.instance_content_breakdown || [],
           loading: { ...state.loading, all: false },
         }))
-        return true // Network call made successfully
+        // Update cache timestamp and params key only on success
+        lastAllStatsFetch = Date.now()
+        lastParamsKey = paramsKey
+        return true
       } catch (error) {
         console.error('Error fetching all stats:', error)
         set((state) => ({
@@ -268,6 +279,8 @@ export const useDashboardStore = create<StatsState>()(
     },
 
     // Force refresh all stats, bypassing cache
+    // Note: Currently waits for in-flight requests to complete.
+    // Future enhancement: AbortController could cancel slow requests for true force refresh.
     refreshAllStats: async (params = {}) => {
       if (isRefreshing) {
         return false // Another refresh is already in progress
@@ -276,6 +289,7 @@ export const useDashboardStore = create<StatsState>()(
       isRefreshing = true
       try {
         lastAllStatsFetch = 0 // Reset cache
+        lastParamsKey = '' // Reset params key
         const result = await get().fetchAllStats(params)
         return result
       } finally {
