@@ -8,9 +8,16 @@ interface StatsHeaderProps {
 }
 
 /**
- * Renders the dashboard header section with a title, watchlist status badge, refresh button, and last updated time.
+ * Dashboard header for the "Main Workflow" view.
  *
- * @param onRefresh - Function called when the refresh button is clicked.
+ * Renders the title and watchlist status badge, a refresh control that invokes the provided
+ * `onRefresh` callback, and a "Last updated" timestamp derived from the dashboard stats hook.
+ *
+ * The refresh button calls `onRefresh` when clicked and is disabled while the hook reports loading;
+ * its icon switches to a spinner when `isLoading` is true. The timestamp displays `lastRefreshed.toLocaleTimeString()`
+ * when available or the fallback text "Not yet fetched".
+ *
+ * @param onRefresh - Callback invoked when the refresh button is clicked. May be asynchronous (returns a `Promise<void>`).
  */
 export function StatsHeader({ onRefresh }: StatsHeaderProps) {
   const { isLoading, lastRefreshed } = useDashboardStats()

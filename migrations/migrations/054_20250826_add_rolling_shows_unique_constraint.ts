@@ -1,8 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds a unique constraint to rolling_monitored_shows to prevent duplicate per-user entries.
- * Ensures race-safe creation of per-user rolling monitoring records.
+ * Remove existing duplicate per-user rolling_monitored_shows and add a unique constraint to prevent future duplicates.
+ *
+ * This migration de-duplicates rows for the same (sonarr_series_id, sonarr_instance_id, plex_user_id) by keeping the earliest record (ordered by created_at, then id), using a single-window DELETE on PostgreSQL and a batched per-group cleanup on SQLite, then adds the unique constraint named `uq_rmshows_series_instance_user` on those three columns.
  */
 export async function up(knex: Knex): Promise<void> {
   // This migration should run on both SQLite and PostgreSQL
@@ -76,7 +77,11 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the unique constraint from rolling_monitored_shows.
+ * Reverts the migration by removing the unique constraint on rolling_monitored_shows.
+ *
+ * Drops the constraint named `uq_rmshows_series_instance_user` that enforces uniqueness
+ * across (sonarr_series_id, sonarr_instance_id, plex_user_id). This operation is
+ * compatible with both PostgreSQL and SQLite.
  */
 export async function down(knex: Knex): Promise<void> {
   // This migration should run on both SQLite and PostgreSQL

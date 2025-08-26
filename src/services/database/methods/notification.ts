@@ -601,13 +601,16 @@ export async function getNotificationStats(
 }
 
 /**
- * Adds a status history entry for a watchlist item at a given timestamp, ensuring no duplicate status entries are created.
+ * Record a status transition for a watchlist item if the same status is not already present.
  *
- * Intended for use when backfilling missing status transitions detected during synchronization.
+ * Useful for backfilling missing status transitions discovered during sync. This inserts a
+ * row into `watchlist_status_history` with the provided ISO timestamp, but will do nothing
+ * if an entry with the same watchlist_item_id and status already exists.
  *
- * @param watchlistItemId - The ID of the watchlist item to record the status for
- * @param status - The status to record ('pending', 'requested', 'grabbed', or 'notified')
- * @param timestamp - The ISO timestamp representing when the status change occurred
+ * @param watchlistItemId - ID of the watchlist item to update
+ * @param status - One of 'pending', 'requested', 'grabbed', or 'notified'
+ * @param timestamp - ISO 8601 timestamp when the status change occurred
+ * @throws When the database operation fails (original error is rethrown)
  */
 export async function addStatusHistoryEntry(
   this: DatabaseService,

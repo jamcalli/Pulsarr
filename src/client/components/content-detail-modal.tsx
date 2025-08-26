@@ -18,14 +18,15 @@ interface ContentDetailModalProps {
 }
 
 /**
- * A responsive modal that displays detailed TMDB metadata for a content item from dashboard statistics.
+ * Modal that shows detailed TMDB metadata for a content item from dashboard statistics.
  *
- * Uses the existing TMDB integration to fetch and display comprehensive information including ratings,
- * streaming providers, cast details, and more. Uses the credenza component for responsive dialog/drawer behavior.
+ * Displays a responsive Credenza dialog containing a TmdbContentViewer. The component
+ * derives the displayed title, icon (movie vs. show), and GUIDs from `contentStat`.
+ * If `contentStat.content_type` is absent it defaults to `'movie'`. For shows, GUIDs
+ * are reordered to prefer `tvdb:*` identifiers before others to improve TMDB lookup.
+ * A mock approval request containing these derived values is passed to the TMDB viewer.
  *
- * @param open - Whether the modal is currently open
- * @param onOpenChange - Callback to control modal visibility
- * @param contentStat - The content statistics object containing title, GUIDs, and content type
+ * @param contentStat - ContentStat object; `title`, `content_type`, and `guids` are read (content_type defaults to `'movie'`, and `guids` are prioritized for shows)
  */
 export function ContentDetailModal({
   open,
