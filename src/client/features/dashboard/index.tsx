@@ -7,6 +7,13 @@ import { useDashboardStats } from '@/features/dashboard/hooks/useDashboardStats'
 import { toast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 
+/**
+ * Dashboard page that ensures configuration is initialized, surfaces config errors, and renders dashboard UI.
+ *
+ * Initializes the app configuration once on mount (if not already initialized), listens for configuration errors from the config store and shows a destructive toast for new errors, and provides a stable refresh handler that triggers stats refreshes and surfaces failures via toast. Renders the StatsHeader (with refresh button), PopularityRankings, and AnalyticsDashboard.
+ *
+ * @returns The Dashboard page React element.
+ */
 export function DashboardPage() {
   const { refreshStats, isLoading } = useDashboardStats()
   const { configInitialize, isConfigInitialized, configError } = useConfigStore(

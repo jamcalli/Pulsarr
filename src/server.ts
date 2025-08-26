@@ -6,9 +6,9 @@ import type { LevelWithSilent } from 'pino'
 import serviceApp from './app.js'
 
 /**
- * Initializes and starts the Fastify server with configured plugins, logging, and graceful shutdown handling.
+ * Create, configure, and start the Fastify HTTP server for the application.
  *
- * Sets up JSON schema validation, logging level, and ensures persistent connections are forcibly closed during shutdown. Handles server startup errors by logging and terminating the process.
+ * Initializes Fastify with schema validation, logger configuration, plugin registration, and application-configured log level; sets up graceful shutdown (forcibly closing persistent connections) and begins listening on the configured port. Request logging is enabled by default but can be disabled via the environment variable `enableRequestLogging` (case-insensitive falsy values: "false", "0", "no", "off"). If the server fails to start, the error is logged and the process exits with code 1.
  */
 async function init() {
   // Read request logging setting from env var (default: true)
