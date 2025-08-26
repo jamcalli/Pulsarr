@@ -63,6 +63,7 @@ export async function createOrFindUserRollingMonitoredShow(
   plexUserId: string,
   plexUsername: string,
 ): Promise<number> {
+  const now = this.timestamp
   const values = {
     sonarr_series_id: globalShow.sonarr_series_id,
     sonarr_instance_id: globalShow.sonarr_instance_id,
@@ -75,10 +76,10 @@ export async function createOrFindUserRollingMonitoredShow(
     plex_username: plexUsername,
     last_watched_season: 0,
     last_watched_episode: 0,
-    last_session_date: this.timestamp,
-    created_at: this.timestamp,
-    updated_at: this.timestamp,
-    last_updated_at: this.timestamp,
+    last_session_date: now,
+    created_at: now,
+    updated_at: now,
+    last_updated_at: now,
   }
 
   try {
@@ -88,8 +89,8 @@ export async function createOrFindUserRollingMonitoredShow(
         .insert(values)
         .onConflict(['sonarr_series_id', 'sonarr_instance_id', 'plex_user_id'])
         .merge({
-          last_updated_at: this.timestamp,
-          updated_at: this.timestamp,
+          last_updated_at: now,
+          updated_at: now,
         })
         .returning('id')
 
@@ -118,18 +119,33 @@ export async function createOrFindUserRollingMonitoredShow(
         return id
       }
     }
-  } catch (_error) {
+  } catch (error) {
+    // Only swallow expected unique/constraint conflicts; rethrow others
+    const errorObj = error as Record<string, unknown>
+    const msg = String(errorObj?.message || '')
+    const code = (errorObj && (errorObj.code || errorObj.errno)) || ''
+    const isConflict =
+      code === '23505' || // Postgres unique violation
+      msg.includes('SQLITE_CONSTRAINT') || // SQLite unique
+      msg.includes('UNIQUE constraint failed') // SQLite unique
+    if (!isConflict) {
+      this.log.error({ error }, 'Unexpected error inserting per-user entry')
+      throw error
+    }
     this.log.debug(
-      `Insert failed for per-user entry (${globalShow.show_title}, user: ${plexUsername}), looking up existing entry`,
+      { error },
+      `Insert conflict for per-user entry (${globalShow.show_title}, user: ${plexUsername}), looking up existing entry`,
     )
   }
 
   // Insert was ignored due to conflict or we caught a unique violation - find the existing entry
-  const existingEntry = await this.getRollingMonitoredShow(
-    globalShow.tvdb_id,
-    globalShow.show_title,
-    plexUserId,
-  )
+  const existingEntry = await this.knex('rolling_monitored_shows')
+    .where({
+      sonarr_series_id: globalShow.sonarr_series_id,
+      sonarr_instance_id: globalShow.sonarr_instance_id,
+      plex_user_id: plexUserId,
+    })
+    .first()
 
   if (existingEntry) {
     this.log.debug(
