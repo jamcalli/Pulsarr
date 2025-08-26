@@ -47,6 +47,58 @@ export async function createRollingMonitoredShow(
 }
 
 /**
+ * Creates or finds an existing per-user rolling monitored show entry.
+ * Handles race conditions by checking for existing entries after failed inserts.
+ *
+ * @param globalShow - The master/global rolling show configuration to base the per-user entry on
+ * @param plexUserId - The Plex user ID
+ * @param plexUsername - The Plex username
+ * @returns The ID of the created or existing per-user entry
+ */
+export async function createOrFindUserRollingMonitoredShow(
+  this: DatabaseService,
+  globalShow: RollingMonitoredShow,
+  plexUserId: string,
+  plexUsername: string,
+): Promise<number> {
+  try {
+    // Try to create the per-user entry
+    return await this.createRollingMonitoredShow({
+      sonarr_series_id: globalShow.sonarr_series_id,
+      sonarr_instance_id: globalShow.sonarr_instance_id,
+      tvdb_id: globalShow.tvdb_id,
+      imdb_id: globalShow.imdb_id,
+      show_title: globalShow.show_title,
+      monitoring_type: globalShow.monitoring_type,
+      current_monitored_season: 1, // New users always start from season 1
+      plex_user_id: plexUserId,
+      plex_username: plexUsername,
+    })
+  } catch (error) {
+    // If insert fails, it might be due to race condition - check if entry now exists
+    this.log.debug(
+      `Insert failed for per-user entry (${globalShow.show_title}, user: ${plexUsername}), checking for existing entry`,
+    )
+
+    const existingEntry = await this.getRollingMonitoredShow(
+      globalShow.tvdb_id,
+      globalShow.show_title,
+      plexUserId,
+    )
+
+    if (existingEntry) {
+      this.log.info(
+        `Found existing per-user rolling show entry for ${globalShow.show_title} for user ${plexUsername} (ID: ${existingEntry.id})`,
+      )
+      return existingEntry.id
+    }
+
+    // If still not found, re-throw the original error
+    throw error
+  }
+}
+
+/**
  * Retrieves all rolling monitored shows ordered by show title.
  *
  * @returns An array of rolling monitored show records, or an empty array if an error occurs.
@@ -317,9 +369,11 @@ export async function resetRollingMonitoredShowToOriginal(
 
 /**
  * Retrieves rolling monitored shows that have not been updated within the specified number of days.
+ * Only returns shows where ALL records (master + all per-user records) are past the inactivity threshold.
+ * This prevents cleanup of shows where some users are still actively watching.
  *
  * @param inactivityDays - The minimum number of days since the last update for a show to be considered inactive.
- * @returns An array of rolling monitored shows that are inactive.
+ * @returns An array of rolling monitored shows that are completely inactive (one representative record per show).
  */
 export async function getInactiveRollingMonitoredShows(
   this: DatabaseService,
@@ -329,9 +383,38 @@ export async function getInactiveRollingMonitoredShows(
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - inactivityDays)
 
-    return await this.knex('rolling_monitored_shows')
-      .where('last_updated_at', '<', cutoffDate.toISOString())
-      .orderBy('last_updated_at', 'asc')
+    const allShows = await this.knex('rolling_monitored_shows').orderBy(
+      'last_updated_at',
+      'asc',
+    )
+
+    // Group by unique show identifier
+    const showMap = new Map<string, RollingMonitoredShow[]>()
+
+    for (const show of allShows) {
+      const showKey = `${show.sonarr_series_id}-${show.sonarr_instance_id}`
+      if (!showMap.has(showKey)) {
+        showMap.set(showKey, [])
+      }
+      showMap.get(showKey)?.push(show)
+    }
+
+    // Find shows where ALL records are inactive
+    const inactiveShows: RollingMonitoredShow[] = []
+
+    for (const shows of showMap.values()) {
+      const hasActiveRecord = shows.some(
+        (show) => new Date(show.last_updated_at) >= cutoffDate,
+      )
+
+      if (!hasActiveRecord) {
+        // All records inactive - prefer master record, fall back to any record
+        const masterRecord = shows.find((show) => show.plex_user_id === null)
+        inactiveShows.push(masterRecord || shows[0])
+      }
+    }
+
+    return inactiveShows
   } catch (error) {
     this.log.error({ error }, 'Error getting inactive rolling monitored shows:')
     return []
