@@ -4,11 +4,11 @@ import {
   ApprovalRequestsListResponseSchema,
   ApprovalRequestUpdateResponseSchema,
   ApprovalStatsResponseSchema,
+  ApprovalSuccessResponseSchema,
   type BulkApprovalRequest,
   BulkApprovalRequestSchema,
   type BulkDeleteRequest,
   BulkDeleteRequestSchema,
-  type BulkOperationResponse,
   BulkOperationResponseSchema,
   type BulkRejectRequest,
   BulkRejectRequestSchema,
@@ -51,6 +51,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
     const now = new Date()
     const expiresAt = new Date(request.expiresAt)
+    if (Number.isNaN(expiresAt.getTime())) {
+      return {
+        expiresAt: null,
+        isExpired: false,
+        timeUntilExpiration: null,
+        expirationStatus: 'active',
+        displayText: 'No expiration',
+      }
+    }
+
     const timeUntilExpiration = expiresAt.getTime() - now.getTime()
     const hoursUntilExpiration = timeUntilExpiration / (1000 * 60 * 60)
 
@@ -93,6 +103,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           201: ApprovalRequestCreateResponseSchema,
           400: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -164,6 +175,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: ApprovalRequestsListResponseSchema,
           400: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -236,11 +248,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'getApprovalRequestById',
         description: 'Retrieve a specific approval request by its ID',
         params: z.object({
-          id: z.string(),
+          id: z
+            .string()
+            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
         }),
         response: {
           200: ApprovalRequestCreateResponseSchema,
+          400: ApprovalErrorSchema,
           404: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -248,6 +264,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const requestId = Number.parseInt(request.params.id, 10)
+        if (Number.isNaN(requestId)) {
+          return reply.badRequest('Invalid request id')
+        }
         const approvalRequest = await fastify.db.getApprovalRequest(requestId)
 
         if (!approvalRequest) {
@@ -300,20 +319,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'updateApprovalRequest',
         description: 'Update an approval request (approve, reject, or modify)',
         params: z.object({
-          id: z.string(),
+          id: z
+            .string()
+            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
         }),
         body: UpdateApprovalRequestSchema,
         response: {
           200: ApprovalRequestUpdateResponseSchema,
+          400: ApprovalErrorSchema,
+          401: ApprovalErrorSchema,
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
     },
     async (request, reply) => {
       try {
+        const actorId = request.session.user?.id
+        if (!actorId) {
+          return reply.unauthorized('User not authenticated')
+        }
+
         const requestId = Number.parseInt(request.params.id, 10)
+        if (Number.isNaN(requestId)) {
+          return reply.badRequest('Invalid request id')
+        }
 
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
         if (!existingRequest) {
@@ -357,7 +389,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           requestId,
           {
             status: request.body.status,
-            approvedBy: request.body.approvedBy,
+            // Server-controlled approvedBy: only set when transitioning to approved
+            approvedBy:
+              targetStatus === 'approved'
+                ? actorId
+                : existingRequest.approvedBy,
             approvalNotes: request.body.approvalNotes,
             proposedRouterDecision: request.body.proposedRouterDecision,
           },
@@ -404,7 +440,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Delete approval request (hard delete from database)
   fastify.delete<{
     Params: { id: string }
-    Reply: z.infer<typeof ApprovalErrorSchema>
+    Reply:
+      | z.infer<typeof ApprovalSuccessResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
   }>(
     '/requests/:id',
     {
@@ -413,11 +451,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'deleteApprovalRequest',
         description: 'Permanently delete an approval request from database',
         params: z.object({
-          id: z.string(),
+          id: z
+            .string()
+            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
         }),
         response: {
-          200: ApprovalErrorSchema,
+          200: ApprovalSuccessResponseSchema,
+          400: ApprovalErrorSchema,
           404: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -425,6 +467,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const requestId = Number.parseInt(request.params.id, 10)
+        if (Number.isNaN(requestId)) {
+          return reply.badRequest('Invalid request id')
+        }
 
         // Use the approval service to delete the request (handles SSE events)
         const deleted =
@@ -452,7 +497,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: { id: string }
     Body: { reason?: string }
-    Reply: z.infer<typeof ApprovalErrorSchema>
+    Reply:
+      | z.infer<typeof ApprovalSuccessResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
   }>(
     '/requests/:id/reject',
     {
@@ -461,15 +508,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'rejectApprovalRequest',
         description: 'Reject an approval request (marks as rejected)',
         params: z.object({
-          id: z.string(),
+          id: z
+            .string()
+            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
         }),
         body: z.object({
           reason: z.string().optional(),
         }),
         response: {
-          200: ApprovalErrorSchema,
+          200: ApprovalSuccessResponseSchema,
+          401: ApprovalErrorSchema,
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -477,6 +528,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const requestId = Number.parseInt(request.params.id, 10)
+        if (Number.isNaN(requestId)) {
+          return reply.badRequest('Invalid request id')
+        }
         const { reason } = request.body
         const rejectedBy = request.session.user?.id
         if (!rejectedBy) {
@@ -563,7 +617,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: { id: string }
     Body: { notes?: string }
-    Reply: z.infer<typeof ApprovalErrorSchema>
+    Reply:
+      | z.infer<typeof ApprovalSuccessResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
   }>(
     '/requests/:id/approve',
     {
@@ -573,15 +629,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         description:
           'Approve an approval request and execute the proposed routing',
         params: z.object({
-          id: z.string(),
+          id: z
+            .string()
+            .regex(/^\d+$/, { error: 'id must be a numeric string' }),
         }),
         body: z.object({
           notes: z.string().optional(),
         }),
         response: {
-          200: ApprovalErrorSchema,
+          200: ApprovalSuccessResponseSchema,
+          401: ApprovalErrorSchema,
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -589,6 +649,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const requestId = Number.parseInt(request.params.id, 10)
+        if (Number.isNaN(requestId)) {
+          return reply.badRequest('Invalid request id')
+        }
         const { notes } = request.body
         const approvedBy = request.session.user?.id
         if (!approvedBy) {
@@ -648,7 +711,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk approve requests
-  fastify.post<{ Body: BulkApprovalRequest; Reply: BulkOperationResponse }>(
+  fastify.post<{
+    Body: BulkApprovalRequest
+    Reply:
+      | z.infer<typeof BulkOperationResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
+  }>(
     '/requests/bulk/approve',
     {
       schema: {
@@ -659,6 +727,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: BulkOperationResponseSchema,
           400: ApprovalErrorSchema,
+          401: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -698,7 +768,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk reject requests
-  fastify.post<{ Body: BulkRejectRequest; Reply: BulkOperationResponse }>(
+  fastify.post<{
+    Body: BulkRejectRequest
+    Reply:
+      | z.infer<typeof BulkOperationResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
+  }>(
     '/requests/bulk/reject',
     {
       schema: {
@@ -709,6 +784,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: BulkOperationResponseSchema,
           400: ApprovalErrorSchema,
+          401: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -748,7 +825,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk delete requests
-  fastify.delete<{ Body: BulkDeleteRequest; Reply: BulkOperationResponse }>(
+  fastify.delete<{
+    Body: BulkDeleteRequest
+    Reply:
+      | z.infer<typeof BulkOperationResponseSchema>
+      | z.infer<typeof ApprovalErrorSchema>
+  }>(
     '/requests/bulk/delete',
     {
       schema: {
@@ -759,6 +841,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: BulkOperationResponseSchema,
           400: ApprovalErrorSchema,
+          500: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },

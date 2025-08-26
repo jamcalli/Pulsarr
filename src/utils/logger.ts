@@ -1,9 +1,11 @@
 import fs from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { config } from 'dotenv'
 import type { FastifyRequest } from 'fastify'
 import type { LevelWithSilent, LoggerOptions } from 'pino'
 import pino from 'pino'
+import pretty from 'pino-pretty'
 import * as rfs from 'rotating-file-stream'
 
 export const validLogLevels: LevelWithSilent[] = [
@@ -34,6 +36,9 @@ type PulsarrLoggerOptions =
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
+
+// Load .env file early for logger configuration
+config({ path: resolve(projectRoot, '.env') })
 
 /**
  * Creates a custom error serializer that handles both standard errors and custom HttpError objects.
@@ -167,7 +172,7 @@ function createRequestSerializer() {
  * @param index - Optional index to append for rotated log files.
  * @returns The generated log filename.
  */
-function filename(time: number | Date, index?: number): string {
+function filename(time: number | Date | null, index?: number): string {
   if (!time) return 'pulsarr-current.log'
   const date = typeof time === 'number' ? new Date(time) : time
   const year = date.getFullYear()
@@ -221,6 +226,7 @@ function getTerminalOptions(): LoggerOptions {
     serializers: {
       req: createRequestSerializer(),
       error: createErrorSerializer(),
+      err: createErrorSerializer(),
     },
   }
 }
@@ -237,84 +243,69 @@ function getFileOptions(): FileLoggerOptions {
     serializers: {
       req: createRequestSerializer(),
       error: createErrorSerializer(),
+      err: createErrorSerializer(),
     },
   }
 }
 
 /**
- * Determines the log output destination based on command line arguments.
+ * Generates logger configuration options based on environment variables.
  *
- * Checks for `--log-terminal`, `--log-file`, or `--log-both` flags in the process arguments and returns the corresponding log destination. Defaults to `'terminal'` if no relevant flag is found.
+ * Attempts to always log to file; falls back to console-only if file stream setup fails.
+ * Console output controlled by environment variables. Request logging controlled by server.ts.
+ * Note: logLevel is handled by Fastify's environment configuration plugin, not here.
  *
- * @returns The selected log destination: `'terminal'`, `'file'`, or `'both'`.
+ * Environment variables:
+ * - enableConsoleOutput: Show logs in terminal (default: true)
+ * - enableRequestLogging: Controls Fastify request logging in server.ts (default: true)
+ *
+ * @returns Logger configuration options suitable for initializing a logger.
  */
-export function parseLogDestinationFromArgs(): LogDestination {
-  const args = process.argv.slice(2)
+export function createLoggerConfig(): PulsarrLoggerOptions {
+  // Read from environment variables with sensible defaults
+  const enableConsoleOutput = process.env.enableConsoleOutput !== 'false' // Default true
 
-  if (args.includes('--log-terminal')) return 'terminal'
-  if (args.includes('--log-file')) return 'file'
-  if (args.includes('--log-both')) return 'both'
+  // Only log setup message if console output is enabled
+  if (enableConsoleOutput) {
+    console.log(
+      `Setting up logger - Console: ${enableConsoleOutput}, File: always`,
+    )
+  }
 
-  // Default destination if no argument is found
-  return 'terminal'
-}
+  // Always set up file logging
+  const fileStream = getFileStream()
 
-/**
- * Generates logger configuration options for terminal, file, or both destinations, with sensitive data redaction in HTTP request logs.
- *
- * Determines the log output destination based on the provided argument or command line flags, and configures the logger accordingly. When logging to both terminal and file, combines pretty-printed terminal output with file logging, applying request serializers that redact sensitive query parameters.
- *
- * @param destination - The desired log output destination; if omitted, the destination is inferred from command line arguments.
- * @returns Logger configuration options suitable for initializing a logger with the specified output destination(s).
- */
-export function createLoggerConfig(
-  destination?: LogDestination,
-): PulsarrLoggerOptions {
-  // If no destination provided, try to get it from command line args
-  const logDestination = destination || parseLogDestinationFromArgs()
+  if (enableConsoleOutput) {
+    // Log to both terminal and file
 
-  console.log(`Setting up logger with destination: ${logDestination}`)
-
-  switch (logDestination) {
-    case 'terminal':
+    // Graceful fallback: avoid double-logging if file stream fell back to stdout
+    if (fileStream === process.stdout) {
       return getTerminalOptions()
-    case 'file':
-      return getFileOptions()
-    case 'both': {
-      // Use pino's built-in multistream
-      const fileStream = getFileStream()
-
-      // Graceful fallback: avoid double-logging if file stream fell back to stdout
-      if (fileStream === process.stdout) {
-        return getTerminalOptions()
-      }
-
-      // Create a pretty stream for terminal output
-      const prettyStream = pino.transport({
-        target: 'pino-pretty',
-        options: {
-          translateTime: 'HH:MM:ss Z',
-          ignore: 'pid,hostname',
-          colorize: true, // Force colors even in Docker
-        },
-      })
-
-      const multistream = pino.multistream([
-        { stream: prettyStream },
-
-        { stream: fileStream },
-      ])
-
-      return {
-        level: 'info',
-        stream: multistream,
-        serializers: {
-          req: createRequestSerializer(),
-          error: createErrorSerializer(),
-        },
-      }
     }
-    default:
-      return getTerminalOptions()
+
+    // Create a proper pretty stream for terminal output
+    const prettyStream = pretty({
+      translateTime: 'HH:MM:ss Z',
+      ignore: 'pid,hostname',
+      colorize: true, // Force colors even in Docker
+    })
+
+    const multistream = pino.multistream([
+      { stream: prettyStream },
+      { stream: fileStream },
+    ])
+
+    return {
+      level: 'info',
+      stream: multistream,
+      serializers: {
+        req: createRequestSerializer(),
+        error: createErrorSerializer(),
+        err: createErrorSerializer(),
+      },
+    }
+  } else {
+    // File logging only
+    return getFileOptions()
   }
 }

@@ -56,8 +56,18 @@ Full documentation is available at: **[https://jamcalli.github.io/Pulsarr/](http
 baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
 port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
-logLevel=info                   # Default is 'silent', but 'info' is recommended
-NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
+
+# Logging Configuration
+logLevel=info                   # Log level (default: info)
+                                # Accepts: fatal | error | warn | info | debug | trace | silent
+
+enableConsoleOutput=true        # Console logging (default: true)
+                                # Any value other than "false" enables terminal output
+                                # Logs are always written to ./data/logs/ regardless of this setting
+
+enableRequestLogging=true       # HTTP request logging (default: true)
+                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
+                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
 ```
 
 2. Create `docker-compose.yml`:
@@ -82,6 +92,34 @@ docker compose pull && docker compose up -d
 ```
 
 4. Access the web UI at `http://your-server:3003` to complete setup.
+
+### Logging Configuration
+
+Pulsarr provides flexible logging configuration through environment variables:
+
+**Log Levels** (`logLevel`)
+- **Default**: `info`
+- **Options**: `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`
+- Controls the minimum log level displayed and recorded
+
+**Console Output** (`enableConsoleOutput`)
+- **Default**: `true`
+- **Behavior**: Any value other than `"false"` enables terminal output
+- When disabled, logs are only written to files (see below)
+
+**Request Logging** (`enableRequestLogging`)
+- **Default**: `true`
+- **Logs**: HTTP method, URL, host, remote IP/port, response codes, response times
+- **Security**: Sensitive query parameters (`token`, `apiKey`, `password`) are automatically redacted
+
+**File Logging**
+- **Always enabled** - Cannot be disabled
+- **Location**: `./data/logs/` directory
+- **Format**: `pulsarr-YYYY-MM-DD.log` (with `pulsarr-current.log` for active file)
+- **Rotation**: 10MB size limit, 7 max files, gzipped compression
+- **Purpose**: Supports upcoming client-side log viewer feature
+
+Console and file logging operate independently - you can disable console output while maintaining file logging for monitoring and troubleshooting.
 
 For detailed installation options, including Unraid, manual installation, and PostgreSQL setup, see the [documentation](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start).
 
