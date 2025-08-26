@@ -16,8 +16,12 @@ import type {
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
-// Cache timestamp to prevent unnecessary refetches
+// Cache management for dashboard stats
+// - Prevents duplicate API calls within CACHE_DURATION window
+// - Scoped to all dashboard statistics as a single unit
+// - Reset by refreshAllStats for manual refresh scenarios
 let lastAllStatsFetch = 0
+let isRefreshing = false // Prevents race conditions during manual refresh
 const CACHE_DURATION = 5000 // 5 seconds
 
 export interface StatsState {
@@ -79,7 +83,10 @@ export interface StatsState {
   }
 
   // Fetch functions
-  fetchAllStats: (params?: { limit?: number; days?: number }) => Promise<void>
+  fetchAllStats: (params?: {
+    limit?: number
+    days?: number
+  }) => Promise<boolean>
   fetchTopGenres: (limit?: number) => Promise<void>
   fetchMostWatchedShows: (limit?: number) => Promise<void>
   fetchMostWatchedMovies: (limit?: number) => Promise<void>
@@ -93,7 +100,10 @@ export interface StatsState {
   fetchInstanceContentBreakdown: () => Promise<void>
 
   // Cache management
-  refreshAllStats: (params?: { limit?: number; days?: number }) => Promise<void>
+  refreshAllStats: (params?: {
+    limit?: number
+    days?: number
+  }) => Promise<boolean>
 
   // Initialization
   initialize: () => Promise<void>
@@ -154,7 +164,7 @@ export const useDashboardStore = create<StatsState>()(
       // Check if we've fetched recently
       const now = Date.now()
       if (now - lastAllStatsFetch < CACHE_DURATION) {
-        return
+        return false // No network call made
       }
 
       lastAllStatsFetch = now
@@ -197,6 +207,7 @@ export const useDashboardStore = create<StatsState>()(
           instanceContentBreakdown: data.instance_content_breakdown || [],
           loading: { ...state.loading, all: false },
         }))
+        return true // Network call made successfully
       } catch (error) {
         console.error('Error fetching all stats:', error)
         set((state) => ({
@@ -207,58 +218,69 @@ export const useDashboardStore = create<StatsState>()(
             all: error instanceof Error ? error.message : 'Unknown error',
           },
         }))
+        return false // Network call failed
       }
     },
 
     // Individual fetch functions redirect to centralized fetchAllStats
     fetchTopGenres: async (limit = 10) => {
-      await get().fetchAllStats({ limit })
+      return await get().fetchAllStats({ limit })
     },
 
     fetchInstanceContentBreakdown: async () => {
-      await get().fetchAllStats()
+      return await get().fetchAllStats()
     },
 
     fetchMostWatchedShows: async (limit = 10) => {
-      await get().fetchAllStats({ limit })
+      return await get().fetchAllStats({ limit })
     },
 
     fetchMostWatchedMovies: async (limit = 10) => {
-      await get().fetchAllStats({ limit })
+      return await get().fetchAllStats({ limit })
     },
 
     fetchTopUsers: async (limit = 10) => {
-      await get().fetchAllStats({ limit })
+      return await get().fetchAllStats({ limit })
     },
 
     fetchRecentActivity: async (days = 30) => {
-      await get().fetchAllStats({ days })
+      return await get().fetchAllStats({ days })
     },
 
     fetchAvailabilityTimes: async () => {
-      await get().fetchAllStats()
+      return await get().fetchAllStats()
     },
 
     fetchGrabbedToNotifiedTimes: async () => {
-      await get().fetchAllStats()
+      return await get().fetchAllStats()
     },
 
     fetchStatusTransitions: async () => {
-      await get().fetchAllStats()
+      return await get().fetchAllStats()
     },
 
     fetchStatusFlow: async () => {
-      await get().fetchAllStats()
+      return await get().fetchAllStats()
     },
 
     fetchNotificationStats: async (days = 30) => {
-      await get().fetchAllStats({ days })
+      return await get().fetchAllStats({ days })
     },
 
     // Force refresh all stats, bypassing cache
     refreshAllStats: async (params = {}) => {
-      lastAllStatsFetch = 0 // Reset cache
-      await get().fetchAllStats(params)
+      if (isRefreshing) {
+        return false // Another refresh is already in progress
+      }
+
+      isRefreshing = true
+      try {
+        lastAllStatsFetch = 0 // Reset cache
+        const result = await get().fetchAllStats(params)
+        return result
+      } finally {
+        isRefreshing = false
+      }
     },
 
     // Initialize the store with all dashboard stats
