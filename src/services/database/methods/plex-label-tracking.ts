@@ -12,7 +12,7 @@ interface PlexLabelTrackingRow {
   id: number
   content_guids: string // JSON string that gets parsed to string[]
   content_type: 'movie' | 'show'
-  user_id: number
+  user_id: number | null
   plex_rating_key: string
   labels_applied: string // JSON string that gets parsed to string[]
   synced_at: string
@@ -25,7 +25,7 @@ export interface PlexLabelTracking {
   id: number
   content_guids: string[] // Parsed JSON array of GUIDs
   content_type: 'movie' | 'show'
-  user_id: number
+  user_id: number | null
   plex_rating_key: string
   labels_applied: string[] // Parsed JSON array of labels
   synced_at: string
@@ -37,7 +37,7 @@ export interface PlexLabelTracking {
 export interface TrackPlexLabelsOperation {
   contentGuids: string[]
   contentType: 'movie' | 'show'
-  userId: number
+  userId: number | null
   plexRatingKey: string
   labelsApplied: string[]
 }
@@ -47,7 +47,7 @@ export interface TrackPlexLabelsOperation {
  */
 export interface UntrackPlexLabelOperation {
   contentGuids: string[]
-  userId: number
+  userId: number | null
   plexRatingKey: string
   labelApplied: string
 }
@@ -325,7 +325,7 @@ export async function trackPlexLabels(
   this: DatabaseService,
   contentGuids: string[],
   contentType: 'movie' | 'show',
-  userId: number,
+  userId: number | null,
   plexRatingKey: string,
   labelsApplied: string[],
 ): Promise<number> {
@@ -797,7 +797,7 @@ export async function cleanupUserContentTracking(
   this: DatabaseService,
   contentGuids: string[],
   contentType: 'movie' | 'show',
-  userId: number,
+  userId: number | null,
 ): Promise<number> {
   // Handle empty arrays
   if (contentGuids.length === 0) {

@@ -1049,6 +1049,11 @@ export class PlexLabelSyncService {
         if (desiredUserLabels.length === 0) {
           // No user labels exist, safe to add removed label for deletion
           specialRemovedLabel = await this.getRemovedLabel(content.title)
+          this.log.debug('Generated special removed label', {
+            contentTitle: content.title,
+            specialRemovedLabel,
+            desiredUserLabelsCount: desiredUserLabels.length,
+          })
           const nonAppWithoutRemoved = nonAppLabels.filter(
             (label) =>
               !label
@@ -1248,7 +1253,7 @@ export class PlexLabelSyncService {
           for (const label of tracking.labels_applied) {
             let trackingKey: string
 
-            if (tracking.user_id === 0) {
+            if (tracking.user_id === null) {
               // System tracking record for removed labels
               trackingKey = `__system__:${tracking.plex_rating_key}:${label}`
             } else {
@@ -1275,7 +1280,7 @@ export class PlexLabelSyncService {
                 userId: tracking.user_id,
                 ratingKey: tracking.plex_rating_key,
                 label: label,
-                isSystemRecord: tracking.user_id === 0,
+                isSystemRecord: tracking.user_id === null,
               })
             }
           }
@@ -1331,7 +1336,7 @@ export class PlexLabelSyncService {
         trackOperations.push({
           contentGuids: content.allGuids,
           contentType: content.type as 'movie' | 'show',
-          userId: 0, // System user for removed labels
+          userId: null, // System operation for removed labels
           plexRatingKey: ratingKey,
           labelsApplied: [removedLabel],
         })
@@ -2823,7 +2828,11 @@ export class PlexLabelSyncService {
 
               // Add users from existing tracking records
               for (const tracking of trackedLabels) {
-                if (!trackedUsers.has(tracking.user_id)) {
+                // Skip system tracking records (null user_id)
+                if (
+                  tracking.user_id !== null &&
+                  !trackedUsers.has(tracking.user_id)
+                ) {
                   const user = userMap.get(tracking.user_id)
                   if (user) {
                     trackedUsers.set(tracking.user_id, {
@@ -3351,6 +3360,45 @@ export class PlexLabelSyncService {
                       userLabelsRemoved: userLabelsToRemove.length,
                     },
                   )
+
+                  // Create tracking record for the removed label
+                  try {
+                    // Find tracking record for this rating key to get content info
+                    const trackingRecord = trackedLabels.find(
+                      (t) => t.plex_rating_key === ratingKey,
+                    )
+
+                    if (trackingRecord) {
+                      await this.db.trackPlexLabels(
+                        trackingRecord.content_guids,
+                        trackingRecord.content_type,
+                        null, // System operation for removed labels
+                        ratingKey,
+                        [removedLabel],
+                      )
+                      this.log.debug('Successfully tracked removed label', {
+                        ratingKey,
+                        removedLabel,
+                        guids: trackingRecord.content_guids,
+                        contentType: trackingRecord.content_type,
+                      })
+                    } else {
+                      this.log.warn(
+                        'No tracking record found for rating key during removal tracking',
+                        {
+                          ratingKey,
+                          removedLabel,
+                        },
+                      )
+                    }
+                  } catch (trackError) {
+                    this.log.error('Failed to track removed label', {
+                      error: trackError,
+                      ratingKey,
+                      removedLabel,
+                    })
+                  }
+
                   return 1
                 }
               }
