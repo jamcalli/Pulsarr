@@ -310,16 +310,16 @@ export async function trackPlexLabelsBulk(
 }
 
 /**
- * Creates or updates a Plex label tracking record for a user and content item, replacing any existing labels with the provided set.
+ * Create or update a Plex label tracking record for a user/content and return its database ID.
  *
- * After updating the tracking record, returns its unique database ID. Throws an error if the operation fails or the record cannot be retrieved.
+ * Replaces any existing labels for the given content (by GUIDs), content type, user (nullable), and Plex rating key.
+ * Internally delegates to the bulk tracking helper and then queries the database for the created/updated record ID.
  *
- * @param contentGuids - GUIDs identifying the content item
- * @param contentType - The type of content ('movie' or 'show')
- * @param userId - The user ID for whom labels are tracked
- * @param plexRatingKey - The Plex rating key of the content
- * @param labelsApplied - All labels to associate with this content for the user
- * @returns The ID of the created or updated tracking record
+ * @param contentGuids - One or more content GUIDs that identify the content item (must be non-empty)
+ * @param userId - The user ID to associate with the tracking record; may be null for anonymous/global tracking
+ * @param labelsApplied - The full set of labels to associate with this content for the user
+ * @returns The numeric ID of the created or updated tracking record
+ * @throws Error if the bulk operation fails or the record cannot be retrieved after creation
  */
 export async function trackPlexLabels(
   this: DatabaseService,
@@ -784,13 +784,13 @@ export async function getTrackedLabelsForContent(
 }
 
 /**
- * Deletes all Plex label tracking records for a user that match the specified content GUIDs and content type.
+ * Delete Plex label tracking records for a specific user that overlap any of the provided content GUIDs and match the given content type.
  *
- * Typically used when a user removes content from their watchlist. If the `contentGuids` array is empty, no records are deleted.
+ * If `contentGuids` is empty the function returns 0 immediately. GUID matching is performed case-insensitively against the stored JSON array of content GUIDs. The `userId` parameter may be `null` to target records whose `user_id` is null.
  *
- * @param contentGuids - Array of content GUIDs to match for deletion
+ * @param contentGuids - Array of content GUIDs to match (case-insensitive)
  * @param contentType - The content type ('movie' or 'show') to filter records
- * @param userId - The user ID whose tracking records should be deleted
+ * @param userId - The user ID (or `null`) whose tracking records should be deleted
  * @returns The number of tracking records deleted
  */
 export async function cleanupUserContentTracking(
@@ -963,16 +963,14 @@ export async function cleanupRatingKeyTracking(
 }
 
 /**
- * Checks if a specific label is tracked for a user, content GUIDs, content type, and Plex rating key.
+ * Determine whether a specific label is currently tracked for the given user, content GUIDs, content type, and Plex rating key.
  *
- * Returns `true` if a tracking record exists that matches the user, content type, rating key, and contains both any of the provided content GUIDs and the specified label; otherwise, returns `false`.
+ * Returns true if a tracking record exists that matches the provided user (nullable), content type, plexRatingKey, contains any of the provided content GUIDs, and includes the specified label (case-insensitive). If `contentGuids` is empty the function returns false immediately.
  *
- * @param contentGuids - List of content GUIDs to check for label tracking
- * @param contentType - The type of content ('movie' or 'show')
- * @param userId - The user ID to check tracking for
- * @param plexRatingKey - The Plex rating key associated with the content
- * @param labelApplied - The label to check for tracking
- * @returns True if the label is tracked for the specified user, content GUIDs, content type, and rating key; false otherwise
+ * @param contentGuids - Array of content GUIDs to check (comparison is case-insensitive)
+ * @param userId - User ID to scope the check; may be null to represent no user
+ * @param labelApplied - Label to look for (comparison is case-insensitive)
+ * @returns True when a matching tracking record containing the label exists; otherwise false
  */
 export async function isLabelTracked(
   this: DatabaseService,

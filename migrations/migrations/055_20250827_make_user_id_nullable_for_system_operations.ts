@@ -14,9 +14,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by making user_id not nullable again.
+ * Revert the migration by making `plex_label_tracking.user_id` NOT NULL again.
  *
- * Note: This rollback will fail if there are any NULL user_id records in the table.
+ * Note: this rollback will fail if any rows contain a NULL `user_id`; ensure data is cleaned or updated before running.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('plex_label_tracking', (table) => {
