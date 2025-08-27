@@ -1043,9 +1043,10 @@ export class PlexLabelSyncService {
         finalLabels = [...new Set([...currentLabels, ...labelsToAdd])]
       } else if (this.removedLabelMode === 'special-label') {
         // Handle special "removed" label logic:
-        // - Only add removed label if NO user labels exist (safe for deletion)
+        // - Add removed label whenever NO user labels exist (safe for deletion),
+        //   regardless of tag presence.
         // - If user labels exist, removed label should be cleaned up (content still wanted)
-        if (desiredUserLabels.length === 0 && labelsToRemove.length > 0) {
+        if (desiredUserLabels.length === 0) {
           // No user labels exist, safe to add removed label for deletion
           specialRemovedLabel = await this.getRemovedLabel(content.title)
           const nonAppWithoutRemoved = nonAppLabels.filter(
@@ -1228,15 +1229,15 @@ export class PlexLabelSyncService {
           }
         }
 
-        // Track special removed labels with system user (ID 0)
-        for (const [ratingKey, removedLabel] of appliedRemovedLabels) {
-          // Use a sentinel value for system-applied labels
-          const systemTrackingKey = `__system__:${ratingKey}:${removedLabel}`
+        // Track special removed label for this item (system user ID 0)
+        const removedLabelForItem = appliedRemovedLabels.get(plexItem.ratingKey)
+        if (removedLabelForItem) {
+          const systemTrackingKey = `__system__:${plexItem.ratingKey}:${removedLabelForItem}`
           desiredTracking.add(systemTrackingKey)
 
           this.log.debug('Added system removed label to desired tracking', {
-            ratingKey,
-            removedLabel,
+            ratingKey: plexItem.ratingKey,
+            removedLabel: removedLabelForItem,
             trackingKey: systemTrackingKey,
           })
         }
