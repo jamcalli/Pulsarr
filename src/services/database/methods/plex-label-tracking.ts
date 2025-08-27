@@ -310,13 +310,13 @@ export async function trackPlexLabelsBulk(
 }
 
 /**
- * Create or update a Plex label tracking record for a user/content and return its database ID.
+ * Create or update a Plex label tracking record and return its database ID.
  *
  * Replaces any existing labels for the given content (by GUIDs), content type, user (nullable), and Plex rating key.
  * Internally delegates to the bulk tracking helper and then queries the database for the created/updated record ID.
  *
  * @param contentGuids - One or more content GUIDs that identify the content item (must be non-empty)
- * @param userId - The user ID to associate with the tracking record; may be null for anonymous/global tracking
+ * @param userId - The user ID to associate with the tracking record; may be null for system-level operations (e.g., removed labels)
  * @param labelsApplied - The full set of labels to associate with this content for the user
  * @returns The numeric ID of the created or updated tracking record
  * @throws Error if the bulk operation fails or the record cannot be retrieved after creation
