@@ -83,7 +83,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { success: true }
         }
 
-        // Trigger Plex label sync for all webhooks (including upgrades) before deduplication
+        // Apply webhook deduplication
+        if (!isWebhookProcessable(body, fastify.log)) {
+          fastify.log.debug(
+            {
+              instanceName: body.instanceName,
+              eventType: 'eventType' in body ? body.eventType : 'unknown',
+              isUpgrade: 'isUpgrade' in body ? body.isUpgrade : false,
+            },
+            'Webhook skipped by deduplication filter',
+          )
+          return { success: true }
+        }
+
+        // Trigger Plex label sync for webhooks that pass deduplication
         if (fastify.config.plexLabelSync?.enabled) {
           const svc = fastify.plexLabelSyncService
           if (!svc) {
@@ -100,19 +113,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               })
             })
           }
-        }
-
-        // Apply webhook deduplication
-        if (!isWebhookProcessable(body, fastify.log)) {
-          fastify.log.debug(
-            {
-              instanceName: body.instanceName,
-              eventType: 'eventType' in body ? body.eventType : 'unknown',
-              isUpgrade: 'isUpgrade' in body ? body.isUpgrade : false,
-            },
-            'Webhook skipped by deduplication filter',
-          )
-          return { success: true }
         }
 
         fastify.log.info(

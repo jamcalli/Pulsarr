@@ -78,6 +78,8 @@ export interface LabelReconciliationResult {
   labelsRemoved: number
   /** Error message if failed */
   error?: string
+  /** Special removed label that was applied (for tracking purposes) */
+  specialRemovedLabel?: string
 }
 
 /**

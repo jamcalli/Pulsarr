@@ -527,36 +527,21 @@ export class UserTagService {
                   },
                 )
 
-                // If we have tags being removed, add special "removed" tag
-                if (removedUserTagIds.length > 0) {
-                  try {
-                    // Get or create the "removed" tag using our helper
-                    const removedTagId = await this.ensureRemovedTag(
+                // Use helper to resolve special-tag mode logic
+                newTags = await this.resolveSpecialModeTags(
+                  userTagIds,
+                  nonUserTagIds,
+                  removedUserTagIds,
+                  tagIdMap,
+                  () =>
+                    this.ensureRemovedTag(
                       sonarrService,
                       tagLabelMap,
                       tagIdMap,
                       `show "${show.title}"`,
-                    )
-
-                    // Combine non-user tags with current user tags and removed tag
-                    newTags = [
-                      ...new Set([
-                        ...nonUserTagIds,
-                        ...userTagIds,
-                        removedTagId,
-                      ]),
-                    ]
-                  } catch (tagError) {
-                    this.log.error(
-                      { error: tagError },
-                      'Failed to create special removed tag. Cannot proceed with special-tag mode:',
-                    )
-                    throw tagError
-                  }
-                } else {
-                  // No tags being removed, just use current tags
-                  newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
-                }
+                    ),
+                  `show "${show.title}"`,
+                )
               } else {
                 // Default 'remove' mode
                 // Filter out any existing user tags and add current ones
@@ -848,36 +833,21 @@ export class UserTagService {
                   },
                 )
 
-                // If we have tags being removed, add special "removed" tag
-                if (removedUserTagIds.length > 0) {
-                  try {
-                    // Get or create the "removed" tag using our helper
-                    const removedTagId = await this.ensureRemovedTag(
+                // Use helper to resolve special-tag mode logic
+                newTags = await this.resolveSpecialModeTags(
+                  userTagIds,
+                  nonUserTagIds,
+                  removedUserTagIds,
+                  tagIdMap,
+                  () =>
+                    this.ensureRemovedTag(
                       radarrService,
                       tagLabelMap,
                       tagIdMap,
                       `movie "${movie.title}"`,
-                    )
-
-                    // Combine non-user tags with current user tags and removed tag
-                    newTags = [
-                      ...new Set([
-                        ...nonUserTagIds,
-                        ...userTagIds,
-                        removedTagId,
-                      ]),
-                    ]
-                  } catch (tagError) {
-                    this.log.error(
-                      { error: tagError },
-                      'Failed to create special removed tag. Cannot proceed with special-tag mode:',
-                    )
-                    throw tagError
-                  }
-                } else {
-                  // No tags being removed, just use current tags
-                  newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
-                }
+                    ),
+                  `movie "${movie.title}"`,
+                )
               } else {
                 // Default 'remove' mode
                 // Filter out any existing user tags and add current ones
@@ -1929,6 +1899,57 @@ export class UserTagService {
    */
   private isAppUserTag(tagLabel: string): boolean {
     return tagLabel.toLowerCase().startsWith(`${this.tagPrefix.toLowerCase()}:`)
+  }
+
+  /**
+   * Resolves the appropriate tag set for special-tag mode
+   * Handles the decision tree for when to add/remove the special "removed" tag
+   *
+   * @param userTagIds - Array of user tag IDs that should be present
+   * @param nonUserTagIds - Array of non-user tag IDs to preserve
+   * @param removedUserTagIds - Array of user tag IDs being removed
+   * @param tagIdMap - Map of tag IDs to labels for filtering
+   * @param removedTagIdSupplier - Function that returns the removed tag ID
+   * @param logContext - Context string for logging
+   * @returns Promise resolving to the final tag set
+   */
+  private async resolveSpecialModeTags(
+    userTagIds: number[],
+    nonUserTagIds: number[],
+    removedUserTagIds: number[],
+    tagIdMap: Map<number, string>,
+    removedTagIdSupplier: () => Promise<number>,
+    logContext: string,
+  ): Promise<number[]> {
+    const removedPrefixLower = this.removedTagPrefix.toLowerCase()
+
+    // If no active user tags and we're removing some, add the removed tag
+    if (userTagIds.length === 0 && removedUserTagIds.length > 0) {
+      const removedTagId = await removedTagIdSupplier()
+      // Avoid carrying any pre-existing removed-tag variants forward
+      const nonUserSansRemoved = nonUserTagIds.filter((id) => {
+        const lbl = tagIdMap.get(id)
+        return !lbl || !lbl.toLowerCase().startsWith(removedPrefixLower)
+      })
+      this.log.debug(
+        `Added removed tag for ${logContext} - no active users, safe for deletion`,
+      )
+      return [...new Set([...nonUserSansRemoved, removedTagId])]
+    }
+
+    // Users exist OR nothing is actually being removed: keep user tags and implicitly clean removed tags
+    const nonUserKeep = nonUserTagIds.filter((id) => {
+      const lbl = tagIdMap.get(id)
+      return !lbl || !lbl.toLowerCase().startsWith(removedPrefixLower)
+    })
+
+    if (removedUserTagIds.length > 0 && userTagIds.length > 0) {
+      this.log.debug(
+        `Cleaned up removed tag for ${logContext} - active users still want this content`,
+      )
+    }
+
+    return [...new Set([...nonUserKeep, ...userTagIds])]
   }
 
   /**
