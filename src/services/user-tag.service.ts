@@ -1954,13 +1954,10 @@ export class UserTagService {
     }
 
     // Users exist OR nothing is actually being removed: keep user tags and implicitly clean removed tags
-    const nonUserKeep =
-      userTagIds.length > 0
-        ? nonUserTagIds.filter((id) => {
-            const lbl = tagIdMap.get(id)
-            return !lbl || !lbl.toLowerCase().startsWith(removedPrefixLower)
-          })
-        : nonUserTagIds
+    const nonUserKeep = nonUserTagIds.filter((id) => {
+      const lbl = tagIdMap.get(id)
+      return !lbl || !lbl.toLowerCase().startsWith(removedPrefixLower)
+    })
 
     if (removedUserTagIds.length > 0 && userTagIds.length > 0) {
       this.log.debug(
