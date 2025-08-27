@@ -528,28 +528,20 @@ export class UserTagService {
                 )
 
                 // Use helper to resolve special-tag mode logic
-                try {
-                  newTags = await this.resolveSpecialModeTags(
-                    userTagIds,
-                    nonUserTagIds,
-                    removedUserTagIds,
-                    tagIdMap,
-                    () =>
-                      this.ensureRemovedTag(
-                        sonarrService,
-                        tagLabelMap,
-                        tagIdMap,
-                        `show "${show.title}"`,
-                      ),
-                    `show "${show.title}"`,
-                  )
-                } catch (tagError) {
-                  this.log.error(
-                    { error: tagError },
-                    'Failed to create special removed tag. Cannot proceed with special-tag mode:',
-                  )
-                  throw tagError
-                }
+                newTags = await this.resolveSpecialModeTags(
+                  userTagIds,
+                  nonUserTagIds,
+                  removedUserTagIds,
+                  tagIdMap,
+                  () =>
+                    this.ensureRemovedTag(
+                      sonarrService,
+                      tagLabelMap,
+                      tagIdMap,
+                      `show "${show.title}"`,
+                    ),
+                  `show "${show.title}"`,
+                )
               } else {
                 // Default 'remove' mode
                 // Filter out any existing user tags and add current ones
@@ -842,28 +834,20 @@ export class UserTagService {
                 )
 
                 // Use helper to resolve special-tag mode logic
-                try {
-                  newTags = await this.resolveSpecialModeTags(
-                    userTagIds,
-                    nonUserTagIds,
-                    removedUserTagIds,
-                    tagIdMap,
-                    () =>
-                      this.ensureRemovedTag(
-                        radarrService,
-                        tagLabelMap,
-                        tagIdMap,
-                        `movie "${movie.title}"`,
-                      ),
-                    `movie "${movie.title}"`,
-                  )
-                } catch (tagError) {
-                  this.log.error(
-                    { error: tagError },
-                    'Failed to create special removed tag. Cannot proceed with special-tag mode:',
-                  )
-                  throw tagError
-                }
+                newTags = await this.resolveSpecialModeTags(
+                  userTagIds,
+                  nonUserTagIds,
+                  removedUserTagIds,
+                  tagIdMap,
+                  () =>
+                    this.ensureRemovedTag(
+                      radarrService,
+                      tagLabelMap,
+                      tagIdMap,
+                      `movie "${movie.title}"`,
+                    ),
+                  `movie "${movie.title}"`,
+                )
               } else {
                 // Default 'remove' mode
                 // Filter out any existing user tags and add current ones
