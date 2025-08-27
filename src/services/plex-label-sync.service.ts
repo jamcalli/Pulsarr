@@ -1071,7 +1071,14 @@ export class PlexLabelSyncService {
           // This also cleans up any existing removed labels when users are present
           finalLabels = [...new Set([...nonAppLabels, ...allDesiredLabels])]
 
-          if (labelsToRemove.length > 0 && desiredUserLabels.length > 0) {
+          const removedLabelsFiltered =
+            currentLabels.some((l) =>
+              l.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase()),
+            ) &&
+            !finalLabels.some((l) =>
+              l.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase()),
+            )
+          if (removedLabelsFiltered && desiredUserLabels.length > 0) {
             this.log.debug(
               `Cleaned up removed label for "${content.title}" - active users still want this content`,
             )
@@ -1262,9 +1269,8 @@ export class PlexLabelSyncService {
                 (u) => u.user_id === tracking.user_id,
               )
               // Use a sentinel value that cannot collide with a valid watchlist_id
-              const watchlistId =
-                matchingUser?.watchlist_id ??
-                `__orphaned_user_${tracking.user_id}__`
+              const ORPHAN_SENTINEL = `__orphaned_user_${tracking.user_id}__`
+              const watchlistId = matchingUser?.watchlist_id ?? ORPHAN_SENTINEL
               trackingKey = `${watchlistId}:${tracking.plex_rating_key}:${label}`
             }
 
@@ -1788,7 +1794,7 @@ export class PlexLabelSyncService {
       )
 
       // Step 7: Handle orphaned label cleanup if enabled
-      let _cleanupMessage = ''
+      let cleanupMessage = ''
       if (this.config.cleanupOrphanedLabels) {
         try {
           if (emitProgress) {
@@ -1805,7 +1811,7 @@ export class PlexLabelSyncService {
             sonarrSeriesWithTags,
           )
           if (cleanupResult.removed > 0 || cleanupResult.failed > 0) {
-            _cleanupMessage = `, cleaned up ${cleanupResult.removed} orphaned labels (${cleanupResult.failed} failed)`
+            cleanupMessage = `, cleaned up ${cleanupResult.removed} orphaned labels (${cleanupResult.failed} failed)`
             this.log.info(
               'Completed orphaned Plex label cleanup',
               cleanupResult,
@@ -1816,7 +1822,7 @@ export class PlexLabelSyncService {
             { error: cleanupError },
             'Error during orphaned label cleanup:',
           )
-          _cleanupMessage = ', orphaned cleanup failed'
+          cleanupMessage = ', orphaned cleanup failed'
         }
       }
 
@@ -1832,7 +1838,7 @@ export class PlexLabelSyncService {
           type: 'plex-label-sync',
           phase: 'complete',
           progress: 100,
-          message: `Completed Plex label sync: updated ${result.updated} items, failed ${result.failed}, pending ${result.pending}`,
+          message: `Completed Plex label sync: updated ${result.updated} items, failed ${result.failed}, pending ${result.pending}${cleanupMessage}`,
         })
       }
 
