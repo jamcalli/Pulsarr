@@ -144,6 +144,19 @@ export class PlexLabelSyncService {
   }
 
   /**
+   * Checks if a label is managed by this service (app-prefixed labels + removed markers)
+   *
+   * @param label - The label to check
+   * @returns True if this is a Pulsarr-managed label
+   */
+  private isManagedLabel(label: string): boolean {
+    return (
+      this.isAppUserLabel(label) ||
+      label.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase())
+    )
+  }
+
+  /**
    * Checks if a tag is managed by the user tagging system or is a special removal tag
    *
    * @param tagName - The tag to check
@@ -917,6 +930,7 @@ export class PlexLabelSyncService {
       })
 
       // Process each Plex item (handles multiple versions of same content)
+      const appliedRemovedLabels = new Map<string, string>() // ratingKey -> removedLabel
       for (const plexItem of plexItems) {
         const result = await this.reconcileLabelsForSingleItem(
           plexItem.ratingKey,
@@ -929,6 +943,14 @@ export class PlexLabelSyncService {
         totalLabelsAdded += result.labelsAdded
         totalLabelsRemoved += result.labelsRemoved
 
+        // Collect special removed labels for tracking
+        if (result.success && result.specialRemovedLabel) {
+          appliedRemovedLabels.set(
+            plexItem.ratingKey,
+            result.specialRemovedLabel,
+          )
+        }
+
         if (!result.success) {
           this.log.warn('Failed to reconcile labels for Plex item', {
             ratingKey: plexItem.ratingKey,
@@ -938,13 +960,14 @@ export class PlexLabelSyncService {
         }
       }
 
-      // Update tracking table to match final state (user + tag labels)
+      // Update tracking table to match final state (user + tag labels + removed labels)
       await this.updateTrackingForContent(
         content,
         plexItems,
         allDesiredLabels,
         desiredUserLabels,
         desiredTagLabels,
+        appliedRemovedLabels,
       )
 
       this.log.debug('Completed label reconciliation for content', {
@@ -1085,13 +1108,14 @@ export class PlexLabelSyncService {
 
       if (success) {
         // Recompute deltas across all Pulsarr-managed labels, including the special "removed" marker
-        const isManagedLabel = (label: string) =>
-          this.isAppUserLabel(label) ||
-          label.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase())
         const toLowerSet = (arr: string[]) =>
           new Set(arr.map((s) => s.toLowerCase()))
-        const currentManaged = toLowerSet(currentLabels.filter(isManagedLabel))
-        const finalManaged = toLowerSet(finalLabels.filter(isManagedLabel))
+        const currentManaged = toLowerSet(
+          currentLabels.filter((label) => this.isManagedLabel(label)),
+        )
+        const finalManaged = toLowerSet(
+          finalLabels.filter((label) => this.isManagedLabel(label)),
+        )
         const addedCount = [...finalManaged].filter(
           (l) => !currentManaged.has(l),
         ).length
@@ -1110,6 +1134,7 @@ export class PlexLabelSyncService {
           success: true,
           labelsAdded: addedCount,
           labelsRemoved: removedCount,
+          specialRemovedLabel: specialRemovedLabel || undefined,
         }
       }
 
@@ -1155,6 +1180,7 @@ export class PlexLabelSyncService {
     allFinalLabels: string[],
     finalUserLabels: string[],
     finalTagLabels: string[],
+    appliedRemovedLabels: Map<string, string>,
   ): Promise<void> {
     try {
       this.log.debug('Updating tracking table for content', {
@@ -1202,19 +1228,40 @@ export class PlexLabelSyncService {
           }
         }
 
+        // Track special removed labels with system user (ID 0)
+        for (const [ratingKey, removedLabel] of appliedRemovedLabels) {
+          // Use a sentinel value for system-applied labels
+          const systemTrackingKey = `__system__:${ratingKey}:${removedLabel}`
+          desiredTracking.add(systemTrackingKey)
+
+          this.log.debug('Added system removed label to desired tracking', {
+            ratingKey,
+            removedLabel,
+            trackingKey: systemTrackingKey,
+          })
+        }
+
         // Collect obsolete tracking records for bulk removal
         for (const tracking of currentTracking) {
           // Check each label in the tracking record
           for (const label of tracking.labels_applied) {
-            // Find the watchlist_id for this tracking record to match desired key format
-            const matchingUser = content.users.find(
-              (u) => u.user_id === tracking.user_id,
-            )
-            // Use a sentinel value that cannot collide with a valid watchlist_id
-            const watchlistId =
-              matchingUser?.watchlist_id ??
-              `__orphaned_user_${tracking.user_id}__`
-            const trackingKey = `${watchlistId}:${tracking.plex_rating_key}:${label}`
+            let trackingKey: string
+
+            if (tracking.user_id === 0) {
+              // System tracking record for removed labels
+              trackingKey = `__system__:${tracking.plex_rating_key}:${label}`
+            } else {
+              // Regular user tracking record
+              const matchingUser = content.users.find(
+                (u) => u.user_id === tracking.user_id,
+              )
+              // Use a sentinel value that cannot collide with a valid watchlist_id
+              const watchlistId =
+                matchingUser?.watchlist_id ??
+                `__orphaned_user_${tracking.user_id}__`
+              trackingKey = `${watchlistId}:${tracking.plex_rating_key}:${label}`
+            }
+
             if (!desiredTracking.has(trackingKey)) {
               untrackOperations.push({
                 contentGuids: tracking.content_guids,
@@ -1227,6 +1274,7 @@ export class PlexLabelSyncService {
                 userId: tracking.user_id,
                 ratingKey: tracking.plex_rating_key,
                 label: label,
+                isSystemRecord: tracking.user_id === 0,
               })
             }
           }
@@ -1275,6 +1323,22 @@ export class PlexLabelSyncService {
             })
           }
         }
+      }
+
+      // Add system tracking operations for removed labels
+      for (const [ratingKey, removedLabel] of appliedRemovedLabels) {
+        trackOperations.push({
+          contentGuids: content.allGuids,
+          contentType: content.type as 'movie' | 'show',
+          userId: 0, // System user for removed labels
+          plexRatingKey: ratingKey,
+          labelsApplied: [removedLabel],
+        })
+        this.log.debug('Queued system tracking operation for removed label', {
+          ratingKey,
+          removedLabel,
+          contentTitle: content.title,
+        })
       }
 
       // Execute bulk operations
@@ -3490,13 +3554,11 @@ export class PlexLabelSyncService {
                 { currentLabels, labelsToRemove: labels },
               )
 
-              // If we have current labels, filter out the ones we want to remove (case-insensitive)
+              // If we have current labels, filter out all Pulsarr-managed labels (tracked + untracked)
               if (currentLabels.length > 0) {
-                const labelsToRemoveLower = labels.map((label) =>
-                  label.toLowerCase(),
-                )
+                // Remove all managed labels (user labels + tag labels + removed markers)
                 const filteredLabels = currentLabels.filter(
-                  (label) => !labelsToRemoveLower.includes(label.toLowerCase()),
+                  (label) => !this.isManagedLabel(label),
                 )
 
                 this.log.debug(
@@ -3534,31 +3596,36 @@ export class PlexLabelSyncService {
                 }
               } else {
                 // No current labels found via API - this could be the metadata API issue
-                // Use the removeSpecificLabels method which will handle this case better
+                // Use the removeSpecificLabels method and include potential removed markers
                 this.log.warn(
-                  `No current labels found via API for rating key ${ratingKey}, but tracking table indicates ${labels.length} labels should exist. Attempting removal using removeSpecificLabels method.`,
+                  `No current labels found via API for rating key ${ratingKey}, but tracking table indicates ${labels.length} labels should exist. Attempting removal including untracked removed markers.`,
                   { trackedLabels: labels },
                 )
 
+                // Include potential removed markers that might not be tracked
+                const labelsWithRemoved = Array.from(
+                  new Set([...labels, this.removedLabelPrefix]),
+                )
                 const success = await this.plexServer.removeSpecificLabels(
                   ratingKey,
-                  labels,
+                  labelsWithRemoved,
                 )
 
                 if (success) {
-                  itemResult.removed += labels.length
+                  itemResult.removed += labelsWithRemoved.length
 
                   // Collect successful operations for bulk cleanup
                   successfulCleanupOperations.push({
                     plexRatingKey: ratingKey,
-                    labelsToRemove: labels,
+                    labelsToRemove: labelsWithRemoved,
                   })
 
                   this.log.debug(
-                    `Successfully removed ${labels.length} tracked labels using fallback method`,
+                    `Successfully removed ${labelsWithRemoved.length} labels (${labels.length} tracked + removed markers) using fallback method`,
                     {
                       ratingKey,
-                      labels,
+                      trackedLabels: labels,
+                      allLabelsRemoved: labelsWithRemoved,
                     },
                   )
                 } else {
