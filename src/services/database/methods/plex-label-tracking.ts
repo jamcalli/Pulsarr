@@ -661,7 +661,7 @@ export async function untrackPlexLabelBulk(
 export async function untrackPlexLabel(
   this: DatabaseService,
   contentGuids: string[],
-  userId: number,
+  userId: number | null,
   plexRatingKey: string,
   labelApplied: string,
 ): Promise<boolean> {
@@ -978,7 +978,7 @@ export async function isLabelTracked(
   this: DatabaseService,
   contentGuids: string[],
   contentType: 'movie' | 'show',
-  userId: number,
+  userId: number | null,
   plexRatingKey: string,
   labelApplied: string,
 ): Promise<boolean> {

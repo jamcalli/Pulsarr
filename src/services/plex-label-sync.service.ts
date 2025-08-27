@@ -2103,16 +2103,23 @@ export class PlexLabelSyncService {
               watchlistItem?.type &&
               !['movie', 'show'].includes(watchlistItem.type)
             ) {
-              this.log.warn('Unexpected content type, defaulting to movie', {
+              this.log.warn('Unexpected content type, using fallback', {
                 watchlistId: user.watchlist_id,
                 type: watchlistItem.type,
+                fallback: contentType === 'show' ? 'show' : 'movie',
               })
             }
-            const contentType: 'movie' | 'show' =
-              watchlistItem?.type === 'show' ? 'show' : 'movie'
+            const fallbackType: 'movie' | 'show' =
+              contentType === 'show' ? 'show' : 'movie'
+            const contentTypeToUse: 'movie' | 'show' =
+              watchlistItem?.type === 'show'
+                ? 'show'
+                : watchlistItem?.type === 'movie'
+                  ? 'movie'
+                  : fallbackType
             await this.db.trackPlexLabels(
               contentGuids,
-              contentType,
+              contentTypeToUse,
               user.user_id,
               ratingKey,
               combinedLabels,
@@ -4336,7 +4343,7 @@ export class PlexLabelSyncService {
             await this.db.trackPlexLabels(
               entry.guids,
               entry.contentType,
-              entry.user_id,
+              null, // System operation for removed labels
               entry.plexRatingKey,
               [removedLabel],
             )
