@@ -12,7 +12,7 @@ declare module '@services/database.service.js' {
      * Updates the tracking record with the complete set of labels for a content item
      * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
      * @param contentType - Type of content ('movie' or 'show')
-     * @param userId - The ID of the user who has labels applied
+     * @param userId - The ID of the user who has labels applied, or null for system operations
      * @param plexRatingKey - The Plex rating key of the labeled content
      * @param labelsApplied - Array of all label names applied to this content
      * @returns Promise resolving to the ID of the tracking record (new or existing)
@@ -21,7 +21,7 @@ declare module '@services/database.service.js' {
       this: DatabaseService,
       contentGuids: string[],
       contentType: 'movie' | 'show',
-      userId: number,
+      userId: number | null,
       plexRatingKey: string,
       labelsApplied: string[],
     ): Promise<number>
@@ -39,7 +39,7 @@ declare module '@services/database.service.js' {
     /**
      * Removes a tracking record for a specific Plex label and user/content combination
      * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
-     * @param userId - The ID of the user
+     * @param userId - The ID of the user, or null for system operations
      * @param plexRatingKey - The Plex rating key
      * @param labelApplied - The Plex label name to untrack
      * @returns Promise resolving to true if a record was deleted, false if the record wasn't found
@@ -47,7 +47,7 @@ declare module '@services/database.service.js' {
     untrackPlexLabel(
       this: DatabaseService,
       contentGuids: string[],
-      userId: number,
+      userId: number | null,
       plexRatingKey: string,
       labelApplied: string,
     ): Promise<boolean>
@@ -88,14 +88,14 @@ declare module '@services/database.service.js' {
      * Removes all tracking records for a specific user and content combination
      * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
      * @param contentType - Type of content ('movie' or 'show') for disambiguation
-     * @param userId - The ID of the user
+     * @param userId - The ID of the user, or null for system operations
      * @returns Promise resolving to the number of tracking records that were deleted
      */
     cleanupUserContentTracking(
       this: DatabaseService,
       contentGuids: string[],
       contentType: 'movie' | 'show',
-      userId: number,
+      userId: number | null,
     ): Promise<number>
 
     /**
@@ -135,7 +135,7 @@ declare module '@services/database.service.js' {
      * Checks if a specific label is already tracked for a user/content/rating key combination
      * @param contentGuids - Array of GUIDs for the content (e.g., ['tmdb:123', 'imdb:tt456'])
      * @param contentType - Type of content ('movie' or 'show') for disambiguation
-     * @param userId - The ID of the user
+     * @param userId - The ID of the user, or null for system operations
      * @param plexRatingKey - The Plex rating key
      * @param labelApplied - The label to check
      * @returns Promise resolving to true if the label is already tracked, false otherwise
@@ -144,7 +144,7 @@ declare module '@services/database.service.js' {
       this: DatabaseService,
       contentGuids: string[],
       contentType: 'movie' | 'show',
-      userId: number,
+      userId: number | null,
       plexRatingKey: string,
       labelApplied: string,
     ): Promise<boolean>
