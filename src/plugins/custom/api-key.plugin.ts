@@ -51,6 +51,16 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
         return done(error)
       }
 
+      // Get full user data from cache and populate session
+      const user = apiKeyService.getUserForKey(apiKey)
+      if (user) {
+        request.session.user = user
+        fastify.log.debug(
+          { userId: user.id, username: user.username, ip: request.ip },
+          'API key authentication successful - user session populated',
+        )
+      }
+
       done()
     },
   )

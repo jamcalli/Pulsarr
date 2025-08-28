@@ -35,6 +35,7 @@ export async function createApiKey(
         .insert({
           name: data.name,
           key: key,
+          user_id: 1, // Assign to admin user (ID 1)
           is_active: true,
           created_at: this.timestamp,
         })
@@ -44,6 +45,7 @@ export async function createApiKey(
         id: apiKey.id,
         name: apiKey.name,
         key: apiKey.key,
+        user_id: apiKey.user_id,
         created_at: apiKey.created_at,
         is_active: Boolean(apiKey.is_active),
       }
@@ -103,6 +105,7 @@ export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
     id: key.id,
     name: key.name,
     key: key.key,
+    user_id: key.user_id,
     created_at: key.created_at,
     is_active: Boolean(key.is_active),
   }))
@@ -130,6 +133,7 @@ export async function validateApiKey(
     id: apiKey.id,
     name: apiKey.name,
     key: apiKey.key,
+    user_id: apiKey.user_id,
     created_at: apiKey.created_at,
     is_active: Boolean(apiKey.is_active),
   }
@@ -153,18 +157,44 @@ export async function revokeApiKey(
 }
 
 /**
- * Returns an array of all active API key strings.
+ * Returns an array of all active API keys with full user session data for caching.
  *
- * Queries the database for API keys marked as active and returns their key values.
+ * Queries the database for API keys marked as active and returns their key values with full user info.
  *
- * @returns An array of active API key strings.
+ * @returns An array of objects with key and user session data.
  */
-export async function getActiveApiKeys(
-  this: DatabaseService,
-): Promise<string[]> {
+export async function getActiveApiKeys(this: DatabaseService): Promise<
+  Array<{
+    key: string
+    user: { id: number; email: string; username: string; role: string }
+  }>
+> {
   const keys = await this.knex('api_keys')
-    .select('key')
-    .where('is_active', true)
+    .select(
+      'api_keys.key',
+      'admin_users.id',
+      'admin_users.email',
+      'admin_users.username',
+      'admin_users.role',
+    )
+    .join('admin_users', 'api_keys.user_id', 'admin_users.id')
+    .where('api_keys.is_active', true)
 
-  return keys.map((k: { key: string }) => k.key)
+  return keys.map(
+    (k: {
+      key: string
+      id: number
+      email: string
+      username: string
+      role: string
+    }) => ({
+      key: k.key,
+      user: {
+        id: k.id,
+        email: k.email,
+        username: k.username,
+        role: k.role,
+      },
+    }),
+  )
 }

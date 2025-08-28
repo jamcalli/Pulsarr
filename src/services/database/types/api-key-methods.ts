@@ -32,8 +32,13 @@ declare module '@services/database.service.js' {
 
     /**
      * Retrieves all active API keys for cache loading
-     * @returns Promise resolving to array of keys
+     * @returns Promise resolving to array of key objects with full user session data
      */
-    getActiveApiKeys(): Promise<string[]>
+    getActiveApiKeys(): Promise<
+      Array<{
+        key: string
+        user: { id: number; email: string; username: string; role: string }
+      }>
+    >
   }
 }
