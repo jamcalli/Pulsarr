@@ -18,13 +18,6 @@ declare module '@services/database.service.js' {
     getApiKeys(): Promise<ApiKey[]>
 
     /**
-     * Validates an API key
-     * @param key - The API key to validate
-     * @returns Promise resolving to the API key data if valid, null otherwise
-     */
-    validateApiKey(key: string): Promise<ApiKey | null>
-
-    /**
      * Revokes an API key by setting it as inactive
      * @param id - The ID of the API key to revoke
      * @returns Promise resolving to true if revoked, false if not found

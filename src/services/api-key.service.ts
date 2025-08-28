@@ -6,11 +6,9 @@ import type { FastifyInstance } from 'fastify'
  * Service for managing API keys
  */
 export class ApiKeyService {
-  private apiKeyCache: Map<string, Auth> // key -> user session data
+  private apiKeyCache: Map<string, Auth> = new Map() // key -> user session data
 
-  constructor(private fastify: FastifyInstance) {
-    this.apiKeyCache = new Map<string, Auth>()
-  }
+  constructor(private fastify: FastifyInstance) {}
 
   /**
    * Initialize the service and load API keys into cache
@@ -33,7 +31,10 @@ export class ApiKeyService {
 
       // Atomic swap to avoid race conditions during refresh
       this.apiKeyCache = nextCache
-      this.fastify.log.info(`Loaded ${nextCache.size} API keys into cache`)
+      this.fastify.log.info(
+        { count: nextCache.size },
+        'Loaded API keys into cache',
+      )
     } catch (error) {
       this.fastify.log.error({ error }, 'Failed to refresh API key cache')
       throw error
@@ -99,7 +100,7 @@ export class ApiKeyService {
    * Verify an API key and return user data if valid
    */
   verifyAndGetUser(key: string): Auth | null {
-    const user = this.apiKeyCache.get(key) || null
+    const user = this.apiKeyCache.get(key) ?? null
     if (!user) {
       this.fastify.log.warn('Invalid API key attempted')
     }

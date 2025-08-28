@@ -128,34 +128,6 @@ export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
 }
 
 /**
- * Validates whether the given API key string exists and is active.
- *
- * @param key - The API key string to validate
- * @returns The corresponding active API key object if found; otherwise, null
- */
-export async function validateApiKey(
-  this: DatabaseService,
-  key: string,
-): Promise<ApiKey | null> {
-  // Simple lookup by key
-  const apiKey = await this.knex('api_keys')
-    .where('key', key)
-    .where('is_active', true)
-    .first()
-
-  if (!apiKey) return null
-
-  return {
-    id: apiKey.id,
-    name: apiKey.name,
-    key: apiKey.key,
-    user_id: apiKey.user_id,
-    created_at: apiKey.created_at,
-    is_active: Boolean(apiKey.is_active),
-  }
-}
-
-/**
  * Revokes an API key by setting its active status to false.
  *
  * @param id - The unique identifier of the API key to revoke
