@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
+import type { SessionUser } from '@root/types/session.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
@@ -24,6 +25,25 @@ export async function createApiKey(
   this: DatabaseService,
   data: ApiKeyCreate,
 ): Promise<ApiKey> {
+  // Dynamic admin user lookup with fallback to user ID 1
+  // NOTE: The system currently assumes a single admin user with ID 1, but this provides
+  // flexibility for future multi-admin support while maintaining backward compatibility
+  let targetUserId = 1 // Default fallback for backward compatibility
+
+  const adminUser = await this.knex('admin_users')
+    .where('role', 'admin')
+    .orderBy('id', 'asc')
+    .first()
+
+  if (!adminUser) {
+    throw new Error(
+      'Cannot create API key: No admin user found. ' +
+        'Please create an admin user first.',
+    )
+  }
+
+  targetUserId = adminUser.id
+
   const MAX_RETRIES = 5
   let attempt = 0
 
@@ -35,7 +55,7 @@ export async function createApiKey(
         .insert({
           name: data.name,
           key: key,
-          user_id: 1, // Assign to admin user (ID 1)
+          user_id: targetUserId, // Assign to discovered admin user
           is_active: true,
           created_at: this.timestamp,
         })
@@ -97,7 +117,7 @@ export async function createApiKey(
  */
 export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
   const keys = await this.knex('api_keys')
-    .select('*')
+    .select('id', 'name', 'key', 'user_id', 'created_at', 'is_active')
     .where('is_active', true)
     .orderBy('created_at', 'desc')
 
@@ -163,12 +183,9 @@ export async function revokeApiKey(
  *
  * @returns An array of objects with key and user session data.
  */
-export async function getActiveApiKeys(this: DatabaseService): Promise<
-  Array<{
-    key: string
-    user: { id: number; email: string; username: string; role: string }
-  }>
-> {
+export async function getActiveApiKeys(
+  this: DatabaseService,
+): Promise<Array<{ key: string; user: SessionUser }>> {
   const keys = await this.knex('api_keys')
     .select(
       'api_keys.key',
