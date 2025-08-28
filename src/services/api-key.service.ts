@@ -28,14 +28,7 @@ export class ApiKeyService {
       const nextCache = new Map<string, Auth>()
 
       for (const apiKey of apiKeys) {
-        if (apiKey.user) {
-          nextCache.set(apiKey.key, apiKey.user)
-        } else {
-          this.fastify.log.warn(
-            { key: apiKey.key },
-            'Active API key missing user data; skipped from cache',
-          )
-        }
+        nextCache.set(apiKey.key, apiKey.user)
       }
 
       // Atomic swap to avoid race conditions during refresh
