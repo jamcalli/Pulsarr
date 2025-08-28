@@ -1,11 +1,12 @@
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
+import type { SessionUser } from '@root/types/session.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
     // API KEY MANAGEMENT
     /**
      * Creates a new API key
-     * @param data - API key creation data (name and optional expiration)
+     * @param data - API key creation data (name)
      * @returns Promise resolving to the created API key with the actual key value
      */
     createApiKey(data: ApiKeyCreate): Promise<ApiKey>
@@ -34,11 +35,6 @@ declare module '@services/database.service.js' {
      * Retrieves all active API keys for cache loading
      * @returns Promise resolving to array of key objects with full user session data
      */
-    getActiveApiKeys(): Promise<
-      Array<{
-        key: string
-        user: { id: number; email: string; username: string; role: string }
-      }>
-    >
+    getActiveApiKeys(): Promise<Array<{ key: string; user: SessionUser }>>
   }
 }

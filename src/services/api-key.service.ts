@@ -1,20 +1,15 @@
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
+import type { SessionUser } from '@root/types/session.types.js'
 import type { FastifyInstance } from 'fastify'
 
 /**
  * Service for managing API keys
  */
 export class ApiKeyService {
-  private apiKeyCache: Map<
-    string,
-    { id: number; email: string; username: string; role: string }
-  > // key -> user session data
+  private apiKeyCache: Map<string, SessionUser> // key -> user session data
 
   constructor(private fastify: FastifyInstance) {
-    this.apiKeyCache = new Map<
-      string,
-      { id: number; email: string; username: string; role: string }
-    >()
+    this.apiKeyCache = new Map<string, SessionUser>()
   }
 
   /**
@@ -32,7 +27,14 @@ export class ApiKeyService {
       const apiKeys = await this.fastify.db.getActiveApiKeys()
       this.apiKeyCache.clear()
       for (const apiKey of apiKeys) {
-        this.apiKeyCache.set(apiKey.key, apiKey.user)
+        if (apiKey.user) {
+          this.apiKeyCache.set(apiKey.key, apiKey.user)
+        } else {
+          this.fastify.log.warn(
+            { key: apiKey.key },
+            'Active API key missing user data; skipped from cache',
+          )
+        }
       }
       this.fastify.log.info(`Loaded ${apiKeys.length} API keys into cache`)
     } catch (error) {
@@ -99,7 +101,7 @@ export class ApiKeyService {
   /**
    * Validate an API key
    */
-  async validateApiKey(key: string): Promise<boolean> {
+  validateApiKey(key: string): boolean {
     const isValid = this.apiKeyCache.has(key)
     if (!isValid) {
       this.fastify.log.warn('Invalid API key attempted')
@@ -110,9 +112,7 @@ export class ApiKeyService {
   /**
    * Get user session data for a valid API key
    */
-  getUserForKey(
-    key: string,
-  ): { id: number; email: string; username: string; role: string } | null {
+  getUserForKey(key: string): SessionUser | null {
     return this.apiKeyCache.get(key) || null
   }
 }
