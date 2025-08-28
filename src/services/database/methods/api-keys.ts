@@ -6,7 +6,11 @@ import type { DatabaseService } from '@services/database.service.js'
 /**
  * Generates a cryptographically secure API key as a 32-byte base64url-encoded string.
  *
- * @returns A secure, base64url-encoded API key string
+ * Format: 32 random bytes → base64url encoding → 43-character string
+ * Example: "dGhpcyBpcyBhIHRlc3Qgc3RyaW5nIGZvciBhcGkga2V5cw"
+ * Uniqueness: Cryptographically secure random generation with retry logic
+ *
+ * @returns A secure, 43-character base64url-encoded API key string
  */
 function generateApiKey(): string {
   // Generate a secure random key

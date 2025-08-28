@@ -14,13 +14,14 @@ export class ApiKeyService {
    * Initialize the service and load API keys into cache
    */
   async initialize(): Promise<void> {
-    await this.refreshCache()
+    await this.refreshCache(true) // Throw on startup failure
   }
 
   /**
    * Refresh the API key cache from database
+   * @param throwOnError - Whether to throw on error (default: false for resilience)
    */
-  async refreshCache(): Promise<void> {
+  async refreshCache(throwOnError = false): Promise<void> {
     try {
       const apiKeys = await this.fastify.db.getActiveApiKeys()
       const nextCache = new Map<string, Auth>()
@@ -36,8 +37,15 @@ export class ApiKeyService {
         'Loaded API keys into cache',
       )
     } catch (error) {
-      this.fastify.log.error({ error }, 'Failed to refresh API key cache')
-      throw error
+      this.fastify.log.error(
+        { error },
+        'Failed to refresh API key cache - keeping existing cache',
+      )
+
+      if (throwOnError) {
+        throw error
+      }
+      // Otherwise, keep existing cache for service resilience
     }
   }
 
