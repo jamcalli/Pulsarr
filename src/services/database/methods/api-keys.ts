@@ -193,21 +193,8 @@ export async function getActiveApiKeys(
     .join('admin_users', 'api_keys.user_id', 'admin_users.id')
     .where('api_keys.is_active', true)
 
-  return keys.map(
-    (k: {
-      key: string
-      id: number
-      email: string
-      username: string
-      role: string
-    }) => ({
-      key: k.key,
-      user: {
-        id: k.id,
-        email: k.email,
-        username: k.username,
-        role: k.role,
-      },
-    }),
-  )
+  return keys.map(({ key, id, email, username, role }) => ({
+    key,
+    user: { id, email, username, role },
+  }))
 }
