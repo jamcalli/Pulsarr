@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
-import type { SessionUser } from '@root/types/session.types.js'
+import type { Auth } from '@schemas/auth/auth.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
@@ -181,7 +181,7 @@ export async function revokeApiKey(
  */
 export async function getActiveApiKeys(
   this: DatabaseService,
-): Promise<Array<{ key: string; user: SessionUser }>> {
+): Promise<Array<{ key: string; user: Auth }>> {
   const keys = await this.knex('api_keys')
     .select(
       'api_keys.key',

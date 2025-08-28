@@ -1,12 +1,11 @@
 import fastifyCookie from '@fastify/cookie'
 import fastifySession from '@fastify/session'
-import type { SessionUser } from '@root/types/session.types.js'
 import type { Auth } from '@schemas/auth/auth.js'
 import fp from 'fastify-plugin'
 
 declare module 'fastify' {
   interface Session {
-    user: Auth | SessionUser
+    user: Auth
   }
 }
 

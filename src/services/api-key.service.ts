@@ -1,15 +1,15 @@
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
-import type { SessionUser } from '@root/types/session.types.js'
+import type { Auth } from '@schemas/auth/auth.js'
 import type { FastifyInstance } from 'fastify'
 
 /**
  * Service for managing API keys
  */
 export class ApiKeyService {
-  private apiKeyCache: Map<string, SessionUser> // key -> user session data
+  private apiKeyCache: Map<string, Auth> // key -> user session data
 
   constructor(private fastify: FastifyInstance) {
-    this.apiKeyCache = new Map<string, SessionUser>()
+    this.apiKeyCache = new Map<string, Auth>()
   }
 
   /**
@@ -25,7 +25,7 @@ export class ApiKeyService {
   async refreshCache(): Promise<void> {
     try {
       const apiKeys = await this.fastify.db.getActiveApiKeys()
-      const nextCache = new Map<string, SessionUser>()
+      const nextCache = new Map<string, Auth>()
 
       for (const apiKey of apiKeys) {
         if (apiKey.user) {
@@ -103,20 +103,13 @@ export class ApiKeyService {
   }
 
   /**
-   * Validate an API key
+   * Verify an API key and return user data if valid
    */
-  validateApiKey(key: string): boolean {
-    const isValid = this.apiKeyCache.has(key)
-    if (!isValid) {
+  verifyAndGetUser(key: string): Auth | null {
+    const user = this.apiKeyCache.get(key) || null
+    if (!user) {
       this.fastify.log.warn('Invalid API key attempted')
     }
-    return isValid
-  }
-
-  /**
-   * Get user session data for a valid API key
-   */
-  getUserForKey(key: string): SessionUser | null {
-    return this.apiKeyCache.get(key) || null
+    return user
   }
 }
