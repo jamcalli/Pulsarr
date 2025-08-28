@@ -1,11 +1,12 @@
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
+import type { Auth } from '@schemas/auth/auth.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
     // API KEY MANAGEMENT
     /**
      * Creates a new API key
-     * @param data - API key creation data (name and optional expiration)
+     * @param data - API key creation data (name)
      * @returns Promise resolving to the created API key with the actual key value
      */
     createApiKey(data: ApiKeyCreate): Promise<ApiKey>
@@ -17,13 +18,6 @@ declare module '@services/database.service.js' {
     getApiKeys(): Promise<ApiKey[]>
 
     /**
-     * Validates an API key
-     * @param key - The API key to validate
-     * @returns Promise resolving to the API key data if valid, null otherwise
-     */
-    validateApiKey(key: string): Promise<ApiKey | null>
-
-    /**
      * Revokes an API key by setting it as inactive
      * @param id - The ID of the API key to revoke
      * @returns Promise resolving to true if revoked, false if not found
@@ -32,8 +26,8 @@ declare module '@services/database.service.js' {
 
     /**
      * Retrieves all active API keys for cache loading
-     * @returns Promise resolving to array of keys
+     * @returns Promise resolving to array of key objects with user data (id, email, username, role)
      */
-    getActiveApiKeys(): Promise<string[]>
+    getActiveApiKeys(): Promise<Array<{ key: string; user: Auth }>>
   }
 }

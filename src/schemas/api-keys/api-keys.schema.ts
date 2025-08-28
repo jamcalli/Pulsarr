@@ -5,6 +5,7 @@ const ApiKeySchema = z.object({
   id: z.number(),
   name: z.string(),
   key: z.string(),
+  user_id: z.number(),
   created_at: z.string(),
   is_active: z.boolean(),
 })
