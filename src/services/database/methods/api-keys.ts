@@ -25,11 +25,7 @@ export async function createApiKey(
   this: DatabaseService,
   data: ApiKeyCreate,
 ): Promise<ApiKey> {
-  // Dynamic admin user lookup with fallback to user ID 1
-  // NOTE: The system currently assumes a single admin user with ID 1, but this provides
-  // flexibility for future multi-admin support while maintaining backward compatibility
-  let targetUserId = 1 // Default fallback for backward compatibility
-
+  // Resolve an admin user to own the API key
   const adminUser = await this.knex('admin_users')
     .where('role', 'admin')
     .orderBy('id', 'asc')
@@ -42,7 +38,7 @@ export async function createApiKey(
     )
   }
 
-  targetUserId = adminUser.id
+  const targetUserId = adminUser.id
 
   const MAX_RETRIES = 5
   let attempt = 0

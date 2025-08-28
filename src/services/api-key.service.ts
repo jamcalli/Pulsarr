@@ -25,10 +25,11 @@ export class ApiKeyService {
   async refreshCache(): Promise<void> {
     try {
       const apiKeys = await this.fastify.db.getActiveApiKeys()
-      this.apiKeyCache.clear()
+      const nextCache = new Map<string, SessionUser>()
+
       for (const apiKey of apiKeys) {
         if (apiKey.user) {
-          this.apiKeyCache.set(apiKey.key, apiKey.user)
+          nextCache.set(apiKey.key, apiKey.user)
         } else {
           this.fastify.log.warn(
             { key: apiKey.key },
@@ -36,7 +37,10 @@ export class ApiKeyService {
           )
         }
       }
-      this.fastify.log.info(`Loaded ${apiKeys.length} API keys into cache`)
+
+      // Atomic swap to avoid race conditions during refresh
+      this.apiKeyCache = nextCache
+      this.fastify.log.info(`Loaded ${nextCache.size} API keys into cache`)
     } catch (error) {
       this.fastify.log.error({ error }, 'Failed to refresh API key cache')
       throw error

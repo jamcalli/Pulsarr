@@ -27,7 +27,8 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
       _reply: FastifyReply,
       done: (error?: Error) => void,
     ) => {
-      const apiKey = request.headers['x-api-key'] as string
+      const rawApiKey = request.headers['x-api-key']
+      const apiKey = Array.isArray(rawApiKey) ? rawApiKey[0] : rawApiKey
 
       if (!apiKey) {
         const error = new Error('Missing API key') as Error & {
