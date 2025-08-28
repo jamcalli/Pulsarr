@@ -5,10 +5,16 @@ import type { FastifyInstance } from 'fastify'
  * Service for managing API keys
  */
 export class ApiKeyService {
-  private apiKeyCache: Set<string>
+  private apiKeyCache: Map<
+    string,
+    { id: number; email: string; username: string; role: string }
+  > // key -> user session data
 
   constructor(private fastify: FastifyInstance) {
-    this.apiKeyCache = new Set<string>()
+    this.apiKeyCache = new Map<
+      string,
+      { id: number; email: string; username: string; role: string }
+    >()
   }
 
   /**
@@ -23,12 +29,12 @@ export class ApiKeyService {
    */
   async refreshCache(): Promise<void> {
     try {
-      const keys = await this.fastify.db.getActiveApiKeys()
+      const apiKeys = await this.fastify.db.getActiveApiKeys()
       this.apiKeyCache.clear()
-      for (const key of keys) {
-        this.apiKeyCache.add(key)
+      for (const apiKey of apiKeys) {
+        this.apiKeyCache.set(apiKey.key, apiKey.user)
       }
-      this.fastify.log.info(`Loaded ${keys.length} API keys into cache`)
+      this.fastify.log.info(`Loaded ${apiKeys.length} API keys into cache`)
     } catch (error) {
       this.fastify.log.error({ error }, 'Failed to refresh API key cache')
       throw error
@@ -99,5 +105,14 @@ export class ApiKeyService {
       this.fastify.log.warn('Invalid API key attempted')
     }
     return isValid
+  }
+
+  /**
+   * Get user session data for a valid API key
+   */
+  getUserForKey(
+    key: string,
+  ): { id: number; email: string; username: string; role: string } | null {
+    return this.apiKeyCache.get(key) || null
   }
 }
