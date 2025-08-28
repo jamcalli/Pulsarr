@@ -38,9 +38,10 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
         return done(error)
       }
 
-      const isValid = apiKeyService.validateApiKey(apiKey)
+      // Verify API key and get user data in single operation
+      const user = apiKeyService.verifyAndGetUser(apiKey)
 
-      if (!isValid) {
+      if (!user) {
         fastify.log.warn(
           { ip: request.ip, url: request.url },
           'Invalid API key authentication attempt',
@@ -52,24 +53,20 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
         return done(error)
       }
 
-      // Get full user data from cache and populate session
-      const user = apiKeyService.getUserForKey(apiKey)
-      if (user) {
-        // Defensive: ensure session plugin has initialized `request.session`
-        if (!request.session) {
-          fastify.log.error(
-            { apiKey: `${apiKey.substring(0, 8)}...`, ip: request.ip },
-            'Session plugin not initialized - cannot populate user session',
-          )
-          return done(new Error('Session not initialized'))
-        }
-
-        request.session.user = user
-        fastify.log.debug(
-          { userId: user.id, username: user.username, ip: request.ip },
-          'API key authentication successful - user session populated',
+      // Defensive: ensure session plugin has initialized `request.session`
+      if (!request.session) {
+        fastify.log.error(
+          { apiKey: `${apiKey.substring(0, 8)}...`, ip: request.ip },
+          'Session plugin not initialized - cannot populate user session',
         )
+        return done(new Error('Session not initialized'))
       }
+
+      request.session.user = user
+      fastify.log.debug(
+        { userId: user.id, username: user.username, ip: request.ip },
+        'API key authentication successful - user session populated',
+      )
 
       done()
     },
