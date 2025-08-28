@@ -1,15 +1,14 @@
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
+import type { Auth } from '@schemas/auth/auth.js'
 import type { FastifyInstance } from 'fastify'
 
 /**
  * Service for managing API keys
  */
 export class ApiKeyService {
-  private apiKeyCache: Set<string>
+  private apiKeyCache: Map<string, Auth> = new Map() // key -> user session data
 
-  constructor(private fastify: FastifyInstance) {
-    this.apiKeyCache = new Set<string>()
-  }
+  constructor(private fastify: FastifyInstance) {}
 
   /**
    * Initialize the service and load API keys into cache
@@ -23,12 +22,19 @@ export class ApiKeyService {
    */
   async refreshCache(): Promise<void> {
     try {
-      const keys = await this.fastify.db.getActiveApiKeys()
-      this.apiKeyCache.clear()
-      for (const key of keys) {
-        this.apiKeyCache.add(key)
+      const apiKeys = await this.fastify.db.getActiveApiKeys()
+      const nextCache = new Map<string, Auth>()
+
+      for (const apiKey of apiKeys) {
+        nextCache.set(apiKey.key, apiKey.user)
       }
-      this.fastify.log.info(`Loaded ${keys.length} API keys into cache`)
+
+      // Atomic swap to avoid race conditions during refresh
+      this.apiKeyCache = nextCache
+      this.fastify.log.info(
+        { count: nextCache.size },
+        'Loaded API keys into cache',
+      )
     } catch (error) {
       this.fastify.log.error({ error }, 'Failed to refresh API key cache')
       throw error
@@ -91,13 +97,13 @@ export class ApiKeyService {
   }
 
   /**
-   * Validate an API key
+   * Verify an API key and return user data if valid
    */
-  async validateApiKey(key: string): Promise<boolean> {
-    const isValid = this.apiKeyCache.has(key)
-    if (!isValid) {
+  verifyAndGetUser(key: string): Auth | null {
+    const user = this.apiKeyCache.get(key) ?? null
+    if (!user) {
       this.fastify.log.warn('Invalid API key attempted')
     }
-    return isValid
+    return user
   }
 }

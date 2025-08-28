@@ -22,12 +22,13 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
   // Register API key verification strategy
   fastify.decorate(
     'verifyApiKey',
-    async (
+    (
       request: FastifyRequest,
       _reply: FastifyReply,
       done: (error?: Error) => void,
     ) => {
-      const apiKey = request.headers['x-api-key'] as string
+      const rawApiKey = request.headers['x-api-key']
+      const apiKey = Array.isArray(rawApiKey) ? rawApiKey[0] : rawApiKey
 
       if (!apiKey) {
         const error = new Error('Missing API key') as Error & {
@@ -37,9 +38,10 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
         return done(error)
       }
 
-      const isValid = await apiKeyService.validateApiKey(apiKey)
+      // Verify API key and get user data in single operation
+      const user = apiKeyService.verifyAndGetUser(apiKey)
 
-      if (!isValid) {
+      if (!user) {
         fastify.log.warn(
           { ip: request.ip, url: request.url },
           'Invalid API key authentication attempt',
@@ -51,6 +53,21 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
         return done(error)
       }
 
+      // Defensive: ensure session plugin has initialized `request.session`
+      if (!request.session) {
+        fastify.log.error(
+          { apiKey: `${apiKey.substring(0, 8)}...`, ip: request.ip },
+          'Session plugin not initialized - cannot populate user session',
+        )
+        return done(new Error('Session not initialized'))
+      }
+
+      request.session.user = user
+      fastify.log.debug(
+        { userId: user.id, username: user.username, ip: request.ip },
+        'API key authentication successful - user session populated',
+      )
+
       done()
     },
   )
@@ -58,7 +75,7 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
 
 export default fp(apiKeyPlugin, {
   name: 'api-key',
-  dependencies: ['database'],
+  dependencies: ['database', 'session'],
 })
 
 // Add type definitions
