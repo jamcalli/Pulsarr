@@ -145,7 +145,7 @@ export async function revokeApiKey(
 }
 
 /**
- * Returns an array of all active API keys with full user session data for caching.
+ * Returns an array of all active API keys with user data (id, email, username, role) for caching.
  *
  * Queries the database for API keys marked as active and returns their key values with full user info.
  *
