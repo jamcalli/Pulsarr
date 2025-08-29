@@ -55,6 +55,15 @@ export class SchedulerService {
   private readonly jobs: JobMap = new Map()
   private log: FastifyBaseLogger
 
+  /** Track if we're in the initial startup phase */
+  private isInitializing = true
+
+  /** Expected handler count for completion tracking */
+  private expectedHandlerCount = 0
+
+  /** Flag to track if ready message has been logged */
+  private hasLoggedReady = false
+
   /**
    * Creates a new SchedulerService instance
    *
@@ -79,13 +88,16 @@ export class SchedulerService {
   async initializeJobsFromDatabase(): Promise<void> {
     try {
       const schedules = await this.fastify.db.getAllSchedules()
-      this.log.info(`Initializing ${schedules.length} jobs from database`)
+      this.log.debug(`Initializing ${schedules.length} jobs from database`)
+
+      let jobsScheduled = 0
+      let jobsDisabled = 0
 
       for (const schedule of schedules) {
         const handler = this.jobs.get(schedule.name)?.handler
 
         if (handler && schedule.enabled) {
-          this.log.info(`Setting up job: ${schedule.name}`)
+          this.log.debug(`Setting up job: ${schedule.name}`)
 
           try {
             const job = this.createJob(
@@ -113,16 +125,42 @@ export class SchedulerService {
               handler,
             })
 
-            this.log.info(`Job ${schedule.name} scheduled successfully`)
+            this.log.debug(`Job ${schedule.name} scheduled successfully`)
+            jobsScheduled++
           } catch (error) {
             this.log.error({ error }, `Error setting up job ${schedule.name}`)
           }
         } else if (!handler) {
-          this.log.warn(`No handler registered for job ${schedule.name}`)
+          // During initial startup, this is expected as services haven't registered handlers yet
+          if (this.isInitializing) {
+            this.log.debug(
+              `Job ${schedule.name} found in database - awaiting handler registration from service`,
+            )
+          } else {
+            // After initialization, this would be a real issue
+            this.log.warn(`No handler registered for job ${schedule.name}`)
+          }
         } else if (!schedule.enabled) {
-          this.log.info(`Job ${schedule.name} is disabled`)
+          this.log.debug(`Job ${schedule.name} is disabled`)
+          jobsDisabled++
         }
       }
+
+      // Store expected handler count for completion tracking
+      this.expectedHandlerCount = schedules.length
+
+      // Track initial state but don't log yet since no handlers are registered
+
+      // Start monitoring for completion
+      this.checkForCompletionReadiness()
+
+      // Mark initialization as complete after a short delay to allow services to register
+      setTimeout(() => {
+        this.isInitializing = false
+        this.log.debug('Scheduler initialization phase complete')
+        // Final check for completion after initialization period
+        this.checkForCompletionReadiness()
+      }, 5000)
     } catch (error) {
       this.log.error({ error }, 'Error initializing jobs from database')
     }
@@ -264,14 +302,21 @@ export class SchedulerService {
           job: existingJob.job,
           handler,
         })
-        this.log.info(`Updated handler for existing job: ${name}`)
+        this.log.debug(`Updated handler for existing job: ${name}`)
       } else {
         // Register new handler
         this.jobs.set(name, {
           job: null,
           handler,
         })
-        this.log.info(`Registered handler for job: ${name}`)
+        // Log at appropriate level based on initialization state
+        if (this.isInitializing) {
+          this.log.debug(
+            `Registered handler for job: ${name} (during initialization)`,
+          )
+        } else {
+          this.log.info(`Registered handler for new job: ${name}`)
+        }
       }
 
       // Get schedule from database
@@ -300,7 +345,7 @@ export class SchedulerService {
         })
 
         schedule = await this.fastify.db.getScheduleByName(name)
-        this.log.info(
+        this.log.debug(
           `Created default schedule for job ${name} with next run at ${nextRun.toISOString()}`,
         )
       }
@@ -329,8 +374,11 @@ export class SchedulerService {
         // Save reference to the job
         this.jobs.set(name, { job, handler })
 
-        this.log.info(`Job ${name} scheduled successfully`)
+        this.log.debug(`Job ${name} scheduled successfully`)
       }
+
+      // Check if we're now ready (all handlers registered)
+      this.checkForCompletionReadiness()
 
       return true
     } catch (error) {
@@ -351,7 +399,7 @@ export class SchedulerService {
       if (job) {
         this.scheduler.removeById(name)
         this.jobs.delete(name)
-        this.log.info(`Job ${name} unscheduled successfully`)
+        this.log.debug(`Job ${name} unscheduled successfully`)
         return true
       }
       return false
@@ -505,7 +553,7 @@ export class SchedulerService {
         // Update reference
         this.jobs.set(name, { job, handler: jobData.handler })
 
-        this.log.info(`Job ${name} updated with new configuration`)
+        this.log.debug(`Job ${name} updated with new configuration`)
       }
       // If job was disabled but should be enabled
       else if (!schedule.enabled && enabled === true) {
@@ -530,7 +578,7 @@ export class SchedulerService {
         // Update reference
         this.jobs.set(name, { job, handler: jobData.handler })
 
-        this.log.info(`Job ${name} enabled and scheduled`)
+        this.log.debug(`Job ${name} enabled and scheduled`)
       }
       // If job was enabled but should be disabled
       else if (schedule.enabled && enabled === false) {
@@ -538,7 +586,7 @@ export class SchedulerService {
         this.scheduler.removeById(name)
         this.jobs.set(name, { job: null, handler: jobData.handler })
 
-        this.log.info(`Job ${name} disabled`)
+        this.log.debug(`Job ${name} disabled`)
       }
 
       return true
@@ -687,5 +735,34 @@ export class SchedulerService {
     }
 
     return nextRun
+  }
+
+  /**
+   * Check if all expected handlers are registered and log completion message
+   */
+  private checkForCompletionReadiness(): void {
+    // Don't check if we've already logged ready or have no expected handlers
+    if (this.hasLoggedReady || this.expectedHandlerCount === 0) {
+      return
+    }
+
+    // Count currently active (scheduled) jobs
+    let activeJobCount = 0
+    for (const [_name, jobData] of this.jobs) {
+      if (jobData.job !== null) {
+        activeJobCount++
+      }
+    }
+
+    // Count total registered handlers
+    const registeredHandlerCount = this.jobs.size
+
+    // Check if we have handlers for all expected jobs
+    if (registeredHandlerCount >= this.expectedHandlerCount) {
+      this.hasLoggedReady = true
+      this.log.info(
+        `Scheduler ready: ${activeJobCount} jobs scheduled and active`,
+      )
+    }
   }
 }

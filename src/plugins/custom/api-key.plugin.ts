@@ -11,7 +11,7 @@ const apiKeyPlugin: FastifyPluginAsync = async (fastify, _opts) => {
   await fastify.register(auth)
 
   // Create the API key service
-  const apiKeyService = new ApiKeyService(fastify)
+  const apiKeyService = new ApiKeyService(fastify.log, fastify)
 
   // Initialize the service (loads keys into cache)
   await apiKeyService.initialize()

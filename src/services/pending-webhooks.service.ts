@@ -101,7 +101,7 @@ export class PendingWebhooksService {
         const deleted = await this.processWebhooks()
         // Only log completion if we actually processed something
         if (deleted > 0) {
-          this.log.info(`Deleted ${deleted} pending webhooks`)
+          this.log.debug(`Deleted ${deleted} pending webhooks`)
         }
       },
     )
@@ -211,7 +211,7 @@ export class PendingWebhooksService {
                   // Also trigger label sync for the content now that we found watchlist items
                   await this.triggerLabelSync(webhook.id, moviePayload, 'movie')
 
-                  this.log.info(
+                  this.log.debug(
                     `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
                   )
                   // Delete the processed webhook
@@ -292,7 +292,7 @@ export class PendingWebhooksService {
                     // Also trigger label sync for the content now that we found watchlist items
                     await this.triggerLabelSync(webhook.id, payload, 'show')
 
-                    this.log.info(
+                    this.log.debug(
                       `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
                     )
                     // Delete the processed webhook

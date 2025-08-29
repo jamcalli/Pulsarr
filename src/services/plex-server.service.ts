@@ -122,7 +122,9 @@ export class PlexServerService {
       if (!users || users.length === 0) {
         this.log.warn('No Plex users found during initialization')
       } else {
-        this.log.info(`Loaded ${users.length} Plex users during initialization`)
+        this.log.debug(
+          `Loaded ${users.length} Plex users during initialization`,
+        )
       }
 
       // Load shared server info to get user tokens
@@ -130,7 +132,7 @@ export class PlexServerService {
       if (serverInfo.size === 0) {
         this.log.warn('No shared server info found during initialization')
       } else {
-        this.log.info(
+        this.log.debug(
           `Loaded shared server info with ${serverInfo.size} user tokens`,
         )
       }
@@ -233,7 +235,7 @@ export class PlexServerService {
 
       // Only use the URL if it's configured and not the default value
       if (configUrl && configUrl !== defaultUrl) {
-        this.log.info(`Found manually configured Plex URL: ${configUrl}`)
+        this.log.debug(`Found manually configured Plex URL: ${configUrl}`)
 
         // Try to match with discovered connections
         const configMatch = connections.find(
@@ -249,7 +251,7 @@ export class PlexServerService {
             c.isDefault = false
           }
           configMatch.isDefault = true
-          this.log.info(
+          this.log.debug(
             'Manually configured URL matches a discovered connection - setting as default',
           )
         } else {
@@ -266,7 +268,7 @@ export class PlexServerService {
             connections[i].isDefault = false
           }
 
-          this.log.info(
+          this.log.debug(
             'Manually configured URL does not match any discovered connection - adding as override',
           )
         }
@@ -287,9 +289,9 @@ export class PlexServerService {
 
       // Log connection details at info level for clear auto-configuration visibility
       if (connections.length > 0) {
-        this.log.info('Available Plex connections:')
+        this.log.debug('Available Plex connections:')
         for (const [index, conn] of connections.entries()) {
-          this.log.info(
+          this.log.debug(
             `Connection ${index + 1}: URL=${conn.url}, Local=${conn.local}, Relay=${conn.relay}, Default=${conn.isDefault}`,
           )
         }
@@ -314,7 +316,7 @@ export class PlexServerService {
 
     // Only use the configured URL if it's provided and not the default value
     if (configUrl && configUrl !== defaultUrl) {
-      this.log.info(
+      this.log.debug(
         `Using manually configured Plex URL as fallback: ${configUrl}`,
       )
       return [
@@ -355,7 +357,7 @@ export class PlexServerService {
     const connections = await this.getPlexServerConnectionInfo()
 
     if (connections.length === 0) {
-      this.log.info(
+      this.log.debug(
         'No Plex connections found, using localhost fallback: http://localhost:32400',
       )
       this.selectedConnectionUrl = 'http://localhost:32400'
@@ -365,7 +367,7 @@ export class PlexServerService {
     // Prioritize default connection if available
     const defaultConn = connections.find((c) => c.isDefault)
     if (defaultConn) {
-      this.log.info(`Using default Plex connection: ${defaultConn.url}`)
+      this.log.debug(`Using default Plex connection: ${defaultConn.url}`)
       this.selectedConnectionUrl = defaultConn.url
       return this.selectedConnectionUrl
     }
@@ -374,7 +376,7 @@ export class PlexServerService {
     if (preferLocal) {
       const localConn = connections.find((c) => c.local)
       if (localConn) {
-        this.log.info(`Using local Plex connection: ${localConn.url}`)
+        this.log.debug(`Using local Plex connection: ${localConn.url}`)
         this.selectedConnectionUrl = localConn.url
         return this.selectedConnectionUrl
       }
@@ -383,13 +385,13 @@ export class PlexServerService {
     // Then try non-relay connections
     const nonRelayConn = connections.find((c) => !c.relay)
     if (nonRelayConn) {
-      this.log.info(`Using non-relay Plex connection: ${nonRelayConn.url}`)
+      this.log.debug(`Using non-relay Plex connection: ${nonRelayConn.url}`)
       this.selectedConnectionUrl = nonRelayConn.url
       return this.selectedConnectionUrl
     }
 
     // Finally use the first available connection, even if it's a relay
-    this.log.info(
+    this.log.debug(
       `Using fallback Plex connection (relay): ${connections[0].url}`,
     )
     this.selectedConnectionUrl = connections[0].url
@@ -677,7 +679,7 @@ export class PlexServerService {
       this.sharedServerInfo = serverInfoMap
       this.sharedServerInfoTimestamp = Date.now()
 
-      this.log.info(`Found access tokens for ${serverInfoMap.size} users`)
+      this.log.debug(`Found access tokens for ${serverInfoMap.size} users`)
       return serverInfoMap
     } catch (error) {
       this.log.error({ error }, 'Error fetching shared server info:')
@@ -904,7 +906,7 @@ export class PlexServerService {
 
         if (!hasOwner) {
           // Add the owner user if not present
-          this.log.info(
+          this.log.debug(
             'Adding admin/owner user to the protection playlist creation list',
           )
           users.push({
@@ -1125,7 +1127,7 @@ export class PlexServerService {
             continue
           }
 
-          this.log.info(
+          this.log.debug(
             `Processing ${playlistItems.size} protected items from playlist "${playlistName}" for user "${username}"`,
           )
 
@@ -1193,7 +1195,7 @@ export class PlexServerService {
 
       // Store in cache for the duration of the current workflow
       this.protectedItemsCache = protectedGuids
-      this.log.info(
+      this.log.debug(
         `Cached ${protectedGuids.size} protected GUIDs for current workflow`,
       )
 
@@ -1376,7 +1378,7 @@ export class PlexServerService {
    * @param resetInitialized - If true, will also reset the initialized state (default: false)
    */
   clearCaches(resetInitialized = false): void {
-    this.log.info('Clearing all PlexServerService caches')
+    this.log.debug('Clearing all PlexServerService caches')
     this.serverConnections = null
     this.serverMachineId = null
     this.connectionTimestamp = 0
@@ -1401,7 +1403,7 @@ export class PlexServerService {
    * Should be called at the end of a delete sync workflow
    */
   clearWorkflowCaches(): void {
-    this.log.info('Clearing workflow-specific caches')
+    this.log.debug('Clearing workflow-specific caches')
     this.protectedPlaylistsMap = null
     this.protectedItemsCache = null
 

@@ -69,7 +69,7 @@ export class DiscordNotificationService {
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(this.baseLog, 'DISCORD')
-    this.log.info('Initializing Discord notification service')
+    this.log.debug('Initializing Discord notification service')
     this.initializeCommands()
   }
 
@@ -130,7 +130,7 @@ export class DiscordNotificationService {
         },
       })
 
-      this.log.info('Discord bot commands initialized')
+      this.log.debug('Discord bot commands initialized')
     } catch (error) {
       this.log.error({ error }, 'Failed to initialize bot commands')
       throw error
@@ -138,7 +138,7 @@ export class DiscordNotificationService {
   }
 
   private async registerCommands(): Promise<boolean> {
-    this.log.info('Registering Discord application commands globally')
+    this.log.debug('Registering Discord application commands globally')
     try {
       const config = this.botConfig
       const rest = new REST().setToken(config.token)
@@ -153,7 +153,7 @@ export class DiscordNotificationService {
           Routes.applicationGuildCommands(config.clientId, config.guildId),
           { body: [] },
         )
-        this.log.info('Cleared old guild-specific commands')
+        this.log.debug('Cleared old guild-specific commands')
       } catch (error) {
         this.log.warn(
           { error },
@@ -166,7 +166,7 @@ export class DiscordNotificationService {
         body: commandsData,
       })
 
-      this.log.info('Successfully registered global application commands')
+      this.log.debug('Successfully registered global application commands')
       return true
     } catch (error) {
       this.log.error({ error }, 'Failed to register global commands')
@@ -188,7 +188,7 @@ export class DiscordNotificationService {
       }
 
       this.botStatus = 'starting'
-      this.log.info('Initializing Discord bot client')
+      this.log.debug('Initializing Discord bot client')
 
       this.botClient = new Client({
         intents: [

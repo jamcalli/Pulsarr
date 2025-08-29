@@ -64,7 +64,7 @@ export async function queuePendingWebhook(
       expires_at: expires,
     })
 
-    fastify.log.info(
+    fastify.log.debug(
       `No matching items found for ${data.guid}, queued webhook for later processing`,
     )
   } catch (error) {

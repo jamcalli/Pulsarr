@@ -157,11 +157,11 @@ export class SonarrService {
         )?.value
 
         if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.info('Pulsarr Sonarr webhook exists with correct URL')
+          this.log.debug('Pulsarr Sonarr webhook exists with correct URL')
           return
         }
 
-        this.log.info(
+        this.log.debug(
           'Pulsarr webhook URL mismatch, recreating webhook for Sonarr',
         )
         await this.deleteNotification(existingPulsarrWebhook.id)
@@ -338,7 +338,7 @@ export class SonarrService {
         createSeasonFolders: instance.createSeasonFolders,
       }
 
-      this.log.info(
+      this.log.debug(
         `Successfully initialized base Sonarr service for ${instance.name}`,
       )
 
@@ -663,7 +663,7 @@ export class SonarrService {
         currentPage++
       } while (allExclusions.length < totalRecords)
 
-      this.log.info(`Fetched all show ${allExclusions.length} exclusions`)
+      this.log.debug(`Fetched all show ${allExclusions.length} exclusions`)
       return new Set(allExclusions.map((show) => this.toItem(show)))
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching exclusions')

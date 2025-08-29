@@ -506,7 +506,7 @@ export class WatchlistWorkflowService {
       // Sync statuses with Sonarr/Radarr
       try {
         const { shows, movies } = await this.showStatusService.syncAllStatuses()
-        this.log.info(
+        this.log.debug(
           `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
         )
       } catch (error) {
@@ -542,7 +542,7 @@ export class WatchlistWorkflowService {
       this.previousSelfItems = this.createItemMap(
         results.self.users[0].watchlist,
       )
-      this.log.info('Initialized self RSS snapshot', {
+      this.log.debug('Initialized self RSS snapshot', {
         itemCount: this.previousSelfItems.size,
       })
     }
@@ -552,7 +552,7 @@ export class WatchlistWorkflowService {
       this.previousFriendsItems = this.createItemMap(
         results.friends.users[0].watchlist,
       )
-      this.log.info('Initialized friends RSS snapshot', {
+      this.log.debug('Initialized friends RSS snapshot', {
         itemCount: this.previousFriendsItems.size,
       })
     }
@@ -830,7 +830,7 @@ export class WatchlistWorkflowService {
             await this.processRadarrItem(normalizedItem)
           }
         } else {
-          this.log.info(
+          this.log.debug(
             `Queuing ${item.type} ${item.title} for later processing during reconciliation`,
           )
         }
@@ -851,7 +851,7 @@ export class WatchlistWorkflowService {
 
       try {
         await this.plexService.storeRssWatchlistItems(items, source)
-        this.log.info(`Stored ${items.size} changed ${source} RSS items`)
+        this.log.debug(`Stored ${items.size} changed ${source} RSS items`)
       } catch (error) {
         this.log.error({ error }, `Error storing ${source} RSS items:`)
       }
@@ -1292,6 +1292,7 @@ export class WatchlistWorkflowService {
       let unmatchedMovies = 0
       let skippedDueToUserSetting = 0
       let skippedDueToMissingIds = 0
+      const skippedItems: { shows: string[], movies: string[] } = { shows: [], movies: [] }
 
       // Create a set of all watchlist GUIDs for fast lookup
       const watchlistGuids = new Set(
@@ -1367,10 +1368,7 @@ export class WatchlistWorkflowService {
           const tvdbId = extractTvdbId(tempItem.guids)
 
           if (tvdbId === 0) {
-            this.log.warn(
-              `Show ${tempItem.title} has no TVDB ID, skipping Sonarr processing`,
-              { guids: tempItem.guids },
-            )
+            skippedItems.shows.push(tempItem.title)
             skippedDueToMissingIds++
             continue
           }
@@ -1444,10 +1442,7 @@ export class WatchlistWorkflowService {
           const tmdbId = extractTmdbId(tempItem.guids)
 
           if (tmdbId === 0) {
-            this.log.warn(
-              `Movie ${tempItem.title} has no TMDB ID, skipping Radarr processing`,
-              { guids: tempItem.guids },
-            )
+            skippedItems.movies.push(tempItem.title)
             skippedDueToMissingIds++
             continue
           }
@@ -1545,8 +1540,15 @@ export class WatchlistWorkflowService {
       }
 
       if (skippedDueToMissingIds > 0) {
-        this.log.info(
-          `Skipped ${skippedDueToMissingIds} items due to missing required IDs (TVDB/TMDB)`,
+        const showsList = skippedItems.shows.length > 0 
+          ? `${skippedItems.shows.length} shows (${skippedItems.shows.slice(0, 3).map(title => `"${title}"`).join(', ')}${skippedItems.shows.length > 3 ? '...' : ''})`
+          : ''
+        const moviesList = skippedItems.movies.length > 0 
+          ? `${skippedItems.movies.length} movies (${skippedItems.movies.slice(0, 3).map(title => `"${title}"`).join(', ')}${skippedItems.movies.length > 3 ? '...' : ''})`
+          : ''
+        const parts = [showsList, moviesList].filter(Boolean)
+        this.log.warn(
+          `Skipped ${skippedDueToMissingIds} items due to missing required IDs - ${parts.join(', ')}`
         )
       }
     } catch (error) {
@@ -1915,7 +1917,7 @@ export class WatchlistWorkflowService {
         false,
       )
 
-      this.log.info('Unscheduled pending periodic reconciliation')
+      this.log.debug('Unscheduled pending periodic reconciliation')
     } catch (error) {
       this.log.error(
         {
