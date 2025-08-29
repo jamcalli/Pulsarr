@@ -67,7 +67,7 @@ export class ApiKeyService {
     try {
       const apiKey = await this.fastify.db.createApiKey(data)
       await this.refreshCache() // Refresh cache after creation
-      this.log.info(
+      this.log.debug(
         { apiKeyId: apiKey.id, name: apiKey.name },
         'Created new API key',
       )
@@ -98,9 +98,9 @@ export class ApiKeyService {
       const result = await this.fastify.db.revokeApiKey(id)
       if (result) {
         await this.refreshCache() // Refresh cache after revocation
-        this.log.info({ apiKeyId: id }, 'Revoked API key')
+        this.log.debug({ apiKeyId: id }, 'Revoked API key')
       } else {
-        this.log.warn({ apiKeyId: id }, 'API key not found for revocation')
+        this.log.debug({ apiKeyId: id }, 'API key not found for revocation')
       }
       return result
     } catch (error) {

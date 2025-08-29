@@ -1292,7 +1292,10 @@ export class WatchlistWorkflowService {
       let unmatchedMovies = 0
       let skippedDueToUserSetting = 0
       let skippedDueToMissingIds = 0
-      const skippedItems: { shows: string[], movies: string[] } = { shows: [], movies: [] }
+      const skippedItems: { shows: string[]; movies: string[] } = {
+        shows: [],
+        movies: [],
+      }
 
       // Create a set of all watchlist GUIDs for fast lookup
       const watchlistGuids = new Set(
@@ -1540,15 +1543,23 @@ export class WatchlistWorkflowService {
       }
 
       if (skippedDueToMissingIds > 0) {
-        const showsList = skippedItems.shows.length > 0 
-          ? `${skippedItems.shows.length} shows (${skippedItems.shows.slice(0, 3).map(title => `"${title}"`).join(', ')}${skippedItems.shows.length > 3 ? '...' : ''})`
-          : ''
-        const moviesList = skippedItems.movies.length > 0 
-          ? `${skippedItems.movies.length} movies (${skippedItems.movies.slice(0, 3).map(title => `"${title}"`).join(', ')}${skippedItems.movies.length > 3 ? '...' : ''})`
-          : ''
+        const showsList =
+          skippedItems.shows.length > 0
+            ? `${skippedItems.shows.length} shows (${skippedItems.shows
+                .slice(0, 3)
+                .map((title) => `"${title}"`)
+                .join(', ')}${skippedItems.shows.length > 3 ? '...' : ''})`
+            : ''
+        const moviesList =
+          skippedItems.movies.length > 0
+            ? `${skippedItems.movies.length} movies (${skippedItems.movies
+                .slice(0, 3)
+                .map((title) => `"${title}"`)
+                .join(', ')}${skippedItems.movies.length > 3 ? '...' : ''})`
+            : ''
         const parts = [showsList, moviesList].filter(Boolean)
         this.log.warn(
-          `Skipped ${skippedDueToMissingIds} items due to missing required IDs - ${parts.join(', ')}`
+          `Skipped ${skippedDueToMissingIds} items due to missing required IDs - ${parts.join(', ')}`,
         )
       }
     } catch (error) {

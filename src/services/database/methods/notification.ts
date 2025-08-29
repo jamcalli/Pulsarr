@@ -281,7 +281,7 @@ export async function processNotifications(
       .first()
 
     if (existingPublicNotification) {
-      this.log.info(
+      this.log.debug(
         `Skipping public ${contentType} notification for ${mediaInfo.title}${
           seasonNumber !== undefined ? ` S${seasonNumber}` : ''
         }${

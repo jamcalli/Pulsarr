@@ -518,7 +518,7 @@ export class DeleteSyncService {
             `Refreshing watchlists attempt ${attempt + 1}/${maxRetries + 1}`,
           )
         } else {
-          this.log.info('Refreshing watchlists to ensure we have current data')
+          this.log.debug('Refreshing watchlists to ensure we have current data')
         }
 
         await Promise.all([
@@ -526,7 +526,7 @@ export class DeleteSyncService {
           this.fastify.plexWatchlist.getOthersWatchlists(),
         ])
 
-        this.log.info('Watchlists refreshed successfully')
+        this.log.debug('Watchlists refreshed successfully')
         return { success: true, message: 'Watchlists refreshed successfully' }
       } catch (refreshError) {
         const isLastAttempt = attempt === maxRetries
@@ -564,7 +564,7 @@ export class DeleteSyncService {
     existingSeries: SonarrItem[]
     existingMovies: RadarrItem[]
   }> {
-    this.log.info('Retrieving all content from Sonarr and Radarr instances')
+    this.log.debug('Retrieving all content from Sonarr and Radarr instances')
     const [existingSeries, existingMovies] = await Promise.all([
       this.sonarrManager.fetchAllSeries(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
       this.radarrManager.fetchAllMovies(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
@@ -780,7 +780,7 @@ export class DeleteSyncService {
     existingSeries: SonarrItem[],
     existingMovies: RadarrItem[],
   ): Promise<void> {
-    this.log.info('Updating user tags before delete sync')
+    this.log.debug('Updating user tags before delete sync')
 
     try {
       const userTagService = this.fastify.userTags
@@ -811,7 +811,7 @@ export class DeleteSyncService {
         )
       }
 
-      this.log.info('User tags updated successfully')
+      this.log.debug('User tags updated successfully')
     } catch (error) {
       this.log.error({ error }, 'Error updating user tags:')
       throw new Error('Failed to update user tags before delete sync')

@@ -90,8 +90,8 @@ export class SchedulerService {
       const schedules = await this.fastify.db.getAllSchedules()
       this.log.debug(`Initializing ${schedules.length} jobs from database`)
 
-      let jobsScheduled = 0
-      let jobsDisabled = 0
+      let _jobsScheduled = 0
+      let _jobsDisabled = 0
 
       for (const schedule of schedules) {
         const handler = this.jobs.get(schedule.name)?.handler
@@ -126,7 +126,7 @@ export class SchedulerService {
             })
 
             this.log.debug(`Job ${schedule.name} scheduled successfully`)
-            jobsScheduled++
+            _jobsScheduled++
           } catch (error) {
             this.log.error({ error }, `Error setting up job ${schedule.name}`)
           }
@@ -142,7 +142,7 @@ export class SchedulerService {
           }
         } else if (!schedule.enabled) {
           this.log.debug(`Job ${schedule.name} is disabled`)
-          jobsDisabled++
+          _jobsDisabled++
         }
       }
 
