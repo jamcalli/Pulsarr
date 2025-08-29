@@ -29,16 +29,10 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { PlexServerService } from '@utils/plex-server.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
 export class DeleteSyncService {
-  /**
-   * Plex server service instance for playlist protection
-   */
-  private readonly plexServer: PlexServerService
-
   /**
    * Cache of protected GUIDs for efficient lookup
    */
@@ -69,7 +63,6 @@ export class DeleteSyncService {
   ) {
     this.log = createServiceLogger(this.baseLog, 'DELETE_SYNC')
     this.log.info('Initializing Delete Sync Service')
-    this.plexServer = new PlexServerService(this.log, this.fastify)
   }
 
   /**
@@ -117,7 +110,7 @@ export class DeleteSyncService {
     }
 
     // Ensure Plex server is initialized
-    if (!this.plexServer.isInitialized()) {
+    if (!this.fastify.plexServerService.isInitialized()) {
       throw new Error(
         'Plex server not initialized for protection playlist access',
       )
@@ -128,7 +121,9 @@ export class DeleteSyncService {
 
       // Create protection playlists for users if missing
       const playlistMap =
-        await this.plexServer.getOrCreateProtectionPlaylists(true)
+        await this.fastify.plexServerService.getOrCreateProtectionPlaylists(
+          true,
+        )
 
       if (playlistMap.size === 0) {
         throw new Error(
@@ -137,7 +132,8 @@ export class DeleteSyncService {
       }
 
       // Load and cache protected GUIDs
-      this.protectedGuids = await this.plexServer.getProtectedItems()
+      this.protectedGuids =
+        await this.fastify.plexServerService.getProtectedItems()
 
       if (!this.protectedGuids) {
         throw new Error('Failed to retrieve protected items from playlists')
@@ -192,7 +188,7 @@ export class DeleteSyncService {
   async initialize(): Promise<boolean> {
     try {
       // Initialize Plex server service
-      const initialized = await this.plexServer.initialize()
+      const initialized = await this.fastify.plexServerService.initialize()
       if (!initialized) {
         this.log.error('Failed to initialize Plex server service')
         return false
@@ -237,12 +233,12 @@ export class DeleteSyncService {
       this.clearTagCache()
       // Reset per-run caches to ensure fresh protection data every run
       this.protectedGuids = null
-      this.plexServer.clearWorkflowCaches()
+      this.fastify.plexServerService.clearWorkflowCaches()
 
       // Make sure the Plex server is initialized if needed
       if (
         this.config.enablePlexPlaylistProtection &&
-        !this.plexServer.isInitialized()
+        !this.fastify.plexServerService.isInitialized()
       ) {
         this.log.info(
           'Plex playlist protection enabled but not initialized - initializing now',
@@ -337,7 +333,7 @@ export class DeleteSyncService {
         // Step 7: Load protection playlists if enabled (needed for accurate safety check)
         let protectedGuids: Set<string> | null = null
         if (this.config.enablePlexPlaylistProtection) {
-          if (!this.plexServer.isInitialized()) {
+          if (!this.fastify.plexServerService.isInitialized()) {
             return this.createSafetyTriggeredResult(
               'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
               dryRun,
@@ -425,7 +421,7 @@ export class DeleteSyncService {
     } finally {
       this._running = false
       // Always reset caches, even if we exited early
-      this.plexServer.clearWorkflowCaches()
+      this.fastify.plexServerService.clearWorkflowCaches()
       this.protectedGuids = null
       this.clearTagCache()
     }

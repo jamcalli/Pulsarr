@@ -39,8 +39,8 @@ import {
   getGuidMatchScore,
   parseGuids,
 } from '@utils/guid-handler.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { createServiceLogger } from '@utils/logger.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
