@@ -491,7 +491,20 @@ export class UserTagService {
               })
 
               let cleanedExistingTags = existingTags
-              if (userTagIds.length > 0 && removedTagIds.length > 0) {
+              // Only clean up removal tags if:
+              // 1. There are users who want this content now (userTagIds.length > 0)
+              // 2. There are removal tags present (removedTagIds.length > 0)
+              // 3. There were no user tags before (meaning this is a re-add, not just a regular sync)
+              const hadUserTagsBefore = existingTags.some((tagId: number) => {
+                const tagLabel = tagIdMap.get(tagId)
+                return tagLabel && this.isAppUserTag(tagLabel)
+              })
+
+              if (
+                userTagIds.length > 0 &&
+                removedTagIds.length > 0 &&
+                !hadUserTagsBefore
+              ) {
                 this.log.debug(
                   `Cleaning up ${removedTagIds.length} removed tags for re-added content "${show.title}"`,
                 )
@@ -797,7 +810,20 @@ export class UserTagService {
               })
 
               let cleanedExistingTags = existingTags
-              if (userTagIds.length > 0 && removedTagIds.length > 0) {
+              // Only clean up removal tags if:
+              // 1. There are users who want this content now (userTagIds.length > 0)
+              // 2. There are removal tags present (removedTagIds.length > 0)
+              // 3. There were no user tags before (meaning this is a re-add, not just a regular sync)
+              const hadUserTagsBefore = existingTags.some((tagId: number) => {
+                const tagLabel = tagIdMap.get(tagId)
+                return tagLabel && this.isAppUserTag(tagLabel)
+              })
+
+              if (
+                userTagIds.length > 0 &&
+                removedTagIds.length > 0 &&
+                !hadUserTagsBefore
+              ) {
                 this.log.debug(
                   `Cleaning up ${removedTagIds.length} removed tags for re-added content "${movie.title}"`,
                 )
@@ -1923,6 +1949,12 @@ export class UserTagService {
   ): Promise<number[]> {
     const removedPrefixLower = this.removedTagPrefix.toLowerCase()
 
+    // Check if there are any existing removal tags
+    const existingRemovalTags = nonUserTagIds.filter((id) => {
+      const lbl = tagIdMap.get(id)
+      return lbl?.toLowerCase().startsWith(removedPrefixLower)
+    })
+
     // If no active user tags and we're removing some, add the removed tag
     if (userTagIds.length === 0 && removedUserTagIds.length > 0) {
       const removedTagId = await removedTagIdSupplier()
@@ -1935,6 +1967,14 @@ export class UserTagService {
         `Added removed tag for ${logContext} - no active users, safe for deletion`,
       )
       return [...new Set([...nonUserSansRemoved, removedTagId])]
+    }
+
+    // If no active user tags but existing removal tags exist, preserve them
+    if (userTagIds.length === 0 && existingRemovalTags.length > 0) {
+      this.log.debug(
+        `Preserving existing removal tags for ${logContext} - no active users, keeping removal tags`,
+      )
+      return [...new Set([...nonUserTagIds])]
     }
 
     // Users exist OR nothing is actually being removed: keep user tags and implicitly clean removed tags
