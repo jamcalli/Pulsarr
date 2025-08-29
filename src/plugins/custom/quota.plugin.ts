@@ -34,7 +34,7 @@ const quotaPlugin: FastifyPluginAsync = async (fastify, _opts) => {
         },
       })
 
-      fastify.log.info(
+      fastify.log.debug(
         'Created quota-maintenance schedule with cron default: daily at 2 AM',
       )
     }

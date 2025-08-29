@@ -10,7 +10,7 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    fastify.log.info('Initializing Apprise notification plugin')
+    fastify.log.debug('Initializing Apprise notification plugin')
 
     // Create and register the Apprise notification service
     const appriseService = new AppriseNotificationService(fastify.log, fastify)
@@ -21,12 +21,12 @@ export default fp(
 
     // Only proceed if we have an Apprise URL configured
     if (appriseUrl) {
-      fastify.log.info('Found Apprise URL in configuration')
+      fastify.log.debug('Found Apprise URL in configuration')
 
       // Add a delay before checking
       const delayedCheck = async () => {
         // Wait a bit to allow Apprise to fully initialize
-        fastify.log.info('Waiting 5 seconds for Apprise to initialize...')
+        fastify.log.debug('Waiting 5 seconds for Apprise to initialize...')
         await new Promise((resolve) => setTimeout(resolve, 5000))
 
         try {
@@ -67,7 +67,7 @@ export default fp(
       await fastify.updateConfig({ enableApprise: false })
     }
 
-    fastify.log.info('Apprise notification plugin initialized successfully')
+    fastify.log.debug('Apprise notification plugin initialized successfully')
   },
   {
     name: 'apprise-notification-service',

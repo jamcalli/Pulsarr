@@ -17,18 +17,22 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import type { PlexServerService } from '@utils/plex-server.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { DatabaseService } from './database.service.js'
 import type { SonarrManagerService } from './sonarr-manager.service.js'
 
 export class PlexSessionMonitorService {
+  private log: FastifyBaseLogger
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly plexServer: PlexServerService,
     private readonly sonarrManager: SonarrManagerService,
     private readonly db: DatabaseService,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'PLEX_SESSION_MONITOR')
     this.log.info('PlexSessionMonitorService initialized')
   }
 

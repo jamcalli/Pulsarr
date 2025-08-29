@@ -1,6 +1,7 @@
 import type { PendingLabelSyncConfig } from '@root/types/pending-label-sync-processor.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { PlexLabelSyncService } from '@services/plex-label-sync.service.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -37,13 +38,15 @@ export class PendingLabelSyncProcessorService {
   private readonly _config: PendingLabelSyncConfig
   private _processingSyncs = false
   private _cleaningUp = false
+  private log: FastifyBaseLogger
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly db: DatabaseService,
     private readonly plexLabelSyncService: PlexLabelSyncService,
     readonly _fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'PENDING_LABEL_SYNC')
     this._config = {
       retryInterval: 30, // Default retry interval - not configurable
       maxAge: 10, // Default max age - not configurable

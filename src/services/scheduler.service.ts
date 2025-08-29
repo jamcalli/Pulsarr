@@ -26,6 +26,7 @@ import type {
   DbSchedule,
   IntervalConfig,
 } from '@root/types/scheduler.types.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   AsyncTask,
@@ -52,17 +53,19 @@ export class SchedulerService {
 
   /** Map of job names to their job instances and handlers */
   private readonly jobs: JobMap = new Map()
+  private log: FastifyBaseLogger
 
   /**
    * Creates a new SchedulerService instance
    *
-   * @param log - Fastify logger for recording operations
+   * @param baseLog - Fastify logger for recording operations
    * @param fastify - Fastify instance for accessing other services
    */
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'SCHEDULER')
     this.scheduler = new ToadScheduler()
     this.log.info('Scheduler service initialized')
   }

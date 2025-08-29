@@ -28,6 +28,7 @@ import {
   extractSonarrId,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import { PlexServerService } from '@utils/plex-server.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
@@ -60,10 +61,13 @@ export class DeleteSyncService {
    * @param log - Fastify logger instance for recording operations
    * @param fastify - Fastify instance for accessing other services and configuration
    */
+  private log: FastifyBaseLogger
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'DELETE_SYNC')
     this.log.info('Initializing Delete Sync Service')
     this.plexServer = new PlexServerService(this.log, this.fastify)
   }

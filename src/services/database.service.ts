@@ -55,6 +55,7 @@ import type {
 } from '@root/types/router.types.js'
 import { configurePgTypes } from '@utils/postgres-config.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { createServiceLogger } from '@utils/logger.js'
 import knex, { type Knex } from 'knex'
 import './database/types/analytics-methods.js'
 import './database/types/anime-methods.js'
@@ -94,6 +95,7 @@ import * as webhookMethods from './database/methods/webhook.js'
 
 export class DatabaseService {
   public readonly knex: Knex
+  public log: FastifyBaseLogger
 
   /**
    * Flag indicating whether we're using PostgreSQL (true) or SQLite (false)
@@ -107,11 +109,12 @@ export class DatabaseService {
    * @param fastify - Fastify instance containing configuration and context
    */
   constructor(
-    public readonly log: FastifyBaseLogger,
+    public readonly baseLog: FastifyBaseLogger,
     public readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'DATABASE')
     this.isPostgres = fastify.config.dbType === 'postgres'
-    this.knex = knex(DatabaseService.createKnexConfig(fastify.config, log))
+    this.knex = knex(DatabaseService.createKnexConfig(fastify.config, this.log))
 
     // Bind all modular database methods to this instance
     this.bindMethods()

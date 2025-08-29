@@ -23,6 +23,7 @@ import {
   hasMatchingGuids,
   normalizeGuid,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 // Custom error class to include HTTP status
@@ -51,13 +52,16 @@ export class RadarrService {
     new Map()
   private tagsCacheExpiry: Map<number, number> = new Map()
   private TAG_CACHE_TTL = 30000 // 30 seconds in milliseconds
+  private log: FastifyBaseLogger
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly appBaseUrl: string,
     private readonly port: number,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(this.baseLog, 'RADARR')
+  }
 
   private ensureUrlHasProtocol(url: string): string {
     return url.match(/^https?:\/\//) ? url : `http://${url}`

@@ -5,16 +5,21 @@ import type {
   WatchlistInstanceStatus,
 } from '@root/types/watchlist-status.types.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class StatusService {
+  private log: FastifyBaseLogger
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly dbService: FastifyInstance['db'],
     private readonly sonarrManager: FastifyInstance['sonarrManager'],
     private readonly radarrManager: FastifyInstance['radarrManager'],
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(this.baseLog, 'WATCHLIST_STATUS')
+  }
 
   async syncAllStatuses(): Promise<{ shows: number; movies: number }> {
     const [showUpdates, movieUpdates] = await Promise.all([

@@ -52,7 +52,7 @@ export default fp(
     // Auto-start workflow when config is ready
     const startWorkflow = async () => {
       try {
-        fastify.log.info('Waiting for config to be ready...')
+        fastify.log.debug('Waiting for config to be ready...')
         await fastify.waitForConfig()
 
         // Check if workflow is already running or starting before attempting to start

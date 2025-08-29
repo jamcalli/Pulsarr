@@ -8,15 +8,19 @@ import type {
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class SonarrManagerService {
   private sonarrServices: Map<number, SonarrService> = new Map()
+  private log: FastifyBaseLogger
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(this.baseLog, 'SONARR_MANAGER')
+  }
 
   private get appBaseUrl(): string {
     return this.fastify.config.baseUrl

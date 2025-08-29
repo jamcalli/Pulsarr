@@ -21,17 +21,21 @@ import type {
   TmdbTvDetails,
   TmdbTvMetadata,
 } from '@schemas/tmdb/tmdb.schema.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class TmdbService {
   private static readonly BASE_URL = 'https://api.themoviedb.org/3'
   private static readonly USER_AGENT =
     'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
+  private log: FastifyBaseLogger
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(this.baseLog, 'TMDB')
+  }
 
   /**
    * Get current TMDB API Read Access Token from config
