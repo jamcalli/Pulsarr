@@ -378,7 +378,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             )
 
             if (recentEpisodes.length > 0) {
-              fastify.log.info(
+              fastify.log.debug(
                 { count: recentEpisodes.length, tvdbId },
                 'Processing recent episodes for immediate notification',
               )
