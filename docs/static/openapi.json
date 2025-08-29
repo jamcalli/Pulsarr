@@ -96,6 +96,9 @@
                         "key": {
                           "type": "string"
                         },
+                        "user_id": {
+                          "type": "number"
+                        },
                         "created_at": {
                           "type": "string"
                         },
@@ -107,6 +110,7 @@
                         "id",
                         "name",
                         "key",
+                        "user_id",
                         "created_at",
                         "is_active"
                       ],
@@ -206,6 +210,9 @@
                           "key": {
                             "type": "string"
                           },
+                          "user_id": {
+                            "type": "number"
+                          },
                           "created_at": {
                             "type": "string"
                           },
@@ -217,6 +224,7 @@
                           "id",
                           "name",
                           "key",
+                          "user_id",
                           "created_at",
                           "is_active"
                         ],
