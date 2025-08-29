@@ -32,6 +32,7 @@ import {
   type SlashCommandBuilder,
 } from 'discord.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { createServiceLogger } from '@utils/logger.js'
 
 type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping'
 type CommandHandler = (
@@ -61,11 +62,13 @@ export class DiscordNotificationService {
   private botClient: Client | null = null
   private botStatus: BotStatus = 'stopped'
   private readonly commands: Map<string, Command> = new Map()
+  private log: FastifyBaseLogger
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'DISCORD')
     this.log.info('Initializing Discord notification service')
     this.initializeCommands()
   }

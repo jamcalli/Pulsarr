@@ -7,6 +7,7 @@ import {
   getGuidMatchScore,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -58,10 +59,14 @@ interface MediaService {
  * Service to manage user tagging for media in Sonarr and Radarr
  */
 export class UserTagService {
+  private log: FastifyBaseLogger
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(this.baseLog, 'USER_TAG')
+  }
 
   /**
    * Get all users with sync enabled

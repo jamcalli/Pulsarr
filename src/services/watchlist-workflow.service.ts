@@ -40,6 +40,7 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { createServiceLogger } from '@utils/logger.js'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
@@ -48,6 +49,8 @@ export class WatchlistWorkflowService {
   private readonly MANUAL_SYNC_JOB_NAME = 'periodic-watchlist-reconciliation'
   /** Current workflow status */
   private status: WorkflowStatus = 'stopped'
+  /** Service-specific logger instance */
+  private log: FastifyBaseLogger
 
   /** Tracks if the workflow is fully initialized */
   private initialized = false
@@ -100,11 +103,12 @@ export class WatchlistWorkflowService {
    * @param queueProcessDelayMs - Delay in ms before processing queued items
    */
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly rssCheckIntervalMs: number = 10000,
     private readonly queueProcessDelayMs: number = 60000,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'WATCHLIST_WORKFLOW')
     this.log.info('Initializing Watchlist Workflow Service')
   }
 

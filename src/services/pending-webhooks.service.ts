@@ -1,6 +1,7 @@
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
 import { processContentNotifications } from '@root/utils/notification-processor.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -14,12 +15,14 @@ export class PendingWebhooksService {
   private isRunning = false
   private _processingWebhooks = false
   private _cleaningUp = false
+  private log: FastifyBaseLogger
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     config?: Partial<PendingWebhooksConfig>,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'PENDING_WEBHOOKS')
     this._config = {
       retryInterval: 20, // Process every 20 seconds
       maxAge: 10, // Keep webhooks for max 10 minutes

@@ -11,7 +11,7 @@ import {
 const createOpenapiConfig = (fastify: FastifyInstance) => {
   const urlObject = new URL(fastify.config.baseUrl)
 
-  fastify.log.info(
+  fastify.log.debug(
     `Configuring Swagger with base URL: ${fastify.config.baseUrl}`,
   )
 

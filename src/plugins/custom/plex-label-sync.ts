@@ -142,7 +142,7 @@ export default fp(
             },
           })
 
-          fastify.log.info('Created plex label full sync schedule')
+          fastify.log.debug('Created plex label full sync schedule')
         }
 
         // Register the full sync job handler
@@ -167,7 +167,7 @@ export default fp(
           },
         )
 
-        fastify.log.info(
+        fastify.log.debug(
           'Plex label sync scheduler jobs registered successfully',
         )
       } catch (error) {

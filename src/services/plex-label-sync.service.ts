@@ -37,6 +37,7 @@ import {
   getGuidMatchScore,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { PlexServerService } from '@utils/plex-server.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
@@ -45,20 +46,23 @@ import pLimit from 'p-limit'
  * Service to manage label synchronization between Pulsarr and Plex
  */
 export class PlexLabelSyncService {
+  private log: FastifyBaseLogger
+
   /**
    * Creates a new PlexLabelSyncService instance
    *
-   * @param log - Fastify logger instance
+   * @param baseLog - Fastify logger instance
    * @param plexServer - PlexServerService instance for Plex API operations
    * @param db - DatabaseService instance for data operations
    * @param fastify - Fastify instance for accessing runtime config
    */
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly plexServer: PlexServerService,
     private readonly db: DatabaseService,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'PLEX_LABEL_SYNC')
     this.log.info('Initializing PlexLabelSyncService', {
       enabled: this.config.enabled,
       labelPrefix: this.config.labelPrefix,

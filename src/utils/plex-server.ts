@@ -28,11 +28,14 @@ import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
 import { toItemsSingle } from '@utils/plex.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { createServiceLogger } from '@utils/logger.js'
 
 /**
  * PlexServerService class for maintaining state and providing Plex operations
  */
 export class PlexServerService {
+  private log: FastifyBaseLogger
+
   // Connection and server information cache
   private serverConnections: PlexServerConnectionInfo[] | null = null
   private serverMachineId: string | null = null
@@ -59,9 +62,10 @@ export class PlexServerService {
    * @param fastify - Fastify instance for accessing configuration
    */
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(this.baseLog, 'PLEX_SERVER')
     this.log.info('Initializing PlexServerService')
   }
 

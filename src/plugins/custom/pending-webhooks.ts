@@ -32,7 +32,7 @@ export default fp(
     fastify.addHook('onReady', async () => {
       try {
         await pendingWebhooksService.initialize()
-        fastify.log.info('PendingWebhooksService initialized successfully')
+        fastify.log.debug('PendingWebhooksService initialized successfully')
       } catch (error) {
         fastify.log.error(
           { error },

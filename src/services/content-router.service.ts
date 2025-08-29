@@ -26,6 +26,7 @@ import {
   extractTmdbId,
   extractTvdbId,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -41,11 +42,14 @@ export class ContentRouterService {
    * Collection of loaded routing evaluators that will be applied to content
    */
   private evaluators: RoutingEvaluator[] = []
+  private log: FastifyBaseLogger
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(this.baseLog, 'CONTENT_ROUTER')
+  }
 
   /**
    * Initialize the router service by loading all evaluators from the router-evaluators directory.

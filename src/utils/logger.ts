@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { config } from 'dotenv'
 import type { FastifyRequest } from 'fastify'
+import type { FastifyBaseLogger } from 'fastify'
 import type { LevelWithSilent, LoggerOptions } from 'pino'
 import pino from 'pino'
 import pretty from 'pino-pretty'
@@ -249,6 +250,23 @@ function getFileOptions(): FileLoggerOptions {
       err: createErrorSerializer(),
     },
   }
+}
+
+/**
+ * Creates a service-specific logger with a prefix for easy identification in logs.
+ *
+ * @param parentLogger - The parent logger instance to create a child from
+ * @param serviceName - The name of the service (will be uppercased and prefixed with [])
+ * @returns A child logger with the service prefix
+ */
+export function createServiceLogger(
+  parentLogger: FastifyBaseLogger,
+  serviceName: string,
+): FastifyBaseLogger {
+  return parentLogger.child(
+    {},
+    { msgPrefix: `[${serviceName.toUpperCase()}] ` },
+  )
 }
 
 /**

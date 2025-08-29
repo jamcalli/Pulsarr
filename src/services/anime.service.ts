@@ -8,17 +8,21 @@
 import type { InsertAnimeId } from '@root/types/anime.types.js'
 import { ANIME_LIST_URL, ANIME_SOURCES } from '@root/types/anime.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { createServiceLogger } from '@utils/logger.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger } from 'fastify'
 
 export class AnimeService {
   private static readonly USER_AGENT =
     'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
+  private log: FastifyBaseLogger
 
   constructor(
     private readonly db: DatabaseService,
-    private readonly logger: FastifyBaseLogger,
-  ) {}
+    private readonly baseLog: FastifyBaseLogger,
+  ) {
+    this.log = createServiceLogger(this.baseLog, 'ANIME')
+  }
 
   /**
    * Check if any external IDs indicate anime content
@@ -44,7 +48,7 @@ export class AnimeService {
    */
   async updateAnimeDatabase(): Promise<{ count: number; updated: boolean }> {
     try {
-      this.logger.info('Starting anime database update...')
+      this.log.info('Starting anime database update...')
 
       // Download the XML file
       const response = await fetch(ANIME_LIST_URL, {
@@ -60,42 +64,42 @@ export class AnimeService {
       }
 
       const xmlContent = await response.text()
-      this.logger.info(`Downloaded anime list XML (${xmlContent.length} bytes)`)
+      this.log.info(`Downloaded anime list XML (${xmlContent.length} bytes)`)
 
       // Parse the XML and extract IDs
       const animeIds = this.parseAnimeXml(xmlContent)
-      this.logger.info(`Parsed ${animeIds.length} anime ID entries`)
+      this.log.info(`Parsed ${animeIds.length} anime ID entries`)
 
       // Log breakdown by source
       const tvdbCount = animeIds.filter((id) => id.source === 'tvdb').length
       const tmdbCount = animeIds.filter((id) => id.source === 'tmdb').length
       const imdbCount = animeIds.filter((id) => id.source === 'imdb').length
-      this.logger.info(
+      this.log.info(
         `Breakdown: ${tvdbCount} TVDB IDs, ${tmdbCount} TMDB IDs, ${imdbCount} IMDb IDs`,
       )
 
       if (animeIds.length === 0) {
-        this.logger.warn('No anime IDs found in XML, skipping database update')
+        this.log.warn('No anime IDs found in XML, skipping database update')
         return { count: 0, updated: false }
       }
 
       // Use transaction for atomic replacement to avoid temporary empty state
       await this.db.knex.transaction(async (trx) => {
         await trx('anime_ids').del()
-        this.logger.info('Cleared existing anime IDs')
+        this.log.info('Cleared existing anime IDs')
 
         await this.db.insertAnimeIds(animeIds, trx)
       })
 
       const finalCount = await this.db.getAnimeCount()
-      this.logger.info(
+      this.log.info(
         `Anime database updated successfully with ${finalCount} entries`,
       )
 
       return { count: finalCount, updated: true }
     } catch (error) {
       // Non-critical: log and continue without anime detection
-      this.logger.error(
+      this.log.error(
         { error },
         'Failed to update anime database - continuing without anime detection',
       )
@@ -121,7 +125,7 @@ export class AnimeService {
 
       // Ensure we have an array to work with
       const animes = Array.isArray(animeList) ? animeList : [animeList]
-      this.logger.info(`Processing ${animes.length} anime entries from XML`)
+      this.log.info(`Processing ${animes.length} anime entries from XML`)
 
       for (const anime of animes) {
         if (!anime || typeof anime !== 'object') continue
@@ -168,7 +172,7 @@ export class AnimeService {
         return true
       })
     } catch (error) {
-      this.logger.error({ error }, 'Failed to parse anime XML:')
+      this.log.error({ error }, 'Failed to parse anime XML:')
       throw new Error(
         `XML parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       )

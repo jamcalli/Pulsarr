@@ -23,6 +23,7 @@ import {
   processWatchlistItems,
 } from '@utils/plex.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { createServiceLogger } from '@utils/logger.js'
 import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 
@@ -31,13 +32,16 @@ export class PlexWatchlistService {
   private userCanSyncCache = new Map<number, boolean>()
   // In-flight promise map to prevent concurrent DB hits for the same user
   private userCanSyncInFlight = new Map<number, Promise<boolean>>()
+  private log: FastifyBaseLogger
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
     private readonly plexLabelSyncService?: PlexLabelSyncService,
-  ) {}
+  ) {
+    this.log = createServiceLogger(this.baseLog, 'PLEX_WATCHLIST')
+  }
 
   private get config() {
     return this.fastify.config

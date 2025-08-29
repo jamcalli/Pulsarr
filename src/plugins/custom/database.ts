@@ -57,10 +57,10 @@ export default fp(
           await fastify.updateConfig(mergedConfig)
 
           if (dbConfig._isReady) {
-            fastify.log.info('DB config was ready, updating ready state')
+            fastify.log.debug('DB config was ready, updating ready state')
             await fastify.updateConfig({ _isReady: true })
           } else {
-            fastify.log.info('DB config was not ready')
+            fastify.log.debug('DB config was not ready')
           }
 
           const [existingSonarrInstances, existingRadarrInstances] =
@@ -111,7 +111,7 @@ export default fp(
             ...envConfig,
             _isReady: false,
           }
-          fastify.log.info('Creating initial config in database')
+          fastify.log.debug('Creating initial config in database')
           await dbService.createConfig(initialConfig)
           await fastify.updateConfig({ _isReady: false })
 
