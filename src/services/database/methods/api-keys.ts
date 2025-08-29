@@ -1,11 +1,16 @@
 import { randomBytes } from 'node:crypto'
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
+import type { Auth } from '@schemas/auth/auth.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
  * Generates a cryptographically secure API key as a 32-byte base64url-encoded string.
  *
- * @returns A secure, base64url-encoded API key string
+ * Format: 32 random bytes → base64url encoding → 43-character string
+ * Example: "dGhpcyBpcyBhIHRlc3Qgc3RyaW5nIGZvciBhcGkga2V5cw"
+ * Uniqueness: Cryptographically secure random generation with retry logic
+ *
+ * @returns A secure, 43-character base64url-encoded API key string
  */
 function generateApiKey(): string {
   // Generate a secure random key
@@ -24,6 +29,21 @@ export async function createApiKey(
   this: DatabaseService,
   data: ApiKeyCreate,
 ): Promise<ApiKey> {
+  // Resolve an admin user to own the API key
+  const adminUser = await this.knex('admin_users')
+    .where('role', 'admin')
+    .orderBy('id', 'asc')
+    .first()
+
+  if (!adminUser) {
+    throw new Error(
+      'Cannot create API key: No admin user found. ' +
+        'Please create an admin user first.',
+    )
+  }
+
+  const targetUserId = adminUser.id
+
   const MAX_RETRIES = 5
   let attempt = 0
 
@@ -35,6 +55,7 @@ export async function createApiKey(
         .insert({
           name: data.name,
           key: key,
+          user_id: targetUserId, // Assign to discovered admin user
           is_active: true,
           created_at: this.timestamp,
         })
@@ -44,6 +65,7 @@ export async function createApiKey(
         id: apiKey.id,
         name: apiKey.name,
         key: apiKey.key,
+        user_id: apiKey.user_id,
         created_at: apiKey.created_at,
         is_active: Boolean(apiKey.is_active),
       }
@@ -95,7 +117,7 @@ export async function createApiKey(
  */
 export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
   const keys = await this.knex('api_keys')
-    .select('*')
+    .select('id', 'name', 'key', 'user_id', 'created_at', 'is_active')
     .where('is_active', true)
     .orderBy('created_at', 'desc')
 
@@ -103,36 +125,10 @@ export async function getApiKeys(this: DatabaseService): Promise<ApiKey[]> {
     id: key.id,
     name: key.name,
     key: key.key,
+    user_id: key.user_id,
     created_at: key.created_at,
     is_active: Boolean(key.is_active),
   }))
-}
-
-/**
- * Validates whether the given API key string exists and is active.
- *
- * @param key - The API key string to validate
- * @returns The corresponding active API key object if found; otherwise, null
- */
-export async function validateApiKey(
-  this: DatabaseService,
-  key: string,
-): Promise<ApiKey | null> {
-  // Simple lookup by key
-  const apiKey = await this.knex('api_keys')
-    .where('key', key)
-    .where('is_active', true)
-    .first()
-
-  if (!apiKey) return null
-
-  return {
-    id: apiKey.id,
-    name: apiKey.name,
-    key: apiKey.key,
-    created_at: apiKey.created_at,
-    is_active: Boolean(apiKey.is_active),
-  }
 }
 
 /**
@@ -153,18 +149,28 @@ export async function revokeApiKey(
 }
 
 /**
- * Returns an array of all active API key strings.
+ * Returns an array of all active API keys with user data (id, email, username, role) for caching.
  *
- * Queries the database for API keys marked as active and returns their key values.
+ * Queries the database for API keys marked as active and returns their key values with full user info.
  *
- * @returns An array of active API key strings.
+ * @returns An array of objects with key and user session data.
  */
 export async function getActiveApiKeys(
   this: DatabaseService,
-): Promise<string[]> {
+): Promise<Array<{ key: string; user: Auth }>> {
   const keys = await this.knex('api_keys')
-    .select('key')
-    .where('is_active', true)
+    .select(
+      'api_keys.key',
+      'admin_users.id',
+      'admin_users.email',
+      'admin_users.username',
+      'admin_users.role',
+    )
+    .join('admin_users', 'api_keys.user_id', 'admin_users.id')
+    .where('api_keys.is_active', true)
 
-  return keys.map((k: { key: string }) => k.key)
+  return keys.map(({ key, id, email, username, role }) => ({
+    key,
+    user: { id, email, username, role },
+  }))
 }
