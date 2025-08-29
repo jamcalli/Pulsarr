@@ -157,7 +157,7 @@ export class DatabaseService {
   public async configurePostgresTypes(): Promise<void> {
     try {
       await configurePgTypes(this.log)
-      this.log.info('PostgreSQL type parsers configured successfully')
+      this.log.debug('PostgreSQL type parsers configured successfully')
     } catch (error) {
       this.log.error({ error }, 'Failed to configure PostgreSQL type parsers:')
       // Consider if this should be fatal or if the app can continue

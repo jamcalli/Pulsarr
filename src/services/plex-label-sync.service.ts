@@ -579,7 +579,7 @@ export class PlexLabelSyncService {
     }
 
     try {
-      this.log.info('Processing webhook for label sync', {
+      this.log.debug('Processing webhook for label sync', {
         eventType: 'eventType' in webhook ? webhook.eventType : 'Unknown',
         instanceName: webhook.instanceName,
       })

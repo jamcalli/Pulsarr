@@ -32,16 +32,16 @@ export class SonarrManagerService {
 
   async initialize(): Promise<void> {
     try {
-      this.log.info('Starting Sonarr manager initialization')
+      this.log.debug('Starting Sonarr manager initialization')
 
       const instances = await this.fastify.db.getAllSonarrInstances()
-      this.log.info(
+      this.log.info(`Found ${instances.length} Sonarr instances`)
+      this.log.debug(
         {
-          count: instances.length,
           instanceIds: instances.map((i) => i.id),
           instanceNames: instances.map((i) => i.name),
         },
-        `Found ${instances.length} Sonarr instances`,
+        'Sonarr instance details',
       )
 
       if (instances.length === 0) {
@@ -286,7 +286,7 @@ export class SonarrManagerService {
                 targetSeasonMonitoring as 'pilotRolling' | 'firstSeasonRolling',
               )
 
-              this.log.info(
+              this.log.debug(
                 `Created rolling monitoring entry for ${addedSeries.title} with ${targetSeasonMonitoring}`,
               )
             }

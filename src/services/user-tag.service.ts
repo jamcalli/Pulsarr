@@ -287,7 +287,7 @@ export class UserTagService {
           results.failed += failedCount
           results.skipped += Math.max(skippedCount, 0)
 
-          this.log.info(
+          this.log.debug(
             `Processed user tags for Sonarr instance ${instance.name}: created: ${createdCount}, skipped: ${skippedCount}, failed: ${failedCount}`,
           )
         } catch (instanceError) {
@@ -357,7 +357,7 @@ export class UserTagService {
           results.failed += failedCount
           results.skipped += Math.max(skippedCount, 0)
 
-          this.log.info(
+          this.log.debug(
             `Processed user tags for Radarr instance ${instance.name}: created: ${createdCount}, skipped: ${skippedCount}, failed: ${failedCount}`,
           )
         } catch (instanceError) {
@@ -1370,7 +1370,7 @@ export class UserTagService {
       for (const instanceData of validInstancesData) {
         const { instance, service, userTags, series, userTagIds } = instanceData
 
-        this.log.info(
+        this.log.debug(
           `Processing ${series.length} series in Sonarr instance ${instance.name} for tag removal`,
         )
 
@@ -1445,7 +1445,7 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await service.bulkUpdateSeriesTags(bulkUpdates)
-              this.log.info(
+              this.log.debug(
                 `Bulk updated ${bulkUpdates.length} series in ${instance.name}, removed ${tagsRemovedCount} user tags`,
               )
             } catch (bulkError) {
@@ -1651,7 +1651,7 @@ export class UserTagService {
       for (const instanceData of validInstancesData) {
         const { instance, service, userTags, movies, userTagIds } = instanceData
 
-        this.log.info(
+        this.log.debug(
           `Processing ${movies.length} movies in Radarr instance ${instance.name} for tag removal`,
         )
 
@@ -1728,7 +1728,7 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await service.bulkUpdateMovieTags(bulkUpdates)
-              this.log.info(
+              this.log.debug(
                 `Bulk updated ${bulkUpdates.length} movies in ${instance.name}, removed ${tagsRemovedCount} user tags`,
               )
             } catch (bulkError) {
@@ -2099,7 +2099,7 @@ export class UserTagService {
           continue
         }
 
-        this.log.info(
+        this.log.debug(
           `Found ${orphanedTags.length} orphaned user tags in Sonarr instance ${instance.name}`,
         )
 
@@ -2152,7 +2152,7 @@ export class UserTagService {
         if (bulkUpdates.length > 0) {
           try {
             await sonarrService.bulkUpdateSeriesTags(bulkUpdates)
-            this.log.info(
+            this.log.debug(
               `Bulk removed orphaned tags from ${bulkUpdates.length} series in ${instance.name}`,
             )
           } catch (bulkError) {
@@ -2180,7 +2180,7 @@ export class UserTagService {
           }
         }
 
-        this.log.info(
+        this.log.debug(
           `Completed orphaned tag cleanup for Sonarr instance ${instance.name}: removed tags from ${results.removed} series`,
         )
 
@@ -2247,7 +2247,7 @@ export class UserTagService {
           continue
         }
 
-        this.log.info(
+        this.log.debug(
           `Found ${orphanedTags.length} orphaned user tags in Radarr instance ${instance.name}`,
         )
 
@@ -2300,7 +2300,7 @@ export class UserTagService {
         if (bulkUpdates.length > 0) {
           try {
             await radarrService.bulkUpdateMovieTags(bulkUpdates)
-            this.log.info(
+            this.log.debug(
               `Bulk removed orphaned tags from ${bulkUpdates.length} movies in ${instance.name}`,
             )
           } catch (bulkError) {
@@ -2328,7 +2328,7 @@ export class UserTagService {
           }
         }
 
-        this.log.info(
+        this.log.debug(
           `Completed orphaned tag cleanup for Radarr instance ${instance.name}: removed tags from ${results.removed} movies`,
         )
 

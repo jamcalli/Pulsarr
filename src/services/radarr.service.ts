@@ -155,10 +155,12 @@ export class RadarrService {
           (field) => field.name === 'url',
         )?.value
         if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.info('Pulsarr Radarr webhook exists with correct URL')
+          this.log.debug('Pulsarr Radarr webhook exists with correct URL')
           return
         }
-        this.log.info('Pulsarr Radarr webhook URL mismatch, recreating webhook')
+        this.log.debug(
+          'Pulsarr Radarr webhook URL mismatch, recreating webhook',
+        )
         await this.deleteNotification(existingPulsarrWebhook.id)
       }
 
@@ -381,7 +383,7 @@ export class RadarrService {
         minimumAvailability: instance.minimumAvailability || 'released',
       }
 
-      this.log.info(
+      this.log.debug(
         `Successfully initialized base Radarr service for ${instance.name}`,
       )
 
@@ -554,7 +556,7 @@ export class RadarrService {
         currentPage++
       } while (allExclusions.length < totalRecords)
 
-      this.log.info(`Fetched all movie ${allExclusions.length} exclusions`)
+      this.log.debug(`Fetched all movie ${allExclusions.length} exclusions`)
       return new Set(allExclusions.map((movie) => this.toItem(movie)))
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching exclusions')

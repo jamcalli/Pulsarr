@@ -587,7 +587,7 @@ async function processIndividualNotification(
             userItem.key,
           )
 
-          log.info(
+          log.debug(
             {
               userId: result.user.id,
               username: result.user.name,

@@ -32,15 +32,15 @@ export class RadarrManagerService {
 
   async initialize(): Promise<void> {
     try {
-      this.log.info('Starting Radarr manager initialization')
+      this.log.debug('Starting Radarr manager initialization')
       const instances = await this.fastify.db.getAllRadarrInstances()
-      this.log.info(
+      this.log.info(`Found ${instances.length} Radarr instances`)
+      this.log.debug(
         {
-          count: instances.length,
           instanceIds: instances.map((i) => i.id),
           instanceNames: instances.map((i) => i.name),
         },
-        `Found ${instances.length} Radarr instances`,
+        'Radarr instance details',
       )
 
       if (instances.length === 0) {
@@ -49,7 +49,7 @@ export class RadarrManagerService {
       }
 
       for (const instance of instances) {
-        this.log.info('Attempting to initialize instance:', {
+        this.log.debug('Attempting to initialize instance:', {
           id: instance.id,
           name: instance.name,
           baseUrl: instance.baseUrl,
@@ -64,7 +64,7 @@ export class RadarrManagerService {
           )
           await radarrService.initialize(instance)
           this.radarrServices.set(instance.id, radarrService)
-          this.log.info(
+          this.log.debug(
             `Successfully initialized Radarr service for instance: ${instance.name}`,
           )
         } catch (instanceError) {
@@ -87,7 +87,7 @@ export class RadarrManagerService {
             )
             await radarrService.initialize(instance)
             this.radarrServices.set(instance.id, radarrService)
-            this.log.info(
+            this.log.debug(
               `Successfully initialized Radarr service on retry for instance: ${instance.name}`,
             )
           } catch (retryError) {

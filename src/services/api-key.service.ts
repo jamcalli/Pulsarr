@@ -1,14 +1,28 @@
 import type { ApiKey, ApiKeyCreate } from '@root/types/api-key.types.js'
 import type { Auth } from '@schemas/auth/auth.js'
-import type { FastifyInstance } from 'fastify'
+import { createServiceLogger } from '@utils/logger.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
  * Service for managing API keys
  */
 export class ApiKeyService {
+  private log: FastifyBaseLogger
   private apiKeyCache: Map<string, Auth> = new Map() // key -> user session data
 
-  constructor(private fastify: FastifyInstance) {}
+  /**
+   * Creates a new ApiKeyService instance
+   *
+   * @param baseLog - Fastify logger for recording operations
+   * @param fastify - Fastify instance for accessing database and configuration
+   */
+  constructor(
+    private readonly baseLog: FastifyBaseLogger,
+    private readonly fastify: FastifyInstance,
+  ) {
+    this.log = createServiceLogger(this.baseLog, 'API_KEY')
+    this.log.info('Initializing ApiKeyService')
+  }
 
   /**
    * Initialize the service and load API keys into cache
@@ -32,12 +46,9 @@ export class ApiKeyService {
 
       // Atomic swap to avoid race conditions during refresh
       this.apiKeyCache = nextCache
-      this.fastify.log.info(
-        { count: nextCache.size },
-        'Loaded API keys into cache',
-      )
+      this.log.debug({ count: nextCache.size }, 'Loaded API keys into cache')
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         { error },
         'Failed to refresh API key cache - keeping existing cache',
       )
@@ -56,13 +67,13 @@ export class ApiKeyService {
     try {
       const apiKey = await this.fastify.db.createApiKey(data)
       await this.refreshCache() // Refresh cache after creation
-      this.fastify.log.info(
+      this.log.info(
         { apiKeyId: apiKey.id, name: apiKey.name },
         'Created new API key',
       )
       return apiKey
     } catch (error) {
-      this.fastify.log.error({ error, data }, 'Failed to create API key')
+      this.log.error({ error, data }, 'Failed to create API key')
       throw error
     }
   }
@@ -74,7 +85,7 @@ export class ApiKeyService {
     try {
       return await this.fastify.db.getApiKeys()
     } catch (error) {
-      this.fastify.log.error({ error }, 'Failed to get API keys')
+      this.log.error({ error }, 'Failed to get API keys')
       throw error
     }
   }
@@ -87,19 +98,13 @@ export class ApiKeyService {
       const result = await this.fastify.db.revokeApiKey(id)
       if (result) {
         await this.refreshCache() // Refresh cache after revocation
-        this.fastify.log.info({ apiKeyId: id }, 'Revoked API key')
+        this.log.info({ apiKeyId: id }, 'Revoked API key')
       } else {
-        this.fastify.log.warn(
-          { apiKeyId: id },
-          'API key not found for revocation',
-        )
+        this.log.warn({ apiKeyId: id }, 'API key not found for revocation')
       }
       return result
     } catch (error) {
-      this.fastify.log.error(
-        { error, apiKeyId: id },
-        'Failed to revoke API key',
-      )
+      this.log.error({ error, apiKeyId: id }, 'Failed to revoke API key')
       throw error
     }
   }
@@ -110,7 +115,7 @@ export class ApiKeyService {
   verifyAndGetUser(key: string): Auth | null {
     const user = this.apiKeyCache.get(key) ?? null
     if (!user) {
-      this.fastify.log.warn('Invalid API key attempted')
+      this.log.warn('Invalid API key attempted')
     }
     return user
   }
