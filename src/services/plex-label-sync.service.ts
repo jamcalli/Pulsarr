@@ -1998,10 +1998,11 @@ export class PlexLabelSyncService {
           await this.db.getTrackedLabelsForRatingKey(ratingKey)
         const allTrackedUserLabels = new Set<string>()
 
-        // Collect all tracked user labels from tracking records
+        // Collect all tracked user labels from tracking records (excluding removal labels)
         for (const tracking of trackedLabels) {
           for (const label of tracking.labels_applied) {
-            if (this.isAppUserLabel(label)) {
+            if (this.isAppUserLabel(label) && 
+                !label.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase())) {
               allTrackedUserLabels.add(label)
             }
           }
@@ -2040,6 +2041,7 @@ export class PlexLabelSyncService {
             allTrackedUserLabels: Array.from(allTrackedUserLabels),
             removedExistingRemovedLabels: existingRemovedLabels,
             addingUserLabels: userLabels,
+            finalLabelsCount: finalLabels.length,
           },
         )
       } else {
