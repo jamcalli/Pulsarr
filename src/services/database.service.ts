@@ -53,9 +53,9 @@ import type {
   ConditionGroup,
   RouterRule,
 } from '@root/types/router.types.js'
+import { createServiceLogger } from '@utils/logger.js'
 import { configurePgTypes } from '@utils/postgres-config.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { createServiceLogger } from '@utils/logger.js'
 import knex, { type Knex } from 'knex'
 import './database/types/analytics-methods.js'
 import './database/types/anime-methods.js'

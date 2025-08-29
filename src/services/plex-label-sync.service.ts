@@ -30,7 +30,6 @@ import type {
   TrackPlexLabelsOperation,
   UntrackPlexLabelOperation,
 } from '@services/database/methods/plex-label-tracking.js'
-import type { DatabaseService } from '@services/database.service.js'
 import {
   extractTmdbId,
   extractTvdbId,
@@ -38,7 +37,6 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import type { PlexServerService } from '@utils/plex-server.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -52,14 +50,10 @@ export class PlexLabelSyncService {
    * Creates a new PlexLabelSyncService instance
    *
    * @param baseLog - Fastify logger instance
-   * @param plexServer - PlexServerService instance for Plex API operations
-   * @param db - DatabaseService instance for data operations
-   * @param fastify - Fastify instance for accessing runtime config
+   * @param fastify - Fastify instance for accessing services and config
    */
   constructor(
     private readonly baseLog: FastifyBaseLogger,
-    private readonly plexServer: PlexServerService,
-    private readonly db: DatabaseService,
     private readonly fastify: FastifyInstance,
   ) {
     this.log = createServiceLogger(this.baseLog, 'PLEX_LABEL_SYNC')
@@ -100,6 +94,20 @@ export class PlexLabelSyncService {
    */
   private get removedLabelMode(): 'remove' | 'keep' | 'special-label' {
     return this.config.removedLabelMode || 'remove'
+  }
+
+  /**
+   * Access to Plex server service
+   */
+  private get plexServer() {
+    return this.fastify.plexServerService
+  }
+
+  /**
+   * Access to database service
+   */
+  private get db() {
+    return this.fastify.db
   }
 
   /**

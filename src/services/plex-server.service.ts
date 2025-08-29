@@ -25,10 +25,10 @@ import type {
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
 import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import { toItemsSingle } from '@utils/plex.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { createServiceLogger } from '@utils/logger.js'
 
 /**
  * PlexServerService class for maintaining state and providing Plex operations

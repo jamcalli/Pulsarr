@@ -20,18 +20,11 @@ declare module 'fastify' {
 export default fp(
   async function plexLabelSync(fastify: FastifyInstance) {
     // Create the Plex label sync service
-    const plexLabelSyncService = new PlexLabelSyncService(
-      fastify.log,
-      fastify.plexServerService,
-      fastify.db,
-      fastify,
-    )
+    const plexLabelSyncService = new PlexLabelSyncService(fastify.log, fastify)
 
     // Create the pending sync processor service
     const pendingLabelSyncProcessor = new PendingLabelSyncProcessorService(
       fastify.log,
-      fastify.db,
-      plexLabelSyncService,
       fastify,
     )
 

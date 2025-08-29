@@ -16,6 +16,7 @@ import {
   notificationsCommand,
 } from '@root/utils/discord-commands/notifications-command.js'
 import { getPublicContentUrls } from '@root/utils/notification-processor.js'
+import { createServiceLogger } from '@utils/logger.js'
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -32,7 +33,6 @@ import {
   type SlashCommandBuilder,
 } from 'discord.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { createServiceLogger } from '@utils/logger.js'
 
 type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping'
 type CommandHandler = (

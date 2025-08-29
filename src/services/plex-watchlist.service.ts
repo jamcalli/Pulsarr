@@ -13,6 +13,7 @@ import {
   hasMatchingParsedGuids,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import {
   fetchSelfWatchlist,
   fetchWatchlistFromRss,
@@ -23,7 +24,6 @@ import {
   processWatchlistItems,
 } from '@utils/plex.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { createServiceLogger } from '@utils/logger.js'
 import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 

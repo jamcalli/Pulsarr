@@ -16,11 +16,8 @@ import {
   normalizeGuid,
   parseGuids,
 } from '@utils/guid-handler.js'
-import type { PlexServerService } from '@utils/plex-server.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { DatabaseService } from './database.service.js'
-import type { SonarrManagerService } from './sonarr-manager.service.js'
 
 export class PlexSessionMonitorService {
   private log: FastifyBaseLogger
@@ -28,9 +25,6 @@ export class PlexSessionMonitorService {
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-    private readonly plexServer: PlexServerService,
-    private readonly sonarrManager: SonarrManagerService,
-    private readonly db: DatabaseService,
   ) {
     this.log = createServiceLogger(this.baseLog, 'PLEX_SESSION_MONITOR')
     this.log.info('PlexSessionMonitorService initialized')
@@ -41,6 +35,27 @@ export class PlexSessionMonitorService {
    */
   private get config() {
     return this.fastify.config
+  }
+
+  /**
+   * Access to Plex server service
+   */
+  private get plexServer() {
+    return this.fastify.plexServerService
+  }
+
+  /**
+   * Access to Sonarr manager service
+   */
+  private get sonarrManager() {
+    return this.fastify.sonarrManager
+  }
+
+  /**
+   * Access to database service
+   */
+  private get db() {
+    return this.fastify.db
   }
 
   /**
