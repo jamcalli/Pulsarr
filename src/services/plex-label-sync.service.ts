@@ -4456,7 +4456,7 @@ export class PlexLabelSyncService {
               entry.contentType,
               entry.user_id || null,
             )
-            
+
             // Create new tracking entry with removed label
             await this.db.trackPlexLabels(
               entry.guids,
