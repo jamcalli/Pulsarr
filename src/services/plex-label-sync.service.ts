@@ -3462,6 +3462,7 @@ export class PlexLabelSyncService {
                         removedLabel,
                       })
                     }
+                    return 1
                   }
                 } else {
                   // Other users still have this content, just remove specific user labels
