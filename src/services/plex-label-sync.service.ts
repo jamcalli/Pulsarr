@@ -1996,7 +1996,7 @@ export class PlexLabelSyncService {
         // Get all tracked labels for this rating key from the tracking table
         const trackedLabels =
           await this.db.getTrackedLabelsForRatingKey(ratingKey)
-        const allTrackedUserLabels = new Set<string>()
+        const allTrackedAppLabels = new Set<string>()
 
         // Collect all tracked user labels from tracking records (excluding removal labels)
         for (const tracking of trackedLabels) {
@@ -2007,7 +2007,7 @@ export class PlexLabelSyncService {
                 .toLowerCase()
                 .startsWith(this.removedLabelPrefix.toLowerCase())
             ) {
-              allTrackedUserLabels.add(label)
+              allTrackedAppLabels.add(label)
             }
           }
         }
@@ -2031,7 +2031,7 @@ export class PlexLabelSyncService {
                   .toLowerCase()
                   .startsWith(this.removedLabelPrefix.toLowerCase()),
             ),
-            ...Array.from(allTrackedUserLabels),
+            ...Array.from(allTrackedAppLabels),
             ...userLabels,
             ...tagLabels,
           ]),
@@ -2042,7 +2042,7 @@ export class PlexLabelSyncService {
           {
             ratingKey,
             mode: 'special-label',
-            allTrackedUserLabels: Array.from(allTrackedUserLabels),
+            allTrackedAppLabels: Array.from(allTrackedAppLabels),
             removedExistingRemovedLabels: existingRemovedLabels,
             addingUserLabels: userLabels,
             finalLabelsCount: finalLabels.length,
@@ -3403,24 +3403,8 @@ export class PlexLabelSyncService {
                 })
 
                 if (shouldApplyRemovalLabel) {
-                  // Get the item title for the special label
-                  // Find the watchlist item for this content by matching the tracking record
-                  let itemTitle = 'Unknown'
-                  for (const item of watchlistItems) {
-                    const fullItem = await this.db.getWatchlistItemById(item.id)
-                    if (
-                      fullItem &&
-                      trackedLabels.some(
-                        (t) =>
-                          t.plex_rating_key === ratingKey &&
-                          t.content_guids.includes(fullItem.key) &&
-                          t.user_id === fullItem.user_id,
-                      )
-                    ) {
-                      itemTitle = item.title || fullItem.title || 'Unknown'
-                      break
-                    }
-                  }
+                  // Title is only for logging; avoid extra DB work
+                  const itemTitle = watchlistItems[0]?.title ?? 'Unknown'
 
                   const removedLabel = await this.getRemovedLabel(itemTitle)
                   const finalLabels = [
@@ -3478,18 +3462,18 @@ export class PlexLabelSyncService {
                         removedLabel,
                       })
                     }
-
-                    return 1
                   }
                 } else {
                   // Other users still have this content, just remove specific user labels
-                  const remainingLabels = currentLabels.filter(
-                    (label) =>
-                      !userLabelsToRemove.some(
-                        (removeLabel) =>
-                          removeLabel.toLowerCase() === label.toLowerCase(),
-                      ),
-                  )
+                  const removedPrefix = this.removedLabelPrefix.toLowerCase()
+                  const remainingLabels = currentLabels.filter((label) => {
+                    const ll = label.toLowerCase()
+                    const isUserLabelRemoved = userLabelsToRemove.some(
+                      (removeLabel) => removeLabel.toLowerCase() === ll,
+                    )
+                    const isRemovedMarker = ll.startsWith(removedPrefix)
+                    return !isUserLabelRemoved && !isRemovedMarker
+                  })
 
                   this.log.debug('About to update labels', {
                     ratingKey,
