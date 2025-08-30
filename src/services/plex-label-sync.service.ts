@@ -4424,7 +4424,7 @@ export class PlexLabelSyncService {
               )
             }
 
-            // Delete tracking entry using proper database method
+            // Delete tracking entry
             await this.db.cleanupUserContentTracking(
               entry.guids,
               entry.contentType,
@@ -4450,7 +4450,14 @@ export class PlexLabelSyncService {
               removedLabel,
             ])
 
-            // Update tracking entry using proper database method
+            // Delete the old orphaned tracking entry first
+            await this.db.cleanupUserContentTracking(
+              entry.guids,
+              entry.contentType,
+              entry.user_id || null,
+            )
+            
+            // Create new tracking entry with removed label
             await this.db.trackPlexLabels(
               entry.guids,
               entry.contentType,
