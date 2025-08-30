@@ -1998,7 +1998,7 @@ export class PlexLabelSyncService {
           await this.db.getTrackedLabelsForRatingKey(ratingKey)
         const allTrackedAppLabels = new Set<string>()
 
-        // Collect all tracked user labels from tracking records (excluding removal labels)
+        // Collect all tracked app-managed labels from tracking records (excluding removal markers)
         for (const tracking of trackedLabels) {
           for (const label of tracking.labels_applied) {
             if (
