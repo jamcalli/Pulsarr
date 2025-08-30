@@ -140,17 +140,9 @@ export class UserTagService {
     // Only clean up removal tags if:
     // 1. There are users who want this content now (userTagIds.length > 0)
     // 2. There are removal tags present (removedTagIdSet.size > 0)
-    // 3. There were no user tags before (meaning this is a re-add, not just a regular sync)
-    const hadUserTagsBefore = existingTags.some((tagId: number) => {
-      const tagLabel = tagIdMap.get(tagId)
-      return tagLabel && this.isAppUserTag(tagLabel)
-    })
+    // Removed tags should never coexist with active user tags
 
-    if (
-      userTagIds.length > 0 &&
-      removedTagIdSet.size > 0 &&
-      !hadUserTagsBefore
-    ) {
+    if (userTagIds.length > 0 && removedTagIdSet.size > 0) {
       this.log.debug(
         `Cleaning up ${removedTagIdSet.size} removed tags for re-added content "${contentTitle}"`,
       )
