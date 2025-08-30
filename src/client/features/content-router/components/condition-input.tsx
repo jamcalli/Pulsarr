@@ -637,10 +637,15 @@ function ConditionInput({
       // Handle the value transformation
       let selectValue = ''
       if (typeof value === 'string') {
-        // Check if it's already prefixed
-        if (value.includes('-')) {
+        // Check if it's already a region-prefixed value (format: "US-PG-13", "UK-15", etc.)
+        const isAlreadyPrefixed = Object.keys(ContentCertifications).some(
+          (region) => value.startsWith(`${region}-`),
+        )
+
+        if (isAlreadyPrefixed) {
           selectValue = value
         } else {
+          // Find the certification in any region
           for (const [region, data] of Object.entries(ContentCertifications)) {
             const allCerts = [
               ...(data.movie || []),
@@ -662,7 +667,10 @@ function ConditionInput({
             options={groupedOptions}
             value={selectValue}
             onValueChange={(val) => {
-              const actualValue = val.split('-')[1] || val
+              // Extract certification value by removing region prefix (e.g., "US-TV-MA" -> "TV-MA")
+              const dashIndex = val.indexOf('-')
+              const actualValue =
+                dashIndex !== -1 ? val.substring(dashIndex + 1) : val
               onChangeRef.current(actualValue)
             }}
             placeholder="Select a certification"
