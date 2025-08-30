@@ -483,17 +483,19 @@ export class UserTagService {
               const existingTags = seriesDetails.tags || []
 
               // Clean up any existing "removed" tags when users are re-adding content
-              const removedTagIds = existingTags.filter((tagId: number) => {
-                const tagLabel = tagIdMap.get(tagId)
-                return tagLabel
-                  ?.toLowerCase()
-                  .startsWith(this.removedTagPrefix.toLowerCase())
-              })
+              const removedTagIdSet = new Set(
+                existingTags.filter((tagId: number) => {
+                  const tagLabel = tagIdMap.get(tagId)
+                  return tagLabel
+                    ?.toLowerCase()
+                    .startsWith(this.removedTagPrefix.toLowerCase())
+                }),
+              )
 
               let cleanedExistingTags = existingTags
               // Only clean up removal tags if:
               // 1. There are users who want this content now (userTagIds.length > 0)
-              // 2. There are removal tags present (removedTagIds.length > 0)
+              // 2. There are removal tags present (removedTagIdSet.size > 0)
               // 3. There were no user tags before (meaning this is a re-add, not just a regular sync)
               const hadUserTagsBefore = existingTags.some((tagId: number) => {
                 const tagLabel = tagIdMap.get(tagId)
@@ -502,14 +504,14 @@ export class UserTagService {
 
               if (
                 userTagIds.length > 0 &&
-                removedTagIds.length > 0 &&
+                removedTagIdSet.size > 0 &&
                 !hadUserTagsBefore
               ) {
                 this.log.debug(
-                  `Cleaning up ${removedTagIds.length} removed tags for re-added content "${show.title}"`,
+                  `Cleaning up ${removedTagIdSet.size} removed tags for re-added content "${show.title}"`,
                 )
                 cleanedExistingTags = existingTags.filter(
-                  (tagId: number) => !removedTagIds.includes(tagId),
+                  (tagId: number) => !removedTagIdSet.has(tagId),
                 )
               }
 
@@ -802,17 +804,19 @@ export class UserTagService {
               const existingTags = movieDetails.tags || []
 
               // Clean up any existing "removed" tags when users are re-adding content
-              const removedTagIds = existingTags.filter((tagId: number) => {
-                const tagLabel = tagIdMap.get(tagId)
-                return tagLabel
-                  ?.toLowerCase()
-                  .startsWith(this.removedTagPrefix.toLowerCase())
-              })
+              const removedTagIdSet = new Set(
+                existingTags.filter((tagId: number) => {
+                  const tagLabel = tagIdMap.get(tagId)
+                  return tagLabel
+                    ?.toLowerCase()
+                    .startsWith(this.removedTagPrefix.toLowerCase())
+                }),
+              )
 
               let cleanedExistingTags = existingTags
               // Only clean up removal tags if:
               // 1. There are users who want this content now (userTagIds.length > 0)
-              // 2. There are removal tags present (removedTagIds.length > 0)
+              // 2. There are removal tags present (removedTagIdSet.size > 0)
               // 3. There were no user tags before (meaning this is a re-add, not just a regular sync)
               const hadUserTagsBefore = existingTags.some((tagId: number) => {
                 const tagLabel = tagIdMap.get(tagId)
@@ -821,14 +825,14 @@ export class UserTagService {
 
               if (
                 userTagIds.length > 0 &&
-                removedTagIds.length > 0 &&
+                removedTagIdSet.size > 0 &&
                 !hadUserTagsBefore
               ) {
                 this.log.debug(
-                  `Cleaning up ${removedTagIds.length} removed tags for re-added content "${movie.title}"`,
+                  `Cleaning up ${removedTagIdSet.size} removed tags for re-added content "${movie.title}"`,
                 )
                 cleanedExistingTags = existingTags.filter(
-                  (tagId: number) => !removedTagIds.includes(tagId),
+                  (tagId: number) => !removedTagIdSet.has(tagId),
                 )
               }
 
