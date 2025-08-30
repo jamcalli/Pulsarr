@@ -637,21 +637,34 @@ function ConditionInput({
       // Handle the value transformation
       let selectValue = ''
       if (typeof value === 'string') {
-        // Check if it's already prefixed
-        if (value.includes('-')) {
-          selectValue = value
+        const normalized = value.trim()
+        // Check if it's already a region-prefixed value (format: "US-PG-13", "UK-15", etc.)
+        const isAlreadyPrefixed = Object.keys(ContentCertifications).some(
+          (region) => normalized.startsWith(`${region}-`),
+        )
+
+        if (isAlreadyPrefixed) {
+          selectValue = normalized
         } else {
+          // Find the certification in any region - prefer US for consistency
+          const matches: string[] = []
           for (const [region, data] of Object.entries(ContentCertifications)) {
             const allCerts = [
               ...(data.movie || []),
               ...(data.tv || []),
               ...(data.all || []),
             ]
-            const found = allCerts.find((cert) => cert.value === value)
-            if (found) {
-              selectValue = `${region}-${value}`
-              break
+            if (allCerts.some((cert) => cert.value === normalized)) {
+              matches.push(region)
             }
+          }
+          if (matches.length) {
+            // Prefer US region for consistency when multiple regions have the same certification
+            const preferredRegion = 'US'
+            const chosen = matches.includes(preferredRegion)
+              ? preferredRegion
+              : matches[0]
+            selectValue = `${chosen}-${normalized}`
           }
         }
       }
@@ -662,7 +675,13 @@ function ConditionInput({
             options={groupedOptions}
             value={selectValue}
             onValueChange={(val) => {
-              const actualValue = val.split('-')[1] || val
+              // Extract certification value by removing region prefix (e.g., "US-TV-MA" -> "TV-MA")
+              const normalized = val.trim()
+              const dashIndex = normalized.indexOf('-')
+              const actualValue =
+                dashIndex !== -1
+                  ? normalized.substring(dashIndex + 1)
+                  : normalized
               onChangeRef.current(actualValue)
             }}
             placeholder="Select a certification"
