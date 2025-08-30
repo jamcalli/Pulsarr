@@ -2001,8 +2001,12 @@ export class PlexLabelSyncService {
         // Collect all tracked user labels from tracking records (excluding removal labels)
         for (const tracking of trackedLabels) {
           for (const label of tracking.labels_applied) {
-            if (this.isAppUserLabel(label) && 
-                !label.toLowerCase().startsWith(this.removedLabelPrefix.toLowerCase())) {
+            if (
+              this.isAppUserLabel(label) &&
+              !label
+                .toLowerCase()
+                .startsWith(this.removedLabelPrefix.toLowerCase())
+            ) {
               allTrackedUserLabels.add(label)
             }
           }
@@ -3235,6 +3239,16 @@ export class PlexLabelSyncService {
       user_id: number
     }>,
   ): Promise<void> {
+    this.log.debug('handleSpecialLabelModeForDeletedItems called with:', {
+      itemCount: watchlistItems.length,
+      items: watchlistItems.map((item) => ({
+        id: item.id,
+        title: item.title,
+        user_id: item.user_id,
+        key: item.key,
+      })),
+    })
+
     const specialLabelStartTime = Date.now()
     const itemGuidMap = new Map<number, string>() // Map item.id -> primaryGuid
     const itemDataMap = new Map<
@@ -3285,11 +3299,8 @@ export class PlexLabelSyncService {
           parsedGuids,
           fullItem.type === 'show' ? 'show' : 'movie',
         )
-        // Filter to only this user's labels
-        const userLabels = labels.filter(
-          (label) => label.user_id === item.user_id,
-        )
-        trackedLabels.push(...userLabels)
+        // Get all labels for this content (needed to check if other users still have it)
+        trackedLabels.push(...labels)
       }
 
       if (trackedLabels.length === 0) {
@@ -3329,92 +3340,181 @@ export class PlexLabelSyncService {
               const currentLabels =
                 await this.plexServer.getCurrentLabels(ratingKey)
 
-              // Find user labels that need to be replaced
-              const userLabelsToRemove = labels.filter((label: string) =>
-                this.isAppUserLabel(label),
-              )
+              // Get all users who currently have labels for this content
+              const allUsersWithLabels = new Set<number>()
+              const removingUserIds = new Set<number>()
+
+              // Collect all user IDs that have labels for this rating key
+              for (const tracking of trackedLabels) {
+                if (
+                  tracking.plex_rating_key === ratingKey &&
+                  tracking.user_id !== null
+                ) {
+                  allUsersWithLabels.add(tracking.user_id)
+                }
+              }
+
+              // Collect user IDs that are removing content
+              for (const item of watchlistItems) {
+                removingUserIds.add(item.user_id)
+              }
+
+              // Calculate remaining users after removal
+              const remainingUserIds = new Set<number>()
+              for (const userId of allUsersWithLabels) {
+                if (!removingUserIds.has(userId)) {
+                  remainingUserIds.add(userId)
+                }
+              }
+
+              // Only remove labels for users who are actually removing content
+              const userLabelsToRemove = labels.filter((label: string) => {
+                if (!this.isAppUserLabel(label)) return false
+
+                // Check if this label belongs to a user who is removing content
+                for (const userId of removingUserIds) {
+                  const userTracking = trackedLabels.find(
+                    (t) =>
+                      t.plex_rating_key === ratingKey && t.user_id === userId,
+                  )
+                  if (userTracking?.labels_applied.includes(label)) {
+                    return true
+                  }
+                }
+                return false
+              })
+
               const nonUserLabels = currentLabels.filter(
                 (label: string) => !this.isAppUserLabel(label),
               )
 
               if (userLabelsToRemove.length > 0) {
-                // Get the item title for the special label
-                // Find the watchlist item for this content by matching the tracking record
-                let itemTitle = 'Unknown'
-                for (const item of watchlistItems) {
-                  const fullItem = await this.db.getWatchlistItemById(item.id)
-                  if (
-                    fullItem &&
-                    trackedLabels.some(
-                      (t) =>
-                        t.plex_rating_key === ratingKey &&
-                        t.content_guids.includes(fullItem.key) &&
-                        t.user_id === fullItem.user_id,
-                    )
-                  ) {
-                    itemTitle = item.title || fullItem.title || 'Unknown'
-                    break
-                  }
-                }
+                // Only apply removal label if NO users will remain with this content
+                const shouldApplyRemovalLabel = remainingUserIds.size === 0
 
-                const removedLabel = await this.getRemovedLabel(itemTitle)
-                const finalLabels = [
-                  ...new Set([...nonUserLabels, removedLabel]),
-                ]
-
-                // Apply the new label set
-                const success = await this.plexServer.updateLabels(
+                this.log.debug('Processing special label removal', {
                   ratingKey,
-                  finalLabels,
-                )
-                if (success) {
-                  this.log.debug(
-                    `Applied special removed label to content ${ratingKey}`,
-                    {
-                      removedLabel,
-                      userLabelsRemoved: userLabelsToRemove.length,
-                    },
-                  )
+                  currentLabels,
+                  allUsersWithLabels: allUsersWithLabels.size,
+                  removingUserIds: Array.from(removingUserIds),
+                  remainingUserIds: Array.from(remainingUserIds),
+                  userLabelsToRemove,
+                  shouldApplyRemovalLabel,
+                })
 
-                  // Create tracking record for the removed label
-                  try {
-                    // Find tracking record for this rating key to get content info
-                    const trackingRecord = trackedLabels.find(
-                      (t) => t.plex_rating_key === ratingKey,
+                if (shouldApplyRemovalLabel) {
+                  // Get the item title for the special label
+                  // Find the watchlist item for this content by matching the tracking record
+                  let itemTitle = 'Unknown'
+                  for (const item of watchlistItems) {
+                    const fullItem = await this.db.getWatchlistItemById(item.id)
+                    if (
+                      fullItem &&
+                      trackedLabels.some(
+                        (t) =>
+                          t.plex_rating_key === ratingKey &&
+                          t.content_guids.includes(fullItem.key) &&
+                          t.user_id === fullItem.user_id,
+                      )
+                    ) {
+                      itemTitle = item.title || fullItem.title || 'Unknown'
+                      break
+                    }
+                  }
+
+                  const removedLabel = await this.getRemovedLabel(itemTitle)
+                  const finalLabels = [
+                    ...new Set([...nonUserLabels, removedLabel]),
+                  ]
+
+                  // Apply the new label set
+                  const success = await this.plexServer.updateLabels(
+                    ratingKey,
+                    finalLabels,
+                  )
+                  if (success) {
+                    this.log.debug(
+                      `Applied special removed label to content ${ratingKey}`,
+                      {
+                        removedLabel,
+                        userLabelsRemoved: userLabelsToRemove.length,
+                      },
                     )
 
-                    if (trackingRecord) {
-                      await this.db.trackPlexLabels(
-                        trackingRecord.content_guids,
-                        trackingRecord.content_type,
-                        null, // System operation for removed labels
-                        ratingKey,
-                        [removedLabel],
+                    // Create tracking record for the removed label
+                    try {
+                      // Find tracking record for this rating key to get content info
+                      const trackingRecord = trackedLabels.find(
+                        (t) => t.plex_rating_key === ratingKey,
                       )
-                      this.log.debug('Successfully tracked removed label', {
-                        ratingKey,
-                        removedLabel,
-                        guids: trackingRecord.content_guids,
-                        contentType: trackingRecord.content_type,
-                      })
-                    } else {
-                      this.log.warn(
-                        'No tracking record found for rating key during removal tracking',
-                        {
+
+                      if (trackingRecord) {
+                        await this.db.trackPlexLabels(
+                          trackingRecord.content_guids,
+                          trackingRecord.content_type,
+                          null, // System operation for removed labels
+                          ratingKey,
+                          [removedLabel],
+                        )
+                        this.log.debug('Successfully tracked removed label', {
                           ratingKey,
                           removedLabel,
-                        },
-                      )
+                          guids: trackingRecord.content_guids,
+                          contentType: trackingRecord.content_type,
+                        })
+                      } else {
+                        this.log.warn(
+                          'No tracking record found for rating key during removal tracking',
+                          {
+                            ratingKey,
+                            removedLabel,
+                          },
+                        )
+                      }
+                    } catch (trackError) {
+                      this.log.error('Failed to track removed label', {
+                        error: trackError,
+                        ratingKey,
+                        removedLabel,
+                      })
                     }
-                  } catch (trackError) {
-                    this.log.error('Failed to track removed label', {
-                      error: trackError,
-                      ratingKey,
-                      removedLabel,
-                    })
-                  }
 
-                  return 1
+                    return 1
+                  }
+                } else {
+                  // Other users still have this content, just remove specific user labels
+                  const remainingLabels = currentLabels.filter(
+                    (label) =>
+                      !userLabelsToRemove.some(
+                        (removeLabel) =>
+                          removeLabel.toLowerCase() === label.toLowerCase(),
+                      ),
+                  )
+
+                  this.log.debug('About to update labels', {
+                    ratingKey,
+                    currentLabels,
+                    userLabelsToRemove,
+                    remainingLabels,
+                  })
+
+                  const success = await this.plexServer.updateLabels(
+                    ratingKey,
+                    remainingLabels,
+                  )
+
+                  if (success) {
+                    this.log.debug(
+                      'Removed specific user labels while preserving others',
+                      {
+                        ratingKey,
+                        userLabelsRemoved: userLabelsToRemove.length,
+                        remainingUsersCount: remainingUserIds.size,
+                        totalLabelsRemaining: remainingLabels.length,
+                      },
+                    )
+                    return 1
+                  }
                 }
               }
               return 0
