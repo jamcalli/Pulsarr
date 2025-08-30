@@ -3016,7 +3016,13 @@ export class PlexLabelSyncService {
           itemCount: watchlistItems.length,
         },
       )
-      await this.handleSpecialLabelModeForDeletedItems(watchlistItems)
+      // Create user name mapping for efficiency
+      const allUsers = await this.db.getAllUsers()
+      const userNameMap = new Map(allUsers.map((user) => [user.id, user.name]))
+      await this.handleSpecialLabelModeForDeletedItems(
+        watchlistItems,
+        userNameMap,
+      )
       return
     }
 
@@ -3238,6 +3244,7 @@ export class PlexLabelSyncService {
       key: string
       user_id: number
     }>,
+    userNameMap?: Map<number, string>,
   ): Promise<void> {
     this.log.debug('handleSpecialLabelModeForDeletedItems called with:', {
       itemCount: watchlistItems.length,
@@ -3257,6 +3264,13 @@ export class PlexLabelSyncService {
     >() // Map item.id -> full data
 
     try {
+      // Use provided user name map or fetch from database
+      const userIdToNameMap =
+        userNameMap ||
+        new Map(
+          (await this.db.getAllUsers()).map((user) => [user.id, user.name]),
+        )
+
       // Get all tracked labels for these watchlist items
       const trackedLabels: PlexLabelTracking[] = []
 
@@ -3368,21 +3382,17 @@ export class PlexLabelSyncService {
               }
 
               // Only remove labels for users who are actually removing content
-              const userLabelsToRemove = labels.filter((label: string) => {
-                if (!this.isAppUserLabel(label)) return false
-
-                // Check if this label belongs to a user who is removing content
-                for (const userId of removingUserIds) {
-                  const userTracking = trackedLabels.find(
-                    (t) =>
-                      t.plex_rating_key === ratingKey && t.user_id === userId,
-                  )
-                  if (userTracking?.labels_applied.includes(label)) {
-                    return true
+              // Compute the exact user labels that should be removed
+              const userLabelsToRemove: string[] = []
+              for (const userId of removingUserIds) {
+                const userName = userIdToNameMap.get(userId)
+                if (userName) {
+                  const userLabel = `${this.config.labelPrefix}:${userName}`
+                  if (labels.includes(userLabel)) {
+                    userLabelsToRemove.push(userLabel)
                   }
                 }
-                return false
-              })
+              }
 
               const nonUserLabels = currentLabels.filter(
                 (label: string) => !this.isAppUserLabel(label),
