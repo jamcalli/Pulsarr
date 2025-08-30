@@ -1947,7 +1947,8 @@ export class UserTagService {
     // Check if there are any existing removal tags
     const existingRemovalTags = nonUserTagIds.filter((id) => {
       const lbl = tagIdMap.get(id)
-      return lbl?.toLowerCase().startsWith(removedPrefixLower)
+      const lower = lbl?.toLowerCase()
+      return !!lower?.startsWith(removedPrefixLower)
     })
 
     // If no active user tags and we're removing some, add the removed tag
