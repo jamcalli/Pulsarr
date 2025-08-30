@@ -208,52 +208,57 @@ export class PlexLabelSyncService {
 
       const instances = await this.fastify.radarrManager.getAllInstances()
 
-      for (const instance of instances) {
-        try {
-          const radarrService = this.fastify.radarrManager.getRadarrService(
-            instance.id,
-          )
-          if (!radarrService) {
-            this.log.warn(
-              `Could not get Radarr service for instance ${instance.id}`,
-            )
-            continue
-          }
+      const limit = pLimit(4)
+      await Promise.all(
+        instances.map((instance) =>
+          limit(async () => {
+            try {
+              const radarrService = this.fastify.radarrManager.getRadarrService(
+                instance.id,
+              )
+              if (!radarrService) {
+                this.log.warn(
+                  `Could not get Radarr service for instance ${instance.id}`,
+                )
+                return
+              }
 
-          const instanceMovies = await radarrService.getAllMovies()
-          const instanceTags = await radarrService.getTags()
+              const instanceMovies = await radarrService.getAllMovies()
+              const instanceTags = await radarrService.getTags()
 
-          const tagMap = new Map(
-            instanceTags.map((tag: { id: number; label: string }) => [
-              tag.id,
-              tag.label,
-            ]),
-          )
+              const tagMap = new Map(
+                instanceTags.map((tag: { id: number; label: string }) => [
+                  tag.id,
+                  tag.label,
+                ]),
+              )
 
-          for (const movie of instanceMovies) {
-            const tags =
-              movie.tags
-                ?.map((tagId: number) => tagMap.get(tagId))
-                .filter((tag): tag is string => Boolean(tag)) || []
+              for (const movie of instanceMovies) {
+                const tags =
+                  movie.tags
+                    ?.map((tagId: number) => tagMap.get(tagId))
+                    .filter((tag): tag is string => Boolean(tag)) || []
 
-            processedMovies.push({
-              instanceId: instance.id,
-              instanceName: instance.name,
-              movie,
-              tags,
-            })
-          }
+                processedMovies.push({
+                  instanceId: instance.id,
+                  instanceName: instance.name,
+                  movie,
+                  tags,
+                })
+              }
 
-          this.log.debug(
-            `Processed ${instanceMovies.length} movies from instance ${instance.name}`,
-          )
-        } catch (error) {
-          this.log.error(
-            `Error processing movies from instance ${instance.id} (${instance.name}):`,
-            error,
-          )
-        }
-      }
+              this.log.debug(
+                `Processed ${instanceMovies.length} movies from instance ${instance.name}`,
+              )
+            } catch (error) {
+              this.log.error(
+                `Error processing movies from instance ${instance.id} (${instance.name}):`,
+                error,
+              )
+            }
+          }),
+        ),
+      )
 
       this.log.info(
         `Processed ${processedMovies.length} total movies for tag sync`,
@@ -283,59 +288,64 @@ export class PlexLabelSyncService {
 
       const instances = await this.fastify.sonarrManager.getAllInstances()
 
-      for (const instance of instances) {
-        try {
-          const sonarrService = this.fastify.sonarrManager.getSonarrService(
-            instance.id,
-          )
-          if (!sonarrService) {
-            this.log.warn(
-              `Could not get Sonarr service for instance ${instance.id}`,
-            )
-            continue
-          }
+      const limit = pLimit(4)
+      await Promise.all(
+        instances.map((instance) =>
+          limit(async () => {
+            try {
+              const sonarrService = this.fastify.sonarrManager.getSonarrService(
+                instance.id,
+              )
+              if (!sonarrService) {
+                this.log.warn(
+                  `Could not get Sonarr service for instance ${instance.id}`,
+                )
+                return
+              }
 
-          const instanceSeries = await sonarrService.getAllSeries()
-          const [instanceTags, rootFolders] = await Promise.all([
-            sonarrService.getTags(),
-            sonarrService.fetchRootFolders(),
-          ])
+              const instanceSeries = await sonarrService.getAllSeries()
+              const [instanceTags, rootFolders] = await Promise.all([
+                sonarrService.getTags(),
+                sonarrService.fetchRootFolders(),
+              ])
 
-          const tagMap = new Map(
-            instanceTags.map((tag: { id: number; label: string }) => [
-              tag.id,
-              tag.label,
-            ]),
-          )
+              const tagMap = new Map(
+                instanceTags.map((tag: { id: number; label: string }) => [
+                  tag.id,
+                  tag.label,
+                ]),
+              )
 
-          const rootFolder =
-            rootFolders.length > 0 ? rootFolders[0].path : undefined
+              const rootFolder =
+                rootFolders.length > 0 ? rootFolders[0].path : undefined
 
-          for (const series of instanceSeries) {
-            const tags =
-              series.tags
-                ?.map((tagId: number) => tagMap.get(tagId))
-                .filter((tag): tag is string => Boolean(tag)) || []
+              for (const series of instanceSeries) {
+                const tags =
+                  series.tags
+                    ?.map((tagId: number) => tagMap.get(tagId))
+                    .filter((tag): tag is string => Boolean(tag)) || []
 
-            processedSeries.push({
-              instanceId: instance.id,
-              instanceName: instance.name,
-              series,
-              tags,
-              rootFolder,
-            })
-          }
+                processedSeries.push({
+                  instanceId: instance.id,
+                  instanceName: instance.name,
+                  series,
+                  tags,
+                  rootFolder,
+                })
+              }
 
-          this.log.debug(
-            `Processed ${instanceSeries.length} series from instance ${instance.name}`,
-          )
-        } catch (error) {
-          this.log.error(
-            `Error processing series from instance ${instance.id} (${instance.name}):`,
-            error,
-          )
-        }
-      }
+              this.log.debug(
+                `Processed ${instanceSeries.length} series from instance ${instance.name}`,
+              )
+            } catch (error) {
+              this.log.error(
+                `Error processing series from instance ${instance.id} (${instance.name}):`,
+                error,
+              )
+            }
+          }),
+        ),
+      )
 
       this.log.info(
         `Processed ${processedSeries.length} total series for tag sync`,
@@ -3388,7 +3398,11 @@ export class PlexLabelSyncService {
                 const userName = userIdToNameMap.get(userId)
                 if (userName) {
                   const userLabel = `${this.config.labelPrefix}:${userName}`
-                  if (labels.includes(userLabel)) {
+                  if (
+                    labels.some(
+                      (l) => l.toLowerCase() === userLabel.toLowerCase(),
+                    )
+                  ) {
                     userLabelsToRemove.push(userLabel)
                   }
                 }
