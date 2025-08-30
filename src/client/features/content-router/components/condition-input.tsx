@@ -230,79 +230,6 @@ function ConditionInput({
     },
   })
 
-  // Update handlers ref when onChangeRef changes
-  useEffect(() => {
-    handlers.current = {
-      handleTextChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-        onChangeRef.current(e.target.value)
-      },
-
-      handleNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-        const numValue = Number(e.target.value)
-        const value =
-          e.target.value === ''
-            ? null
-            : Number.isNaN(numValue)
-              ? null
-              : numValue
-        onChangeRef.current(value as ConditionValue)
-      },
-
-      handleArrayChange: (
-        e: React.ChangeEvent<HTMLInputElement>,
-        isNumeric = false,
-      ) => {
-        const arrayValue = e.target.value
-          .split(',')
-          .map((v) => v.trim())
-          .filter((v) => v !== '')
-
-        if (isNumeric) {
-          const numericValues = arrayValue
-            .map((v) => Number(v))
-            .filter((v) => !Number.isNaN(v))
-          onChangeRef.current(numericValues)
-        } else {
-          onChangeRef.current(arrayValue)
-        }
-      },
-
-      handleRangeMinChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-        const currentValue =
-          typeof valueRef.current === 'object' && valueRef.current !== null
-            ? { ...(valueRef.current as { min?: number; max?: number }) }
-            : { min: undefined, max: undefined }
-
-        const minValue = Number(e.target.value)
-        const min =
-          e.target.value === ''
-            ? undefined
-            : Number.isNaN(minValue)
-              ? undefined
-              : minValue
-        onChangeRef.current({ ...currentValue, min })
-      },
-
-      handleRangeMaxChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-        type RangeValue = { min?: number; max?: number }
-
-        const currentValue: RangeValue =
-          typeof valueRef.current === 'object' && valueRef.current !== null
-            ? { ...(valueRef.current as RangeValue) }
-            : { min: undefined, max: undefined }
-
-        const maxValue = Number(e.target.value)
-        const max =
-          e.target.value === ''
-            ? undefined
-            : Number.isNaN(maxValue)
-              ? undefined
-              : maxValue
-        onChangeRef.current({ ...currentValue, max })
-      },
-    }
-  }, [])
-
   // Handle the specific input requirements based on valueTypes
   if (!operator || valueTypes.length === 0) return null
 
@@ -637,21 +564,34 @@ function ConditionInput({
       // Handle the value transformation
       let selectValue = ''
       if (typeof value === 'string') {
-        // Check if it's already prefixed
-        if (value.includes('-')) {
-          selectValue = value
+        const normalized = value.trim()
+        // Check if it's already a region-prefixed value (format: "US-PG-13", "UK-15", etc.)
+        const isAlreadyPrefixed = Object.keys(ContentCertifications).some(
+          (region) => normalized.startsWith(`${region}-`),
+        )
+
+        if (isAlreadyPrefixed) {
+          selectValue = normalized
         } else {
+          // Find the certification in any region - prefer US for consistency
+          const matches: string[] = []
           for (const [region, data] of Object.entries(ContentCertifications)) {
             const allCerts = [
               ...(data.movie || []),
               ...(data.tv || []),
               ...(data.all || []),
             ]
-            const found = allCerts.find((cert) => cert.value === value)
-            if (found) {
-              selectValue = `${region}-${value}`
-              break
+            if (allCerts.some((cert) => cert.value === normalized)) {
+              matches.push(region)
             }
+          }
+          if (matches.length) {
+            // Prefer US region for consistency when multiple regions have the same certification
+            const preferredRegion = 'US'
+            const chosen = matches.includes(preferredRegion)
+              ? preferredRegion
+              : matches[0]
+            selectValue = `${chosen}-${normalized}`
           }
         }
       }
@@ -662,7 +602,13 @@ function ConditionInput({
             options={groupedOptions}
             value={selectValue}
             onValueChange={(val) => {
-              const actualValue = val.split('-')[1] || val
+              // Extract certification value by removing region prefix (e.g., "US-TV-MA" -> "TV-MA")
+              const normalized = val.trim()
+              const dashIndex = normalized.indexOf('-')
+              const actualValue =
+                dashIndex !== -1
+                  ? normalized.substring(dashIndex + 1)
+                  : normalized
               onChangeRef.current(actualValue)
             }}
             placeholder="Select a certification"
