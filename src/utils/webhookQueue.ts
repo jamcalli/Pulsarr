@@ -49,9 +49,10 @@ export async function queuePendingWebhook(
     payload: WebhookPayload
   },
 ): Promise<void> {
-  const maxAgeMinutes = fastify.pendingWebhooks?.config?.maxAge || 10
-  const expires = new Date()
-  expires.setMinutes(expires.getMinutes() + maxAgeMinutes)
+  const cfgMaxAge = Number(fastify.pendingWebhooks?.config?.maxAge)
+  const maxAgeMinutes =
+    Number.isFinite(cfgMaxAge) && cfgMaxAge > 0 ? cfgMaxAge : 10
+  const expires = new Date(Date.now() + maxAgeMinutes * 60_000)
 
   try {
     await fastify.db.createPendingWebhook({
@@ -65,7 +66,15 @@ export async function queuePendingWebhook(
     })
 
     fastify.log.debug(
-      `No matching items found for ${data.guid}, queued webhook for later processing`,
+      {
+        guid: data.guid,
+        instanceType: data.instanceType,
+        instanceId: data.instanceId,
+        mediaType: data.mediaType,
+        title: data.title,
+        expiresAt: expires.toISOString(),
+      },
+      'Queued pending webhook (no matching items)',
     )
   } catch (error) {
     fastify.log.error(

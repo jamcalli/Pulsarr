@@ -598,8 +598,11 @@ export class PlexLabelSyncService {
               'movie' in webhook
                 ? { title: webhook.movie?.title, tmdbId: webhook.movie?.tmdbId }
                 : 'series' in webhook
-                ? { title: webhook.series?.title, tvdbId: webhook.series?.tvdbId }
-                : undefined,
+                  ? {
+                      title: webhook.series?.title,
+                      tvdbId: webhook.series?.tvdbId,
+                    }
+                  : undefined,
           },
           'Unable to extract content GUID from webhook',
         )

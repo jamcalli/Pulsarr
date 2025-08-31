@@ -193,46 +193,37 @@ export class TmdbService {
   ): Promise<TmdbMovieDetails | null> {
     const url = `${TmdbService.BASE_URL}/movie/${tmdbId}`
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const signal = AbortSignal.timeout(10_000)
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': TmdbService.USER_AGENT,
+        Accept: 'application/json',
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+      signal,
+    })
 
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': TmdbService.USER_AGENT,
-          Accept: 'application/json',
-          Authorization: `Bearer ${this.accessToken}`,
-        },
-        signal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          this.log.debug(`Movie not found in TMDB: ${tmdbId}`)
-          return null
-        }
-        throw new Error(
-          `TMDB API error: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = await response.json()
-
-      if (typeof data === 'object' && data !== null && isTmdbError(data)) {
-        this.log.warn(
-          `TMDB API returned error for movie ${tmdbId}:`,
-          data.status_message,
-        )
+    if (!response.ok) {
+      if (response.status === 404) {
+        this.log.debug(`Movie not found in TMDB: ${tmdbId}`)
         return null
       }
-
-      return data as TmdbMovieDetails
-    } catch (error) {
-      clearTimeout(timeoutId)
-      throw error
+      throw new Error(
+        `TMDB API error: ${response.status} ${response.statusText}`,
+      )
     }
+
+    const data = await response.json()
+
+    if (typeof data === 'object' && data !== null && isTmdbError(data)) {
+      this.log.warn(
+        `TMDB API returned error for movie ${tmdbId}:`,
+        data.status_message,
+      )
+      return null
+    }
+
+    return data as TmdbMovieDetails
   }
 
   /**
@@ -241,46 +232,37 @@ export class TmdbService {
   private async fetchTvDetails(tmdbId: number): Promise<TmdbTvDetails | null> {
     const url = `${TmdbService.BASE_URL}/tv/${tmdbId}`
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const signal = AbortSignal.timeout(10_000)
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': TmdbService.USER_AGENT,
+        Accept: 'application/json',
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+      signal,
+    })
 
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': TmdbService.USER_AGENT,
-          Accept: 'application/json',
-          Authorization: `Bearer ${this.accessToken}`,
-        },
-        signal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          this.log.debug(`TV show not found in TMDB: ${tmdbId}`)
-          return null
-        }
-        throw new Error(
-          `TMDB API error: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = await response.json()
-
-      if (typeof data === 'object' && data !== null && isTmdbError(data)) {
-        this.log.warn(
-          `TMDB API returned error for TV show ${tmdbId}:`,
-          data.status_message,
-        )
+    if (!response.ok) {
+      if (response.status === 404) {
+        this.log.debug(`TV show not found in TMDB: ${tmdbId}`)
         return null
       }
-
-      return data as TmdbTvDetails
-    } catch (error) {
-      clearTimeout(timeoutId)
-      throw error
+      throw new Error(
+        `TMDB API error: ${response.status} ${response.statusText}`,
+      )
     }
+
+    const data = await response.json()
+
+    if (typeof data === 'object' && data !== null && isTmdbError(data)) {
+      this.log.warn(
+        `TMDB API returned error for TV show ${tmdbId}:`,
+        data.status_message,
+      )
+      return null
+    }
+
+    return data as TmdbTvDetails
   }
 
   /**
@@ -292,48 +274,37 @@ export class TmdbService {
   ): Promise<TmdbWatchProvidersResponse | null> {
     const url = `${TmdbService.BASE_URL}/movie/${tmdbId}/watch/providers?watch_region=${region}`
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const signal = AbortSignal.timeout(10_000)
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': TmdbService.USER_AGENT,
+        Accept: 'application/json',
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+      signal,
+    })
 
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': TmdbService.USER_AGENT,
-          Accept: 'application/json',
-          Authorization: `Bearer ${this.accessToken}`,
-        },
-        signal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          this.log.debug(
-            `Watch providers not found for movie TMDB ID: ${tmdbId}`,
-          )
-          return null
-        }
-        throw new Error(
-          `TMDB API error: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = await response.json()
-
-      if (typeof data === 'object' && data !== null && isTmdbError(data)) {
-        this.log.warn(
-          `TMDB API returned error for movie watch providers ${tmdbId}:`,
-          data.status_message,
-        )
+    if (!response.ok) {
+      if (response.status === 404) {
+        this.log.debug(`Watch providers not found for movie TMDB ID: ${tmdbId}`)
         return null
       }
-
-      return data as TmdbWatchProvidersResponse
-    } catch (error) {
-      clearTimeout(timeoutId)
-      throw error
+      throw new Error(
+        `TMDB API error: ${response.status} ${response.statusText}`,
+      )
     }
+
+    const data = await response.json()
+
+    if (typeof data === 'object' && data !== null && isTmdbError(data)) {
+      this.log.warn(
+        `TMDB API returned error for movie watch providers ${tmdbId}:`,
+        data.status_message,
+      )
+      return null
+    }
+
+    return data as TmdbWatchProvidersResponse
   }
 
   /**
@@ -345,46 +316,37 @@ export class TmdbService {
   ): Promise<TmdbWatchProvidersResponse | null> {
     const url = `${TmdbService.BASE_URL}/tv/${tmdbId}/watch/providers?watch_region=${region}`
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const signal = AbortSignal.timeout(10_000)
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': TmdbService.USER_AGENT,
+        Accept: 'application/json',
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+      signal,
+    })
 
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': TmdbService.USER_AGENT,
-          Accept: 'application/json',
-          Authorization: `Bearer ${this.accessToken}`,
-        },
-        signal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          this.log.debug(`Watch providers not found for TV TMDB ID: ${tmdbId}`)
-          return null
-        }
-        throw new Error(
-          `TMDB API error: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = await response.json()
-
-      if (typeof data === 'object' && data !== null && isTmdbError(data)) {
-        this.log.warn(
-          `TMDB API returned error for TV watch providers ${tmdbId}:`,
-          data.status_message,
-        )
+    if (!response.ok) {
+      if (response.status === 404) {
+        this.log.debug(`Watch providers not found for TV TMDB ID: ${tmdbId}`)
         return null
       }
-
-      return data as TmdbWatchProvidersResponse
-    } catch (error) {
-      clearTimeout(timeoutId)
-      throw error
+      throw new Error(
+        `TMDB API error: ${response.status} ${response.statusText}`,
+      )
     }
+
+    const data = await response.json()
+
+    if (typeof data === 'object' && data !== null && isTmdbError(data)) {
+      this.log.warn(
+        `TMDB API returned error for TV watch providers ${tmdbId}:`,
+        data.status_message,
+      )
+      return null
+    }
+
+    return data as TmdbWatchProvidersResponse
   }
 
   /**
@@ -452,8 +414,7 @@ export class TmdbService {
   ): Promise<{ tmdbId: number; type: 'movie' | 'tv' } | null> {
     const url = `${TmdbService.BASE_URL}/find/${tvdbId}?external_source=tvdb_id`
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const signal = AbortSignal.timeout(10_000)
 
     try {
       const response = await fetch(url, {
@@ -462,10 +423,8 @@ export class TmdbService {
           Accept: 'application/json',
           Authorization: `Bearer ${this.accessToken}`,
         },
-        signal: controller.signal,
+        signal,
       })
-
-      clearTimeout(timeoutId)
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -508,7 +467,6 @@ export class TmdbService {
       this.log.debug(`No results found for TVDB ID ${tvdbId}`)
       return null
     } catch (error) {
-      clearTimeout(timeoutId)
       this.log.error({ error }, `Error finding content by TVDB ID ${tvdbId}:`)
       return null
     }
