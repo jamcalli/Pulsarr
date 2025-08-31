@@ -42,14 +42,16 @@ export class ContentRouterService {
    * Collection of loaded routing evaluators that will be applied to content
    */
   private evaluators: RoutingEvaluator[] = []
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'CONTENT_ROUTER')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {
-    this.log = createServiceLogger(this.baseLog, 'CONTENT_ROUTER')
-  }
+  ) {}
 
   /**
    * Initialize the router service by loading all evaluators from the router-evaluators directory.

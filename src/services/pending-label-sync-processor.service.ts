@@ -36,13 +36,16 @@ export class PendingLabelSyncProcessorService {
   private readonly _config: PendingLabelSyncConfig
   private _processingSyncs = false
   private _cleaningUp = false
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'PENDING_LABEL_SYNC')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'PENDING_LABEL_SYNC')
     this._config = {
       retryInterval: 30, // Default retry interval - not configurable
       maxAge: 10, // Default max age - not configurable

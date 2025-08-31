@@ -9,7 +9,11 @@ import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class StatusService {
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'WATCHLIST_STATUS')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
@@ -17,9 +21,7 @@ export class StatusService {
     private readonly sonarrManager: FastifyInstance['sonarrManager'],
     private readonly radarrManager: FastifyInstance['radarrManager'],
     private readonly fastify: FastifyInstance,
-  ) {
-    this.log = createServiceLogger(this.baseLog, 'WATCHLIST_STATUS')
-  }
+  ) {}
 
   async syncAllStatuses(): Promise<{ shows: number; movies: number }> {
     const [showUpdates, movieUpdates] = await Promise.all([

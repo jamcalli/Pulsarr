@@ -53,7 +53,11 @@ export class SchedulerService {
 
   /** Map of job names to their job instances and handlers */
   private readonly jobs: JobMap = new Map()
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'SCHEDULER')
+  }
 
   /** Track if we're in the initial startup phase */
   private isInitializing = true
@@ -74,7 +78,6 @@ export class SchedulerService {
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'SCHEDULER')
     this.scheduler = new ToadScheduler()
     this.log.info('Scheduler service initialized')
   }

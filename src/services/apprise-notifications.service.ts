@@ -13,13 +13,16 @@ import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class AppriseNotificationService {
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'APPRISE')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'APPRISE')
     this.log.info('Initializing Apprise notification service')
   }
 

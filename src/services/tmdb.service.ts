@@ -28,14 +28,16 @@ export class TmdbService {
   private static readonly BASE_URL = 'https://api.themoviedb.org/3'
   private static readonly USER_AGENT =
     'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'TMDB')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {
-    this.log = createServiceLogger(this.baseLog, 'TMDB')
-  }
+  ) {}
 
   /**
    * Get current TMDB API Read Access Token from config

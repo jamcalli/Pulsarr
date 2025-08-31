@@ -13,14 +13,16 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class RadarrManagerService {
   private radarrServices: Map<number, RadarrService> = new Map()
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'RADARR_MANAGER')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {
-    this.log = createServiceLogger(this.baseLog, 'RADARR_MANAGER')
-  }
+  ) {}
 
   private get appBaseUrl(): string {
     return this.fastify.config.baseUrl

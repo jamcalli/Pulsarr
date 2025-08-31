@@ -52,16 +52,18 @@ export class RadarrService {
     new Map()
   private tagsCacheExpiry: Map<number, number> = new Map()
   private TAG_CACHE_TTL = 30000 // 30 seconds in milliseconds
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'RADARR')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly appBaseUrl: string,
     private readonly port: number,
     private readonly fastify: FastifyInstance,
-  ) {
-    this.log = createServiceLogger(this.baseLog, 'RADARR')
-  }
+  ) {}
 
   private ensureUrlHasProtocol(url: string): string {
     return url.match(/^https?:\/\//) ? url : `http://${url}`
