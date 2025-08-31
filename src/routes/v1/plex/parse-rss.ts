@@ -12,7 +12,8 @@ export const rssWatchlistRoute: FastifyPluginAsyncZod = async (
     schema: rssWatchlistSchema,
     handler: async (request, reply) => {
       try {
-        const response = await fastify.plexWatchlist.processRssWatchlists()
+        const response =
+          await fastify.plexWatchlist.processRssWatchlistsWithUserDetails()
         return reply.send(response)
       } catch (err) {
         logRouteError(fastify.log, request, err, {
