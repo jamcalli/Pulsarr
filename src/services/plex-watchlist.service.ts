@@ -1571,9 +1571,6 @@ export class PlexWatchlistService {
   async processRssWatchlists(): Promise<RssWatchlistResults> {
     const config = await this.ensureRssFeeds()
 
-    // Create a snapshot for this specific operation
-    const _existingGuidsSnapshot = await this.createGuidsSnapshot()
-
     const results: RssWatchlistResults = {
       self: {
         total: 0,
@@ -1591,6 +1588,28 @@ export class PlexWatchlistService {
 
     if (config.friendsRss) {
       results.friends = await this.processFriendsRssWatchlist(config.friendsRss)
+    }
+
+    return results
+  }
+
+  /**
+   * Process RSS watchlists with real user details for API responses
+   * This method is optimized for API endpoints that need actual user information
+   */
+  async processRssWatchlistsWithUserDetails(): Promise<RssWatchlistResults> {
+    const results = await this.processRssWatchlists()
+
+    // Lazy load primary user details only when needed for API response
+    if (results.self.users.length > 0) {
+      const primaryUser = await this.dbService.getPrimaryUser()
+      if (primaryUser) {
+        results.self.users[0].user = {
+          watchlistId: primaryUser.name,
+          username: primaryUser.name,
+          userId: primaryUser.id,
+        }
+      }
     }
 
     return results
@@ -1661,16 +1680,11 @@ export class PlexWatchlistService {
       this.log,
     )
 
-    const primaryUser = await this.dbService.getPrimaryUser()
-    if (!primaryUser) {
-      throw new Error('No primary token user found')
-    }
-
     const watchlistGroup: WatchlistGroup = {
       user: {
-        watchlistId: primaryUser.name,
-        username: primaryUser.name,
-        userId: primaryUser.id,
+        watchlistId: 'self',
+        username: 'Self Watchlist',
+        userId: 1,
       },
       watchlist: this.mapRssItemsToWatchlist(
         selfItems as Set<TemptRssWatchlistItem>,
