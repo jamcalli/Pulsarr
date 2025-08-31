@@ -107,6 +107,20 @@ export class UserTagService {
   }
 
   /**
+   * Normalize and reuse a validated prefix everywhere
+   */
+  private get effectiveTagPrefix(): string {
+    const cfg = this.fastify.config.tagPrefix || 'pulsarr:user'
+    if (!/^[a-zA-Z0-9_\-:.]+$/.test(cfg)) {
+      this.log.warn(
+        `Invalid tag prefix format: "${cfg}". Falling back to "pulsarr:user".`,
+      )
+      return 'pulsarr:user'
+    }
+    return cfg
+  }
+
+  /**
    * Get config value for removed tag mode
    */
   private get removedTagMode(): 'remove' | 'keep' | 'special-tag' {
@@ -1908,15 +1922,7 @@ export class UserTagService {
       .toLowerCase()
       .replace(/[^a-z0-9_\-:.]/g, '_') // keep safe charset
 
-    // Validate the tag prefix meets our requirements (consistent with API validation)
-    if (!/^[a-zA-Z0-9_\-:.]+$/.test(this.tagPrefix)) {
-      this.log.warn(
-        `Invalid tag prefix format: "${this.tagPrefix}". Using default "pulsarr:user" instead.`,
-      )
-      return `pulsarr:user:${sanitizedName}`
-    }
-
-    return `${this.tagPrefix}:${sanitizedName}`
+    return `${this.effectiveTagPrefix}:${sanitizedName}`
   }
 
   /**
@@ -1926,7 +1932,9 @@ export class UserTagService {
    * @returns True if this is an application user tag
    */
   private isAppUserTag(tagLabel: string): boolean {
-    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix.toLowerCase()}:`)
+    return tagLabel
+      .toLowerCase()
+      .startsWith(`${this.effectiveTagPrefix.toLowerCase()}:`)
   }
 
   /**
