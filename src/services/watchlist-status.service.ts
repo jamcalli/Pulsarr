@@ -944,7 +944,13 @@ export class StatusService {
             const syncedInstances = Array.isArray(instance.syncedInstances)
               ? instance.syncedInstances
               : typeof instance.syncedInstances === 'string'
-                ? JSON.parse(instance.syncedInstances || '[]')
+                ? (() => {
+                    try {
+                      return JSON.parse(instance.syncedInstances || '[]')
+                    } catch {
+                      return []
+                    }
+                  })()
                 : []
 
             for (const syncedId of syncedInstances) {
@@ -1279,7 +1285,13 @@ export class StatusService {
             const syncedInstances = Array.isArray(instance.syncedInstances)
               ? instance.syncedInstances
               : typeof instance.syncedInstances === 'string'
-                ? JSON.parse(instance.syncedInstances || '[]')
+                ? (() => {
+                    try {
+                      return JSON.parse(instance.syncedInstances || '[]')
+                    } catch {
+                      return []
+                    }
+                  })()
                 : []
 
             for (const syncedId of syncedInstances) {

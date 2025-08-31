@@ -208,7 +208,10 @@ export class QuotaService {
     }
 
     const _remaining = status.quotaLimit - status.currentUsage
-    const percentage = (status.currentUsage / status.quotaLimit) * 100
+    const percentage =
+      status.quotaLimit > 0
+        ? (status.currentUsage / status.quotaLimit) * 100
+        : 100
 
     let displayText = `${status.currentUsage}/${status.quotaLimit} used`
     if (status.resetDate) {
@@ -489,7 +492,7 @@ export class QuotaService {
       return true
     } catch (error) {
       // Log error but don't throw - quota recording failures shouldn't break routing
-      this.log.error(`Error recording quota usage for user ${userId}:`, error)
+      this.log.error({ error, userId }, 'Error recording quota usage')
       return false
     }
   }

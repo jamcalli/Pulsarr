@@ -2191,7 +2191,7 @@ export class UserTagService {
         }
 
         this.log.debug(
-          `Completed orphaned tag cleanup for Sonarr instance ${instance.name}: removed tags from ${results.removed} series`,
+          `Completed orphaned tag cleanup for Sonarr instance ${instance.name}: removed tags from ${bulkUpdates.length} series`,
         )
 
         _sonarrInstancesProcessed++
@@ -2339,7 +2339,7 @@ export class UserTagService {
         }
 
         this.log.debug(
-          `Completed orphaned tag cleanup for Radarr instance ${instance.name}: removed tags from ${results.removed} movies`,
+          `Completed orphaned tag cleanup for Radarr instance ${instance.name}: removed tags from ${bulkUpdates.length} movies`,
         )
 
         _radarrInstancesProcessed++

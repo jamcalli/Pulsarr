@@ -241,11 +241,10 @@ export class PlexServerService {
         this.log.debug(`Found manually configured Plex URL: ${configUrl}`)
 
         // Try to match with discovered connections
+        const normalize = (u: string) =>
+          u.replace(/^https?:\/\//, '').replace(/\/+$/, '')
         const configMatch = connections.find(
-          (c) =>
-            c.url === configUrl ||
-            c.url.replace('http://', '').replace('https://', '') ===
-              configUrl.replace('http://', '').replace('https://', ''),
+          (c) => normalize(c.url) === normalize(configUrl),
         )
 
         if (configMatch) {

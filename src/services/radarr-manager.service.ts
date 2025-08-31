@@ -51,11 +51,14 @@ export class RadarrManagerService {
       }
 
       for (const instance of instances) {
-        this.log.debug({
-          id: instance.id,
-          name: instance.name,
-          baseUrl: instance.baseUrl,
-        }, 'Attempting to initialize instance')
+        this.log.debug(
+          {
+            id: instance.id,
+            name: instance.name,
+            baseUrl: instance.baseUrl,
+          },
+          'Attempting to initialize instance',
+        )
 
         try {
           const radarrService = new RadarrService(

@@ -150,7 +150,7 @@ export class SchedulerService {
       }
 
       // Store expected handler count for completion tracking
-      this.expectedHandlerCount = schedules.length
+      this.expectedHandlerCount = schedules.filter((s) => s.enabled).length
 
       // Track initial state but don't log yet since no handlers are registered
 
