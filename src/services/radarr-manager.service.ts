@@ -51,15 +51,15 @@ export class RadarrManagerService {
       }
 
       for (const instance of instances) {
-        this.log.debug('Attempting to initialize instance:', {
+        this.log.debug({
           id: instance.id,
           name: instance.name,
           baseUrl: instance.baseUrl,
-        })
+        }, 'Attempting to initialize instance')
 
         try {
           const radarrService = new RadarrService(
-            this.log,
+            this.baseLog,
             this.appBaseUrl,
             this.port,
             this.fastify,
@@ -82,7 +82,7 @@ export class RadarrManagerService {
           await new Promise((resolve) => setTimeout(resolve, 1000))
           try {
             const radarrService = new RadarrService(
-              this.log,
+              this.baseLog,
               this.appBaseUrl,
               this.port,
               this.fastify,
@@ -331,7 +331,7 @@ export class RadarrManagerService {
   async addInstance(instance: Omit<RadarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createRadarrInstance(instance)
     const radarrService = new RadarrService(
-      this.log,
+      this.baseLog,
       this.appBaseUrl,
       this.port,
       this.fastify,
@@ -366,7 +366,7 @@ export class RadarrManagerService {
     const instance = await this.fastify.db.getRadarrInstance(id)
     if (instance) {
       const radarrService = new RadarrService(
-        this.log,
+        this.baseLog,
         this.appBaseUrl,
         this.port,
         this.fastify,
@@ -417,7 +417,7 @@ export class RadarrManagerService {
   ): Promise<ConnectionTestResult> {
     try {
       const tempService = new RadarrService(
-        this.log,
+        this.baseLog,
         this.appBaseUrl,
         this.port,
         this.fastify,

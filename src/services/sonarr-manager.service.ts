@@ -54,7 +54,7 @@ export class SonarrManagerService {
       for (const instance of instances) {
         try {
           const sonarrService = new SonarrService(
-            this.log,
+            this.baseLog,
             this.fastify.config.baseUrl,
             this.port,
             this.fastify,
@@ -84,7 +84,7 @@ export class SonarrManagerService {
   ): Promise<ConnectionTestResult> {
     try {
       const tempService = new SonarrService(
-        this.log,
+        this.baseLog,
         this.appBaseUrl,
         this.port,
         this.fastify,
@@ -414,7 +414,7 @@ export class SonarrManagerService {
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createSonarrInstance(instance)
     const sonarrService = new SonarrService(
-      this.log,
+      this.baseLog,
       this.appBaseUrl,
       this.port,
       this.fastify,
@@ -449,7 +449,7 @@ export class SonarrManagerService {
     const instance = await this.fastify.db.getSonarrInstance(id)
     if (instance) {
       const sonarrService = new SonarrService(
-        this.log,
+        this.baseLog,
         this.appBaseUrl,
         this.port,
         this.fastify,
