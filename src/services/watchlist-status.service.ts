@@ -1044,6 +1044,11 @@ export class StatusService {
                   if (success) {
                     itemsCopied++
                   }
+                })
+                .catch((error) => {
+                  this.log.error(`Error in batch processing movie: ${error}`)
+                })
+                .finally(() => {
                   processingCount--
                   completedCount++
 
@@ -1061,11 +1066,6 @@ export class StatusService {
                       message: `Copied ${completedCount} of ${itemsToCopy.length} movies to Radarr instance ${instanceId}`,
                     })
                   }
-                })
-                .catch((error) => {
-                  this.log.error(`Error in batch processing movie: ${error}`)
-                  processingCount--
-                  completedCount++
                 })
             }
           }
@@ -1379,6 +1379,11 @@ export class StatusService {
                   if (success) {
                     itemsCopied++
                   }
+                })
+                .catch((error) => {
+                  this.log.error(`Error in batch processing show: ${error}`)
+                })
+                .finally(() => {
                   processingCount--
                   completedCount++
 
@@ -1396,11 +1401,6 @@ export class StatusService {
                       message: `Copied ${completedCount} of ${itemsToCopy.length} shows to Sonarr instance ${instanceId}`,
                     })
                   }
-                })
-                .catch((error) => {
-                  this.log.error(`Error in batch processing show: ${error}`)
-                  processingCount--
-                  completedCount++
                 })
             }
           }
