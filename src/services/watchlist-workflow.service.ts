@@ -1308,7 +1308,7 @@ export class WatchlistWorkflowService {
         const hasMatch = series.guids.some((guid) => watchlistGuids.has(guid))
         if (!hasMatch) {
           unmatchedShows++
-          this.log.debug('Show in Sonarr not in watchlist:', {
+          this.log.debug(`Show in Sonarr not in watchlist: ${series.title}`, {
             title: series.title,
             guids: series.guids,
           })
@@ -1319,7 +1319,7 @@ export class WatchlistWorkflowService {
         const hasMatch = movie.guids.some((guid) => watchlistGuids.has(guid))
         if (!hasMatch) {
           unmatchedMovies++
-          this.log.debug('Movie in Radarr not in watchlist:', {
+          this.log.debug(`Movie in Radarr not in watchlist: ${movie.title}`, {
             title: movie.title,
             guids: movie.guids,
           })

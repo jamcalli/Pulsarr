@@ -41,7 +41,7 @@ export class ProgressService {
   }
 
   emit(event: ProgressEvent) {
-    this.log.debug({ event }, 'Emitting progress event')
+    this.log.trace({ event }, 'Emitting progress event')
     this.eventEmitter.emit('progress', event)
   }
 
