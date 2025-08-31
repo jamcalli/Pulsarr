@@ -44,7 +44,11 @@ import pLimit from 'p-limit'
  * Service to manage label synchronization between Pulsarr and Plex
  */
 export class PlexLabelSyncService {
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'PLEX_LABEL_SYNC')
+  }
 
   /**
    * Creates a new PlexLabelSyncService instance
@@ -56,7 +60,6 @@ export class PlexLabelSyncService {
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'PLEX_LABEL_SYNC')
     this.log.info('Initializing PlexLabelSyncService', {
       enabled: this.config.enabled,
       labelPrefix: this.config.labelPrefix,

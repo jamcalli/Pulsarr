@@ -59,14 +59,16 @@ interface MediaService {
  * Service to manage user tagging for media in Sonarr and Radarr
  */
 export class UserTagService {
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'USER_TAG')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {
-    this.log = createServiceLogger(this.baseLog, 'USER_TAG')
-  }
+  ) {}
 
   /**
    * Get all users with sync enabled

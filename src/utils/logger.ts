@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { config } from 'dotenv'
 import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
-import type { LevelWithSilent, LoggerOptions } from 'pino'
+import type { LevelWithSilent, LoggerOptions, MultiStreamRes } from 'pino'
 import pino from 'pino'
 import pretty from 'pino-pretty'
 import * as rfs from 'rotating-file-stream'
@@ -315,13 +315,13 @@ export function createLoggerConfig(): PulsarrLoggerOptions {
     })
 
     const multistream = pino.multistream([
-      { stream: prettyStream },
-      { stream: fileStream },
+      { stream: prettyStream, level: 'trace' }, // Set to lowest level so it forwards everything
+      { stream: fileStream, level: 'trace' }, // Set to lowest level so it forwards everything
     ])
 
     return {
       level: 'info',
-      stream: multistream,
+      stream: multistream as MultiStreamRes,
       serializers: {
         req: createRequestSerializer(),
         error: createErrorSerializer(),

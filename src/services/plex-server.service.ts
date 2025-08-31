@@ -34,7 +34,11 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
  * PlexServerService class for maintaining state and providing Plex operations
  */
 export class PlexServerService {
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'PLEX_SERVER')
+  }
 
   // Connection and server information cache
   private serverConnections: PlexServerConnectionInfo[] | null = null
@@ -65,7 +69,6 @@ export class PlexServerService {
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'PLEX_SERVER')
     this.log.info('Initializing PlexServerService')
   }
 

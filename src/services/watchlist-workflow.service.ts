@@ -49,8 +49,10 @@ export class WatchlistWorkflowService {
   private readonly MANUAL_SYNC_JOB_NAME = 'periodic-watchlist-reconciliation'
   /** Current workflow status */
   private status: WorkflowStatus = 'stopped'
-  /** Service-specific logger instance */
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'WATCHLIST_WORKFLOW')
+  }
 
   /** Tracks if the workflow is fully initialized */
   private initialized = false
@@ -108,7 +110,6 @@ export class WatchlistWorkflowService {
     private readonly rssCheckIntervalMs: number = 10000,
     private readonly queueProcessDelayMs: number = 60000,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'WATCHLIST_WORKFLOW')
     this.log.info('Initializing Watchlist Workflow Service')
   }
 

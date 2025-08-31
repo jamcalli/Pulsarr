@@ -7,7 +7,11 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
  * Service for managing API keys
  */
 export class ApiKeyService {
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'API_KEY')
+  }
   private apiKeyCache: Map<string, Auth> = new Map() // key -> user session data
 
   /**
@@ -20,7 +24,6 @@ export class ApiKeyService {
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'API_KEY')
     this.log.info('Initializing ApiKeyService')
   }
 

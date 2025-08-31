@@ -55,13 +55,16 @@ export class DeleteSyncService {
    * @param log - Fastify logger instance for recording operations
    * @param fastify - Fastify instance for accessing other services and configuration
    */
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'DELETE_SYNC')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'DELETE_SYNC')
     this.log.info('Initializing Delete Sync Service')
   }
 

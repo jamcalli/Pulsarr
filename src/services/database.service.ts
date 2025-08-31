@@ -53,7 +53,6 @@ import type {
   ConditionGroup,
   RouterRule,
 } from '@root/types/router.types.js'
-import { createServiceLogger } from '@utils/logger.js'
 import { configurePgTypes } from '@utils/postgres-config.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
@@ -95,7 +94,6 @@ import * as webhookMethods from './database/methods/webhook.js'
 
 export class DatabaseService {
   public readonly knex: Knex
-  public log: FastifyBaseLogger
 
   /**
    * Flag indicating whether we're using PostgreSQL (true) or SQLite (false)
@@ -108,11 +106,14 @@ export class DatabaseService {
    * @param log - Fastify logger instance for recording database operations
    * @param fastify - Fastify instance containing configuration and context
    */
+  public get log(): FastifyBaseLogger {
+    return this.baseLog.child({ service: 'DATABASE' })
+  }
+
   constructor(
     public readonly baseLog: FastifyBaseLogger,
     public readonly fastify: FastifyInstance,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'DATABASE')
     this.isPostgres = fastify.config.dbType === 'postgres'
     this.knex = knex(DatabaseService.createKnexConfig(fastify.config, this.log))
 

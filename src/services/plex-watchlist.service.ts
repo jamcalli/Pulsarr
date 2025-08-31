@@ -32,16 +32,18 @@ export class PlexWatchlistService {
   private userCanSyncCache = new Map<number, boolean>()
   // In-flight promise map to prevent concurrent DB hits for the same user
   private userCanSyncInFlight = new Map<number, Promise<boolean>>()
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'PLEX_WATCHLIST')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
     private readonly plexLabelSyncService?: PlexLabelSyncService,
-  ) {
-    this.log = createServiceLogger(this.baseLog, 'PLEX_WATCHLIST')
-  }
+  ) {}
 
   private get config() {
     return this.fastify.config

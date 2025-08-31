@@ -62,13 +62,16 @@ export class DiscordNotificationService {
   private botClient: Client | null = null
   private botStatus: BotStatus = 'stopped'
   private readonly commands: Map<string, Command> = new Map()
-  private log: FastifyBaseLogger
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'DISCORD')
+  }
 
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log = createServiceLogger(this.baseLog, 'DISCORD')
     this.log.debug('Initializing Discord notification service')
     this.initializeCommands()
   }

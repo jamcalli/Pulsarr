@@ -6,9 +6,14 @@ import type {
   UserQuotaConfig,
   UserQuotaConfigs,
 } from '@root/types/approval.types.js'
-import type { FastifyInstance } from 'fastify'
+import { createServiceLogger } from '@utils/logger.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class QuotaService {
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.fastify.log, 'QUOTA')
+  }
+
   constructor(private fastify: FastifyInstance) {}
 
   /**
@@ -309,7 +314,7 @@ export class QuotaService {
         // Delete quota usage records for this user
         const deletedCount =
           await this.fastify.db.deleteQuotaUsageByUser(userId)
-        this.fastify.log.info(
+        this.log.info(
           `Reset ${deletedCount} quota usage records for user ${userId}`,
         )
 
@@ -336,7 +341,7 @@ export class QuotaService {
     try {
       await this.performAllQuotaMaintenance()
     } catch (error) {
-      this.fastify.log.error({ error }, 'Failed to perform quota maintenance:')
+      this.log.error({ error }, 'Failed to perform quota maintenance:')
     }
   }
 
@@ -362,12 +367,12 @@ export class QuotaService {
       const cleanedCount =
         await this.fastify.db.cleanupOldQuotaUsage(retentionDays)
       if (cleanedCount > 0) {
-        this.fastify.log.info(
+        this.log.info(
           `Cleaned up ${cleanedCount} old quota usage records (retention: ${retentionDays} days)`,
         )
       }
     } else {
-      this.fastify.log.debug('Quota cleanup disabled by configuration')
+      this.log.debug('Quota cleanup disabled by configuration')
     }
   }
 
@@ -386,14 +391,14 @@ export class QuotaService {
         dailyQuotas.length + weeklyQuotas.length + monthlyQuotas.length
 
       if (totalQuotas > 0) {
-        this.fastify.log.info(
+        this.log.info(
           `Quota maintenance completed: ${dailyQuotas.length} daily, ${weeklyQuotas.length} weekly, ${monthlyQuotas.length} monthly quotas active`,
         )
       } else {
-        this.fastify.log.debug('No active quotas found during maintenance')
+        this.log.debug('No active quotas found during maintenance')
       }
     } catch (error) {
-      this.fastify.log.error({ error }, 'Failed to log quota status:')
+      this.log.error({ error }, 'Failed to log quota status:')
     }
   }
 
@@ -484,10 +489,7 @@ export class QuotaService {
       return true
     } catch (error) {
       // Log error but don't throw - quota recording failures shouldn't break routing
-      this.fastify.log.error(
-        `Error recording quota usage for user ${userId}:`,
-        error,
-      )
+      this.log.error(`Error recording quota usage for user ${userId}:`, error)
       return false
     }
   }
