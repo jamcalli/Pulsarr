@@ -894,8 +894,8 @@ export class PlexServerService {
       // Use the configured playlist name if available
       const playlistName = this.getProtectionPlaylistName()
 
-      // Get all users
-      const users = await this.getPlexUsers()
+      // Get all users (clone to avoid mutating cached array)
+      const users = [...(await this.getPlexUsers())]
 
       // Ensure the admin/owner user is included
       const adminToken = this.config.plexTokens?.[0]

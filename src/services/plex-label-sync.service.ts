@@ -590,9 +590,19 @@ export class PlexLabelSyncService {
       // Extract content GUID and type from webhook
       const contentData = this.extractContentGuidFromWebhook(webhook)
       if (!contentData) {
-        this.log.warn('Unable to extract content GUID from webhook', {
-          webhook,
-        })
+        this.log.warn(
+          {
+            instanceName: webhook?.instanceName,
+            eventType: 'eventType' in webhook ? webhook.eventType : undefined,
+            content:
+              'movie' in webhook
+                ? { title: webhook.movie?.title, tmdbId: webhook.movie?.tmdbId }
+                : 'series' in webhook
+                ? { title: webhook.series?.title, tvdbId: webhook.series?.tvdbId }
+                : undefined,
+          },
+          'Unable to extract content GUID from webhook',
+        )
         return false
       }
 
