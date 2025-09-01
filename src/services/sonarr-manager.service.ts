@@ -181,27 +181,15 @@ export class SonarrManagerService {
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
-      let targetQualityProfileId: number | undefined
-
-      if (qualityProfile != null) {
-        if (typeof qualityProfile === 'number') {
-          targetQualityProfileId = qualityProfile
-        } else if (
-          typeof qualityProfile === 'string' &&
-          /^\d+$/.test(qualityProfile)
-        ) {
-          targetQualityProfileId = Number(qualityProfile)
-        }
-      } else if (instance.qualityProfile !== null) {
-        if (typeof instance.qualityProfile === 'number') {
-          targetQualityProfileId = instance.qualityProfile
-        } else if (
-          typeof instance.qualityProfile === 'string' &&
-          /^\d+$/.test(instance.qualityProfile)
-        ) {
-          targetQualityProfileId = Number(instance.qualityProfile)
-        }
-      }
+      const toNum = (v: unknown): number | undefined =>
+        typeof v === 'number'
+          ? v
+          : typeof v === 'string' && /^\d+$/.test(v)
+            ? Number(v)
+            : undefined
+      const qpSource = qualityProfile ?? instance.qualityProfile
+      const targetQualityProfileId =
+        qpSource !== null ? toNum(qpSource) : undefined
 
       // Use provided tags or instance default tags
       const targetTags = tags || instance.tags || []
@@ -327,6 +315,7 @@ export class SonarrManagerService {
           searchOnAdd: targetSearchOnAdd,
           seasonMonitoring: targetSeasonMonitoring,
           seriesType: targetSeriesType,
+          title: sonarrItem.title,
           userId,
           key,
         },
@@ -368,9 +357,6 @@ export class SonarrManagerService {
    * @param instanceId The ID of the Sonarr instance
    * @returns The SonarrService instance or undefined if not found
    */
-  getInstance(instanceId: number): SonarrService | undefined {
-    return this.sonarrServices.get(instanceId)
-  }
 
   async verifyItemExists(
     instanceId: number,
@@ -434,8 +420,9 @@ export class SonarrManagerService {
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createSonarrInstance(instance)
+    let sonarrService: SonarrService | undefined
     try {
-      const sonarrService = new SonarrService(
+      sonarrService = new SonarrService(
         this.baseLog,
         this.appBaseUrl,
         this.port,
@@ -453,6 +440,16 @@ export class SonarrManagerService {
         },
         'Failed to initialize new Sonarr instance; rolling back',
       )
+      if (sonarrService) {
+        try {
+          await sonarrService.removeWebhook()
+        } catch (cleanupErr) {
+          this.log.warn(
+            { error: cleanupErr },
+            `Failed to cleanup webhook for new instance ${id}`,
+          )
+        }
+      }
       await this.fastify.db.deleteSonarrInstance(id)
       throw error
     }
@@ -534,7 +531,7 @@ export class SonarrManagerService {
           }
         }
 
-        throw new Error(errorMessage)
+        throw new Error(errorMessage, { cause: initError as Error })
       }
     } else {
       throw new Error(`Sonarr instance ${id} not found`)

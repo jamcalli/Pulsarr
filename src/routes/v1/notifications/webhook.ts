@@ -115,18 +115,22 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        const contentTitle =
+          'movie' in body
+            ? body.movie.title
+            : 'series' in body
+              ? body.series.title
+              : 'unknown'
         fastify.log.info(
+          `Webhook passed deduplication: ${contentTitle} (${body.instanceName})`,
+        )
+        fastify.log.debug(
           {
             instanceName: body.instanceName,
             eventType: 'eventType' in body ? body.eventType : 'unknown',
-            contentTitle:
-              'movie' in body
-                ? body.movie.title
-                : 'series' in body
-                  ? body.series.title
-                  : 'unknown',
+            contentTitle,
           },
-          'Webhook passed deduplication and will be processed',
+          'Webhook deduplication details',
         )
 
         if ('movie' in body) {
@@ -216,6 +220,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           const episodeNumber = body.episodes[0].episodeNumber
 
           fastify.log.info(
+            `Received Sonarr webhook: ${body.series.title} S${seasonNumber}E${episodeNumber}`,
+          )
+          fastify.log.debug(
             {
               webhook: 'sonarr',
               tvdbId,
@@ -227,7 +234,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               episodeCount: body.episodes.length,
               eventType: body.eventType,
             },
-            'Received Sonarr webhook',
+            'Sonarr webhook details',
           )
 
           if ('episodeFile' in body && !('episodeFiles' in body)) {
@@ -425,8 +432,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
             if (nonRecentEpisodes.length > 0) {
               fastify.log.info(
+                `Adding ${nonRecentEpisodes.length} non-recent episodes to queue for S${seasonNumber}`,
+              )
+              fastify.log.debug(
                 { count: nonRecentEpisodes.length, tvdbId, seasonNumber },
-                'Adding non-recent episodes to queue',
+                'Non-recent episodes queue details',
               )
 
               if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
@@ -443,8 +453,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   instanceId: instance?.id ?? null,
                   timeoutId: setTimeout(() => {
                     fastify.log.info(
+                      `Queue timeout reached for S${seasonNumber}, processing webhooks`,
+                    )
+                    fastify.log.debug(
                       { tvdbId, seasonNumber },
-                      'Queue timeout reached, processing queued webhooks',
+                      'Queue timeout details',
                     )
                     processQueuedWebhooks(tvdbId, seasonNumber, fastify)
                   }, fastify.config.queueWaitTime),
@@ -461,8 +474,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
                   setTimeout(() => {
                     fastify.log.info(
+                      `Queue timeout reached for S${seasonNumber}, processing webhooks`,
+                    )
+                    fastify.log.debug(
                       { tvdbId, seasonNumber },
-                      'Queue timeout reached, processing queued webhooks',
+                      'Queue timeout details',
                     )
                     processQueuedWebhooks(tvdbId, seasonNumber, fastify)
                   }, fastify.config.queueWaitTime)
@@ -483,7 +499,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   ...newEpisodes,
                 )
 
-                fastify.log.info(
+                fastify.log.debug(
                   {
                     tvdbId,
                     seasonNumber,
