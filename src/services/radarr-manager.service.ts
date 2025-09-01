@@ -445,6 +445,8 @@ export class RadarrManagerService {
 
         throw new Error(errorMessage)
       }
+    } else {
+      throw new Error(`Radarr instance ${id} not found`)
     }
   }
 
