@@ -216,6 +216,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (
           'series' in body &&
           'episodes' in body &&
+          body.episodes &&
           Array.isArray(body.episodes) &&
           body.episodes.length > 0
         ) {

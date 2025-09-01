@@ -445,69 +445,74 @@ export class SonarrManagerService {
     if (current) {
       const candidate = { ...current, ...updates }
       const oldService = this.sonarrServices.get(id)
-      const sonarrService = new SonarrService(
-        this.baseLog,
-        this.appBaseUrl,
-        this.port,
-        this.fastify,
+
+      // Only treat changes to the target server endpoint as a "server change"
+      // API key changes on the same server should not trigger webhook removal
+      const serverChanged = !isSameServerEndpoint(
+        current.baseUrl,
+        candidate.baseUrl,
       )
-      try {
-        await sonarrService.initialize(candidate)
-        // Only persist after successful init; cleanup on persist failure
+
+      // Check if this is transitioning from placeholder API key to real API key
+      const isPlaceholderToReal =
+        current.apiKey === 'placeholder' && candidate.apiKey !== 'placeholder'
+
+      if (serverChanged || isPlaceholderToReal) {
+        // Server changed or placeholder API key updated - need to create new service and webhooks
+        const sonarrService = new SonarrService(
+          this.baseLog,
+          this.appBaseUrl,
+          this.port,
+          this.fastify,
+        )
+
         try {
-          await this.fastify.db.updateSonarrInstance(id, updates)
-        } catch (dbErr) {
+          await sonarrService.initialize(candidate)
+          // Only persist after successful init; cleanup on persist failure
           try {
-            await sonarrService.removeWebhook()
-          } catch (_) {
-            // ignore cleanup failure
+            await this.fastify.db.updateSonarrInstance(id, updates)
+          } catch (dbErr) {
+            try {
+              await sonarrService.removeWebhook()
+            } catch (_) {
+              // ignore cleanup failure
+            }
+            throw new Error('Failed to persist Sonarr instance update', {
+              cause: dbErr as Error,
+            })
           }
-          throw new Error('Failed to persist Sonarr instance update', {
-            cause: dbErr as Error,
-          })
-        }
-        // Only treat changes to the target server endpoint as a "server change"
-        // API key changes on the same server should not trigger webhook removal
-        const serverChanged = !isSameServerEndpoint(
-          current.baseUrl,
-          candidate.baseUrl,
-        )
-        if (serverChanged && oldService) {
-          try {
-            await oldService.removeWebhook()
-          } catch (cleanupErr) {
-            this.log.warn(
-              { error: cleanupErr },
-              `Failed to cleanup old webhook for previous server of instance ${id}`,
-            )
-          }
-        }
-        this.sonarrServices.set(id, sonarrService)
-      } catch (initError) {
-        this.log.error(
-          { error: initError },
-          `Failed to initialize Sonarr instance ${id}`,
-        )
-        // Initialize failed, possibly due to webhook setup
-        // Extract a meaningful error message
-        let errorMessage = 'Failed to initialize Sonarr instance'
 
-        if (initError instanceof Error) {
-          if (initError.message.includes('Sonarr API error')) {
-            errorMessage = initError.message
-          } else if (initError.message.includes('ECONNREFUSED')) {
-            errorMessage =
-              'Connection refused. Please check if Sonarr is running.'
-          } else if (initError.message.includes('ENOTFOUND')) {
-            errorMessage = 'Server not found. Please check your base URL.'
-          } else if (initError.message.includes('401')) {
-            errorMessage = 'Authentication failed. Please check your API key.'
-          } else {
-            errorMessage = initError.message
+          // Clean up old webhook from previous server (but not for placeholder transitions)
+          if (oldService && serverChanged) {
+            try {
+              await oldService.removeWebhook()
+            } catch (cleanupErr) {
+              this.log.warn(
+                { error: cleanupErr },
+                `Failed to cleanup old webhook for previous server of instance ${id}`,
+              )
+            }
           }
+          this.sonarrServices.set(id, sonarrService)
+        } catch (initError) {
+          this.log.error(
+            { error: initError },
+            `Failed to initialize Sonarr instance ${id}`,
+          )
+          throw initError
         }
+      } else {
+        // Server unchanged - just update configuration, no webhook changes needed
+        await this.fastify.db.updateSonarrInstance(id, updates)
 
-        throw new Error(errorMessage, { cause: initError as Error })
+        // Update the existing service configuration if it exists
+        if (oldService) {
+          // The service will pick up new config from database on next operation
+          this.log.debug(
+            { instanceId: id },
+            'Updated Sonarr instance configuration (no server change)',
+          )
+        }
       }
     } else {
       throw new Error(`Sonarr instance ${id} not found`)
