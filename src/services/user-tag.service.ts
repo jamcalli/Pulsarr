@@ -304,7 +304,13 @@ export class UserTagService {
           results.skipped += Math.max(skippedCount, 0)
 
           this.log.debug(
-            `Processed user tags for Sonarr instance ${instance.name}: created: ${createdCount}, skipped: ${skippedCount}, failed: ${failedCount}`,
+            {
+              instance: instance.name,
+              created: createdCount,
+              skipped: skippedCount,
+              failed: failedCount,
+            },
+            'Processed user tags for Sonarr instance',
           )
         } catch (instanceError) {
           this.log.error(
@@ -374,7 +380,13 @@ export class UserTagService {
           results.skipped += Math.max(skippedCount, 0)
 
           this.log.debug(
-            `Processed user tags for Radarr instance ${instance.name}: created: ${createdCount}, skipped: ${skippedCount}, failed: ${failedCount}`,
+            {
+              instance: instance.name,
+              created: createdCount,
+              skipped: skippedCount,
+              failed: failedCount,
+            },
+            'Processed user tags for Radarr instance',
           )
         } catch (instanceError) {
           this.log.error(

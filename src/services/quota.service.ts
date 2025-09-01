@@ -213,6 +213,16 @@ export class QuotaService {
         ? (status.currentUsage / status.quotaLimit) * 100
         : 100
 
+    this.log.debug(
+      {
+        remaining: _remaining,
+        used: status.currentUsage,
+        limit: status.quotaLimit,
+        percentage,
+      },
+      'Quota calculation details',
+    )
+
     let displayText = `${status.currentUsage}/${status.quotaLimit} used`
     if (status.resetDate) {
       displayText += ` (resets ${new Date(status.resetDate).toLocaleDateString()})`
@@ -317,9 +327,7 @@ export class QuotaService {
         // Delete quota usage records for this user
         const deletedCount =
           await this.fastify.db.deleteQuotaUsageByUser(userId)
-        this.log.info(
-          `Reset ${deletedCount} quota usage records for user ${userId}`,
-        )
+        this.log.info({ deletedCount, userId }, 'Reset quota usage records')
 
         usersProcessed++
         totalRecordsDeleted += deletedCount
@@ -371,11 +379,16 @@ export class QuotaService {
         await this.fastify.db.cleanupOldQuotaUsage(retentionDays)
       if (cleanedCount > 0) {
         this.log.info(
-          `Cleaned up ${cleanedCount} old quota usage records (retention: ${retentionDays} days)`,
+          { cleanedCount, retentionDays },
+          'Cleaned up old quota usage records',
         )
       }
     } else {
-      this.log.debug('Quota cleanup disabled by configuration')
+      const retentionDays = config?.cleanup?.retentionDays || 90
+      this.log.debug(
+        { retentionDays },
+        'Quota cleanup disabled by configuration',
+      )
     }
   }
 
@@ -395,7 +408,14 @@ export class QuotaService {
 
       if (totalQuotas > 0) {
         this.log.info(
-          `Quota maintenance completed: ${dailyQuotas.length} daily, ${weeklyQuotas.length} weekly, ${monthlyQuotas.length} monthly quotas active`,
+          {
+            daily: dailyQuotas.length,
+            weekly: weeklyQuotas.length,
+            monthly: monthlyQuotas.length,
+            total: totalQuotas,
+            at: _now,
+          },
+          'Quota maintenance completed',
         )
       } else {
         this.log.debug('No active quotas found during maintenance')
@@ -492,7 +512,10 @@ export class QuotaService {
       return true
     } catch (error) {
       // Log error but don't throw - quota recording failures shouldn't break routing
-      this.log.error({ error, userId }, 'Error recording quota usage')
+      this.log.error(
+        { error, userId, contentType, requestDate },
+        'Error recording quota usage',
+      )
       return false
     }
   }

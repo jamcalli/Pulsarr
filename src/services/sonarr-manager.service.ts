@@ -37,7 +37,7 @@ export class SonarrManagerService {
       this.log.debug('Starting Sonarr manager initialization')
 
       const instances = await this.fastify.db.getAllSonarrInstances()
-      this.log.info(`Found ${instances.length} Sonarr instances`)
+      this.log.info({ count: instances.length }, 'Found Sonarr instances')
       this.log.debug(
         {
           instanceIds: instances.map((i) => i.id),
@@ -55,7 +55,7 @@ export class SonarrManagerService {
         try {
           const sonarrService = new SonarrService(
             this.baseLog,
-            this.fastify.config.baseUrl,
+            this.appBaseUrl,
             this.port,
             this.fastify,
           )
@@ -289,7 +289,13 @@ export class SonarrManagerService {
               )
 
               this.log.debug(
-                `Created rolling monitoring entry for ${addedSeries.title} with ${targetSeasonMonitoring}`,
+                {
+                  seriesId: addedSeries.id,
+                  instanceId: targetInstanceId,
+                  tvdbId: tvdbId ?? null,
+                  monitoring: targetSeasonMonitoring,
+                },
+                'Created rolling monitoring entry',
               )
             }
           } else {

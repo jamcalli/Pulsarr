@@ -1025,9 +1025,14 @@ export class ContentRouterService {
 
             // Check if this content is anime
             if (tvdbId || tmdbId || imdbId) {
-              const isAnimeContent =
-                (await this.fastify.anime?.isAnime(tvdbId, tmdbId, imdbId)) ??
-                false
+              let isAnimeContent = false
+              if (this.fastify.anime) {
+                isAnimeContent = await this.fastify.anime.isAnime(
+                  tvdbId,
+                  tmdbId,
+                  imdbId,
+                )
+              }
               this.log.debug(
                 `Anime result for "${item.title}": ${isAnimeContent}`,
               )

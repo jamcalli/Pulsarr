@@ -141,8 +141,8 @@ export class RadarrManagerService {
         }
       } catch (error) {
         this.log.error(
-          `Error fetching movies for instance ${instance.name}:`,
-          error,
+          { err: error, instanceId: instance.id, instanceName: instance.name },
+          'Error fetching movies for Radarr instance',
         )
       }
     }
@@ -190,7 +190,7 @@ export class RadarrManagerService {
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
       let targetQualityProfileId: number | undefined
 
-      if (qualityProfile !== undefined) {
+      if (qualityProfile != null) {
         if (typeof qualityProfile === 'number') {
           targetQualityProfileId = qualityProfile
         } else if (
@@ -211,7 +211,7 @@ export class RadarrManagerService {
       }
 
       // Use provided tags or instance default tags
-      const targetTags = tags || instance.tags || []
+      const targetTags = tags ?? instance.tags ?? []
 
       // Handle search on add option (use provided value or instance default)
       const targetSearchOnAdd = searchOnAdd ?? instance.searchOnAdd ?? true // Default to true for backward compatibility
@@ -237,7 +237,7 @@ export class RadarrManagerService {
         status: 'requested',
       })
 
-      this.log.info(
+      this.log.debug(
         `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}, search on add: ${targetSearchOnAdd}, minimum availability: ${targetMinimumAvailability}`,
       )
     } catch (error) {
@@ -333,15 +333,24 @@ export class RadarrManagerService {
 
   async addInstance(instance: Omit<RadarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createRadarrInstance(instance)
-    const radarrService = new RadarrService(
-      this.baseLog,
-      this.appBaseUrl,
-      this.port,
-      this.fastify,
-    )
-    await radarrService.initialize({ ...instance, id })
-    this.radarrServices.set(id, radarrService)
-    return id
+    try {
+      const radarrService = new RadarrService(
+        this.baseLog,
+        this.appBaseUrl,
+        this.port,
+        this.fastify,
+      )
+      await radarrService.initialize({ ...instance, id })
+      this.radarrServices.set(id, radarrService)
+      return id
+    } catch (error) {
+      this.log.error(
+        { err: error, instance },
+        'Failed to initialize new Radarr instance; rolling back',
+      )
+      await this.fastify.db.deleteRadarrInstance(id)
+      throw error
+    }
   }
 
   async removeInstance(id: number): Promise<void> {
@@ -368,6 +377,7 @@ export class RadarrManagerService {
     await this.fastify.db.updateRadarrInstance(id, updates)
     const instance = await this.fastify.db.getRadarrInstance(id)
     if (instance) {
+      const oldService = this.radarrServices.get(id)
       const radarrService = new RadarrService(
         this.baseLog,
         this.appBaseUrl,
@@ -376,6 +386,16 @@ export class RadarrManagerService {
       )
       try {
         await radarrService.initialize(instance)
+        if (oldService && oldService !== radarrService) {
+          try {
+            await oldService.removeWebhook()
+          } catch (cleanupErr) {
+            this.log.warn(
+              { err: cleanupErr },
+              `Failed to cleanup old webhook for instance ${id}`,
+            )
+          }
+        }
         this.radarrServices.set(id, radarrService)
       } catch (initError) {
         this.log.error(

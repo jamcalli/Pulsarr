@@ -66,11 +66,11 @@ export class StatusService {
               watchlistItems,
             )
 
-          this.log.info('Applied user tags to Sonarr content', tagResults)
+          this.log.info({ tagResults }, 'Applied user tags to Sonarr content')
         } catch (tagError) {
           this.log.error(
-            'Error applying user tags to Sonarr content:',
-            tagError,
+            { err: tagError },
+            'Error applying user tags to Sonarr content',
           )
         }
       }
@@ -117,11 +117,11 @@ export class StatusService {
               watchlistItems,
             )
 
-          this.log.info('Applied user tags to Radarr content', tagResults)
+          this.log.info({ tagResults }, 'Applied user tags to Radarr content')
         } catch (tagError) {
           this.log.error(
-            'Error applying user tags to Radarr content:',
-            tagError,
+            { err: tagError },
+            'Error applying user tags to Radarr content',
           )
         }
       }
@@ -285,9 +285,15 @@ export class StatusService {
           }
         }
         if (item.movie_status !== radarrMatch.movie_status) {
-          update.movie_status = radarrMatch.movie_status as
-            | 'available'
-            | 'unavailable'
+          const ms = radarrMatch.movie_status
+          if (ms === 'available' || ms === 'unavailable') {
+            update.movie_status = ms
+          } else {
+            this.log.warn(
+              { movie_status: ms, key: item.key },
+              'Invalid movie_status; skipping update',
+            )
+          }
         }
         if (item.radarr_instance_id !== instanceId) {
           update.radarr_instance_id = instanceId
@@ -418,7 +424,11 @@ export class StatusService {
                   mainTableStatus === 'notified'
                     ? 'notified'
                     : matchingSeries[0].status || 'pending',
-                is_primary: !currentInstanceMap.size,
+                // Primary only if there are no existing junctions
+                // AND this is the first matched instance for this item
+                is_primary:
+                  currentInstanceMap.size === 0 &&
+                  existingInstances.length === 1,
               })
               updateCount++
             } else {
@@ -657,7 +667,9 @@ export class StatusService {
                   mainTableStatus === 'notified'
                     ? 'notified'
                     : matchingMovies[0].status || 'pending',
-                is_primary: !currentInstanceMap.size,
+                is_primary:
+                  currentInstanceMap.size === 0 &&
+                  existingInstances.length === 1,
               })
               updateCount++
             } else {
