@@ -215,6 +215,8 @@ export class QuotaService {
 
     this.log.debug(
       {
+        userId,
+        contentType,
         remaining: _remaining,
         used: status.currentUsage,
         limit: status.quotaLimit,
@@ -223,7 +225,10 @@ export class QuotaService {
       'Quota calculation details',
     )
 
-    let displayText = `${status.currentUsage}/${status.quotaLimit} used`
+    let displayText =
+      status.quotaLimit === 0
+        ? `${status.currentUsage}/0 used (limit reached)`
+        : `${status.currentUsage}/${status.quotaLimit} used`
     if (status.resetDate) {
       displayText += ` (resets ${new Date(status.resetDate).toLocaleDateString()})`
     }

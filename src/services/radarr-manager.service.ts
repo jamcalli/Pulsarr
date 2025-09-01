@@ -141,7 +141,7 @@ export class RadarrManagerService {
         }
       } catch (error) {
         this.log.error(
-          { err: error, instanceId: instance.id, instanceName: instance.name },
+          { error, instanceId: instance.id, instanceName: instance.name },
           'Error fetching movies for Radarr instance',
         )
       }
@@ -345,7 +345,11 @@ export class RadarrManagerService {
       return id
     } catch (error) {
       this.log.error(
-        { err: error, instance },
+        {
+          error,
+          instanceName: instance.name,
+          instanceBaseUrl: instance.baseUrl,
+        },
         'Failed to initialize new Radarr instance; rolling back',
       )
       await this.fastify.db.deleteRadarrInstance(id)
@@ -374,9 +378,9 @@ export class RadarrManagerService {
     id: number,
     updates: Partial<RadarrInstance>,
   ): Promise<void> {
-    await this.fastify.db.updateRadarrInstance(id, updates)
-    const instance = await this.fastify.db.getRadarrInstance(id)
-    if (instance) {
+    const current = await this.fastify.db.getRadarrInstance(id)
+    if (current) {
+      const candidate = { ...current, ...updates }
       const oldService = this.radarrServices.get(id)
       const radarrService = new RadarrService(
         this.baseLog,
@@ -385,13 +389,15 @@ export class RadarrManagerService {
         this.fastify,
       )
       try {
-        await radarrService.initialize(instance)
+        await radarrService.initialize(candidate)
+        // Only persist after successful init
+        await this.fastify.db.updateRadarrInstance(id, updates)
         if (oldService && oldService !== radarrService) {
           try {
             await oldService.removeWebhook()
           } catch (cleanupErr) {
             this.log.warn(
-              { err: cleanupErr },
+              { error: cleanupErr },
               `Failed to cleanup old webhook for instance ${id}`,
             )
           }
