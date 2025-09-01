@@ -42,21 +42,24 @@ export function usePlexRssFeeds() {
       }
 
       // Validate response payload before updating config
-      if (
-        !data.self ||
-        !data.friends ||
-        typeof data.self !== 'string' ||
-        typeof data.friends !== 'string'
-      ) {
-        throw new Error(
-          'Invalid RSS response payload: missing or invalid feed URLs',
-        )
+      const self = typeof data.self === 'string' ? data.self.trim() : ''
+      const friends =
+        typeof data.friends === 'string' ? data.friends.trim() : ''
+      if (!self || !friends) {
+        throw new Error('Invalid RSS response payload: missing feed URLs')
+      }
+      try {
+        // Basic URL shape validation
+        new URL(self)
+        new URL(friends)
+      } catch {
+        throw new Error('Invalid RSS response payload: malformed feed URLs')
       }
 
       // Update RSS feeds in config
       await updateConfig({
-        selfRss: data.self,
-        friendsRss: data.friends,
+        selfRss: self,
+        friendsRss: friends,
       })
 
       setRssStatus('success')
