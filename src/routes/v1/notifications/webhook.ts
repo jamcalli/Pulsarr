@@ -121,9 +121,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             : 'series' in body
               ? body.series.title
               : 'unknown'
+        const webhookType =
+          'movie' in body ? 'radarr' : 'series' in body ? 'sonarr' : 'unknown'
         fastify.log.info(
           {
-            instanceName: body.instanceName,
+            webhook: webhookType,
+            instanceName: instance?.name ?? body.instanceName,
             eventType: 'eventType' in body ? body.eventType : 'unknown',
             contentTitle,
           },
@@ -131,7 +134,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         )
         fastify.log.debug(
           {
-            instanceName: body.instanceName,
+            webhook: webhookType,
+            instanceName: instance?.name ?? body.instanceName,
             eventType: 'eventType' in body ? body.eventType : 'unknown',
             contentTitle,
           },
@@ -219,7 +223,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { success: true }
         }
 
-        if ('series' in body && 'episodes' in body && body.episodes) {
+        if (
+          'series' in body &&
+          'episodes' in body &&
+          body.episodes &&
+          body.episodes.length > 0
+        ) {
           const tvdbId = body.series.tvdbId.toString()
           const seasonNumber = body.episodes[0].seasonNumber
           const episodeNumber = body.episodes[0].episodeNumber
@@ -229,8 +238,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               webhook: 'sonarr',
               tvdbId,
               series: body.series.title,
-              season: seasonNumber,
-              episode: episodeNumber,
+              seasonNumber,
+              episodeNumber,
             },
             'Received Sonarr webhook',
           )
@@ -238,8 +247,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             {
               webhook: 'sonarr',
               tvdbId,
-              season: seasonNumber,
-              episode: episodeNumber,
+              seasonNumber,
+              episodeNumber,
               hasEpisodeFile: 'episodeFile' in body,
               hasEpisodeFiles: 'episodeFiles' in body,
               isUpgrade: body.isUpgrade === true,
@@ -398,7 +407,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
             if (recentEpisodes.length > 0) {
               fastify.log.debug(
-                { count: recentEpisodes.length, tvdbId },
+                {
+                  count: recentEpisodes.length,
+                  tvdbId,
+                  series: body.series.title,
+                },
                 'Processing recent episodes for immediate notification',
               )
 
@@ -471,11 +484,25 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   instanceId: instance?.id ?? null,
                   timeoutId: setTimeout(() => {
                     fastify.log.info(
-                      { tvdbId, seasonNumber },
+                      {
+                        tvdbId,
+                        seasonNumber,
+                        waitMs: fastify.config.queueWaitTime,
+                        queuedCount:
+                          webhookQueue[tvdbId].seasons[seasonNumber].episodes
+                            .length,
+                      },
                       'Queue timeout reached, processing webhooks',
                     )
                     fastify.log.debug(
-                      { tvdbId, seasonNumber },
+                      {
+                        tvdbId,
+                        seasonNumber,
+                        waitMs: fastify.config.queueWaitTime,
+                        queuedCount:
+                          webhookQueue[tvdbId].seasons[seasonNumber].episodes
+                            .length,
+                      },
                       'Queue timeout details',
                     )
                     processQueuedWebhooks(tvdbId, seasonNumber, fastify)
@@ -493,11 +520,25 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
                   setTimeout(() => {
                     fastify.log.info(
-                      { tvdbId, seasonNumber },
+                      {
+                        tvdbId,
+                        seasonNumber,
+                        waitMs: fastify.config.queueWaitTime,
+                        queuedCount:
+                          webhookQueue[tvdbId].seasons[seasonNumber].episodes
+                            .length,
+                      },
                       'Queue timeout reached, processing webhooks',
                     )
                     fastify.log.debug(
-                      { tvdbId, seasonNumber },
+                      {
+                        tvdbId,
+                        seasonNumber,
+                        waitMs: fastify.config.queueWaitTime,
+                        queuedCount:
+                          webhookQueue[tvdbId].seasons[seasonNumber].episodes
+                            .length,
+                      },
                       'Queue timeout details',
                     )
                     processQueuedWebhooks(tvdbId, seasonNumber, fastify)
@@ -529,6 +570,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     justAdded: newEpisodes.length,
                     duplicatesSkipped:
                       nonRecentEpisodes.length - newEpisodes.length,
+                    series: webhookQueue[tvdbId].title,
                   },
                   'Added episodes to queue',
                 )
