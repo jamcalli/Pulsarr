@@ -66,7 +66,7 @@ export class StatusService {
               watchlistItems,
             )
 
-          this.log.info({ tagResults }, 'Applied user tags to Sonarr content')
+          this.log.debug({ tagResults }, 'Applied user tags to Sonarr content')
         } catch (tagError) {
           this.log.error(
             { err: tagError },
@@ -117,7 +117,7 @@ export class StatusService {
               watchlistItems,
             )
 
-          this.log.info({ tagResults }, 'Applied user tags to Radarr content')
+          this.log.debug({ tagResults }, 'Applied user tags to Radarr content')
         } catch (tagError) {
           this.log.error(
             { err: tagError },
@@ -1136,7 +1136,7 @@ export class StatusService {
       )
       return itemsCopied
     } catch (error) {
-      this.log.error(`Error syncing Radarr instance ${instanceId}: ${error}`)
+      this.log.error({ error, instanceId }, 'Error syncing Radarr instance')
       throw error
     }
   }

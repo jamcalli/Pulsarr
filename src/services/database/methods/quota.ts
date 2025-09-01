@@ -756,6 +756,28 @@ export async function deleteQuotaUsageByUser(
 }
 
 /**
+ * Deletes quota usage records for a specific user since a given date.
+ *
+ * @param userId - The user ID for which quota usage records will be removed
+ * @param fromDate - Only delete records from this date onwards (inclusive)
+ * @returns The total number of deleted quota usage records
+ */
+export async function deleteQuotaUsageByUserSince(
+  this: DatabaseService,
+  userId: number,
+  fromDate: Date,
+): Promise<number> {
+  const fromDateString = this.getLocalDateString(fromDate)
+
+  const deletedCount = await this.knex('quota_usage')
+    .where('user_id', userId)
+    .where('request_date', '>=', fromDateString)
+    .del()
+
+  return deletedCount
+}
+
+/**
  * Retrieves the next scheduled maintenance run time for quota maintenance, if enabled.
  *
  * @returns The date and time of the next maintenance run, or undefined if not scheduled or disabled.

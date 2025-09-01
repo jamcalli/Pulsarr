@@ -1,3 +1,4 @@
+import { CronExpressionParser } from 'cron-parser';
 import { format, isValid } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -33,32 +34,18 @@ const DAYS_OF_WEEK: DayOption[] = [
   { value: '0', label: 'Sunday' },
 ];
 
-/**
- * Validates that a dayOfWeek value is valid for cron expressions using cron-validate.
- * @param value - The dayOfWeek value to validate
- * @returns A valid dayOfWeek value ('*' or 0-6, with 7 normalized to 0)
- */
 const validateDayOfWeek = (value: string | undefined): string => {
   if (!value) return '*'
   
-  // Allow '*' for every day
   if (value === '*') return '*'
   
-  // Test with a simple cron expression to validate the day value
-  // Using cron-validate which is already installed for backend validation
   try {
-    // Use require for cron-validate as it's a CommonJS module
-    const cronValidate = require('cron-validate').default || require('cron-validate')
-    const testCron = `0 12 * * ${value}` // Test cron: noon on the specified day
-    const result = cronValidate(testCron)
+    const testCron = `0 12 * * ${value}`
+    CronExpressionParser.parse(testCron, { currentDate: new Date() })
     
-    if (result.isValid()) {
-      // Normalize day 7 (Sunday) to 0 for consistency with DAYS_OF_WEEK array
-      return value === '7' ? '0' : value
-    }
+    return value === '7' ? '0' : value
   } catch (_error) {
-    // If cron-validate fails to load or throws, fall back to basic validation
-    console.warn('cron-validate not available, using fallback validation')
+    console.warn('cron-parser validation failed, using fallback validation')
   }
   
   // Fallback: basic validation for 0-6 and 7 (which we normalize to 0)

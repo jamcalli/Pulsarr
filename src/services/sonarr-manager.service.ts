@@ -465,13 +465,16 @@ export class SonarrManagerService {
         await sonarrService.initialize(candidate)
         // Only persist after successful init
         await this.fastify.db.updateSonarrInstance(id, updates)
-        if (oldService && oldService !== sonarrService) {
+        const serverChanged =
+          current.baseUrl !== candidate.baseUrl ||
+          current.apiKey !== candidate.apiKey
+        if (serverChanged && oldService) {
           try {
             await oldService.removeWebhook()
           } catch (cleanupErr) {
             this.log.warn(
               { error: cleanupErr },
-              `Failed to cleanup old webhook for instance ${id}`,
+              `Failed to cleanup old webhook for previous server of instance ${id}`,
             )
           }
         }

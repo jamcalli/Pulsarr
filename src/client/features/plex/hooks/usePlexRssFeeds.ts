@@ -14,7 +14,6 @@ export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
  */
 export function usePlexRssFeeds() {
   const config = useConfigStore((state) => state.config)
-  const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
   const [rssStatus, setRssStatus] = useState<RssStatus>('idle')
 
   const generateRssFeeds = async () => {
@@ -41,8 +40,12 @@ export function usePlexRssFeeds() {
         throw new Error(data.error || 'Failed to generate RSS feeds')
       }
 
-      // Update RSS feeds in config through the configured action
-      await refreshRssFeeds()
+      // Update RSS feeds in config with the response data directly
+      const { updateConfig } = useConfigStore.getState()
+      await updateConfig({
+        selfRss: data.self,
+        friendsRss: data.friends,
+      })
 
       setRssStatus('success')
       toast.success('RSS feed URLs have been successfully generated')

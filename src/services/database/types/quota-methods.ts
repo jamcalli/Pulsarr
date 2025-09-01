@@ -193,6 +193,14 @@ declare module '@services/database.service.js' {
     deleteQuotaUsageByUser(userId: number): Promise<number>
 
     /**
+     * Deletes quota usage records for a specific user since a given date
+     * @param userId - User ID
+     * @param fromDate - Only delete records from this date onwards
+     * @returns Promise resolving to the number of deleted records
+     */
+    deleteQuotaUsageByUserSince(userId: number, fromDate: Date): Promise<number>
+
+    /**
      * Gets users with a specific quota type
      * @param quotaType - The quota type to filter by
      * @returns Promise resolving to array of user quota configs with the specified type
