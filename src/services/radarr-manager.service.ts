@@ -238,7 +238,15 @@ export class RadarrManagerService {
       })
 
       this.log.debug(
-        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}, search on add: ${targetSearchOnAdd}, minimum availability: ${targetMinimumAvailability}`,
+        {
+          instanceId: targetInstanceId,
+          qualityProfileId: targetQualityProfileId ?? 'default',
+          searchOnAdd: targetSearchOnAdd,
+          minimumAvailability: targetMinimumAvailability,
+          userId,
+          key,
+        },
+        'Successfully routed item to Radarr',
       )
     } catch (error) {
       this.log.error(
@@ -392,13 +400,16 @@ export class RadarrManagerService {
         await radarrService.initialize(candidate)
         // Only persist after successful init
         await this.fastify.db.updateRadarrInstance(id, updates)
-        if (oldService && oldService !== radarrService) {
+        const serverChanged =
+          current.baseUrl !== candidate.baseUrl ||
+          current.apiKey !== candidate.apiKey
+        if (serverChanged && oldService) {
           try {
             await oldService.removeWebhook()
           } catch (cleanupErr) {
             this.log.warn(
               { error: cleanupErr },
-              `Failed to cleanup old webhook for instance ${id}`,
+              `Failed to cleanup old webhook for previous server of instance ${id}`,
             )
           }
         }

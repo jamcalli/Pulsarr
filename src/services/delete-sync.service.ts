@@ -290,7 +290,7 @@ export class DeleteSyncService {
       // Branch based on deletion mode
       if (deletionMode === 'tag-based') {
         // Tag-based deletion workflow
-        this.log.info(
+        this.log.debug(
           `Running tag-based deletion using tag "${this.config.removedTagPrefix}"`,
         )
 
@@ -881,7 +881,7 @@ export class DeleteSyncService {
       instance: string
     }> = []
 
-    this.log.info(
+    this.log.debug(
       `Beginning tag-based deletion ${dryRun ? '(DRY RUN)' : 'process'} using tag "${this.config.removedTagPrefix}"`,
     )
 
@@ -1019,7 +1019,7 @@ export class DeleteSyncService {
 
     // Process movies if movie deletion is enabled
     if (this.config.deleteMovie) {
-      this.log.info(
+      this.log.debug(
         `Processing ${existingMovies.length} movies for tag-based deletion${dryRun ? ' (DRY RUN)' : ''}`,
       )
 
@@ -1166,7 +1166,7 @@ export class DeleteSyncService {
 
     // Process TV shows if any show deletion is enabled
     if (this.config.deleteEndedShow || this.config.deleteContinuingShow) {
-      this.log.info(
+      this.log.debug(
         `Processing ${existingSeries.length} TV shows for tag-based deletion${dryRun ? ' (DRY RUN)' : ''}`,
       )
 

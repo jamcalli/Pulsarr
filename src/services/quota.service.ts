@@ -17,6 +17,15 @@ export class QuotaService {
   constructor(private fastify: FastifyInstance) {}
 
   /**
+   * Log scheduled job execution with proper service prefix
+   */
+  logScheduledJob(action: 'start' | 'complete', jobName: string): void {
+    this.log.info(
+      `${action === 'start' ? 'Running' : 'Completed'} scheduled job: ${jobName}`,
+    )
+  }
+
+  /**
    * Creates quotas for a user with specified settings (manual creation)
    */
   async createUserQuotas(
@@ -208,10 +217,11 @@ export class QuotaService {
     }
 
     const _remaining = status.quotaLimit - status.currentUsage
-    const percentage =
+    const percentageRaw =
       status.quotaLimit > 0
         ? (status.currentUsage / status.quotaLimit) * 100
         : 100
+    const percentage = Math.max(0, Math.min(100, percentageRaw))
 
     this.log.debug(
       {
@@ -330,9 +340,13 @@ export class QuotaService {
         }
 
         // Delete quota usage records for this user
-        const deletedCount =
-          await this.fastify.db.deleteQuotaUsageByUser(userId)
-        this.log.info({ deletedCount, userId }, 'Reset quota usage records')
+        const deletedCount = fromDate
+          ? await this.fastify.db.deleteQuotaUsageByUserSince(userId, fromDate)
+          : await this.fastify.db.deleteQuotaUsageByUser(userId)
+        this.log.info(
+          { deletedCount, userId, fromDate },
+          'Reset quota usage records',
+        )
 
         usersProcessed++
         totalRecordsDeleted += deletedCount
@@ -423,7 +437,10 @@ export class QuotaService {
           'Quota maintenance completed',
         )
       } else {
-        this.log.debug('No active quotas found during maintenance')
+        this.log.debug(
+          { total: 0, at: _now },
+          'No active quotas found during maintenance',
+        )
       }
     } catch (error) {
       this.log.error({ error }, 'Failed to log quota status:')

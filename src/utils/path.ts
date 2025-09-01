@@ -11,7 +11,7 @@ import { posix, win32 } from 'node:path'
  * @returns Normalized path suitable for cross-platform comparison
  */
 export function normalizePath(path: string): string {
-  if (!path) return path
+  if (!path) return ''
 
   // Always replace backslashes with forward slashes first
   const forwardSlashPath = path.replace(/\\/g, '/')
@@ -20,7 +20,8 @@ export function normalizePath(path: string): string {
 
   if (isWindows) {
     // Windows: use win32 normalize and lowercase for case-insensitive comparison
-    return win32.normalize(forwardSlashPath).toLowerCase()
+    const normalized = win32.normalize(forwardSlashPath)
+    return normalized.replace(/\\/g, '/').toLowerCase()
   } else {
     // Unix/POSIX: use posix normalize only
     return posix.normalize(forwardSlashPath)
@@ -34,5 +35,7 @@ export function normalizePath(path: string): string {
  * @returns The last path segment or empty string if none
  */
 export function getPathBasename(path: string): string {
-  return path.split(/[/\\]/).pop() || ''
+  if (!path) return ''
+  const forwardSlashPath = path.replace(/\\/g, '/')
+  return posix.basename(forwardSlashPath)
 }

@@ -26,6 +26,15 @@ export class ApprovalService {
   constructor(private fastify: FastifyInstance) {}
 
   /**
+   * Log scheduled job execution with proper service prefix
+   */
+  logScheduledJob(action: 'start' | 'complete', jobName: string): void {
+    this.log.info(
+      `${action === 'start' ? 'Running' : 'Completed'} scheduled job: ${jobName}`,
+    )
+  }
+
+  /**
    * Emits SSE event for approval actions
    */
   private emitApprovalEvent(
