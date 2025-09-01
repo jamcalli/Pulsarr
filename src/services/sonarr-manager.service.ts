@@ -38,13 +38,13 @@ export class SonarrManagerService {
       this.log.debug('Starting Sonarr manager initialization')
 
       const instances = await this.fastify.db.getAllSonarrInstances()
-      this.log.info({ count: instances.length }, 'Found Sonarr instances')
       this.log.debug(
         {
+          count: instances.length,
           instanceIds: instances.map((i) => i.id),
           instanceNames: instances.map((i) => i.name),
         },
-        'Sonarr instance details',
+        'Found Sonarr instances',
       )
 
       if (instances.length === 0) {
@@ -117,14 +117,15 @@ export class SonarrManagerService {
 
         if (!sonarrService) {
           this.log.warn(
-            `Sonarr service for instance ${instance.name} not initialized`,
+            { instanceId: instance.id, instanceName: instance.name },
+            'Sonarr service not initialized',
           )
           continue
         }
 
         const instanceSeries = await sonarrService.fetchSeries(bypassExclusions)
 
-        for (const series of Array.from(instanceSeries)) {
+        for (const series of instanceSeries) {
           allSeries.push({
             ...series,
             sonarr_instance_id: instance.id,
@@ -181,12 +182,16 @@ export class SonarrManagerService {
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
-      const toNum = (v: unknown): number | undefined =>
-        typeof v === 'number'
-          ? v
-          : typeof v === 'string' && /^\d+$/.test(v)
-            ? Number(v)
-            : undefined
+      const toNum = (v: unknown): number | undefined => {
+        if (typeof v === 'number')
+          return Number.isInteger(v) && v > 0 ? v : undefined
+        if (typeof v === 'string') {
+          const s = v.trim()
+          const n = /^\d+$/.test(s) ? Number(s) : NaN
+          return Number.isInteger(n) && n > 0 ? n : undefined
+        }
+        return undefined
+      }
       const qpSource = qualityProfile ?? instance.qualityProfile
       const targetQualityProfileId =
         qpSource !== null ? toNum(qpSource) : undefined
