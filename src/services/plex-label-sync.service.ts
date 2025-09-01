@@ -417,7 +417,18 @@ export class PlexLabelSyncService {
           continue
         }
 
-        if (plexFilePaths.includes(movieFilePath)) {
+        // Normalize paths for cross-platform compatibility
+        const isWindows = process.platform === 'win32'
+        const normalizePath = (p: string) =>
+          isWindows
+            ? require('node:path').normalize(p).toLowerCase()
+            : require('node:path').posix.normalize(p)
+
+        if (
+          plexFilePaths
+            .map(normalizePath)
+            .includes(normalizePath(movieFilePath))
+        ) {
           this.log.debug('Found exact file path match', {
             plexTitle: plexItem.title,
             radarrTitle: radarrData.movie.title,
@@ -499,7 +510,17 @@ export class PlexLabelSyncService {
       // Try to match by exact folder path
       if (plexLocation) {
         for (const sonarrData of sonarrSeries) {
-          if (plexLocation === sonarrData.series.path) {
+          // Normalize paths for cross-platform compatibility
+          const isWindows = process.platform === 'win32'
+          const normalizePath = (p: string) =>
+            isWindows
+              ? require('node:path').normalize(p).toLowerCase()
+              : require('node:path').posix.normalize(p)
+
+          if (
+            normalizePath(plexLocation) ===
+            normalizePath(sonarrData.series.path || '')
+          ) {
             this.log.debug('Found exact folder path match', {
               plexTitle: plexItem.title,
               sonarrTitle: sonarrData.series.title,
@@ -521,8 +542,20 @@ export class PlexLabelSyncService {
       // Try to match by folder name
       if (plexLocation) {
         for (const sonarrData of sonarrSeries) {
-          const sonarrFolderName = sonarrData.series.path?.split('/').pop()
-          if (sonarrFolderName && plexLocation.includes(sonarrFolderName)) {
+          const sonarrFolderName = sonarrData.series.path?.split(/[/\\]/).pop()
+          // Normalize paths for cross-platform compatibility
+          const isWindows = process.platform === 'win32'
+          const normalizePath = (p: string) =>
+            isWindows
+              ? require('node:path').normalize(p).toLowerCase()
+              : require('node:path').posix.normalize(p)
+
+          if (
+            sonarrFolderName &&
+            normalizePath(plexLocation).includes(
+              normalizePath(sonarrFolderName),
+            )
+          ) {
             this.log.debug('Found folder name match', {
               plexTitle: plexItem.title,
               sonarrTitle: sonarrData.series.title,

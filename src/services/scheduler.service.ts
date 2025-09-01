@@ -27,6 +27,7 @@ import type {
   IntervalConfig,
 } from '@root/types/scheduler.types.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { CronExpressionParser } from 'cron-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   AsyncTask,
@@ -152,7 +153,15 @@ export class SchedulerService {
       // Store expected handler count for completion tracking
       this.expectedHandlerCount = schedules.filter((s) => s.enabled).length
 
-      // Track initial state but don't log yet since no handlers are registered
+      // Log initialization summary
+      this.log.debug(
+        {
+          scheduled: _jobsScheduled,
+          disabled: _jobsDisabled,
+          total: schedules.length,
+        },
+        'Job initialization summary',
+      )
 
       // Start monitoring for completion
       this.checkForCompletionReadiness()
@@ -521,7 +530,7 @@ export class SchedulerService {
         }
       }
 
-      const _updateResult = await this.fastify.db.updateSchedule(name, updates)
+      await this.fastify.db.updateSchedule(name, updates)
 
       // Get job and handler
       const jobData = this.jobs.get(name)
@@ -622,122 +631,20 @@ export class SchedulerService {
    * Calculate the next run time for a cron expression
    */
   private calculateNextCronRun(expression: string): Date {
-    const now = new Date()
-    const nextRun = new Date(now)
-
-    // Reset seconds and milliseconds
-    nextRun.setSeconds(0)
-    nextRun.setMilliseconds(0)
-
-    // Parse the cron expression
-    const parts = expression
-      .split(' ')
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0)
-
-    let minute: string
-    let hour: string
-    let dayOfWeek: string
-
-    if (parts.length >= 6) {
-      // 6-part format with seconds: [seconds] [minute] [hour] [day of month] [month] [day of week]
-      minute = parts[1]
-      hour = parts[2]
-      dayOfWeek = parts[5]
-    } else if (parts.length >= 5) {
-      // 5-part format without seconds: [minute] [hour] [day of month] [month] [day of week]
-      minute = parts[0]
-      hour = parts[1]
-      dayOfWeek = parts[4]
-    } else {
-      // Invalid format, add 24 hours as fallback
+    try {
+      const interval = CronExpressionParser.parse(expression, {
+        currentDate: new Date(),
+      })
+      return interval.next().toDate()
+    } catch (err) {
       this.log.warn(
-        `Invalid cron expression format (${parts.length} parts): ${expression}`,
+        { err, expression },
+        'Invalid cron expression; defaulting to +24h',
       )
-      nextRun.setHours(nextRun.getHours() + 24)
-      return nextRun
+      const next = new Date()
+      next.setHours(next.getHours() + 24)
+      return next
     }
-
-    // Handle day of week (0-6, where 0 is Sunday)
-    if (dayOfWeek !== '*') {
-      const targetDay = Number.parseInt(dayOfWeek, 10)
-      const currentDay = now.getDay()
-
-      // Calculate days until the target day
-      let daysUntilTarget = targetDay - currentDay
-      if (daysUntilTarget <= 0) {
-        // If target day is today or already passed this week, go to next week
-        daysUntilTarget += 7
-      }
-
-      // Set the day to the next occurrence
-      nextRun.setDate(now.getDate() + daysUntilTarget)
-    }
-
-    // Set hour and minute
-    if (hour !== '*') {
-      if (hour.startsWith('*/')) {
-        // Handle interval syntax like */4 (every 4 hours)
-        const interval = Number.parseInt(hour.slice(2), 10)
-        const currentHour = now.getHours()
-
-        // Calculate next hour that's a multiple of the interval
-        let nextHourInterval =
-          Math.ceil((currentHour + 1) / interval) * interval
-
-        // Handle day rollover
-        if (nextHourInterval >= 24) {
-          nextRun.setDate(nextRun.getDate() + 1)
-          nextHourInterval = nextHourInterval % 24
-        }
-
-        nextRun.setHours(nextHourInterval)
-      } else {
-        nextRun.setHours(Number.parseInt(hour, 10))
-      }
-    } else {
-      nextRun.setHours(0) // Default to midnight if wildcard
-    }
-
-    if (minute !== '*') {
-      if (minute.startsWith('*/')) {
-        // Handle interval syntax like */15 (every 15 minutes)
-        const interval = Number.parseInt(minute.slice(2), 10)
-        const currentMinute = now.getMinutes()
-
-        // Calculate next minute that's a multiple of the interval
-        const shouldAdvance = now.getSeconds() > 0
-        let nextMinuteInterval = shouldAdvance
-          ? Math.ceil((currentMinute + 1) / interval) * interval
-          : Math.ceil(currentMinute / interval) * interval
-
-        // Handle hour rollover
-        if (nextMinuteInterval >= 60) {
-          nextRun.setHours(nextRun.getHours() + 1)
-          nextMinuteInterval = nextMinuteInterval % 60
-        }
-
-        nextRun.setMinutes(nextMinuteInterval)
-      } else {
-        nextRun.setMinutes(Number.parseInt(minute, 10))
-      }
-    } else {
-      nextRun.setMinutes(0) // Default to 0 minutes if wildcard
-    }
-
-    // Check if the calculated time is in the past
-    if (nextRun <= now) {
-      // If using day of week and the time has passed today
-      if (dayOfWeek !== '*') {
-        // Move to next week
-        nextRun.setDate(nextRun.getDate() + 7)
-      } else {
-        // For daily schedules, move to next day
-        nextRun.setDate(nextRun.getDate() + 1)
-      }
-    }
-
-    return nextRun
   }
 
   /**
