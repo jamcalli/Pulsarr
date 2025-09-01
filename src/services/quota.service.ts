@@ -21,7 +21,8 @@ export class QuotaService {
    */
   logScheduledJob(action: 'start' | 'complete', jobName: string): void {
     this.log.info(
-      `${action === 'start' ? 'Running' : 'Completed'} scheduled job: ${jobName}`,
+      { jobName, action },
+      action === 'start' ? 'Running scheduled job' : 'Completed scheduled job',
     )
   }
 
@@ -231,6 +232,7 @@ export class QuotaService {
         used: status.currentUsage,
         limit: status.quotaLimit,
         percentage,
+        overBy: Math.max(0, status.currentUsage - status.quotaLimit),
       },
       'Quota calculation details',
     )
@@ -393,7 +395,7 @@ export class QuotaService {
 
     // Cleanup old quota usage records based on configuration
     if (config?.cleanup?.enabled !== false) {
-      const retentionDays = config?.cleanup?.retentionDays || 90
+      const retentionDays = config?.cleanup?.retentionDays ?? 90
       const cleanedCount =
         await this.fastify.db.cleanupOldQuotaUsage(retentionDays)
       if (cleanedCount > 0) {
@@ -403,7 +405,7 @@ export class QuotaService {
         )
       }
     } else {
-      const retentionDays = config?.cleanup?.retentionDays || 90
+      const retentionDays = config?.cleanup?.retentionDays ?? 90
       this.log.debug(
         { retentionDays },
         'Quota cleanup disabled by configuration',

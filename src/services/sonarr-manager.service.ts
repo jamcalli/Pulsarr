@@ -465,9 +465,11 @@ export class SonarrManagerService {
         await sonarrService.initialize(candidate)
         // Only persist after successful init
         await this.fastify.db.updateSonarrInstance(id, updates)
+        // Only treat changes to the target server endpoint as a "server change"
+        // API key changes on the same server should not trigger webhook removal
         const serverChanged =
-          current.baseUrl !== candidate.baseUrl ||
-          current.apiKey !== candidate.apiKey
+          (current.baseUrl ?? '').replace(/\/+$/, '') !==
+          (candidate.baseUrl ?? '').replace(/\/+$/, '')
         if (serverChanged && oldService) {
           try {
             await oldService.removeWebhook()
