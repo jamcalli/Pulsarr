@@ -536,6 +536,8 @@ export class SonarrManagerService {
 
         throw new Error(errorMessage)
       }
+    } else {
+      throw new Error(`Sonarr instance ${id} not found`)
     }
   }
 
