@@ -222,8 +222,8 @@ export class SonarrManagerService {
           targetSeasonMonitoring === 'pilotRolling' ? 'pilot' : 'firstSeason'
       }
 
-      // Add to Sonarr
-      await sonarrService.addToSonarr(
+      // Add to Sonarr and get the series ID directly
+      const sonarrSeriesId = await sonarrService.addToSonarr(
         sonarrItem,
         targetRootFolder,
         targetQualityProfileId,
@@ -236,70 +236,29 @@ export class SonarrManagerService {
       // If rolling monitoring was used, create tracking entry
       if (isRollingMonitoring) {
         try {
-          // Get the series ID from Sonarr with retry logic to handle indexing delays
-          let addedSeries = null
-          let retries = 3
-          const retryDelay = 1000 // 1 second
+          // Extract TVDB ID
+          const tvdbGuid = sonarrItem.guids.find((g) => g.startsWith('tvdb:'))
+          const tvdbId = tvdbGuid ? tvdbGuid.replace('tvdb:', '') : undefined
 
-          while (!addedSeries && retries > 0) {
-            const allSeries = await sonarrService.getAllSeries()
+          // Create rolling monitoring entry
+          const plexSessionMonitor = this.fastify.plexSessionMonitor
+          if (plexSessionMonitor) {
+            await plexSessionMonitor.createRollingMonitoredShow(
+              sonarrSeriesId,
+              targetInstanceId,
+              tvdbId || '',
+              sonarrItem.title,
+              targetSeasonMonitoring as 'pilotRolling' | 'firstSeasonRolling',
+            )
 
-            // First try exact TVDB ID match
-            const tvdbGuid = sonarrItem.guids.find((g) => g.startsWith('tvdb:'))
-            const tvdbId = tvdbGuid ? tvdbGuid.replace('tvdb:', '') : undefined
-
-            if (tvdbId) {
-              addedSeries = allSeries.find(
-                (s) => s.tvdbId === Number.parseInt(tvdbId, 10),
-              )
-            }
-
-            // Fallback to title match only if TVDB match fails
-            if (!addedSeries) {
-              addedSeries = allSeries.find(
-                (s) => s.title.toLowerCase() === sonarrItem.title.toLowerCase(),
-              )
-            }
-
-            if (!addedSeries && retries > 1) {
-              this.log.debug(
-                `Series ${sonarrItem.title} not found yet, retrying in ${retryDelay}ms...`,
-              )
-              await new Promise((resolve) => setTimeout(resolve, retryDelay))
-            }
-            retries--
-          }
-
-          if (addedSeries) {
-            // Extract TVDB ID
-            const tvdbGuid = sonarrItem.guids.find((g) => g.startsWith('tvdb:'))
-            const tvdbId = tvdbGuid ? tvdbGuid.replace('tvdb:', '') : undefined
-
-            // Create rolling monitoring entry
-            const plexSessionMonitor = this.fastify.plexSessionMonitor
-            if (plexSessionMonitor) {
-              await plexSessionMonitor.createRollingMonitoredShow(
-                addedSeries.id,
-                targetInstanceId,
-                tvdbId || '',
-                addedSeries.title,
-                targetSeasonMonitoring as 'pilotRolling' | 'firstSeasonRolling',
-              )
-
-              this.log.debug(
-                {
-                  seriesId: addedSeries.id,
-                  instanceId: targetInstanceId,
-                  tvdbId: tvdbId ?? null,
-                  monitoring: targetSeasonMonitoring,
-                },
-                'Created rolling monitoring entry',
-              )
-            }
-          } else {
-            this.log.warn(
-              { title: sonarrItem.title, attempts: 3 },
-              'Could not find series in Sonarr after retries; rolling monitoring entry not created',
+            this.log.debug(
+              {
+                seriesId: sonarrSeriesId,
+                instanceId: targetInstanceId,
+                tvdbId: tvdbId ?? null,
+                monitoring: targetSeasonMonitoring,
+              },
+              'Created rolling monitoring entry',
             )
           }
         } catch (error) {
@@ -494,8 +453,19 @@ export class SonarrManagerService {
       )
       try {
         await sonarrService.initialize(candidate)
-        // Only persist after successful init
-        await this.fastify.db.updateSonarrInstance(id, updates)
+        // Only persist after successful init; cleanup on persist failure
+        try {
+          await this.fastify.db.updateSonarrInstance(id, updates)
+        } catch (dbErr) {
+          try {
+            await sonarrService.removeWebhook()
+          } catch (_) {
+            // ignore cleanup failure
+          }
+          throw new Error('Failed to persist Sonarr instance update', {
+            cause: dbErr as Error,
+          })
+        }
         // Only treat changes to the target server endpoint as a "server change"
         // API key changes on the same server should not trigger webhook removal
         const serverChanged = !isSameServerEndpoint(

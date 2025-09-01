@@ -407,8 +407,19 @@ export class RadarrManagerService {
       )
       try {
         await radarrService.initialize(candidate)
-        // Only persist after successful init
-        await this.fastify.db.updateRadarrInstance(id, updates)
+        // Only persist after successful init; cleanup on persist failure
+        try {
+          await this.fastify.db.updateRadarrInstance(id, updates)
+        } catch (dbErr) {
+          try {
+            await radarrService.removeWebhook()
+          } catch (_) {
+            // ignore cleanup failure
+          }
+          throw new Error('Failed to persist Radarr instance update', {
+            cause: dbErr as Error,
+          })
+        }
         // Only treat changes to the target server endpoint as a "server change"
         // API key changes on the same server should not trigger webhook removal
         const serverChanged = !isSameServerEndpoint(

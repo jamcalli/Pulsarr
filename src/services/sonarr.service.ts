@@ -750,7 +750,7 @@ export class SonarrService {
     overrideSeasonMonitoring?: string | null,
     overrideSeriesType?: 'standard' | 'anime' | 'daily' | null,
     overrideCreateSeasonFolders?: boolean | null,
-  ): Promise<void> {
+  ): Promise<number> {
     const config = this.sonarrConfig
     try {
       // Check if searchOnAdd parameter or property exists and use it, otherwise default to true
@@ -881,10 +881,14 @@ export class SonarrService {
         seasonFolder: createSeasonFolders,
       }
 
-      await this.postToSonarr<void>('series', show)
+      const createdSeries = await this.postToSonarr<SonarrSeries>(
+        'series',
+        show,
+      )
       this.log.info(
         `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'}, Series Type: ${seriesType})`,
       )
+      return createdSeries.id
     } catch (err) {
       this.log.debug(
         { error: err, title: item.title },
