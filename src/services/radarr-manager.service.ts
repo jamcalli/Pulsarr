@@ -9,6 +9,7 @@ import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import { RadarrService } from '@services/radarr.service.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { isSameServerEndpoint } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class RadarrManagerService {
@@ -403,9 +404,10 @@ export class RadarrManagerService {
         await this.fastify.db.updateRadarrInstance(id, updates)
         // Only treat changes to the target server endpoint as a "server change"
         // API key changes on the same server should not trigger webhook removal
-        const serverChanged =
-          (current.baseUrl ?? '').replace(/\/+$/, '') !==
-          (candidate.baseUrl ?? '').replace(/\/+$/, '')
+        const serverChanged = !isSameServerEndpoint(
+          current.baseUrl,
+          candidate.baseUrl,
+        )
         if (serverChanged && oldService) {
           try {
             await oldService.removeWebhook()
