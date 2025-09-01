@@ -37,7 +37,7 @@ export class RadarrManagerService {
     try {
       this.log.debug('Starting Radarr manager initialization')
       const instances = await this.fastify.db.getAllRadarrInstances()
-      this.log.info({ count: instances.length }, 'Found Radarr instances')
+      this.log.debug({ count: instances.length }, 'Found Radarr instances')
       this.log.debug(
         {
           instanceIds: instances.map((i) => i.id),
@@ -71,7 +71,8 @@ export class RadarrManagerService {
           await radarrService.initialize(instance)
           this.radarrServices.set(instance.id, radarrService)
           this.log.debug(
-            `Successfully initialized Radarr service for instance: ${instance.name}`,
+            { instanceId: instance.id, instanceName: instance.name },
+            'Successfully initialized Radarr service',
           )
         } catch (instanceError) {
           this.log.error(
@@ -94,7 +95,8 @@ export class RadarrManagerService {
             await radarrService.initialize(instance)
             this.radarrServices.set(instance.id, radarrService)
             this.log.debug(
-              `Successfully initialized Radarr service on retry for instance: ${instance.name}`,
+              { instanceId: instance.id, instanceName: instance.name },
+              'Successfully initialized Radarr service on retry',
             )
           } catch (retryError) {
             this.log.error(
@@ -189,27 +191,15 @@ export class RadarrManagerService {
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
-      let targetQualityProfileId: number | undefined
-
-      if (qualityProfile != null) {
-        if (typeof qualityProfile === 'number') {
-          targetQualityProfileId = qualityProfile
-        } else if (
-          typeof qualityProfile === 'string' &&
-          /^\d+$/.test(qualityProfile)
-        ) {
-          targetQualityProfileId = Number(qualityProfile)
-        }
-      } else if (instance.qualityProfile !== null) {
-        if (typeof instance.qualityProfile === 'number') {
-          targetQualityProfileId = instance.qualityProfile
-        } else if (
-          typeof instance.qualityProfile === 'string' &&
-          /^\d+$/.test(instance.qualityProfile)
-        ) {
-          targetQualityProfileId = Number(instance.qualityProfile)
-        }
-      }
+      const toNum = (v: unknown): number | undefined =>
+        typeof v === 'number'
+          ? v
+          : typeof v === 'string' && /^\d+$/.test(v)
+            ? Number(v)
+            : undefined
+      const qpSource = qualityProfile ?? instance.qualityProfile
+      const targetQualityProfileId =
+        qpSource !== null ? toNum(qpSource) : undefined
 
       // Use provided tags or instance default tags
       const targetTags = tags ?? instance.tags ?? []
@@ -245,6 +235,7 @@ export class RadarrManagerService {
           tags: targetTags,
           searchOnAdd: targetSearchOnAdd,
           minimumAvailability: targetMinimumAvailability,
+          title: radarrItem.title,
           userId,
           key,
         },
@@ -343,8 +334,9 @@ export class RadarrManagerService {
 
   async addInstance(instance: Omit<RadarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createRadarrInstance(instance)
+    let radarrService: RadarrService | undefined
     try {
-      const radarrService = new RadarrService(
+      radarrService = new RadarrService(
         this.baseLog,
         this.appBaseUrl,
         this.port,
@@ -362,6 +354,16 @@ export class RadarrManagerService {
         },
         'Failed to initialize new Radarr instance; rolling back',
       )
+      if (radarrService) {
+        try {
+          await radarrService.removeWebhook()
+        } catch (cleanupErr) {
+          this.log.warn(
+            { error: cleanupErr },
+            `Failed to cleanup webhook for new instance ${id}`,
+          )
+        }
+      }
       await this.fastify.db.deleteRadarrInstance(id)
       throw error
     }
@@ -443,7 +445,7 @@ export class RadarrManagerService {
           }
         }
 
-        throw new Error(errorMessage)
+        throw new Error(errorMessage, { cause: initError as Error })
       }
     } else {
       throw new Error(`Radarr instance ${id} not found`)
