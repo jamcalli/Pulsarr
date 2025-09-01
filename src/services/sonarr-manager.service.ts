@@ -197,7 +197,7 @@ export class SonarrManagerService {
         qpSource !== null ? toNum(qpSource) : undefined
 
       // Use provided tags or instance default tags
-      const targetTags = tags || instance.tags || []
+      const targetTags = [...(tags ?? instance.tags ?? [])]
 
       // Handle search on add option (use provided value or instance default)
       const targetSearchOnAdd = searchOnAdd ?? instance.searchOnAdd ?? true // Default to true for backward compatibility
@@ -298,7 +298,8 @@ export class SonarrManagerService {
             }
           } else {
             this.log.warn(
-              `Could not find series ${sonarrItem.title} in Sonarr after ${3 - retries} retries - rolling monitoring entry not created`,
+              { title: sonarrItem.title, attempts: 3 },
+              'Could not find series in Sonarr after retries; rolling monitoring entry not created',
             )
           }
         } catch (error) {

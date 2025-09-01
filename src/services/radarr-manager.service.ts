@@ -207,7 +207,7 @@ export class RadarrManagerService {
         qpSource !== null ? toNum(qpSource) : undefined
 
       // Use provided tags or instance default tags
-      const targetTags = tags ?? instance.tags ?? []
+      const targetTags = [...(tags ?? instance.tags ?? [])]
 
       // Handle search on add option (use provided value or instance default)
       const targetSearchOnAdd = searchOnAdd ?? instance.searchOnAdd ?? true // Default to true for backward compatibility
