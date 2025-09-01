@@ -37,6 +37,7 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { getPathBasename, normalizePath } from '@utils/path.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -418,11 +419,6 @@ export class PlexLabelSyncService {
         }
 
         // Normalize paths for cross-platform compatibility
-        const isWindows = process.platform === 'win32'
-        const normalizePath = (p: string) =>
-          isWindows
-            ? require('node:path').normalize(p).toLowerCase()
-            : require('node:path').posix.normalize(p)
 
         if (
           plexFilePaths
@@ -542,7 +538,7 @@ export class PlexLabelSyncService {
       // Try to match by folder name
       if (plexLocation) {
         for (const sonarrData of sonarrSeries) {
-          const sonarrFolderName = sonarrData.series.path?.split(/[/\\]/).pop()
+          const sonarrFolderName = getPathBasename(sonarrData.series.path || '')
           // Normalize paths for cross-platform compatibility
           const isWindows = process.platform === 'win32'
           const normalizePath = (p: string) =>

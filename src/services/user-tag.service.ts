@@ -107,20 +107,6 @@ export class UserTagService {
   }
 
   /**
-   * Normalize and reuse a validated prefix everywhere
-   */
-  private get effectiveTagPrefix(): string {
-    const cfg = this.fastify.config.tagPrefix || 'pulsarr:user'
-    if (!/^[a-zA-Z0-9_\-:.]+$/.test(cfg)) {
-      this.log.warn(
-        `Invalid tag prefix format: "${cfg}". Falling back to "pulsarr:user".`,
-      )
-      return 'pulsarr:user'
-    }
-    return cfg
-  }
-
-  /**
    * Get config value for removed tag mode
    */
   private get removedTagMode(): 'remove' | 'keep' | 'special-tag' {
@@ -623,7 +609,6 @@ export class UserTagService {
               // Only collect for bulk update if tags have changed
               if (!this.arraysEqual(existingTags, newTags)) {
                 bulkUpdates.push({ seriesId: sonarrId, tagIds: newTags })
-                instanceResults.tagged++
               } else {
                 instanceResults.skipped++
               }
@@ -640,6 +625,7 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await sonarrService.bulkUpdateSeriesTags(bulkUpdates)
+              instanceResults.tagged += bulkUpdates.length
               this.log.debug(
                 `Bulk updated ${bulkUpdates.length} series in Sonarr instance ${instance.name}`,
               )
@@ -656,6 +642,7 @@ export class UserTagService {
                     update.seriesId,
                     update.tagIds,
                   )
+                  instanceResults.tagged++
                 } catch (individualError) {
                   this.log.error(
                     { error: individualError },
@@ -919,7 +906,6 @@ export class UserTagService {
               // Only collect for bulk update if tags have changed
               if (!this.arraysEqual(existingTags, newTags)) {
                 bulkUpdates.push({ movieId: radarrId, tagIds: newTags })
-                instanceResults.tagged++
               } else {
                 instanceResults.skipped++
               }
@@ -936,6 +922,7 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await radarrService.bulkUpdateMovieTags(bulkUpdates)
+              instanceResults.tagged += bulkUpdates.length
               this.log.debug(
                 `Bulk updated ${bulkUpdates.length} movies in Radarr instance ${instance.name}`,
               )
@@ -952,6 +939,7 @@ export class UserTagService {
                     update.movieId,
                     update.tagIds,
                   )
+                  instanceResults.tagged++
                 } catch (individualError) {
                   this.log.error(
                     { error: individualError },
@@ -1456,8 +1444,7 @@ export class UserTagService {
                 seriesId: sonarrId,
                 tagIds: newTags,
               })
-
-              results.itemsUpdated++
+              // increment on success only
             } catch (error) {
               this.log.error(
                 { error },
@@ -1473,6 +1460,7 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await service.bulkUpdateSeriesTags(bulkUpdates)
+              results.itemsUpdated += bulkUpdates.length
               this.log.debug(
                 `Bulk updated ${bulkUpdates.length} series in ${instance.name}, removed ${tagsRemovedCount} user tags`,
               )
@@ -1486,6 +1474,7 @@ export class UserTagService {
               for (const update of bulkUpdates) {
                 try {
                   await service.updateSeriesTags(update.seriesId, update.tagIds)
+                  results.itemsUpdated++
                 } catch (individualError) {
                   this.log.error(
                     { error: individualError },
@@ -1739,8 +1728,7 @@ export class UserTagService {
                 movieId: radarrId,
                 tagIds: newTags,
               })
-
-              results.itemsUpdated++
+              // increment on success only
             } catch (error) {
               this.log.error(
                 { error },
@@ -1756,6 +1744,7 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await service.bulkUpdateMovieTags(bulkUpdates)
+              results.itemsUpdated += bulkUpdates.length
               this.log.debug(
                 `Bulk updated ${bulkUpdates.length} movies in ${instance.name}, removed ${tagsRemovedCount} user tags`,
               )
@@ -1769,6 +1758,7 @@ export class UserTagService {
               for (const update of bulkUpdates) {
                 try {
                   await service.updateMovieTags(update.movieId, update.tagIds)
+                  results.itemsUpdated++
                 } catch (individualError) {
                   this.log.error(
                     { error: individualError },
@@ -1934,7 +1924,7 @@ export class UserTagService {
       .toLowerCase()
       .replace(/[^a-z0-9_\-:.]/g, '_') // keep safe charset
 
-    return `${this.effectiveTagPrefix}:${sanitizedName}`
+    return `${this.tagPrefix}:${sanitizedName}`
   }
 
   /**
@@ -1944,9 +1934,7 @@ export class UserTagService {
    * @returns True if this is an application user tag
    */
   private isAppUserTag(tagLabel: string): boolean {
-    return tagLabel
-      .toLowerCase()
-      .startsWith(`${this.effectiveTagPrefix.toLowerCase()}:`)
+    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix.toLowerCase()}:`)
   }
 
   /**

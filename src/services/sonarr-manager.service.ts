@@ -451,9 +451,10 @@ export class SonarrManagerService {
     id: number,
     updates: Partial<SonarrInstance>,
   ): Promise<void> {
-    await this.fastify.db.updateSonarrInstance(id, updates)
-    const instance = await this.fastify.db.getSonarrInstance(id)
-    if (instance) {
+    const current = await this.fastify.db.getSonarrInstance(id)
+    if (current) {
+      const candidate = { ...current, ...updates }
+      const oldService = this.sonarrServices.get(id)
       const sonarrService = new SonarrService(
         this.baseLog,
         this.appBaseUrl,
@@ -461,7 +462,19 @@ export class SonarrManagerService {
         this.fastify,
       )
       try {
-        await sonarrService.initialize(instance)
+        await sonarrService.initialize(candidate)
+        // Only persist after successful init
+        await this.fastify.db.updateSonarrInstance(id, updates)
+        if (oldService && oldService !== sonarrService) {
+          try {
+            await oldService.removeWebhook()
+          } catch (cleanupErr) {
+            this.log.warn(
+              { error: cleanupErr },
+              `Failed to cleanup old webhook for instance ${id}`,
+            )
+          }
+        }
         this.sonarrServices.set(id, sonarrService)
       } catch (initError) {
         this.log.error(

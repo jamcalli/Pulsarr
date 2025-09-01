@@ -66,7 +66,7 @@ export class ContentRouterService {
       const projectRoot = resolve(__dirname, '..')
       const evaluatorsDir = join(projectRoot, 'router-evaluators')
 
-      this.log.debug(`Loading router evaluators from: ${evaluatorsDir}`)
+      this.log.debug({ evaluatorsDir }, 'Loading router evaluators')
 
       const files = await readdir(evaluatorsDir)
 
@@ -84,7 +84,10 @@ export class ContentRouterService {
               // Validate the evaluator has all required methods and properties
               if (this.isValidEvaluator(evaluator)) {
                 this.evaluators.push(evaluator)
-                this.log.debug(`Loaded router evaluator: ${evaluator.name}`)
+                this.log.debug(
+                  { evaluator: evaluator.name },
+                  'Loaded router evaluator',
+                )
               } else {
                 this.log.warn(
                   `Invalid evaluator found: ${file}, missing required methods or properties`,

@@ -417,6 +417,9 @@ export class StatusService {
 
             // Add to junction if not exists
             if (!currentJunction) {
+              const hasPlannedPrimary = junctionsToAdd.some(
+                (j) => j.watchlist_id === numericId && j.is_primary,
+              )
               junctionsToAdd.push({
                 watchlist_id: numericId,
                 sonarr_instance_id: instanceId,
@@ -424,11 +427,12 @@ export class StatusService {
                   mainTableStatus === 'notified'
                     ? 'notified'
                     : matchingSeries[0].status || 'pending',
-                // Primary only if there are no existing junctions
-                // AND this is the first matched instance for this item
+                // Primary only if no existing junctions AND first matched instance,
+                // and no primary already planned in this batch
                 is_primary:
                   currentInstanceMap.size === 0 &&
-                  existingInstances.length === 1,
+                  existingInstances.length === 1 &&
+                  !hasPlannedPrimary,
               })
               updateCount++
             } else {
@@ -501,11 +505,13 @@ export class StatusService {
             )
             .some((entry) => entry.is_primary)
 
-          if (!hasPrimary) {
+          const hasPlannedPrimary = junctionsToAdd.some(
+            (j) => j.watchlist_id === numericId && j.is_primary,
+          )
+          if (!hasPrimary && !hasPlannedPrimary) {
             junctionsToUpdate.push({
               watchlist_id: numericId,
               sonarr_instance_id: existingInstances[0],
-              status: 'pending',
               is_primary: true,
             })
             updateCount++
@@ -660,6 +666,9 @@ export class StatusService {
 
             // Add to junction if not exists
             if (!currentJunction) {
+              const hasPlannedPrimary = junctionsToAdd.some(
+                (j) => j.watchlist_id === numericId && j.is_primary,
+              )
               junctionsToAdd.push({
                 watchlist_id: numericId,
                 radarr_instance_id: instanceId,
@@ -667,9 +676,12 @@ export class StatusService {
                   mainTableStatus === 'notified'
                     ? 'notified'
                     : matchingMovies[0].status || 'pending',
+                // Primary only if no existing junctions AND first matched instance,
+                // and no primary already planned in this batch
                 is_primary:
                   currentInstanceMap.size === 0 &&
-                  existingInstances.length === 1,
+                  existingInstances.length === 1 &&
+                  !hasPlannedPrimary,
               })
               updateCount++
             } else {
@@ -742,11 +754,13 @@ export class StatusService {
             )
             .some((entry) => entry.is_primary)
 
-          if (!hasPrimary) {
+          const hasPlannedPrimary = junctionsToAdd.some(
+            (j) => j.watchlist_id === numericId && j.is_primary,
+          )
+          if (!hasPrimary && !hasPlannedPrimary) {
             junctionsToUpdate.push({
               watchlist_id: numericId,
               radarr_instance_id: existingInstances[0],
-              status: 'pending',
               is_primary: true,
             })
             updateCount++
@@ -1064,7 +1078,7 @@ export class StatusService {
                   }
                 })
                 .catch((error) => {
-                  this.log.error(`Error in batch processing movie: ${error}`)
+                  this.log.error({ error }, 'Error in batch processing movie')
                 })
                 .finally(() => {
                   processingCount--
@@ -1405,7 +1419,7 @@ export class StatusService {
                   }
                 })
                 .catch((error) => {
-                  this.log.error(`Error in batch processing show: ${error}`)
+                  this.log.error({ error }, 'Error in batch processing show')
                 })
                 .finally(() => {
                   processingCount--
