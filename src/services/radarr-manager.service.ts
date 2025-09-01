@@ -37,13 +37,13 @@ export class RadarrManagerService {
     try {
       this.log.debug('Starting Radarr manager initialization')
       const instances = await this.fastify.db.getAllRadarrInstances()
-      this.log.debug({ count: instances.length }, 'Found Radarr instances')
       this.log.debug(
         {
+          count: instances.length,
           instanceIds: instances.map((i) => i.id),
           instanceNames: instances.map((i) => i.name),
         },
-        'Radarr instance details',
+        'Found Radarr instances',
       )
 
       if (instances.length === 0) {
@@ -129,14 +129,15 @@ export class RadarrManagerService {
         const radarrService = this.radarrServices.get(instance.id)
         if (!radarrService) {
           this.log.warn(
-            `Radarr service for instance ${instance.name} not initialized`,
+            { instanceId: instance.id, instanceName: instance.name },
+            'Radarr service not initialized',
           )
           continue
         }
 
         const instanceMovies = await radarrService.fetchMovies(bypassExclusions)
 
-        for (const movie of Array.from(instanceMovies)) {
+        for (const movie of instanceMovies) {
           allMovies.push({
             ...movie,
             radarr_instance_id: instance.id,
@@ -191,12 +192,16 @@ export class RadarrManagerService {
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
-      const toNum = (v: unknown): number | undefined =>
-        typeof v === 'number'
-          ? v
-          : typeof v === 'string' && /^\d+$/.test(v)
-            ? Number(v)
-            : undefined
+      const toNum = (v: unknown): number | undefined => {
+        if (typeof v === 'number')
+          return Number.isInteger(v) && v > 0 ? v : undefined
+        if (typeof v === 'string') {
+          const s = v.trim()
+          const n = /^\d+$/.test(s) ? Number(s) : NaN
+          return Number.isInteger(n) && n > 0 ? n : undefined
+        }
+        return undefined
+      }
       const qpSource = qualityProfile ?? instance.qualityProfile
       const targetQualityProfileId =
         qpSource !== null ? toNum(qpSource) : undefined

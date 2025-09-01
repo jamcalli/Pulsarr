@@ -122,7 +122,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               ? body.series.title
               : 'unknown'
         fastify.log.info(
-          `Webhook passed deduplication: ${contentTitle} (${body.instanceName})`,
+          {
+            instanceName: body.instanceName,
+            eventType: 'eventType' in body ? body.eventType : 'unknown',
+            contentTitle,
+          },
+          'Webhook passed deduplication',
         )
         fastify.log.debug(
           {
@@ -220,7 +225,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           const episodeNumber = body.episodes[0].episodeNumber
 
           fastify.log.info(
-            `Received Sonarr webhook: ${body.series.title} S${seasonNumber}E${episodeNumber}`,
+            {
+              webhook: 'sonarr',
+              tvdbId,
+              series: body.series.title,
+              season: seasonNumber,
+              episode: episodeNumber,
+            },
+            'Received Sonarr webhook',
           )
           fastify.log.debug(
             {
@@ -432,7 +444,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
             if (nonRecentEpisodes.length > 0) {
               fastify.log.info(
-                `Adding ${nonRecentEpisodes.length} non-recent episodes to queue for S${seasonNumber}`,
+                {
+                  count: nonRecentEpisodes.length,
+                  tvdbId,
+                  seasonNumber,
+                  series: body.series.title,
+                },
+                'Adding non-recent episodes to queue',
               )
               fastify.log.debug(
                 { count: nonRecentEpisodes.length, tvdbId, seasonNumber },
@@ -453,7 +471,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   instanceId: instance?.id ?? null,
                   timeoutId: setTimeout(() => {
                     fastify.log.info(
-                      `Queue timeout reached for S${seasonNumber}, processing webhooks`,
+                      { tvdbId, seasonNumber },
+                      'Queue timeout reached, processing webhooks',
                     )
                     fastify.log.debug(
                       { tvdbId, seasonNumber },
@@ -474,7 +493,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
                   setTimeout(() => {
                     fastify.log.info(
-                      `Queue timeout reached for S${seasonNumber}, processing webhooks`,
+                      { tvdbId, seasonNumber },
+                      'Queue timeout reached, processing webhooks',
                     )
                     fastify.log.debug(
                       { tvdbId, seasonNumber },
