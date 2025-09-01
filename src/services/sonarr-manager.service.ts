@@ -63,8 +63,12 @@ export class SonarrManagerService {
           this.sonarrServices.set(instance.id, sonarrService)
         } catch (error) {
           this.log.error(
-            { error },
-            `Failed to initialize Sonarr service for instance ${instance.name}`,
+            {
+              error,
+              instanceId: instance.id,
+              instanceName: instance.name,
+            },
+            'Failed to initialize Sonarr service for instance',
           )
         }
       }
@@ -178,7 +182,7 @@ export class SonarrManagerService {
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
       let targetQualityProfileId: number | undefined
 
-      if (qualityProfile !== undefined) {
+      if (qualityProfile != null) {
         if (typeof qualityProfile === 'number') {
           targetQualityProfileId = qualityProfile
         } else if (
@@ -314,8 +318,18 @@ export class SonarrManagerService {
         status: 'requested',
       })
 
-      this.log.info(
-        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}, tags ${targetTags.length ? targetTags.join(', ') : 'none'}, search on add ${targetSearchOnAdd ? 'enabled' : 'disabled'}, season monitoring set to '${targetSeasonMonitoring}', and series type '${targetSeriesType}'`,
+      this.log.debug(
+        {
+          instanceId: targetInstanceId,
+          qualityProfileId: targetQualityProfileId ?? 'default',
+          tags: targetTags,
+          searchOnAdd: targetSearchOnAdd,
+          seasonMonitoring: targetSeasonMonitoring,
+          seriesType: targetSeriesType,
+          userId,
+          key,
+        },
+        'Successfully routed item to Sonarr',
       )
     } catch (error) {
       this.log.error(
@@ -419,15 +433,28 @@ export class SonarrManagerService {
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createSonarrInstance(instance)
-    const sonarrService = new SonarrService(
-      this.baseLog,
-      this.appBaseUrl,
-      this.port,
-      this.fastify,
-    )
-    await sonarrService.initialize({ ...instance, id })
-    this.sonarrServices.set(id, sonarrService)
-    return id
+    try {
+      const sonarrService = new SonarrService(
+        this.baseLog,
+        this.appBaseUrl,
+        this.port,
+        this.fastify,
+      )
+      await sonarrService.initialize({ ...instance, id })
+      this.sonarrServices.set(id, sonarrService)
+      return id
+    } catch (error) {
+      this.log.error(
+        {
+          error,
+          instanceName: instance.name,
+          instanceBaseUrl: instance.baseUrl,
+        },
+        'Failed to initialize new Sonarr instance; rolling back',
+      )
+      await this.fastify.db.deleteSonarrInstance(id)
+      throw error
+    }
   }
 
   async removeInstance(id: number): Promise<void> {

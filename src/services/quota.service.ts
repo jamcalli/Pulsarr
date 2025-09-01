@@ -76,9 +76,9 @@ export class QuotaService {
       const movieData: CreateUserQuotaData = {
         userId,
         contentType: 'movie',
-        quotaType: config.newUserDefaultMovieQuotaType || 'monthly',
-        quotaLimit: config.newUserDefaultMovieQuotaLimit || 10,
-        bypassApproval: config.newUserDefaultMovieBypassApproval || false,
+        quotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
+        quotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+        bypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
       }
       movieQuota = await this.fastify.db.createUserQuota(movieData)
     }
@@ -88,9 +88,9 @@ export class QuotaService {
       const showData: CreateUserQuotaData = {
         userId,
         contentType: 'show',
-        quotaType: config.newUserDefaultShowQuotaType || 'monthly',
-        quotaLimit: config.newUserDefaultShowQuotaLimit || 10,
-        bypassApproval: config.newUserDefaultShowBypassApproval || false,
+        quotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
+        quotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+        bypassApproval: config.newUserDefaultShowBypassApproval ?? false,
       }
       showQuota = await this.fastify.db.createUserQuota(showData)
     }
@@ -239,7 +239,7 @@ export class QuotaService {
 
     let displayText =
       status.quotaLimit === 0
-        ? `${status.currentUsage}/0 used (limit reached)`
+        ? `${status.currentUsage}/0 used (limit 0)`
         : `${status.currentUsage}/${status.quotaLimit} used`
     if (status.resetDate) {
       displayText += ` (resets ${new Date(status.resetDate).toLocaleDateString()})`
@@ -331,20 +331,15 @@ export class QuotaService {
 
     for (const userId of userIds) {
       try {
-        // Get user's quota usage since fromDate or beginning
-        const history = await this.fastify.db.getQuotaUsageHistory(
-          userId,
-          fromDate,
-        )
-
-        if (history.length === 0) {
-          continue // No usage to reset
-        }
-
         // Delete quota usage records for this user
         const deletedCount = fromDate
           ? await this.fastify.db.deleteQuotaUsageByUserSince(userId, fromDate)
           : await this.fastify.db.deleteQuotaUsageByUser(userId)
+        if (deletedCount === 0) {
+          this.log.debug({ userId, fromDate }, 'No quota usage to reset')
+          continue
+        }
+
         this.log.info(
           { deletedCount, userId, fromDate },
           'Reset quota usage records',

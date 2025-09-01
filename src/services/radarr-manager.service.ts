@@ -36,7 +36,7 @@ export class RadarrManagerService {
     try {
       this.log.debug('Starting Radarr manager initialization')
       const instances = await this.fastify.db.getAllRadarrInstances()
-      this.log.info(`Found ${instances.length} Radarr instances`)
+      this.log.info({ count: instances.length }, 'Found Radarr instances')
       this.log.debug(
         {
           instanceIds: instances.map((i) => i.id),
@@ -241,6 +241,7 @@ export class RadarrManagerService {
         {
           instanceId: targetInstanceId,
           qualityProfileId: targetQualityProfileId ?? 'default',
+          tags: targetTags,
           searchOnAdd: targetSearchOnAdd,
           minimumAvailability: targetMinimumAvailability,
           userId,
