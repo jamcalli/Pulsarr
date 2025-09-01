@@ -364,7 +364,7 @@ export class PlexSessionMonitorService {
 
     for (const instance of instances) {
       try {
-        const sonarr = this.sonarrManager.getInstance(instance.id)
+        const sonarr = this.sonarrManager.getSonarrService(instance.id)
         if (!sonarr) continue
 
         const allSeries = await sonarr.getAllSeries()
@@ -544,7 +544,7 @@ export class PlexSessionMonitorService {
     const nextSeason = rollingShow.current_monitored_season + 1
 
     try {
-      const sonarr = this.sonarrManager.getInstance(
+      const sonarr = this.sonarrManager.getSonarrService(
         rollingShow.sonarr_instance_id,
       )
       if (!sonarr) return
@@ -590,7 +590,7 @@ export class PlexSessionMonitorService {
     result: SessionMonitoringResult,
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(
+      const sonarr = this.sonarrManager.getSonarrService(
         rollingShow.sonarr_instance_id,
       )
       if (!sonarr) return
@@ -626,7 +626,7 @@ export class PlexSessionMonitorService {
     result: SessionMonitoringResult,
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(
+      const sonarr = this.sonarrManager.getSonarrService(
         rollingShow.sonarr_instance_id,
       )
       if (!sonarr) return
@@ -697,7 +697,7 @@ export class PlexSessionMonitorService {
     showTitle: string,
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }
@@ -782,7 +782,7 @@ export class PlexSessionMonitorService {
     showTitle: string,
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }
@@ -1110,7 +1110,7 @@ export class PlexSessionMonitorService {
     sonarrInstanceId: number,
   ): Promise<boolean> {
     try {
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         return false
       }
@@ -1167,7 +1167,7 @@ export class PlexSessionMonitorService {
         `Starting Season 1 pilot reset for ${showTitle} (Sonarr series ${sonarrSeriesId})`,
       )
 
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }
@@ -1244,7 +1244,7 @@ export class PlexSessionMonitorService {
     seasonsToCleanup: number[],
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }
