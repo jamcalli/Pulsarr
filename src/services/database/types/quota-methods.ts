@@ -195,7 +195,8 @@ declare module '@services/database.service.js' {
     /**
      * Deletes quota usage records for a specific user since a given date
      * @param userId - User ID
-     * @param fromDate - Only delete records from this date onwards
+     * @param fromDate - Inclusive start date; records with request_date >= this local date are deleted.
+     *                   Note: Date is normalized to YYYY-MM-DD in the server's local timezone via getLocalDateString.
      * @returns Promise resolving to the number of deleted records
      */
     deleteQuotaUsageByUserSince(userId: number, fromDate: Date): Promise<number>

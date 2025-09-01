@@ -767,6 +767,9 @@ export async function deleteQuotaUsageByUserSince(
   userId: number,
   fromDate: Date,
 ): Promise<number> {
+  if (!(fromDate instanceof Date) || Number.isNaN(fromDate.getTime())) {
+    throw new Error('Invalid fromDate')
+  }
   const fromDateString = this.getLocalDateString(fromDate)
 
   const deletedCount = await this.knex('quota_usage')
