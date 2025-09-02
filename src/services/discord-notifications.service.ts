@@ -364,8 +364,10 @@ export class DiscordNotificationService {
     let webhookUrls: string[]
 
     if (overrideUrls) {
-      // Use provided URLs directly
-      webhookUrls = overrideUrls.filter((url) => url.trim().length > 0)
+      // Use provided URLs directly, deduplicated
+      webhookUrls = [
+        ...new Set(overrideUrls.map((url) => url.trim()).filter(Boolean)),
+      ]
       if (webhookUrls.length === 0) {
         this.log.debug('No valid override webhook URLs provided')
         return false
