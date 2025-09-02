@@ -333,7 +333,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     upgradeTracker: new Map(),
                     instanceId: instance?.id ?? null,
                     timeoutId: setTimeout(() => {
-                      processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                      try {
+                        processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                      } catch (error) {
+                        fastify.log.error(
+                          { error, tvdbId, seasonNumber },
+                          'Queue timeout processing failed',
+                        )
+                      }
                     }, fastify.config.queueWaitTime),
                   }
                 }
@@ -476,6 +483,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   seasonNumber,
                   instanceName: instance?.name ?? body.instanceName,
                   series: body.series.title,
+                  reqId: request.id,
                 },
                 'Adding non-recent episodes to queue',
               )
@@ -514,7 +522,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                       },
                       'Queue timeout details',
                     )
-                    processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                    try {
+                      processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                    } catch (error) {
+                      fastify.log.error(
+                        { error, tvdbId, seasonNumber },
+                        'Queue timeout processing failed',
+                      )
+                    }
                   }, fastify.config.queueWaitTime),
                 }
               } else {
@@ -549,7 +564,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                       },
                       'Queue timeout details',
                     )
-                    processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                    try {
+                      processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                    } catch (error) {
+                      fastify.log.error(
+                        { error, tvdbId, seasonNumber },
+                        'Queue timeout processing failed',
+                      )
+                    }
                   }, fastify.config.queueWaitTime)
               }
 
@@ -609,7 +631,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { success: true }
         }
 
-        throw new Error('Invalid webhook payload')
+        return reply.badRequest('Invalid webhook payload')
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to process webhook',
