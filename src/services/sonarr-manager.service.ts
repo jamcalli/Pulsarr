@@ -197,7 +197,7 @@ export class SonarrManagerService {
         qpSource !== null ? toNum(qpSource) : undefined
 
       // Use provided tags or instance default tags
-      const targetTags = [...(tags ?? instance.tags ?? [])]
+      const targetTags = Array.from(new Set(tags ?? instance.tags ?? []))
 
       // Handle search on add option (use provided value or instance default)
       const targetSearchOnAdd = searchOnAdd ?? instance.searchOnAdd ?? true // Default to true for backward compatibility
@@ -507,7 +507,8 @@ export class SonarrManagerService {
 
         // Update the existing service configuration if it exists
         if (oldService) {
-          // The service will pick up new config from database on next operation
+          const updatedInstance = { ...current, ...updates }
+          oldService.updateConfiguration(updatedInstance)
           this.log.debug(
             { instanceId: id },
             'Updated Sonarr instance configuration (no server change)',

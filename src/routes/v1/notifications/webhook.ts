@@ -128,8 +128,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           instanceName: instance?.name ?? body.instanceName,
           eventType: 'eventType' in body ? body.eventType : 'unknown',
           contentTitle,
+          instanceId: instance?.id ?? instanceId ?? null,
         }
-        fastify.log.info(dedupPayload, 'Webhook passed deduplication')
+        fastify.log.debug(dedupPayload, 'Webhook passed deduplication')
         fastify.log.debug(dedupPayload, 'Webhook deduplication details')
 
         if ('movie' in body) {
@@ -216,7 +217,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (
           'series' in body &&
           'episodes' in body &&
-          body.episodes &&
           Array.isArray(body.episodes) &&
           body.episodes.length > 0
         ) {
