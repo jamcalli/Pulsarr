@@ -3,11 +3,14 @@
  */
 
 /**
- * Creates a delay with exponential backoff and jitter to smooth retry operations
- * @param attempt The current attempt number (0-based)
- * @param baseDelayMs Base delay in milliseconds
- * @param maxDelayMs Maximum delay in milliseconds
- * @returns Promise that resolves after the calculated delay
+ * Waits for an exponentially increasing delay (capped) plus randomized jitter before resolving.
+ *
+ * The delay is min(baseDelayMs * 2^attempt, maxDelayMs) with up to 10% additional random jitter.
+ *
+ * @param attempt - The current retry attempt (0-based).
+ * @param baseDelayMs - Base delay in milliseconds (default: 500).
+ * @param maxDelayMs - Maximum delay in milliseconds (default: 2000).
+ * @returns A promise that resolves after the computed delay.
  */
 export function delayWithBackoffAndJitter(
   attempt: number,
@@ -21,16 +24,14 @@ export function delayWithBackoffAndJitter(
 }
 
 /**
- * Normalizes a URL to include the full path, useful for detecting baseURL changes
- * that include path modifications beyond just server endpoint changes.
+ * Normalize a URL to a canonical "protocol//host/path" form, including the full path.
  *
- * @param url The URL to normalize
- * @returns Normalized URL string with protocol, host, and path
- * @example
- * ```typescript
- * normalizeEndpointWithPath('http://server/api') // 'http://server/api'
- * normalizeEndpointWithPath('server:8989/path/') // 'http://server:8989/path'
- * ```
+ * If `url` is falsy an empty string is returned. If the input has no scheme, `http://` is assumed for parsing.
+ * Trailing slashes on the pathname are removed. If parsing fails, the function returns the input lowercased,
+ * trimmed, and with trailing slashes removed as a fallback.
+ *
+ * @param url - URL to normalize; may be `undefined` or `null` (returns `''`).
+ * @returns The normalized endpoint string in the form `protocol//host/path`, or a trimmed lowercase fallback for malformed input.
  */
 export function normalizeEndpointWithPath(url?: string | null): string {
   if (!url) return ''

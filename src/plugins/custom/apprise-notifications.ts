@@ -76,10 +76,13 @@ export default fp(
 )
 
 /**
- * Ping function to check if the Apprise server is reachable
+ * Checks whether the Apprise server at the given URL is reachable.
  *
- * @param url - The Apprise server URL
- * @returns Promise resolving to true if server is reachable, false otherwise
+ * Attempts an HTTP GET to the server root and returns true if the response has a successful status.
+ * If `url` is empty/whitespace, the request times out (5 seconds), or any network/error occurs, the function returns false.
+ *
+ * @param url - The Apprise server base URL to ping
+ * @returns True if the server responds with a successful HTTP status; otherwise false
  */
 async function pingAppriseServer(url: string): Promise<boolean> {
   if (!url || url.trim() === '') {
