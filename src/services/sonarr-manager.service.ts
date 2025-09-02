@@ -1,4 +1,3 @@
-import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type {
@@ -7,14 +6,24 @@ import type {
   SonarrItem,
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
-import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
+import {
+  delayWithBackoffAndJitter,
+  isSameServerEndpoint,
+  normalizeEndpointWithPath,
+} from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class SonarrManagerService {
   private sonarrServices: Map<number, SonarrService> = new Map()
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'SONARR_MANAGER')
+  }
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {}
 
@@ -28,16 +37,16 @@ export class SonarrManagerService {
 
   async initialize(): Promise<void> {
     try {
-      this.log.info('Starting Sonarr manager initialization')
+      this.log.debug('Starting Sonarr manager initialization')
 
       const instances = await this.fastify.db.getAllSonarrInstances()
-      this.log.info(
+      this.log.debug(
         {
           count: instances.length,
           instanceIds: instances.map((i) => i.id),
           instanceNames: instances.map((i) => i.name),
         },
-        `Found ${instances.length} Sonarr instances`,
+        'Found Sonarr instances',
       )
 
       if (instances.length === 0) {
@@ -46,20 +55,63 @@ export class SonarrManagerService {
       }
 
       for (const instance of instances) {
+        this.log.debug(
+          {
+            id: instance.id,
+            name: instance.name,
+            baseUrl: instance.baseUrl,
+          },
+          'Attempting to initialize instance',
+        )
+
         try {
           const sonarrService = new SonarrService(
-            this.log,
-            this.fastify.config.baseUrl,
+            this.baseLog,
+            this.appBaseUrl,
             this.port,
             this.fastify,
           )
           await sonarrService.initialize(instance)
           this.sonarrServices.set(instance.id, sonarrService)
-        } catch (error) {
-          this.log.error(
-            { error },
-            `Failed to initialize Sonarr service for instance ${instance.name}`,
+          this.log.debug(
+            { instanceId: instance.id, instanceName: instance.name },
+            'Successfully initialized Sonarr service',
           )
+        } catch (instanceError) {
+          this.log.error(
+            {
+              error: instanceError,
+              instanceId: instance.id,
+              instanceName: instance.name,
+            },
+            'Failed to initialize Sonarr service for instance, will retry',
+          )
+
+          // Use bounded backoff with jitter for retry
+          await delayWithBackoffAndJitter(1, 500, 2000)
+          try {
+            const sonarrService = new SonarrService(
+              this.baseLog,
+              this.appBaseUrl,
+              this.port,
+              this.fastify,
+            )
+            await sonarrService.initialize(instance)
+            this.sonarrServices.set(instance.id, sonarrService)
+            this.log.debug(
+              { instanceId: instance.id, instanceName: instance.name },
+              'Successfully initialized Sonarr service on retry',
+            )
+          } catch (retryError) {
+            this.log.error(
+              {
+                error: retryError,
+                instanceId: instance.id,
+                instanceName: instance.name,
+              },
+              'Failed to initialize Sonarr service after retry',
+            )
+          }
         }
       }
 
@@ -78,7 +130,7 @@ export class SonarrManagerService {
   ): Promise<ConnectionTestResult> {
     try {
       const tempService = new SonarrService(
-        this.log,
+        this.baseLog,
         this.appBaseUrl,
         this.port,
         this.fastify,
@@ -100,33 +152,38 @@ export class SonarrManagerService {
     const allSeries: SonarrItem[] = []
     const instances = await this.fastify.db.getAllSonarrInstances()
 
-    for (const instance of instances) {
-      try {
-        const sonarrService = this.sonarrServices.get(instance.id)
+    const tasks = instances.map(async (instance) => {
+      const sonarrService = this.sonarrServices.get(instance.id)
+      if (!sonarrService) {
+        this.log.warn(
+          { instanceId: instance.id, instanceName: instance.name },
+          'Sonarr service not initialized',
+        )
+        return []
+      }
+      const series = await sonarrService.fetchSeries(bypassExclusions)
+      return Array.from(series).map((s) => ({
+        ...s,
+        sonarr_instance_id: instance.id,
+      }))
+    })
 
-        if (!sonarrService) {
-          this.log.warn(
-            `Sonarr service for instance ${instance.name} not initialized`,
-          )
-          continue
-        }
-
-        const instanceSeries = await sonarrService.fetchSeries(bypassExclusions)
-
-        for (const series of Array.from(instanceSeries)) {
-          allSeries.push({
-            ...series,
-            sonarr_instance_id: instance.id,
-          })
-        }
-      } catch (error) {
+    const results = await Promise.allSettled(tasks)
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]
+      if (r.status === 'fulfilled') {
+        allSeries.push(...r.value)
+      } else {
         this.log.error(
-          { error },
-          `Error fetching series for instance ${instance.name}`,
+          {
+            error: r.reason,
+            instanceId: instances[i]?.id,
+            instanceName: instances[i]?.name,
+          },
+          'Error fetching series from Sonarr instance',
         )
       }
     }
-
     return allSeries
   }
 
@@ -170,30 +227,22 @@ export class SonarrManagerService {
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
-      let targetQualityProfileId: number | undefined
-
-      if (qualityProfile !== undefined) {
-        if (typeof qualityProfile === 'number') {
-          targetQualityProfileId = qualityProfile
-        } else if (
-          typeof qualityProfile === 'string' &&
-          /^\d+$/.test(qualityProfile)
-        ) {
-          targetQualityProfileId = Number(qualityProfile)
+      const toNum = (v: unknown): number | undefined => {
+        if (typeof v === 'number')
+          return Number.isInteger(v) && v > 0 ? v : undefined
+        if (typeof v === 'string') {
+          const s = v.trim()
+          const n = /^\d+$/.test(s) ? Number(s) : NaN
+          return Number.isInteger(n) && n > 0 ? n : undefined
         }
-      } else if (instance.qualityProfile !== null) {
-        if (typeof instance.qualityProfile === 'number') {
-          targetQualityProfileId = instance.qualityProfile
-        } else if (
-          typeof instance.qualityProfile === 'string' &&
-          /^\d+$/.test(instance.qualityProfile)
-        ) {
-          targetQualityProfileId = Number(instance.qualityProfile)
-        }
+        return undefined
       }
+      const qpSource = qualityProfile ?? instance.qualityProfile
+      const targetQualityProfileId =
+        qpSource !== null ? toNum(qpSource) : undefined
 
       // Use provided tags or instance default tags
-      const targetTags = tags || instance.tags || []
+      const targetTags = Array.from(new Set(tags ?? instance.tags ?? []))
 
       // Handle search on add option (use provided value or instance default)
       const targetSearchOnAdd = searchOnAdd ?? instance.searchOnAdd ?? true // Default to true for backward compatibility
@@ -218,8 +267,8 @@ export class SonarrManagerService {
           targetSeasonMonitoring === 'pilotRolling' ? 'pilot' : 'firstSeason'
       }
 
-      // Add to Sonarr
-      await sonarrService.addToSonarr(
+      // Add to Sonarr and get the series ID directly
+      const sonarrSeriesId = await sonarrService.addToSonarr(
         sonarrItem,
         targetRootFolder,
         targetQualityProfileId,
@@ -232,63 +281,31 @@ export class SonarrManagerService {
       // If rolling monitoring was used, create tracking entry
       if (isRollingMonitoring) {
         try {
-          // Get the series ID from Sonarr with retry logic to handle indexing delays
-          let addedSeries = null
-          let retries = 3
-          const retryDelay = 1000 // 1 second
+          // Extract TVDB ID
+          const tvdbGuid = sonarrItem.guids.find((g) =>
+            g.toLowerCase().startsWith('tvdb:'),
+          )
+          const tvdbId = tvdbGuid ? tvdbGuid.replace(/^tvdb:/i, '') : undefined
 
-          while (!addedSeries && retries > 0) {
-            const allSeries = await sonarrService.getAllSeries()
+          // Create rolling monitoring entry
+          const plexSessionMonitor = this.fastify.plexSessionMonitor
+          if (plexSessionMonitor) {
+            await plexSessionMonitor.createRollingMonitoredShow(
+              sonarrSeriesId,
+              targetInstanceId,
+              tvdbId || '',
+              sonarrItem.title,
+              targetSeasonMonitoring as 'pilotRolling' | 'firstSeasonRolling',
+            )
 
-            // First try exact TVDB ID match
-            const tvdbGuid = sonarrItem.guids.find((g) => g.startsWith('tvdb:'))
-            const tvdbId = tvdbGuid ? tvdbGuid.replace('tvdb:', '') : undefined
-
-            if (tvdbId) {
-              addedSeries = allSeries.find(
-                (s) => s.tvdbId === Number.parseInt(tvdbId, 10),
-              )
-            }
-
-            // Fallback to title match only if TVDB match fails
-            if (!addedSeries) {
-              addedSeries = allSeries.find(
-                (s) => s.title.toLowerCase() === sonarrItem.title.toLowerCase(),
-              )
-            }
-
-            if (!addedSeries && retries > 1) {
-              this.log.debug(
-                `Series ${sonarrItem.title} not found yet, retrying in ${retryDelay}ms...`,
-              )
-              await new Promise((resolve) => setTimeout(resolve, retryDelay))
-            }
-            retries--
-          }
-
-          if (addedSeries) {
-            // Extract TVDB ID
-            const tvdbGuid = sonarrItem.guids.find((g) => g.startsWith('tvdb:'))
-            const tvdbId = tvdbGuid ? tvdbGuid.replace('tvdb:', '') : undefined
-
-            // Create rolling monitoring entry
-            const plexSessionMonitor = this.fastify.plexSessionMonitor
-            if (plexSessionMonitor) {
-              await plexSessionMonitor.createRollingMonitoredShow(
-                addedSeries.id,
-                targetInstanceId,
-                tvdbId || '',
-                addedSeries.title,
-                targetSeasonMonitoring as 'pilotRolling' | 'firstSeasonRolling',
-              )
-
-              this.log.info(
-                `Created rolling monitoring entry for ${addedSeries.title} with ${targetSeasonMonitoring}`,
-              )
-            }
-          } else {
-            this.log.warn(
-              `Could not find series ${sonarrItem.title} in Sonarr after ${3 - retries} retries - rolling monitoring entry not created`,
+            this.log.debug(
+              {
+                seriesId: sonarrSeriesId,
+                instanceId: targetInstanceId,
+                tvdbId: tvdbId ?? null,
+                monitoring: targetSeasonMonitoring,
+              },
+              'Created rolling monitoring entry',
             )
           }
         } catch (error) {
@@ -302,13 +319,31 @@ export class SonarrManagerService {
         status: 'requested',
       })
 
-      this.log.info(
-        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}, tags ${targetTags.length ? targetTags.join(', ') : 'none'}, search on add ${targetSearchOnAdd ? 'enabled' : 'disabled'}, season monitoring set to '${targetSeasonMonitoring}', and series type '${targetSeriesType}'`,
+      this.log.debug(
+        {
+          instanceId: targetInstanceId,
+          seriesId: sonarrSeriesId,
+          qualityProfileId: targetQualityProfileId ?? 'default',
+          tags: targetTags,
+          searchOnAdd: targetSearchOnAdd,
+          seasonMonitoring: targetSeasonMonitoring,
+          seriesType: targetSeriesType,
+          title: sonarrItem.title,
+          userId,
+          key,
+        },
+        'Successfully routed item to Sonarr',
       )
     } catch (error) {
       this.log.error(
-        { error },
-        `Failed to add item to instance ${targetInstanceId}`,
+        {
+          error,
+          instanceId: targetInstanceId,
+          title: sonarrItem.title,
+          userId,
+          key,
+        },
+        'Failed to route item to Sonarr',
       )
       throw error
     }
@@ -341,43 +376,6 @@ export class SonarrManagerService {
    * @param instanceId The ID of the Sonarr instance
    * @returns The SonarrService instance or undefined if not found
    */
-  getInstance(instanceId: number): SonarrService | undefined {
-    return this.sonarrServices.get(instanceId)
-  }
-
-  async verifyItemExists(
-    instanceId: number,
-    item: TemptRssWatchlistItem,
-  ): Promise<boolean> {
-    const sonarrService = this.sonarrServices.get(instanceId)
-    if (!sonarrService) {
-      throw new Error(`Sonarr instance ${instanceId} not found`)
-    }
-
-    // Get the instance configuration to check bypassIgnored setting
-    const instance = await this.fastify.db.getSonarrInstance(instanceId)
-    if (!instance) {
-      throw new Error(`Sonarr instance ${instanceId} not found in database`)
-    }
-
-    // Pass the bypassIgnored setting to fetchSeries to bypass exclusions if configured
-    const existingSeries = await sonarrService.fetchSeries(
-      instance.bypassIgnored,
-    )
-    // Use weighting system to find best match (prioritize higher GUID match counts)
-    const potentialMatches = [...existingSeries]
-      .map((series) => ({
-        series,
-        score: getGuidMatchScore(
-          parseGuids(series.guids),
-          parseGuids(item.guids),
-        ),
-      }))
-      .filter((match) => match.score > 0)
-      .sort((a, b) => b.score - a.score)
-
-    return potentialMatches.length > 0
-  }
 
   /**
    * Efficiently check if a series exists using TVDB lookup
@@ -407,15 +405,47 @@ export class SonarrManagerService {
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createSonarrInstance(instance)
-    const sonarrService = new SonarrService(
-      this.log,
-      this.appBaseUrl,
-      this.port,
-      this.fastify,
-    )
-    await sonarrService.initialize({ ...instance, id })
-    this.sonarrServices.set(id, sonarrService)
-    return id
+    let sonarrService: SonarrService | undefined
+    try {
+      sonarrService = new SonarrService(
+        this.baseLog,
+        this.appBaseUrl,
+        this.port,
+        this.fastify,
+      )
+      await sonarrService.initialize({ ...instance, id })
+      this.sonarrServices.set(id, sonarrService)
+      return id
+    } catch (error) {
+      const originalError = error
+      this.log.error(
+        {
+          error,
+          instanceName: instance.name,
+          instanceBaseUrl: instance.baseUrl,
+        },
+        'Failed to initialize new Sonarr instance; rolling back',
+      )
+      if (sonarrService) {
+        try {
+          await sonarrService.removeWebhook()
+        } catch (cleanupErr) {
+          this.log.warn(
+            { error: cleanupErr },
+            `Failed to cleanup webhook for new instance ${id}`,
+          )
+        }
+      }
+      try {
+        await this.fastify.db.deleteSonarrInstance(id)
+      } catch (dbDelErr) {
+        this.log.warn(
+          { error: dbDelErr, id },
+          'Failed to rollback created Sonarr instance record',
+        )
+      }
+      throw originalError
+    }
   }
 
   async removeInstance(id: number): Promise<void> {
@@ -439,44 +469,109 @@ export class SonarrManagerService {
     id: number,
     updates: Partial<SonarrInstance>,
   ): Promise<void> {
-    await this.fastify.db.updateSonarrInstance(id, updates)
-    const instance = await this.fastify.db.getSonarrInstance(id)
-    if (instance) {
-      const sonarrService = new SonarrService(
-        this.log,
-        this.appBaseUrl,
-        this.port,
-        this.fastify,
+    const current = await this.fastify.db.getSonarrInstance(id)
+    if (current) {
+      const candidate = { ...current, ...updates }
+      const oldService = this.sonarrServices.get(id)
+
+      // Only treat changes to the target server endpoint as a "server change"
+      // API key changes on the same server should not trigger webhook removal
+      const serverChanged = !isSameServerEndpoint(
+        current.baseUrl,
+        candidate.baseUrl,
       )
-      try {
-        await sonarrService.initialize(instance)
-        this.sonarrServices.set(id, sonarrService)
-      } catch (initError) {
-        this.log.error(
-          { error: initError },
-          `Failed to initialize Sonarr instance ${id}`,
+
+      // Detect full baseUrl changes including path (needs new service)
+      const baseUrlChanged =
+        normalizeEndpointWithPath(current.baseUrl) !==
+        normalizeEndpointWithPath(candidate.baseUrl)
+
+      // API key transitions
+      const isPlaceholderToReal =
+        current.apiKey === 'placeholder' && candidate.apiKey !== 'placeholder'
+      const apiKeyChanged = current.apiKey !== candidate.apiKey
+      const needsNewService =
+        baseUrlChanged || isPlaceholderToReal || apiKeyChanged
+
+      if (needsNewService) {
+        // Server changed or API key updated - need to create new service and webhooks
+        const sonarrService = new SonarrService(
+          this.baseLog,
+          this.appBaseUrl,
+          this.port,
+          this.fastify,
         )
-        // Initialize failed, possibly due to webhook setup
-        // Extract a meaningful error message
-        let errorMessage = 'Failed to initialize Sonarr instance'
 
-        if (initError instanceof Error) {
-          if (initError.message.includes('Sonarr API error')) {
-            errorMessage = initError.message
-          } else if (initError.message.includes('ECONNREFUSED')) {
-            errorMessage =
-              'Connection refused. Please check if Sonarr is running.'
-          } else if (initError.message.includes('ENOTFOUND')) {
-            errorMessage = 'Server not found. Please check your base URL.'
-          } else if (initError.message.includes('401')) {
-            errorMessage = 'Authentication failed. Please check your API key.'
-          } else {
-            errorMessage = initError.message
+        try {
+          await sonarrService.initialize(candidate)
+          // Only persist after successful init; cleanup on persist failure
+          try {
+            await this.fastify.db.updateSonarrInstance(id, updates)
+          } catch (dbErr) {
+            this.log.error(
+              { error: dbErr, instanceId: id },
+              'Failed to persist Sonarr instance update',
+            )
+            try {
+              await sonarrService.removeWebhook()
+            } catch (_) {
+              // ignore cleanup failure
+            }
+            throw new Error('Failed to persist Sonarr instance update', {
+              cause: dbErr as Error,
+            })
           }
-        }
 
-        throw new Error(errorMessage)
+          // Clean up old webhook from previous server (but not for placeholder transitions)
+          // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
+          const toPlaceholder =
+            current.apiKey !== 'placeholder' &&
+            candidate.apiKey === 'placeholder'
+
+          if (oldService && serverChanged && current.apiKey !== 'placeholder') {
+            try {
+              await oldService.removeWebhook()
+            } catch (cleanupErr) {
+              this.log.warn(
+                { error: cleanupErr },
+                `Failed to cleanup old webhook for previous server of instance ${id}`,
+              )
+            }
+          } else if (oldService && toPlaceholder) {
+            // Remove webhook when transitioning to placeholder credentials
+            try {
+              await oldService.removeWebhook()
+            } catch (cleanupErr) {
+              this.log.warn(
+                { error: cleanupErr },
+                `Failed to cleanup webhook after transitioning ${id} to placeholder credentials`,
+              )
+            }
+          }
+          this.sonarrServices.set(id, sonarrService)
+        } catch (initError) {
+          this.log.error(
+            { error: initError },
+            `Failed to initialize Sonarr instance ${id}`,
+          )
+          throw initError
+        }
+      } else {
+        // Server unchanged - just update configuration, no webhook changes needed
+        await this.fastify.db.updateSonarrInstance(id, updates)
+
+        // Update the existing service configuration if it exists
+        if (oldService) {
+          const updatedInstance = { ...current, ...updates }
+          oldService.updateConfiguration(updatedInstance)
+          this.log.debug(
+            { instanceId: id },
+            'Updated Sonarr instance configuration (no server change)',
+          )
+        }
       }
+    } else {
+      throw new Error(`Sonarr instance ${id} not found`)
     }
   }
 

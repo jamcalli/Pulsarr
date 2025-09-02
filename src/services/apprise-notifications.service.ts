@@ -9,11 +9,18 @@ import type {
   SystemNotification,
 } from '@root/types/discord.types.js'
 import { getPublicContentUrls } from '@root/utils/notification-processor.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class AppriseNotificationService {
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'APPRISE')
+  }
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
     this.log.info('Initializing Apprise notification service')

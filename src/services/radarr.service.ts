@@ -23,7 +23,12 @@ import {
   hasMatchingGuids,
   normalizeGuid,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
+// HTTP timeout constants
+const RADARR_API_TIMEOUT = 15000 // 15 seconds for API operations
+const RADARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
 
 // Custom error class to include HTTP status
 class HttpError extends Error {
@@ -51,9 +56,14 @@ export class RadarrService {
     new Map()
   private tagsCacheExpiry: Map<number, number> = new Map()
   private TAG_CACHE_TTL = 30000 // 30 seconds in milliseconds
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'RADARR')
+  }
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly appBaseUrl: string,
     private readonly port: number,
     private readonly fastify: FastifyInstance,
@@ -121,6 +131,7 @@ export class RadarrService {
     const urlIdentifier = this.radarrConfig.radarrBaseUrl
       .replace(/https?:\/\//, '')
       .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase()
 
     url.searchParams.append('instanceId', urlIdentifier)
 
@@ -151,10 +162,13 @@ export class RadarrService {
           (field) => field.name === 'url',
         )?.value
         if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.info('Pulsarr Radarr webhook exists with correct URL')
+          this.log.debug('Pulsarr Radarr webhook exists with correct URL')
+          this.webhookInitialized = true
           return
         }
-        this.log.info('Pulsarr Radarr webhook URL mismatch, recreating webhook')
+        this.log.debug(
+          'Pulsarr Radarr webhook URL mismatch, recreating webhook',
+        )
         await this.deleteNotification(existingPulsarrWebhook.id)
       }
 
@@ -296,7 +310,7 @@ export class RadarrService {
 
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error({ error }, 'Failed to setup webhook for Radarr:')
+      this.log.error({ error }, 'Failed to setup webhook for Radarr')
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -319,7 +333,7 @@ export class RadarrService {
         this.log.info('Successfully removed Pulsarr webhook for Radarr')
       }
     } catch (error) {
-      this.log.error({ error }, 'Failed to remove webhook for Radarr:')
+      this.log.error({ error }, 'Failed to remove webhook for Radarr')
       throw error
     }
   }
@@ -334,6 +348,7 @@ export class RadarrService {
       headers: {
         'X-Api-Key': config.radarrApiKey,
       },
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
     if (!response.ok) {
       throw new Error(`Radarr API error: ${response.statusText}`)
@@ -377,7 +392,7 @@ export class RadarrService {
         minimumAvailability: instance.minimumAvailability || 'released',
       }
 
-      this.log.info(
+      this.log.debug(
         `Successfully initialized base Radarr service for ${instance.name}`,
       )
 
@@ -402,6 +417,29 @@ export class RadarrService {
       )
       throw error
     }
+  }
+
+  /**
+   * Updates the service configuration without reinitializing webhooks.
+   * Used when only configuration values change (not server/API key).
+   */
+  updateConfiguration(instance: RadarrInstance): void {
+    if (!this.config) {
+      throw new Error('Service not initialized - cannot update configuration')
+    }
+
+    // Update only the configuration values that can change without server changes
+    this.config.radarrQualityProfileId = instance.qualityProfile || null
+    this.config.radarrRootFolder = instance.rootFolder || null
+    this.config.radarrTagIds = instance.tags
+    this.config.searchOnAdd =
+      instance.searchOnAdd !== undefined ? instance.searchOnAdd : true
+    this.config.minimumAvailability = instance.minimumAvailability || 'released'
+
+    // Update instance ID for caching purposes
+    this.instanceId = instance.id
+
+    this.log.debug(`Updated configuration for Radarr instance ${instance.name}`)
   }
 
   private toItem(movie: RadarrMovie): Item {
@@ -521,6 +559,7 @@ export class RadarrService {
             'X-Api-Key': config.radarrApiKey,
             Accept: 'application/json',
           },
+          signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
         })
 
         if (!response.ok) {
@@ -550,7 +589,7 @@ export class RadarrService {
         currentPage++
       } while (allExclusions.length < totalRecords)
 
-      this.log.info(`Fetched all movie ${allExclusions.length} exclusions`)
+      this.log.debug(`Fetched all movie exclusions (${allExclusions.length})`)
       return new Set(allExclusions.map((movie) => this.toItem(movie)))
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching exclusions')
@@ -752,7 +791,6 @@ export class RadarrService {
   }
 
   async deleteFromRadarr(item: Item, deleteFiles: boolean): Promise<void> {
-    const _config = this.radarrConfig
     try {
       const radarrId = extractRadarrId(item.guids)
 
@@ -803,6 +841,7 @@ export class RadarrService {
         'X-Api-Key': config.radarrApiKey,
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -841,6 +880,7 @@ export class RadarrService {
           Accept: 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
       })
 
       // Handle 204 No Content responses
@@ -897,6 +937,7 @@ export class RadarrService {
       headers: {
         'X-Api-Key': config.radarrApiKey,
       },
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -941,7 +982,7 @@ export class RadarrService {
             'X-Api-Key': apiKey,
             Accept: 'application/json',
           },
-          signal: AbortSignal.timeout(10000), // 10 second timeout
+          signal: AbortSignal.timeout(RADARR_CONNECTION_TEST_TIMEOUT),
         })
       } catch (fetchError) {
         if (fetchError instanceof Error) {
@@ -1013,6 +1054,7 @@ export class RadarrService {
               'X-Api-Key': apiKey,
               Accept: 'application/json',
             },
+            signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
           })
 
           if (!response.ok) {
@@ -1424,6 +1466,7 @@ export class RadarrService {
         Accept: 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -1460,6 +1503,7 @@ export class RadarrService {
       headers: {
         'X-Api-Key': config.radarrApiKey,
       },
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
 
     if (!response.ok) {

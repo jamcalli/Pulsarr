@@ -34,7 +34,7 @@ const quotaPlugin: FastifyPluginAsync = async (fastify, _opts) => {
         },
       })
 
-      fastify.log.info(
+      fastify.log.debug(
         'Created quota-maintenance schedule with cron default: daily at 2 AM',
       )
     }
@@ -50,9 +50,9 @@ const quotaPlugin: FastifyPluginAsync = async (fastify, _opts) => {
             return
           }
 
-          fastify.log.info(`Running scheduled job: ${jobName}`)
+          quotaService.logScheduledJob('start', jobName)
           await quotaService.performAllQuotaMaintenance()
-          fastify.log.info(`Completed scheduled job: ${jobName}`)
+          quotaService.logScheduledJob('complete', jobName)
         } catch (error) {
           fastify.log.error(
             { error, jobName, schedule: 'quota-maintenance' },

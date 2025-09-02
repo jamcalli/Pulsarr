@@ -10,7 +10,7 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    fastify.log.info('Initializing content router plugin')
+    fastify.log.debug('Initializing content router plugin')
 
     const routerService = new ContentRouterService(fastify.log, fastify)
 
