@@ -399,6 +399,7 @@ export class SonarrManagerService {
       this.sonarrServices.set(id, sonarrService)
       return id
     } catch (error) {
+      const originalError = error
       this.log.error(
         {
           error,
@@ -417,8 +418,15 @@ export class SonarrManagerService {
           )
         }
       }
-      await this.fastify.db.deleteSonarrInstance(id)
-      throw error
+      try {
+        await this.fastify.db.deleteSonarrInstance(id)
+      } catch (dbDelErr) {
+        this.log.warn(
+          { error: dbDelErr, id },
+          'Failed to rollback created Sonarr instance record',
+        )
+      }
+      throw originalError
     }
   }
 
@@ -455,12 +463,27 @@ export class SonarrManagerService {
         candidate.baseUrl,
       )
 
+      // Detect full baseUrl changes including path (needs new service)
+      const normalizeFull = (url?: string | null) => {
+        if (!url) return ''
+        try {
+          const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(url)
+          const u = hasScheme ? new URL(url) : new URL(`http://${url}`)
+          u.pathname = u.pathname.replace(/\/+$/, '')
+          return `${u.protocol}//${u.host}${u.pathname}`
+        } catch {
+          return String(url).trim().replace(/\/+$/, '').toLowerCase()
+        }
+      }
+      const baseUrlChanged =
+        normalizeFull(current.baseUrl) !== normalizeFull(candidate.baseUrl)
+
       // API key transitions
       const isPlaceholderToReal =
         current.apiKey === 'placeholder' && candidate.apiKey !== 'placeholder'
       const apiKeyChanged = current.apiKey !== candidate.apiKey
       const needsNewService =
-        serverChanged || isPlaceholderToReal || apiKeyChanged
+        baseUrlChanged || isPlaceholderToReal || apiKeyChanged
 
       if (needsNewService) {
         // Server changed or API key updated - need to create new service and webhooks
@@ -489,6 +512,10 @@ export class SonarrManagerService {
 
           // Clean up old webhook from previous server (but not for placeholder transitions)
           // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
+          const toPlaceholder =
+            current.apiKey !== 'placeholder' &&
+            candidate.apiKey === 'placeholder'
+
           if (oldService && serverChanged && current.apiKey !== 'placeholder') {
             try {
               await oldService.removeWebhook()
@@ -496,6 +523,16 @@ export class SonarrManagerService {
               this.log.warn(
                 { error: cleanupErr },
                 `Failed to cleanup old webhook for previous server of instance ${id}`,
+              )
+            }
+          } else if (oldService && toPlaceholder) {
+            // Remove webhook when transitioning to placeholder credentials
+            try {
+              await oldService.removeWebhook()
+            } catch (cleanupErr) {
+              this.log.warn(
+                { error: cleanupErr },
+                `Failed to cleanup webhook after transitioning ${id} to placeholder credentials`,
               )
             }
           }
