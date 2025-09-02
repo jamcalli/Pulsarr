@@ -1214,6 +1214,11 @@ export const toItemsSingle = async (
       : undefined,
   )
 
+  if (!hasValidPlexTokens(config)) {
+    log.error('No valid Plex token configured; cannot fetch metadata')
+    return new Set()
+  }
+
   try {
     const url = new URL(
       `https://discover.provider.plex.tv/library/metadata/${item.id}`,

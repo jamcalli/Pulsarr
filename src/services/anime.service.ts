@@ -57,6 +57,7 @@ export class AnimeService {
         headers: {
           'User-Agent': AnimeService.USER_AGENT,
         },
+        signal: AbortSignal.timeout(15000),
       })
 
       if (!response.ok) {

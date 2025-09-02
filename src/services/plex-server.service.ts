@@ -472,7 +472,8 @@ export class PlexServerService {
             }),
           )
           .filter(
-            (user: { id: string; title: string }) => user.id && user.title,
+            (user: { id: string; title: string; username?: string }) =>
+              !!user.id && (!!user.username || !!user.title),
           ) as PlexUser[]
 
         // Cache the result and return

@@ -87,18 +87,20 @@ async function pingAppriseServer(url: string): Promise<boolean> {
   }
   try {
     const pingUrl = new URL('/', url).toString()
-
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
 
-    const response = await fetch(pingUrl, {
-      method: 'GET',
-      signal: controller.signal,
-    })
-
-    clearTimeout(timeoutId)
-
-    return response.ok
+    try {
+      const response = await fetch(pingUrl, {
+        method: 'GET',
+        signal: controller.signal,
+      })
+      return response.ok
+    } catch (_error) {
+      return false
+    } finally {
+      clearTimeout(timeoutId)
+    }
   } catch (_error) {
     return false
   }

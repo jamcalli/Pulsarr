@@ -370,8 +370,8 @@ export class ApprovalService {
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {
               this.log.error(
-                `Failed to route to Sonarr instance ${targetInstanceId}:`,
-                error,
+                { error, instanceId: targetInstanceId },
+                'Failed to route to Sonarr instance',
               )
               routingResults.failed.push({
                 instanceId: targetInstanceId,
