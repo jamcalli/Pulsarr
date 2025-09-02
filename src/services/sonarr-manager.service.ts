@@ -169,12 +169,17 @@ export class SonarrManagerService {
     })
 
     const results = await Promise.allSettled(tasks)
-    for (const r of results) {
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]
       if (r.status === 'fulfilled') {
         allSeries.push(...r.value)
       } else {
         this.log.error(
-          { error: r.reason },
+          {
+            error: r.reason,
+            instanceId: instances[i]?.id,
+            instanceName: instances[i]?.name,
+          },
           'Error fetching series from Sonarr instance',
         )
       }
