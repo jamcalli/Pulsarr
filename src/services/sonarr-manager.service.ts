@@ -453,11 +453,14 @@ export class SonarrManagerService {
         candidate.baseUrl,
       )
 
-      // Check if this is transitioning from placeholder API key to real API key
+      // API key transitions
       const isPlaceholderToReal =
         current.apiKey === 'placeholder' && candidate.apiKey !== 'placeholder'
+      const apiKeyChanged = current.apiKey !== candidate.apiKey
+      const needsNewService =
+        serverChanged || isPlaceholderToReal || apiKeyChanged
 
-      if (serverChanged || isPlaceholderToReal) {
+      if (needsNewService) {
         // Server changed or placeholder API key updated - need to create new service and webhooks
         const sonarrService = new SonarrService(
           this.baseLog,

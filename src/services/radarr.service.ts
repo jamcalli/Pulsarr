@@ -158,6 +158,7 @@ export class RadarrService {
         )?.value
         if (currentWebhookUrl === expectedWebhookUrl) {
           this.log.debug('Pulsarr Radarr webhook exists with correct URL')
+          this.webhookInitialized = true
           return
         }
         this.log.debug(
@@ -581,7 +582,7 @@ export class RadarrService {
         currentPage++
       } while (allExclusions.length < totalRecords)
 
-      this.log.debug(`Fetched all movie ${allExclusions.length} exclusions`)
+      this.log.debug(`Fetched all movie exclusions (${allExclusions.length})`)
       return new Set(allExclusions.map((movie) => this.toItem(movie)))
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching exclusions')
