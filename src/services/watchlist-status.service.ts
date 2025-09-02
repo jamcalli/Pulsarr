@@ -1198,7 +1198,8 @@ export class StatusService {
       return false
     } catch (error) {
       this.log.error(
-        `Error copying movie ${item.title} to instance ${instanceId}: ${error}`,
+        { error, instanceId, title: item.title },
+        'Error copying movie to instance',
       )
       return false
     }
@@ -1539,7 +1540,8 @@ export class StatusService {
       return false
     } catch (error) {
       this.log.error(
-        `Error copying show ${item.title} to instance ${instanceId}: ${error}`,
+        { error, instanceId, title: item.title },
+        'Error copying show to instance',
       )
       return false
     }

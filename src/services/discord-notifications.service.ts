@@ -737,6 +737,7 @@ export class DiscordNotificationService {
       const response = await fetch(url, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       })
 
       if (!response.ok) {
