@@ -1477,7 +1477,7 @@ export class StatusService {
       )
       return itemsCopied
     } catch (error) {
-      this.log.error(`Error syncing Sonarr instance ${instanceId}: ${error}`)
+      this.log.error({ error, instanceId }, 'Error syncing Sonarr instance')
       throw error
     }
   }

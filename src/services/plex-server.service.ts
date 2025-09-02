@@ -1303,7 +1303,7 @@ export class PlexServerService {
         guids: extractedGuids,
       }
     } catch (error) {
-      this.log.error(`Error getting metadata for item: ${error}`)
+      this.log.error({ error }, 'Error getting metadata for item')
       return null
     }
   }

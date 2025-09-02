@@ -26,16 +26,22 @@ export default fp(
     // that will emit status events after state changes
     const originalStartBot = discord.startBot
     discord.startBot = async function (...args) {
-      const result = await originalStartBot.apply(this, args)
-      emitDiscordStatus(fastify)
-      return result
+      try {
+        const result = await originalStartBot.apply(this, args)
+        return result
+      } finally {
+        emitDiscordStatus(fastify)
+      }
     }
 
     const originalStopBot = discord.stopBot
     discord.stopBot = async function (...args) {
-      const result = await originalStopBot.apply(this, args)
-      emitDiscordStatus(fastify)
-      return result
+      try {
+        const result = await originalStopBot.apply(this, args)
+        return result
+      } finally {
+        emitDiscordStatus(fastify)
+      }
     }
 
     fastify.decorate('discord', discord)

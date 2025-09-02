@@ -90,9 +90,11 @@ export class DiscordNotificationService {
 
     const missing = required.filter((key) => !this.config[key])
     if (missing.length > 0) {
-      const error = `Missing required Discord bot config: ${missing.join(', ')}`
-      this.log.error(error)
-      throw new Error(error)
+      const error = new Error(
+        `Missing required Discord bot config: ${missing.join(', ')}`,
+      )
+      this.log.error({ error }, 'Missing required Discord bot config')
+      throw error
     }
 
     return {

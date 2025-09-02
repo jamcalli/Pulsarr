@@ -12,6 +12,9 @@ import type { ProgressService } from '@root/types/progress.types.js'
 import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 
+// Network timeout constants
+const PLEX_API_TIMEOUT_MS = 5000 // 5 seconds for Plex API calls
+
 // Custom error interface for rate limit errors
 interface RateLimitError extends Error {
   isRateLimitExhausted: boolean
@@ -246,6 +249,7 @@ export const pingPlex = async (
       headers: {
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -258,7 +262,7 @@ export const pingPlex = async (
     log.info('Successfully validated Plex token')
     return true
   } catch (err) {
-    log.error(`Failed to validate Plex token: ${err}`)
+    log.error({ error: err }, 'Failed to validate Plex token')
     return false
   }
 }
@@ -297,6 +301,7 @@ export const getWatchlist = async (
         Accept: 'application/json',
         'X-Plex-Token': token,
       },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     const contentType = response.headers.get('Content-Type')
@@ -372,7 +377,7 @@ export const getWatchlist = async (
         `Rate limit exceeded: Maximum retries (${retryCount}) reached when fetching watchlist`,
       ) as RateLimitError
       rateLimitError.isRateLimitExhausted = true
-      log.error(`Error in getWatchlist: ${rateLimitError.message}`)
+      log.error({ error: rateLimitError }, 'Error in getWatchlist')
       throw rateLimitError
     }
 
@@ -396,6 +401,10 @@ export const fetchSelfWatchlist = async (
   }
 
   for (const token of config.plexTokens) {
+    // Skip falsy tokens to prevent predictable API failures
+    if (!token) {
+      continue
+    }
     let currentStart = 0
 
     try {
@@ -459,7 +468,7 @@ export const fetchSelfWatchlist = async (
         }
       }
     } catch (err) {
-      log.error(`Error fetching watchlist for token: ${err}`)
+      log.error({ error: err }, 'Error fetching watchlist for token')
 
       // If we have the database function, try to get existing items
       if (getAllWatchlistItemsForUser) {
@@ -532,6 +541,10 @@ export const getFriends = async (
   const allFriends = new Set<[Friend, string]>()
 
   for (const token of config.plexTokens) {
+    // Skip falsy tokens to prevent predictable API failures
+    if (!token) {
+      continue
+    }
     const url = new URL('https://community.plex.tv/api')
     const query: GraphQLQuery = {
       query: `query GetAllFriends {
@@ -553,6 +566,7 @@ export const getFriends = async (
           'X-Plex-Token': token,
         },
         body: JSON.stringify(query),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })
 
       if (!response.ok) {
@@ -645,6 +659,7 @@ export const getWatchlistForUser = async (
         'X-Plex-Token': token,
       },
       body: JSON.stringify(query),
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -1229,7 +1244,7 @@ export const toItemsSingle = async (
         Accept: 'application/json',
         'X-Plex-Token': config.plexTokens[0],
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     // Handle rate limiting specifically
@@ -1441,6 +1456,7 @@ export const getRssFromPlexToken = async (
         'X-Plex-Token': token,
       },
       body,
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -1479,6 +1495,7 @@ export const fetchWatchlistFromRss = async (
       headers: {
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -1554,7 +1571,7 @@ export async function fetchPlexAvatar(
         'X-Plex-Token': token,
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {
