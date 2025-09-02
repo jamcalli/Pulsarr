@@ -38,6 +38,7 @@ export default fp(
       return result
     }
 
+    fastify.decorate('discord', discord)
     emitDiscordStatus(fastify)
 
     const statusInterval = setInterval(() => {
@@ -49,8 +50,6 @@ export default fp(
     fastify.addHook('onClose', () => {
       clearInterval(statusInterval)
     })
-
-    fastify.decorate('discord', discord)
 
     // Move bot auto-start to onReady hook
     fastify.addHook('onReady', async () => {
@@ -84,7 +83,7 @@ export default fp(
   },
   {
     name: 'discord-notification-service',
-    dependencies: ['database', 'progress'],
+    dependencies: ['config', 'database', 'progress'],
   },
 )
 

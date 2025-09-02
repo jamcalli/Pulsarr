@@ -148,6 +148,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
         fastify.log.debug(dedupPayload, 'Webhook passed deduplication')
 
+        // Provide immediate user feedback that webhook was received
+        fastify.log.info(
+          {
+            instanceName: body.instanceName,
+            eventType: 'eventType' in body ? body.eventType : 'unknown',
+            contentTitle,
+            reqId: request.id,
+          },
+          'Webhook received and processing',
+        )
+
         if ('movie' in body) {
           const tmdbGuid = `tmdb:${body.movie.tmdbId}`
           const matchingItems =
@@ -155,6 +166,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
           // If no matching items, queue webhook for later processing
           if (matchingItems.length === 0) {
+            fastify.log.info(
+              {
+                title: body.movie.title,
+                tmdbId: body.movie.tmdbId,
+                instanceName: instance?.name ?? body.instanceName,
+              },
+              'Movie not in watchlist yet, queuing webhook for later processing',
+            )
             await queuePendingWebhook(fastify, {
               instanceType: 'radarr',
               instanceId: instance?.id ?? null,

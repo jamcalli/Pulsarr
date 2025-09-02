@@ -483,7 +483,9 @@ export class PlexLabelSyncService {
         for (const sonarrData of sonarrSeries) {
           if (
             sonarrData.rootFolder &&
-            plexLocation.startsWith(sonarrData.rootFolder)
+            normalizePath(plexLocation).startsWith(
+              normalizePath(sonarrData.rootFolder),
+            )
           ) {
             this.log.debug('Found root folder match', {
               plexTitle: plexItem.title,
@@ -506,13 +508,6 @@ export class PlexLabelSyncService {
       // Try to match by exact folder path
       if (plexLocation) {
         for (const sonarrData of sonarrSeries) {
-          // Normalize paths for cross-platform compatibility
-          const isWindows = process.platform === 'win32'
-          const normalizePath = (p: string) =>
-            isWindows
-              ? require('node:path').normalize(p).toLowerCase()
-              : require('node:path').posix.normalize(p)
-
           if (
             normalizePath(plexLocation) ===
             normalizePath(sonarrData.series.path || '')
@@ -538,20 +533,14 @@ export class PlexLabelSyncService {
       // Try to match by folder name
       if (plexLocation) {
         for (const sonarrData of sonarrSeries) {
-          const sonarrFolderName = getPathBasename(sonarrData.series.path || '')
-          // Normalize paths for cross-platform compatibility
-          const isWindows = process.platform === 'win32'
-          const normalizePath = (p: string) =>
-            isWindows
-              ? require('node:path').normalize(p).toLowerCase()
-              : require('node:path').posix.normalize(p)
+          const sonarrFolderName = getPathBasename(
+            sonarrData.series.path || '',
+          ).toLowerCase()
+          const plexFolderName = getPathBasename(
+            normalizePath(plexLocation),
+          ).toLowerCase()
 
-          if (
-            sonarrFolderName &&
-            normalizePath(plexLocation).includes(
-              normalizePath(sonarrFolderName),
-            )
-          ) {
+          if (sonarrFolderName && plexFolderName === sonarrFolderName) {
             this.log.debug('Found folder name match', {
               plexTitle: plexItem.title,
               sonarrTitle: sonarrData.series.title,
