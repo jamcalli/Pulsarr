@@ -128,10 +128,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           instanceName: instance?.name ?? body.instanceName,
           eventType: 'eventType' in body ? body.eventType : 'unknown',
           contentTitle,
-          instanceId: instance?.id ?? instanceId ?? null,
+          instanceDbId: instance?.id ?? null,
+          instanceIdentifier: instanceId ?? null,
         }
         fastify.log.debug(dedupPayload, 'Webhook passed deduplication')
-        fastify.log.debug(dedupPayload, 'Webhook deduplication details')
 
         if ('movie' in body) {
           const tmdbGuid = `tmdb:${body.movie.tmdbId}`
@@ -224,7 +224,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           const seasonNumber = body.episodes[0].seasonNumber
           const episodeNumber = body.episodes[0].episodeNumber
 
-          fastify.log.info(
+          fastify.log.debug(
             {
               webhook: 'sonarr',
               tvdbId,
@@ -465,6 +465,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   tvdbId,
                   seasonNumber,
                   instanceName: instance?.name ?? body.instanceName,
+                  series: body.series.title,
                 },
                 'Non-recent episodes queue details',
               )
