@@ -144,12 +144,17 @@ export class RadarrManagerService {
     })
 
     const results = await Promise.allSettled(tasks)
-    for (const r of results) {
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]
       if (r.status === 'fulfilled') {
         allMovies.push(...r.value)
       } else {
         this.log.error(
-          { error: r.reason },
+          {
+            error: r.reason,
+            instanceId: instances[i]?.id,
+            instanceName: instances[i]?.name,
+          },
           'Error fetching movies from Radarr instance',
         )
       }
