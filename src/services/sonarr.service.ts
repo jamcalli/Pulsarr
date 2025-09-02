@@ -367,6 +367,32 @@ export class SonarrService {
     }
   }
 
+  /**
+   * Updates the service configuration without reinitializing webhooks.
+   * Used when only configuration values change (not server/API key).
+   */
+  updateConfiguration(instance: SonarrInstance): void {
+    if (!this.config) {
+      throw new Error('Service not initialized - cannot update configuration')
+    }
+
+    // Update only the configuration values that can change without server changes
+    this.config.sonarrQualityProfileId = instance.qualityProfile || null
+    this.config.sonarrRootFolder = instance.rootFolder || null
+    this.config.sonarrTagIds = instance.tags
+    this.config.sonarrSeasonMonitoring = instance.seasonMonitoring
+    this.config.sonarrMonitorNewItems = instance.monitorNewItems || 'all'
+    this.config.sonarrSeriesType = instance.seriesType || 'standard'
+    this.config.createSeasonFolders = instance.createSeasonFolders
+    this.config.searchOnAdd =
+      instance.searchOnAdd !== undefined ? instance.searchOnAdd : true
+
+    // Update instance ID for caching purposes
+    this.instanceId = instance.id
+
+    this.log.debug(`Updated configuration for Sonarr instance ${instance.name}`)
+  }
+
   async testConnection(
     baseUrl: string,
     apiKey: string,

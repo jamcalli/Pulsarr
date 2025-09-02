@@ -412,6 +412,29 @@ export class RadarrService {
     }
   }
 
+  /**
+   * Updates the service configuration without reinitializing webhooks.
+   * Used when only configuration values change (not server/API key).
+   */
+  updateConfiguration(instance: RadarrInstance): void {
+    if (!this.config) {
+      throw new Error('Service not initialized - cannot update configuration')
+    }
+
+    // Update only the configuration values that can change without server changes
+    this.config.radarrQualityProfileId = instance.qualityProfile || null
+    this.config.radarrRootFolder = instance.rootFolder || null
+    this.config.radarrTagIds = instance.tags
+    this.config.searchOnAdd =
+      instance.searchOnAdd !== undefined ? instance.searchOnAdd : true
+    this.config.minimumAvailability = instance.minimumAvailability || 'released'
+
+    // Update instance ID for caching purposes
+    this.instanceId = instance.id
+
+    this.log.debug(`Updated configuration for Radarr instance ${instance.name}`)
+  }
+
   private toItem(movie: RadarrMovie): Item {
     return {
       title: movie.title,

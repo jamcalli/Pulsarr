@@ -204,10 +204,10 @@ export class RadarrManagerService {
       }
       const qpSource = qualityProfile ?? instance.qualityProfile
       const targetQualityProfileId =
-        qpSource !== null ? toNum(qpSource) : undefined
+        qpSource == null ? undefined : toNum(qpSource)
 
       // Use provided tags or instance default tags
-      const targetTags = [...(tags ?? instance.tags ?? [])]
+      const targetTags = [...new Set(tags ?? instance.tags ?? [])]
 
       // Handle search on add option (use provided value or instance default)
       const targetSearchOnAdd = searchOnAdd ?? instance.searchOnAdd ?? true // Default to true for backward compatibility
@@ -461,7 +461,8 @@ export class RadarrManagerService {
 
         // Update the existing service configuration if it exists
         if (oldService) {
-          // The service will pick up new config from database on next operation
+          const updatedInstance = { ...current, ...updates }
+          oldService.updateConfiguration(updatedInstance)
           this.log.debug(
             { instanceId: id },
             'Updated Radarr instance configuration (no server change)',
