@@ -32,11 +32,12 @@ export function isEpisodeAlreadyQueued(
 }
 
 /**
- * Queues a pending webhook in the database when no matching media items are found.
+ * Persistently records a webhook for later handling when no matching media item is found.
  *
- * Stores the webhook with an expiration time for later processing, ensuring that duplicate webhook resends are avoided even if database insertion fails.
+ * Computes an expiration timestamp using fastify.pendingWebhooks.config.maxAge (minutes) and falls back to 10 minutes if the configured value is invalid or non-positive. Attempts to insert a pending webhook record into the database containing the provided metadata and payload. Database insertion errors are logged but intentionally swallowed so the caller does not retry and cause duplicate webhook deliveries.
  *
- * @param data - Metadata and payload for the webhook to be queued.
+ * @param data - Webhook metadata and payload to store (instanceType, instanceId, guid, title, mediaType, payload)
+ * @returns A promise that resolves when the queue attempt (successful or logged failure) completes.
  */
 export async function queuePendingWebhook(
   fastify: FastifyInstance,
@@ -248,12 +249,15 @@ export async function checkForUpgrade(
 }
 
 /**
- * Processes and dispatches all queued webhook notifications for a specific TV show season.
+ * Process and dispatch all queued webhooks for a given TV show season.
  *
- * Validates the queue for the given TVDB ID and season, determines if notifications should be sent based on episode recency and prior notification status, and dispatches notifications using a centralized processor. If no watchlist matches are found, queues the webhook as pending for future processing. Cleans up the queue after processing.
+ * Determines whether queued episodes for the given TVDB show/season should trigger notifications
+ * (based on recency and prior notification state), invokes the centralized notification processor,
+ * and if no watchlist matches are found, enqueues a pending webhook for later processing. Cleans up
+ * the in-memory queue for the season (and removes the show entry when empty).
  *
- * @param tvdbId - The TVDB ID of the show.
- * @param seasonNumber - The season number to process.
+ * @param tvdbId - TVDB identifier for the show.
+ * @param seasonNumber - Season number to process.
  */
 export async function processQueuedWebhooks(
   tvdbId: string,
