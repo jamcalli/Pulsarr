@@ -457,7 +457,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             )
 
             if (nonRecentEpisodes.length > 0) {
-              fastify.log.info(
+              fastify.log.debug(
                 {
                   count: nonRecentEpisodes.length,
                   tvdbId,
@@ -576,7 +576,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     justAdded: newEpisodes.length,
                     duplicatesSkipped:
                       nonRecentEpisodes.length - newEpisodes.length,
-                    series: webhookQueue[tvdbId].title,
+                    series: webhookQueue[tvdbId]?.title ?? body.series.title,
                   },
                   'Added episodes to queue',
                 )

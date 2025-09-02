@@ -694,7 +694,7 @@ export class SonarrService {
         currentPage++
       } while (allExclusions.length < totalRecords)
 
-      this.log.debug(`Fetched all show ${allExclusions.length} exclusions`)
+      this.log.debug(`Fetched all exclusions (${allExclusions.length} shows)`)
       return new Set(allExclusions.map((show) => this.toItem(show)))
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching exclusions')
@@ -914,6 +914,9 @@ export class SonarrService {
         'series',
         show,
       )
+      if (!createdSeries || typeof createdSeries.id !== 'number') {
+        throw new Error('Unexpected Sonarr response when creating series')
+      }
       this.log.info(
         `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'}, Series Type: ${seriesType})`,
       )
