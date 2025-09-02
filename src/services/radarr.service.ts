@@ -127,6 +127,7 @@ export class RadarrService {
     const urlIdentifier = this.radarrConfig.radarrBaseUrl
       .replace(/https?:\/\//, '')
       .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase()
 
     url.searchParams.append('instanceId', urlIdentifier)
 
@@ -305,7 +306,7 @@ export class RadarrService {
 
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error({ error }, 'Failed to setup webhook for Radarr:')
+      this.log.error({ error }, 'Failed to setup webhook for Radarr')
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -328,7 +329,7 @@ export class RadarrService {
         this.log.info('Successfully removed Pulsarr webhook for Radarr')
       }
     } catch (error) {
-      this.log.error({ error }, 'Failed to remove webhook for Radarr:')
+      this.log.error({ error }, 'Failed to remove webhook for Radarr')
       throw error
     }
   }
@@ -343,6 +344,7 @@ export class RadarrService {
       headers: {
         'X-Api-Key': config.radarrApiKey,
       },
+      signal: AbortSignal.timeout(15000),
     })
     if (!response.ok) {
       throw new Error(`Radarr API error: ${response.statusText}`)
@@ -553,6 +555,7 @@ export class RadarrService {
             'X-Api-Key': config.radarrApiKey,
             Accept: 'application/json',
           },
+          signal: AbortSignal.timeout(15000),
         })
 
         if (!response.ok) {
@@ -784,7 +787,6 @@ export class RadarrService {
   }
 
   async deleteFromRadarr(item: Item, deleteFiles: boolean): Promise<void> {
-    const _config = this.radarrConfig
     try {
       const radarrId = extractRadarrId(item.guids)
 
@@ -835,6 +837,7 @@ export class RadarrService {
         'X-Api-Key': config.radarrApiKey,
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!response.ok) {
@@ -873,6 +876,7 @@ export class RadarrService {
           Accept: 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000),
       })
 
       // Handle 204 No Content responses
@@ -929,6 +933,7 @@ export class RadarrService {
       headers: {
         'X-Api-Key': config.radarrApiKey,
       },
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!response.ok) {
@@ -1045,6 +1050,7 @@ export class RadarrService {
               'X-Api-Key': apiKey,
               Accept: 'application/json',
             },
+            signal: AbortSignal.timeout(15000),
           })
 
           if (!response.ok) {
@@ -1456,6 +1462,7 @@ export class RadarrService {
         Accept: 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!response.ok) {
@@ -1492,6 +1499,7 @@ export class RadarrService {
       headers: {
         'X-Api-Key': config.radarrApiKey,
       },
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!response.ok) {

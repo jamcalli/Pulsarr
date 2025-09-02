@@ -415,7 +415,7 @@ export class RadarrManagerService {
         serverChanged || isPlaceholderToReal || apiKeyChanged
 
       if (needsNewService) {
-        // Server changed or placeholder API key updated - need to create new service and webhooks
+        // Server changed or API key updated - need to create new service and webhooks
         const radarrService = new RadarrService(
           this.baseLog,
           this.appBaseUrl,
