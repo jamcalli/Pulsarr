@@ -1,4 +1,3 @@
-import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type {
@@ -7,7 +6,6 @@ import type {
   SonarrItem,
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
-import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import {
   delayWithBackoffAndJitter,
@@ -372,40 +370,6 @@ export class SonarrManagerService {
    * @param instanceId The ID of the Sonarr instance
    * @returns The SonarrService instance or undefined if not found
    */
-
-  async verifyItemExists(
-    instanceId: number,
-    item: TemptRssWatchlistItem,
-  ): Promise<boolean> {
-    const sonarrService = this.sonarrServices.get(instanceId)
-    if (!sonarrService) {
-      throw new Error(`Sonarr instance ${instanceId} not found`)
-    }
-
-    // Get the instance configuration to check bypassIgnored setting
-    const instance = await this.fastify.db.getSonarrInstance(instanceId)
-    if (!instance) {
-      throw new Error(`Sonarr instance ${instanceId} not found in database`)
-    }
-
-    // Pass the bypassIgnored setting to fetchSeries to bypass exclusions if configured
-    const existingSeries = await sonarrService.fetchSeries(
-      instance.bypassIgnored,
-    )
-    // Use weighting system to find best match (prioritize higher GUID match counts)
-    const potentialMatches = [...existingSeries]
-      .map((series) => ({
-        series,
-        score: getGuidMatchScore(
-          parseGuids(series.guids),
-          parseGuids(item.guids),
-        ),
-      }))
-      .filter((match) => match.score > 0)
-      .sort((a, b) => b.score - a.score)
-
-    return potentialMatches.length > 0
-  }
 
   /**
    * Efficiently check if a series exists using TVDB lookup
