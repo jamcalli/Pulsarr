@@ -237,8 +237,10 @@ export class SonarrManagerService {
       if (isRollingMonitoring) {
         try {
           // Extract TVDB ID
-          const tvdbGuid = sonarrItem.guids.find((g) => g.startsWith('tvdb:'))
-          const tvdbId = tvdbGuid ? tvdbGuid.replace('tvdb:', '') : undefined
+          const tvdbGuid = sonarrItem.guids.find((g) =>
+            g.toLowerCase().startsWith('tvdb:'),
+          )
+          const tvdbId = tvdbGuid ? tvdbGuid.replace(/^tvdb:/i, '') : undefined
 
           // Create rolling monitoring entry
           const plexSessionMonitor = this.fastify.plexSessionMonitor
@@ -461,7 +463,7 @@ export class SonarrManagerService {
         serverChanged || isPlaceholderToReal || apiKeyChanged
 
       if (needsNewService) {
-        // Server changed or placeholder API key updated - need to create new service and webhooks
+        // Server changed or API key updated - need to create new service and webhooks
         const sonarrService = new SonarrService(
           this.baseLog,
           this.appBaseUrl,

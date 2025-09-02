@@ -128,6 +128,7 @@ export class SonarrService {
     const urlIdentifier = this.sonarrConfig.sonarrBaseUrl
       .replace(/https?:\/\//, '')
       .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase()
 
     url.searchParams.append('instanceId', urlIdentifier)
 
@@ -261,7 +262,7 @@ export class SonarrService {
       }
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error({ error }, 'Failed to setup webhook for Sonarr:')
+      this.log.error({ error }, 'Failed to setup webhook for Sonarr')
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -285,7 +286,7 @@ export class SonarrService {
         this.log.info('Successfully removed Pulsarr webhook for Sonarr')
       }
     } catch (error) {
-      this.log.error({ error }, 'Failed to remove webhook for Sonarr:')
+      this.log.error({ error }, 'Failed to remove webhook for Sonarr')
       throw error
     }
   }
@@ -502,6 +503,7 @@ export class SonarrService {
               'X-Api-Key': apiKey,
               Accept: 'application/json',
             },
+            signal: AbortSignal.timeout(15000),
           })
 
           if (!response.ok) {
@@ -675,6 +677,7 @@ export class SonarrService {
             'X-Api-Key': config.sonarrApiKey,
             Accept: 'application/json',
           },
+          signal: AbortSignal.timeout(15000),
         })
 
         if (!response.ok) {
@@ -925,7 +928,6 @@ export class SonarrService {
   }
 
   async deleteFromSonarr(item: Item, deleteFiles: boolean): Promise<void> {
-    const _config = this.sonarrConfig
     try {
       const sonarrId = extractSonarrId(item.guids)
 
@@ -976,6 +978,7 @@ export class SonarrService {
         'X-Api-Key': config.sonarrApiKey,
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!response.ok) {
@@ -1014,6 +1017,7 @@ export class SonarrService {
           Accept: 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000),
       })
 
       // Handle 204 No Content responses
@@ -1414,6 +1418,7 @@ export class SonarrService {
         Accept: 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!response.ok) {
@@ -1449,6 +1454,7 @@ export class SonarrService {
       headers: {
         'X-Api-Key': config.sonarrApiKey,
       },
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!response.ok) {

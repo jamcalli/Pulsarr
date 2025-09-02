@@ -121,6 +121,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             : 'series' in body
               ? body.series.title
               : 'unknown'
+        const contentId =
+          'movie' in body
+            ? body.movie.tmdbId
+            : 'series' in body
+              ? body.series.tvdbId
+              : null
         const webhookType =
           'movie' in body ? 'radarr' : 'series' in body ? 'sonarr' : 'unknown'
         const dedupPayload = {
@@ -128,6 +134,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           instanceName: instance?.name ?? body.instanceName,
           eventType: 'eventType' in body ? body.eventType : 'unknown',
           contentTitle,
+          contentId,
           instanceDbId: instance?.id ?? null,
           instanceIdentifier: instanceId ?? null,
         }
@@ -232,6 +239,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               series: body.series.title,
               seasonNumber,
               episodeNumber,
+              eventType: body.eventType,
             },
             'Received Sonarr webhook',
           )
