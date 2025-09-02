@@ -537,9 +537,13 @@ export class DiscordNotificationService {
 
         // Add overview if available
         if (episodeDetails.overview) {
+          const overview =
+            episodeDetails.overview.length > 1024
+              ? `${episodeDetails.overview.slice(0, 1021)}...`
+              : episodeDetails.overview
           fields.push({
             name: 'Overview',
-            value: episodeDetails.overview,
+            value: overview,
             inline: false,
           })
         }
