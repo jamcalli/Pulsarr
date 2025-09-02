@@ -179,9 +179,6 @@ export class StatusService {
             // If item is notified but Sonarr shows it should be grabbed,
             // we need to backfill the missing grabbed status in history
             if (sonarrMatch.status === 'grabbed') {
-              this.log.debug(
-                `Backfilling missing 'grabbed' status for notified show ${item.title} [${item.key}]`,
-              )
               // Add the grabbed status to history with the correct timestamp
               try {
                 if (item.id !== undefined && sonarrMatch.added) {
@@ -257,9 +254,6 @@ export class StatusService {
             // If item is notified but Radarr shows it should be grabbed,
             // we need to backfill the missing grabbed status in history
             if (radarrMatch.status === 'grabbed') {
-              this.log.debug(
-                `Backfilling missing 'grabbed' status for notified movie ${item.title} [${item.key}]`,
-              )
               // Add the grabbed status to history with the correct timestamp
               try {
                 if (item.id !== undefined && radarrMatch.added) {
