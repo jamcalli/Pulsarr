@@ -576,7 +576,10 @@ export class DiscordNotificationService {
     }
 
     const embed: DiscordEmbed = {
-      title: notification.title,
+      title:
+        notification.title.length > 256
+          ? `${notification.title.slice(0, 253)}...`
+          : notification.title,
       description,
       color: this.COLOR,
       timestamp: new Date().toISOString(),
@@ -676,7 +679,10 @@ export class DiscordNotificationService {
       notification.type.charAt(0).toUpperCase() + notification.type.slice(1)
 
     const embed: DiscordEmbed = {
-      title: notification.title,
+      title:
+        notification.title.length > 256
+          ? `${notification.title.slice(0, 253)}...`
+          : notification.title,
       description: `${emoji} New ${mediaType} Added`,
       color: this.COLOR,
       timestamp: new Date().toISOString(),
@@ -807,7 +813,10 @@ export class DiscordNotificationService {
           notification.safetyTriggered === true
 
         embed = {
-          title: notification.title,
+          title:
+            notification.title.length > 256
+              ? `${notification.title.slice(0, 253)}...`
+              : notification.title,
           description: 'System notification',
           // Use red for any safety issues, green otherwise
           color:
