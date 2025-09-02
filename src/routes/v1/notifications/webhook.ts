@@ -467,16 +467,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 },
                 'Adding non-recent episodes to queue',
               )
-              fastify.log.debug(
-                {
-                  count: nonRecentEpisodes.length,
-                  tvdbId,
-                  seasonNumber,
-                  instanceName: instance?.name ?? body.instanceName,
-                  series: body.series.title,
-                },
-                'Non-recent episodes queue details',
-              )
 
               if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
                 fastify.log.debug(
