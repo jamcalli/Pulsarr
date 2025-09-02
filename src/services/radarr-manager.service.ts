@@ -87,7 +87,7 @@ export class RadarrManagerService {
           )
 
           // Use bounded backoff with jitter for retry
-          await delayWithBackoffAndJitter(0, 500, 2000)
+          await delayWithBackoffAndJitter(1, 500, 2000)
           try {
             const radarrService = new RadarrService(
               this.baseLog,
@@ -473,7 +473,15 @@ export class RadarrManagerService {
         }
       } else {
         // Server unchanged - just update configuration, no webhook changes needed
-        await this.fastify.db.updateRadarrInstance(id, updates)
+        try {
+          await this.fastify.db.updateRadarrInstance(id, updates)
+        } catch (dbErr) {
+          this.log.error(
+            { error: dbErr, instanceId: id },
+            'Failed to persist Radarr instance update (no server change)',
+          )
+          throw dbErr
+        }
 
         // Update the existing service configuration if it exists
         if (oldService) {
