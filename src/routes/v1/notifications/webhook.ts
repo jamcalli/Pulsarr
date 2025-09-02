@@ -129,14 +129,22 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               : null
         const webhookType =
           'movie' in body ? 'radarr' : 'series' in body ? 'sonarr' : 'unknown'
+        const contentGuid =
+          'movie' in body
+            ? `tmdb:${body.movie.tmdbId}`
+            : 'series' in body
+              ? `tvdb:${body.series.tvdbId}`
+              : null
         const dedupPayload = {
           webhook: webhookType,
           instanceName: instance?.name ?? body.instanceName,
           eventType: 'eventType' in body ? body.eventType : 'unknown',
           contentTitle,
           contentId,
+          contentGuid,
           instanceDbId: instance?.id ?? null,
           instanceIdentifier: instanceId ?? null,
+          reqId: request.id,
         }
         fastify.log.debug(dedupPayload, 'Webhook passed deduplication')
 
@@ -240,6 +248,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               seasonNumber,
               episodeNumber,
               eventType: body.eventType,
+              reqId: request.id,
             },
             'Received Sonarr webhook',
           )
@@ -255,6 +264,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               isUpgrade: body.isUpgrade === true,
               episodeCount: body.episodes.length,
               eventType: body.eventType,
+              reqId: request.id,
             },
             'Sonarr webhook details',
           )
@@ -412,6 +422,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   count: recentEpisodes.length,
                   tvdbId,
                   series: body.series.title,
+                  instanceId: instance?.id ?? null,
+                  reqId: request.id,
                 },
                 'Processing recent episodes for immediate notification',
               )
@@ -567,6 +579,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     duplicatesSkipped:
                       nonRecentEpisodes.length - newEpisodes.length,
                     series: webhookQueue[tvdbId]?.title ?? body.series.title,
+                    reqId: request.id,
                   },
                   'Added episodes to queue',
                 )

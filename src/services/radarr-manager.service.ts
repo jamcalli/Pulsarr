@@ -440,7 +440,8 @@ export class RadarrManagerService {
           }
 
           // Clean up old webhook only when server actually changed
-          if (serverChanged && oldService) {
+          // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
+          if (serverChanged && oldService && current.apiKey !== 'placeholder') {
             try {
               await oldService.removeWebhook()
             } catch (cleanupErr) {
