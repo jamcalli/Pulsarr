@@ -510,6 +510,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                         seasonNumber,
                         waitMs: fastify.config.queueWaitTime,
                         queuedCount,
+                        series: webhookQueue[tvdbId]?.title,
                       },
                       'Queue timeout reached, processing webhooks',
                     )
@@ -519,6 +520,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                         seasonNumber,
                         waitMs: fastify.config.queueWaitTime,
                         queuedCount,
+                        series: webhookQueue[tvdbId]?.title,
                       },
                       'Queue timeout details',
                     )
@@ -552,6 +554,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                         seasonNumber,
                         waitMs: fastify.config.queueWaitTime,
                         queuedCount,
+                        series: webhookQueue[tvdbId]?.title,
                       },
                       'Queue timeout reached, processing webhooks',
                     )
@@ -561,6 +564,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                         seasonNumber,
                         waitMs: fastify.config.queueWaitTime,
                         queuedCount,
+                        series: webhookQueue[tvdbId]?.title,
                       },
                       'Queue timeout details',
                     )
