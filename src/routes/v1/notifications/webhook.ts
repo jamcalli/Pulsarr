@@ -224,7 +224,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             {
               title: body.movie.title,
               tmdbId: body.movie.tmdbId,
-              instanceName: instance?.name,
+              instanceName: instance?.name ?? body.instanceName,
             },
             'Processing movie download',
           )
@@ -333,7 +333,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     tvdbId,
                     season: seasonNumber,
                     episode: episodeNumber,
-                    instanceName: instance?.name,
+                    instanceName: instance?.name ?? body.instanceName,
                   },
                   'Processing recent episode download',
                 )
@@ -425,6 +425,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                       episodeCount:
                         webhookQueue[tvdbId].seasons[seasonNumber].episodes
                           .length,
+                      instanceName: instance?.name ?? body.instanceName,
+                      reqId: request.id,
                     },
                     'Added single episode to queue',
                   )

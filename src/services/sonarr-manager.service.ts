@@ -88,7 +88,7 @@ export class SonarrManagerService {
           )
 
           // Use bounded backoff with jitter for retry
-          await delayWithBackoffAndJitter(0, 500, 2000)
+          await delayWithBackoffAndJitter(1, 500, 2000)
           try {
             const sonarrService = new SonarrService(
               this.baseLog,
@@ -322,6 +322,7 @@ export class SonarrManagerService {
       this.log.debug(
         {
           instanceId: targetInstanceId,
+          seriesId: sonarrSeriesId,
           qualityProfileId: targetQualityProfileId ?? 'default',
           tags: targetTags,
           searchOnAdd: targetSearchOnAdd,
