@@ -16,6 +16,7 @@ import {
   notificationsCommand,
 } from '@root/utils/discord-commands/notifications-command.js'
 import { getPublicContentUrls } from '@root/utils/notification-processor.js'
+import { createServiceLogger } from '@utils/logger.js'
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -61,12 +62,17 @@ export class DiscordNotificationService {
   private botClient: Client | null = null
   private botStatus: BotStatus = 'stopped'
   private readonly commands: Map<string, Command> = new Map()
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'DISCORD')
+  }
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log.info('Initializing Discord notification service')
+    this.log.debug('Initializing Discord notification service')
     this.initializeCommands()
   }
 
@@ -84,9 +90,11 @@ export class DiscordNotificationService {
 
     const missing = required.filter((key) => !this.config[key])
     if (missing.length > 0) {
-      const error = `Missing required Discord bot config: ${missing.join(', ')}`
-      this.log.error(error)
-      throw new Error(error)
+      const error = new Error(
+        `Missing required Discord bot config: ${missing.join(', ')}`,
+      )
+      this.log.error({ error }, 'Missing required Discord bot config')
+      throw error
     }
 
     return {
@@ -127,7 +135,7 @@ export class DiscordNotificationService {
         },
       })
 
-      this.log.info('Discord bot commands initialized')
+      this.log.debug('Discord bot commands initialized')
     } catch (error) {
       this.log.error({ error }, 'Failed to initialize bot commands')
       throw error
@@ -135,7 +143,7 @@ export class DiscordNotificationService {
   }
 
   private async registerCommands(): Promise<boolean> {
-    this.log.info('Registering Discord application commands globally')
+    this.log.debug('Registering Discord application commands globally')
     try {
       const config = this.botConfig
       const rest = new REST().setToken(config.token)
@@ -150,7 +158,7 @@ export class DiscordNotificationService {
           Routes.applicationGuildCommands(config.clientId, config.guildId),
           { body: [] },
         )
-        this.log.info('Cleared old guild-specific commands')
+        this.log.debug('Cleared old guild-specific commands')
       } catch (error) {
         this.log.warn(
           { error },
@@ -163,7 +171,7 @@ export class DiscordNotificationService {
         body: commandsData,
       })
 
-      this.log.info('Successfully registered global application commands')
+      this.log.debug('Successfully registered global application commands')
       return true
     } catch (error) {
       this.log.error({ error }, 'Failed to register global commands')
@@ -185,7 +193,7 @@ export class DiscordNotificationService {
       }
 
       this.botStatus = 'starting'
-      this.log.info('Initializing Discord bot client')
+      this.log.debug('Initializing Discord bot client')
 
       this.botClient = new Client({
         intents: [
@@ -356,8 +364,10 @@ export class DiscordNotificationService {
     let webhookUrls: string[]
 
     if (overrideUrls) {
-      // Use provided URLs directly
-      webhookUrls = overrideUrls.filter((url) => url.trim().length > 0)
+      // Use provided URLs directly, deduplicated
+      webhookUrls = [
+        ...new Set(overrideUrls.map((url) => url.trim()).filter(Boolean)),
+      ]
       if (webhookUrls.length === 0) {
         this.log.debug('No valid override webhook URLs provided')
         return false
@@ -529,9 +539,13 @@ export class DiscordNotificationService {
 
         // Add overview if available
         if (episodeDetails.overview) {
+          const overview =
+            episodeDetails.overview.length > 1024
+              ? `${episodeDetails.overview.slice(0, 1021)}...`
+              : episodeDetails.overview
           fields.push({
             name: 'Overview',
-            value: episodeDetails.overview,
+            value: overview,
             inline: false,
           })
         }
@@ -562,7 +576,10 @@ export class DiscordNotificationService {
     }
 
     const embed: DiscordEmbed = {
-      title: notification.title,
+      title:
+        notification.title.length > 256
+          ? `${notification.title.slice(0, 253)}...`
+          : notification.title,
       description,
       color: this.COLOR,
       timestamp: new Date().toISOString(),
@@ -662,7 +679,10 @@ export class DiscordNotificationService {
       notification.type.charAt(0).toUpperCase() + notification.type.slice(1)
 
     const embed: DiscordEmbed = {
-      title: notification.title,
+      title:
+        notification.title.length > 256
+          ? `${notification.title.slice(0, 253)}...`
+          : notification.title,
       description: `${emoji} New ${mediaType} Added`,
       color: this.COLOR,
       timestamp: new Date().toISOString(),
@@ -729,6 +749,7 @@ export class DiscordNotificationService {
       const response = await fetch(url, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       })
 
       if (!response.ok) {
@@ -792,7 +813,10 @@ export class DiscordNotificationService {
           notification.safetyTriggered === true
 
         embed = {
-          title: notification.title,
+          title:
+            notification.title.length > 256
+              ? `${notification.title.slice(0, 253)}...`
+              : notification.title,
           description: 'System notification',
           // Use red for any safety issues, green otherwise
           color:

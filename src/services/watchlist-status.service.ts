@@ -5,11 +5,18 @@ import type {
   WatchlistInstanceStatus,
 } from '@root/types/watchlist-status.types.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class StatusService {
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'WATCHLIST_STATUS')
+  }
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly dbService: FastifyInstance['db'],
     private readonly sonarrManager: FastifyInstance['sonarrManager'],
     private readonly radarrManager: FastifyInstance['radarrManager'],
@@ -59,11 +66,11 @@ export class StatusService {
               watchlistItems,
             )
 
-          this.log.info('Applied user tags to Sonarr content', tagResults)
+          this.log.debug({ tagResults }, 'Applied user tags to Sonarr content')
         } catch (tagError) {
           this.log.error(
-            'Error applying user tags to Sonarr content:',
-            tagError,
+            { err: tagError },
+            'Error applying user tags to Sonarr content',
           )
         }
       }
@@ -110,11 +117,11 @@ export class StatusService {
               watchlistItems,
             )
 
-          this.log.info('Applied user tags to Radarr content', tagResults)
+          this.log.debug({ tagResults }, 'Applied user tags to Radarr content')
         } catch (tagError) {
           this.log.error(
-            'Error applying user tags to Radarr content:',
-            tagError,
+            { err: tagError },
+            'Error applying user tags to Radarr content',
           )
         }
       }
@@ -172,9 +179,6 @@ export class StatusService {
             // If item is notified but Sonarr shows it should be grabbed,
             // we need to backfill the missing grabbed status in history
             if (sonarrMatch.status === 'grabbed') {
-              this.log.debug(
-                `Backfilling missing 'grabbed' status for notified show ${item.title} [${item.key}]`,
-              )
               // Add the grabbed status to history with the correct timestamp
               try {
                 if (item.id !== undefined && sonarrMatch.added) {
@@ -250,9 +254,6 @@ export class StatusService {
             // If item is notified but Radarr shows it should be grabbed,
             // we need to backfill the missing grabbed status in history
             if (radarrMatch.status === 'grabbed') {
-              this.log.debug(
-                `Backfilling missing 'grabbed' status for notified movie ${item.title} [${item.key}]`,
-              )
               // Add the grabbed status to history with the correct timestamp
               try {
                 if (item.id !== undefined && radarrMatch.added) {
@@ -278,9 +279,15 @@ export class StatusService {
           }
         }
         if (item.movie_status !== radarrMatch.movie_status) {
-          update.movie_status = radarrMatch.movie_status as
-            | 'available'
-            | 'unavailable'
+          const ms = radarrMatch.movie_status
+          if (ms === 'available' || ms === 'unavailable') {
+            update.movie_status = ms
+          } else {
+            this.log.warn(
+              { movie_status: ms, key: item.key },
+              'Invalid movie_status; skipping update',
+            )
+          }
         }
         if (item.radarr_instance_id !== instanceId) {
           update.radarr_instance_id = instanceId
@@ -404,6 +411,9 @@ export class StatusService {
 
             // Add to junction if not exists
             if (!currentJunction) {
+              const hasPlannedPrimary = junctionsToAdd.some(
+                (j) => j.watchlist_id === numericId && j.is_primary,
+              )
               junctionsToAdd.push({
                 watchlist_id: numericId,
                 sonarr_instance_id: instanceId,
@@ -411,7 +421,12 @@ export class StatusService {
                   mainTableStatus === 'notified'
                     ? 'notified'
                     : matchingSeries[0].status || 'pending',
-                is_primary: !currentInstanceMap.size,
+                // Primary only if no existing junctions AND first matched instance,
+                // and no primary already planned in this batch
+                is_primary:
+                  currentInstanceMap.size === 0 &&
+                  existingInstances.length === 1 &&
+                  !hasPlannedPrimary,
               })
               updateCount++
             } else {
@@ -484,11 +499,13 @@ export class StatusService {
             )
             .some((entry) => entry.is_primary)
 
-          if (!hasPrimary) {
+          const hasPlannedPrimary = junctionsToAdd.some(
+            (j) => j.watchlist_id === numericId && j.is_primary,
+          )
+          if (!hasPrimary && !hasPlannedPrimary) {
             junctionsToUpdate.push({
               watchlist_id: numericId,
               sonarr_instance_id: existingInstances[0],
-              status: 'pending',
               is_primary: true,
             })
             updateCount++
@@ -643,6 +660,9 @@ export class StatusService {
 
             // Add to junction if not exists
             if (!currentJunction) {
+              const hasPlannedPrimary = junctionsToAdd.some(
+                (j) => j.watchlist_id === numericId && j.is_primary,
+              )
               junctionsToAdd.push({
                 watchlist_id: numericId,
                 radarr_instance_id: instanceId,
@@ -650,7 +670,12 @@ export class StatusService {
                   mainTableStatus === 'notified'
                     ? 'notified'
                     : matchingMovies[0].status || 'pending',
-                is_primary: !currentInstanceMap.size,
+                // Primary only if no existing junctions AND first matched instance,
+                // and no primary already planned in this batch
+                is_primary:
+                  currentInstanceMap.size === 0 &&
+                  existingInstances.length === 1 &&
+                  !hasPlannedPrimary,
               })
               updateCount++
             } else {
@@ -723,11 +748,13 @@ export class StatusService {
             )
             .some((entry) => entry.is_primary)
 
-          if (!hasPrimary) {
+          const hasPlannedPrimary = junctionsToAdd.some(
+            (j) => j.watchlist_id === numericId && j.is_primary,
+          )
+          if (!hasPrimary && !hasPlannedPrimary) {
             junctionsToUpdate.push({
               watchlist_id: numericId,
               radarr_instance_id: existingInstances[0],
-              status: 'pending',
               is_primary: true,
             })
             updateCount++
@@ -937,7 +964,13 @@ export class StatusService {
             const syncedInstances = Array.isArray(instance.syncedInstances)
               ? instance.syncedInstances
               : typeof instance.syncedInstances === 'string'
-                ? JSON.parse(instance.syncedInstances || '[]')
+                ? (() => {
+                    try {
+                      return JSON.parse(instance.syncedInstances || '[]')
+                    } catch {
+                      return []
+                    }
+                  })()
                 : []
 
             for (const syncedId of syncedInstances) {
@@ -1037,6 +1070,11 @@ export class StatusService {
                   if (success) {
                     itemsCopied++
                   }
+                })
+                .catch((error) => {
+                  this.log.error({ error }, 'Error in batch processing movie')
+                })
+                .finally(() => {
                   processingCount--
                   completedCount++
 
@@ -1054,11 +1092,6 @@ export class StatusService {
                       message: `Copied ${completedCount} of ${itemsToCopy.length} movies to Radarr instance ${instanceId}`,
                     })
                   }
-                })
-                .catch((error) => {
-                  this.log.error(`Error in batch processing movie: ${error}`)
-                  processingCount--
-                  completedCount++
                 })
             }
           }
@@ -1097,7 +1130,7 @@ export class StatusService {
       )
       return itemsCopied
     } catch (error) {
-      this.log.error(`Error syncing Radarr instance ${instanceId}: ${error}`)
+      this.log.error({ error, instanceId }, 'Error syncing Radarr instance')
       throw error
     }
   }
@@ -1159,7 +1192,8 @@ export class StatusService {
       return false
     } catch (error) {
       this.log.error(
-        `Error copying movie ${item.title} to instance ${instanceId}: ${error}`,
+        { error, instanceId, title: item.title },
+        'Error copying movie to instance',
       )
       return false
     }
@@ -1272,7 +1306,13 @@ export class StatusService {
             const syncedInstances = Array.isArray(instance.syncedInstances)
               ? instance.syncedInstances
               : typeof instance.syncedInstances === 'string'
-                ? JSON.parse(instance.syncedInstances || '[]')
+                ? (() => {
+                    try {
+                      return JSON.parse(instance.syncedInstances || '[]')
+                    } catch {
+                      return []
+                    }
+                  })()
                 : []
 
             for (const syncedId of syncedInstances) {
@@ -1372,6 +1412,11 @@ export class StatusService {
                   if (success) {
                     itemsCopied++
                   }
+                })
+                .catch((error) => {
+                  this.log.error({ error }, 'Error in batch processing show')
+                })
+                .finally(() => {
                   processingCount--
                   completedCount++
 
@@ -1389,11 +1434,6 @@ export class StatusService {
                       message: `Copied ${completedCount} of ${itemsToCopy.length} shows to Sonarr instance ${instanceId}`,
                     })
                   }
-                })
-                .catch((error) => {
-                  this.log.error(`Error in batch processing show: ${error}`)
-                  processingCount--
-                  completedCount++
                 })
             }
           }
@@ -1432,7 +1472,7 @@ export class StatusService {
       )
       return itemsCopied
     } catch (error) {
-      this.log.error(`Error syncing Sonarr instance ${instanceId}: ${error}`)
+      this.log.error({ error, instanceId }, 'Error syncing Sonarr instance')
       throw error
     }
   }
@@ -1494,7 +1534,8 @@ export class StatusService {
       return false
     } catch (error) {
       this.log.error(
-        `Error copying show ${item.title} to instance ${instanceId}: ${error}`,
+        { error, instanceId, title: item.title },
+        'Error copying show to instance',
       )
       return false
     }

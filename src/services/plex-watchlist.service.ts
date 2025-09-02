@@ -13,6 +13,7 @@ import {
   hasMatchingParsedGuids,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import {
   fetchSelfWatchlist,
   fetchWatchlistFromRss,
@@ -31,9 +32,14 @@ export class PlexWatchlistService {
   private userCanSyncCache = new Map<number, boolean>()
   // In-flight promise map to prevent concurrent DB hits for the same user
   private userCanSyncInFlight = new Map<number, Promise<boolean>>()
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'PLEX_WATCHLIST')
+  }
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
     private readonly plexLabelSyncService?: PlexLabelSyncService,
@@ -182,7 +188,7 @@ export class PlexWatchlistService {
     const canSync = await this.getUserCanSync(user.userId)
     if (!canSync) {
       const name = user.username ?? 'Unknown User'
-      this.log.info(
+      this.log.debug(
         `Skipping notification for user ${name} (ID: ${user.userId}) - sync disabled`,
         { userId: user.userId },
       )
@@ -206,7 +212,7 @@ export class PlexWatchlistService {
         posterUrl: item.thumb,
       })
 
-      this.log.info(
+      this.log.debug(
         `Notified Discord admin endpoints that ${username} added "${item.title}"`,
         { success: discordSent },
       )
@@ -236,7 +242,7 @@ export class PlexWatchlistService {
             posterUrl: item.thumb,
           })
 
-        this.log.info(
+        this.log.debug(
           `Notified Apprise admin endpoints that ${username} added "${item.title}"`,
           { success: appriseSent },
         )
@@ -338,7 +344,7 @@ export class PlexWatchlistService {
 
     // Don't error out if a user has no items in their watch list.
     if (userWatchlistMap.size === 0) {
-      this.log.info('No items in self watchlist, returning empty result')
+      this.log.debug('No items in self watchlist, returning empty result')
       return {
         total: 0,
         users: [],
@@ -425,7 +431,7 @@ export class PlexWatchlistService {
       friendsRss: Array.from(watchlistUrls)[1] || '',
     }
     await this.dbService.updateConfig(dbUrls)
-    this.log.info('RSS feed URLs saved to database', dbUrls)
+    this.log.debug('RSS feed URLs saved to database', dbUrls)
 
     return {
       self: dbUrls.selfRss,
@@ -445,7 +451,7 @@ export class PlexWatchlistService {
 
     // Early check for no friends
     if (friends.size === 0) {
-      this.log.info('You do not appear to have any friends... 😢')
+      this.log.debug('You do not appear to have any friends... 😢')
       return {
         total: 0,
         users: [],
@@ -693,7 +699,7 @@ export class PlexWatchlistService {
       }),
     )
 
-    this.log.info(`Ensured users for ${this.config.plexTokens.length} tokens`)
+    this.log.debug(`Ensured users for ${this.config.plexTokens.length} tokens`)
     return userMap
   }
 
@@ -760,7 +766,7 @@ export class PlexWatchlistService {
       }
     }
 
-    this.log.info(
+    this.log.debug(
       `Collected ${userKeyMap.size} users and ${allKeys.size} unique keys`,
       { userIds: Array.from(userKeyMap.keys()) },
     )
@@ -813,7 +819,7 @@ export class PlexWatchlistService {
 
     const existingItems = Array.from(uniqueItems.values())
 
-    this.log.info(
+    this.log.debug(
       `Found ${existingItems.length} unique existing items for processing`,
     )
 
@@ -830,7 +836,7 @@ export class PlexWatchlistService {
 
     if (forceRefresh) {
       // When force refresh is enabled, treat all items as brand new to trigger metadata re-fetching
-      this.log.info(
+      this.log.debug(
         'Force refresh enabled - treating all items as new for metadata refresh',
       )
       userWatchlistMap.forEach((items, user) => {
@@ -926,7 +932,7 @@ export class PlexWatchlistService {
           insertedResults.length > 0
         ) {
           try {
-            this.log.info(
+            this.log.debug(
               `Syncing immediate Plex labeling with tag fetching for ${insertedResults.length} newly added items`,
             )
 
@@ -978,7 +984,7 @@ export class PlexWatchlistService {
           }
         }
 
-        this.log.info(`Processed ${itemsToInsert.length} new items`)
+        this.log.debug(`Processed ${itemsToInsert.length} new items`)
 
         // Send notifications directly if we have a GUID snapshot
         // This handles the interval-based sync case (not RSS)
@@ -1063,7 +1069,7 @@ export class PlexWatchlistService {
     // Skip notification only if RSS workflow is fully initialized and active
     // During startup/initial sync, we still send notifications even in RSS mode
     if (this.isRssWorkflowActive()) {
-      this.log.info(
+      this.log.debug(
         'Skipping direct notifications because RSS workflow is fully initialized and active',
       )
       return
@@ -1079,7 +1085,7 @@ export class PlexWatchlistService {
       }),
     )
     if (enabledUserIds.size === 0) {
-      this.log.info(
+      this.log.debug(
         'All users in this batch have sync disabled; skipping notifications',
       )
       return
@@ -1091,7 +1097,7 @@ export class PlexWatchlistService {
     // Get notification cache for each user-title combination
     const notificationChecks = new Map<number, Map<string, boolean>>()
 
-    this.log.info(
+    this.log.debug(
       `Checking ${processedItems.size} users for potential notifications of new items`,
     )
 
@@ -1149,7 +1155,7 @@ export class PlexWatchlistService {
           userNotifications.get(item.title) === true
 
         if (hasExistingNotification) {
-          this.log.info(
+          this.log.debug(
             `Skipping notification for "${item.title}" - already sent previously to user ID ${user.userId}`,
           )
           continue
@@ -1160,7 +1166,7 @@ export class PlexWatchlistService {
         for (const guid of itemGuids) {
           const normalizedGuid = guid.toLowerCase()
           if (existingGuidsSnapshot.has(normalizedGuid)) {
-            this.log.info(
+            this.log.debug(
               `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync`,
               { title: item.title, guid },
             )
@@ -1227,7 +1233,7 @@ export class PlexWatchlistService {
       return
     }
 
-    this.log.info(
+    this.log.debug(
       `Linking ${linkItems.length} existing items to ${existingItemsToLink.size} users`,
     )
 
@@ -1247,7 +1253,7 @@ export class PlexWatchlistService {
 
       await this.dbService.syncGenresFromWatchlist()
 
-      this.log.info(
+      this.log.debug(
         `Successfully linked ${linkItems.length} existing items to new users`,
       )
 
@@ -1367,7 +1373,7 @@ export class PlexWatchlistService {
       }
     }
 
-    this.log.info(
+    this.log.debug(
       `Processed ${items.size} items for user ${user.username}: ${newItemsCount} new, ${toBeLinkedCount} to link`,
     )
 
@@ -1442,7 +1448,7 @@ export class PlexWatchlistService {
       const canSync = userSyncPermissions.get(numericUserId) !== false
 
       if (!canSync) {
-        this.log.info(
+        this.log.debug(
           `Skipping ${items.size} items for user ${user.username} (ID: ${numericUserId}) who has sync disabled`,
         )
         return []
@@ -1565,9 +1571,6 @@ export class PlexWatchlistService {
   async processRssWatchlists(): Promise<RssWatchlistResults> {
     const config = await this.ensureRssFeeds()
 
-    // Create a snapshot for this specific operation
-    const _existingGuidsSnapshot = await this.createGuidsSnapshot()
-
     const results: RssWatchlistResults = {
       self: {
         total: 0,
@@ -1590,6 +1593,28 @@ export class PlexWatchlistService {
     return results
   }
 
+  /**
+   * Process RSS watchlists with real user details for API responses
+   * This method is optimized for API endpoints that need actual user information
+   */
+  async processRssWatchlistsWithUserDetails(): Promise<RssWatchlistResults> {
+    const results = await this.processRssWatchlists()
+
+    // Lazy load primary user details only when needed for API response
+    if (results.self.users.length > 0) {
+      const primaryUser = await this.dbService.getPrimaryUser()
+      if (primaryUser) {
+        results.self.users[0].user = {
+          watchlistId: primaryUser.name,
+          username: primaryUser.name,
+          userId: primaryUser.id,
+        }
+      }
+    }
+
+    return results
+  }
+
   private async ensureRssFeeds(): Promise<{
     selfRss?: string
     friendsRss?: string
@@ -1597,7 +1622,7 @@ export class PlexWatchlistService {
     const config = this.config
 
     if (!config?.selfRss && !config?.friendsRss) {
-      this.log.info(
+      this.log.debug(
         'No RSS feeds found in configuration, attempting to generate...',
       )
       await this.generateAndSaveRssFeeds()
@@ -1641,7 +1666,7 @@ export class PlexWatchlistService {
     if (formattedItems.length > 0) {
       await this.dbService.createTempRssItems(formattedItems)
       await this.dbService.syncGenresFromWatchlist()
-      this.log.info(`Stored ${formattedItems.length} RSS items for ${source}`)
+      this.log.debug(`Stored ${formattedItems.length} RSS items for ${source}`)
     }
   }
 
@@ -1655,16 +1680,11 @@ export class PlexWatchlistService {
       this.log,
     )
 
-    const primaryUser = await this.dbService.getPrimaryUser()
-    if (!primaryUser) {
-      throw new Error('No primary token user found')
-    }
-
     const watchlistGroup: WatchlistGroup = {
       user: {
-        watchlistId: primaryUser.name,
-        username: primaryUser.name,
-        userId: primaryUser.id,
+        watchlistId: 'self',
+        username: 'Self Watchlist',
+        userId: 1,
       },
       watchlist: this.mapRssItemsToWatchlist(
         selfItems as Set<TemptRssWatchlistItem>,
@@ -1746,7 +1766,7 @@ export class PlexWatchlistService {
     )
 
     if (removedKeys.length > 0) {
-      this.log.info(
+      this.log.debug(
         `Detected ${removedKeys.length} removed items for user ${userId}`,
       )
 
@@ -1871,11 +1891,11 @@ export class PlexWatchlistService {
 
       // Log per user
       for (const [userId, count] of userCounts.entries()) {
-        this.log.info(`Detected ${count} re-added items for user ${userId}`)
+        this.log.debug(`Detected ${count} re-added items for user ${userId}`)
       }
 
       if (totalQueued > 0) {
-        this.log.info(
+        this.log.debug(
           `Queued ${totalQueued} unique content items for label synchronization (grouped from ${linkItems.length} re-added items)`,
         )
       }
@@ -1981,14 +2001,14 @@ export class PlexWatchlistService {
       }),
     )
     if (enabledUserIds.size === 0) {
-      this.log.info(
+      this.log.debug(
         `All users in RSS ${source} batch have sync disabled; skipping RSS processing`,
       )
       return
     }
 
     const pendingItems = await this.dbService.getTempRssItems(source)
-    this.log.info(
+    this.log.debug(
       `Found ${pendingItems.length} pending RSS items to match during ${source} sync`,
     )
 
@@ -2045,7 +2065,7 @@ export class PlexWatchlistService {
         matchCount++
         matchedItemIds.push(pendingItem.id)
 
-        this.log.info(
+        this.log.debug(
           `Matched item "${pendingItem.title}" to user ${bestMatch.user.username}'s item "${bestMatch.item.title}" (score: ${bestMatch.score})`,
           { userId: bestMatch.user.userId, matchScore: bestMatch.score },
         )
@@ -2056,7 +2076,7 @@ export class PlexWatchlistService {
         // Check if already notified (using prefetched data)
         const userNotifications = notificationChecks.get(bestMatch.user.userId)
         if (userNotifications?.get(bestMatch.item.title)) {
-          this.log.info(
+          this.log.debug(
             `Skipping notification for "${bestMatch.item.title}" - already sent previously to user ID ${bestMatch.user.userId}`,
           )
           shouldSendNotification = false
@@ -2067,7 +2087,7 @@ export class PlexWatchlistService {
           for (const guid of pendingGuids) {
             const normalizedGuid = guid.toLowerCase()
             if (existingGuidsSnapshot.has(normalizedGuid)) {
-              this.log.info(
+              this.log.debug(
                 `Skipping notification for "${bestMatch.item.title}" - item with GUID ${guid} already existed before sync for user ID ${bestMatch.user.userId}`,
                 {
                   itemTitle: bestMatch.item.title,
@@ -2096,7 +2116,7 @@ export class PlexWatchlistService {
           shouldSendNotification &&
           !enabledUserIds.has(bestMatch.user.userId)
         ) {
-          this.log.info(
+          this.log.debug(
             `Skipping RSS notification for "${bestMatch.item.title}" - user ${bestMatch.user.username} (ID: ${bestMatch.user.userId}) has sync disabled`,
             { userId: bestMatch.user.userId, itemTitle: bestMatch.item.title },
           )
@@ -2118,7 +2138,7 @@ export class PlexWatchlistService {
 
             if (existingItems && existingItems.length > 0) {
               existsInDatabase = true
-              this.log.info(
+              this.log.debug(
                 `RSS item "${pendingItem.title}" already exists in watchlist database with GUID ${guid}`,
                 {
                   itemTitle: pendingItem.title,
@@ -2155,7 +2175,7 @@ export class PlexWatchlistService {
       await this.dbService.deleteTempRssItems(allIdsToDelete)
     }
 
-    this.log.info(`${source} RSS matching complete`, {
+    this.log.debug(`${source} RSS matching complete`, {
       totalChecked: pendingItems.length,
       matched: matchCount,
       unmatched: noMatchCount,

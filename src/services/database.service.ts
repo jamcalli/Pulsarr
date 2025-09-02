@@ -53,6 +53,7 @@ import type {
   ConditionGroup,
   RouterRule,
 } from '@root/types/router.types.js'
+import { createServiceLogger } from '@utils/logger.js'
 import { configurePgTypes } from '@utils/postgres-config.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
@@ -106,12 +107,16 @@ export class DatabaseService {
    * @param log - Fastify logger instance for recording database operations
    * @param fastify - Fastify instance containing configuration and context
    */
+  public get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'DATABASE')
+  }
+
   constructor(
-    public readonly log: FastifyBaseLogger,
+    public readonly baseLog: FastifyBaseLogger,
     public readonly fastify: FastifyInstance,
   ) {
     this.isPostgres = fastify.config.dbType === 'postgres'
-    this.knex = knex(DatabaseService.createKnexConfig(fastify.config, log))
+    this.knex = knex(DatabaseService.createKnexConfig(fastify.config, this.log))
 
     // Bind all modular database methods to this instance
     this.bindMethods()
@@ -154,7 +159,7 @@ export class DatabaseService {
   public async configurePostgresTypes(): Promise<void> {
     try {
       await configurePgTypes(this.log)
-      this.log.info('PostgreSQL type parsers configured successfully')
+      this.log.debug('PostgreSQL type parsers configured successfully')
     } catch (error) {
       this.log.error({ error }, 'Failed to configure PostgreSQL type parsers:')
       // Consider if this should be fatal or if the app can continue

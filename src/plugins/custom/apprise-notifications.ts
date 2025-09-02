@@ -10,7 +10,7 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    fastify.log.info('Initializing Apprise notification plugin')
+    fastify.log.debug('Initializing Apprise notification plugin')
 
     // Create and register the Apprise notification service
     const appriseService = new AppriseNotificationService(fastify.log, fastify)
@@ -21,12 +21,12 @@ export default fp(
 
     // Only proceed if we have an Apprise URL configured
     if (appriseUrl) {
-      fastify.log.info('Found Apprise URL in configuration')
+      fastify.log.debug('Found Apprise URL in configuration')
 
       // Add a delay before checking
       const delayedCheck = async () => {
         // Wait a bit to allow Apprise to fully initialize
-        fastify.log.info('Waiting 5 seconds for Apprise to initialize...')
+        fastify.log.debug('Waiting 5 seconds for Apprise to initialize...')
         await new Promise((resolve) => setTimeout(resolve, 5000))
 
         try {
@@ -67,7 +67,7 @@ export default fp(
       await fastify.updateConfig({ enableApprise: false })
     }
 
-    fastify.log.info('Apprise notification plugin initialized successfully')
+    fastify.log.debug('Apprise notification plugin initialized successfully')
   },
   {
     name: 'apprise-notification-service',
@@ -76,10 +76,13 @@ export default fp(
 )
 
 /**
- * Ping function to check if the Apprise server is reachable
+ * Checks whether the Apprise server at the given URL is reachable.
  *
- * @param url - The Apprise server URL
- * @returns Promise resolving to true if server is reachable, false otherwise
+ * Attempts an HTTP GET to the server root and returns true if the response has a successful status.
+ * If `url` is empty/whitespace, the request times out (5 seconds), or any network/error occurs, the function returns false.
+ *
+ * @param url - The Apprise server base URL to ping
+ * @returns True if the server responds with a successful HTTP status; otherwise false
  */
 async function pingAppriseServer(url: string): Promise<boolean> {
   if (!url || url.trim() === '') {
@@ -87,18 +90,20 @@ async function pingAppriseServer(url: string): Promise<boolean> {
   }
   try {
     const pingUrl = new URL('/', url).toString()
-
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
 
-    const response = await fetch(pingUrl, {
-      method: 'GET',
-      signal: controller.signal,
-    })
-
-    clearTimeout(timeoutId)
-
-    return response.ok
+    try {
+      const response = await fetch(pingUrl, {
+        method: 'GET',
+        signal: controller.signal,
+      })
+      return response.ok
+    } catch (_error) {
+      return false
+    } finally {
+      clearTimeout(timeoutId)
+    }
   } catch (_error) {
     return false
   }

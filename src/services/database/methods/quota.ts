@@ -756,6 +756,35 @@ export async function deleteQuotaUsageByUser(
 }
 
 /**
+ * Delete quota usage records for a user on or after a given date.
+ *
+ * Validates `fromDate`, converts it to the service's local date string, and deletes
+ * quota_usage rows where `user_id` matches and `request_date` is >= the converted date.
+ *
+ * @param userId - User ID whose quota usage records will be removed
+ * @param fromDate - Delete records from this date (inclusive); must be a valid Date
+ * @returns The number of deleted quota usage records
+ * @throws Error if `fromDate` is not a valid Date
+ */
+export async function deleteQuotaUsageByUserSince(
+  this: DatabaseService,
+  userId: number,
+  fromDate: Date,
+): Promise<number> {
+  if (!(fromDate instanceof Date) || Number.isNaN(fromDate.getTime())) {
+    throw new Error('Invalid fromDate')
+  }
+  const fromDateString = this.getLocalDateString(fromDate)
+
+  const deletedCount = await this.knex('quota_usage')
+    .where('user_id', userId)
+    .where('request_date', '>=', fromDateString)
+    .del()
+
+  return deletedCount
+}
+
+/**
  * Retrieves the next scheduled maintenance run time for quota maintenance, if enabled.
  *
  * @returns The date and time of the next maintenance run, or undefined if not scheduled or disabled.

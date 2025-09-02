@@ -12,6 +12,9 @@ import type { ProgressService } from '@root/types/progress.types.js'
 import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 
+// Network timeout constants
+const PLEX_API_TIMEOUT_MS = 5000 // 5 seconds for Plex API calls
+
 // Custom error interface for rate limit errors
 interface RateLimitError extends Error {
   isRateLimitExhausted: boolean
@@ -32,18 +35,19 @@ function isRateLimitError(error: unknown): error is RateLimitError {
 }
 
 /**
- * Handles rate limit errors from the Plex API when processing a single watchlist item, managing retries and cooldowns.
+ * Handle a Plex API rate-limit for a single watchlist item: apply a global cooldown, optionally wait and retry, or fail when retries are exhausted.
  *
- * Sets a global cooldown using the rate limiter, waits if retries remain, and retries processing the item. If the maximum number of retries is reached, throws a {@link RateLimitError} for caught errors or returns an empty set for HTTP 429 responses.
+ * If a Retry-After value is provided the global rate limiter is set accordingly. When retryCount < maxRetries this function waits for the limiter to clear and retries processing the same item. When retries are exhausted it either throws a RateLimitError (for non-HTTP-429 conditions) or returns an empty set (when the path originated from an HTTP 429 with a Retry-After).
  *
- * @param item - The watchlist item being processed.
- * @param retryCount - The current retry attempt count.
- * @param maxRetries - The maximum number of allowed retries.
- * @param progressInfo - Optional progress reporting context.
- * @param retryAfterSec - Optional cooldown duration in seconds from the Plex API.
- * @returns A set of processed {@link Item} objects, or an empty set if retries are exhausted due to HTTP 429.
+ * @param item - The token-scoped watchlist item being retried.
+ * @param retryCount - Current retry attempt (0-based).
+ * @param maxRetries - Maximum allowed retry attempts before giving up.
+ * @param progressInfo - Optional progress reporting context used while waiting for the cooldown.
+ * @param retryAfterSec - Optional cooldown duration (seconds) supplied by the Plex API (HTTP Retry-After). If undefined the error path is treated as a caught/non-429 error.
+ * @param notFoundCollector - Optional array to collect titles of items that returned HTTP 404 during processing.
+ * @returns A set of processed Item objects, or an empty set when skipping the item after exhausting retries for an HTTP 429 condition.
  *
- * @throws {RateLimitError} When the maximum number of retries is reached due to rate limiting (except for HTTP 429 responses).
+ * @throws {RateLimitError} When retries are exhausted for a non-HTTP-429 rate-limit condition; the thrown error has isRateLimitExhausted = true.
  */
 async function handleRateLimitAndRetry(
   config: Config,
@@ -57,6 +61,7 @@ async function handleRateLimitAndRetry(
     type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
   },
   retryAfterSec?: number,
+  notFoundCollector?: string[],
 ): Promise<Set<Item>> {
   // Set global rate limiter with the retry-after value
   const rateLimiter = PlexRateLimiter.getInstance()
@@ -82,6 +87,7 @@ async function handleRateLimitAndRetry(
       retryCount + 1,
       maxRetries,
       progressInfo,
+      notFoundCollector,
     )
   }
 
@@ -244,6 +250,7 @@ export const pingPlex = async (
       headers: {
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -256,7 +263,7 @@ export const pingPlex = async (
     log.info('Successfully validated Plex token')
     return true
   } catch (err) {
-    log.error(`Failed to validate Plex token: ${err}`)
+    log.error({ error: err }, 'Failed to validate Plex token')
     return false
   }
 }
@@ -295,6 +302,7 @@ export const getWatchlist = async (
         Accept: 'application/json',
         'X-Plex-Token': token,
       },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     const contentType = response.headers.get('Content-Type')
@@ -370,7 +378,7 @@ export const getWatchlist = async (
         `Rate limit exceeded: Maximum retries (${retryCount}) reached when fetching watchlist`,
       ) as RateLimitError
       rateLimitError.isRateLimitExhausted = true
-      log.error(`Error in getWatchlist: ${rateLimitError.message}`)
+      log.error({ error: rateLimitError }, 'Error in getWatchlist')
       throw rateLimitError
     }
 
@@ -394,6 +402,10 @@ export const fetchSelfWatchlist = async (
   }
 
   for (const token of config.plexTokens) {
+    // Skip falsy tokens to prevent predictable API failures
+    if (!token) {
+      continue
+    }
     let currentStart = 0
 
     try {
@@ -410,27 +422,27 @@ export const fetchSelfWatchlist = async (
             break
           }
 
-          const items = metadata.map((metadata) => {
-            const key = metadata.key
-              ? metadata.key
-                  .replace('/library/metadata/', '')
-                  .replace('/children', '')
-              : `temp-${Date.now()}-${Math.random()}`
+          const items = metadata
+            .filter((metadata) => Boolean(metadata.key))
+            .map((metadata) => {
+              const key = metadata.key
+                ?.replace('/library/metadata/', '')
+                .replace('/children', '')
 
-            return {
-              title: metadata.title || 'Unknown Title',
-              id: key,
-              key: key,
-              thumb: metadata.thumb || null,
-              type: metadata.type || 'unknown',
-              guids: [],
-              genres: [],
-              user_id: userId,
-              status: 'pending',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }
-          })
+              return {
+                title: metadata.title || 'Unknown Title',
+                id: key,
+                key: key,
+                thumb: metadata.thumb || null,
+                type: metadata.type || 'unknown',
+                guids: [],
+                genres: [],
+                user_id: userId,
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }
+            })
 
           log.debug(`Found ${items.length} items in current page`)
           for (const item of items) {
@@ -457,7 +469,7 @@ export const fetchSelfWatchlist = async (
         }
       }
     } catch (err) {
-      log.error(`Error fetching watchlist for token: ${err}`)
+      log.error({ error: err }, 'Error fetching watchlist for token')
 
       // If we have the database function, try to get existing items
       if (getAllWatchlistItemsForUser) {
@@ -529,7 +541,16 @@ export const getFriends = async (
 ): Promise<Set<[Friend, string]>> => {
   const allFriends = new Set<[Friend, string]>()
 
+  if (!config.plexTokens || config.plexTokens.length === 0) {
+    log.warn('No Plex tokens configured')
+    return allFriends
+  }
+
   for (const token of config.plexTokens) {
+    // Skip falsy tokens to prevent predictable API failures
+    if (!token) {
+      continue
+    }
     const url = new URL('https://community.plex.tv/api')
     const query: GraphQLQuery = {
       query: `query GetAllFriends {
@@ -551,6 +572,7 @@ export const getFriends = async (
           'X-Plex-Token': token,
         },
         body: JSON.stringify(query),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })
 
       if (!response.ok) {
@@ -643,6 +665,7 @@ export const getWatchlistForUser = async (
         'X-Plex-Token': token,
       },
       body: JSON.stringify(query),
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -995,6 +1018,9 @@ const toItemsBatch = async (
   let consecutiveSuccessCount = 0
   const RECOVERY_THRESHOLD = 5 // Number of successful items needed before attempting recovery
 
+  // Track 404 items for consolidated reporting
+  const notFoundItems: string[] = []
+
   // Get the global rate limiter instance
   const rateLimiter = PlexRateLimiter.getInstance()
 
@@ -1059,7 +1085,7 @@ const toItemsBatch = async (
             }
           : undefined
 
-        toItemsSingle(config, log, item, 0, 3, progressInfo)
+        toItemsSingle(config, log, item, 0, 3, progressInfo, notFoundItems)
           .then((itemSet) => {
             results.set(item, itemSet)
             processingCount--
@@ -1156,6 +1182,29 @@ const toItemsBatch = async (
     }
   }
 
+  // Log consolidated 404 warnings if any items were not found
+  if (notFoundItems.length > 0) {
+    // Truncate long titles for readability
+    const truncateTitle = (title: string, maxLength = 30): string => {
+      if (title.length <= maxLength) return title
+      return `${title.substring(0, maxLength - 3)}...`
+    }
+
+    const displayTitles = notFoundItems
+      .slice(0, 10) // Show up to 10 titles
+      .map((title) => `"${truncateTitle(title)}"`)
+      .join(', ')
+
+    const additionalCount =
+      notFoundItems.length > 10
+        ? ` (and ${notFoundItems.length - 10} more)`
+        : ''
+
+    log.warn(
+      `${notFoundItems.length} items not found in Plex database (HTTP 404) - skipping retries: ${displayTitles}${additionalCount}`,
+    )
+  }
+
   return results
 }
 
@@ -1170,6 +1219,7 @@ export const toItemsSingle = async (
     operationId: string
     type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
   },
+  notFoundCollector?: string[], // Optional array to collect 404 items instead of logging
 ): Promise<Set<Item>> => {
   // Get the global rate limiter instance
   const rateLimiter = PlexRateLimiter.getInstance()
@@ -1185,6 +1235,11 @@ export const toItemsSingle = async (
       : undefined,
   )
 
+  if (!hasValidPlexTokens(config)) {
+    log.error('No valid Plex token configured; cannot fetch metadata')
+    return new Set()
+  }
+
   try {
     const url = new URL(
       `https://discover.provider.plex.tv/library/metadata/${item.id}`,
@@ -1195,7 +1250,7 @@ export const toItemsSingle = async (
         Accept: 'application/json',
         'X-Plex-Token': config.plexTokens[0],
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     // Handle rate limiting specifically
@@ -1215,15 +1270,22 @@ export const toItemsSingle = async (
         maxRetries,
         progressInfo,
         retryAfterSec,
+        notFoundCollector,
       )
     }
 
     if (!response.ok) {
       // Check if it's a 404 error, which means the item doesn't exist in Plex
       if (response.status === 404) {
-        log.warn(
-          `Item "${item.title}" not found in Plex database (HTTP 404) - skipping retries`,
-        )
+        if (notFoundCollector) {
+          // Collect for consolidated logging
+          notFoundCollector.push(item.title)
+        } else {
+          // Log immediately if no collector provided (backward compatibility)
+          log.warn(
+            `Item "${item.title}" not found in Plex database (HTTP 404) - skipping retries`,
+          )
+        }
         return new Set()
       }
 
@@ -1274,6 +1336,7 @@ export const toItemsSingle = async (
         retryCount + 1,
         maxRetries,
         progressInfo,
+        notFoundCollector,
       )
     }
 
@@ -1307,15 +1370,23 @@ export const toItemsSingle = async (
         retryCount,
         maxRetries,
         progressInfo,
+        undefined, // No retry-after header in this case
+        notFoundCollector,
       )
     }
 
     if (error.message.includes('Plex API error')) {
       // Check specifically for 404 errors and avoid retrying
       if (error.message.includes('HTTP 404')) {
-        log.warn(
-          `Item "${item.title}" not found in Plex's database (404) - skipping retries`,
-        )
+        if (notFoundCollector) {
+          // Collect for consolidated logging
+          notFoundCollector.push(item.title)
+        } else {
+          // Log immediately if no collector provided (backward compatibility)
+          log.warn(
+            `Item "${item.title}" not found in Plex's database (404) - skipping retries`,
+          )
+        }
         return new Set()
       }
 
@@ -1333,6 +1404,7 @@ export const toItemsSingle = async (
           retryCount + 1,
           maxRetries,
           progressInfo,
+          notFoundCollector,
         )
       }
     }
@@ -1390,6 +1462,7 @@ export const getRssFromPlexToken = async (
         'X-Plex-Token': token,
       },
       body,
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -1428,6 +1501,7 @@ export const fetchWatchlistFromRss = async (
       headers: {
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -1487,10 +1561,15 @@ export const fetchWatchlistFromRss = async (
 }
 
 /**
- * Attempts to fetch user avatar from Plex API
- * @param token - User's Plex token
- * @param log - Optional logger instance
- * @returns Avatar URL or null if failed
+ * Fetches the user's avatar URL from the Plex API, or returns null if unavailable.
+ *
+ * Attempts a GET to https://plex.tv/api/v2/user using the provided Plex token and
+ * the module-wide timeout (PLEX_API_TIMEOUT_MS). On non-OK responses, network errors,
+ * or when no avatar is present, the function returns `null`. Errors are logged
+ * via the optional logger but are not thrown.
+ *
+ * @param token - Plex authentication token for the user
+ * @returns The avatar URL string if found; otherwise `null`
  */
 export async function fetchPlexAvatar(
   token: string,
@@ -1503,7 +1582,7 @@ export async function fetchPlexAvatar(
         'X-Plex-Token': token,
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     if (!response.ok) {

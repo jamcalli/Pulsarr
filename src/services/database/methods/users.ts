@@ -130,13 +130,18 @@ export async function updateUser(
 }
 
 /**
- * Updates multiple users in batches with the specified changes.
+ * Update multiple user rows in batches within a single transaction.
  *
- * Processes user IDs in batches within a transaction, applying the same partial update to each user. Returns the total number of users updated and an array of IDs that could not be updated (precise failed IDs are only available when using PostgreSQL).
+ * Applies the same partial update to each user ID in `userIds`, processing IDs in batches (50 per batch) to limit statement size.
+ * The operation is atomic: on any error the entire transaction is rolled back and the function returns `{ updatedCount: 0, failedIds: userIds }`.
  *
- * @param userIds - The IDs of users to update
- * @param data - The partial user data to apply to each user
- * @returns An object containing the count of updated users and an array of failed user IDs
+ * Notes:
+ * - On PostgreSQL, the implementation uses `RETURNING` to determine exactly which IDs were updated and returns any missing IDs in `failedIds`.
+ * - On SQLite (or databases without `RETURNING`), only the affected-rows count is available; the function may log discrepancies but cannot reliably report which specific IDs failed.
+ *
+ * @param userIds - Array of user IDs to update
+ * @param data - Partial user fields to set on each user (excluding `id`, `created_at`, and `updated_at`)
+ * @returns An object with `updatedCount` (number of rows updated) and `failedIds` (IDs that were not updated; exact IDs only guaranteed on PostgreSQL)
  */
 export async function bulkUpdateUsers(
   this: DatabaseService,
@@ -197,13 +202,13 @@ export async function bulkUpdateUsers(
             }
           }
         } catch (batchError) {
-          this.log.error(`Error updating user batch: ${batchError}`)
+          this.log.error({ error: batchError }, 'Error updating user batch')
           throw batchError
         }
       }
     })
   } catch (error) {
-    this.log.error(`Error in bulk user update transaction: ${error}`)
+    this.log.error({ error }, 'Error in bulk user update transaction')
     return { updatedCount: 0, failedIds: userIds }
   }
 

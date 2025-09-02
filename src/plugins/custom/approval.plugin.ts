@@ -33,7 +33,7 @@ const approvalPlugin: FastifyPluginAsync = async (fastify) => {
         },
       })
 
-      fastify.log.info(
+      fastify.log.debug(
         'Created approval-maintenance schedule with cron default: every 4 hours',
       )
     }
@@ -48,9 +48,9 @@ const approvalPlugin: FastifyPluginAsync = async (fastify) => {
           return
         }
 
-        fastify.log.info(`Running scheduled job: ${jobName}`)
+        approvalService.logScheduledJob('start', jobName)
         await approvalService.performMaintenance()
-        fastify.log.info(`Completed scheduled job: ${jobName}`)
+        approvalService.logScheduledJob('complete', jobName)
       },
     )
   })

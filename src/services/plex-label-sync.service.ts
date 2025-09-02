@@ -30,14 +30,14 @@ import type {
   TrackPlexLabelsOperation,
   UntrackPlexLabelOperation,
 } from '@services/database/methods/plex-label-tracking.js'
-import type { DatabaseService } from '@services/database.service.js'
 import {
   extractTmdbId,
   extractTvdbId,
   getGuidMatchScore,
   parseGuids,
 } from '@utils/guid-handler.js'
-import type { PlexServerService } from '@utils/plex-server.js'
+import { createServiceLogger } from '@utils/logger.js'
+import { getPathBasename, normalizePath } from '@utils/path.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -45,18 +45,20 @@ import pLimit from 'p-limit'
  * Service to manage label synchronization between Pulsarr and Plex
  */
 export class PlexLabelSyncService {
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'PLEX_LABEL_SYNC')
+  }
+
   /**
    * Creates a new PlexLabelSyncService instance
    *
-   * @param log - Fastify logger instance
-   * @param plexServer - PlexServerService instance for Plex API operations
-   * @param db - DatabaseService instance for data operations
-   * @param fastify - Fastify instance for accessing runtime config
+   * @param baseLog - Fastify logger instance
+   * @param fastify - Fastify instance for accessing services and config
    */
   constructor(
-    private readonly log: FastifyBaseLogger,
-    private readonly plexServer: PlexServerService,
-    private readonly db: DatabaseService,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
     this.log.info('Initializing PlexLabelSyncService', {
@@ -96,6 +98,20 @@ export class PlexLabelSyncService {
    */
   private get removedLabelMode(): 'remove' | 'keep' | 'special-label' {
     return this.config.removedLabelMode || 'remove'
+  }
+
+  /**
+   * Access to Plex server service
+   */
+  private get plexServer() {
+    return this.fastify.plexServerService
+  }
+
+  /**
+   * Access to database service
+   */
+  private get db() {
+    return this.fastify.db
   }
 
   /**
@@ -402,7 +418,13 @@ export class PlexLabelSyncService {
           continue
         }
 
-        if (plexFilePaths.includes(movieFilePath)) {
+        // Normalize paths for cross-platform compatibility
+
+        if (
+          plexFilePaths
+            .map(normalizePath)
+            .includes(normalizePath(movieFilePath))
+        ) {
           this.log.debug('Found exact file path match', {
             plexTitle: plexItem.title,
             radarrTitle: radarrData.movie.title,
@@ -461,7 +483,9 @@ export class PlexLabelSyncService {
         for (const sonarrData of sonarrSeries) {
           if (
             sonarrData.rootFolder &&
-            plexLocation.startsWith(sonarrData.rootFolder)
+            normalizePath(plexLocation).startsWith(
+              normalizePath(sonarrData.rootFolder),
+            )
           ) {
             this.log.debug('Found root folder match', {
               plexTitle: plexItem.title,
@@ -484,7 +508,10 @@ export class PlexLabelSyncService {
       // Try to match by exact folder path
       if (plexLocation) {
         for (const sonarrData of sonarrSeries) {
-          if (plexLocation === sonarrData.series.path) {
+          if (
+            normalizePath(plexLocation) ===
+            normalizePath(sonarrData.series.path || '')
+          ) {
             this.log.debug('Found exact folder path match', {
               plexTitle: plexItem.title,
               sonarrTitle: sonarrData.series.title,
@@ -506,8 +533,14 @@ export class PlexLabelSyncService {
       // Try to match by folder name
       if (plexLocation) {
         for (const sonarrData of sonarrSeries) {
-          const sonarrFolderName = sonarrData.series.path?.split('/').pop()
-          if (sonarrFolderName && plexLocation.includes(sonarrFolderName)) {
+          const sonarrFolderName = getPathBasename(
+            sonarrData.series.path || '',
+          ).toLowerCase()
+          const plexFolderName = getPathBasename(
+            normalizePath(plexLocation),
+          ).toLowerCase()
+
+          if (sonarrFolderName && plexFolderName === sonarrFolderName) {
             this.log.debug('Found folder name match', {
               plexTitle: plexItem.title,
               sonarrTitle: sonarrData.series.title,
@@ -567,7 +600,7 @@ export class PlexLabelSyncService {
     }
 
     try {
-      this.log.info('Processing webhook for label sync', {
+      this.log.debug('Processing webhook for label sync', {
         eventType: 'eventType' in webhook ? webhook.eventType : 'Unknown',
         instanceName: webhook.instanceName,
       })
@@ -575,9 +608,22 @@ export class PlexLabelSyncService {
       // Extract content GUID and type from webhook
       const contentData = this.extractContentGuidFromWebhook(webhook)
       if (!contentData) {
-        this.log.warn('Unable to extract content GUID from webhook', {
-          webhook,
-        })
+        this.log.warn(
+          {
+            instanceName: webhook?.instanceName,
+            eventType: 'eventType' in webhook ? webhook.eventType : undefined,
+            content:
+              'movie' in webhook
+                ? { title: webhook.movie?.title, tmdbId: webhook.movie?.tmdbId }
+                : 'series' in webhook
+                  ? {
+                      title: webhook.series?.title,
+                      tvdbId: webhook.series?.tvdbId,
+                    }
+                  : undefined,
+          },
+          'Unable to extract content GUID from webhook',
+        )
         return false
       }
 

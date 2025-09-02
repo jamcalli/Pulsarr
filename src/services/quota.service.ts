@@ -6,10 +6,25 @@ import type {
   UserQuotaConfig,
   UserQuotaConfigs,
 } from '@root/types/approval.types.js'
-import type { FastifyInstance } from 'fastify'
+import { createServiceLogger } from '@utils/logger.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class QuotaService {
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.fastify.log, 'QUOTA')
+  }
+
   constructor(private fastify: FastifyInstance) {}
+
+  /**
+   * Log scheduled job execution with proper service prefix
+   */
+  logScheduledJob(action: 'start' | 'complete', jobName: string): void {
+    this.log.info(
+      { jobName, action },
+      action === 'start' ? 'Running scheduled job' : 'Completed scheduled job',
+    )
+  }
 
   /**
    * Creates quotas for a user with specified settings (manual creation)
@@ -61,9 +76,9 @@ export class QuotaService {
       const movieData: CreateUserQuotaData = {
         userId,
         contentType: 'movie',
-        quotaType: config.newUserDefaultMovieQuotaType || 'monthly',
-        quotaLimit: config.newUserDefaultMovieQuotaLimit || 10,
-        bypassApproval: config.newUserDefaultMovieBypassApproval || false,
+        quotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
+        quotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+        bypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
       }
       movieQuota = await this.fastify.db.createUserQuota(movieData)
     }
@@ -73,9 +88,9 @@ export class QuotaService {
       const showData: CreateUserQuotaData = {
         userId,
         contentType: 'show',
-        quotaType: config.newUserDefaultShowQuotaType || 'monthly',
-        quotaLimit: config.newUserDefaultShowQuotaLimit || 10,
-        bypassApproval: config.newUserDefaultShowBypassApproval || false,
+        quotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
+        quotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+        bypassApproval: config.newUserDefaultShowBypassApproval ?? false,
       }
       showQuota = await this.fastify.db.createUserQuota(showData)
     }
@@ -203,9 +218,29 @@ export class QuotaService {
     }
 
     const _remaining = status.quotaLimit - status.currentUsage
-    const percentage = (status.currentUsage / status.quotaLimit) * 100
+    const percentageRaw =
+      status.quotaLimit > 0
+        ? (status.currentUsage / status.quotaLimit) * 100
+        : 100
+    const percentage = Math.max(0, Math.min(100, percentageRaw))
 
-    let displayText = `${status.currentUsage}/${status.quotaLimit} used`
+    this.log.debug(
+      {
+        userId,
+        contentType,
+        remaining: _remaining,
+        used: status.currentUsage,
+        limit: status.quotaLimit,
+        percentage,
+        overBy: Math.max(0, status.currentUsage - status.quotaLimit),
+      },
+      'Quota calculation details',
+    )
+
+    let displayText =
+      status.quotaLimit === 0
+        ? `${status.currentUsage}/0 used (limit 0)`
+        : `${status.currentUsage}/${status.quotaLimit} used`
     if (status.resetDate) {
       displayText += ` (resets ${new Date(status.resetDate).toLocaleDateString()})`
     }
@@ -296,21 +331,18 @@ export class QuotaService {
 
     for (const userId of userIds) {
       try {
-        // Get user's quota usage since fromDate or beginning
-        const history = await this.fastify.db.getQuotaUsageHistory(
-          userId,
-          fromDate,
-        )
-
-        if (history.length === 0) {
-          continue // No usage to reset
+        // Delete quota usage records for this user
+        const deletedCount = fromDate
+          ? await this.fastify.db.deleteQuotaUsageByUserSince(userId, fromDate)
+          : await this.fastify.db.deleteQuotaUsageByUser(userId)
+        if (deletedCount === 0) {
+          this.log.debug({ userId, fromDate }, 'No quota usage to reset')
+          continue
         }
 
-        // Delete quota usage records for this user
-        const deletedCount =
-          await this.fastify.db.deleteQuotaUsageByUser(userId)
-        this.fastify.log.info(
-          `Reset ${deletedCount} quota usage records for user ${userId}`,
+        this.log.info(
+          { deletedCount, userId, fromDate },
+          'Reset quota usage records',
         )
 
         usersProcessed++
@@ -336,7 +368,7 @@ export class QuotaService {
     try {
       await this.performAllQuotaMaintenance()
     } catch (error) {
-      this.fastify.log.error({ error }, 'Failed to perform quota maintenance:')
+      this.log.error({ error }, 'Failed to perform quota maintenance:')
     }
   }
 
@@ -358,16 +390,21 @@ export class QuotaService {
 
     // Cleanup old quota usage records based on configuration
     if (config?.cleanup?.enabled !== false) {
-      const retentionDays = config?.cleanup?.retentionDays || 90
+      const retentionDays = config?.cleanup?.retentionDays ?? 90
       const cleanedCount =
         await this.fastify.db.cleanupOldQuotaUsage(retentionDays)
       if (cleanedCount > 0) {
-        this.fastify.log.info(
-          `Cleaned up ${cleanedCount} old quota usage records (retention: ${retentionDays} days)`,
+        this.log.info(
+          { cleanedCount, retentionDays },
+          'Cleaned up old quota usage records',
         )
       }
     } else {
-      this.fastify.log.debug('Quota cleanup disabled by configuration')
+      const retentionDays = config?.cleanup?.retentionDays ?? 90
+      this.log.debug(
+        { retentionDays },
+        'Quota cleanup disabled by configuration',
+      )
     }
   }
 
@@ -386,14 +423,24 @@ export class QuotaService {
         dailyQuotas.length + weeklyQuotas.length + monthlyQuotas.length
 
       if (totalQuotas > 0) {
-        this.fastify.log.info(
-          `Quota maintenance completed: ${dailyQuotas.length} daily, ${weeklyQuotas.length} weekly, ${monthlyQuotas.length} monthly quotas active`,
+        this.log.info(
+          {
+            daily: dailyQuotas.length,
+            weekly: weeklyQuotas.length,
+            monthly: monthlyQuotas.length,
+            total: totalQuotas,
+            at: _now,
+          },
+          'Quota maintenance completed',
         )
       } else {
-        this.fastify.log.debug('No active quotas found during maintenance')
+        this.log.debug(
+          { total: 0, at: _now },
+          'No active quotas found during maintenance',
+        )
       }
     } catch (error) {
-      this.fastify.log.error({ error }, 'Failed to log quota status:')
+      this.log.error({ error }, 'Failed to log quota status:')
     }
   }
 
@@ -484,9 +531,9 @@ export class QuotaService {
       return true
     } catch (error) {
       // Log error but don't throw - quota recording failures shouldn't break routing
-      this.fastify.log.error(
-        `Error recording quota usage for user ${userId}:`,
-        error,
+      this.log.error(
+        { error, userId, contentType, requestDate },
+        'Error recording quota usage',
       )
       return false
     }

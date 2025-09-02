@@ -26,6 +26,7 @@ import {
   extractTmdbId,
   extractTvdbId,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -41,9 +42,14 @@ export class ContentRouterService {
    * Collection of loaded routing evaluators that will be applied to content
    */
   private evaluators: RoutingEvaluator[] = []
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'CONTENT_ROUTER')
+  }
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {}
 
@@ -60,7 +66,7 @@ export class ContentRouterService {
       const projectRoot = resolve(__dirname, '..')
       const evaluatorsDir = join(projectRoot, 'router-evaluators')
 
-      this.log.info(`Loading router evaluators from: ${evaluatorsDir}`)
+      this.log.debug({ evaluatorsDir }, 'Loading router evaluators')
 
       const files = await readdir(evaluatorsDir)
 
@@ -78,7 +84,10 @@ export class ContentRouterService {
               // Validate the evaluator has all required methods and properties
               if (this.isValidEvaluator(evaluator)) {
                 this.evaluators.push(evaluator)
-                this.log.info(`Loaded router evaluator: ${evaluator.name}`)
+                this.log.debug(
+                  { evaluator: evaluator.name },
+                  'Loaded router evaluator',
+                )
               } else {
                 this.log.warn(
                   `Invalid evaluator found: ${file}, missing required methods or properties`,
@@ -1019,11 +1028,14 @@ export class ContentRouterService {
 
             // Check if this content is anime
             if (tvdbId || tmdbId || imdbId) {
-              const isAnimeContent = await this.fastify.anime.isAnime(
-                tvdbId,
-                tmdbId,
-                imdbId,
-              )
+              let isAnimeContent = false
+              if (this.fastify.anime) {
+                isAnimeContent = await this.fastify.anime.isAnime(
+                  tvdbId,
+                  tmdbId,
+                  imdbId,
+                )
+              }
               this.log.debug(
                 `Anime result for "${item.title}": ${isAnimeContent}`,
               )

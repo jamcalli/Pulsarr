@@ -1,6 +1,7 @@
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
 import { processContentNotifications } from '@root/utils/notification-processor.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -14,9 +15,14 @@ export class PendingWebhooksService {
   private isRunning = false
   private _processingWebhooks = false
   private _cleaningUp = false
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'PENDING_WEBHOOKS')
+  }
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     config?: Partial<PendingWebhooksConfig>,
   ) {
@@ -98,7 +104,7 @@ export class PendingWebhooksService {
         const deleted = await this.processWebhooks()
         // Only log completion if we actually processed something
         if (deleted > 0) {
-          this.log.info(`Deleted ${deleted} pending webhooks`)
+          this.log.debug(`Deleted ${deleted} pending webhooks`)
         }
       },
     )
@@ -208,7 +214,7 @@ export class PendingWebhooksService {
                   // Also trigger label sync for the content now that we found watchlist items
                   await this.triggerLabelSync(webhook.id, moviePayload, 'movie')
 
-                  this.log.info(
+                  this.log.debug(
                     `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
                   )
                   // Delete the processed webhook
@@ -289,7 +295,7 @@ export class PendingWebhooksService {
                     // Also trigger label sync for the content now that we found watchlist items
                     await this.triggerLabelSync(webhook.id, payload, 'show')
 
-                    this.log.info(
+                    this.log.debug(
                       `Found ${watchlistItems.length} watchlist items for ${webhook.guid}, processed webhook`,
                     )
                     // Delete the processed webhook
