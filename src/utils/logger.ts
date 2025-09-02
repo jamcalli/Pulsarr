@@ -238,9 +238,11 @@ function getTerminalOptions(): LoggerOptions {
 }
 
 /**
- * Creates logger options for writing logs to a rotating file stream with sensitive query parameters redacted from request logs.
+ * Builds LoggerOptions for file-based logging using a rotating file stream.
  *
- * @returns Logger options suitable for file-based logging with redacted request serialization.
+ * Returns LoggerOptions configured with level `info`, a pino-pretty wrapped destination (colors disabled) that writes to the rotating file stream, and serializers for requests and errors. The request serializer redacts sensitive query parameters (e.g., `apiKey`, `password`, `token`, `plexToken`, `X-Plex-Token`) from logged URLs.
+ *
+ * @returns Logger options suitable for file-based logging.
  */
 function getFileOptions(): FileLoggerOptions {
   const fileStream = getFileStream()
@@ -265,11 +267,12 @@ function getFileOptions(): FileLoggerOptions {
 }
 
 /**
- * Creates a service-specific logger with a prefix for easy identification in logs.
+ * Create a child logger that prefixes all messages with an uppercased service name.
  *
- * @param parentLogger - The parent logger instance to create a child from
- * @param serviceName - The name of the service (will be uppercased and prefixed with [])
- * @returns A child logger with the service prefix
+ * Returns a Fastify logger child whose message prefix is `[SERVICENAME] ` (serviceName is uppercased).
+ *
+ * @param serviceName - Service identifier used as the bracketed, uppercased prefix
+ * @returns A FastifyBaseLogger child that adds the service message prefix to logged messages
  */
 export function createServiceLogger(
   parentLogger: FastifyBaseLogger,

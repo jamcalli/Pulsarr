@@ -1,14 +1,15 @@
 import { posix, win32 } from 'node:path'
 
 /**
- * Normalizes file paths for cross-platform compatibility and comparison.
+ * Normalize a file path for consistent, cross-platform comparison.
  *
- * - Converts backslashes to forward slashes
- * - Applies platform-appropriate normalization
- * - Applies case normalization for case-insensitive systems (Windows)
+ * Converts backslashes to forward slashes, applies platform-specific normalization,
+ * and on Windows lowercases the result (since Windows paths are case-insensitive).
  *
- * @param path - The file path to normalize
- * @returns Normalized path suitable for cross-platform comparison
+ * If `path` is falsy the function returns an empty string.
+ *
+ * @param path - The input file path to normalize.
+ * @returns The normalized path using forward-slash separators; Windows output is lowercased.
  */
 export function normalizePath(path: string): string {
   if (!path) return ''
@@ -29,10 +30,13 @@ export function normalizePath(path: string): string {
 }
 
 /**
- * Extracts the last segment (folder/file name) from a cross-platform path.
+ * Return the last segment (file or directory name) from a path, handling both POSIX and Windows separators.
  *
- * @param path - The file path
- * @returns The last path segment or empty string if none
+ * Converts backslashes to forward slashes before extracting the basename using POSIX rules. Returns an empty
+ * string if the input is falsy.
+ *
+ * @param path - The input file system path
+ * @returns The final path segment (basename), or an empty string if `path` is falsy
  */
 export function getPathBasename(path: string): string {
   if (!path) return ''

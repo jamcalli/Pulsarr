@@ -35,18 +35,19 @@ function isRateLimitError(error: unknown): error is RateLimitError {
 }
 
 /**
- * Handles rate limit errors from the Plex API when processing a single watchlist item, managing retries and cooldowns.
+ * Handle a Plex API rate-limit for a single watchlist item: apply a global cooldown, optionally wait and retry, or fail when retries are exhausted.
  *
- * Sets a global cooldown using the rate limiter, waits if retries remain, and retries processing the item. If the maximum number of retries is reached, throws a {@link RateLimitError} for caught errors or returns an empty set for HTTP 429 responses.
+ * If a Retry-After value is provided the global rate limiter is set accordingly. When retryCount < maxRetries this function waits for the limiter to clear and retries processing the same item. When retries are exhausted it either throws a RateLimitError (for non-HTTP-429 conditions) or returns an empty set (when the path originated from an HTTP 429 with a Retry-After).
  *
- * @param item - The watchlist item being processed.
- * @param retryCount - The current retry attempt count.
- * @param maxRetries - The maximum number of allowed retries.
- * @param progressInfo - Optional progress reporting context.
- * @param retryAfterSec - Optional cooldown duration in seconds from the Plex API.
- * @returns A set of processed {@link Item} objects, or an empty set if retries are exhausted due to HTTP 429.
+ * @param item - The token-scoped watchlist item being retried.
+ * @param retryCount - Current retry attempt (0-based).
+ * @param maxRetries - Maximum allowed retry attempts before giving up.
+ * @param progressInfo - Optional progress reporting context used while waiting for the cooldown.
+ * @param retryAfterSec - Optional cooldown duration (seconds) supplied by the Plex API (HTTP Retry-After). If undefined the error path is treated as a caught/non-429 error.
+ * @param notFoundCollector - Optional array to collect titles of items that returned HTTP 404 during processing.
+ * @returns A set of processed Item objects, or an empty set when skipping the item after exhausting retries for an HTTP 429 condition.
  *
- * @throws {RateLimitError} When the maximum number of retries is reached due to rate limiting (except for HTTP 429 responses).
+ * @throws {RateLimitError} When retries are exhausted for a non-HTTP-429 rate-limit condition; the thrown error has isRateLimitExhausted = true.
  */
 async function handleRateLimitAndRetry(
   config: Config,
@@ -1560,10 +1561,15 @@ export const fetchWatchlistFromRss = async (
 }
 
 /**
- * Attempts to fetch user avatar from Plex API
- * @param token - User's Plex token
- * @param log - Optional logger instance
- * @returns Avatar URL or null if failed
+ * Fetches the user's avatar URL from the Plex API, or returns null if unavailable.
+ *
+ * Attempts a GET to https://plex.tv/api/v2/user using the provided Plex token and
+ * the module-wide timeout (PLEX_API_TIMEOUT_MS). On non-OK responses, network errors,
+ * or when no avatar is present, the function returns `null`. Errors are logged
+ * via the optional logger but are not thrown.
+ *
+ * @param token - Plex authentication token for the user
+ * @returns The avatar URL string if found; otherwise `null`
  */
 export async function fetchPlexAvatar(
   token: string,
