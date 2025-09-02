@@ -197,13 +197,13 @@ export async function bulkUpdateUsers(
             }
           }
         } catch (batchError) {
-          this.log.error(`Error updating user batch: ${batchError}`)
+          this.log.error({ error: batchError }, 'Error updating user batch')
           throw batchError
         }
       }
     })
   } catch (error) {
-    this.log.error(`Error in bulk user update transaction: ${error}`)
+    this.log.error({ error }, 'Error in bulk user update transaction')
     return { updatedCount: 0, failedIds: userIds }
   }
 
