@@ -469,15 +469,24 @@ export async function processContentNotifications(
 }
 
 /**
- * Processes and dispatches a single notification result, handling both public content and individual user notifications.
+ * Process and dispatch a single notification result (public or per-user).
  *
- * For public content (virtual user ID -1), sends notifications to global Discord webhooks (mentioning all real user Discord IDs) and Apprise endpoints. For regular users, sends direct Discord messages, Apprise notifications, and Tautulli notifications if enabled and configured.
+ * For a public notification (virtual user id === -1) routes to global endpoints:
+ * - Sends public Discord notifications via configured webhooks and includes real user Discord IDs for mentions.
+ * - Sends public Apprise notifications to configured endpoints.
  *
- * @param result - The notification result to process.
- * @param allNotificationResults - All notification results for the current event, used to collect user Discord IDs for public notifications.
- * @param itemByUserId - Map of user IDs to watchlist items for Tautulli notification lookups.
- * @param mediaInfo - Information about the media being notified.
- * @param options - Optional logger for logging notification outcomes.
+ * For a regular user, sends:
+ * - Direct Discord DM when `notify_discord` and `discord_id` are present.
+ * - Per-user Apprise notifications when `notify_apprise` is set.
+ * - Tautulli notifications when `notify_tautulli` is set and Tautulli is enabled; looks up the user's watchlist item via `itemByUserId` and skips Tautulli if the item id is not a valid number.
+ *
+ * All external delivery failures are caught and logged; the function does not throw for delivery errors.
+ *
+ * @param result - The NotificationResult to process (includes `user` flags and `notification` payload).
+ * @param allNotificationResults - All notification results for the current event; used to collect real user Discord IDs for public notifications.
+ * @param itemByUserId - Map from user ID to the user's watchlist item, used to resolve item IDs for Tautulli notifications.
+ * @param mediaInfo - Minimal media metadata (type, guid, title, and optional episodes) for contextual notifications.
+ * @param options.logger - Optional logger to use instead of the Fastify instance logger.
  */
 async function processIndividualNotification(
   fastify: FastifyInstance,

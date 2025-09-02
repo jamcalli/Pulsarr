@@ -756,11 +756,15 @@ export async function deleteQuotaUsageByUser(
 }
 
 /**
- * Deletes quota usage records for a specific user since a given date.
+ * Delete quota usage records for a user on or after a given date.
  *
- * @param userId - The user ID for which quota usage records will be removed
- * @param fromDate - Only delete records from this date onwards (inclusive)
- * @returns The total number of deleted quota usage records
+ * Validates `fromDate`, converts it to the service's local date string, and deletes
+ * quota_usage rows where `user_id` matches and `request_date` is >= the converted date.
+ *
+ * @param userId - User ID whose quota usage records will be removed
+ * @param fromDate - Delete records from this date (inclusive); must be a valid Date
+ * @returns The number of deleted quota usage records
+ * @throws Error if `fromDate` is not a valid Date
  */
 export async function deleteQuotaUsageByUserSince(
   this: DatabaseService,
