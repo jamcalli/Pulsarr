@@ -26,6 +26,10 @@ import {
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
+// HTTP timeout constants
+const RADARR_API_TIMEOUT = 15000 // 15 seconds for API operations
+const RADARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
+
 // Custom error class to include HTTP status
 class HttpError extends Error {
   constructor(
@@ -344,7 +348,7 @@ export class RadarrService {
       headers: {
         'X-Api-Key': config.radarrApiKey,
       },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
     if (!response.ok) {
       throw new Error(`Radarr API error: ${response.statusText}`)
@@ -555,7 +559,7 @@ export class RadarrService {
             'X-Api-Key': config.radarrApiKey,
             Accept: 'application/json',
           },
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
         })
 
         if (!response.ok) {
@@ -837,7 +841,7 @@ export class RadarrService {
         'X-Api-Key': config.radarrApiKey,
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -876,7 +880,7 @@ export class RadarrService {
           Accept: 'application/json',
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
       })
 
       // Handle 204 No Content responses
@@ -933,7 +937,7 @@ export class RadarrService {
       headers: {
         'X-Api-Key': config.radarrApiKey,
       },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -978,7 +982,7 @@ export class RadarrService {
             'X-Api-Key': apiKey,
             Accept: 'application/json',
           },
-          signal: AbortSignal.timeout(10000), // 10 second timeout
+          signal: AbortSignal.timeout(RADARR_CONNECTION_TEST_TIMEOUT),
         })
       } catch (fetchError) {
         if (fetchError instanceof Error) {
@@ -1050,7 +1054,7 @@ export class RadarrService {
               'X-Api-Key': apiKey,
               Accept: 'application/json',
             },
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
           })
 
           if (!response.ok) {
@@ -1462,7 +1466,7 @@ export class RadarrService {
         Accept: 'application/json',
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -1499,7 +1503,7 @@ export class RadarrService {
       headers: {
         'X-Api-Key': config.radarrApiKey,
       },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(RADARR_API_TIMEOUT),
     })
 
     if (!response.ok) {

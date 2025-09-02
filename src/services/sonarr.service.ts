@@ -26,6 +26,10 @@ import {
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
+// HTTP timeout constants
+const SONARR_API_TIMEOUT = 15000 // 15 seconds for API operations
+const SONARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
+
 // Custom error class to include HTTP status
 class HttpError extends Error {
   constructor(
@@ -161,6 +165,7 @@ export class SonarrService {
 
         if (currentWebhookUrl === expectedWebhookUrl) {
           this.log.debug('Pulsarr Sonarr webhook exists with correct URL')
+          this.webhookInitialized = true
           return
         }
 
@@ -431,7 +436,7 @@ export class SonarrService {
             'X-Api-Key': apiKey,
             Accept: 'application/json',
           },
-          signal: AbortSignal.timeout(10000), // 10 second timeout
+          signal: AbortSignal.timeout(SONARR_CONNECTION_TEST_TIMEOUT),
         })
       } catch (fetchError) {
         if (fetchError instanceof Error) {
@@ -503,7 +508,7 @@ export class SonarrService {
               'X-Api-Key': apiKey,
               Accept: 'application/json',
             },
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
           })
 
           if (!response.ok) {
@@ -677,7 +682,7 @@ export class SonarrService {
             'X-Api-Key': config.sonarrApiKey,
             Accept: 'application/json',
           },
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
         })
 
         if (!response.ok) {
@@ -981,7 +986,7 @@ export class SonarrService {
         'X-Api-Key': config.sonarrApiKey,
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -1020,7 +1025,7 @@ export class SonarrService {
           Accept: 'application/json',
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
       })
 
       // Handle 204 No Content responses
@@ -1421,7 +1426,7 @@ export class SonarrService {
         Accept: 'application/json',
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -1457,7 +1462,7 @@ export class SonarrService {
       headers: {
         'X-Api-Key': config.sonarrApiKey,
       },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
