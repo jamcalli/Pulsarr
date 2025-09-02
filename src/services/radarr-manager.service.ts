@@ -1,4 +1,3 @@
-import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type {
   ConnectionTestResult,
   MinimumAvailability,
@@ -7,7 +6,6 @@ import type {
 } from '@root/types/radarr.types.js'
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import { RadarrService } from '@services/radarr.service.js'
-import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import {
   delayWithBackoffAndJitter,
@@ -287,40 +285,6 @@ export class RadarrManagerService {
   async getAllInstances(): Promise<RadarrInstance[]> {
     const instances = await this.fastify.db.getAllRadarrInstances()
     return instances
-  }
-
-  async verifyItemExists(
-    instanceId: number,
-    item: TemptRssWatchlistItem,
-  ): Promise<boolean> {
-    const radarrService = this.radarrServices.get(instanceId)
-    if (!radarrService) {
-      throw new Error(`Radarr instance ${instanceId} not found`)
-    }
-
-    // Get the instance configuration to check bypassIgnored setting
-    const instance = await this.fastify.db.getRadarrInstance(instanceId)
-    if (!instance) {
-      throw new Error(`Radarr instance ${instanceId} not found in database`)
-    }
-
-    // Pass the bypassIgnored setting to fetchMovies to bypass exclusions if configured
-    const existingMovies = await radarrService.fetchMovies(
-      instance.bypassIgnored,
-    )
-    // Use weighting system to find best match (prioritize higher GUID match counts)
-    const potentialMatches = [...existingMovies]
-      .map((movie) => ({
-        movie,
-        score: getGuidMatchScore(
-          parseGuids(movie.guids),
-          parseGuids(item.guids),
-        ),
-      }))
-      .filter((match) => match.score > 0)
-      .sort((a, b) => b.score - a.score)
-
-    return potentialMatches.length > 0
   }
 
   /**
