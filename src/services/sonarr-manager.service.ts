@@ -488,7 +488,8 @@ export class SonarrManagerService {
           }
 
           // Clean up old webhook from previous server (but not for placeholder transitions)
-          if (oldService && serverChanged) {
+          // Skip cleanup when transitioning from placeholder credentials (no real webhook existed)
+          if (oldService && serverChanged && current.apiKey !== 'placeholder') {
             try {
               await oldService.removeWebhook()
             } catch (cleanupErr) {

@@ -63,13 +63,11 @@ export default function SonarrInstancesPage() {
 
       <div>
         {isPlaceholderInstance && !showInstanceCard ? (
-          <div className="grid gap-6">
-            <div className="flex justify-between items-center">
-              <Button onClick={addInstance}>Add Your First Instance</Button>
-            </div>
-            <div className="text-center py-8 text-foreground">
-              <p>No Sonarr instances configured</p>
-            </div>
+          <div className="text-center py-8 text-foreground">
+            <p>No Sonarr instances configured</p>
+            <Button onClick={addInstance} className="mt-4">
+              Add Your First Instance
+            </Button>
           </div>
         ) : (
           <div className="grid gap-6">
