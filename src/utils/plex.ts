@@ -421,27 +421,27 @@ export const fetchSelfWatchlist = async (
             break
           }
 
-          const items = metadata.map((metadata) => {
-            const key = metadata.key
-              ? metadata.key
-                  .replace('/library/metadata/', '')
-                  .replace('/children', '')
-              : `temp-${Date.now()}-${Math.random()}`
+          const items = metadata
+            .filter((metadata) => Boolean(metadata.key))
+            .map((metadata) => {
+              const key = metadata.key
+                ?.replace('/library/metadata/', '')
+                .replace('/children', '')
 
-            return {
-              title: metadata.title || 'Unknown Title',
-              id: key,
-              key: key,
-              thumb: metadata.thumb || null,
-              type: metadata.type || 'unknown',
-              guids: [],
-              genres: [],
-              user_id: userId,
-              status: 'pending',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }
-          })
+              return {
+                title: metadata.title || 'Unknown Title',
+                id: key,
+                key: key,
+                thumb: metadata.thumb || null,
+                type: metadata.type || 'unknown',
+                guids: [],
+                genres: [],
+                user_id: userId,
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }
+            })
 
           log.debug(`Found ${items.length} items in current page`)
           for (const item of items) {
@@ -539,6 +539,11 @@ export const getFriends = async (
   log: FastifyBaseLogger,
 ): Promise<Set<[Friend, string]>> => {
   const allFriends = new Set<[Friend, string]>()
+
+  if (!config.plexTokens || config.plexTokens.length === 0) {
+    log.warn('No Plex tokens configured')
+    return allFriends
+  }
 
   for (const token of config.plexTokens) {
     // Skip falsy tokens to prevent predictable API failures
