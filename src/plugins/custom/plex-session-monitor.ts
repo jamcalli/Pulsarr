@@ -17,13 +17,7 @@ declare module 'fastify' {
 
 export default fp(
   async function plexSessionMonitor(fastify: FastifyInstance) {
-    const service = new PlexSessionMonitorService(
-      fastify.log,
-      fastify,
-      fastify.plexServerService,
-      fastify.sonarrManager,
-      fastify.db,
-    )
+    const service = new PlexSessionMonitorService(fastify.log, fastify)
 
     fastify.decorate('plexSessionMonitor', service)
 
@@ -83,7 +77,7 @@ export default fp(
           const intervalMinutes =
             config?.plexSessionMonitoring?.pollingIntervalMinutes || 15
 
-          fastify.log.info(
+          fastify.log.debug(
             `Scheduling Plex session monitoring to run every ${intervalMinutes} minutes`,
           )
 
@@ -141,7 +135,7 @@ export default fp(
           const sessionConfig = config?.plexSessionMonitoring
           const intervalHours = sessionConfig?.autoResetIntervalHours || 24
 
-          fastify.log.info(
+          fastify.log.debug(
             `Scheduling Plex rolling auto reset to run every ${intervalHours} hours`,
           )
 

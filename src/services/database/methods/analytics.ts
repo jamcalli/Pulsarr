@@ -76,7 +76,7 @@ export async function getTopGenres(
       .sort((a, b) => b.count - a.count)
       .slice(0, limit)
 
-    this.log.info(
+    this.log.debug(
       `Returning ${sortedGenres.length} top genres from ${Object.keys(genreCounts).length} total genres`,
     )
     return sortedGenres

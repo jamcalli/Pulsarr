@@ -11,6 +11,7 @@ import type {
   TautulliNotifier,
 } from '@root/types/tautulli.types.js'
 import { normalizeGuid } from '@root/utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { DatabaseService } from './database.service.js'
 
@@ -92,8 +93,14 @@ export class TautulliService {
   private readonly MAX_AGE_MS = 1800000 // 30 minutes max age
   private isPolling = false
 
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'TAUTULLI')
+  }
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
     this.db = fastify.db

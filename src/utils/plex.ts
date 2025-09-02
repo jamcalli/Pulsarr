@@ -57,6 +57,7 @@ async function handleRateLimitAndRetry(
     type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
   },
   retryAfterSec?: number,
+  notFoundCollector?: string[],
 ): Promise<Set<Item>> {
   // Set global rate limiter with the retry-after value
   const rateLimiter = PlexRateLimiter.getInstance()
@@ -82,6 +83,7 @@ async function handleRateLimitAndRetry(
       retryCount + 1,
       maxRetries,
       progressInfo,
+      notFoundCollector,
     )
   }
 
@@ -995,6 +997,9 @@ const toItemsBatch = async (
   let consecutiveSuccessCount = 0
   const RECOVERY_THRESHOLD = 5 // Number of successful items needed before attempting recovery
 
+  // Track 404 items for consolidated reporting
+  const notFoundItems: string[] = []
+
   // Get the global rate limiter instance
   const rateLimiter = PlexRateLimiter.getInstance()
 
@@ -1059,7 +1064,7 @@ const toItemsBatch = async (
             }
           : undefined
 
-        toItemsSingle(config, log, item, 0, 3, progressInfo)
+        toItemsSingle(config, log, item, 0, 3, progressInfo, notFoundItems)
           .then((itemSet) => {
             results.set(item, itemSet)
             processingCount--
@@ -1156,6 +1161,29 @@ const toItemsBatch = async (
     }
   }
 
+  // Log consolidated 404 warnings if any items were not found
+  if (notFoundItems.length > 0) {
+    // Truncate long titles for readability
+    const truncateTitle = (title: string, maxLength = 30): string => {
+      if (title.length <= maxLength) return title
+      return `${title.substring(0, maxLength - 3)}...`
+    }
+
+    const displayTitles = notFoundItems
+      .slice(0, 10) // Show up to 10 titles
+      .map((title) => `"${truncateTitle(title)}"`)
+      .join(', ')
+
+    const additionalCount =
+      notFoundItems.length > 10
+        ? ` (and ${notFoundItems.length - 10} more)`
+        : ''
+
+    log.warn(
+      `${notFoundItems.length} items not found in Plex database (HTTP 404) - skipping retries: ${displayTitles}${additionalCount}`,
+    )
+  }
+
   return results
 }
 
@@ -1170,6 +1198,7 @@ export const toItemsSingle = async (
     operationId: string
     type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
   },
+  notFoundCollector?: string[], // Optional array to collect 404 items instead of logging
 ): Promise<Set<Item>> => {
   // Get the global rate limiter instance
   const rateLimiter = PlexRateLimiter.getInstance()
@@ -1215,15 +1244,22 @@ export const toItemsSingle = async (
         maxRetries,
         progressInfo,
         retryAfterSec,
+        notFoundCollector,
       )
     }
 
     if (!response.ok) {
       // Check if it's a 404 error, which means the item doesn't exist in Plex
       if (response.status === 404) {
-        log.warn(
-          `Item "${item.title}" not found in Plex database (HTTP 404) - skipping retries`,
-        )
+        if (notFoundCollector) {
+          // Collect for consolidated logging
+          notFoundCollector.push(item.title)
+        } else {
+          // Log immediately if no collector provided (backward compatibility)
+          log.warn(
+            `Item "${item.title}" not found in Plex database (HTTP 404) - skipping retries`,
+          )
+        }
         return new Set()
       }
 
@@ -1274,6 +1310,7 @@ export const toItemsSingle = async (
         retryCount + 1,
         maxRetries,
         progressInfo,
+        notFoundCollector,
       )
     }
 
@@ -1307,15 +1344,23 @@ export const toItemsSingle = async (
         retryCount,
         maxRetries,
         progressInfo,
+        undefined, // No retry-after header in this case
+        notFoundCollector,
       )
     }
 
     if (error.message.includes('Plex API error')) {
       // Check specifically for 404 errors and avoid retrying
       if (error.message.includes('HTTP 404')) {
-        log.warn(
-          `Item "${item.title}" not found in Plex's database (404) - skipping retries`,
-        )
+        if (notFoundCollector) {
+          // Collect for consolidated logging
+          notFoundCollector.push(item.title)
+        } else {
+          // Log immediately if no collector provided (backward compatibility)
+          log.warn(
+            `Item "${item.title}" not found in Plex's database (404) - skipping retries`,
+          )
+        }
         return new Set()
       }
 
@@ -1333,6 +1378,7 @@ export const toItemsSingle = async (
           retryCount + 1,
           maxRetries,
           progressInfo,
+          notFoundCollector,
         )
       }
     }

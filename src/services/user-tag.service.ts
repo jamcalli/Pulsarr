@@ -7,6 +7,7 @@ import {
   getGuidMatchScore,
   parseGuids,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -58,8 +59,14 @@ interface MediaService {
  * Service to manage user tagging for media in Sonarr and Radarr
  */
 export class UserTagService {
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'USER_TAG')
+  }
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {}
 
@@ -282,8 +289,15 @@ export class UserTagService {
           results.failed += failedCount
           results.skipped += Math.max(skippedCount, 0)
 
-          this.log.info(
-            `Processed user tags for Sonarr instance ${instance.name}: created: ${createdCount}, skipped: ${skippedCount}, failed: ${failedCount}`,
+          this.log.debug(
+            {
+              instance: instance.name,
+              instanceId: instance.id,
+              created: createdCount,
+              skipped: skippedCount,
+              failed: failedCount,
+            },
+            'Processed user tags for Sonarr instance',
           )
         } catch (instanceError) {
           this.log.error(
@@ -352,8 +366,15 @@ export class UserTagService {
           results.failed += failedCount
           results.skipped += Math.max(skippedCount, 0)
 
-          this.log.info(
-            `Processed user tags for Radarr instance ${instance.name}: created: ${createdCount}, skipped: ${skippedCount}, failed: ${failedCount}`,
+          this.log.debug(
+            {
+              instance: instance.name,
+              instanceId: instance.id,
+              created: createdCount,
+              skipped: skippedCount,
+              failed: failedCount,
+            },
+            'Processed user tags for Radarr instance',
           )
         } catch (instanceError) {
           this.log.error(
@@ -590,7 +611,6 @@ export class UserTagService {
               // Only collect for bulk update if tags have changed
               if (!this.arraysEqual(existingTags, newTags)) {
                 bulkUpdates.push({ seriesId: sonarrId, tagIds: newTags })
-                instanceResults.tagged++
               } else {
                 instanceResults.skipped++
               }
@@ -607,6 +627,7 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await sonarrService.bulkUpdateSeriesTags(bulkUpdates)
+              instanceResults.tagged += bulkUpdates.length
               this.log.debug(
                 `Bulk updated ${bulkUpdates.length} series in Sonarr instance ${instance.name}`,
               )
@@ -623,6 +644,7 @@ export class UserTagService {
                     update.seriesId,
                     update.tagIds,
                   )
+                  instanceResults.tagged++
                 } catch (individualError) {
                   this.log.error(
                     { error: individualError },
@@ -886,7 +908,6 @@ export class UserTagService {
               // Only collect for bulk update if tags have changed
               if (!this.arraysEqual(existingTags, newTags)) {
                 bulkUpdates.push({ movieId: radarrId, tagIds: newTags })
-                instanceResults.tagged++
               } else {
                 instanceResults.skipped++
               }
@@ -903,6 +924,7 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await radarrService.bulkUpdateMovieTags(bulkUpdates)
+              instanceResults.tagged += bulkUpdates.length
               this.log.debug(
                 `Bulk updated ${bulkUpdates.length} movies in Radarr instance ${instance.name}`,
               )
@@ -919,6 +941,7 @@ export class UserTagService {
                     update.movieId,
                     update.tagIds,
                   )
+                  instanceResults.tagged++
                 } catch (individualError) {
                   this.log.error(
                     { error: individualError },
@@ -1365,8 +1388,13 @@ export class UserTagService {
       for (const instanceData of validInstancesData) {
         const { instance, service, userTags, series, userTagIds } = instanceData
 
-        this.log.info(
-          `Processing ${series.length} series in Sonarr instance ${instance.name} for tag removal`,
+        this.log.debug(
+          {
+            instance: instance.name,
+            instanceId: instance.id,
+            seriesCount: series.length,
+          },
+          'Processing series for tag removal',
         )
 
         try {
@@ -1423,8 +1451,7 @@ export class UserTagService {
                 seriesId: sonarrId,
                 tagIds: newTags,
               })
-
-              results.itemsUpdated++
+              // increment on success only
             } catch (error) {
               this.log.error(
                 { error },
@@ -1440,19 +1467,25 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await service.bulkUpdateSeriesTags(bulkUpdates)
-              this.log.info(
+              results.itemsUpdated += bulkUpdates.length
+              this.log.debug(
                 `Bulk updated ${bulkUpdates.length} series in ${instance.name}, removed ${tagsRemovedCount} user tags`,
               )
             } catch (bulkError) {
               this.log.warn(
-                `Bulk update failed for ${instance.name}, falling back to individual updates:`,
-                bulkError,
+                {
+                  error: bulkError,
+                  instance: instance.name,
+                  instanceId: instance.id,
+                },
+                'Bulk update failed; falling back to individual updates',
               )
 
               // Fallback to individual updates
               for (const update of bulkUpdates) {
                 try {
                   await service.updateSeriesTags(update.seriesId, update.tagIds)
+                  results.itemsUpdated++
                 } catch (individualError) {
                   this.log.error(
                     { error: individualError },
@@ -1646,8 +1679,13 @@ export class UserTagService {
       for (const instanceData of validInstancesData) {
         const { instance, service, userTags, movies, userTagIds } = instanceData
 
-        this.log.info(
-          `Processing ${movies.length} movies in Radarr instance ${instance.name} for tag removal`,
+        this.log.debug(
+          {
+            instance: instance.name,
+            instanceId: instance.id,
+            movieCount: movies.length,
+          },
+          'Processing movies for tag removal',
         )
 
         try {
@@ -1706,8 +1744,7 @@ export class UserTagService {
                 movieId: radarrId,
                 tagIds: newTags,
               })
-
-              results.itemsUpdated++
+              // increment on success only
             } catch (error) {
               this.log.error(
                 { error },
@@ -1723,19 +1760,25 @@ export class UserTagService {
           if (bulkUpdates.length > 0) {
             try {
               await service.bulkUpdateMovieTags(bulkUpdates)
-              this.log.info(
+              results.itemsUpdated += bulkUpdates.length
+              this.log.debug(
                 `Bulk updated ${bulkUpdates.length} movies in ${instance.name}, removed ${tagsRemovedCount} user tags`,
               )
             } catch (bulkError) {
               this.log.warn(
-                `Bulk update failed for ${instance.name}, falling back to individual updates:`,
-                bulkError,
+                {
+                  error: bulkError,
+                  instance: instance.name,
+                  instanceId: instance.id,
+                },
+                'Bulk update failed; falling back to individual updates',
               )
 
               // Fallback to individual updates
               for (const update of bulkUpdates) {
                 try {
                   await service.updateMovieTags(update.movieId, update.tagIds)
+                  results.itemsUpdated++
                 } catch (individualError) {
                   this.log.error(
                     { error: individualError },
@@ -1900,14 +1943,6 @@ export class UserTagService {
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9_\-:.]/g, '_') // keep safe charset
-
-    // Validate the tag prefix meets our requirements (consistent with API validation)
-    if (!/^[a-zA-Z0-9_\-:.]+$/.test(this.tagPrefix)) {
-      this.log.warn(
-        `Invalid tag prefix format: "${this.tagPrefix}". Using default "pulsarr:user" instead.`,
-      )
-      return `pulsarr:user:${sanitizedName}`
-    }
 
     return `${this.tagPrefix}:${sanitizedName}`
   }
@@ -2094,8 +2129,13 @@ export class UserTagService {
           continue
         }
 
-        this.log.info(
-          `Found ${orphanedTags.length} orphaned user tags in Sonarr instance ${instance.name}`,
+        this.log.debug(
+          {
+            instance: instance.name,
+            instanceId: instance.id,
+            orphanedTags: orphanedTags.length,
+          },
+          'Found orphaned user tags',
         )
 
         // Get all series with their tags in one bulk call
@@ -2147,13 +2187,22 @@ export class UserTagService {
         if (bulkUpdates.length > 0) {
           try {
             await sonarrService.bulkUpdateSeriesTags(bulkUpdates)
-            this.log.info(
-              `Bulk removed orphaned tags from ${bulkUpdates.length} series in ${instance.name}`,
+            this.log.debug(
+              {
+                instance: instance.name,
+                instanceId: instance.id,
+                updatedSeries: bulkUpdates.length,
+              },
+              'Bulk removed orphaned tags',
             )
           } catch (bulkError) {
             this.log.warn(
-              `Bulk orphaned tag cleanup failed for ${instance.name}, falling back to individual updates:`,
-              bulkError,
+              {
+                error: bulkError,
+                instance: instance.name,
+                instanceId: instance.id,
+              },
+              'Bulk orphaned tag cleanup failed; falling back to individual updates',
             )
 
             // Fallback to individual updates
@@ -2175,8 +2224,13 @@ export class UserTagService {
           }
         }
 
-        this.log.info(
-          `Completed orphaned tag cleanup for Sonarr instance ${instance.name}: removed tags from ${results.removed} series`,
+        this.log.debug(
+          {
+            instance: instance.name,
+            instanceId: instance.id,
+            cleanedSeries: bulkUpdates.length,
+          },
+          'Completed orphaned tag cleanup for Sonarr',
         )
 
         _sonarrInstancesProcessed++
@@ -2242,8 +2296,13 @@ export class UserTagService {
           continue
         }
 
-        this.log.info(
-          `Found ${orphanedTags.length} orphaned user tags in Radarr instance ${instance.name}`,
+        this.log.debug(
+          {
+            instance: instance.name,
+            instanceId: instance.id,
+            orphanedTags: orphanedTags.length,
+          },
+          'Found orphaned user tags',
         )
 
         // Get all movies with their tags in one bulk call
@@ -2295,13 +2354,22 @@ export class UserTagService {
         if (bulkUpdates.length > 0) {
           try {
             await radarrService.bulkUpdateMovieTags(bulkUpdates)
-            this.log.info(
-              `Bulk removed orphaned tags from ${bulkUpdates.length} movies in ${instance.name}`,
+            this.log.debug(
+              {
+                instance: instance.name,
+                instanceId: instance.id,
+                updatedMovies: bulkUpdates.length,
+              },
+              'Bulk removed orphaned tags',
             )
           } catch (bulkError) {
             this.log.warn(
-              `Bulk orphaned tag cleanup failed for ${instance.name}, falling back to individual updates:`,
-              bulkError,
+              {
+                error: bulkError,
+                instance: instance.name,
+                instanceId: instance.id,
+              },
+              'Bulk orphaned tag cleanup failed; falling back to individual updates',
             )
 
             // Fallback to individual updates
@@ -2323,8 +2391,13 @@ export class UserTagService {
           }
         }
 
-        this.log.info(
-          `Completed orphaned tag cleanup for Radarr instance ${instance.name}: removed tags from ${results.removed} movies`,
+        this.log.debug(
+          {
+            instance: instance.name,
+            instanceId: instance.id,
+            cleanedMovies: bulkUpdates.length,
+          },
+          'Completed orphaned tag cleanup for Radarr',
         )
 
         _radarrInstancesProcessed++

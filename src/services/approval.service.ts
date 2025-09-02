@@ -11,14 +11,28 @@ import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ContentItem } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import { getGuidMatchScore } from '@utils/guid-handler.js'
-import type { FastifyInstance } from 'fastify'
+import { createServiceLogger } from '@utils/logger.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class ApprovalService {
   private notificationQueue: Set<number> = new Set()
   private notificationTimer: NodeJS.Timeout | null = null
   private readonly NOTIFICATION_DEBOUNCE_MS = 3000 // 3 seconds
 
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.fastify.log, 'APPROVAL')
+  }
+
   constructor(private fastify: FastifyInstance) {}
+
+  /**
+   * Log scheduled job execution with proper service prefix
+   */
+  logScheduledJob(action: 'start' | 'complete', jobName: string): void {
+    this.log.info(
+      `${action === 'start' ? 'Running' : 'Completed'} scheduled job: ${jobName}`,
+    )
+  }
 
   /**
    * Emits SSE event for approval actions
@@ -33,7 +47,7 @@ export class ApprovalService {
       const finalUserName =
         request.userName || userName || `User ${request.userId}`
 
-      this.fastify.log.debug(
+      this.log.debug(
         `Emitting approval SSE event: action=${action}, requestId=${request.id}, userName="${userName}", request.userName="${request.userName}", finalUserName="${finalUserName}"`,
       )
 
@@ -91,7 +105,7 @@ export class ApprovalService {
     const expirationDate = new Date()
     expirationDate.setHours(expirationDate.getHours() + expirationHours)
 
-    this.fastify.log.debug(
+    this.log.debug(
       `Calculated expiration date for trigger "${trigger}": ${expirationDate.toISOString()} (${expirationHours} hours from now)`,
     )
 
@@ -142,7 +156,7 @@ export class ApprovalService {
     expiresAt?: Date,
     plexKey?: string,
   ): Promise<ApprovalRequest> {
-    this.fastify.log.debug(
+    this.log.debug(
       `ApprovalService.createApprovalRequest called with content.title="${content.title}", content.guids=${JSON.stringify(content.guids)}, plexKey="${plexKey}"`,
     )
 
@@ -165,7 +179,7 @@ export class ApprovalService {
       expiresAt: calculatedExpiresAt?.toISOString() || null,
     }
 
-    this.fastify.log.debug(
+    this.log.debug(
       `Creating approval request with data: userId=${data.userId}, contentTitle="${data.contentTitle}", contentKey="${data.contentKey}"`,
     )
 
@@ -181,11 +195,11 @@ export class ApprovalService {
       // Queue Discord notification to primary admin if Discord bot is available
       this.queueDiscordApprovalNotification(result.request)
 
-      this.fastify.log.info(
+      this.log.info(
         `New approval request created for "${result.request.contentTitle}" by user ${user.id}`,
       )
     } else {
-      this.fastify.log.debug(
+      this.log.debug(
         `Found existing pending approval request for "${result.request.contentTitle}" by user ${user.id}, skipping notifications`,
       )
     }
@@ -226,7 +240,7 @@ export class ApprovalService {
       const matchingRequests = potentialMatches.map((match) => match.req)
 
       if (matchingRequests.length > 0) {
-        this.fastify.log.info(
+        this.log.info(
           `Found ${matchingRequests.length} pending requests for same content, auto-approving them`,
         )
 
@@ -238,16 +252,13 @@ export class ApprovalService {
             approvalNotes: `Auto-approved: Content already added to system by another user's request`,
           })
 
-          this.fastify.log.info(
+          this.log.info(
             `Auto-approved request ${matchingRequest.id} for user ${matchingRequest.userId}: ${matchingRequest.contentTitle} (content already available)`,
           )
         }
       }
     } catch (error) {
-      this.fastify.log.error(
-        { error },
-        'Error handling cross-user content fulfillment',
-      )
+      this.log.error({ error }, 'Error handling cross-user content fulfillment')
       // Don't throw - this is a nice-to-have feature
     }
   }
@@ -284,7 +295,7 @@ export class ApprovalService {
         const { instanceType, instanceId, syncedInstances } = proposedRouting
         const allInstanceIds = [instanceId, ...(syncedInstances || [])]
 
-        this.fastify.log.info(
+        this.log.info(
           `Processing approval routing to ${allInstanceIds.length} instances: ${allInstanceIds.join(', ')} (primary: ${instanceId}, synced: ${syncedInstances?.join(', ') || 'none'})`,
         )
 
@@ -318,7 +329,7 @@ export class ApprovalService {
               )
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {
-              this.fastify.log.error(
+              this.log.error(
                 { error, instanceId: targetInstanceId },
                 'Failed to route to Radarr instance',
               )
@@ -358,7 +369,7 @@ export class ApprovalService {
               )
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {
-              this.fastify.log.error(
+              this.log.error(
                 `Failed to route to Sonarr instance ${targetInstanceId}:`,
                 error,
               )
@@ -377,7 +388,7 @@ export class ApprovalService {
         }
 
         if (routingResults.failed.length > 0) {
-          this.fastify.log.warn(
+          this.log.warn(
             `Partial routing failure: ${routingResults.failed.length} of ${allInstanceIds.length} instances failed`,
           )
         }
@@ -388,7 +399,7 @@ export class ApprovalService {
           request.contentType,
         )
 
-        this.fastify.log.info(
+        this.log.info(
           `Successfully routed approved request ${request.id} for user ${request.userId}: ${request.contentTitle} to ${instanceType} instance ${instanceId}`,
         )
 
@@ -405,7 +416,7 @@ export class ApprovalService {
 
       return { success: false, error: 'Invalid routing decision' }
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         { error, requestId: request.id },
         'Failed to process approved request',
       )
@@ -425,9 +436,7 @@ export class ApprovalService {
 
       // Only run maintenance if approval expiration is enabled
       if (!config?.enabled) {
-        this.fastify.log.debug(
-          'Approval expiration disabled, skipping maintenance',
-        )
+        this.log.debug('Approval expiration disabled, skipping maintenance')
         return
       }
 
@@ -438,7 +447,7 @@ export class ApprovalService {
           await this.fastify.db.getExpiredPendingRequests()
 
         if (expiredRequests.length > 0) {
-          this.fastify.log.info(
+          this.log.info(
             `Auto-approving ${expiredRequests.length} expired approval requests`,
           )
 
@@ -464,17 +473,17 @@ export class ApprovalService {
                 const processResult =
                   await this.processApprovedRequest(approvedRequest)
                 if (processResult.success) {
-                  this.fastify.log.info(
+                  this.log.info(
                     `Successfully auto-approved and processed expired request ${request.id} for user ${request.userId}: ${request.contentTitle}`,
                   )
                 } else {
-                  this.fastify.log.warn(
+                  this.log.warn(
                     `Auto-approved expired request ${request.id} but failed to process: ${processResult.error}`,
                   )
                 }
               }
             } catch (error) {
-              this.fastify.log.error(
+              this.log.error(
                 `Failed to auto-approve expired request ${request.id}:`,
                 error,
               )
@@ -490,7 +499,7 @@ export class ApprovalService {
           config.expirationAction === 'auto_approve'
             ? 'processed/expired'
             : 'expired'
-        this.fastify.log.info(`${action} ${expiredCount} old approval requests`)
+        this.log.info(`${action} ${expiredCount} old approval requests`)
       }
 
       // Cleanup old expired requests based on configuration
@@ -498,15 +507,12 @@ export class ApprovalService {
       const cleanedCount =
         await this.fastify.db.cleanupExpiredRequests(cleanupDays)
       if (cleanedCount > 0) {
-        this.fastify.log.info(
+        this.log.info(
           `Cleaned up ${cleanedCount} expired approval requests (retention: ${cleanupDays} days)`,
         )
       }
     } catch (error) {
-      this.fastify.log.error(
-        { error },
-        'Failed to perform approval maintenance:',
-      )
+      this.log.error({ error }, 'Failed to perform approval maintenance:')
     }
   }
 
@@ -568,7 +574,7 @@ export class ApprovalService {
 
       return result
     } catch (error) {
-      this.fastify.log.error({ error }, `Error approving request ${requestId}:`)
+      this.log.error({ error }, `Error approving request ${requestId}:`)
       return null
     }
   }
@@ -595,7 +601,7 @@ export class ApprovalService {
 
       return result
     } catch (error) {
-      this.fastify.log.error({ error }, `Error rejecting request ${requestId}:`)
+      this.log.error({ error }, `Error rejecting request ${requestId}:`)
       return null
     }
   }
@@ -630,7 +636,7 @@ export class ApprovalService {
           // Process the approved request
           const processResult = await this.processApprovedRequest(result)
           if (!processResult.success) {
-            this.fastify.log.warn(
+            this.log.warn(
               `Approved request ${id} but failed to process: ${processResult.error}`,
             )
           }
@@ -712,10 +718,7 @@ export class ApprovalService {
 
       return deleted
     } catch (error) {
-      this.fastify.log.error(
-        { error, requestId },
-        'Error deleting approval request',
-      )
+      this.log.error({ error, requestId }, 'Error deleting approval request')
       return false
     }
   }
@@ -759,7 +762,7 @@ export class ApprovalService {
     // Add request to the queue
     this.notificationQueue.add(request.id)
 
-    this.fastify.log.debug(
+    this.log.debug(
       { approvalId: request.id, queueSize: this.notificationQueue.size },
       'Queued approval notification',
     )
@@ -789,7 +792,7 @@ export class ApprovalService {
     const notifySetting = this.fastify.config?.approvalNotify || 'none'
 
     if (notifySetting === 'none') {
-      this.fastify.log.debug('Approval notifications disabled, skipping')
+      this.log.debug('Approval notifications disabled, skipping')
       return
     }
 
@@ -838,7 +841,7 @@ export class ApprovalService {
       // Check if Discord service is available and running
       const discordService = this.fastify.discord
       if (!discordService || discordService.getBotStatus() !== 'running') {
-        this.fastify.log.debug(
+        this.log.debug(
           'Discord bot not available, skipping batched approval notification',
         )
         return
@@ -847,7 +850,7 @@ export class ApprovalService {
       // Get primary admin user
       const primaryUser = await this.fastify.db.getPrimaryUser()
       if (!primaryUser?.discord_id) {
-        this.fastify.log.debug(
+        this.log.debug(
           'Primary user has no Discord ID, skipping batched approval notification',
         )
         return
@@ -865,7 +868,7 @@ export class ApprovalService {
       )
 
       if (queuedRequests.length === 0) {
-        this.fastify.log.debug('No queued requests found in pending approvals')
+        this.log.debug('No queued requests found in pending approvals')
         return
       }
 
@@ -964,7 +967,7 @@ export class ApprovalService {
       })
 
       // Log successful batched notification
-      this.fastify.log.info(
+      this.log.info(
         {
           queuedRequestIds,
           queueSize: queuedRequests.length,
@@ -974,7 +977,7 @@ export class ApprovalService {
         'Sent batched Discord notification for approval requests',
       )
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         { error, queuedRequestIds: Array.from(this.notificationQueue) },
         'Error sending batched Discord approval notification',
       )
@@ -988,7 +991,7 @@ export class ApprovalService {
     try {
       const discordService = this.fastify.discord
       if (!discordService) {
-        this.fastify.log.debug(
+        this.log.debug(
           'Discord service not available, skipping webhook notifications',
         )
         return
@@ -1005,9 +1008,7 @@ export class ApprovalService {
       )
 
       if (queuedRequests.length === 0) {
-        this.fastify.log.debug(
-          'No queued requests found for webhook notifications',
-        )
+        this.log.debug('No queued requests found for webhook notifications')
         return
       }
 
@@ -1019,7 +1020,7 @@ export class ApprovalService {
         )
       }
 
-      this.fastify.log.info(
+      this.log.info(
         {
           queuedRequestIds,
           count: queuedRequests.length,
@@ -1027,7 +1028,7 @@ export class ApprovalService {
         'Sent Discord webhook notifications for approval requests',
       )
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         { error, queuedRequestIds: Array.from(this.notificationQueue) },
         'Error sending Discord webhook approval notifications',
       )
@@ -1041,9 +1042,7 @@ export class ApprovalService {
     try {
       const appriseService = this.fastify.apprise
       if (!appriseService || !appriseService.isEnabled()) {
-        this.fastify.log.debug(
-          'Apprise service not available, skipping notifications',
-        )
+        this.log.debug('Apprise service not available, skipping notifications')
         return
       }
 
@@ -1058,9 +1057,7 @@ export class ApprovalService {
       )
 
       if (queuedRequests.length === 0) {
-        this.fastify.log.debug(
-          'No queued requests found for Apprise notifications',
-        )
+        this.log.debug('No queued requests found for Apprise notifications')
         return
       }
 
@@ -1069,7 +1066,7 @@ export class ApprovalService {
         await this.sendIndividualAppriseNotification(request, totalPending)
       }
 
-      this.fastify.log.info(
+      this.log.info(
         {
           queuedRequestIds,
           count: queuedRequests.length,
@@ -1077,7 +1074,7 @@ export class ApprovalService {
         'Sent Apprise notifications for approval requests',
       )
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         { error, queuedRequestIds: Array.from(this.notificationQueue) },
         'Error sending Apprise approval notifications',
       )
@@ -1105,9 +1102,7 @@ export class ApprovalService {
           posterUrl = watchlistItems[0].thumb
         }
       } catch (_error) {
-        this.fastify.log.debug(
-          'Could not fetch poster for approval notification',
-        )
+        this.log.debug('Could not fetch poster for approval notification')
       }
 
       // Create embed with clean, professional format
@@ -1154,7 +1149,7 @@ export class ApprovalService {
 
       await discordService.sendNotification(payload)
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         { error, approvalId: request.id },
         'Error sending individual Discord webhook notification',
       )
@@ -1182,7 +1177,7 @@ export class ApprovalService {
           posterUrl = watchlistItems[0].thumb
         }
       } catch (_error) {
-        this.fastify.log.debug(
+        this.log.debug(
           'Could not fetch poster for Apprise approval notification',
         )
       }
@@ -1226,7 +1221,7 @@ export class ApprovalService {
 
       await appriseService.sendSystemNotification(systemNotification)
     } catch (error) {
-      this.fastify.log.error(
+      this.log.error(
         { error, approvalId: request.id },
         'Error sending individual Apprise notification',
       )

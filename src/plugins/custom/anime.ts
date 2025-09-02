@@ -65,7 +65,7 @@ async function animePlugin(fastify: FastifyInstance) {
           },
         })
 
-        fastify.log.info('Created anime update schedule')
+        fastify.log.debug('Created anime update schedule')
       }
 
       // Register the job handler with the scheduler
@@ -117,7 +117,7 @@ async function animePlugin(fastify: FastifyInstance) {
         )
       }
 
-      fastify.log.info('Anime plugin initialized successfully')
+      fastify.log.debug('Anime plugin initialized successfully')
     } catch (error) {
       fastify.log.error({ error }, 'Failed to initialize anime plugin:')
     }

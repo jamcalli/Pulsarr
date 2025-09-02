@@ -26,6 +26,8 @@ import type {
   DbSchedule,
   IntervalConfig,
 } from '@root/types/scheduler.types.js'
+import { createServiceLogger } from '@utils/logger.js'
+import { CronExpressionParser } from 'cron-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   AsyncTask,
@@ -52,15 +54,29 @@ export class SchedulerService {
 
   /** Map of job names to their job instances and handlers */
   private readonly jobs: JobMap = new Map()
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'SCHEDULER')
+  }
+
+  /** Track if we're in the initial startup phase */
+  private isInitializing = true
+
+  /** Expected handler count for completion tracking */
+  private expectedHandlerCount = 0
+
+  /** Flag to track if ready message has been logged */
+  private hasLoggedReady = false
 
   /**
    * Creates a new SchedulerService instance
    *
-   * @param log - Fastify logger for recording operations
+   * @param baseLog - Fastify logger for recording operations
    * @param fastify - Fastify instance for accessing other services
    */
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
     this.scheduler = new ToadScheduler()
@@ -76,13 +92,16 @@ export class SchedulerService {
   async initializeJobsFromDatabase(): Promise<void> {
     try {
       const schedules = await this.fastify.db.getAllSchedules()
-      this.log.info(`Initializing ${schedules.length} jobs from database`)
+      this.log.debug(`Initializing ${schedules.length} jobs from database`)
+
+      let _jobsScheduled = 0
+      let _jobsDisabled = 0
 
       for (const schedule of schedules) {
         const handler = this.jobs.get(schedule.name)?.handler
 
         if (handler && schedule.enabled) {
-          this.log.info(`Setting up job: ${schedule.name}`)
+          this.log.debug(`Setting up job: ${schedule.name}`)
 
           try {
             const job = this.createJob(
@@ -110,16 +129,50 @@ export class SchedulerService {
               handler,
             })
 
-            this.log.info(`Job ${schedule.name} scheduled successfully`)
+            this.log.debug(`Job ${schedule.name} scheduled successfully`)
+            _jobsScheduled++
           } catch (error) {
             this.log.error({ error }, `Error setting up job ${schedule.name}`)
           }
         } else if (!handler) {
-          this.log.warn(`No handler registered for job ${schedule.name}`)
+          // During initial startup, this is expected as services haven't registered handlers yet
+          if (this.isInitializing) {
+            this.log.debug(
+              `Job ${schedule.name} found in database - awaiting handler registration from service`,
+            )
+          } else {
+            // After initialization, this would be a real issue
+            this.log.warn(`No handler registered for job ${schedule.name}`)
+          }
         } else if (!schedule.enabled) {
-          this.log.info(`Job ${schedule.name} is disabled`)
+          this.log.debug(`Job ${schedule.name} is disabled`)
+          _jobsDisabled++
         }
       }
+
+      // Store expected handler count for completion tracking
+      this.expectedHandlerCount = schedules.filter((s) => s.enabled).length
+
+      // Log initialization summary
+      this.log.debug(
+        {
+          scheduled: _jobsScheduled,
+          disabled: _jobsDisabled,
+          total: schedules.length,
+        },
+        'Job initialization summary',
+      )
+
+      // Start monitoring for completion
+      this.checkForCompletionReadiness()
+
+      // Mark initialization as complete after a short delay to allow services to register
+      setTimeout(() => {
+        this.isInitializing = false
+        this.log.debug('Scheduler initialization phase complete')
+        // Final check for completion after initialization period
+        this.checkForCompletionReadiness()
+      }, 5000)
     } catch (error) {
       this.log.error({ error }, 'Error initializing jobs from database')
     }
@@ -261,14 +314,21 @@ export class SchedulerService {
           job: existingJob.job,
           handler,
         })
-        this.log.info(`Updated handler for existing job: ${name}`)
+        this.log.debug(`Updated handler for existing job: ${name}`)
       } else {
         // Register new handler
         this.jobs.set(name, {
           job: null,
           handler,
         })
-        this.log.info(`Registered handler for job: ${name}`)
+        // Log at appropriate level based on initialization state
+        if (this.isInitializing) {
+          this.log.debug(
+            `Registered handler for job: ${name} (during initialization)`,
+          )
+        } else {
+          this.log.info(`Registered handler for new job: ${name}`)
+        }
       }
 
       // Get schedule from database
@@ -297,7 +357,7 @@ export class SchedulerService {
         })
 
         schedule = await this.fastify.db.getScheduleByName(name)
-        this.log.info(
+        this.log.debug(
           `Created default schedule for job ${name} with next run at ${nextRun.toISOString()}`,
         )
       }
@@ -326,8 +386,11 @@ export class SchedulerService {
         // Save reference to the job
         this.jobs.set(name, { job, handler })
 
-        this.log.info(`Job ${name} scheduled successfully`)
+        this.log.debug(`Job ${name} scheduled successfully`)
       }
+
+      // Check if we're now ready (all handlers registered)
+      this.checkForCompletionReadiness()
 
       return true
     } catch (error) {
@@ -348,7 +411,7 @@ export class SchedulerService {
       if (job) {
         this.scheduler.removeById(name)
         this.jobs.delete(name)
-        this.log.info(`Job ${name} unscheduled successfully`)
+        this.log.debug(`Job ${name} unscheduled successfully`)
         return true
       }
       return false
@@ -467,7 +530,7 @@ export class SchedulerService {
         }
       }
 
-      const _updateResult = await this.fastify.db.updateSchedule(name, updates)
+      await this.fastify.db.updateSchedule(name, updates)
 
       // Get job and handler
       const jobData = this.jobs.get(name)
@@ -502,7 +565,7 @@ export class SchedulerService {
         // Update reference
         this.jobs.set(name, { job, handler: jobData.handler })
 
-        this.log.info(`Job ${name} updated with new configuration`)
+        this.log.debug(`Job ${name} updated with new configuration`)
       }
       // If job was disabled but should be enabled
       else if (!schedule.enabled && enabled === true) {
@@ -527,7 +590,7 @@ export class SchedulerService {
         // Update reference
         this.jobs.set(name, { job, handler: jobData.handler })
 
-        this.log.info(`Job ${name} enabled and scheduled`)
+        this.log.debug(`Job ${name} enabled and scheduled`)
       }
       // If job was enabled but should be disabled
       else if (schedule.enabled && enabled === false) {
@@ -535,7 +598,7 @@ export class SchedulerService {
         this.scheduler.removeById(name)
         this.jobs.set(name, { job: null, handler: jobData.handler })
 
-        this.log.info(`Job ${name} disabled`)
+        this.log.debug(`Job ${name} disabled`)
       }
 
       return true
@@ -568,121 +631,48 @@ export class SchedulerService {
    * Calculate the next run time for a cron expression
    */
   private calculateNextCronRun(expression: string): Date {
-    const now = new Date()
-    const nextRun = new Date(now)
-
-    // Reset seconds and milliseconds
-    nextRun.setSeconds(0)
-    nextRun.setMilliseconds(0)
-
-    // Parse the cron expression
-    const parts = expression
-      .split(' ')
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0)
-
-    let minute: string
-    let hour: string
-    let dayOfWeek: string
-
-    if (parts.length >= 6) {
-      // 6-part format with seconds: [seconds] [minute] [hour] [day of month] [month] [day of week]
-      minute = parts[1]
-      hour = parts[2]
-      dayOfWeek = parts[5]
-    } else if (parts.length >= 5) {
-      // 5-part format without seconds: [minute] [hour] [day of month] [month] [day of week]
-      minute = parts[0]
-      hour = parts[1]
-      dayOfWeek = parts[4]
-    } else {
-      // Invalid format, add 24 hours as fallback
+    try {
+      const interval = CronExpressionParser.parse(expression, {
+        currentDate: new Date(),
+      })
+      return interval.next().toDate()
+    } catch (err) {
       this.log.warn(
-        `Invalid cron expression format (${parts.length} parts): ${expression}`,
+        { err, expression },
+        'Invalid cron expression; defaulting to +24h',
       )
-      nextRun.setHours(nextRun.getHours() + 24)
-      return nextRun
+      const next = new Date()
+      next.setHours(next.getHours() + 24)
+      return next
+    }
+  }
+
+  /**
+   * Check if all expected handlers are registered and log completion message
+   */
+  private checkForCompletionReadiness(): void {
+    // Don't check if we've already logged ready or have no expected handlers
+    if (this.hasLoggedReady || this.expectedHandlerCount === 0) {
+      return
     }
 
-    // Handle day of week (0-6, where 0 is Sunday)
-    if (dayOfWeek !== '*') {
-      const targetDay = Number.parseInt(dayOfWeek, 10)
-      const currentDay = now.getDay()
-
-      // Calculate days until the target day
-      let daysUntilTarget = targetDay - currentDay
-      if (daysUntilTarget <= 0) {
-        // If target day is today or already passed this week, go to next week
-        daysUntilTarget += 7
-      }
-
-      // Set the day to the next occurrence
-      nextRun.setDate(now.getDate() + daysUntilTarget)
-    }
-
-    // Set hour and minute
-    if (hour !== '*') {
-      if (hour.startsWith('*/')) {
-        // Handle interval syntax like */4 (every 4 hours)
-        const interval = Number.parseInt(hour.slice(2), 10)
-        const currentHour = now.getHours()
-
-        // Calculate next hour that's a multiple of the interval
-        let nextHourInterval =
-          Math.ceil((currentHour + 1) / interval) * interval
-
-        // Handle day rollover
-        if (nextHourInterval >= 24) {
-          nextRun.setDate(nextRun.getDate() + 1)
-          nextHourInterval = nextHourInterval % 24
-        }
-
-        nextRun.setHours(nextHourInterval)
-      } else {
-        nextRun.setHours(Number.parseInt(hour, 10))
-      }
-    } else {
-      nextRun.setHours(0) // Default to midnight if wildcard
-    }
-
-    if (minute !== '*') {
-      if (minute.startsWith('*/')) {
-        // Handle interval syntax like */15 (every 15 minutes)
-        const interval = Number.parseInt(minute.slice(2), 10)
-        const currentMinute = now.getMinutes()
-
-        // Calculate next minute that's a multiple of the interval
-        const shouldAdvance = now.getSeconds() > 0
-        let nextMinuteInterval = shouldAdvance
-          ? Math.ceil((currentMinute + 1) / interval) * interval
-          : Math.ceil(currentMinute / interval) * interval
-
-        // Handle hour rollover
-        if (nextMinuteInterval >= 60) {
-          nextRun.setHours(nextRun.getHours() + 1)
-          nextMinuteInterval = nextMinuteInterval % 60
-        }
-
-        nextRun.setMinutes(nextMinuteInterval)
-      } else {
-        nextRun.setMinutes(Number.parseInt(minute, 10))
-      }
-    } else {
-      nextRun.setMinutes(0) // Default to 0 minutes if wildcard
-    }
-
-    // Check if the calculated time is in the past
-    if (nextRun <= now) {
-      // If using day of week and the time has passed today
-      if (dayOfWeek !== '*') {
-        // Move to next week
-        nextRun.setDate(nextRun.getDate() + 7)
-      } else {
-        // For daily schedules, move to next day
-        nextRun.setDate(nextRun.getDate() + 1)
+    // Count currently active (scheduled) jobs
+    let activeJobCount = 0
+    for (const [_name, jobData] of this.jobs) {
+      if (jobData.job !== null) {
+        activeJobCount++
       }
     }
 
-    return nextRun
+    // Count total registered handlers
+    const registeredHandlerCount = this.jobs.size
+
+    // Check if we have handlers for all expected jobs
+    if (registeredHandlerCount >= this.expectedHandlerCount) {
+      this.hasLoggedReady = true
+      this.log.info(
+        `Scheduler ready: ${activeJobCount} jobs scheduled and active`,
+      )
+    }
   }
 }

@@ -20,18 +20,11 @@ declare module 'fastify' {
 export default fp(
   async function plexLabelSync(fastify: FastifyInstance) {
     // Create the Plex label sync service
-    const plexLabelSyncService = new PlexLabelSyncService(
-      fastify.log,
-      fastify.plexServerService,
-      fastify.db,
-      fastify,
-    )
+    const plexLabelSyncService = new PlexLabelSyncService(fastify.log, fastify)
 
     // Create the pending sync processor service
     const pendingLabelSyncProcessor = new PendingLabelSyncProcessorService(
       fastify.log,
-      fastify.db,
-      plexLabelSyncService,
       fastify,
     )
 
@@ -142,7 +135,7 @@ export default fp(
             },
           })
 
-          fastify.log.info('Created plex label full sync schedule')
+          fastify.log.debug('Created plex label full sync schedule')
         }
 
         // Register the full sync job handler
@@ -167,7 +160,7 @@ export default fp(
           },
         )
 
-        fastify.log.info(
+        fastify.log.debug(
           'Plex label sync scheduler jobs registered successfully',
         )
       } catch (error) {

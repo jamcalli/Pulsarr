@@ -74,7 +74,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           },
         })
 
-        fastify.log.info('Created metadata refresh schedule')
+        fastify.log.debug('Created metadata refresh schedule')
       }
 
       // Register the job handler with the scheduler
@@ -101,7 +101,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     }
   })
 
-  fastify.log.info('Metadata refresh plugin initialized')
+  fastify.log.debug('Metadata refresh plugin initialized')
 }
 
 export default fp(plugin, {
