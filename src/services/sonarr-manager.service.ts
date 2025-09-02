@@ -9,7 +9,11 @@ import type {
 import { SonarrService } from '@services/sonarr.service.js'
 import { getGuidMatchScore, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { isSameServerEndpoint } from '@utils/url.js'
+import {
+  delayWithBackoffAndJitter,
+  isSameServerEndpoint,
+  normalizeEndpointWithPath,
+} from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class SonarrManagerService {
@@ -53,6 +57,15 @@ export class SonarrManagerService {
       }
 
       for (const instance of instances) {
+        this.log.debug(
+          {
+            id: instance.id,
+            name: instance.name,
+            baseUrl: instance.baseUrl,
+          },
+          'Attempting to initialize instance',
+        )
+
         try {
           const sonarrService = new SonarrService(
             this.baseLog,
@@ -62,15 +75,45 @@ export class SonarrManagerService {
           )
           await sonarrService.initialize(instance)
           this.sonarrServices.set(instance.id, sonarrService)
-        } catch (error) {
+          this.log.debug(
+            { instanceId: instance.id, instanceName: instance.name },
+            'Successfully initialized Sonarr service',
+          )
+        } catch (instanceError) {
           this.log.error(
             {
-              error,
+              error: instanceError,
               instanceId: instance.id,
               instanceName: instance.name,
             },
-            'Failed to initialize Sonarr service for instance',
+            'Failed to initialize Sonarr service for instance, will retry',
           )
+
+          // Use bounded backoff with jitter for retry
+          await delayWithBackoffAndJitter(0, 500, 2000)
+          try {
+            const sonarrService = new SonarrService(
+              this.baseLog,
+              this.appBaseUrl,
+              this.port,
+              this.fastify,
+            )
+            await sonarrService.initialize(instance)
+            this.sonarrServices.set(instance.id, sonarrService)
+            this.log.debug(
+              { instanceId: instance.id, instanceName: instance.name },
+              'Successfully initialized Sonarr service on retry',
+            )
+          } catch (retryError) {
+            this.log.error(
+              {
+                error: retryError,
+                instanceId: instance.id,
+                instanceName: instance.name,
+              },
+              'Failed to initialize Sonarr service after retry',
+            )
+          }
         }
       }
 
@@ -111,34 +154,33 @@ export class SonarrManagerService {
     const allSeries: SonarrItem[] = []
     const instances = await this.fastify.db.getAllSonarrInstances()
 
-    for (const instance of instances) {
-      try {
-        const sonarrService = this.sonarrServices.get(instance.id)
+    const tasks = instances.map(async (instance) => {
+      const sonarrService = this.sonarrServices.get(instance.id)
+      if (!sonarrService) {
+        this.log.warn(
+          { instanceId: instance.id, instanceName: instance.name },
+          'Sonarr service not initialized',
+        )
+        return []
+      }
+      const series = await sonarrService.fetchSeries(bypassExclusions)
+      return Array.from(series).map((s) => ({
+        ...s,
+        sonarr_instance_id: instance.id,
+      }))
+    })
 
-        if (!sonarrService) {
-          this.log.warn(
-            { instanceId: instance.id, instanceName: instance.name },
-            'Sonarr service not initialized',
-          )
-          continue
-        }
-
-        const instanceSeries = await sonarrService.fetchSeries(bypassExclusions)
-
-        for (const series of instanceSeries) {
-          allSeries.push({
-            ...series,
-            sonarr_instance_id: instance.id,
-          })
-        }
-      } catch (error) {
+    const results = await Promise.allSettled(tasks)
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        allSeries.push(...r.value)
+      } else {
         this.log.error(
-          { error },
-          `Error fetching series for instance ${instance.name}`,
+          { error: r.reason },
+          'Error fetching series from Sonarr instance',
         )
       }
     }
-
     return allSeries
   }
 
@@ -290,8 +332,14 @@ export class SonarrManagerService {
       )
     } catch (error) {
       this.log.error(
-        { error },
-        `Failed to add item to instance ${targetInstanceId}`,
+        {
+          error,
+          instanceId: targetInstanceId,
+          title: sonarrItem.title,
+          userId,
+          key,
+        },
+        'Failed to route item to Sonarr',
       )
       throw error
     }
@@ -464,19 +512,9 @@ export class SonarrManagerService {
       )
 
       // Detect full baseUrl changes including path (needs new service)
-      const normalizeFull = (url?: string | null) => {
-        if (!url) return ''
-        try {
-          const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(url)
-          const u = hasScheme ? new URL(url) : new URL(`http://${url}`)
-          u.pathname = u.pathname.replace(/\/+$/, '')
-          return `${u.protocol}//${u.host}${u.pathname}`
-        } catch {
-          return String(url).trim().replace(/\/+$/, '').toLowerCase()
-        }
-      }
       const baseUrlChanged =
-        normalizeFull(current.baseUrl) !== normalizeFull(candidate.baseUrl)
+        normalizeEndpointWithPath(current.baseUrl) !==
+        normalizeEndpointWithPath(candidate.baseUrl)
 
       // API key transitions
       const isPlaceholderToReal =
@@ -500,6 +538,10 @@ export class SonarrManagerService {
           try {
             await this.fastify.db.updateSonarrInstance(id, updates)
           } catch (dbErr) {
+            this.log.error(
+              { error: dbErr, instanceId: id },
+              'Failed to persist Sonarr instance update',
+            )
             try {
               await sonarrService.removeWebhook()
             } catch (_) {
