@@ -16,6 +16,7 @@ import {
   notificationsCommand,
 } from '@root/utils/discord-commands/notifications-command.js'
 import { getPublicContentUrls } from '@root/utils/notification-processor.js'
+import { createServiceLogger } from '@utils/logger.js'
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -61,12 +62,17 @@ export class DiscordNotificationService {
   private botClient: Client | null = null
   private botStatus: BotStatus = 'stopped'
   private readonly commands: Map<string, Command> = new Map()
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'DISCORD')
+  }
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log.info('Initializing Discord notification service')
+    this.log.debug('Initializing Discord notification service')
     this.initializeCommands()
   }
 
@@ -127,7 +133,7 @@ export class DiscordNotificationService {
         },
       })
 
-      this.log.info('Discord bot commands initialized')
+      this.log.debug('Discord bot commands initialized')
     } catch (error) {
       this.log.error({ error }, 'Failed to initialize bot commands')
       throw error
@@ -135,7 +141,7 @@ export class DiscordNotificationService {
   }
 
   private async registerCommands(): Promise<boolean> {
-    this.log.info('Registering Discord application commands globally')
+    this.log.debug('Registering Discord application commands globally')
     try {
       const config = this.botConfig
       const rest = new REST().setToken(config.token)
@@ -150,7 +156,7 @@ export class DiscordNotificationService {
           Routes.applicationGuildCommands(config.clientId, config.guildId),
           { body: [] },
         )
-        this.log.info('Cleared old guild-specific commands')
+        this.log.debug('Cleared old guild-specific commands')
       } catch (error) {
         this.log.warn(
           { error },
@@ -163,7 +169,7 @@ export class DiscordNotificationService {
         body: commandsData,
       })
 
-      this.log.info('Successfully registered global application commands')
+      this.log.debug('Successfully registered global application commands')
       return true
     } catch (error) {
       this.log.error({ error }, 'Failed to register global commands')
@@ -185,7 +191,7 @@ export class DiscordNotificationService {
       }
 
       this.botStatus = 'starting'
-      this.log.info('Initializing Discord bot client')
+      this.log.debug('Initializing Discord bot client')
 
       this.botClient = new Client({
         intents: [

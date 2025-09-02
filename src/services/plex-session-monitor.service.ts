@@ -16,18 +16,19 @@ import {
   normalizeGuid,
   parseGuids,
 } from '@utils/guid-handler.js'
-import type { PlexServerService } from '@utils/plex-server.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { DatabaseService } from './database.service.js'
-import type { SonarrManagerService } from './sonarr-manager.service.js'
 
 export class PlexSessionMonitorService {
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'PLEX_SESSION_MONITOR')
+  }
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-    private readonly plexServer: PlexServerService,
-    private readonly sonarrManager: SonarrManagerService,
-    private readonly db: DatabaseService,
   ) {
     this.log.info('PlexSessionMonitorService initialized')
   }
@@ -37,6 +38,27 @@ export class PlexSessionMonitorService {
    */
   private get config() {
     return this.fastify.config
+  }
+
+  /**
+   * Access to Plex server service
+   */
+  private get plexServer() {
+    return this.fastify.plexServerService
+  }
+
+  /**
+   * Access to Sonarr manager service
+   */
+  private get sonarrManager() {
+    return this.fastify.sonarrManager
+  }
+
+  /**
+   * Access to database service
+   */
+  private get db() {
+    return this.fastify.db
   }
 
   /**
@@ -342,7 +364,7 @@ export class PlexSessionMonitorService {
 
     for (const instance of instances) {
       try {
-        const sonarr = this.sonarrManager.getInstance(instance.id)
+        const sonarr = this.sonarrManager.getSonarrService(instance.id)
         if (!sonarr) continue
 
         const allSeries = await sonarr.getAllSeries()
@@ -522,7 +544,7 @@ export class PlexSessionMonitorService {
     const nextSeason = rollingShow.current_monitored_season + 1
 
     try {
-      const sonarr = this.sonarrManager.getInstance(
+      const sonarr = this.sonarrManager.getSonarrService(
         rollingShow.sonarr_instance_id,
       )
       if (!sonarr) return
@@ -568,7 +590,7 @@ export class PlexSessionMonitorService {
     result: SessionMonitoringResult,
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(
+      const sonarr = this.sonarrManager.getSonarrService(
         rollingShow.sonarr_instance_id,
       )
       if (!sonarr) return
@@ -604,7 +626,7 @@ export class PlexSessionMonitorService {
     result: SessionMonitoringResult,
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(
+      const sonarr = this.sonarrManager.getSonarrService(
         rollingShow.sonarr_instance_id,
       )
       if (!sonarr) return
@@ -675,7 +697,7 @@ export class PlexSessionMonitorService {
     showTitle: string,
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }
@@ -760,7 +782,7 @@ export class PlexSessionMonitorService {
     showTitle: string,
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }
@@ -1088,7 +1110,7 @@ export class PlexSessionMonitorService {
     sonarrInstanceId: number,
   ): Promise<boolean> {
     try {
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         return false
       }
@@ -1145,7 +1167,7 @@ export class PlexSessionMonitorService {
         `Starting Season 1 pilot reset for ${showTitle} (Sonarr series ${sonarrSeriesId})`,
       )
 
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }
@@ -1222,7 +1244,7 @@ export class PlexSessionMonitorService {
     seasonsToCleanup: number[],
   ): Promise<void> {
     try {
-      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      const sonarr = this.sonarrManager.getSonarrService(sonarrInstanceId)
       if (!sonarr) {
         throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
       }

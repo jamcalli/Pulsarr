@@ -1,8 +1,5 @@
-import { createRequire } from 'node:module'
+import { CronExpressionParser } from 'cron-parser'
 import { z } from 'zod'
-
-const require = createRequire(import.meta.url)
-const cronValidate = require('cron-validate').default
 
 // Zod schema for interval configuration
 export const IntervalConfigSchema = z
@@ -33,18 +30,9 @@ export const CronConfigSchema = z.object({
     .refine(
       (expression) => {
         try {
-          const fields = expression.trim().split(/\s+/)
-          const fieldCount = fields.length
-
-          // Support 5-field (no seconds) and 6-field (seconds) expressions
-          if (fieldCount === 5 || fieldCount === 6) {
-            return cronValidate(expression, {
-              override: { useSeconds: fieldCount === 6 },
-            }).isValid()
-          }
-
-          // Reject everything else (e.g. 7-field expressions with "year")
-          return false
+          // Use cron-parser to validate - it handles field count and format validation
+          CronExpressionParser.parse(expression, { currentDate: new Date() })
+          return true
         } catch (_error) {
           // If validation fails for any reason, assume invalid
           return false

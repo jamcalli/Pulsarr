@@ -17,7 +17,7 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    fastify.log.info('Initializing delete sync plugin')
+    fastify.log.debug('Initializing delete sync plugin')
     // Create and register the delete sync service
     const service = new DeleteSyncService(fastify.log, fastify)
     fastify.decorate('deleteSync', service)
@@ -72,6 +72,7 @@ export default fp(
       'config',
       'discord-notification-service',
       'plex-watchlist',
+      'plex-server',
     ],
   },
 )

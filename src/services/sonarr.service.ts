@@ -23,7 +23,12 @@ import {
   hasMatchingGuids,
   normalizeGuid,
 } from '@utils/guid-handler.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
+// HTTP timeout constants
+const SONARR_API_TIMEOUT = 15000 // 15 seconds for API operations
+const SONARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
 
 // Custom error class to include HTTP status
 class HttpError extends Error {
@@ -52,9 +57,14 @@ export class SonarrService {
     new Map()
   private tagsCacheExpiry: Map<number, number> = new Map()
   private TAG_CACHE_TTL = 30000 // 30 seconds in milliseconds
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'SONARR')
+  }
 
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly appBaseUrl: string,
     private readonly port: number,
     private readonly fastify: FastifyInstance,
@@ -122,6 +132,7 @@ export class SonarrService {
     const urlIdentifier = this.sonarrConfig.sonarrBaseUrl
       .replace(/https?:\/\//, '')
       .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase()
 
     url.searchParams.append('instanceId', urlIdentifier)
 
@@ -153,11 +164,12 @@ export class SonarrService {
         )?.value
 
         if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.info('Pulsarr Sonarr webhook exists with correct URL')
+          this.log.debug('Pulsarr Sonarr webhook exists with correct URL')
+          this.webhookInitialized = true
           return
         }
 
-        this.log.info(
+        this.log.debug(
           'Pulsarr webhook URL mismatch, recreating webhook for Sonarr',
         )
         await this.deleteNotification(existingPulsarrWebhook.id)
@@ -255,7 +267,7 @@ export class SonarrService {
       }
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error({ error }, 'Failed to setup webhook for Sonarr:')
+      this.log.error({ error }, 'Failed to setup webhook for Sonarr')
 
       let errorMessage = 'Failed to setup webhook'
       if (error instanceof Error) {
@@ -279,7 +291,7 @@ export class SonarrService {
         this.log.info('Successfully removed Pulsarr webhook for Sonarr')
       }
     } catch (error) {
-      this.log.error({ error }, 'Failed to remove webhook for Sonarr:')
+      this.log.error({ error }, 'Failed to remove webhook for Sonarr')
       throw error
     }
   }
@@ -334,7 +346,7 @@ export class SonarrService {
         createSeasonFolders: instance.createSeasonFolders,
       }
 
-      this.log.info(
+      this.log.debug(
         `Successfully initialized base Sonarr service for ${instance.name}`,
       )
 
@@ -359,6 +371,32 @@ export class SonarrService {
       )
       throw error
     }
+  }
+
+  /**
+   * Updates the service configuration without reinitializing webhooks.
+   * Used when only configuration values change (not server/API key).
+   */
+  updateConfiguration(instance: SonarrInstance): void {
+    if (!this.config) {
+      throw new Error('Service not initialized - cannot update configuration')
+    }
+
+    // Update only the configuration values that can change without server changes
+    this.config.sonarrQualityProfileId = instance.qualityProfile || null
+    this.config.sonarrRootFolder = instance.rootFolder || null
+    this.config.sonarrTagIds = instance.tags
+    this.config.sonarrSeasonMonitoring = instance.seasonMonitoring
+    this.config.sonarrMonitorNewItems = instance.monitorNewItems || 'all'
+    this.config.sonarrSeriesType = instance.seriesType || 'standard'
+    this.config.createSeasonFolders = instance.createSeasonFolders
+    this.config.searchOnAdd =
+      instance.searchOnAdd !== undefined ? instance.searchOnAdd : true
+
+    // Update instance ID for caching purposes
+    this.instanceId = instance.id
+
+    this.log.debug(`Updated configuration for Sonarr instance ${instance.name}`)
   }
 
   async testConnection(
@@ -398,7 +436,7 @@ export class SonarrService {
             'X-Api-Key': apiKey,
             Accept: 'application/json',
           },
-          signal: AbortSignal.timeout(10000), // 10 second timeout
+          signal: AbortSignal.timeout(SONARR_CONNECTION_TEST_TIMEOUT),
         })
       } catch (fetchError) {
         if (fetchError instanceof Error) {
@@ -470,6 +508,7 @@ export class SonarrService {
               'X-Api-Key': apiKey,
               Accept: 'application/json',
             },
+            signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
           })
 
           if (!response.ok) {
@@ -643,6 +682,7 @@ export class SonarrService {
             'X-Api-Key': config.sonarrApiKey,
             Accept: 'application/json',
           },
+          signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
         })
 
         if (!response.ok) {
@@ -659,7 +699,7 @@ export class SonarrService {
         currentPage++
       } while (allExclusions.length < totalRecords)
 
-      this.log.info(`Fetched all show ${allExclusions.length} exclusions`)
+      this.log.debug(`Fetched all exclusions (${allExclusions.length} shows)`)
       return new Set(allExclusions.map((show) => this.toItem(show)))
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching exclusions')
@@ -744,7 +784,7 @@ export class SonarrService {
     overrideSeasonMonitoring?: string | null,
     overrideSeriesType?: 'standard' | 'anime' | 'daily' | null,
     overrideCreateSeasonFolders?: boolean | null,
-  ): Promise<void> {
+  ): Promise<number> {
     const config = this.sonarrConfig
     try {
       // Check if searchOnAdd parameter or property exists and use it, otherwise default to true
@@ -875,10 +915,17 @@ export class SonarrService {
         seasonFolder: createSeasonFolders,
       }
 
-      await this.postToSonarr<void>('series', show)
+      const createdSeries = await this.postToSonarr<SonarrSeries>(
+        'series',
+        show,
+      )
+      if (!createdSeries || typeof createdSeries.id !== 'number') {
+        throw new Error('Unexpected Sonarr response when creating series')
+      }
       this.log.info(
         `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'}, Series Type: ${seriesType})`,
       )
+      return createdSeries.id
     } catch (err) {
       this.log.debug(
         { error: err, title: item.title },
@@ -889,7 +936,6 @@ export class SonarrService {
   }
 
   async deleteFromSonarr(item: Item, deleteFiles: boolean): Promise<void> {
-    const _config = this.sonarrConfig
     try {
       const sonarrId = extractSonarrId(item.guids)
 
@@ -940,6 +986,7 @@ export class SonarrService {
         'X-Api-Key': config.sonarrApiKey,
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -978,6 +1025,7 @@ export class SonarrService {
           Accept: 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
       })
 
       // Handle 204 No Content responses
@@ -1378,6 +1426,7 @@ export class SonarrService {
         Accept: 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
     })
 
     if (!response.ok) {
@@ -1413,6 +1462,7 @@ export class SonarrService {
       headers: {
         'X-Api-Key': config.sonarrApiKey,
       },
+      signal: AbortSignal.timeout(SONARR_API_TIMEOUT),
     })
 
     if (!response.ok) {

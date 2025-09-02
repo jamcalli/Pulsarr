@@ -14,7 +14,7 @@ export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
  */
 export function usePlexRssFeeds() {
   const config = useConfigStore((state) => state.config)
-  const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
+  const updateConfig = useConfigStore((state) => state.updateConfig)
   const [rssStatus, setRssStatus] = useState<RssStatus>('idle')
 
   const generateRssFeeds = async () => {
@@ -41,15 +41,37 @@ export function usePlexRssFeeds() {
         throw new Error(data.error || 'Failed to generate RSS feeds')
       }
 
-      // Update RSS feeds in config through the configured action
-      await refreshRssFeeds()
+      // Validate response payload before updating config
+      const self = typeof data.self === 'string' ? data.self.trim() : ''
+      const friends =
+        typeof data.friends === 'string' ? data.friends.trim() : ''
+      if (!self || !friends) {
+        throw new Error('Invalid RSS response payload: missing feed URLs')
+      }
+      try {
+        // Basic URL shape validation
+        new URL(self)
+        new URL(friends)
+      } catch {
+        throw new Error('Invalid RSS response payload: malformed feed URLs')
+      }
+
+      // Update RSS feeds in config
+      await updateConfig({
+        selfRss: self,
+        friendsRss: friends,
+      })
 
       setRssStatus('success')
       toast.success('RSS feed URLs have been successfully generated')
     } catch (error) {
       console.error('RSS generation error:', error)
       setRssStatus('error')
-      toast.error('Failed to generate RSS feed URLs')
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate RSS feed URLs',
+      )
     }
   }
 

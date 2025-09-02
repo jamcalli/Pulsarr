@@ -28,16 +28,11 @@ import {
   extractSonarrId,
   parseGuids,
 } from '@utils/guid-handler.js'
-import { PlexServerService } from '@utils/plex-server.js'
+import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
 export class DeleteSyncService {
-  /**
-   * Plex server service instance for playlist protection
-   */
-  private readonly plexServer: PlexServerService
-
   /**
    * Cache of protected GUIDs for efficient lookup
    */
@@ -60,12 +55,17 @@ export class DeleteSyncService {
    * @param log - Fastify logger instance for recording operations
    * @param fastify - Fastify instance for accessing other services and configuration
    */
+  /** Creates a fresh service logger that inherits current log level */
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'DELETE_SYNC')
+  }
+
   constructor(
-    private readonly log: FastifyBaseLogger,
+    private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
     this.log.info('Initializing Delete Sync Service')
-    this.plexServer = new PlexServerService(this.log, this.fastify)
   }
 
   /**
@@ -113,7 +113,7 @@ export class DeleteSyncService {
     }
 
     // Ensure Plex server is initialized
-    if (!this.plexServer.isInitialized()) {
+    if (!this.fastify.plexServerService.isInitialized()) {
       throw new Error(
         'Plex server not initialized for protection playlist access',
       )
@@ -124,7 +124,9 @@ export class DeleteSyncService {
 
       // Create protection playlists for users if missing
       const playlistMap =
-        await this.plexServer.getOrCreateProtectionPlaylists(true)
+        await this.fastify.plexServerService.getOrCreateProtectionPlaylists(
+          true,
+        )
 
       if (playlistMap.size === 0) {
         throw new Error(
@@ -133,7 +135,8 @@ export class DeleteSyncService {
       }
 
       // Load and cache protected GUIDs
-      this.protectedGuids = await this.plexServer.getProtectedItems()
+      this.protectedGuids =
+        await this.fastify.plexServerService.getProtectedItems()
 
       if (!this.protectedGuids) {
         throw new Error('Failed to retrieve protected items from playlists')
@@ -188,7 +191,7 @@ export class DeleteSyncService {
   async initialize(): Promise<boolean> {
     try {
       // Initialize Plex server service
-      const initialized = await this.plexServer.initialize()
+      const initialized = await this.fastify.plexServerService.initialize()
       if (!initialized) {
         this.log.error('Failed to initialize Plex server service')
         return false
@@ -233,12 +236,12 @@ export class DeleteSyncService {
       this.clearTagCache()
       // Reset per-run caches to ensure fresh protection data every run
       this.protectedGuids = null
-      this.plexServer.clearWorkflowCaches()
+      this.fastify.plexServerService.clearWorkflowCaches()
 
       // Make sure the Plex server is initialized if needed
       if (
         this.config.enablePlexPlaylistProtection &&
-        !this.plexServer.isInitialized()
+        !this.fastify.plexServerService.isInitialized()
       ) {
         this.log.info(
           'Plex playlist protection enabled but not initialized - initializing now',
@@ -287,7 +290,7 @@ export class DeleteSyncService {
       // Branch based on deletion mode
       if (deletionMode === 'tag-based') {
         // Tag-based deletion workflow
-        this.log.info(
+        this.log.debug(
           `Running tag-based deletion using tag "${this.config.removedTagPrefix}"`,
         )
 
@@ -333,7 +336,7 @@ export class DeleteSyncService {
         // Step 7: Load protection playlists if enabled (needed for accurate safety check)
         let protectedGuids: Set<string> | null = null
         if (this.config.enablePlexPlaylistProtection) {
-          if (!this.plexServer.isInitialized()) {
+          if (!this.fastify.plexServerService.isInitialized()) {
             return this.createSafetyTriggeredResult(
               'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
               dryRun,
@@ -421,7 +424,7 @@ export class DeleteSyncService {
     } finally {
       this._running = false
       // Always reset caches, even if we exited early
-      this.plexServer.clearWorkflowCaches()
+      this.fastify.plexServerService.clearWorkflowCaches()
       this.protectedGuids = null
       this.clearTagCache()
     }
@@ -518,7 +521,7 @@ export class DeleteSyncService {
             `Refreshing watchlists attempt ${attempt + 1}/${maxRetries + 1}`,
           )
         } else {
-          this.log.info('Refreshing watchlists to ensure we have current data')
+          this.log.debug('Refreshing watchlists to ensure we have current data')
         }
 
         await Promise.all([
@@ -526,7 +529,7 @@ export class DeleteSyncService {
           this.fastify.plexWatchlist.getOthersWatchlists(),
         ])
 
-        this.log.info('Watchlists refreshed successfully')
+        this.log.debug('Watchlists refreshed successfully')
         return { success: true, message: 'Watchlists refreshed successfully' }
       } catch (refreshError) {
         const isLastAttempt = attempt === maxRetries
@@ -564,7 +567,7 @@ export class DeleteSyncService {
     existingSeries: SonarrItem[]
     existingMovies: RadarrItem[]
   }> {
-    this.log.info('Retrieving all content from Sonarr and Radarr instances')
+    this.log.debug('Retrieving all content from Sonarr and Radarr instances')
     const [existingSeries, existingMovies] = await Promise.all([
       this.sonarrManager.fetchAllSeries(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
       this.radarrManager.fetchAllMovies(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
@@ -780,7 +783,7 @@ export class DeleteSyncService {
     existingSeries: SonarrItem[],
     existingMovies: RadarrItem[],
   ): Promise<void> {
-    this.log.info('Updating user tags before delete sync')
+    this.log.debug('Updating user tags before delete sync')
 
     try {
       const userTagService = this.fastify.userTags
@@ -811,7 +814,7 @@ export class DeleteSyncService {
         )
       }
 
-      this.log.info('User tags updated successfully')
+      this.log.debug('User tags updated successfully')
     } catch (error) {
       this.log.error({ error }, 'Error updating user tags:')
       throw new Error('Failed to update user tags before delete sync')
@@ -878,7 +881,7 @@ export class DeleteSyncService {
       instance: string
     }> = []
 
-    this.log.info(
+    this.log.debug(
       `Beginning tag-based deletion ${dryRun ? '(DRY RUN)' : 'process'} using tag "${this.config.removedTagPrefix}"`,
     )
 
@@ -1016,7 +1019,7 @@ export class DeleteSyncService {
 
     // Process movies if movie deletion is enabled
     if (this.config.deleteMovie) {
-      this.log.info(
+      this.log.debug(
         `Processing ${existingMovies.length} movies for tag-based deletion${dryRun ? ' (DRY RUN)' : ''}`,
       )
 
@@ -1163,7 +1166,7 @@ export class DeleteSyncService {
 
     // Process TV shows if any show deletion is enabled
     if (this.config.deleteEndedShow || this.config.deleteContinuingShow) {
-      this.log.info(
+      this.log.debug(
         `Processing ${existingSeries.length} TV shows for tag-based deletion${dryRun ? ' (DRY RUN)' : ''}`,
       )
 

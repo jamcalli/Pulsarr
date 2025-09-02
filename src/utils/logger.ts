@@ -2,8 +2,8 @@ import fs from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { config } from 'dotenv'
-import type { FastifyRequest } from 'fastify'
-import type { LevelWithSilent, LoggerOptions } from 'pino'
+import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
+import type { LevelWithSilent, LoggerOptions, MultiStreamRes } from 'pino'
 import pino from 'pino'
 import pretty from 'pino-pretty'
 import * as rfs from 'rotating-file-stream'
@@ -21,7 +21,10 @@ export const validLogLevels: LevelWithSilent[] = [
 export type LogDestination = 'terminal' | 'file' | 'both'
 
 interface FileLoggerOptions extends LoggerOptions {
-  stream: rfs.RotatingFileStream | NodeJS.WriteStream
+  stream:
+    | rfs.RotatingFileStream
+    | NodeJS.WriteStream
+    | ReturnType<typeof pretty>
 }
 
 interface MultiStreamLoggerOptions extends LoggerOptions {
@@ -240,15 +243,42 @@ function getTerminalOptions(): LoggerOptions {
  * @returns Logger options suitable for file-based logging with redacted request serialization.
  */
 function getFileOptions(): FileLoggerOptions {
+  const fileStream = getFileStream()
+
+  // Create a pretty stream for file output (no colors)
+  const prettyFileStream = pretty({
+    translateTime: 'HH:MM:ss Z',
+    ignore: 'pid,hostname',
+    colorize: false, // No colors for file output
+    destination: fileStream,
+  })
+
   return {
     level: 'info',
-    stream: getFileStream(),
+    stream: prettyFileStream,
     serializers: {
       req: createRequestSerializer(),
       error: createErrorSerializer(),
       err: createErrorSerializer(),
     },
   }
+}
+
+/**
+ * Creates a service-specific logger with a prefix for easy identification in logs.
+ *
+ * @param parentLogger - The parent logger instance to create a child from
+ * @param serviceName - The name of the service (will be uppercased and prefixed with [])
+ * @returns A child logger with the service prefix
+ */
+export function createServiceLogger(
+  parentLogger: FastifyBaseLogger,
+  serviceName: string,
+): FastifyBaseLogger {
+  return parentLogger.child(
+    {},
+    { msgPrefix: `[${serviceName.toUpperCase()}] ` },
+  )
 }
 
 /**
@@ -297,14 +327,22 @@ export function createLoggerConfig(): PulsarrLoggerOptions {
       colorize: true, // Force colors even in Docker
     })
 
+    // Create a pretty stream for file output (no colors)
+    const prettyFileStream = pretty({
+      translateTime: 'HH:MM:ss Z',
+      ignore: 'pid,hostname',
+      colorize: false, // No colors for file output
+      destination: fileStream,
+    })
+
     const multistream = pino.multistream([
-      { stream: prettyStream },
-      { stream: fileStream },
+      { stream: prettyStream, level: 'trace' }, // Set to lowest level so it forwards everything
+      { stream: prettyFileStream, level: 'trace' }, // Set to lowest level so it forwards everything
     ])
 
     return {
       level: 'info',
-      stream: multistream,
+      stream: multistream as MultiStreamRes,
       serializers: {
         req: createRequestSerializer(),
         error: createErrorSerializer(),

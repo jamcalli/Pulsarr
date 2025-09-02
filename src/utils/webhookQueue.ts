@@ -49,9 +49,10 @@ export async function queuePendingWebhook(
     payload: WebhookPayload
   },
 ): Promise<void> {
-  const maxAgeMinutes = fastify.pendingWebhooks?.config?.maxAge || 10
-  const expires = new Date()
-  expires.setMinutes(expires.getMinutes() + maxAgeMinutes)
+  const cfgMaxAge = Number(fastify.pendingWebhooks?.config?.maxAge)
+  const maxAgeMinutes =
+    Number.isFinite(cfgMaxAge) && cfgMaxAge > 0 ? cfgMaxAge : 10
+  const expires = new Date(Date.now() + maxAgeMinutes * 60_000)
 
   try {
     await fastify.db.createPendingWebhook({
@@ -64,8 +65,16 @@ export async function queuePendingWebhook(
       expires_at: expires,
     })
 
-    fastify.log.info(
-      `No matching items found for ${data.guid}, queued webhook for later processing`,
+    fastify.log.debug(
+      {
+        guid: data.guid,
+        instanceType: data.instanceType,
+        instanceId: data.instanceId,
+        mediaType: data.mediaType,
+        title: data.title,
+        expiresAt: expires.toISOString(),
+      },
+      'Queued pending webhook (no matching items)',
     )
   } catch (error) {
     fastify.log.error(
@@ -302,6 +311,9 @@ export async function processQueuedWebhooks(
   const isBulkRelease = episodes.length > 1
 
   fastify.log.info(
+    `Processing queued webhooks: ${queue.title} S${seasonNumber} (${episodes.length} episodes)`,
+  )
+  fastify.log.debug(
     {
       tvdbId,
       seasonNumber,
@@ -310,7 +322,7 @@ export async function processQueuedWebhooks(
       hasRecentEpisodes,
       title: queue.title,
     },
-    'Processing queued webhooks',
+    'Queued webhooks processing details',
   )
 
   const mediaInfo = {
@@ -321,18 +333,6 @@ export async function processQueuedWebhooks(
   }
 
   try {
-    fastify.log.info(
-      {
-        tvdbId,
-        seasonNumber,
-        episodeCount: episodes.length,
-        isBulkRelease,
-        hasRecentEpisodes,
-        title: queue.title,
-      },
-      'Processing queued webhooks',
-    )
-
     // Process notifications (including public content) using centralized function
     // Tautulli notifications are now handled within the centralized processor
     const { matchedCount } = await processContentNotifications(

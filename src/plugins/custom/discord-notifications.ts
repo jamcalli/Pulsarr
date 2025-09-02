@@ -60,17 +60,16 @@ export default fp(
         )
         try {
           const started = await discord.startBot()
-          if (started) {
-            fastify.log.info('Discord bot started automatically')
-          } else {
+          if (!started) {
             fastify.log.warn('Failed to auto-start Discord bot')
           }
+          // Success is already logged by the service layer
         } catch (error) {
           fastify.log.error({ error }, 'Error during Discord bot auto-start')
           // Don't throw - let server continue without Discord bot
         }
       } else {
-        fastify.log.info(
+        fastify.log.debug(
           'Discord bot configuration incomplete, bot features will require manual initialization',
         )
       }
