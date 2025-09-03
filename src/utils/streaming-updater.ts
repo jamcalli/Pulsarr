@@ -12,6 +12,45 @@ import { createGunzip } from 'node:zlib'
 const DEFAULT_TIMEOUT = 300_000 // 5 minutes
 const DEFAULT_USER_AGENT = 'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
 
+type FetchInit = Parameters<typeof fetch>[1]
+
+async function fetchWithRetries(
+  url: string,
+  init: FetchInit,
+  retries: number,
+  baseDelayMs = 1000,
+): Promise<globalThis.Response> {
+  let lastErr: unknown
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init)
+      if (res.ok) return res
+
+      const retryAfter = res.headers.get('retry-after')
+      const status = res.status
+      const shouldRetry = status >= 500 || status === 408 || status === 429
+
+      if (!shouldRetry || attempt === retries) {
+        throw new Error(`Failed to fetch ${url}: ${status} ${res.statusText}`)
+      }
+
+      const backoff = retryAfter
+        ? Number(retryAfter) * 1000
+        : baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 250)
+
+      await new Promise((r) => setTimeout(r, backoff))
+    } catch (err) {
+      lastErr = err
+      if (attempt === retries) throw err
+
+      const backoff =
+        baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 250)
+      await new Promise((r) => setTimeout(r, backoff))
+    }
+  }
+  throw lastErr as Error
+}
+
 export interface StreamOptions {
   /** URL to fetch data from */
   url: string
@@ -39,40 +78,14 @@ export async function* streamLines(
     retries = 2,
   } = options
 
-  let response: Response | undefined
-
-  // Retry logic for transient failures
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      response = await fetch(url, {
-        headers: { 'User-Agent': userAgent },
-        signal: AbortSignal.timeout(timeout),
-      })
-
-      if (response.ok) {
-        break
-      } else if (response.status >= 500 && attempt < retries) {
-        // Retry on server errors
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * (attempt + 1)),
-        )
-      } else {
-        throw new Error(
-          `Failed to fetch from ${url}: ${response.status} ${response.statusText}`,
-        )
-      }
-    } catch (error) {
-      if (attempt === retries) {
-        throw error
-      }
-      // Exponential backoff for retries
-      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
-    }
-  }
-
-  if (!response || !response.ok) {
-    throw new Error(`Failed to fetch from ${url} after ${retries + 1} attempts`)
-  }
+  const response = await fetchWithRetries(
+    url,
+    {
+      headers: { 'User-Agent': userAgent },
+      signal: AbortSignal.timeout(timeout),
+    },
+    retries,
+  )
 
   if (!response.body) {
     throw new Error('Fetch returned no body')
@@ -108,40 +121,14 @@ export async function fetchContent(options: StreamOptions): Promise<string> {
     retries = 2,
   } = options
 
-  let response: Response | undefined
-
-  // Retry logic for transient failures
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      response = await fetch(url, {
-        headers: { 'User-Agent': userAgent },
-        signal: AbortSignal.timeout(timeout),
-      })
-
-      if (response.ok) {
-        break
-      } else if (response.status >= 500 && attempt < retries) {
-        // Retry on server errors
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * (attempt + 1)),
-        )
-      } else {
-        throw new Error(
-          `Failed to fetch from ${url}: ${response.status} ${response.statusText}`,
-        )
-      }
-    } catch (error) {
-      if (attempt === retries) {
-        throw error
-      }
-      // Exponential backoff for retries
-      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
-    }
-  }
-
-  if (!response || !response.ok) {
-    throw new Error(`Failed to fetch from ${url} after ${retries + 1} attempts`)
-  }
+  const response = await fetchWithRetries(
+    url,
+    {
+      headers: { 'User-Agent': userAgent },
+      signal: AbortSignal.timeout(timeout),
+    },
+    retries,
+  )
 
   if (isGzipped && response.headers.get('content-encoding') !== 'gzip') {
     // Server didn't decompress, we need to do it manually
