@@ -86,13 +86,13 @@ export class ImdbService {
    */
   async updateImdbDatabase(): Promise<{ count: number; updated: boolean }> {
     try {
-      this.log.info('Starting IMDB ratings database update...')
+      this.log.info('Starting IMDb ratings database update...')
 
       const allRecords: InsertImdbRating[] = []
       let lineIdx = 0
 
       // Stream into memory first (dataset is small enough)
-      this.log.info('Streaming IMDB data into memory...')
+      this.log.info('Streaming IMDb data into memory...')
       for await (const line of streamLines({
         url: IMDB_RATINGS_URL,
         isGzipped: true,
@@ -128,7 +128,7 @@ export class ImdbService {
 
         if (allRecords.length % 100_000 === 0) {
           this.log.debug(
-            `Streamed ${allRecords.length} IMDB ratings into memory`,
+            `Streamed ${allRecords.length} IMDb ratings into memory`,
           )
         }
       }
@@ -156,18 +156,18 @@ export class ImdbService {
         await this.db.bulkReplaceImdbRatings(allRecords, trx)
       })
 
-      this.log.info(`Processed ${total} IMDB rating entries via streaming`)
+      this.log.info(`Processed ${total} IMDb rating entries via streaming`)
 
       const finalCount = await this.db.getImdbRatingCount()
       this.log.info(
-        `IMDB ratings database updated successfully with ${finalCount} entries`,
+        `IMDb ratings database updated successfully with ${finalCount} entries`,
       )
 
       return { count: finalCount, updated: true }
     } catch (error) {
       this.log.error(
         { error },
-        'Failed to update IMDB ratings database - continuing without IMDB data',
+        'Failed to update IMDb ratings database - continuing without IMDb data',
       )
       return { count: 0, updated: false }
     }

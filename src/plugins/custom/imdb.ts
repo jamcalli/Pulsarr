@@ -69,25 +69,25 @@ async function imdbPlugin(fastify: FastifyInstance) {
         }
 
         try {
-          fastify.log.info('Starting scheduled IMDB ratings database update')
+          fastify.log.info('Starting scheduled IMDb ratings database update')
           const result = await imdbService.updateImdbDatabase()
 
           if (result.updated) {
             fastify.log.info(
-              `IMDB ratings database updated: ${result.count} entries`,
+              `IMDb ratings database updated: ${result.count} entries`,
             )
           } else {
             fastify.log.info(
-              'IMDB ratings database update skipped - no changes',
+              'IMDb ratings database update skipped - no changes',
             )
           }
         } catch (error) {
-          fastify.log.error({ error }, 'Scheduled IMDB update failed:')
+          fastify.log.error({ error }, 'Scheduled IMDb update failed:')
           throw error // Re-throw so scheduler can record the failure
         }
       })
 
-      // Check if IMDB database is empty and populate in background if needed
+      // Check if IMDb database is empty and populate in background if needed
       const imdbCount = await fastify.db.getImdbRatingCount()
       if (imdbCount === 0) {
         fastify.log.info(
@@ -123,9 +123,9 @@ async function imdbPlugin(fastify: FastifyInstance) {
         )
       }
 
-      fastify.log.debug('IMDB plugin initialized successfully')
+      fastify.log.debug('IMDb plugin initialized successfully')
     } catch (error) {
-      fastify.log.error({ error }, 'Failed to initialize IMDB plugin:')
+      fastify.log.error({ error }, 'Failed to initialize IMDb plugin:')
     }
   })
 }

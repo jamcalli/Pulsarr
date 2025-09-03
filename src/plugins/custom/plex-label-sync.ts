@@ -109,7 +109,7 @@ export default fp(
         if (!existingFullSyncSchedule) {
           // Create the schedule - run weekly on Sundays at 2 AM
           const now = new Date()
-          const nextRun = new Date()
+          const nextRun = new Date(now)
           const daysUntilSunday = (7 - now.getDay()) % 7
 
           nextRun.setDate(now.getDate() + daysUntilSunday)
