@@ -27,7 +27,7 @@ import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 // HTTP timeout constants
-const SONARR_API_TIMEOUT = 15000 // 15 seconds for API operations
+const SONARR_API_TIMEOUT = 60000 // 60 seconds for API operations
 const SONARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
 
 // Custom error class to include HTTP status
