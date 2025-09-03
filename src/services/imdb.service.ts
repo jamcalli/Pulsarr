@@ -89,61 +89,70 @@ export class ImdbService {
       this.log.info('Starting IMDB ratings database update...')
 
       const BATCH_SIZE = 10_000
-      let batch: InsertImdbRating[] = []
+      const allRecords: InsertImdbRating[] = []
       let lineIdx = 0
-      let total = 0
 
-      // Use transaction for atomic replacement to avoid temporary empty state
+      // Stream into memory first (dataset is small enough)
+      this.log.info('Streaming IMDB data into memory...')
+      for await (const line of streamLines({
+        url: IMDB_RATINGS_URL,
+        isGzipped: true,
+        userAgent: ImdbService.USER_AGENT,
+        timeout: 600000, // 10 minutes
+      })) {
+        if (lineIdx++ === 0) continue // skip header
+
+        const [tconst, avgStr, votesStr] = line.split('\t')
+        if (!tconst || !tconst.startsWith('tt')) continue
+
+        const average_rating = avgStr === '\\N' ? null : parseFloat(avgStr)
+        const num_votes = votesStr === '\\N' ? null : parseInt(votesStr, 10)
+
+        // Validate rating range
+        if (
+          average_rating !== null &&
+          (!Number.isFinite(average_rating) ||
+            average_rating < 1 ||
+            average_rating > 10)
+        )
+          continue
+
+        // Validate votes count
+        if (
+          num_votes !== null &&
+          (!Number.isFinite(num_votes) || num_votes < 0)
+        )
+          continue
+
+        allRecords.push({ tconst: tconst as Tconst, average_rating, num_votes })
+
+        if (allRecords.length % 100_000 === 0) {
+          this.log.debug(
+            `Streamed ${allRecords.length} IMDB ratings into memory`,
+          )
+        }
+      }
+
+      this.log.info(
+        `Streamed ${allRecords.length} records into memory, now updating database...`,
+      )
+
+      // Quick atomic replacement using short transaction
       await this.db.knex.transaction(async (trx) => {
-        await trx('imdb_ratings').del()
+        await trx('imdb_ratings').truncate()
         this.log.info('Cleared existing IMDB ratings')
 
-        for await (const line of streamLines({
-          url: IMDB_RATINGS_URL,
-          isGzipped: true,
-          userAgent: ImdbService.USER_AGENT,
-          timeout: 300000, // 5 minutes
-        })) {
-          if (lineIdx++ === 0) continue // skip header
-
-          const [tconst, avgStr, votesStr] = line.split('\t')
-          if (!tconst || !tconst.startsWith('tt')) continue
-
-          const average_rating = avgStr === '\\N' ? null : parseFloat(avgStr)
-          const num_votes = votesStr === '\\N' ? null : parseInt(votesStr, 10)
-
-          // Validate rating range
-          if (
-            average_rating !== null &&
-            (!Number.isFinite(average_rating) ||
-              average_rating < 1 ||
-              average_rating > 10)
-          )
-            continue
-
-          // Validate votes count
-          if (
-            num_votes !== null &&
-            (!Number.isFinite(num_votes) || num_votes < 0)
-          )
-            continue
-
-          batch.push({ tconst: tconst as Tconst, average_rating, num_votes })
-
-          if (batch.length >= BATCH_SIZE) {
-            await this.db.insertImdbRatings(batch, trx)
-            total += batch.length
-            this.log.debug(`Processed ${total} IMDB ratings`)
-            batch = []
-          }
-        }
-
-        // Insert final batch
-        if (batch.length) {
+        // Insert in batches
+        for (let i = 0; i < allRecords.length; i += BATCH_SIZE) {
+          const batch = allRecords.slice(i, i + BATCH_SIZE)
           await this.db.insertImdbRatings(batch, trx)
-          total += batch.length
+          this.log.debug(
+            `Inserted batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} records)`,
+          )
         }
       })
+
+      const total = allRecords.length
 
       if (total === 0) {
         this.log.warn('No IMDB ratings found in TSV, skipping database update')

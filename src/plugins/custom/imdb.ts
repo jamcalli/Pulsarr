@@ -64,14 +64,14 @@ async function imdbPlugin(fastify: FastifyInstance) {
 
       // Register the job handler with the scheduler
       await fastify.scheduler.scheduleJob('imdb-update', async (jobName) => {
-        try {
-          // Check if job is still enabled
-          const currentSchedule = await fastify.db.getScheduleByName(jobName)
-          if (!currentSchedule || !currentSchedule.enabled) {
-            fastify.log.debug(`Job ${jobName} is disabled, skipping`)
-            return
-          }
+        // Check if job is still enabled
+        const currentSchedule = await fastify.db.getScheduleByName(jobName)
+        if (!currentSchedule || !currentSchedule.enabled) {
+          fastify.log.debug(`Job ${jobName} is disabled, skipping`)
+          return
+        }
 
+        try {
           fastify.log.info('Starting scheduled IMDB ratings database update')
           const result = await imdbService.updateImdbDatabase()
 
@@ -105,8 +105,8 @@ async function imdbPlugin(fastify: FastifyInstance) {
                 `Initial IMDB ratings database populated: ${result.count} entries`,
               )
             } else {
-              fastify.log.warn(
-                'Initial IMDB ratings database update failed - no data populated',
+              fastify.log.info(
+                'Initial IMDB ratings database had no changes; nothing to populate',
               )
             }
           } catch (error) {

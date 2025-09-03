@@ -53,13 +53,16 @@ export class AnimeService {
     try {
       this.log.info('Starting anime database update...')
 
-      // Download the XML file using streaming utility
+      // Download and parse XML into memory first (dataset is small enough)
+      this.log.info('Downloading anime list XML...')
       const xmlContent = await fetchContent({
         url: ANIME_LIST_URL,
         userAgent: AnimeService.USER_AGENT,
         timeout: 120000, // 2 minutes timeout
       })
-      this.log.info(`Downloaded anime list XML (${xmlContent.length} bytes)`)
+      this.log.info(
+        `Downloaded anime list XML (${Buffer.byteLength(xmlContent, 'utf8')} bytes)`,
+      )
 
       // Parse the XML and extract IDs
       const animeIds = this.parseAnimeXml(xmlContent)
@@ -78,12 +81,15 @@ export class AnimeService {
         return { count: 0, updated: false }
       }
 
-      // Use transaction for atomic replacement to avoid temporary empty state
+      this.log.info(`Parsed data in memory, now updating database...`)
+
+      // Quick atomic replacement using short transaction
       await this.db.knex.transaction(async (trx) => {
-        await trx('anime_ids').del()
+        await trx('anime_ids').truncate()
         this.log.info('Cleared existing anime IDs')
 
         await this.db.insertAnimeIds(animeIds, trx)
+        this.log.info('Inserted anime IDs into database')
       })
 
       const finalCount = await this.db.getAnimeCount()
@@ -127,7 +133,7 @@ export class AnimeService {
 
         // Extract IDs from anime element attributes
         const tvdbId = anime.tvdbid?.toString().trim()
-        const tmdbId = anime.tmdbid?.toString().trim()
+        const tmdbId = (anime.tmdbid ?? anime.tmdbtv)?.toString().trim()
         const imdbId = anime.imdbid?.toString().trim()
 
         // Add TVDB ID if present and numeric
