@@ -443,7 +443,6 @@ export class ContentRouterService {
         )
         // Continue with original item if enrichment fails
       }
-    } else {
     }
 
     // Step 2: Evaluate all applicable evaluators to get routing decisions

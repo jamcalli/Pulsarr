@@ -35,6 +35,7 @@
  * - Instance content synchronization tracking
  * - Webhook management for external integrations
  * - Plex session monitoring for rolling content management
+ * - IMDb ratings storage and stats
  *
  * Uses Knex.js query builder to interact with SQLite or PostgreSQL databases,
  * providing a clean, consistent interface for all database operations.
