@@ -34,9 +34,11 @@ async function fetchWithRetries(
         throw new Error(`Failed to fetch ${url}: ${status} ${res.statusText}`)
       }
 
-      const backoff = retryAfter
-        ? Number(retryAfter) * 1000
-        : baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 250)
+      const secs = retryAfter !== null ? Number(retryAfter) : NaN
+      const backoff =
+        Number.isFinite(secs) && secs >= 0
+          ? secs * 1000
+          : baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 250)
 
       await new Promise((r) => setTimeout(r, backoff))
     } catch (err) {

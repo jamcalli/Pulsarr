@@ -169,7 +169,8 @@ export class ImdbService {
         { error },
         'Failed to update IMDb ratings database - continuing without IMDb data',
       )
-      return { count: 0, updated: false }
+      const current = await this.db.getImdbRatingCount().catch(() => 0)
+      return { count: current, updated: false }
     }
   }
 
