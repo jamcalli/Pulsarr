@@ -291,7 +291,7 @@ export default function createImdbEvaluator(
         return false // No IMDB data available
       }
 
-      const { field, operator, value } = condition
+      const { field, operator, value, negate: _ = false } = condition
 
       if (field === 'imdbRating') {
         if (item.imdb.rating === null || item.imdb.rating === undefined) {
@@ -359,6 +359,8 @@ export default function createImdbEvaluator(
         return evaluateImdbCondition(item.imdb.votes, operator, value)
       }
 
+      // Do not apply negation here - the content router service handles negation at a higher level.
+      // This prevents double-negation issues when condition.negate is true.
       return false
     },
 

@@ -184,7 +184,6 @@ export default function createConditionalEvaluator(
 
           if (isMatch) {
             matchingRules.push(rule)
-          } else {
           }
         } catch (error) {
           fastify.log.error(

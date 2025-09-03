@@ -5,7 +5,9 @@
  * from the datasets.imdbws.com title.ratings.tsv.gz file.
  */
 
-import { gunzipSync } from 'node:zlib'
+import { createInterface } from 'node:readline'
+import { Readable } from 'node:stream'
+import { createGunzip } from 'node:zlib'
 import type { InsertImdbRating } from '@root/types/imdb.types.js'
 import { IMDB_RATINGS_URL } from '@root/types/imdb.types.js'
 import type { DatabaseService } from '@services/database.service.js'
@@ -95,28 +97,80 @@ export class ImdbService {
         )
       }
 
-      const gzippedBuffer = await response.arrayBuffer()
-      this.log.info(
-        `Downloaded IMDB ratings file (${gzippedBuffer.byteLength} bytes)`,
-      )
-
-      // Decompress and parse the TSV content
-      const tsvContent = gunzipSync(Buffer.from(gzippedBuffer)).toString('utf8')
-      const ratings = this.parseRatingsTsv(tsvContent)
-      this.log.info(`Parsed ${ratings.length} IMDB rating entries`)
-
-      if (ratings.length === 0) {
-        this.log.warn('No IMDB ratings found in TSV, skipping database update')
-        return { count: 0, updated: false }
+      // Stream gunzip and parse line-by-line to avoid loading entire file into memory
+      if (!response.body) {
+        throw new Error('Fetch returned no body')
       }
+
+      const nodeBody = Readable.fromWeb(
+        response.body as ReadableStream<Uint8Array>,
+      )
+      const gunzip = createGunzip()
+      const rl = createInterface({
+        input: nodeBody.pipe(gunzip),
+        crlfDelay: Infinity,
+      })
+
+      const BATCH_SIZE = 10_000
+      let batch: InsertImdbRating[] = []
+      let lineIdx = 0
+      let total = 0
 
       // Use transaction for atomic replacement to avoid temporary empty state
       await this.db.knex.transaction(async (trx) => {
         await trx('imdb_ratings').del()
         this.log.info('Cleared existing IMDB ratings')
 
-        await this.db.insertImdbRatings(ratings, trx)
+        for await (const rawLine of rl) {
+          const line = String(rawLine).trim()
+          if (lineIdx++ === 0) continue // skip header
+          if (!line) continue
+
+          const [tconst, avgStr, votesStr] = line.split('\t')
+          if (!tconst || !tconst.startsWith('tt')) continue
+
+          const average_rating = avgStr === '\\N' ? null : parseFloat(avgStr)
+          const num_votes = votesStr === '\\N' ? null : parseInt(votesStr, 10)
+
+          // Validate rating range
+          if (
+            average_rating !== null &&
+            (!Number.isFinite(average_rating) ||
+              average_rating < 1 ||
+              average_rating > 10)
+          )
+            continue
+
+          // Validate votes count
+          if (
+            num_votes !== null &&
+            (!Number.isFinite(num_votes) || num_votes < 0)
+          )
+            continue
+
+          batch.push({ tconst, average_rating, num_votes })
+
+          if (batch.length >= BATCH_SIZE) {
+            await this.db.insertImdbRatings(batch, trx)
+            total += batch.length
+            this.log.debug(`Processed ${total} IMDB ratings`)
+            batch = []
+          }
+        }
+
+        // Insert final batch
+        if (batch.length) {
+          await this.db.insertImdbRatings(batch, trx)
+          total += batch.length
+        }
       })
+
+      if (total === 0) {
+        this.log.warn('No IMDB ratings found in TSV, skipping database update')
+        return { count: 0, updated: false }
+      }
+
+      this.log.info(`Processed ${total} IMDB rating entries via streaming`)
 
       const finalCount = await this.db.getImdbRatingCount()
       this.log.info(
@@ -130,59 +184,6 @@ export class ImdbService {
         'Failed to update IMDB ratings database - continuing without IMDB data',
       )
       return { count: 0, updated: false }
-    }
-  }
-
-  /**
-   * Parse the TSV content and extract IMDB ratings
-   */
-  private parseRatingsTsv(tsvContent: string): InsertImdbRating[] {
-    const ratings: InsertImdbRating[] = []
-
-    try {
-      const lines = tsvContent.split('\n')
-
-      for (let i = 1; i < lines.length; i++) {
-        // Skip header line (i=0)
-        const line = lines[i].trim()
-        if (!line) continue
-
-        const [tconst, averageRatingStr, numVotesStr] = line.split('\t')
-
-        if (!tconst || !tconst.startsWith('tt')) continue
-
-        const averageRating =
-          averageRatingStr === '\\N' ? null : parseFloat(averageRatingStr)
-        const numVotes =
-          numVotesStr === '\\N' ? null : parseInt(numVotesStr, 10)
-
-        // Validate the data
-        if (
-          averageRating !== null &&
-          (Number.isNaN(averageRating) ||
-            averageRating < 1 ||
-            averageRating > 10)
-        ) {
-          continue
-        }
-
-        if (numVotes !== null && (Number.isNaN(numVotes) || numVotes < 0)) {
-          continue
-        }
-
-        ratings.push({
-          tconst,
-          average_rating: averageRating,
-          num_votes: numVotes,
-        })
-      }
-
-      return ratings
-    } catch (error) {
-      this.log.error({ error }, 'Failed to parse IMDB TSV:')
-      throw new Error(
-        `TSV parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      )
     }
   }
 

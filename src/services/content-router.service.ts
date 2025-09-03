@@ -1030,15 +1030,13 @@ export class ContentRouterService {
                   rating: imdbRating.rating,
                   votes: imdbRating.votes,
                 }
-              } else {
               }
             } catch (error) {
-              console.error(
-                `[DEBUG] Failed to fetch IMDB rating for "${item.title}":`,
-                error,
+              this.log.debug(
+                { error, scope: 'enrichItemMetadata' },
+                `Failed to fetch IMDb rating for "${item.title}"`,
               )
             }
-          } else {
           }
 
           // Check anime status before returning
@@ -1237,8 +1235,21 @@ export class ContentRouterService {
         evaluator.canEvaluateConditionField &&
         evaluator.canEvaluateConditionField(field)
       ) {
-        const result = evaluator.evaluateCondition(condition, item, context)
-        return result
+        try {
+          const result = evaluator.evaluateCondition(condition, item, context)
+          return result
+        } catch (error) {
+          this.log.error(
+            {
+              error,
+              evaluator: evaluator.name,
+              field: condition.field,
+              itemGuids: item.guids,
+            },
+            'Evaluator condition evaluation failed (field-specific path)',
+          )
+          // Continue to next evaluator instead of failing routing
+        }
       }
     }
 
