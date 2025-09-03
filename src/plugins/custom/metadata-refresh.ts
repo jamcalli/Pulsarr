@@ -15,13 +15,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     try {
       fastify.log.info(`Starting scheduled metadata refresh job: ${jobName}`)
 
-      // Refresh self watchlist with force refresh flag
-      const selfWatchlistResult =
-        await fastify.plexWatchlist.getSelfWatchlist(true)
-
-      // Refresh others watchlist with force refresh flag
-      const othersWatchlistResult =
-        await fastify.plexWatchlist.getOthersWatchlists(true)
+      // Refresh both watchlists with force refresh in parallel
+      const [selfWatchlistResult, othersWatchlistResult] = await Promise.all([
+        fastify.plexWatchlist.getSelfWatchlist(true),
+        fastify.plexWatchlist.getOthersWatchlists(true),
+      ])
 
       const totalSelfItems = selfWatchlistResult.total
       const totalOthersItems = othersWatchlistResult.total
@@ -44,22 +42,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
       if (!existingSchedule) {
         // Create the schedule - refresh weekly on Sundays at 2 AM
-        const nextRun = new Date()
-        const daysUntilSunday = (7 - nextRun.getDay()) % 7
+        const now = new Date()
+        const nextRun = new Date(now)
+        const daysUntilSunday = (7 - now.getDay()) % 7
 
-        // If today is Sunday, check if it's already past 2 AM
-        if (daysUntilSunday === 0) {
-          const currentHour = nextRun.getHours()
-          const currentMinute = nextRun.getMinutes()
-          // If it's past 2 AM, schedule for next Sunday
-          if (currentHour > 2 || (currentHour === 2 && currentMinute > 0)) {
-            nextRun.setDate(nextRun.getDate() + 7)
-          }
-        } else {
-          nextRun.setDate(nextRun.getDate() + daysUntilSunday)
+        nextRun.setDate(now.getDate() + daysUntilSunday)
+        nextRun.setHours(2, 0, 0, 0)
+
+        if (nextRun <= now) {
+          nextRun.setDate(nextRun.getDate() + 7)
         }
-
-        nextRun.setHours(2, 0, 0, 0) // 2 AM
 
         await fastify.db.createSchedule({
           name: JOB_NAME,

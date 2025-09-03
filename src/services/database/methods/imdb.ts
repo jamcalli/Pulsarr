@@ -86,6 +86,44 @@ export async function insertImdbRatings(
 }
 
 /**
+ * Bulk replaces all IMDB rating records in the `imdb_ratings` table.
+ *
+ * Optimized for complete table replacement scenarios (truncate + bulk insert).
+ * Uses larger chunk sizes and skips conflict resolution for maximum performance.
+ * No operation is performed if the input array is empty.
+ *
+ * Note: Expects the target table to be pre-cleared (e.g., TRUNCATE) within the provided transaction.
+ * No conflict handling is performed; use only when doing a full-table refresh.
+ *
+ * @param ratings - List of IMDB rating records to insert
+ * @param trx - Optional transaction to use
+ */
+export async function bulkReplaceImdbRatings(
+  this: DatabaseService,
+  ratings: InsertImdbRating[],
+  trx?: Knex.Transaction,
+): Promise<void> {
+  if (ratings.length === 0) return
+
+  const executeInsert = async (transaction: Knex.Transaction) => {
+    // Optimized chunk sizes for bulk replacement (no conflict resolution needed)
+    // PostgreSQL has ~65k parameter limit, IMDB has 3 params per record, so max ~21k records
+    // SQLite has strict limits on compound SELECT terms, use very small chunks
+    const chunkSize = this.isPostgres ? 5000 : 100
+
+    for (const chunk of this.chunkArray(ratings, chunkSize)) {
+      await transaction('imdb_ratings').insert(chunk)
+    }
+  }
+
+  if (trx) {
+    await executeInsert(trx)
+  } else {
+    await this.knex.transaction(executeInsert)
+  }
+}
+
+/**
  * Deletes all records from the `imdb_ratings` table.
  *
  * This operation removes every IMDB rating entry, effectively resetting the table.
