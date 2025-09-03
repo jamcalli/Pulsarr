@@ -1017,7 +1017,7 @@ const AccordionRouteCard = ({
                               !loading &&
                               !error ? (
                                 <div className="text-center py-8">
-                                  <p>
+                                  <p className="text-foreground">
                                     No condition types available. Please check
                                     your connection.
                                   </p>
