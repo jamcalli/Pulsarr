@@ -9,6 +9,10 @@ export interface ContentItem {
   guids: string[]
   genres?: string[]
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse
+  imdb?: {
+    rating?: number | null
+    votes?: number | null
+  }
 }
 
 export interface RouterRule {

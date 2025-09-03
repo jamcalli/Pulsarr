@@ -436,7 +436,6 @@ export class ContentRouterService {
     if (hasAnyRules) {
       try {
         enrichedItem = await this.enrichItemMetadata(item, context)
-        this.log.debug(`Enriched metadata for "${item.title}"`)
       } catch (error) {
         this.log.error(
           { error },
@@ -444,6 +443,7 @@ export class ContentRouterService {
         )
         // Continue with original item if enrichment fails
       }
+    } else {
     }
 
     // Step 2: Evaluate all applicable evaluators to get routing decisions
@@ -1011,16 +1011,40 @@ export class ContentRouterService {
             `Movie metadata found for "${item.title}", checking anime status`,
           )
 
+          // Fetch IMDB rating data first (outside try block for scope)
+          let imdbData:
+            | { rating?: number | null; votes?: number | null }
+            | undefined
+
+          // Try to get IMDb ID from guids first, then fallback to metadata
+          let imdbId = extractImdbId(item.guids)?.toString()
+          if ((!imdbId || imdbId === '0') && movieMetadata?.imdbId) {
+            imdbId = movieMetadata.imdbId.replace(/^tt/, '')
+          }
+
+          if (imdbId && imdbId !== '0' && this.fastify.imdb) {
+            try {
+              const imdbRating = await this.fastify.imdb.getRating(item.guids)
+              if (imdbRating) {
+                imdbData = {
+                  rating: imdbRating.rating,
+                  votes: imdbRating.votes,
+                }
+              } else {
+              }
+            } catch (error) {
+              console.error(
+                `[DEBUG] Failed to fetch IMDB rating for "${item.title}":`,
+                error,
+              )
+            }
+          } else {
+          }
+
           // Check anime status before returning
           try {
             const tvdbId = extractTvdbId(item.guids)?.toString()
             const tmdbId = extractTmdbId(item.guids)?.toString()
-
-            // Try to get IMDb ID from guids first, then fallback to metadata
-            let imdbId = extractImdbId(item.guids)?.toString()
-            if ((!imdbId || imdbId === '0') && movieMetadata?.imdbId) {
-              imdbId = movieMetadata.imdbId.replace(/^tt/, '')
-            }
 
             this.log.debug(
               `Anime check for "${item.title}": tvdbId=${tvdbId || 'none'}, tmdbId=${tmdbId || 'none'}, imdbId=${imdbId || 'none'}`,
@@ -1060,6 +1084,7 @@ export class ContentRouterService {
                     ...item,
                     metadata: movieMetadata,
                     genres: enrichedGenres,
+                    imdb: imdbData,
                   }
                 }
               }
@@ -1074,6 +1099,7 @@ export class ContentRouterService {
           return {
             ...item,
             metadata: movieMetadata,
+            imdb: imdbData,
           }
         }
       } else {
@@ -1122,9 +1148,34 @@ export class ContentRouterService {
 
         // Add metadata to the item if found
         if (seriesMetadata) {
+          // Fetch IMDB rating data for TV shows too
+          let imdbData:
+            | { rating?: number | null; votes?: number | null }
+            | undefined
+          if (this.fastify.imdb) {
+            try {
+              const imdbRating = await this.fastify.imdb.getRating(item.guids)
+              if (imdbRating) {
+                imdbData = {
+                  rating: imdbRating.rating,
+                  votes: imdbRating.votes,
+                }
+                this.log.debug(
+                  `IMDB data for TV show "${item.title}": rating=${imdbRating.rating}, votes=${imdbRating.votes}`,
+                )
+              }
+            } catch (error) {
+              this.log.debug(
+                `Failed to fetch IMDB rating for TV show "${item.title}":`,
+                error,
+              )
+            }
+          }
+
           return {
             ...item,
             metadata: seriesMetadata,
+            imdb: imdbData,
           }
         }
       }
@@ -1186,7 +1237,8 @@ export class ContentRouterService {
         evaluator.canEvaluateConditionField &&
         evaluator.canEvaluateConditionField(field)
       ) {
-        return evaluator.evaluateCondition(condition, item, context)
+        const result = evaluator.evaluateCondition(condition, item, context)
+        return result
       }
     }
 
@@ -1194,7 +1246,8 @@ export class ContentRouterService {
     for (const evaluator of this.evaluators) {
       if (evaluator.evaluateCondition) {
         try {
-          return evaluator.evaluateCondition(condition, item, context)
+          const result = evaluator.evaluateCondition(condition, item, context)
+          return result
         } catch (_e) {
           // Ignore errors, try the next evaluator
         }
@@ -1202,7 +1255,6 @@ export class ContentRouterService {
     }
 
     // Log warning if no evaluator could handle this field
-    this.log.warn(`No evaluator found for condition field: ${field}`)
     return false
   }
 

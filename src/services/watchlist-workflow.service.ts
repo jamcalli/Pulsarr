@@ -1148,12 +1148,13 @@ export class WatchlistWorkflowService {
       }
 
       // Get the tmdbGuid string using extractTypedGuid
-      const tmdbGuid = extractTypedGuid(item.guids, 'tmdb:') || `tmdb:${tmdbId}`
+      const _tmdbGuid =
+        extractTypedGuid(item.guids, 'tmdb:') || `tmdb:${tmdbId}`
 
       // Prepare item for Radarr
       const radarrItem: RadarrItem = {
         title: item.title,
-        guids: [tmdbGuid],
+        guids: parseGuids(item.guids),
         type: 'movie',
         genres: this.safeParseArray<string>(item.genres),
       }
@@ -1214,12 +1215,13 @@ export class WatchlistWorkflowService {
       }
 
       // Get the tvdbGuid string using extractTypedGuid
-      const tvdbGuid = extractTypedGuid(item.guids, 'tvdb:') || `tvdb:${tvdbId}`
+      const _tvdbGuid =
+        extractTypedGuid(item.guids, 'tvdb:') || `tvdb:${tvdbId}`
 
       // Prepare item for Sonarr
       const sonarrItem: SonarrItem = {
         title: item.title,
-        guids: [tvdbGuid],
+        guids: parseGuids(item.guids),
         type: 'show',
         ended: false,
         genres: this.safeParseArray<string>(item.genres),
@@ -1418,12 +1420,12 @@ export class WatchlistWorkflowService {
             }
 
             // Get the tvdbGuid string using extractTypedGuid
-            const tvdbGuid =
+            const _tvdbGuid =
               extractTypedGuid(tempItem.guids, 'tvdb:') || `tvdb:${tvdbId}`
 
             const sonarrItem: SonarrItem = {
               title: tempItem.title,
-              guids: [tvdbGuid],
+              guids: parseGuids(tempItem.guids),
               type: 'show',
               ended: false,
               genres: this.safeParseArray<string>(tempItem.genres),
@@ -1492,12 +1494,12 @@ export class WatchlistWorkflowService {
             }
 
             // Get the tmdbGuid string using extractTypedGuid
-            const tmdbGuid =
+            const _tmdbGuid =
               extractTypedGuid(tempItem.guids, 'tmdb:') || `tmdb:${tmdbId}`
 
             const radarrItem: RadarrItem = {
               title: tempItem.title,
-              guids: [tmdbGuid],
+              guids: parseGuids(tempItem.guids),
               type: 'movie',
               genres: this.safeParseArray<string>(tempItem.genres),
             }

@@ -33,20 +33,23 @@ async function imdbPlugin(fastify: FastifyInstance) {
       const existingSchedule = await fastify.db.getScheduleByName('imdb-update')
 
       if (!existingSchedule) {
-        // Create the schedule - update daily at 2 AM
+        // Create the schedule - update daily at 2:30 AM
         const nextRun = new Date()
 
-        // If it's already past 2 AM today, schedule for tomorrow
-        if (nextRun.getHours() >= 2) {
+        // If it's already past 2:30 AM today, schedule for tomorrow
+        if (
+          nextRun.getHours() > 2 ||
+          (nextRun.getHours() === 2 && nextRun.getMinutes() >= 30)
+        ) {
           nextRun.setDate(nextRun.getDate() + 1)
         }
 
-        nextRun.setHours(2, 0, 0, 0) // 2 AM daily
+        nextRun.setHours(2, 30, 0, 0) // 2:30 AM daily
 
         await fastify.db.createSchedule({
           name: 'imdb-update',
           type: 'cron',
-          config: { expression: '0 2 * * *' }, // Every day at 2 AM
+          config: { expression: '30 2 * * *' }, // Every day at 2:30 AM
           enabled: true,
           last_run: null,
           next_run: {

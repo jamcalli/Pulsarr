@@ -183,16 +183,8 @@ export default function createConditionalEvaluator(
           )
 
           if (isMatch) {
-            fastify.log.debug(
-              {
-                scope: 'conditional-evaluator',
-                ruleName: rule.name,
-                itemTitle: item.title,
-                contentType: context.contentType,
-              },
-              'Conditional rule matched for item',
-            )
             matchingRules.push(rule)
+          } else {
           }
         } catch (error) {
           fastify.log.error(
