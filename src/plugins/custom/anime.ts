@@ -70,14 +70,14 @@ async function animePlugin(fastify: FastifyInstance) {
 
       // Register the job handler with the scheduler
       await fastify.scheduler.scheduleJob('anime-update', async (jobName) => {
-        try {
-          // Check if job is still enabled
-          const currentSchedule = await fastify.db.getScheduleByName(jobName)
-          if (!currentSchedule || !currentSchedule.enabled) {
-            fastify.log.debug(`Job ${jobName} is disabled, skipping`)
-            return
-          }
+        // Check if job is still enabled
+        const currentSchedule = await fastify.db.getScheduleByName(jobName)
+        if (!currentSchedule || !currentSchedule.enabled) {
+          fastify.log.debug(`Job ${jobName} is disabled, skipping`)
+          return
+        }
 
+        try {
           fastify.log.info('Starting scheduled anime database update')
           const result = await animeService.updateAnimeDatabase()
 
@@ -107,8 +107,8 @@ async function animePlugin(fastify: FastifyInstance) {
                 `Initial anime database populated: ${result.count} entries`,
               )
             } else {
-              fastify.log.warn(
-                'Initial anime database update failed - no data populated',
+              fastify.log.info(
+                'Initial anime database had no changes; nothing to populate',
               )
             }
           } catch (error) {

@@ -21,6 +21,8 @@ export interface StreamOptions {
   userAgent?: string
   /** Whether the response is gzipped */
   isGzipped?: boolean
+  /** Number of retry attempts for transient failures */
+  retries?: number
 }
 
 /**
@@ -34,17 +36,42 @@ export async function* streamLines(
     timeout = DEFAULT_TIMEOUT,
     userAgent = DEFAULT_USER_AGENT,
     isGzipped = false,
+    retries = 2,
   } = options
 
-  const response = await fetch(url, {
-    headers: { 'User-Agent': userAgent },
-    signal: AbortSignal.timeout(timeout),
-  })
+  let response: Response | undefined
 
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch from ${url}: ${response.status} ${response.statusText}`,
-    )
+  // Retry logic for transient failures
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      response = await fetch(url, {
+        headers: { 'User-Agent': userAgent },
+        signal: AbortSignal.timeout(timeout),
+      })
+
+      if (response.ok) {
+        break
+      } else if (response.status >= 500 && attempt < retries) {
+        // Retry on server errors
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (attempt + 1)),
+        )
+      } else {
+        throw new Error(
+          `Failed to fetch from ${url}: ${response.status} ${response.statusText}`,
+        )
+      }
+    } catch (error) {
+      if (attempt === retries) {
+        throw error
+      }
+      // Exponential backoff for retries
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
+    }
+  }
+
+  if (!response || !response.ok) {
+    throw new Error(`Failed to fetch from ${url} after ${retries + 1} attempts`)
   }
 
   if (!response.body) {
@@ -54,7 +81,8 @@ export async function* streamLines(
   const nodeBody = Readable.fromWeb(response.body as ReadableStream<Uint8Array>)
   let stream = nodeBody
 
-  if (isGzipped) {
+  // Only decompress if server didn't already decompress it
+  if (isGzipped && response.headers.get('content-encoding') !== 'gzip') {
     stream = nodeBody.pipe(createGunzip())
   }
 
@@ -77,20 +105,46 @@ export async function fetchContent(options: StreamOptions): Promise<string> {
     timeout = DEFAULT_TIMEOUT,
     userAgent = DEFAULT_USER_AGENT,
     isGzipped = false,
+    retries = 2,
   } = options
 
-  const response = await fetch(url, {
-    headers: { 'User-Agent': userAgent },
-    signal: AbortSignal.timeout(timeout),
-  })
+  let response: Response | undefined
 
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch from ${url}: ${response.status} ${response.statusText}`,
-    )
+  // Retry logic for transient failures
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      response = await fetch(url, {
+        headers: { 'User-Agent': userAgent },
+        signal: AbortSignal.timeout(timeout),
+      })
+
+      if (response.ok) {
+        break
+      } else if (response.status >= 500 && attempt < retries) {
+        // Retry on server errors
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (attempt + 1)),
+        )
+      } else {
+        throw new Error(
+          `Failed to fetch from ${url}: ${response.status} ${response.statusText}`,
+        )
+      }
+    } catch (error) {
+      if (attempt === retries) {
+        throw error
+      }
+      // Exponential backoff for retries
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
+    }
   }
 
-  if (isGzipped) {
+  if (!response || !response.ok) {
+    throw new Error(`Failed to fetch from ${url} after ${retries + 1} attempts`)
+  }
+
+  if (isGzipped && response.headers.get('content-encoding') !== 'gzip') {
+    // Server didn't decompress, we need to do it manually
     const buffer = await response.arrayBuffer()
     const decompressed = await new Promise<Buffer>((resolve, reject) => {
       const gunzip = createGunzip()
