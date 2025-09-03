@@ -1,5 +1,5 @@
 import type { ConditionValue } from '@root/schemas/content-router/content-router.schema'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -33,6 +33,7 @@ const StableNumberInput = ({
   min,
   max,
   step,
+  id,
 }: {
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -40,7 +41,7 @@ const StableNumberInput = ({
   min?: string
   max?: string
   step?: string
-  step?: string
+  id?: string
 }) => {
   const [internalValue, setInternalValue] = useState(value)
 
@@ -62,6 +63,7 @@ const StableNumberInput = ({
       min={min}
       max={max}
       step={step}
+      id={id}
       className="flex-1"
     />
   )
@@ -72,6 +74,10 @@ const ImdbRatingInput = ({
   value,
   onChange,
 }: ImdbRatingInputProps) => {
+  // Generate unique IDs
+  const votesToggleId = useId()
+  const votesInputId = useId()
+
   // Determine if this is currently a compound value
   const isCurrentlyCompound = isCompoundValue(value)
 
@@ -123,7 +129,9 @@ const ImdbRatingInput = ({
   const renderRatingInput = () => {
     if (operator === 'between') {
       const rangeValue =
-        typeof ratingValue === 'object' && ratingValue !== null
+        typeof ratingValue === 'object' &&
+        ratingValue !== null &&
+        !Array.isArray(ratingValue)
           ? (ratingValue as { min?: number; max?: number })
           : { min: undefined, max: undefined }
 
@@ -171,7 +179,7 @@ const ImdbRatingInput = ({
           value={
             Array.isArray(ratingValue)
               ? ratingValue.join(', ')
-              : String(ratingValue || '')
+              : String(ratingValue ?? '')
           }
           onChange={(e) => {
             const values = e.target.value
@@ -211,8 +219,15 @@ const ImdbRatingInput = ({
 
       {/* Votes toggle */}
       <div className="flex items-center space-x-2">
-        <Switch checked={includeVotes} onCheckedChange={handleVotesToggle} />
-        <Label className="text-sm text-muted-foreground cursor-pointer">
+        <Switch
+          id={votesToggleId}
+          checked={includeVotes}
+          onCheckedChange={handleVotesToggle}
+        />
+        <Label
+          htmlFor={votesToggleId}
+          className="text-sm text-muted-foreground cursor-pointer"
+        >
           Also require minimum vote count
         </Label>
       </div>
@@ -220,9 +235,12 @@ const ImdbRatingInput = ({
       {/* Votes input (when enabled) */}
       {includeVotes && (
         <div>
-          <Label className="text-sm font-medium">Minimum Vote Count</Label>
+          <Label htmlFor={votesInputId} className="text-sm font-medium">
+            Minimum Vote Count
+          </Label>
           <div className="mt-1">
             <StableNumberInput
+              id={votesInputId}
               value={
                 typeof votesValue === 'number' ? votesValue.toString() : ''
               }
@@ -236,7 +254,7 @@ const ImdbRatingInput = ({
             />
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Content must have at least this many votes on IMDB
+            Content must have at least this many votes on IMDb
           </p>
         </div>
       )}

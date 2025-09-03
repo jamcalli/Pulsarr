@@ -8,7 +8,7 @@
 import { createInterface } from 'node:readline'
 import { Readable } from 'node:stream'
 import { createGunzip } from 'node:zlib'
-import type { InsertImdbRating } from '@root/types/imdb.types.js'
+import type { InsertImdbRating, Tconst } from '@root/types/imdb.types.js'
 import { IMDB_RATINGS_URL } from '@root/types/imdb.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { extractTypedGuid } from '@utils/guid-handler.js'
@@ -18,6 +18,13 @@ import type { FastifyBaseLogger } from 'fastify'
 export class ImdbService {
   private static readonly USER_AGENT =
     'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
+
+  /**
+   * Extract tconst from IMDb GUID (e.g., "imdb:tt1234567" → "tt1234567")
+   */
+  private static toTconst(imdbGuid: string): string {
+    return imdbGuid.replace(/^imdb:/, '')
+  }
 
   private get log(): FastifyBaseLogger {
     return createServiceLogger(this.baseLog, 'IMDB')
@@ -42,7 +49,7 @@ export class ImdbService {
     }
 
     // Extract tconst (tt1234567) from imdb:tt1234567
-    const tconst = imdbGuid.substring(5)
+    const tconst = ImdbService.toTconst(imdbGuid)
     const result = await this.db.getImdbRating(tconst)
     return result !== null
   }
@@ -63,7 +70,7 @@ export class ImdbService {
     }
 
     // Extract tconst (tt1234567) from imdb:tt1234567
-    const tconst = imdbGuid.substring(5)
+    const tconst = ImdbService.toTconst(imdbGuid)
     const result = await this.db.getImdbRating(tconst)
 
     if (!result) {
@@ -148,7 +155,7 @@ export class ImdbService {
           )
             continue
 
-          batch.push({ tconst, average_rating, num_votes })
+          batch.push({ tconst: tconst as Tconst, average_rating, num_votes })
 
           if (batch.length >= BATCH_SIZE) {
             await this.db.insertImdbRatings(batch, trx)

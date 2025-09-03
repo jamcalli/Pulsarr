@@ -1,16 +1,21 @@
 /**
- * URL for the IMDB ratings TSV file
- * Contains ratings and vote counts for all IMDB titles
+ * URL for the IMDb ratings TSV file
+ * Contains ratings and vote counts for all IMDb titles
  */
 export const IMDB_RATINGS_URL =
   'https://datasets.imdbws.com/title.ratings.tsv.gz'
+
+/**
+ * Type-safe IMDb title constant (e.g., "tt1234567")
+ */
+export type Tconst = `tt${string}`
 
 /**
  * Database row type for imdb_ratings table
  */
 export interface ImdbRatingRow {
   id: number
-  tconst: string
+  tconst: Tconst
   average_rating: number | null
   num_votes: number | null
   created_at: Date
@@ -21,7 +26,7 @@ export interface ImdbRatingRow {
  * Insert type for imdb_ratings table
  */
 export interface InsertImdbRating {
-  tconst: string
+  tconst: Tconst
   average_rating: number | null
   num_votes: number | null
 }
@@ -30,7 +35,7 @@ export interface InsertImdbRating {
  * IMDB rating lookup result
  */
 export interface ImdbRatingLookup {
-  tconst: string
+  tconst: Tconst
   averageRating: number | null
   numVotes: number | null
 }

@@ -16,7 +16,6 @@ export async function up(knex: Knex): Promise<void> {
     table.timestamp('updated_at').defaultTo(knex.fn.now())
 
     // Create indexes for fast lookups
-    table.index(['tconst'])
     table.index(['average_rating'])
     table.index(['num_votes'])
   })

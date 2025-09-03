@@ -45,17 +45,14 @@ interface RatingRange {
  * @returns `true` if the value is an object with at least one of `min` or `max` as a number or undefined; otherwise, `false`.
  */
 function isRatingRange(value: unknown): value is RatingRange {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    ('min' in value || 'max' in value) &&
-    (!('min' in value) ||
-      typeof value.min === 'number' ||
-      value.min === undefined) &&
-    (!('max' in value) ||
-      typeof value.max === 'number' ||
-      value.max === undefined)
-  )
+  if (typeof value !== 'object' || value === null) return false
+  const obj = value as Record<string, unknown>
+  const hasMin = 'min' in obj
+  const hasMax = 'max' in obj
+  if (!hasMin && !hasMax) return false
+  const minOk = !hasMin || typeof obj.min === 'number' || obj.min === undefined
+  const maxOk = !hasMax || typeof obj.max === 'number' || obj.max === undefined
+  return minOk && maxOk
 }
 
 /**
@@ -155,14 +152,8 @@ export default function createImdbEvaluator(
         return false
       }
 
-      // Check if we have IMDB rating data for this item
-      try {
-        const hasRating = await fastify.imdb.hasRating(item.guids)
-        return hasRating
-      } catch (error) {
-        fastify.log.debug({ error }, 'IMDB evaluator - failed to check rating')
-        return false
-      }
+      // Fast path: presence of IMDB GUID is enough; evaluate() will fetch actual data
+      return true
     },
 
     async evaluate(

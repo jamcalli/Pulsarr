@@ -9,6 +9,7 @@ export interface ContentItem {
   guids: string[]
   genres?: string[]
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse
+  // undefined: not fetched; null: known missing; value: present
   imdb?: {
     rating?: number | null
     votes?: number | null
