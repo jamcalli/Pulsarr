@@ -92,25 +92,32 @@ async function animePlugin(fastify: FastifyInstance) {
         }
       })
 
-      // Check if anime database is empty and populate immediately if needed
+      // Check if anime database is empty and populate in background if needed
       const animeCount = await fastify.db.getAnimeCount()
       if (animeCount === 0) {
-        fastify.log.info('Anime database is empty, running initial update...')
-        try {
-          const result = await animeService.updateAnimeDatabase()
-          if (result.updated) {
-            fastify.log.info(
-              `Initial anime database populated: ${result.count} entries`,
-            )
-          } else {
-            fastify.log.warn(
-              'Initial anime database update failed - no data populated',
+        fastify.log.info(
+          'Anime database is empty, running initial update in background...',
+        )
+        // Run initial population in background to avoid blocking server startup
+        setImmediate(async () => {
+          try {
+            const result = await animeService.updateAnimeDatabase()
+            if (result.updated) {
+              fastify.log.info(
+                `Initial anime database populated: ${result.count} entries`,
+              )
+            } else {
+              fastify.log.warn(
+                'Initial anime database update failed - no data populated',
+              )
+            }
+          } catch (error) {
+            fastify.log.error(
+              { error },
+              'Initial anime database update failed:',
             )
           }
-        } catch (error) {
-          fastify.log.error({ error }, 'Initial anime database update failed:')
-          // Don't throw here - let the plugin continue to initialize
-        }
+        })
       } else {
         fastify.log.info(
           `Anime database already contains ${animeCount} entries`,

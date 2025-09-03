@@ -5,14 +5,12 @@
  * from the datasets.imdbws.com title.ratings.tsv.gz file.
  */
 
-import { createInterface } from 'node:readline'
-import { Readable } from 'node:stream'
-import { createGunzip } from 'node:zlib'
 import type { InsertImdbRating, Tconst } from '@root/types/imdb.types.js'
 import { IMDB_RATINGS_URL } from '@root/types/imdb.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { extractTypedGuid } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { streamLines } from '@utils/streaming-updater.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 export class ImdbService {
@@ -90,34 +88,6 @@ export class ImdbService {
     try {
       this.log.info('Starting IMDB ratings database update...')
 
-      // Download the gzipped TSV file
-      const response = await fetch(IMDB_RATINGS_URL, {
-        headers: {
-          'User-Agent': ImdbService.USER_AGENT,
-        },
-        signal: AbortSignal.timeout(60000), // 60 seconds timeout
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch IMDB ratings: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      // Stream gunzip and parse line-by-line to avoid loading entire file into memory
-      if (!response.body) {
-        throw new Error('Fetch returned no body')
-      }
-
-      const nodeBody = Readable.fromWeb(
-        response.body as ReadableStream<Uint8Array>,
-      )
-      const gunzip = createGunzip()
-      const rl = createInterface({
-        input: nodeBody.pipe(gunzip),
-        crlfDelay: Infinity,
-      })
-
       const BATCH_SIZE = 10_000
       let batch: InsertImdbRating[] = []
       let lineIdx = 0
@@ -128,10 +98,13 @@ export class ImdbService {
         await trx('imdb_ratings').del()
         this.log.info('Cleared existing IMDB ratings')
 
-        for await (const rawLine of rl) {
-          const line = String(rawLine).trim()
+        for await (const line of streamLines({
+          url: IMDB_RATINGS_URL,
+          isGzipped: true,
+          userAgent: ImdbService.USER_AGENT,
+          timeout: 300000, // 5 minutes
+        })) {
           if (lineIdx++ === 0) continue // skip header
-          if (!line) continue
 
           const [tconst, avgStr, votesStr] = line.split('\t')
           if (!tconst || !tconst.startsWith('tt')) continue
