@@ -44,22 +44,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
       if (!existingSchedule) {
         // Create the schedule - refresh weekly on Sundays at 2 AM
+        const now = new Date()
         const nextRun = new Date()
-        const daysUntilSunday = (7 - nextRun.getDay()) % 7
+        const daysUntilSunday = (7 - now.getDay()) % 7
 
-        // If today is Sunday, check if it's already past 2 AM
-        if (daysUntilSunday === 0) {
-          const currentHour = nextRun.getHours()
-          const currentMinute = nextRun.getMinutes()
-          // If it's past 2 AM, schedule for next Sunday
-          if (currentHour > 2 || (currentHour === 2 && currentMinute > 0)) {
-            nextRun.setDate(nextRun.getDate() + 7)
-          }
-        } else {
-          nextRun.setDate(nextRun.getDate() + daysUntilSunday)
+        nextRun.setDate(now.getDate() + daysUntilSunday)
+        nextRun.setHours(2, 0, 0, 0)
+
+        if (nextRun <= now) {
+          nextRun.setDate(nextRun.getDate() + 7)
         }
-
-        nextRun.setHours(2, 0, 0, 0) // 2 AM
 
         await fastify.db.createSchedule({
           name: JOB_NAME,

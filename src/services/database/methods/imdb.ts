@@ -92,6 +92,9 @@ export async function insertImdbRatings(
  * Uses larger chunk sizes and skips conflict resolution for maximum performance.
  * No operation is performed if the input array is empty.
  *
+ * Note: Expects the target table to be pre-cleared (e.g., TRUNCATE) within the provided transaction.
+ * No conflict handling is performed; use only when doing a full-table refresh.
+ *
  * @param ratings - List of IMDB rating records to insert
  * @param trx - Optional transaction to use
  */

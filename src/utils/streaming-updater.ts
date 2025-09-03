@@ -62,6 +62,8 @@ export interface StreamOptions {
   isGzipped?: boolean
   /** Number of retry attempts for transient failures */
   retries?: number
+  /** Optional AbortSignal for cancellation */
+  signal?: AbortSignal
 }
 
 /**
@@ -76,13 +78,14 @@ export async function* streamLines(
     userAgent = DEFAULT_USER_AGENT,
     isGzipped = false,
     retries = 2,
+    signal,
   } = options
 
   const response = await fetchWithRetries(
     url,
     {
       headers: { 'User-Agent': userAgent },
-      signal: AbortSignal.timeout(timeout),
+      signal: signal ?? AbortSignal.timeout(timeout),
     },
     retries,
   )
@@ -94,8 +97,8 @@ export async function* streamLines(
   const nodeBody = Readable.fromWeb(response.body as ReadableStream<Uint8Array>)
   let stream = nodeBody
 
-  // Only decompress if server didn't already decompress it
-  if (isGzipped && response.headers.get('content-encoding') !== 'gzip') {
+  // Resource-level gzip (.gz file): always gunzip regardless of transport encoding
+  if (isGzipped) {
     stream = nodeBody.pipe(createGunzip())
   }
 
@@ -119,19 +122,20 @@ export async function fetchContent(options: StreamOptions): Promise<string> {
     userAgent = DEFAULT_USER_AGENT,
     isGzipped = false,
     retries = 2,
+    signal,
   } = options
 
   const response = await fetchWithRetries(
     url,
     {
       headers: { 'User-Agent': userAgent },
-      signal: AbortSignal.timeout(timeout),
+      signal: signal ?? AbortSignal.timeout(timeout),
     },
     retries,
   )
 
-  if (isGzipped && response.headers.get('content-encoding') !== 'gzip') {
-    // Server didn't decompress, we need to do it manually
+  if (isGzipped) {
+    // Resource-level gzip: gunzip the body content
     const buffer = await response.arrayBuffer()
     const decompressed = await new Promise<Buffer>((resolve, reject) => {
       const gunzip = createGunzip()

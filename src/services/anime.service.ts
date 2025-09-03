@@ -59,6 +59,7 @@ export class AnimeService {
         url: ANIME_LIST_URL,
         userAgent: AnimeService.USER_AGENT,
         timeout: 120000, // 2 minutes timeout
+        retries: 2,
       })
       this.log.info(
         `Downloaded anime list XML (${Buffer.byteLength(xmlContent, 'utf8')} bytes)`,

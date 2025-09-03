@@ -26,6 +26,8 @@ declare module '@services/database.service.js' {
 
     /**
      * Bulk replaces all IMDB rating records (optimized for truncate + bulk insert).
+     * Note: Expects the target table to be pre-cleared (e.g., TRUNCATE) within the provided transaction.
+     * No conflict handling is performed; use only when doing a full-table refresh.
      */
     bulkReplaceImdbRatings(
       ratings: InsertImdbRating[],

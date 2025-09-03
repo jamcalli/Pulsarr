@@ -88,7 +88,6 @@ export class ImdbService {
     try {
       this.log.info('Starting IMDB ratings database update...')
 
-      const _BATCH_SIZE = 10_000
       const allRecords: InsertImdbRating[] = []
       let lineIdx = 0
 
@@ -99,6 +98,7 @@ export class ImdbService {
         isGzipped: true,
         userAgent: ImdbService.USER_AGENT,
         timeout: 600000, // 10 minutes
+        retries: 2,
       })) {
         if (lineIdx++ === 0) continue // skip header
 
@@ -133,25 +133,28 @@ export class ImdbService {
         }
       }
 
+      const total = allRecords.length
+
       this.log.info(
-        `Streamed ${allRecords.length} records into memory, now updating database...`,
+        `Streamed ${total} records into memory, now updating database...`,
       )
+
+      if (total === 0) {
+        const current = await this.db.getImdbRatingCount()
+        this.log.warn(
+          'Parsed 0 IMDb ratings; skipping truncate to avoid wiping existing data',
+        )
+        return { count: current, updated: false }
+      }
 
       // Quick atomic replacement using short transaction
       await this.db.knex.transaction(async (trx) => {
         await trx('imdb_ratings').truncate()
-        this.log.info('Cleared existing IMDB ratings')
+        this.log.info('Cleared existing IMDb ratings (pending commit)')
 
         // Use optimized bulk replacement method (no conflict resolution needed)
         await this.db.bulkReplaceImdbRatings(allRecords, trx)
       })
-
-      const total = allRecords.length
-
-      if (total === 0) {
-        this.log.warn('No IMDB ratings found in TSV, skipping database update')
-        return { count: 0, updated: false }
-      }
 
       this.log.info(`Processed ${total} IMDB rating entries via streaming`)
 
