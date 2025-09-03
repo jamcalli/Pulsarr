@@ -81,11 +81,15 @@ export async function* streamLines(
     signal,
   } = options
 
+  const effectiveSignal = signal
+    ? AbortSignal.any([signal, AbortSignal.timeout(timeout)])
+    : AbortSignal.timeout(timeout)
+
   const response = await fetchWithRetries(
     url,
     {
       headers: { 'User-Agent': userAgent },
-      signal: signal ?? AbortSignal.timeout(timeout),
+      signal: effectiveSignal,
     },
     retries,
   )
@@ -125,11 +129,15 @@ export async function fetchContent(options: StreamOptions): Promise<string> {
     signal,
   } = options
 
+  const effectiveSignal = signal
+    ? AbortSignal.any([signal, AbortSignal.timeout(timeout)])
+    : AbortSignal.timeout(timeout)
+
   const response = await fetchWithRetries(
     url,
     {
       headers: { 'User-Agent': userAgent },
-      signal: signal ?? AbortSignal.timeout(timeout),
+      signal: effectiveSignal,
     },
     retries,
   )

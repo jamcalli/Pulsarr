@@ -15,13 +15,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     try {
       fastify.log.info(`Starting scheduled metadata refresh job: ${jobName}`)
 
-      // Refresh self watchlist with force refresh flag
-      const selfWatchlistResult =
-        await fastify.plexWatchlist.getSelfWatchlist(true)
-
-      // Refresh others watchlist with force refresh flag
-      const othersWatchlistResult =
-        await fastify.plexWatchlist.getOthersWatchlists(true)
+      // Refresh both watchlists with force refresh in parallel
+      const [selfWatchlistResult, othersWatchlistResult] = await Promise.all([
+        fastify.plexWatchlist.getSelfWatchlist(true),
+        fastify.plexWatchlist.getOthersWatchlists(true),
+      ])
 
       const totalSelfItems = selfWatchlistResult.total
       const totalOthersItems = othersWatchlistResult.total
@@ -45,7 +43,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       if (!existingSchedule) {
         // Create the schedule - refresh weekly on Sundays at 2 AM
         const now = new Date()
-        const nextRun = new Date()
+        const nextRun = new Date(now)
         const daysUntilSunday = (7 - now.getDay()) % 7
 
         nextRun.setDate(now.getDate() + daysUntilSunday)
