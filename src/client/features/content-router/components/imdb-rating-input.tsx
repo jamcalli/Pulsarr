@@ -32,12 +32,15 @@ const StableNumberInput = ({
   placeholder,
   min,
   max,
+  step,
 }: {
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   placeholder?: string
   min?: string
   max?: string
+  step?: string
+  step?: string
 }) => {
   const [internalValue, setInternalValue] = useState(value)
 
@@ -58,6 +61,7 @@ const StableNumberInput = ({
       placeholder={placeholder}
       min={min}
       max={max}
+      step={step}
       className="flex-1"
     />
   )
@@ -87,7 +91,7 @@ const ImdbRatingInput = ({
     if (includeVotes) {
       onChangeRef.current({
         rating: newRating,
-        votes: votesValue || null,
+        votes: votesValue ?? null,
       } as ConditionValue)
     } else {
       onChangeRef.current(newRating)
@@ -103,7 +107,7 @@ const ImdbRatingInput = ({
         votes: null,
       } as ConditionValue)
     } else {
-      onChangeRef.current(ratingValue || null)
+      onChangeRef.current(ratingValue ?? null)
     }
   }
 
@@ -138,6 +142,7 @@ const ImdbRatingInput = ({
             placeholder="Min rating (e.g. 7.0)"
             min="1"
             max="10"
+            step="0.1"
           />
           <span className="self-center text-sm text-muted-foreground">to</span>
           <StableNumberInput
@@ -153,6 +158,7 @@ const ImdbRatingInput = ({
             placeholder="Max rating (e.g. 9.0)"
             min="1"
             max="10"
+            step="0.1"
           />
         </div>
       )
@@ -193,6 +199,7 @@ const ImdbRatingInput = ({
         placeholder="Enter rating (e.g. 8.0)"
         min="1"
         max="10"
+        step="0.1"
       />
     )
   }

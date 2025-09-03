@@ -426,7 +426,11 @@ function ConditionInput({
   // Special handling for IMDB rating (with optional votes)
   if (field === 'imdbRating') {
     return (
-      <ImdbRatingInput operator={operator} value={value} onChange={onChange} />
+      <ImdbRatingInput
+        operator={operator}
+        value={value}
+        onChange={(v) => onChangeRef.current(v)}
+      />
     )
   }
 
