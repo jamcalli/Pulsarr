@@ -10,6 +10,10 @@ declare module '@services/database.service.js' {
       animeIds: InsertAnimeId[],
       trx?: import('knex').Knex.Transaction,
     ): Promise<void>
+    bulkReplaceAnimeIds(
+      animeIds: InsertAnimeId[],
+      trx?: import('knex').Knex.Transaction,
+    ): Promise<void>
     clearAllAnimeIds(): Promise<void>
     getAnimeCount(): Promise<number>
     getAnimeCountBySource(source: string): Promise<number>

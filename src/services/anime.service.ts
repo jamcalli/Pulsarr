@@ -88,7 +88,8 @@ export class AnimeService {
         await trx('anime_ids').truncate()
         this.log.info('Cleared existing anime IDs')
 
-        await this.db.insertAnimeIds(animeIds, trx)
+        // Use optimized bulk replacement method (no conflict resolution needed)
+        await this.db.bulkReplaceAnimeIds(animeIds, trx)
         this.log.info('Inserted anime IDs into database')
       })
 
