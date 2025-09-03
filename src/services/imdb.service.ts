@@ -5,14 +5,12 @@
  * from the datasets.imdbws.com title.ratings.tsv.gz file.
  */
 
-import { createInterface } from 'node:readline'
-import { Readable } from 'node:stream'
-import { createGunzip } from 'node:zlib'
 import type { InsertImdbRating, Tconst } from '@root/types/imdb.types.js'
 import { IMDB_RATINGS_URL } from '@root/types/imdb.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { extractTypedGuid } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { streamLines } from '@utils/streaming-updater.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 export class ImdbService {
@@ -88,109 +86,91 @@ export class ImdbService {
    */
   async updateImdbDatabase(): Promise<{ count: number; updated: boolean }> {
     try {
-      this.log.info('Starting IMDB ratings database update...')
+      this.log.info('Starting IMDb ratings database update...')
 
-      // Download the gzipped TSV file
-      const response = await fetch(IMDB_RATINGS_URL, {
-        headers: {
-          'User-Agent': ImdbService.USER_AGENT,
-        },
-        signal: AbortSignal.timeout(60000), // 60 seconds timeout
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch IMDB ratings: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      // Stream gunzip and parse line-by-line to avoid loading entire file into memory
-      if (!response.body) {
-        throw new Error('Fetch returned no body')
-      }
-
-      const nodeBody = Readable.fromWeb(
-        response.body as ReadableStream<Uint8Array>,
-      )
-      const gunzip = createGunzip()
-      const rl = createInterface({
-        input: nodeBody.pipe(gunzip),
-        crlfDelay: Infinity,
-      })
-
-      const BATCH_SIZE = 10_000
-      let batch: InsertImdbRating[] = []
+      const allRecords: InsertImdbRating[] = []
       let lineIdx = 0
-      let total = 0
 
-      // Use transaction for atomic replacement to avoid temporary empty state
-      await this.db.knex.transaction(async (trx) => {
-        await trx('imdb_ratings').del()
-        this.log.info('Cleared existing IMDB ratings')
+      // Stream into memory first (dataset is small enough)
+      this.log.info('Streaming IMDb data into memory...')
+      for await (const line of streamLines({
+        url: IMDB_RATINGS_URL,
+        isGzipped: true,
+        userAgent: ImdbService.USER_AGENT,
+        timeout: 600000, // 10 minutes
+        retries: 2,
+      })) {
+        if (lineIdx++ === 0) continue // skip header
 
-        for await (const rawLine of rl) {
-          const line = String(rawLine).trim()
-          if (lineIdx++ === 0) continue // skip header
-          if (!line) continue
+        const [tconst, avgStr, votesStr] = line.split('\t')
+        if (!tconst || !tconst.startsWith('tt')) continue
 
-          const [tconst, avgStr, votesStr] = line.split('\t')
-          if (!tconst || !tconst.startsWith('tt')) continue
+        const average_rating = avgStr === '\\N' ? null : parseFloat(avgStr)
+        const num_votes = votesStr === '\\N' ? null : parseInt(votesStr, 10)
 
-          const average_rating = avgStr === '\\N' ? null : parseFloat(avgStr)
-          const num_votes = votesStr === '\\N' ? null : parseInt(votesStr, 10)
+        // Validate rating range
+        if (
+          average_rating !== null &&
+          (!Number.isFinite(average_rating) ||
+            average_rating < 1 ||
+            average_rating > 10)
+        )
+          continue
 
-          // Validate rating range
-          if (
-            average_rating !== null &&
-            (!Number.isFinite(average_rating) ||
-              average_rating < 1 ||
-              average_rating > 10)
+        // Validate votes count
+        if (
+          num_votes !== null &&
+          (!Number.isFinite(num_votes) || num_votes < 0)
+        )
+          continue
+
+        allRecords.push({ tconst: tconst as Tconst, average_rating, num_votes })
+
+        if (allRecords.length % 100_000 === 0) {
+          this.log.debug(
+            `Streamed ${allRecords.length} IMDb ratings into memory`,
           )
-            continue
-
-          // Validate votes count
-          if (
-            num_votes !== null &&
-            (!Number.isFinite(num_votes) || num_votes < 0)
-          )
-            continue
-
-          batch.push({ tconst: tconst as Tconst, average_rating, num_votes })
-
-          if (batch.length >= BATCH_SIZE) {
-            await this.db.insertImdbRatings(batch, trx)
-            total += batch.length
-            this.log.debug(`Processed ${total} IMDB ratings`)
-            batch = []
-          }
         }
+      }
 
-        // Insert final batch
-        if (batch.length) {
-          await this.db.insertImdbRatings(batch, trx)
-          total += batch.length
-        }
-      })
+      const total = allRecords.length
+
+      this.log.info(
+        `Streamed ${total} records into memory, now updating database...`,
+      )
 
       if (total === 0) {
-        this.log.warn('No IMDB ratings found in TSV, skipping database update')
-        return { count: 0, updated: false }
+        const current = await this.db.getImdbRatingCount()
+        this.log.warn(
+          'Parsed 0 IMDb ratings; skipping truncate to avoid wiping existing data',
+        )
+        return { count: current, updated: false }
       }
 
-      this.log.info(`Processed ${total} IMDB rating entries via streaming`)
+      // Quick atomic replacement using short transaction
+      await this.db.knex.transaction(async (trx) => {
+        await trx('imdb_ratings').truncate()
+        this.log.info('Cleared existing IMDb ratings (pending commit)')
+
+        // Use optimized bulk replacement method (no conflict resolution needed)
+        await this.db.bulkReplaceImdbRatings(allRecords, trx)
+      })
+
+      this.log.info(`Processed ${total} IMDb rating entries via streaming`)
 
       const finalCount = await this.db.getImdbRatingCount()
       this.log.info(
-        `IMDB ratings database updated successfully with ${finalCount} entries`,
+        `IMDb ratings database updated successfully with ${finalCount} entries`,
       )
 
       return { count: finalCount, updated: true }
     } catch (error) {
       this.log.error(
         { error },
-        'Failed to update IMDB ratings database - continuing without IMDB data',
+        'Failed to update IMDb ratings database - continuing without IMDb data',
       )
-      return { count: 0, updated: false }
+      const current = await this.db.getImdbRatingCount().catch(() => 0)
+      return { count: current, updated: false }
     }
   }
 
