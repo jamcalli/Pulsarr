@@ -62,8 +62,7 @@ export async function insertAnimeIds(
   const executeInsert = async (transaction: Knex.Transaction) => {
     // SQLite has a limit on compound SELECT terms when using onConflict
     // Reduce chunk size for SQLite to avoid "too many terms in compound SELECT" error
-    const client = this.knex.client.config.client
-    const chunkSize = client === 'better-sqlite3' ? 100 : 1000
+    const chunkSize = this.isPostgres ? 1000 : 100
 
     for (const chunk of this.chunkArray(animeIds, chunkSize)) {
       await transaction('anime_ids')

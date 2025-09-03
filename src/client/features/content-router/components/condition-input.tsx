@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import UserMultiSelect from '@/components/ui/user-multi-select'
+import ImdbRatingInput from '@/features/content-router/components/imdb-rating-input'
 import { ContentCertifications } from '@/features/content-router/types/route-types'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -419,6 +420,17 @@ function ConditionInput({
           onDropdownOpen={onGenreDropdownOpen}
         />
       </div>
+    )
+  }
+
+  // Special handling for IMDB rating (with optional votes)
+  if (field === 'imdbRating') {
+    return (
+      <ImdbRatingInput
+        operator={operator}
+        value={value}
+        onChange={(v) => onChangeRef.current(v)}
+      />
     )
   }
 
