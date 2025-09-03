@@ -1029,6 +1029,12 @@ export class ContentRouterService {
                   rating: imdbRating.rating,
                   votes: imdbRating.votes,
                 }
+              } else {
+                // Lookup succeeded but no rating found - mark as known missing
+                imdbData = {
+                  rating: null,
+                  votes: null,
+                }
               }
             } catch (error) {
               this.log.debug(
@@ -1081,7 +1087,7 @@ export class ContentRouterService {
                     ...item,
                     metadata: movieMetadata,
                     genres: enrichedGenres,
-                    imdb: imdbData,
+                    ...(imdbData && { imdb: imdbData }),
                   }
                 }
               }
@@ -1096,7 +1102,7 @@ export class ContentRouterService {
           return {
             ...item,
             metadata: movieMetadata,
-            imdb: imdbData,
+            ...(imdbData && { imdb: imdbData }),
           }
         }
       } else {
@@ -1160,6 +1166,12 @@ export class ContentRouterService {
                 this.log.debug(
                   `IMDB data for TV show "${item.title}": rating=${imdbRating.rating}, votes=${imdbRating.votes}`,
                 )
+              } else {
+                // Lookup succeeded but no rating found - mark as known missing
+                imdbData = {
+                  rating: null,
+                  votes: null,
+                }
               }
             } catch (error) {
               this.log.debug(
@@ -1172,7 +1184,7 @@ export class ContentRouterService {
           return {
             ...item,
             metadata: seriesMetadata,
-            imdb: imdbData,
+            ...(imdbData && { imdb: imdbData }),
           }
         }
       }
