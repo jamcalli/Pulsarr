@@ -25,6 +25,14 @@ declare module '@services/database.service.js' {
     ): Promise<void>
 
     /**
+     * Bulk replaces all IMDB rating records (optimized for truncate + bulk insert).
+     */
+    bulkReplaceImdbRatings(
+      ratings: InsertImdbRating[],
+      trx?: Knex.Transaction,
+    ): Promise<void>
+
+    /**
      * Deletes all IMDB rating records from the database.
      */
     clearAllImdbRatings(): Promise<void>

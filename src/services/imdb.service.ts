@@ -88,7 +88,7 @@ export class ImdbService {
     try {
       this.log.info('Starting IMDB ratings database update...')
 
-      const BATCH_SIZE = 10_000
+      const _BATCH_SIZE = 10_000
       const allRecords: InsertImdbRating[] = []
       let lineIdx = 0
 
@@ -142,14 +142,8 @@ export class ImdbService {
         await trx('imdb_ratings').truncate()
         this.log.info('Cleared existing IMDB ratings')
 
-        // Insert in batches
-        for (let i = 0; i < allRecords.length; i += BATCH_SIZE) {
-          const batch = allRecords.slice(i, i + BATCH_SIZE)
-          await this.db.insertImdbRatings(batch, trx)
-          this.log.debug(
-            `Inserted batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} records)`,
-          )
-        }
+        // Use optimized bulk replacement method (no conflict resolution needed)
+        await this.db.bulkReplaceImdbRatings(allRecords, trx)
       })
 
       const total = allRecords.length
