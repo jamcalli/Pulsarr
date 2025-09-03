@@ -90,30 +90,32 @@ async function imdbPlugin(fastify: FastifyInstance) {
         }
       })
 
-      // Check if IMDB database is empty and populate immediately if needed
+      // Check if IMDB database is empty and populate in background if needed
       const imdbCount = await fastify.db.getImdbRatingCount()
       if (imdbCount === 0) {
         fastify.log.info(
-          'IMDB ratings database is empty, running initial update...',
+          'IMDB ratings database is empty, running initial update in background...',
         )
-        try {
-          const result = await imdbService.updateImdbDatabase()
-          if (result.updated) {
-            fastify.log.info(
-              `Initial IMDB ratings database populated: ${result.count} entries`,
-            )
-          } else {
-            fastify.log.warn(
-              'Initial IMDB ratings database update failed - no data populated',
+        // Run initial population in background to avoid blocking server startup
+        setImmediate(async () => {
+          try {
+            const result = await imdbService.updateImdbDatabase()
+            if (result.updated) {
+              fastify.log.info(
+                `Initial IMDB ratings database populated: ${result.count} entries`,
+              )
+            } else {
+              fastify.log.warn(
+                'Initial IMDB ratings database update failed - no data populated',
+              )
+            }
+          } catch (error) {
+            fastify.log.error(
+              { error },
+              'Initial IMDB ratings database update failed:',
             )
           }
-        } catch (error) {
-          fastify.log.error(
-            { error },
-            'Initial IMDB ratings database update failed:',
-          )
-          // Don't throw here - let the plugin continue to initialize
-        }
+        })
       } else {
         fastify.log.info(
           `IMDB ratings database already contains ${imdbCount} entries`,

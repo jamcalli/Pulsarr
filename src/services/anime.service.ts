@@ -9,6 +9,7 @@ import type { InsertAnimeId } from '@root/types/anime.types.js'
 import { ANIME_LIST_URL, ANIME_SOURCES } from '@root/types/anime.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { fetchContent } from '@utils/streaming-updater.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger } from 'fastify'
 
@@ -52,21 +53,12 @@ export class AnimeService {
     try {
       this.log.info('Starting anime database update...')
 
-      // Download the XML file
-      const response = await fetch(ANIME_LIST_URL, {
-        headers: {
-          'User-Agent': AnimeService.USER_AGENT,
-        },
-        signal: AbortSignal.timeout(15000),
+      // Download the XML file using streaming utility
+      const xmlContent = await fetchContent({
+        url: ANIME_LIST_URL,
+        userAgent: AnimeService.USER_AGENT,
+        timeout: 120000, // 2 minutes timeout
       })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch anime list: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const xmlContent = await response.text()
       this.log.info(`Downloaded anime list XML (${xmlContent.length} bytes)`)
 
       // Parse the XML and extract IDs
