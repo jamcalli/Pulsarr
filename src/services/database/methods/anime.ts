@@ -87,6 +87,9 @@ export async function insertAnimeIds(
  * Uses larger chunk sizes and skips conflict resolution for maximum performance.
  * No operation is performed if the input array is empty.
  *
+ * Note: Caller MUST clear/truncate anime_ids in the same transaction before calling;
+ * this function skips conflict handling and assumes the table is empty.
+ *
  * @param animeIds - List of anime ID records to insert
  * @param trx - Optional transaction to use
  */

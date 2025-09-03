@@ -34,17 +34,14 @@ async function imdbPlugin(fastify: FastifyInstance) {
 
       if (!existingSchedule) {
         // Create the schedule - update daily at 2:30 AM
+        const now = new Date()
         const nextRun = new Date()
 
-        // If it's already past 2:30 AM today, schedule for tomorrow
-        if (
-          nextRun.getHours() > 2 ||
-          (nextRun.getHours() === 2 && nextRun.getMinutes() >= 30)
-        ) {
+        nextRun.setHours(2, 30, 0, 0) // Set to 2:30 AM
+
+        if (nextRun <= now) {
           nextRun.setDate(nextRun.getDate() + 1)
         }
-
-        nextRun.setHours(2, 30, 0, 0) // 2:30 AM daily
 
         await fastify.db.createSchedule({
           name: 'imdb-update',
@@ -94,31 +91,35 @@ async function imdbPlugin(fastify: FastifyInstance) {
       const imdbCount = await fastify.db.getImdbRatingCount()
       if (imdbCount === 0) {
         fastify.log.info(
-          'IMDB ratings database is empty, running initial update in background...',
+          'IMDb ratings database is empty, running initial update in background...',
         )
         // Run initial population in background to avoid blocking server startup
-        setImmediate(async () => {
+        const initialPopulateHandle = setImmediate(async () => {
           try {
             const result = await imdbService.updateImdbDatabase()
             if (result.updated) {
               fastify.log.info(
-                `Initial IMDB ratings database populated: ${result.count} entries`,
+                `Initial IMDb ratings database populated: ${result.count} entries`,
               )
             } else {
               fastify.log.info(
-                'Initial IMDB ratings database had no changes; nothing to populate',
+                'Initial IMDb ratings database had no changes; nothing to populate',
               )
             }
           } catch (error) {
             fastify.log.error(
               { error },
-              'Initial IMDB ratings database update failed:',
+              'Initial IMDb ratings database update failed:',
             )
           }
         })
+
+        fastify.addHook('onClose', async () => {
+          clearImmediate(initialPopulateHandle)
+        })
       } else {
         fastify.log.info(
-          `IMDB ratings database already contains ${imdbCount} entries`,
+          `IMDb ratings database already contains ${imdbCount} entries`,
         )
       }
 

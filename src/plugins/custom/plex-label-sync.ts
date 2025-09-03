@@ -108,19 +108,16 @@ export default fp(
 
         if (!existingFullSyncSchedule) {
           // Create the schedule - run weekly on Sundays at 2 AM
+          const now = new Date()
           const nextRun = new Date()
-          const daysUntilSunday = (7 - nextRun.getDay()) % 7
+          const daysUntilSunday = (7 - now.getDay()) % 7
 
-          if (daysUntilSunday === 0) {
-            const currentHour = nextRun.getHours()
-            if (currentHour >= 2) {
-              nextRun.setDate(nextRun.getDate() + 7)
-            }
-          } else {
-            nextRun.setDate(nextRun.getDate() + daysUntilSunday)
-          }
-
+          nextRun.setDate(now.getDate() + daysUntilSunday)
           nextRun.setHours(2, 0, 0, 0)
+
+          if (nextRun <= now) {
+            nextRun.setDate(nextRun.getDate() + 7)
+          }
 
           await fastify.db.createSchedule({
             name: 'plex-label-full-sync',
