@@ -34,13 +34,20 @@ async function fetchWithRetries(
         throw new Error(`Failed to fetch ${url}: ${status} ${res.statusText}`)
       }
 
-      const secs = retryAfter !== null ? Number(retryAfter) : NaN
-      const backoff =
-        Number.isFinite(secs) && secs >= 0
-          ? secs * 1000
-          : baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 250)
+      let backoff: number | null = null
+      if (retryAfter) {
+        const secs = Number(retryAfter)
+        if (Number.isFinite(secs) && secs >= 0) {
+          backoff = secs * 1000
+        } else {
+          const dateMs = Date.parse(retryAfter)
+          if (!Number.isNaN(dateMs)) backoff = Math.max(0, dateMs - Date.now())
+        }
+      }
+      const backoffMs =
+        backoff ?? baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 250)
 
-      await new Promise((r) => setTimeout(r, backoff))
+      await new Promise((r) => setTimeout(r, backoffMs))
     } catch (err) {
       lastErr = err
       if (attempt === retries) throw err

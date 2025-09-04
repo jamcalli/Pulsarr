@@ -28,27 +28,6 @@ export async function getImdbRating(
 }
 
 /**
- * Looks up IMDB rating data for multiple IMDB title IDs.
- *
- * @param tconstList - Array of IMDB title IDs
- * @returns Array of IMDB rating data for found titles
- */
-export async function getImdbRatings(
-  this: DatabaseService,
-  tconstList: string[],
-): Promise<ImdbRatingLookup[]> {
-  if (tconstList.length === 0) return []
-
-  return this.knex('imdb_ratings')
-    .whereIn('tconst', tconstList)
-    .select(
-      'tconst',
-      'average_rating as averageRating',
-      'num_votes as numVotes',
-    )
-}
-
-/**
  * Inserts multiple IMDB rating records into the `imdb_ratings` table, skipping duplicates.
  *
  * Performs bulk insertion in database-appropriate chunk sizes to avoid query limitations.

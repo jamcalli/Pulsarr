@@ -12,11 +12,6 @@ declare module '@services/database.service.js' {
     getImdbRating(tconst: string): Promise<ImdbRatingLookup | null>
 
     /**
-     * Looks up IMDB rating data for multiple IMDB title IDs.
-     */
-    getImdbRatings(tconstList: string[]): Promise<ImdbRatingLookup[]>
-
-    /**
      * Inserts multiple IMDB rating records into the database.
      */
     insertImdbRatings(

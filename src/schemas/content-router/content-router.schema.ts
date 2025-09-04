@@ -29,7 +29,7 @@ function isNonEmptyValue(value: unknown): boolean {
 
     // Handle range objects ({ min, max })
     if ('min' in obj || 'max' in obj) {
-      return obj.min !== undefined || obj.max !== undefined
+      return obj.min != null || obj.max != null
     }
   }
 
@@ -88,7 +88,7 @@ const ImdbCompoundValueSchema = z
     rating: z
       .union([
         z.number(),
-        z.array(z.number()),
+        z.array(z.number()).min(1),
         z
           .object({ min: z.number().optional(), max: z.number().optional() })
           .refine((v) => v.min !== undefined || v.max !== undefined, {
@@ -100,7 +100,7 @@ const ImdbCompoundValueSchema = z
     votes: z
       .union([
         z.number(),
-        z.array(z.number()),
+        z.array(z.number()).min(1),
         z
           .object({ min: z.number().optional(), max: z.number().optional() })
           .refine((v) => v.min !== undefined || v.max !== undefined, {

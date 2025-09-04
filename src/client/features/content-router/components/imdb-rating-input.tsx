@@ -94,10 +94,10 @@ const ImdbRatingInput = ({
 
   // Handle rating value changes
   const handleRatingChange = (newRating: ConditionValue) => {
-    if (includeVotes) {
+    if (includeVotes && votesValue !== undefined && votesValue !== null) {
       onChangeRef.current({
         rating: newRating,
-        votes: votesValue ?? null,
+        votes: votesValue,
       } as ConditionValue)
     } else {
       onChangeRef.current(newRating)
@@ -108,10 +108,8 @@ const ImdbRatingInput = ({
   const handleVotesToggle = (enabled: boolean) => {
     setIncludeVotes(enabled)
     if (enabled) {
-      onChangeRef.current({
-        rating: ratingValue,
-        votes: null,
-      } as ConditionValue)
+      // Don't add votes property until user enters a value
+      onChangeRef.current((ratingValue ?? null) as ConditionValue)
     } else {
       onChangeRef.current(ratingValue ?? null)
     }
@@ -119,10 +117,16 @@ const ImdbRatingInput = ({
 
   // Handle votes value changes
   const handleVotesChange = (newVotes: number | null) => {
-    onChangeRef.current({
-      rating: ratingValue,
-      votes: newVotes,
-    } as ConditionValue)
+    if (newVotes === null || newVotes === undefined) {
+      // If votes are cleared, send just the rating value
+      onChangeRef.current((ratingValue ?? null) as ConditionValue)
+    } else {
+      // Only create compound object when votes has an actual value
+      onChangeRef.current({
+        rating: ratingValue,
+        votes: newVotes,
+      } as ConditionValue)
+    }
   }
 
   // Render rating input based on operator type
