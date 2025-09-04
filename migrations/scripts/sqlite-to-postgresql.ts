@@ -176,32 +176,46 @@ class SQLiteToPostgresMigration {
   }
 
   /**
+   * Get boolean columns for a specific table from PostgreSQL schema
+   */
+  private async getBooleanColumns(tableName: string): Promise<Set<string>> {
+    const result = await this.targetDb.raw(
+      `
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = ? 
+      AND table_schema = current_schema() 
+      AND data_type = 'boolean'
+    `,
+      [tableName],
+    )
+
+    return new Set(
+      result.rows.map((row: { column_name: string }) => row.column_name),
+    )
+  }
+
+  /**
    * Transform data from SQLite format to PostgreSQL format
    */
-  private transformRow(row: Record<string, unknown>): Record<string, unknown> {
+  private transformRow(
+    row: Record<string, unknown>,
+    booleanColumns: Set<string>,
+  ): Record<string, unknown> {
     const transformed = { ...row }
 
-    // Transform boolean values (SQLite uses 0/1)
+    // Transform boolean values based on actual PostgreSQL schema
     for (const [key, value] of Object.entries(transformed)) {
-      // Convert SQLite booleans (0/1) to PostgreSQL booleans
-      if (value === 0 || value === 1) {
-        // Common boolean column patterns
-        if (
-          key.startsWith('is_') ||
-          key.startsWith('can_') ||
-          key.startsWith('notify_') ||
-          key.startsWith('enable') ||
-          key.startsWith('delete') ||
-          key.startsWith('bypass_') ||
-          key === 'enabled' ||
-          key === 'syncing' ||
-          key.endsWith('_enabled') ||
-          key === '_isReady' ||
-          key === 'is_custom' ||
-          key === 'is_default'
-        ) {
-          transformed[key] = Boolean(value)
+      // Convert various boolean representations to PostgreSQL booleans
+      if (booleanColumns.has(key)) {
+        if (value === 0 || value === 1) {
+          transformed[key] = value === 1
+        } else if (value === '0' || value === '1') {
+          transformed[key] = value === '1'
+        } else if (value === 'true' || value === 'false') {
+          transformed[key] = value === 'true'
         }
+        // Leave other values as-is (null, undefined, etc.)
       }
 
       // Ensure JSON fields are properly stringified
@@ -239,7 +253,18 @@ class SQLiteToPostgresMigration {
 
   async migrateTable(tableName: string): Promise<number> {
     try {
-      // Get row count
+      // Fail-fast: Verify target table is empty (should be for new PostgreSQL installs)
+      const [{ count: targetCount }] =
+        await this.targetDb(tableName).count('* as count')
+      if (Number(targetCount) > 0) {
+        throw new Error(
+          `Target table ${tableName} is not empty (${targetCount} rows). ` +
+            'This migration is designed for fresh PostgreSQL installations only. ' +
+            'Please ensure you have a clean PostgreSQL database with only schema (no data).',
+        )
+      }
+
+      // Get row count from source
       const [{ count }] = await this.sourceDb(tableName).count('* as count')
       const totalRows = Number(count)
 
@@ -247,8 +272,14 @@ class SQLiteToPostgresMigration {
         return 0
       }
 
-      // Clear target table (cascade will handle dependent records)
-      await this.targetDb.raw('TRUNCATE TABLE ?? CASCADE', [tableName])
+      // Get boolean columns for this table from PostgreSQL schema
+      const booleanColumns = await this.getBooleanColumns(tableName)
+
+      if (this.config.verbose && booleanColumns.size > 0) {
+        this.log(
+          `  ${tableName}: Found ${booleanColumns.size} boolean columns: ${Array.from(booleanColumns).join(', ')}`,
+        )
+      }
 
       // Migrate in batches
       let migrated = 0
@@ -262,8 +293,10 @@ class SQLiteToPostgresMigration {
 
         if (batch.length === 0) break
 
-        // Transform data
-        const transformedBatch = batch.map((row) => this.transformRow(row))
+        // Transform data with schema-based boolean detection
+        const transformedBatch = batch.map((row) =>
+          this.transformRow(row, booleanColumns),
+        )
 
         // Insert into PostgreSQL
         await this.targetDb(tableName).insert(transformedBatch)

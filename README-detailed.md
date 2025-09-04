@@ -466,7 +466,7 @@ The `.env` file is required for the initial setup and contains essential configu
 | `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
 | `logLevel` | Logging level (silent, fatal, error, warn, info, debug, trace) | Recommended | `info` |
 | `enableConsoleOutput` | Show logs in terminal (default: true) | No | `true` |
-| `enableRequestLogging` | Enable HTTP request logging (default: true) | No | `true` |
+| `enableRequestLogging` | Enable HTTP request logging (default: false) | No | `false` |
 | `cookieSecured` | Set to true ONLY if serving UI over HTTPS | No | `false` |
 | `appriseUrl` | URL for the Apprise server (only if using Apprise) | No* | None |
 
@@ -483,7 +483,7 @@ TZ=America/Los_Angeles          # Set to your local timezone
 # Recommended settings
 logLevel=info                   # Default is 'info'
 enableConsoleOutput=true        # Show logs in terminal (default: true)
-enableRequestLogging=true       # Enable HTTP request logging (default: true)
+enableRequestLogging=false       # Enable HTTP request logging (default: false)
 
 # Optional settings
 cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
@@ -494,7 +494,7 @@ cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
 
 **Logging Configuration**: Pulsarr now uses environment variables for logging control:
 - `enableConsoleOutput=true` - Show logs in terminal (default: true)
-- `enableRequestLogging=true` - Enable HTTP request logging (default: true)
+- `enableRequestLogging=false` - Enable HTTP request logging (default: false)
 - Logs are written to the `./data/logs/` directory when available. If file setup fails, Pulsarr falls back to console output.
 
 ### Authentication Configuration
@@ -536,7 +536,7 @@ cookieName=pulsarr                     # Name of the cookie
 cookieSecured=false                    # Set to true for HTTPS only
 logLevel=info                          # Logging level (default: info)
 enableConsoleOutput=true               # Show logs in terminal (default: true)
-enableRequestLogging=true              # Enable HTTP request logging (default: true)
+enableRequestLogging=false              # Enable HTTP request logging (default: false)
 authenticationMethod=required          # Authentication method (required, requiredExceptLocal, disabled)
 closeGraceDelay=10000                  # Shutdown grace period in ms
 rateLimitMax=100                       # Max requests per time window
