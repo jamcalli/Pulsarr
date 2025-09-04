@@ -11,6 +11,24 @@ function isNonEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null) return false
   if (typeof value === 'string') return value.trim() !== ''
   if (Array.isArray(value)) return value.length > 0
+
+  // Handle compound IMDB objects
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>
+
+    // Check if this is a compound IMDB value
+    if ('rating' in obj || 'votes' in obj) {
+      const hasValidRating = obj.rating !== undefined && obj.rating !== null
+      const hasValidVotes = obj.votes !== undefined && obj.votes !== null
+      return hasValidRating || hasValidVotes
+    }
+
+    // Handle range objects ({ min, max })
+    if ('min' in obj || 'max' in obj) {
+      return obj.min !== undefined || obj.max !== undefined
+    }
+  }
+
   return true
 }
 
