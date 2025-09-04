@@ -193,9 +193,13 @@ class SQLiteToPostgresMigration {
           key.startsWith('enable') ||
           key.startsWith('delete') ||
           key.startsWith('bypass_') ||
+          key.startsWith('sent_') ||
+          key.startsWith('create_') ||
           key === 'enabled' ||
           key === 'syncing' ||
           key.endsWith('_enabled') ||
+          key.endsWith('Enabled') ||
+          key.endsWith('_folders') ||
           key === '_isReady' ||
           key === 'is_custom' ||
           key === 'is_default'

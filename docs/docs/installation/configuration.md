@@ -21,16 +21,28 @@ If you're using the Apprise integration, additional configuration values like `a
 
 ## Core Configuration
 
+:::warning Critical: baseUrl + port Configuration  
+The `baseUrl` and `port` create the webhook address for Sonarr/Radarr to reach Pulsarr. The correct value depends on your deployment:
+
+**Deployment Scenarios:**
+- **Docker Compose (same network)**: `http://pulsarr` (service name)
+- **Docker host networking**: `http://localhost` (shares host network stack)  
+- **Separate machines**: `http://server-ip` (actual network IP)
+- **HTTPS with domain**: `https://domain.com` (port omitted for 443)
+- **Different Docker networks**: External IP or bridge configuration
+- **Reverse proxy**: `https://subdomain.domain.com` (proxy handles routing)
+:::
+
 <div style={{overflowX: 'auto'}}>
 
 | Variable | Description | Required? | Default |
 |----------|-------------|-----------|---------|
-| `baseUrl` | Base URL where Pulsarr can be reached by Sonarr/Radarr (e.g., `http://pulsarr` for Docker network or `http://your-server-ip`) | Yes | `http://localhost` |
-| `port` | Port where Pulsarr is accessible - works with baseUrl to form complete address | Yes | `3003` |
+| `baseUrl` | **CRITICAL**: Webhook address for Sonarr/Radarr to reach Pulsarr. Value depends on deployment (service name, IP, or domain). | Yes | `http://localhost` |
+| `port` | Port where Pulsarr is accessible. Combined with baseUrl for webhook address. Omit if using HTTPS. | Yes | `3003` |
 | `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
 | `logLevel` | Logging level (silent, error, warn, info, debug, trace) | Recommended | `silent` |
 | `enableConsoleOutput` | Show logs in terminal (default: true) | No | `true` |
-| `enableRequestLogging` | Enable HTTP request logging (default: true) | No | `true` |
+| `enableRequestLogging` | Enable HTTP request logging (default: false) | No | `false` |
 | `cookieSecured` | Set to true ONLY if serving UI over HTTPS | No | `false` |
 | `appriseUrl` | URL for the Apprise server (only if using Apprise) | No* | None |
 
@@ -90,6 +102,8 @@ baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
 port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
 
+# ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (see warning above for deployment-specific values)
+
 # Logging Configuration
 logLevel=info                   # Log level (default: info)
                                 # Accepts: fatal | error | warn | info | debug | trace | silent
@@ -98,7 +112,7 @@ enableConsoleOutput=true        # Console logging (default: true)
                                 # Any value other than "false" enables terminal output
                                 # Logs are always written to ./data/logs/ regardless of this setting
 
-enableRequestLogging=true       # HTTP request logging (default: true)
+enableRequestLogging=false      # HTTP request logging (default: false)
                                 # Logs HTTP method, URL, host, remote IP/port, response codes, response times
                                 # Sensitive query parameters (token, apiKey, password) are automatically redacted
 
@@ -116,6 +130,8 @@ baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
 port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
 
+# ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (see warning above for deployment-specific values)
+
 # Logging Configuration
 logLevel=info                   # Log level (default: info)
                                 # Accepts: fatal | error | warn | info | debug | trace | silent
@@ -124,7 +140,7 @@ enableConsoleOutput=true        # Console logging (default: true)
                                 # Any value other than "false" enables terminal output
                                 # Logs are always written to ./data/logs/ regardless of this setting
 
-enableRequestLogging=true       # HTTP request logging (default: true)
+enableRequestLogging=false      # HTTP request logging (default: false)
                                 # Logs HTTP method, URL, host, remote IP/port, response codes, response times
                                 # Sensitive query parameters (token, apiKey, password) are automatically redacted
 
@@ -158,7 +174,7 @@ Pulsarr provides comprehensive logging configuration through environment variabl
 - When disabled, logs are only written to files
 
 **Request Logging** (`enableRequestLogging`)
-- **Default**: `true`
+- **Default**: `false`
 - **Logs**: HTTP method, URL, host, remote IP/port, response codes, response times
 - **Security**: Sensitive query parameters (`token`, `apiKey`, `password`) are automatically redacted
 
