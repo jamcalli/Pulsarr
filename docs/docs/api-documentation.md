@@ -43,7 +43,11 @@ All responses are in JSON format with consistent error handling:
 }
 ```
 
-## OpenAPI Specification
+## Interactive API Documentation
 
-- [Download OpenAPI JSON](/openapi.json)
-- [Live API Documentation](http://localhost:3003/api/docs) (when server is running)
+Pulsarr includes built-in Scalar API documentation served at `/api/docs`:
+
+- **Live API Documentation**: `http://your-server:3003/api/docs` 
+- **Features**: Interactive testing, request/response examples, authentication flows
+- **Auto-generated**: Always up-to-date with your Pulsarr version
+- **Download OpenAPI JSON**: `/openapi.json` for external tools
