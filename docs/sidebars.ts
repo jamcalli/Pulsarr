@@ -53,6 +53,7 @@ const sidebars: SidebarsConfig = {
         'utilities/api-keys',
         'utilities/delete-sync',
         'utilities/new-user-defaults',
+        'utilities/plex-label-sync',
         'utilities/plex-notifications',
         'utilities/public-content-notifications',
         'utilities/session-monitoring',
