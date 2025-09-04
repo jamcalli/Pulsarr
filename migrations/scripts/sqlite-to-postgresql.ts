@@ -176,36 +176,39 @@ class SQLiteToPostgresMigration {
   }
 
   /**
+   * Get boolean columns for a specific table from PostgreSQL schema
+   */
+  private async getBooleanColumns(tableName: string): Promise<Set<string>> {
+    const result = await this.targetDb.raw(
+      `
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = ? 
+      AND table_schema = 'public' 
+      AND data_type = 'boolean'
+    `,
+      [tableName],
+    )
+
+    return new Set(
+      result.rows.map((row: { column_name: string }) => row.column_name),
+    )
+  }
+
+  /**
    * Transform data from SQLite format to PostgreSQL format
    */
-  private transformRow(row: Record<string, unknown>): Record<string, unknown> {
+  private transformRow(
+    row: Record<string, unknown>,
+    booleanColumns: Set<string>,
+  ): Record<string, unknown> {
     const transformed = { ...row }
 
-    // Transform boolean values (SQLite uses 0/1)
+    // Transform boolean values (SQLite uses 0/1) based on actual PostgreSQL schema
     for (const [key, value] of Object.entries(transformed)) {
       // Convert SQLite booleans (0/1) to PostgreSQL booleans
-      if (value === 0 || value === 1) {
-        // Common boolean column patterns
-        if (
-          key.startsWith('is_') ||
-          key.startsWith('can_') ||
-          key.startsWith('notify_') ||
-          key.startsWith('enable') ||
-          key.startsWith('delete') ||
-          key.startsWith('bypass_') ||
-          key.startsWith('sent_') ||
-          key.startsWith('create_') ||
-          key === 'enabled' ||
-          key === 'syncing' ||
-          key.endsWith('_enabled') ||
-          key.endsWith('Enabled') ||
-          key.endsWith('_folders') ||
-          key === '_isReady' ||
-          key === 'is_custom' ||
-          key === 'is_default'
-        ) {
-          transformed[key] = Boolean(value)
-        }
+      if ((value === 0 || value === 1) && booleanColumns.has(key)) {
+        transformed[key] = Boolean(value)
       }
 
       // Ensure JSON fields are properly stringified
@@ -251,6 +254,15 @@ class SQLiteToPostgresMigration {
         return 0
       }
 
+      // Get boolean columns for this table from PostgreSQL schema
+      const booleanColumns = await this.getBooleanColumns(tableName)
+
+      if (this.config.verbose && booleanColumns.size > 0) {
+        this.log(
+          `  ${tableName}: Found ${booleanColumns.size} boolean columns: ${Array.from(booleanColumns).join(', ')}`,
+        )
+      }
+
       // Clear target table (cascade will handle dependent records)
       await this.targetDb.raw('TRUNCATE TABLE ?? CASCADE', [tableName])
 
@@ -266,8 +278,10 @@ class SQLiteToPostgresMigration {
 
         if (batch.length === 0) break
 
-        // Transform data
-        const transformedBatch = batch.map((row) => this.transformRow(row))
+        // Transform data with schema-based boolean detection
+        const transformedBatch = batch.map((row) =>
+          this.transformRow(row, booleanColumns),
+        )
 
         // Insert into PostgreSQL
         await this.targetDb(tableName).insert(transformedBatch)
