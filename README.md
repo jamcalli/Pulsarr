@@ -56,11 +56,12 @@ Full documentation is available at: **[https://jamcalli.github.io/Pulsarr/](http
 # ⚠️  CRITICAL: baseUrl + port = webhook address for Sonarr/Radarr to reach Pulsarr
 # Must be resolvable from your *arr containers (varies by deployment):
 # • Docker Compose same network: http://pulsarr (service name)
-# • Docker host networking: http://localhost (containers share host network)  
+# • Docker host networking: http://localhost (containers share host network)
+# • Docker Desktop (Mac/Windows): http://host.docker.internal  
 # • Separate machines: http://server-ip (actual IP address)
-# • HTTPS: https://domain.com (port omitted)
+# • HTTPS: https://domain.com (external port 443, container still uses 3003 internally)
 baseUrl=http://your-server-ip   # Address where Sonarr/Radarr can reach Pulsarr
-port=3003                       # Port (omit for HTTPS on port 443)
+port=3003                       # Port (omit for external HTTPS on port 443)
 TZ=America/Los_Angeles          # Set to your local timezone
 
 # Logging Configuration
