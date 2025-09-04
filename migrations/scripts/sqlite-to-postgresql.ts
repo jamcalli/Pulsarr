@@ -184,7 +184,7 @@ class SQLiteToPostgresMigration {
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = ? 
-      AND table_schema = 'public' 
+      AND table_schema = current_schema() 
       AND data_type = 'boolean'
     `,
       [tableName],
@@ -204,11 +204,18 @@ class SQLiteToPostgresMigration {
   ): Record<string, unknown> {
     const transformed = { ...row }
 
-    // Transform boolean values (SQLite uses 0/1) based on actual PostgreSQL schema
+    // Transform boolean values based on actual PostgreSQL schema
     for (const [key, value] of Object.entries(transformed)) {
-      // Convert SQLite booleans (0/1) to PostgreSQL booleans
-      if ((value === 0 || value === 1) && booleanColumns.has(key)) {
-        transformed[key] = Boolean(value)
+      // Convert various boolean representations to PostgreSQL booleans
+      if (booleanColumns.has(key)) {
+        if (value === 0 || value === 1) {
+          transformed[key] = value === 1
+        } else if (value === '0' || value === '1') {
+          transformed[key] = value === '1'
+        } else if (value === 'true' || value === 'false') {
+          transformed[key] = value === 'true'
+        }
+        // Leave other values as-is (null, undefined, etc.)
       }
 
       // Ensure JSON fields are properly stringified
@@ -246,7 +253,18 @@ class SQLiteToPostgresMigration {
 
   async migrateTable(tableName: string): Promise<number> {
     try {
-      // Get row count
+      // Fail-fast: Verify target table is empty (should be for new PostgreSQL installs)
+      const [{ count: targetCount }] =
+        await this.targetDb(tableName).count('* as count')
+      if (Number(targetCount) > 0) {
+        throw new Error(
+          `Target table ${tableName} is not empty (${targetCount} rows). ` +
+            'This migration is designed for fresh PostgreSQL installations only. ' +
+            'Please ensure you have a clean PostgreSQL database with only schema (no data).',
+        )
+      }
+
+      // Get row count from source
       const [{ count }] = await this.sourceDb(tableName).count('* as count')
       const totalRows = Number(count)
 
@@ -262,9 +280,6 @@ class SQLiteToPostgresMigration {
           `  ${tableName}: Found ${booleanColumns.size} boolean columns: ${Array.from(booleanColumns).join(', ')}`,
         )
       }
-
-      // Clear target table (cascade will handle dependent records)
-      await this.targetDb.raw('TRUNCATE TABLE ?? CASCADE', [tableName])
 
       // Migrate in batches
       let migrated = 0
