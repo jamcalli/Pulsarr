@@ -23,9 +23,20 @@ Pulsarr can be installed using Docker (recommended), Unraid, or manual installat
 
 1. Create a `.env` file with your configuration:
 
+:::warning Critical Configuration
+The `baseUrl` + `port` creates the webhook address for Sonarr/Radarr to reach Pulsarr. Choose based on your deployment:
+
+**Docker Compose (same network)**: `http://pulsarr` (service name)  
+**Docker host networking**: `http://localhost` (shares host network)  
+**Separate machines**: `http://server-ip` (actual IP)  
+**HTTPS**: `https://domain.com` (port omitted for 443)  
+**Different Docker networks**: Bridge with IP or external address
+:::
+
 ```plaintext
-baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
-port=3003                       # Port where Pulsarr is accessible
+# ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (deployment-dependent)
+baseUrl=http://your-server-ip   # See warning above for correct value
+port=3003                       # Port (omit for HTTPS on port 443)
 TZ=America/Los_Angeles          # Set to your local timezone
 
 # Logging Configuration
@@ -36,7 +47,7 @@ enableConsoleOutput=true        # Console logging (default: true)
                                 # Any value other than "false" enables terminal output
                                 # Logs are always written to ./data/logs/ regardless of this setting
 
-enableRequestLogging=true       # HTTP request logging (default: true)
+enableRequestLogging=false      # HTTP request logging (default: false)
                                 # Logs HTTP method, URL, host, remote IP/port, response codes, response times
                                 # Sensitive query parameters (token, apiKey, password) are automatically redacted
 ```
@@ -84,7 +95,7 @@ Alternatively, you can use the Docker installation method described above.
 If you prefer to build and run Pulsarr manually:
 
 #### Prerequisites
-- Node.js 20 LTS or higher
+- Node.js 22 LTS or higher
 - Git
 
 #### Steps

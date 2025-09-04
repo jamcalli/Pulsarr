@@ -26,7 +26,7 @@ enableConsoleOutput=true               # Console logging (default: true)
                                        # Any value other than "false" enables terminal output
                                        # Logs are always written to ./data/logs/ regardless of this setting
 
-enableRequestLogging=true              # HTTP request logging (default: true)
+enableRequestLogging=false             # HTTP request logging (default: false)
                                        # Logs HTTP method, URL, host, remote IP/port, response codes, response times
                                        # Sensitive query parameters (token, apiKey, password) are automatically redacted
 

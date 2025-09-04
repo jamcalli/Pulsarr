@@ -6,67 +6,55 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Tautulli Notifications
 
-Tautulli integration enables native Plex notifications for your users when their watchlist items become available. This provides a seamless notification experience within the Plex ecosystem, leveraging Tautulli's powerful notification agent system.
-
-## Overview
-
-The Tautulli integration creates and manages notification agents for each Plex user, sending native push notifications through the Plex mobile app when content from their watchlist is added to your media server.
+Tautulli integration enables native Plex notifications for users when their watchlist items become available, providing seamless notifications through the Plex mobile app.
 
 :::note Plex Pass Required
 This feature requires an active Plex Pass subscription to access RSS feeds and send notifications through Plex's notification system.
 :::
 
+:::warning Important Setup Information
+Pulsarr hands off notification delivery to Tautulli, which then sends notifications through Plex mobile apps. **Users must properly configure their Plex mobile app notification settings** for this to work. Review the complete [Tautulli Notification Agents Guide](https://github.com/Tautulli/Tautulli/wiki/Notification-Agents-Guide#plex-android--ios-app) for detailed mobile app configuration requirements.
+:::
+
 ## How It Works
 
-### Notification Flow
+1. **Content Added**: New content added to Radarr/Sonarr triggers watchlist matching
+2. **Queue Notification**: Matching content queues notifications for interested users  
+3. **Tautulli Polling**: Pulsarr polls Tautulli every 30 seconds to detect content in Plex
+4. **Send Notification**: Once detected, native push notifications sent to Plex mobile apps
+5. **Automatic Management**: Creates and manages Tautulli notification agents per user
 
-1. **Content Added**: When new content is added to Radarr/Sonarr, Pulsarr checks if it matches any user's watchlist
-2. **Queue Notification**: Matching content triggers a notification to be queued for interested users
-3. **Tautulli Polling**: Pulsarr polls Tautulli every 30 seconds to check if the content has appeared in your Plex library
-4. **Send Notification**: Once the content is detected in Tautulli's recently added items, notifications are sent to users
-5. **Native Delivery**: Users receive push notifications through their Plex mobile app
+## Key Features
 
-### Key Features
-
-- **Automatic Agent Management**: Creates and manages Tautulli notification agents for each user
-- **Smart Matching**: Uses multiple strategies to match content (Plex keys, GUIDs, metadata)
-- **Retry Logic**: Polls for up to 10 minutes with automatic retry on failures
-- **Episode Grouping**: When multiple episodes are added, sends season notifications for better user experience
-- **User Control**: Each user can enable/disable Tautulli notifications individually
+- **Native Plex Notifications**: Push notifications directly through Plex mobile apps
+- **Automatic Agent Management**: Creates "Pulsarr - Username" agents for each user
+- **Smart Content Matching**: Multiple strategies to match content (Plex keys, GUIDs, metadata)
+- **Episode Grouping**: Season notifications when multiple episodes are added
+- **User Control**: Individual enable/disable per user
 
 ## Setup
 
-### 1. Prerequisites
+### Prerequisites
 
 - Active Plex Pass subscription
-- Tautulli installed and configured with your Plex server
+- Tautulli installed and configured with your Plex server  
 - Generated RSS feeds in Pulsarr (Settings → Plex → Generate RSS Feeds)
 
-### 2. Configure Tautulli
+### Configure Tautulli Integration
 
 1. Navigate to **Settings** → **Notifications** in Pulsarr
 2. Enable **Tautulli Notifications**
-3. Enter your Tautulli configuration:
-   - **Tautulli URL**: Full URL to your Tautulli instance (e.g., `http://192.168.1.100:8181`)
+3. Enter your configuration:
+   - **Tautulli URL**: Full URL (e.g., `http://192.168.1.100:8181`)
    - **API Key**: Found in Tautulli Settings → Web Interface → API Key
-4. Click the **Test Connection** button
-5. Save your settings
+4. Click **Test Connection**
+5. Save settings
 
-### 3. Automatic Notifier Creation
+The system automatically creates notification agents for all users - no manual agent setup required.
 
-After configuring Tautulli, the system will automatically:
+### Enable for Users
 
-1. Create notification agents for all eligible users
-2. Generate "Pulsarr - Username" agents for each user  
-3. Link users with existing agents automatically
-
-No manual intervention is required - notifiers are created and managed automatically when Tautulli notifications are enabled.
-
-### 4. Enable for Users
-
-Users can be configured in two ways:
-
-**Individual User Settings:**
+**Individual Users:**
 1. Go to **Settings** → **Plex** → **User Management**
 2. Click edit on a user
 3. Toggle **Tautulli Notifications** on/off
@@ -74,84 +62,53 @@ Users can be configured in two ways:
 **Bulk Updates:**
 1. Select multiple users in the user table
 2. Click **Bulk Edit**
-3. Set Tautulli notification preference for all selected users
+3. Set Tautulli notification preference
 
-## User Experience
+## Mobile App Setup
 
-### Mobile Push Notifications
+Users receive notifications through their **Plex mobile apps** (iOS/Android). Required setup:
 
-Tautulli notifications are delivered directly to users' **Plex mobile apps** (iOS and Android) as native push notifications. This provides the most seamless notification experience within the Plex ecosystem.
+### Enable Push Notifications
+- **iOS**: Plex app → Settings → Notifications → Enable Push Notifications
+- **Android**: Plex app → Settings → Notifications → Enable Push Notifications + Allow in system settings
 
-:::info Push Notification Setup Required
-Users must have push notifications enabled in their Plex mobile app to receive Tautulli notifications. This is a one-time setup per device.
+### Prevent Duplicate Notifications
+:::warning Important
+Users must **disable** "New Content Added to Library" notifications in their Plex mobile app settings to avoid receiving both Pulsarr notifications (for watchlist items) and generic Plex notifications (for all content).
+
+See [Tautulli documentation](https://github.com/Tautulli/Tautulli/wiki/Notification-Agents-Guide#plex-android--ios-app) for detailed steps.
 :::
 
-:::warning Avoid Duplicate Notifications
-To prevent duplicate notifications, users must **uncheck all servers, libraries, and users** in their Plex mobile app's "New Content Added to Library" notification settings. Otherwise, they will receive both Pulsarr notifications (for their watchlist items) and generic Plex notifications (for all new content).
+## Notification Examples
 
-See the [official Tautulli documentation](https://github.com/Tautulli/Tautulli/wiki/Notification-Agents-Guide#plex-android--ios-app) for detailed setup instructions.
-:::
-
-**For iOS Users:**
-1. Open the **Plex mobile app**
-2. Go to **Settings** → **Notifications**
-3. Enable **Push Notifications**
-4. Allow notifications when prompted by iOS
-
-**For Android Users:**
-1. Open the **Plex mobile app**
-2. Go to **Settings** → **Notifications**
-3. Enable **Push Notifications**
-4. Ensure Plex app notifications are allowed in Android system settings
-
-### Notification Examples
-
-When enabled, users will receive notifications like:
-
+Users receive notifications like:
 - **Movies**: "Your watchlist item 'Movie Title' has been added to the library"
-- **TV Shows**: "New episode of 'Show Title' available! Season X Episode Y has been added"
-- **Seasons**: "New season of 'Show Title' available! Multiple episodes have been added"
+- **TV Episodes**: "New episode of 'Show Title' available! Season X Episode Y has been added"
+- **TV Seasons**: "New season of 'Show Title' available! Multiple episodes have been added"
 
-Notifications appear as native Plex push notifications on mobile devices with:
-- Movie/show poster artwork
-- Tap action to open content in Plex
-- Clear, concise messaging
+Notifications include movie/show artwork and tap to open in Plex.
 
 ## Troubleshooting
 
 ### No Notifications Received
-
-1. **Verify Plex Pass**: Ensure you have an active Plex Pass subscription
-2. **Check RSS Feeds**: Generate RSS feeds in Plex settings if not already done
-3. **Test Connection**: Re-test Tautulli connection in settings
-4. **User Settings**: Confirm the user has Tautulli notifications enabled
-5. **Mobile App Setup**: Ensure users have:
-   - Plex mobile app installed (iOS/Android)
-   - Push notifications enabled in the Plex app settings
-   - System-level notifications allowed for the Plex app
-   - Signed in to the same Plex account
+1. **Verify Plex Pass**: Ensure active subscription
+2. **Check RSS Feeds**: Generate in Plex settings if missing
+3. **Test Connection**: Re-test Tautulli connection
+4. **User Settings**: Confirm user has Tautulli notifications enabled
+5. **Mobile Setup**: Verify push notifications enabled and duplicate notifications disabled
 
 ### Delayed Notifications
+- Pulsarr polls every 30 seconds after content added
+- Content must be processed by Plex before Tautulli detects it
+- Large files or remote storage cause delays
+- Maximum 10 minute wait before notification expires
 
-- Pulsarr polls Tautulli every 30 seconds after content is added
-- Content must be fully processed by Plex before Tautulli can detect it
-- Large files or remote storage may cause additional delays
-- Maximum wait time is 10 minutes before the notification expires
+### Agent Creation Issues
+- Check user exists in Tautulli's user list
+- Verify Tautulli API has access to user data
 
-### Agent Creation Failures
+### Connection Issues
+- Verify Tautulli URL accessible from Pulsarr
+- Check API key correctness
+- Ensure no reverse proxy blocking API access
 
-If agent creation fails for a user:
-1. Check if the user exists in Tautulli's user list
-2. Verify the user has accessed Plex recently (Tautulli only tracks active users)
-3. Try manually creating an agent in Tautulli and re-syncing
-
-### Connection Test Failures
-
-- Verify Tautulli URL is accessible from Pulsarr's network
-- Check API key is correct and hasn't been regenerated
-- Ensure no reverse proxy authentication is blocking API access
-- Test with both HTTP and HTTPS protocols
-
-:::tip
-For best results, ensure Tautulli is on the same network as Pulsarr to minimize latency and improve notification delivery speed.
-:::
