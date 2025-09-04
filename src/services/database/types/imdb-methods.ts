@@ -1,0 +1,58 @@
+import type {
+  ImdbRatingLookup,
+  InsertImdbRating,
+} from '@root/types/imdb.types.js'
+import type { Knex } from 'knex'
+
+declare module '@services/database.service.js' {
+  interface DatabaseService {
+    /**
+     * Looks up IMDB rating data for a given IMDB title ID.
+     */
+    getImdbRating(tconst: string): Promise<ImdbRatingLookup | null>
+
+    /**
+     * Inserts multiple IMDB rating records into the database.
+     */
+    insertImdbRatings(
+      ratings: InsertImdbRating[],
+      trx?: Knex.Transaction,
+    ): Promise<void>
+
+    /**
+     * Bulk replaces all IMDB rating records (optimized for truncate + bulk insert).
+     * Note: Expects the target table to be pre-cleared (e.g., TRUNCATE) within the provided transaction.
+     * No conflict handling is performed; use only when doing a full-table refresh.
+     */
+    bulkReplaceImdbRatings(
+      ratings: InsertImdbRating[],
+      trx?: Knex.Transaction,
+    ): Promise<void>
+
+    /**
+     * Deletes all IMDB rating records from the database.
+     */
+    clearAllImdbRatings(): Promise<void>
+
+    /**
+     * Returns the total number of IMDB rating records.
+     */
+    getImdbRatingCount(): Promise<number>
+
+    /**
+     * Retrieves the most recent update timestamp from the IMDB ratings table.
+     */
+    getImdbLastUpdated(): Promise<Date | null>
+
+    /**
+     * Get statistics about ratings in the database.
+     */
+    getImdbRatingStats(): Promise<{
+      totalCount: number
+      avgRating: number | null
+      avgVotes: number | null
+      highRatedCount: number
+      popularCount: number
+    }>
+  }
+}

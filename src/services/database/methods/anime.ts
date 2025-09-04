@@ -62,8 +62,7 @@ export async function insertAnimeIds(
   const executeInsert = async (transaction: Knex.Transaction) => {
     // SQLite has a limit on compound SELECT terms when using onConflict
     // Reduce chunk size for SQLite to avoid "too many terms in compound SELECT" error
-    const client = this.knex.client.config.client
-    const chunkSize = client === 'better-sqlite3' ? 100 : 1000
+    const chunkSize = this.isPostgres ? 1000 : 100
 
     for (const chunk of this.chunkArray(animeIds, chunkSize)) {
       await transaction('anime_ids')
@@ -77,6 +76,44 @@ export async function insertAnimeIds(
     await executeInsert(trx)
   } else {
     // Use transaction with chunked inserts for better performance
+    await this.knex.transaction(executeInsert)
+  }
+}
+
+/**
+ * Bulk replaces all anime ID records in the `anime_ids` table.
+ *
+ * Optimized for complete table replacement scenarios (truncate + bulk insert).
+ * Uses larger chunk sizes and skips conflict resolution for maximum performance.
+ * No operation is performed if the input array is empty.
+ *
+ * Note: Caller MUST clear/truncate anime_ids in the same transaction before calling;
+ * this function skips conflict handling and assumes the table is empty.
+ *
+ * @param animeIds - List of anime ID records to insert
+ * @param trx - Optional transaction to use
+ */
+export async function bulkReplaceAnimeIds(
+  this: DatabaseService,
+  animeIds: InsertAnimeId[],
+  trx?: Knex.Transaction,
+): Promise<void> {
+  if (animeIds.length === 0) return
+
+  const executeInsert = async (transaction: Knex.Transaction) => {
+    // Optimized chunk sizes for bulk replacement (no conflict resolution needed)
+    // PostgreSQL has ~65k parameter limit, anime has 2 params per record, so max ~32k records
+    // SQLite has strict limits on compound SELECT terms, use very small chunks
+    const chunkSize = this.isPostgres ? 5000 : 100
+
+    for (const chunk of this.chunkArray(animeIds, chunkSize)) {
+      await transaction('anime_ids').insert(chunk)
+    }
+  }
+
+  if (trx) {
+    await executeInsert(trx)
+  } else {
     await this.knex.transaction(executeInsert)
   }
 }

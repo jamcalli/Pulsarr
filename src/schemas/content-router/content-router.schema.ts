@@ -15,6 +15,24 @@ function isNonEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null) return false
   if (typeof value === 'string') return value.trim() !== ''
   if (Array.isArray(value)) return value.length > 0
+
+  // Handle compound IMDB objects
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>
+
+    // Check if this is a compound IMDB value
+    if ('rating' in obj || 'votes' in obj) {
+      const hasValidRating = obj.rating !== undefined && obj.rating !== null
+      const hasValidVotes = obj.votes !== undefined && obj.votes !== null
+      return hasValidRating || hasValidVotes
+    }
+
+    // Handle range objects ({ min, max })
+    if ('min' in obj || 'max' in obj) {
+      return obj.min != null || obj.max != null
+    }
+  }
+
   return true
 }
 
@@ -64,6 +82,38 @@ export const GenreCriteriaSchema = z.object({
 })
 
 // Then define the value types
+// Schema for compound IMDB values (rating with optional votes)
+const ImdbCompoundValueSchema = z
+  .object({
+    rating: z
+      .union([
+        z.number(),
+        z.array(z.number()).min(1),
+        z
+          .object({ min: z.number().optional(), max: z.number().optional() })
+          .refine((v) => v.min !== undefined || v.max !== undefined, {
+            message:
+              'Range comparison requires at least min or max to be specified',
+          }),
+      ])
+      .optional(),
+    votes: z
+      .union([
+        z.number(),
+        z.array(z.number()).min(1),
+        z
+          .object({ min: z.number().optional(), max: z.number().optional() })
+          .refine((v) => v.min !== undefined || v.max !== undefined, {
+            message:
+              'Range comparison requires at least min or max to be specified',
+          }),
+      ])
+      .optional(),
+  })
+  .refine((val) => val.rating !== undefined || val.votes !== undefined, {
+    message: 'At least one of rating or votes must be provided',
+  })
+
 export const ConditionValueSchema = z.union([
   z.string(),
   z.number(),
@@ -78,6 +128,7 @@ export const ConditionValueSchema = z.union([
     .refine((v) => v.min !== undefined || v.max !== undefined, {
       message: 'Range comparison requires at least min or max to be specified',
     }),
+  ImdbCompoundValueSchema,
   z.null(),
 ])
 

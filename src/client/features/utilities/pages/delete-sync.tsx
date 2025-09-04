@@ -858,10 +858,17 @@ export default function DeleteSyncPage() {
                               min={1}
                               max={100}
                               {...field}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                field.onChange(
+                                  value === '' ? undefined : Number(value),
+                                )
+                              }}
                               value={
                                 isSaving && submittedValues
-                                  ? submittedValues.maxDeletionPrevention || ''
-                                  : field.value || ''
+                                  ? submittedValues.maxDeletionPrevention?.toString() ||
+                                    ''
+                                  : field.value?.toString() || ''
                               }
                               className="w-20 text-center"
                               placeholder="10"
