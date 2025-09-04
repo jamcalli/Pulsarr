@@ -25,7 +25,7 @@ function isNonEmptyValue(value: unknown): boolean {
 
     // Handle range objects ({ min, max })
     if ('min' in obj || 'max' in obj) {
-      return obj.min !== undefined || obj.max !== undefined
+      return obj.min != null || obj.max != null
     }
   }
 
