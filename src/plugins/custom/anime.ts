@@ -35,22 +35,16 @@ async function animePlugin(fastify: FastifyInstance) {
 
       if (!existingSchedule) {
         // Create the schedule - update weekly on Sundays at 3 AM
+        const now = new Date()
         const nextRun = new Date()
-        const daysUntilSunday = (7 - nextRun.getDay()) % 7
+        const daysUntilSunday = (7 - now.getDay()) % 7
 
-        // If today is Sunday, check if it's already past 3 AM
-        if (daysUntilSunday === 0) {
-          const currentHour = nextRun.getHours()
-          const currentMinute = nextRun.getMinutes()
-          // If it's past 3 AM, schedule for next Sunday
-          if (currentHour > 3 || (currentHour === 3 && currentMinute > 0)) {
-            nextRun.setDate(nextRun.getDate() + 7)
-          }
-        } else {
-          nextRun.setDate(nextRun.getDate() + daysUntilSunday)
+        nextRun.setDate(now.getDate() + daysUntilSunday)
+        nextRun.setHours(3, 0, 0, 0)
+
+        if (nextRun <= now) {
+          nextRun.setDate(nextRun.getDate() + 7)
         }
-
-        nextRun.setHours(3, 0, 0, 0) // 3 AM
 
         await fastify.db.createSchedule({
           name: 'anime-update',
@@ -70,14 +64,14 @@ async function animePlugin(fastify: FastifyInstance) {
 
       // Register the job handler with the scheduler
       await fastify.scheduler.scheduleJob('anime-update', async (jobName) => {
-        try {
-          // Check if job is still enabled
-          const currentSchedule = await fastify.db.getScheduleByName(jobName)
-          if (!currentSchedule || !currentSchedule.enabled) {
-            fastify.log.debug(`Job ${jobName} is disabled, skipping`)
-            return
-          }
+        // Check if job is still enabled
+        const currentSchedule = await fastify.db.getScheduleByName(jobName)
+        if (!currentSchedule || !currentSchedule.enabled) {
+          fastify.log.debug(`Job ${jobName} is disabled, skipping`)
+          return
+        }
 
+        try {
           fastify.log.info('Starting scheduled anime database update')
           const result = await animeService.updateAnimeDatabase()
 
@@ -92,25 +86,32 @@ async function animePlugin(fastify: FastifyInstance) {
         }
       })
 
-      // Check if anime database is empty and populate immediately if needed
+      // Check if anime database is empty and populate in background if needed
       const animeCount = await fastify.db.getAnimeCount()
       if (animeCount === 0) {
-        fastify.log.info('Anime database is empty, running initial update...')
-        try {
-          const result = await animeService.updateAnimeDatabase()
-          if (result.updated) {
-            fastify.log.info(
-              `Initial anime database populated: ${result.count} entries`,
-            )
-          } else {
-            fastify.log.warn(
-              'Initial anime database update failed - no data populated',
+        fastify.log.info(
+          'Anime database is empty, running initial update in background...',
+        )
+        // Run initial population in background to avoid blocking server startup
+        setImmediate(async () => {
+          try {
+            const result = await animeService.updateAnimeDatabase()
+            if (result.updated) {
+              fastify.log.info(
+                `Initial anime database populated: ${result.count} entries`,
+              )
+            } else {
+              fastify.log.info(
+                'Initial anime database had no changes; nothing to populate',
+              )
+            }
+          } catch (error) {
+            fastify.log.error(
+              { error },
+              'Initial anime database update failed:',
             )
           }
-        } catch (error) {
-          fastify.log.error({ error }, 'Initial anime database update failed:')
-          // Don't throw here - let the plugin continue to initialize
-        }
+        })
       } else {
         fastify.log.info(
           `Anime database already contains ${animeCount} entries`,

@@ -138,7 +138,7 @@ export const ConfigSchema = z.object({
   deleteSyncNotify: DeleteSyncNotifyOptionEnum.optional(),
   approvalNotify: NotifyOptionEnum.optional(),
   deleteSyncNotifyOnlyOnDeletion: z.boolean().optional(),
-  maxDeletionPrevention: z.number().optional(),
+  maxDeletionPrevention: z.number().min(1).max(100).optional(),
   // Deletion mode
   deletionMode: DeletionModeEnum.optional(),
   removedTagPrefix: RemovedTagPrefixSchema.optional(),
