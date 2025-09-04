@@ -27,7 +27,7 @@ import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 // HTTP timeout constants
-const RADARR_API_TIMEOUT = 60000 // 60 seconds for API operations
+const RADARR_API_TIMEOUT = 120000 // 120 seconds for API operations
 const RADARR_CONNECTION_TEST_TIMEOUT = 10000 // 10 seconds for connection tests
 
 // Custom error class to include HTTP status
