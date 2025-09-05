@@ -35,6 +35,9 @@ data
 *.db-shm
 *.db-wal
 
+# Generated IMDB datasets (downloaded fresh by each instance)
+title.ratings.filtered.tsv.gz
+
 # Environment and config files (keep what's needed)
 .env*
 !.env.example
