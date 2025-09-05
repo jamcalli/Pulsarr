@@ -35,7 +35,7 @@ data
 *.db-shm
 *.db-wal
 
-# Generated IMDB datasets (downloaded fresh by each instance)
+# Generated IMDb dataset (committed daily by CI; excluded from Docker context)
 title.ratings.filtered.tsv.gz
 
 # Environment and config files (keep what's needed)

@@ -8,20 +8,25 @@ on:
 jobs:
   update-ratings:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: update-imdb-ratings
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Use Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Generate filtered ratings dataset
         run: npx tsx scripts/generate-filtered-ratings.ts
       
@@ -29,6 +34,11 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add title.ratings.filtered.tsv.gz
-          git diff --staged --quiet || git commit -m "chore: update IMDB ratings dataset $(date +%Y-%m-%d)"
-          git push
+          if test -f title.ratings.filtered.tsv.gz; then
+            git add title.ratings.filtered.tsv.gz
+            git diff --staged --quiet || git commit -m "chore: update IMDB ratings dataset $(date +%Y-%m-%d)"
+            git push
+          else
+            echo "No dataset file generated, skipping commit"
+            exit 1
+          fi
