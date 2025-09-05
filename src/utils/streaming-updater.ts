@@ -6,7 +6,8 @@
  */
 
 import { createInterface } from 'node:readline'
-import { Readable } from 'node:stream'
+import { Readable, Writable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
 
 const DEFAULT_TIMEOUT = 300_000 // 5 minutes
@@ -152,17 +153,23 @@ export async function fetchContent(options: StreamOptions): Promise<string> {
   )
 
   if (isGzipped) {
-    // Resource-level gzip: gunzip the body content
+    // Resource-level gzip: gunzip the body content with proper backpressure handling
     const buffer = await response.arrayBuffer()
-    const decompressed = await new Promise<Buffer>((resolve, reject) => {
-      const gunzip = createGunzip()
-      const chunks: Buffer[] = []
-      gunzip.on('data', (chunk) => chunks.push(chunk))
-      gunzip.on('end', () => resolve(Buffer.concat(chunks)))
-      gunzip.on('error', reject)
-      gunzip.end(Buffer.from(buffer))
-    })
-    return decompressed.toString('utf-8')
+    const chunks: Buffer[] = []
+
+    // Use pipeline to handle backpressure and errors properly
+    await pipeline(
+      Readable.from(Buffer.from(buffer)),
+      createGunzip(),
+      new Writable({
+        write(chunk: Buffer, _encoding, callback) {
+          chunks.push(chunk)
+          callback()
+        },
+      }),
+    )
+
+    return Buffer.concat(chunks).toString('utf-8')
   } else {
     return response.text()
   }

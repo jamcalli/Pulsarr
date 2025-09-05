@@ -1,5 +1,3 @@
-#!/usr/bin/env -S npx tsx
-
 /**
  * Optimized IMDb Ratings Filter
  *
@@ -12,14 +10,17 @@
 
 import { createWriteStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
+import { IMDB_BASICS_URL } from '../src/types/imdb.types.js'
 import { streamLines } from '../src/utils/streaming-updater.js'
 
+// Use original unfiltered ratings URL for generation
 const IMDB_RATINGS_URL = 'https://datasets.imdbws.com/title.ratings.tsv.gz'
-const IMDB_BASICS_URL = 'https://datasets.imdbws.com/title.basics.tsv.gz'
 
 const USER_AGENT = 'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
-const TIMEOUT = 600_000 // 10 minutes
+const TIMEOUT = 1_800_000 // 30 minutes
 
 // Excluded content types (episodes and video games)
 const EXCLUDED_TYPES = new Set(['tvEpisode', 'videoGame'])
@@ -101,53 +102,50 @@ async function generateFilteredRatings(): Promise<GenerationResult> {
 
   const outputGzFile = 'title.ratings.filtered.tsv.gz'
 
-  // Create only compressed stream
-  const gzipStream = createGzip({ level: 9 }) // Maximum compression
-  const gzStream = createWriteStream(outputGzFile)
-
-  // Pipe gzip stream
-  gzipStream.pipe(gzStream)
-
   let originalCount = 0
   let filteredCount = 0
   lineIdx = 0
 
-  for await (const line of streamLines({
-    url: IMDB_RATINGS_URL,
-    isGzipped: true,
-    userAgent: USER_AGENT,
-    timeout: TIMEOUT,
-    retries: 2,
-  })) {
-    if (lineIdx++ === 0) {
-      // Write header
-      const header = `${line}\n`
-      gzipStream.write(header)
-      continue
-    }
+  // Create a readable stream from the filtered data
+  const filteredStream = Readable.from(
+    (async function* () {
+      for await (const line of streamLines({
+        url: IMDB_RATINGS_URL,
+        isGzipped: true,
+        userAgent: USER_AGENT,
+        timeout: TIMEOUT,
+        retries: 2,
+      })) {
+        if (lineIdx++ === 0) {
+          // Yield header
+          yield `${line}\n`
+          continue
+        }
 
-    originalCount++
+        originalCount++
 
-    const [tconst] = line.split('\t')
+        const [tconst] = line.split('\t')
 
-    if (tconst && allowedIds.has(tconst)) {
-      filteredCount++
-      const dataLine = `${line}\n`
-      gzipStream.write(dataLine)
-    }
+        if (tconst && allowedIds.has(tconst)) {
+          filteredCount++
+          yield `${line}\n`
+        }
 
-    if (originalCount % 100_000 === 0) {
-      console.log(
-        `  Processed ${originalCount.toLocaleString()} ratings (${filteredCount.toLocaleString()} kept)...`,
-      )
-    }
-  }
+        if (originalCount % 100_000 === 0) {
+          console.log(
+            `  Processed ${originalCount.toLocaleString()} ratings (${filteredCount.toLocaleString()} kept)...`,
+          )
+        }
+      }
+    })(),
+  )
 
-  // Close stream
-  gzipStream.end()
-
-  // Wait for file to be written
-  await new Promise<void>((resolve) => gzStream.on('close', resolve))
+  // Use pipeline to handle backpressure and errors properly
+  await pipeline(
+    filteredStream,
+    createGzip({ level: 9 }), // Maximum compression
+    createWriteStream(outputGzFile),
+  )
 
   console.log('\nFiltering complete:')
   console.log(`  Original ratings: ${originalCount.toLocaleString()}`)
@@ -171,18 +169,16 @@ async function analyzeCompression(results: GenerationResult): Promise<void> {
     console.log('\nFile size:')
     console.log(`  ${outputGzFile}: ${(gzSize / 1024 / 1024).toFixed(1)} MB`)
 
-    // Compare to original dataset size (estimate)
-    const originalEstimate = 1_609_173 // From analysis
+    // Compare actual original vs filtered counts
+    const originalSize = results.originalCount
     const currentSize = results.filteredCount
-    const dataReduction = (
-      ((originalEstimate - currentSize) / originalEstimate) *
-      100
-    ).toFixed(1)
+    const dataReduction =
+      originalSize > 0
+        ? (((originalSize - currentSize) / originalSize) * 100).toFixed(1)
+        : '0.0'
 
     console.log('\nOverall optimization:')
-    console.log(
-      `  Original dataset: ~${originalEstimate.toLocaleString()} entries`,
-    )
+    console.log(`  Original dataset: ${originalSize.toLocaleString()} entries`)
     console.log(`  Filtered dataset: ${currentSize.toLocaleString()} entries`)
     console.log(`  Data reduction: ${dataReduction}% fewer entries`)
     console.log(
@@ -204,6 +200,13 @@ async function main(): Promise<void> {
 
   try {
     const results = await generateFilteredRatings()
+
+    // Exit with error if no data was filtered
+    if (results.filteredCount === 0) {
+      console.error('❌ No ratings were filtered - dataset may be corrupted')
+      process.exit(1)
+    }
+
     await analyzeCompression(results)
 
     console.log('\n✅ Filtered dataset generated successfully!')
