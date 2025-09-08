@@ -9,7 +9,7 @@
  */
 
 import { createWriteStream } from 'node:fs'
-import { stat } from 'node:fs/promises'
+import { rename, stat } from 'node:fs/promises'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
@@ -22,8 +22,14 @@ const IMDB_RATINGS_URL = 'https://datasets.imdbws.com/title.ratings.tsv.gz'
 const USER_AGENT = 'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
 const TIMEOUT = 1_800_000 // 30 minutes
 
-// Excluded content types (episodes and video games)
-const EXCLUDED_TYPES = new Set(['tvEpisode', 'videoGame'])
+// Excluded content types (episodes, video games, and podcasts/music)
+const EXCLUDED_TYPES = new Set([
+  'tvEpisode',
+  'videoGame',
+  'podcastSeries',
+  'podcastEpisode',
+  'musicVideo',
+])
 
 type ContentType =
   | 'tvSeries'
@@ -36,7 +42,6 @@ type ContentType =
   | 'video'
   | 'videoGame'
   | 'tvShort'
-  | 'documentary'
   | 'tvPilot'
 
 interface ContentTypeStats {
@@ -141,11 +146,13 @@ async function generateFilteredRatings(): Promise<GenerationResult> {
   )
 
   // Use pipeline to handle backpressure and errors properly
+  const tmpGz = `${outputGzFile}.tmp`
   await pipeline(
     filteredStream,
     createGzip({ level: 9 }), // Maximum compression
-    createWriteStream(outputGzFile),
+    createWriteStream(tmpGz),
   )
+  await rename(tmpGz, outputGzFile)
 
   console.log('\nFiltering complete:')
   console.log(`  Original ratings: ${originalCount.toLocaleString()}`)
