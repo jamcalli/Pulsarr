@@ -6,13 +6,16 @@
  */
 
 import { createInterface } from 'node:readline'
-import { Readable } from 'node:stream'
+import { Readable, Writable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
 
 const DEFAULT_TIMEOUT = 300_000 // 5 minutes
 const DEFAULT_USER_AGENT = 'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
 
 type FetchInit = Parameters<typeof fetch>[1]
+
+class NonRetryableError extends Error {}
 
 async function fetchWithRetries(
   url: string,
@@ -30,7 +33,12 @@ async function fetchWithRetries(
       const status = res.status
       const shouldRetry = status >= 500 || status === 408 || status === 429
 
-      if (!shouldRetry || attempt === retries) {
+      if (!shouldRetry) {
+        throw new NonRetryableError(
+          `Failed to fetch ${url}: ${status} ${res.statusText}`,
+        )
+      }
+      if (attempt === retries) {
         throw new Error(`Failed to fetch ${url}: ${status} ${res.statusText}`)
       }
 
@@ -50,6 +58,13 @@ async function fetchWithRetries(
       await new Promise((r) => setTimeout(r, backoffMs))
     } catch (err) {
       lastErr = err
+      // Respect cancellation promptly
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw err
+      }
+      if (err instanceof NonRetryableError) {
+        throw err
+      }
       if (attempt === retries) throw err
 
       const backoff =
@@ -118,8 +133,8 @@ export async function* streamLines(
   const rl = createInterface({ input: stream, crlfDelay: Infinity })
 
   for await (const rawLine of rl) {
-    const line = String(rawLine).trim()
-    if (line) {
+    const line = String(rawLine)
+    if (line.length > 0) {
       yield line
     }
   }
@@ -152,18 +167,21 @@ export async function fetchContent(options: StreamOptions): Promise<string> {
   )
 
   if (isGzipped) {
-    // Resource-level gzip: gunzip the body content
-    const buffer = await response.arrayBuffer()
-    const decompressed = await new Promise<Buffer>((resolve, reject) => {
-      const gunzip = createGunzip()
-      const chunks: Buffer[] = []
-      gunzip.on('data', (chunk) => chunks.push(chunk))
-      gunzip.on('end', () => resolve(Buffer.concat(chunks)))
-      gunzip.on('error', reject)
-      gunzip.end(Buffer.from(buffer))
-    })
-    return decompressed.toString('utf-8')
-  } else {
-    return response.text()
+    if (!response.body) {
+      throw new Error('Fetch returned no body')
+    }
+    const chunks: Buffer[] = []
+    await pipeline(
+      Readable.fromWeb(response.body as ReadableStream<Uint8Array>),
+      createGunzip(),
+      new Writable({
+        write(chunk, _enc, cb) {
+          chunks.push(Buffer.from(chunk))
+          cb()
+        },
+      }),
+    )
+    return Buffer.concat(chunks).toString('utf-8')
   }
+  return response.text()
 }
