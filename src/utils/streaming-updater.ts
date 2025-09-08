@@ -15,6 +15,8 @@ const DEFAULT_USER_AGENT = 'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
 
 type FetchInit = Parameters<typeof fetch>[1]
 
+class NonRetryableError extends Error {}
+
 async function fetchWithRetries(
   url: string,
   init: FetchInit,
@@ -31,7 +33,12 @@ async function fetchWithRetries(
       const status = res.status
       const shouldRetry = status >= 500 || status === 408 || status === 429
 
-      if (!shouldRetry || attempt === retries) {
+      if (!shouldRetry) {
+        throw new NonRetryableError(
+          `Failed to fetch ${url}: ${status} ${res.statusText}`,
+        )
+      }
+      if (attempt === retries) {
         throw new Error(`Failed to fetch ${url}: ${status} ${res.statusText}`)
       }
 
@@ -53,6 +60,9 @@ async function fetchWithRetries(
       lastErr = err
       // Respect cancellation promptly
       if (err instanceof Error && err.name === 'AbortError') {
+        throw err
+      }
+      if (err instanceof NonRetryableError) {
         throw err
       }
       if (attempt === retries) throw err
