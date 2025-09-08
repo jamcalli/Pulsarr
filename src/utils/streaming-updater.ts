@@ -51,6 +51,10 @@ async function fetchWithRetries(
       await new Promise((r) => setTimeout(r, backoffMs))
     } catch (err) {
       lastErr = err
+      // Respect cancellation promptly
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw err
+      }
       if (attempt === retries) throw err
 
       const backoff =
@@ -119,8 +123,8 @@ export async function* streamLines(
   const rl = createInterface({ input: stream, crlfDelay: Infinity })
 
   for await (const rawLine of rl) {
-    const line = String(rawLine).trim()
-    if (line) {
+    const line = String(rawLine)
+    if (line.length > 0) {
       yield line
     }
   }
@@ -153,24 +157,21 @@ export async function fetchContent(options: StreamOptions): Promise<string> {
   )
 
   if (isGzipped) {
-    // Resource-level gzip: gunzip the body content with proper backpressure handling
-    const buffer = await response.arrayBuffer()
+    if (!response.body) {
+      throw new Error('Fetch returned no body')
+    }
     const chunks: Buffer[] = []
-
-    // Use pipeline to handle backpressure and errors properly
     await pipeline(
-      Readable.from(Buffer.from(buffer)),
+      Readable.fromWeb(response.body as ReadableStream<Uint8Array>),
       createGunzip(),
       new Writable({
-        write(chunk: Buffer, _encoding, callback) {
-          chunks.push(chunk)
-          callback()
+        write(chunk, _enc, cb) {
+          chunks.push(Buffer.from(chunk))
+          cb()
         },
       }),
     )
-
     return Buffer.concat(chunks).toString('utf-8')
-  } else {
-    return response.text()
   }
+  return response.text()
 }
