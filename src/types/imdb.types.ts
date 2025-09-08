@@ -1,10 +1,10 @@
 /**
  * URL for the IMDb ratings TSV file
  * Contains ratings and vote counts for all IMDb titles
- * Using pre-filtered dataset from main branch
+ * Using pre-filtered dataset from master branch
  */
 export const IMDB_RATINGS_URL =
-  'https://raw.githubusercontent.com/jamcalli/pulsarr/main/title.ratings.filtered.tsv.gz'
+  'https://raw.githubusercontent.com/jamcalli/pulsarr/master/title.ratings.filtered.tsv.gz'
 
 /**
  * URL for the IMDb basics TSV file

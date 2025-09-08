@@ -150,9 +150,11 @@ async function generateFilteredRatings(): Promise<GenerationResult> {
   console.log('\nFiltering complete:')
   console.log(`  Original ratings: ${originalCount.toLocaleString()}`)
   console.log(`  Filtered ratings: ${filteredCount.toLocaleString()}`)
-  console.log(
-    `  Reduction: ${(((originalCount - filteredCount) / originalCount) * 100).toFixed(1)}%`,
-  )
+  const reduction =
+    originalCount > 0
+      ? (((originalCount - filteredCount) / originalCount) * 100).toFixed(1)
+      : '0.0'
+  console.log(`  Reduction: ${reduction}%`)
 
   return { originalCount, filteredCount, outputGzFile }
 }
@@ -202,7 +204,7 @@ async function main(): Promise<void> {
     const results = await generateFilteredRatings()
 
     // Exit with error if no data was filtered
-    if (results.filteredCount === 0) {
+    if (results.filteredCount === 0 || results.originalCount === 0) {
       console.error('❌ No ratings were filtered - dataset may be corrupted')
       process.exit(1)
     }
