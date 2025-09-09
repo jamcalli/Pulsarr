@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
-          token: ${{ secrets.ADMIN_TOKEN }}
+          persist-credentials: false
 
       - name: Use Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -30,14 +30,16 @@ jobs:
       - name: Generate filtered ratings dataset
         run: npx tsx scripts/generate-filtered-ratings.ts
       - name: Commit and push if changed
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           if test -f title.ratings.filtered.tsv.gz; then
             git add title.ratings.filtered.tsv.gz
             git diff --staged --quiet || git commit -m "chore: update IMDB ratings dataset $(date +%Y-%m-%d)"
+            git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
             git push
           else
             echo "No dataset file generated, skipping commit"
-            exit 1
           fi

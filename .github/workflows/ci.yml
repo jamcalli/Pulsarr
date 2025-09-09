@@ -6,6 +6,8 @@ on:
       - 'title.ratings.filtered.tsv.gz'
   pull_request:
     branches: [ master, develop ]
+    paths-ignore:
+      - 'title.ratings.filtered.tsv.gz'
 jobs:
   build:
     runs-on: ubuntu-latest
