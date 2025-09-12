@@ -30,11 +30,22 @@ const DEFAULT_OPTIONS: LogStreamOptions = {
 }
 
 /**
- * React hook for managing Server-Sent Events connection to the log streaming endpoint.
+ * React hook that opens and manages a Server-Sent Events (SSE) connection to `/v1/logs/stream`.
  *
- * Provides real-time log streaming with configurable filtering, automatic reconnection,
- * and connection state management. Follows the established SSE patterns used in other
- * utilities hooks.
+ * Provides real-time log streaming with configurable options (tail, follow, optional filter),
+ * automatic reconnection with exponential backoff (max 5 attempts, max delay 30s), and connection
+ * state management. Incoming events are parsed as LogEntry and the hook retains up to the last
+ * 1000 entries to avoid unbounded memory growth. The hook auto-connects on mount (unless paused)
+ * and cleans up the connection on unmount.
+ *
+ * @param initialOptions - Partial initial LogStreamOptions (tail, follow, filter). Merged with defaults.
+ * @returns An object exposing:
+ *  - logs: LogEntry[] — current buffered log entries (most recent last)
+ *  - isConnected, isConnecting, isPaused: booleans describing connection state
+ *  - error: string | null — last connection/reconnect error message
+ *  - connectionCount: number — number of successful connections established
+ *  - connect(), disconnect(), pause(), resume(), clearLogs(), updateOptions() — control functions
+ *  - options: LogStreamOptions — current effective options
  */
 export function useLogStream(
   initialOptions: Partial<LogStreamOptions> = {},
