@@ -20,6 +20,7 @@ export class LogStreamingService {
     { size: number; interval?: NodeJS.Timeout }
   > = new Map()
   private readonly logFilePath: string
+  private _watchTickInFlight = false
 
   private get log(): FastifyBaseLogger {
     return createServiceLogger(this.baseLog, 'LOG_STREAMING')
@@ -78,8 +79,8 @@ export class LogStreamingService {
 
   async getTailLines(lines: number, filter?: string): Promise<LogEntry[]> {
     try {
-      const stats = await stat(this.logFilePath)
       const fileHandle = await open(this.logFilePath, 'r')
+      const stats = await fileHandle.stat()
 
       try {
         // Start with a reasonable chunk size (64KB) and grow if needed
@@ -88,12 +89,21 @@ export class LogStreamingService {
         let foundLines: string[] = []
 
         // Keep reading from end of file until we have enough lines
-        while (foundLines.length < lines && chunkSize <= stats.size) {
+        while (
+          foundLines.length < lines &&
+          chunkSize < stats.size &&
+          chunkSize < maxChunkSize
+        ) {
           const start = Math.max(0, stats.size - chunkSize)
           const buffer = Buffer.alloc(chunkSize)
-          await fileHandle.read(buffer, 0, chunkSize, start)
+          const { bytesRead } = await fileHandle.read(
+            buffer,
+            0,
+            chunkSize,
+            start,
+          )
 
-          const content = buffer.toString('utf-8')
+          const content = buffer.subarray(0, bytesRead).toString('utf-8')
           const allLines = content
             .trim()
             .split('\n')
@@ -102,12 +112,18 @@ export class LogStreamingService {
           foundLines = allLines
 
           // If we have enough lines or read the whole file, break
-          if (foundLines.length >= lines || chunkSize >= stats.size) {
+          if (
+            foundLines.length >= lines ||
+            chunkSize >= stats.size ||
+            chunkSize >= maxChunkSize
+          ) {
             break
           }
 
           // Double chunk size for next attempt, up to max
-          chunkSize = Math.min(chunkSize * 2, stats.size, maxChunkSize)
+          const next = Math.min(chunkSize * 2, stats.size, maxChunkSize)
+          if (next === chunkSize) break
+          chunkSize = next
         }
 
         // Get the last N lines
@@ -160,7 +176,13 @@ export class LogStreamingService {
 
       // Poll for file changes every second
       const interval = setInterval(async () => {
-        await this.checkFileChanges()
+        if (this._watchTickInFlight) return
+        this._watchTickInFlight = true
+        try {
+          await this.checkFileChanges()
+        } finally {
+          this._watchTickInFlight = false
+        }
       }, 1000)
 
       const fileInfo = this.watchedFiles.get(this.logFilePath)
@@ -200,8 +222,13 @@ export class LogStreamingService {
         const fileHandle = await open(this.logFilePath, 'r')
         try {
           const buffer = Buffer.alloc(stats.size - fileInfo.size)
-          await fileHandle.read(buffer, 0, buffer.length, fileInfo.size)
-          const newContent = buffer.toString('utf-8')
+          const { bytesRead } = await fileHandle.read(
+            buffer,
+            0,
+            buffer.length,
+            fileInfo.size,
+          )
+          const newContent = buffer.subarray(0, bytesRead).toString('utf-8')
 
           const newLines = newContent.split('\n').filter((line) => line.trim())
 
