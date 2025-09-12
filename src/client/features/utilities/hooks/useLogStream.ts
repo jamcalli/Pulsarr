@@ -62,7 +62,7 @@ export function useLogStream(
   })
 
   const eventSourceRef = useRef<EventSource | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
 
@@ -104,8 +104,8 @@ export function useLogStream(
   }, [])
 
   const connect = useCallback(() => {
-    // Don't connect if already connecting or connected
-    if (isConnecting || isConnected) {
+    // Don't connect if already connecting or an EventSource is still present
+    if (isConnecting || eventSourceRef.current) {
       return
     }
 
@@ -180,7 +180,7 @@ export function useLogStream(
       setError(errorMessage)
       toast.error(`Failed to connect to log stream: ${errorMessage}`)
     }
-  }, [isConnecting, isConnected, buildStreamUrl, disconnect, connectionCount])
+  }, [isConnecting, buildStreamUrl, disconnect, connectionCount])
 
   const pause = useCallback(() => {
     setIsPaused(true)

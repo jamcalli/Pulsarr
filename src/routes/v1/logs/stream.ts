@@ -97,10 +97,9 @@ const logStreamRoute: FastifyPluginAsync = async (fastify) => {
               return
             }
             logRouteError(fastify.log, request, error, {
-              message: 'SSE log stream error',
+              message: 'SSE stream error',
               connectionId,
             })
-            throw error
           }
         })(),
       )
