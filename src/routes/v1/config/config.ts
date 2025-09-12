@@ -163,10 +163,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           savedConfig.logLevel &&
           fastify.log.level !== savedConfig.logLevel
         ) {
-          fastify.log.level = savedConfig.logLevel
           fastify.log.info(
-            `Updated runtime log level to: ${savedConfig.logLevel}`,
+            `Updating runtime log level to: ${savedConfig.logLevel}`,
           )
+          fastify.log.level = savedConfig.logLevel
         }
 
         // Handle Tautulli config changes

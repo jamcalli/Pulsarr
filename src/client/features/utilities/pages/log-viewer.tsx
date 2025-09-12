@@ -363,6 +363,7 @@ export function LogViewerPage() {
                           variant="noShadow"
                           onClick={handleFilterApply}
                           className="mt-0"
+                          aria-label="Apply filter"
                         >
                           <Search className="h-4 w-4" />
                         </Button>
@@ -383,6 +384,7 @@ export function LogViewerPage() {
                           variant="error"
                           onClick={handleFilterClear}
                           className="mt-0"
+                          aria-label="Clear filter"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

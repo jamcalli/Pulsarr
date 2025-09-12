@@ -70,21 +70,38 @@ export const useProgressStore = create<ProgressState>()(
 
       eventSource.onerror = (err) => {
         console.error('EventSource error:', err)
-        set({ isConnected: false, isConnecting: false })
-        // Debounce reconnect
+
+        // Immediately close to prevent browser auto-reconnect interference
+        eventSource.close()
+
+        set({
+          eventSource: null,
+          isConnected: false,
+          isConnecting: false,
+        })
+
+        // Clear any existing reconnect timeout
         const currentState = get()
-        if (!currentState.reconnectTimeout) {
-          const timeout = setTimeout(() => {
-            const latestState = get()
-            if (latestState.eventSource === eventSource) {
-              console.log('Reconnecting EventSource after error')
-              latestState.cleanup()
-              latestState.initialize()
-            }
-            set({ reconnectTimeout: null })
-          }, 2000)
-          set({ reconnectTimeout: timeout })
+        if (currentState.reconnectTimeout) {
+          clearTimeout(currentState.reconnectTimeout)
+          set({ reconnectTimeout: null })
         }
+
+        // Schedule reconnect with jitter
+        const baseDelay = 2000
+        const jitter = Math.floor(Math.random() * 1000)
+        const delay = baseDelay + jitter
+
+        const timeout = setTimeout(() => {
+          const latestState = get()
+          if (!latestState.eventSource && !latestState.isConnecting) {
+            console.log('Reconnecting EventSource after error')
+            latestState.initialize()
+          }
+          set({ reconnectTimeout: null })
+        }, delay)
+
+        set({ reconnectTimeout: timeout })
       }
 
       set({ eventSource })

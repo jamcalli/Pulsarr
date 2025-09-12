@@ -32,6 +32,8 @@ export class LogStreamingService {
     readonly _fastify: FastifyInstance,
   ) {
     this.eventEmitter = new EventEmitter()
+    // Allow many concurrent SSE consumers without warnings
+    this.eventEmitter.setMaxListeners(100)
     this.logFilePath = resolve(
       process.cwd(),
       'data',

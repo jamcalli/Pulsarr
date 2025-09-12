@@ -33,7 +33,7 @@ const logStreamRoute: FastifyPluginAsync = async (fastify) => {
       const { tail, follow, filter } = request.query
 
       if (!fastify.logStreaming) {
-        return reply.internalServerError('Log streaming service not available')
+        return reply.serviceUnavailable('Log streaming service not available')
       }
 
       const logService = fastify.logStreaming
@@ -42,7 +42,7 @@ const logStreamRoute: FastifyPluginAsync = async (fastify) => {
       const streamOptions = { tail, follow, filter }
       logService.addConnection(connectionId, streamOptions)
 
-      request.socket.once('close', () => {
+      request.raw.once('close', () => {
         abortController.abort(new Error('client disconnected'))
         try {
           logService.removeConnection(connectionId)
@@ -100,6 +100,12 @@ const logStreamRoute: FastifyPluginAsync = async (fastify) => {
               message: 'SSE stream error',
               connectionId,
             })
+            throw error
+          } finally {
+            // Defensive: ensure the connection is removed on any exit path
+            try {
+              logService.removeConnection(connectionId)
+            } catch {}
           }
         })(),
       )
