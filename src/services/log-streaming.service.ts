@@ -93,6 +93,7 @@ export class LogStreamingService {
   }
 
   async getTailLines(lines: number, filter?: string): Promise<LogEntry[]> {
+    if (lines <= 0) return []
     try {
       const fileHandle = await open(this.logFilePath, 'r')
       const stats = await fileHandle.stat()
@@ -293,6 +294,13 @@ export class LogStreamingService {
         this.partialLine = ''
       }
     } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code === 'ENOENT') {
+        this.log.debug('Log file not found when checking changes', {
+          file: this.logFilePath,
+        })
+        return
+      }
       this.log.warn('Error checking file changes', {
         error,
         file: this.logFilePath,
