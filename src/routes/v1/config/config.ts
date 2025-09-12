@@ -157,6 +157,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { error: 'No configuration found after update' }
         }
 
+        // Apply runtime log level now that DB is authoritative
+        if (
+          'logLevel' in safeConfigUpdate &&
+          savedConfig.logLevel &&
+          fastify.log.level !== savedConfig.logLevel
+        ) {
+          fastify.log.level = savedConfig.logLevel
+          fastify.log.info(
+            `Updated runtime log level to: ${savedConfig.logLevel}`,
+          )
+        }
+
         // Handle Tautulli config changes
         if (
           'tautulliEnabled' in safeConfigUpdate ||
