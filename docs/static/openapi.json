@@ -12118,6 +12118,71 @@
         }
       }
     },
+    "/v1/logs/stream": {
+      "get": {
+        "operationId": "streamLogs",
+        "summary": "Stream log entries",
+        "tags": [
+          "Logs"
+        ],
+        "description": "Server-Sent Events stream for real-time log entries. Establishes an SSE connection to receive tail lines and live updates from the application log file. Supports an optional text filter and an initial tail size.",
+        "parameters": [
+          {
+            "schema": {
+              "default": 100,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "in": "query",
+            "name": "tail",
+            "required": false,
+            "description": "Number of recent log lines to send initially. Defaults to 100."
+          },
+          {
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "follow",
+            "required": false,
+            "description": "Whether to follow the log file for new entries. Defaults to true."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "filter",
+            "required": false,
+            "description": "Optional string filter to match against log messages."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "description": "SSE stream of log entries",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/metadata/refresh": {
       "post": {
         "operationId": "refreshMetadata",
@@ -28868,6 +28933,10 @@
     {
       "name": "Labels",
       "description": "Plex label synchronization and management endpoints"
+    },
+    {
+      "name": "Logs",
+      "description": "Log streaming and monitoring endpoints"
     },
     {
       "name": "Metadata",
