@@ -13,6 +13,13 @@ export default fp(
     const service = LogStreamingService.getInstance(fastify.log, fastify)
     fastify.decorate('logStreaming', service)
     fastify.log.debug('Log streaming service initialized')
+
+    fastify.addHook('onClose', async () => {
+      // Clean up polling intervals on server shutdown
+      if ('shutdown' in service && typeof service.shutdown === 'function') {
+        service.shutdown()
+      }
+    })
   },
   {
     name: 'log-streaming',

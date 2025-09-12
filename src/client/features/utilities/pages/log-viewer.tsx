@@ -68,7 +68,7 @@ export function LogViewerPage() {
 
   // Get config and update functions from store
   const { config, updateConfig, initialize, isInitialized } = useConfigStore()
-  const currentLogLevel = config?.logLevel // Don't default, show actual config value
+  const currentLogLevel = config?.logLevel || 'info' // Default to 'info' if not set
 
   // Minimum loading duration for consistent UX
   const MIN_LOADING_DELAY = 500

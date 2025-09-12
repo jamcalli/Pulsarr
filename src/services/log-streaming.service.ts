@@ -21,6 +21,7 @@ export class LogStreamingService {
   > = new Map()
   private readonly logFilePath: string
   private _watchTickInFlight = false
+  private partialLine = ''
 
   private get log(): FastifyBaseLogger {
     return createServiceLogger(this.baseLog, 'LOG_STREAMING')
@@ -75,6 +76,18 @@ export class LogStreamingService {
 
   hasActiveConnections(): boolean {
     return this.activeConnections.size > 0
+  }
+
+  shutdown(): void {
+    for (const [_file, { interval }] of this.watchedFiles) {
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
+    this.watchedFiles.clear()
+    this.activeConnections.clear()
+    this.eventEmitter.removeAllListeners()
+    this.partialLine = ''
   }
 
   async getTailLines(lines: number, filter?: string): Promise<LogEntry[]> {
@@ -230,7 +243,18 @@ export class LogStreamingService {
           )
           const newContent = buffer.subarray(0, bytesRead).toString('utf-8')
 
-          const newLines = newContent.split('\n').filter((line) => line.trim())
+          // Handle partial lines from previous reads
+          const fullContent = this.partialLine + newContent
+          const lines = fullContent.split('\n')
+
+          // Keep the last line as partial if it doesn't end with newline
+          const endsWithNewline = newContent.endsWith('\n')
+          const newLines = endsWithNewline
+            ? lines.filter((line) => line.trim())
+            : lines.slice(0, -1).filter((line) => line.trim())
+
+          // Store any partial line for next read
+          this.partialLine = endsWithNewline ? '' : lines[lines.length - 1]
 
           if (newLines.length > 0) {
             // Just emit raw log lines without complex parsing
@@ -251,8 +275,9 @@ export class LogStreamingService {
 
         fileInfo.size = stats.size
       } else if (stats.size < fileInfo.size) {
-        // File was truncated or rotated, reset size
+        // File was truncated or rotated, reset size and clear partial line
         fileInfo.size = stats.size
+        this.partialLine = ''
       }
     } catch (error) {
       this.log.warn('Error checking file changes', {
