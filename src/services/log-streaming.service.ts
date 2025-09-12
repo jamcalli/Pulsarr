@@ -1,0 +1,208 @@
+import { EventEmitter } from 'node:events'
+import { open, readFile, stat } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import type { LogEntry, LogLevel } from '@schemas/logs/logs.schema.js'
+import { createServiceLogger } from '@utils/logger.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
+export interface LogStreamingOptions {
+  tail: number
+  follow: boolean
+  filter?: string
+}
+
+export class LogStreamingService {
+  private static instance: LogStreamingService
+  private eventEmitter: EventEmitter
+  private activeConnections: Map<string, LogStreamingOptions> = new Map()
+  private watchedFiles: Map<
+    string,
+    { size: number; interval?: NodeJS.Timeout }
+  > = new Map()
+  private readonly logFilePath: string
+
+  private get log(): FastifyBaseLogger {
+    return createServiceLogger(this.baseLog, 'LOG_STREAMING')
+  }
+
+  private constructor(
+    private readonly baseLog: FastifyBaseLogger,
+    readonly _fastify: FastifyInstance,
+  ) {
+    this.eventEmitter = new EventEmitter()
+    this.logFilePath = resolve(
+      process.cwd(),
+      'data',
+      'logs',
+      'pulsarr-current.log',
+    )
+  }
+
+  static getInstance(
+    baseLog: FastifyBaseLogger,
+    fastify: FastifyInstance,
+  ): LogStreamingService {
+    if (!LogStreamingService.instance) {
+      LogStreamingService.instance = new LogStreamingService(baseLog, fastify)
+    }
+    return LogStreamingService.instance
+  }
+
+  addConnection(id: string, options: LogStreamingOptions) {
+    this.activeConnections.set(id, options)
+    this.log.debug(`Adding log streaming connection: ${id}`, { options })
+
+    // Start watching if this is the first connection
+    if (this.activeConnections.size === 1) {
+      this.startFileWatching()
+    }
+  }
+
+  removeConnection(id: string) {
+    this.activeConnections.delete(id)
+    this.log.debug(`Removing log streaming connection: ${id}`)
+
+    // Stop watching if no connections remain
+    if (this.activeConnections.size === 0) {
+      this.stopFileWatching()
+    }
+  }
+
+  getEventEmitter() {
+    return this.eventEmitter
+  }
+
+  hasActiveConnections(): boolean {
+    return this.activeConnections.size > 0
+  }
+
+  async getTailLines(lines: number, filter?: string): Promise<LogEntry[]> {
+    try {
+      const content = await readFile(this.logFilePath, 'utf-8')
+      const logLines = content
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim())
+
+      // Get the last N lines
+      let tailLines = logLines.slice(-lines)
+
+      // Apply filter if provided
+      if (filter) {
+        tailLines = tailLines.filter((line) =>
+          line.toLowerCase().includes(filter.toLowerCase()),
+        )
+      }
+
+      // Convert to LogEntry format with simple parsing
+      return tailLines.map((line) => ({
+        timestamp: new Date().toISOString(),
+        level: this.extractLogLevel(line),
+        message: line,
+        module: undefined,
+      }))
+    } catch (error) {
+      this.log.warn('Failed to read log file for tail', { error })
+      return []
+    }
+  }
+
+  private extractLogLevel(line: string): LogLevel {
+    // Simple extraction - look for ] DEBUG:, ] INFO:, etc.
+    if (line.includes('] DEBUG:')) return 'debug'
+    if (line.includes('] INFO:')) return 'info'
+    if (line.includes('] WARN:')) return 'warn'
+    if (line.includes('] ERROR:')) return 'error'
+    if (line.includes('] FATAL:')) return 'fatal'
+    if (line.includes('] TRACE:')) return 'trace'
+
+    // Fallback to info for any unmatched lines
+    return 'info'
+  }
+
+  private async startFileWatching() {
+    if (this.watchedFiles.has(this.logFilePath)) {
+      return
+    }
+
+    try {
+      const stats = await stat(this.logFilePath)
+      this.watchedFiles.set(this.logFilePath, { size: stats.size })
+
+      // Poll for file changes every second
+      const interval = setInterval(async () => {
+        await this.checkFileChanges()
+      }, 1000)
+
+      const fileInfo = this.watchedFiles.get(this.logFilePath)
+      if (fileInfo) {
+        fileInfo.interval = interval
+      }
+
+      this.log.debug('Started watching log file', { file: this.logFilePath })
+    } catch (error) {
+      this.log.warn('Failed to start watching log file', {
+        error,
+        file: this.logFilePath,
+      })
+    }
+  }
+
+  private stopFileWatching() {
+    const fileInfo = this.watchedFiles.get(this.logFilePath)
+    if (fileInfo?.interval) {
+      clearInterval(fileInfo.interval)
+      this.watchedFiles.delete(this.logFilePath)
+      this.log.debug('Stopped watching log file', { file: this.logFilePath })
+    }
+  }
+
+  private async checkFileChanges() {
+    try {
+      const stats = await stat(this.logFilePath)
+      const fileInfo = this.watchedFiles.get(this.logFilePath)
+
+      if (!fileInfo) {
+        return
+      }
+
+      if (stats.size > fileInfo.size) {
+        // File has grown, read the new content properly
+        const fileHandle = await open(this.logFilePath, 'r')
+        try {
+          const buffer = Buffer.alloc(stats.size - fileInfo.size)
+          await fileHandle.read(buffer, 0, buffer.length, fileInfo.size)
+          const newContent = buffer.toString('utf-8')
+
+          const newLines = newContent.split('\n').filter((line) => line.trim())
+
+          if (newLines.length > 0) {
+            // Just emit raw log lines without complex parsing
+            for (const line of newLines) {
+              // Simple parsing to maintain the LogEntry interface
+              const entry: LogEntry = {
+                timestamp: new Date().toISOString(),
+                level: this.extractLogLevel(line),
+                message: line,
+                module: undefined,
+              }
+              this.eventEmitter.emit('log', entry)
+            }
+          }
+        } finally {
+          await fileHandle.close()
+        }
+
+        fileInfo.size = stats.size
+      } else if (stats.size < fileInfo.size) {
+        // File was truncated or rotated, reset size
+        fileInfo.size = stats.size
+      }
+    } catch (error) {
+      this.log.warn('Error checking file changes', {
+        error,
+        file: this.logFilePath,
+      })
+    }
+  }
+}

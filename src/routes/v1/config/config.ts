@@ -125,6 +125,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           ;(originalRuntimeValues as any)[key] = (fastify.config as any)[key]
         }
 
+        // Handle log level changes - update runtime logger first
+        if (
+          safeConfigUpdate.logLevel &&
+          safeConfigUpdate.logLevel !== currentConfig?.logLevel
+        ) {
+          fastify.log.level = safeConfigUpdate.logLevel
+          fastify.log.info(
+            `Updated runtime log level to: ${safeConfigUpdate.logLevel}`,
+          )
+        }
+
         // First update the runtime config
         try {
           await fastify.updateConfig(safeConfigUpdate)
