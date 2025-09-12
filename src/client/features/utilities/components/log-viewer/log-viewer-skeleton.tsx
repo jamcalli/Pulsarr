@@ -1,7 +1,12 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
 /**
- * Skeleton loader for the log viewer section content
+ * Renders a static skeleton UI used as a loading placeholder for the log viewer.
+ *
+ * This presentational component has no props or side effects and mirrors the final
+ * layout (actions, settings, status, and log display) with Skeleton placeholders.
+ *
+ * @returns A JSX element containing the log viewer skeleton layout.
  */
 export function LogViewerSkeleton() {
   return (
