@@ -32,6 +32,9 @@ const PlexLabelsPage = lazy(
   () => import('@/features/utilities/pages/plex-labels'),
 )
 const ApiKeysPage = lazy(() => import('@/features/utilities/pages/api-keys'))
+const LogViewerPage = lazy(
+  () => import('@/features/utilities/pages/log-viewer'),
+)
 const ApprovalSettingsPage = lazy(
   () => import('@/features/approvals/pages/approval-settings'),
 )
@@ -261,6 +264,16 @@ export const router = createBrowserRouter([
               <AuthenticatedLayout>
                 <Suspense fallback={<LoadingFallback />}>
                   <ApiKeysPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'log-viewer',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <LogViewerPage />
                 </Suspense>
               </AuthenticatedLayout>
             ),

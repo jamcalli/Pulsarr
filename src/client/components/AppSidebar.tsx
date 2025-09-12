@@ -169,6 +169,10 @@ const data = {
           url: '/utilities/delete-sync',
         },
         {
+          title: 'Log Viewer',
+          url: '/utilities/log-viewer',
+        },
+        {
           title: 'New User Defaults',
           url: '/utilities/new-user-defaults',
         },

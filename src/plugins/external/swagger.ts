@@ -83,6 +83,10 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           description: 'Plex label synchronization and management endpoints',
         },
         {
+          name: 'Logs',
+          description: 'Log streaming and monitoring endpoints',
+        },
+        {
           name: 'Metadata',
           description: 'Metadata refresh and management endpoints',
         },
