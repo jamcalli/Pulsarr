@@ -215,7 +215,7 @@ export function LogViewerPage() {
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
       <UtilitySectionHeader
         title="Log Viewer"
-        description="Live streaming terminal-style log viewer with DEBUG level support, auto-connect, and pause/resume functionality"
+        description="Real-time application log monitoring with filtering, level control, and export capabilities"
         showStatus={false}
       />
 
@@ -262,17 +262,26 @@ export function LogViewerPage() {
               <span className="ml-2">Clear</span>
             </Button>
 
-            <Button
-              type="button"
-              size="sm"
-              onClick={exportLogs}
-              disabled={logsText.length === 0 || isToggling}
-              variant="noShadow"
-              className="h-8"
-            >
-              <Download className="h-4 w-4" />
-              <span className="ml-2">Export</span>
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={exportLogs}
+                    disabled={logsText.length === 0 || isToggling}
+                    variant="noShadow"
+                    className="h-8"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="ml-2">Export</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Export currently displayed logs as text file</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
