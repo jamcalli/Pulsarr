@@ -311,7 +311,7 @@ export function LogViewerPage() {
                 <SelectContent>
                   {LOG_LEVELS.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
-                      <span className="font-mono">{level.label}</span>
+                      {level.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
