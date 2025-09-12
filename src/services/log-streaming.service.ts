@@ -103,12 +103,8 @@ export class LogStreamingService {
         let chunkSize = Math.min(64 * 1024, stats.size)
         let foundLines: string[] = []
 
-        // Keep reading from end of file until we have enough lines
-        while (
-          foundLines.length < lines &&
-          chunkSize < stats.size &&
-          chunkSize < maxChunkSize
-        ) {
+        // Always read at least once, then continue if needed
+        do {
           const start = Math.max(0, stats.size - chunkSize)
           const buffer = Buffer.alloc(chunkSize)
           const { bytesRead } = await fileHandle.read(
@@ -139,7 +135,7 @@ export class LogStreamingService {
           const next = Math.min(chunkSize * 2, stats.size, maxChunkSize)
           if (next === chunkSize) break
           chunkSize = next
-        }
+        } while (foundLines.length < lines && chunkSize < maxChunkSize)
 
         // Get the last N lines
         let tailLines = foundLines.slice(-lines)
