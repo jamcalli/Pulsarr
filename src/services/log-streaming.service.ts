@@ -181,33 +181,48 @@ export class LogStreamingService {
       return
     }
 
+    // Initialize entry and start interval regardless of file existence
+    let initialSize = 0
     try {
       const stats = await stat(this.logFilePath)
-      this.watchedFiles.set(this.logFilePath, { size: stats.size })
-
-      // Poll for file changes every second
-      const interval = setInterval(async () => {
-        if (this._watchTickInFlight) return
-        this._watchTickInFlight = true
-        try {
-          await this.checkFileChanges()
-        } finally {
-          this._watchTickInFlight = false
-        }
-      }, 1000)
-
-      const fileInfo = this.watchedFiles.get(this.logFilePath)
-      if (fileInfo) {
-        fileInfo.interval = interval
-      }
-
-      this.log.debug('Started watching log file', { file: this.logFilePath })
+      initialSize = stats.size
     } catch (error) {
-      this.log.warn('Failed to start watching log file', {
-        error,
-        file: this.logFilePath,
-      })
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        this.log.debug(
+          'Log file not found at startup, will watch for creation',
+          {
+            file: this.logFilePath,
+          },
+        )
+      } else {
+        // Unexpected error, abort
+        this.log.warn('Failed to start watching log file', {
+          error,
+          file: this.logFilePath,
+        })
+        return
+      }
     }
+
+    this.watchedFiles.set(this.logFilePath, { size: initialSize })
+
+    // Always start the polling interval
+    const interval = setInterval(async () => {
+      if (this._watchTickInFlight) return
+      this._watchTickInFlight = true
+      try {
+        await this.checkFileChanges()
+      } finally {
+        this._watchTickInFlight = false
+      }
+    }, 1000)
+
+    const fileInfo = this.watchedFiles.get(this.logFilePath)
+    if (fileInfo) {
+      fileInfo.interval = interval
+    }
+
+    this.log.debug('Started watching log file', { file: this.logFilePath })
   }
 
   private stopFileWatching() {
