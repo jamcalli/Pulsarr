@@ -1,0 +1,71 @@
+---
+id: stream-logs
+title: "Stream log entries"
+description: "Server-Sent Events stream for real-time log entries. Establishes an SSE connection to receive tail lines and live updates from the application log file. Supports an optional text filter and an initial tail size."
+sidebar_label: "Stream log entries"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVkuP2zYQ/iuDObWAbGubm26LZhEsGrRGnD4AwwdaGlvMUqRCjrzrGvrvxZCSH7vepE1u9cU2yfnmm9dHHtC15BVrZ+8rLDCwJ9W8d9uAGbLaBiyWGP+uMqwolF63chgLXJDfkZ8syDLc7chygGQNG+fBkzIT1g2BcVsgy15TmMJdYLU2OtQUQFlYLO6gdNZSKaDADjyVpHcErLQBo208V4GRta6tFFOAjXcNcE2g2tboMrKPbjba0BQWXds6z9GBi2yVAaYnln0mHwGVBW01a9kSV0H/TVPMsFVeNcTkJfIDhrKmRmFxwIo2qjOMxU2eZ8j7lrBAbZm25DHDRlvddA0WeYaNekq/b/I87zPUkq7PHfk9ZmhVI5biFDP09LnTniosNsoEep7jX7tmTR7cJubFcowyZYUdBLLVGIXZT+Ftohj3bvJ8in12NQL2HR1DWDtnSFl8hefGGeMev870z5q4Ji+uk0ks0FiU2BKWHk+NcM5V+DwnO7AL7LXdvkou1vPr5H4buyDBjX3ADhrFZQ1qq7QNKbsNhaC2FKbYrwQ4tM4GCsLppzxPeTzHHgKBD8NJzLB0lsmynD3r0NmnIAZXgnTrT1SyNJ+XaWSd3A1MXrqUqRlGzW3O5wuz53nrz3OzPEKuMlRVpVNW5mdeY/p6+WTYENdORGFLkZziGguc7W5mxm3DLDHADEMUgjQvnTdY4KH1jl3pTF/MZofaBe6Lg8xkj89L83MX2DWQxAQz3Cmv1dqkDIww8pusTNQSa+YWs/g1iNLQ1ePOJf7HmmCEgS5QJVUvXdN0VupC8Ki5jr2awpBWE8IXA4PGlcrE5Wv4siEdCc7D/RxUVXkKQWojuPPOBOX9Gb5k4hL/TZ6/uU7deQZn4bHWZX2E0gF8Z22qsMxNSnvMSTGb7V3nJ206O5HGVrakaemaFy7mXjfK78f0/weo4irlt9pTyQMc3Jal5OGHmGKJ5MdnHorZ7JjZ64Dvx+2rYCtpvrLzmvex+1Srf6H9bSeNulxFQaEQtLPHpTOLhYxh6rNzu+NUpkUclKcmVcUGHaTnr8nt/H6SDlxSvp3fwwPtQXVck+XxfuqCKM/RDAbAPrvk+Ir70rkHTSf3Q0leOF8krMlaSatfpZCgQtQGbTcu+tRsBHZssNv5/dW4Kld2DVlOeCLqo8UEFMwNPcGjKKrRgSFejv50dOGsnJTb94OqEnsRjgT/x00ajcCNijI5RLpIQnepchfMDifB/Z8+SoaWkOOz1igdb+s4RodBlpe4u8EMTXq4DdK8GqVsiYeDdMTv3vS9LKd7VEam0kHk9pWb8zy13/kWeSWKB9qfXkM7ZTo5EmXi3zP7/rfHF8kdn0DfSO/bXh9fpjQ+fE6UVqe7M4nfKFlS5WQlEtrymdWL14mgHK/9d3cfse//AZ4FOoo=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Stream log entries"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/logs/stream"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Server-Sent Events stream for real-time log entries. Establishes an SSE connection to receive tail lines and live updates from the application log file. Supports an optional text filter and an initial tail size.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"default":100,"type":"integer","minimum":0,"maximum":1000},"in":"query","name":"tail","required":false,"description":"Number of recent log lines to send initially. Defaults to 100."},{"schema":{"default":true,"type":"boolean"},"in":"query","name":"follow","required":false,"description":"Whether to follow the log file for new entries. Defaults to true."},{"schema":{"type":"string"},"in":"query","name":"filter","required":false,"description":"Optional string filter to match against log messages."}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"description":"SSE stream of log entries","type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

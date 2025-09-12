@@ -272,6 +272,22 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: "category",
+      label: "Logs",
+      link: {
+        type: "doc",
+        id: "api/logs",
+      },
+      items: [
+        {
+          type: "doc",
+          id: "api/stream-logs",
+          label: "Stream log entries",
+          className: "api-method get",
+        },
+      ],
+    },
+    {
+      type: "category",
       label: "Metadata",
       link: {
         type: "doc",
