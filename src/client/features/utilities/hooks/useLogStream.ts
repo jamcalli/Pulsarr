@@ -55,6 +55,15 @@ export function useLogStream(
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
 
+  // Keep latest options to avoid stale closures during delayed reconnects
+  const optionsRef = useRef<LogStreamOptions>({
+    ...DEFAULT_OPTIONS,
+    ...initialOptions,
+  })
+  useEffect(() => {
+    optionsRef.current = options
+  }, [options])
+
   const buildStreamUrl = useCallback((streamOptions: LogStreamOptions) => {
     const url = new URL('/v1/logs/stream', window.location.origin)
     url.searchParams.set('tail', streamOptions.tail.toString())
@@ -65,7 +74,7 @@ export function useLogStream(
     return url.toString()
   }, [])
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback((opts: { resetAttempts?: boolean } = {}) => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
       eventSourceRef.current = null
@@ -77,7 +86,9 @@ export function useLogStream(
     setIsConnected(false)
     setIsConnecting(false)
     setError(null)
-    reconnectAttempts.current = 0
+    if (opts.resetAttempts !== false) {
+      reconnectAttempts.current = 0
+    }
     // Don't reset isPaused here - that's controlled by pause/resume functions
   }, [])
 
@@ -88,25 +99,26 @@ export function useLogStream(
     }
 
     // Clear any previous connection
-    disconnect()
+    disconnect({ resetAttempts: false })
 
     setIsConnecting(true)
     setError(null)
 
     try {
-      const streamUrl = buildStreamUrl(options)
+      const streamUrl = buildStreamUrl(optionsRef.current)
       const eventSource = new EventSource(streamUrl)
       eventSourceRef.current = eventSource
 
       eventSource.onopen = () => {
+        const wasReconnecting = reconnectAttempts.current > 0
         setIsConnected(true)
         setIsConnecting(false)
         setError(null)
         setConnectionCount((prev) => prev + 1)
         reconnectAttempts.current = 0
 
-        // Only show success toast on first connection or after reconnect
-        if (reconnectAttempts.current > 0 || connectionCount === 0) {
+        // Show success toast on first connection or after reconnect
+        if (wasReconnecting || connectionCount === 0) {
           toast.success('Connected to log stream')
         }
       }
@@ -130,7 +142,7 @@ export function useLogStream(
 
         // Only attempt reconnection if follow is enabled and we haven't exceeded max attempts
         if (
-          options.follow &&
+          optionsRef.current.follow &&
           reconnectAttempts.current < maxReconnectAttempts
         ) {
           reconnectAttempts.current += 1
@@ -144,7 +156,9 @@ export function useLogStream(
             connect()
           }, delay)
         } else {
-          setError('Connection lost. Click connect to retry.')
+          setError(
+            'Connection lost. Will auto-reconnect if enabled, or pause/resume to retry.',
+          )
           toast.error('Log stream connection lost')
         }
       }
@@ -155,14 +169,7 @@ export function useLogStream(
       setError(errorMessage)
       toast.error(`Failed to connect to log stream: ${errorMessage}`)
     }
-  }, [
-    isConnecting,
-    isConnected,
-    options,
-    buildStreamUrl,
-    disconnect,
-    connectionCount,
-  ])
+  }, [isConnecting, isConnected, buildStreamUrl, disconnect, connectionCount])
 
   const pause = useCallback(() => {
     setIsPaused(true)
@@ -180,20 +187,21 @@ export function useLogStream(
 
   const updateOptions = useCallback(
     (newOptions: Partial<LogStreamOptions>) => {
-      setOptions((prev) => ({ ...prev, ...newOptions }))
+      setOptions((prev) => {
+        const next = { ...prev, ...newOptions }
+        optionsRef.current = next
+        return next
+      })
 
       // If connected and follow is enabled, reconnect with new options
-      if (isConnected && options.follow) {
+      if (isConnected && optionsRef.current.follow) {
         // Clear existing logs before reconnecting to prevent duplicates
         setLogs([])
-        // Brief delay to allow state to update
-        setTimeout(() => {
-          disconnect()
-          setTimeout(connect, 100)
-        }, 50)
+        disconnect({ resetAttempts: false })
+        connect()
       }
     },
-    [isConnected, options.follow, disconnect, connect],
+    [isConnected, disconnect, connect],
   )
 
   // Auto-connect on mount and when resuming

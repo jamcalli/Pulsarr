@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { open, readFile, stat } from 'node:fs/promises'
+import { open, stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import type { LogEntry, LogLevel } from '@schemas/logs/logs.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -78,29 +78,58 @@ export class LogStreamingService {
 
   async getTailLines(lines: number, filter?: string): Promise<LogEntry[]> {
     try {
-      const content = await readFile(this.logFilePath, 'utf-8')
-      const logLines = content
-        .trim()
-        .split('\n')
-        .filter((line) => line.trim())
+      const stats = await stat(this.logFilePath)
+      const fileHandle = await open(this.logFilePath, 'r')
 
-      // Get the last N lines
-      let tailLines = logLines.slice(-lines)
+      try {
+        // Start with a reasonable chunk size (64KB) and grow if needed
+        const maxChunkSize = 256 * 1024 // 256KB max
+        let chunkSize = Math.min(64 * 1024, stats.size)
+        let foundLines: string[] = []
 
-      // Apply filter if provided
-      if (filter) {
-        tailLines = tailLines.filter((line) =>
-          line.toLowerCase().includes(filter.toLowerCase()),
-        )
+        // Keep reading from end of file until we have enough lines
+        while (foundLines.length < lines && chunkSize <= stats.size) {
+          const start = Math.max(0, stats.size - chunkSize)
+          const buffer = Buffer.alloc(chunkSize)
+          await fileHandle.read(buffer, 0, chunkSize, start)
+
+          const content = buffer.toString('utf-8')
+          const allLines = content
+            .trim()
+            .split('\n')
+            .filter((line) => line.trim())
+
+          foundLines = allLines
+
+          // If we have enough lines or read the whole file, break
+          if (foundLines.length >= lines || chunkSize >= stats.size) {
+            break
+          }
+
+          // Double chunk size for next attempt, up to max
+          chunkSize = Math.min(chunkSize * 2, stats.size, maxChunkSize)
+        }
+
+        // Get the last N lines
+        let tailLines = foundLines.slice(-lines)
+
+        // Apply filter if provided
+        if (filter) {
+          tailLines = tailLines.filter((line) =>
+            line.toLowerCase().includes(filter.toLowerCase()),
+          )
+        }
+
+        // Convert to LogEntry format with simple parsing
+        return tailLines.map((line) => ({
+          timestamp: new Date().toISOString(),
+          level: this.extractLogLevel(line),
+          message: line,
+          module: undefined,
+        }))
+      } finally {
+        await fileHandle.close()
       }
-
-      // Convert to LogEntry format with simple parsing
-      return tailLines.map((line) => ({
-        timestamp: new Date().toISOString(),
-        level: this.extractLogLevel(line),
-        message: line,
-        module: undefined,
-      }))
     } catch (error) {
       this.log.warn('Failed to read log file for tail', { error })
       return []

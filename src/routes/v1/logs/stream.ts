@@ -20,7 +20,7 @@ const logStreamRoute: FastifyPluginAsync = async (fastify) => {
         summary: 'Stream log entries',
         operationId: 'streamLogs',
         description:
-          'Server-Sent Events stream for real-time log entries. This endpoint establishes an SSE connection to receive log entries from the application log file. The requested log level dynamically adjusts the runtime logger level to ensure all requested logs are captured. Supports filtering by level, text content, and initial tail lines.',
+          'Server-Sent Events stream for real-time log entries. Establishes an SSE connection to receive tail lines and live updates from the application log file. Supports an optional text filter and an initial tail size.',
         querystring: LogStreamQuerySchema,
         response: {
           200: LogStreamResponseSchema,
