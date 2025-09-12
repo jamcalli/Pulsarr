@@ -165,12 +165,12 @@ const data = {
           url: '/utilities/api-keys',
         },
         {
-          title: 'Log Viewer',
-          url: '/utilities/log-viewer',
-        },
-        {
           title: 'Delete Sync',
           url: '/utilities/delete-sync',
+        },
+        {
+          title: 'Log Viewer',
+          url: '/utilities/log-viewer',
         },
         {
           title: 'New User Defaults',
