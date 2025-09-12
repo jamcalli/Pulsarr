@@ -12151,12 +12151,13 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 512
             },
             "in": "query",
             "name": "filter",
             "required": false,
-            "description": "Optional string filter to match against log messages."
+            "description": "Optional string filter to match against log messages (max 512 chars)."
           }
         ],
         "responses": {

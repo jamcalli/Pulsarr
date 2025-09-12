@@ -29,8 +29,12 @@ export const LogStreamQuerySchema = z.object({
     ),
   filter: z
     .string()
+    .trim()
+    .max(512)
     .optional()
-    .describe('Optional string filter to match against log messages.'),
+    .describe(
+      'Optional string filter to match against log messages (max 512 chars).',
+    ),
 })
 
 // Individual log entry schema

@@ -21,12 +21,19 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const connectionId = randomUUID()
+
+      if (!fastify.progress) {
+        return reply.serviceUnavailable(
+          'Progress streaming service not available',
+        )
+      }
+
       const progressService = fastify.progress
       const abortController = new AbortController()
 
       progressService.addConnection(connectionId)
 
-      request.socket.once('close', () => {
+      request.raw.once('close', () => {
         abortController.abort(new Error('client disconnected'))
         try {
           progressService.removeConnection(connectionId)
@@ -59,6 +66,12 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
               message: 'SSE stream error',
               connectionId,
             })
+            throw error
+          } finally {
+            // Defensive: ensure the connection is removed on any exit path
+            try {
+              progressService.removeConnection(connectionId)
+            } catch {}
           }
         })(),
       )

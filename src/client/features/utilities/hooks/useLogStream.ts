@@ -148,6 +148,16 @@ export function useLogStream(
       }
 
       eventSource.onerror = () => {
+        // Immediately close to prevent browser auto-reconnect interference
+        eventSource.close()
+        eventSourceRef.current = null
+
+        // Clear any existing reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current)
+          reconnectTimeoutRef.current = null
+        }
+
         setIsConnected(false)
         setIsConnecting(false)
 
@@ -157,10 +167,15 @@ export function useLogStream(
           reconnectAttempts.current < maxReconnectAttempts
         ) {
           reconnectAttempts.current += 1
-          const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 30000) // Exponential backoff, max 30s
+          const baseDelay = Math.min(
+            1000 * 2 ** reconnectAttempts.current,
+            30000,
+          )
+          const jitter = Math.floor(Math.random() * 1000) // Add jitter up to 1s
+          const delay = baseDelay + jitter
 
           setError(
-            `Connection lost. Reconnecting in ${delay / 1000}s... (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`,
+            `Connection lost. Reconnecting in ${Math.ceil(delay / 1000)}s... (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`,
           )
 
           reconnectTimeoutRef.current = setTimeout(() => {

@@ -18,6 +18,8 @@ export class ProgressService {
     readonly _fastify: FastifyInstance,
   ) {
     this.eventEmitter = new EventEmitter()
+    // Allow many concurrent SSE consumers without warnings
+    this.eventEmitter.setMaxListeners(100)
   }
 
   static getInstance(
