@@ -196,7 +196,10 @@ export function LogViewerPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `pulsarr-logs-${new Date().toISOString().slice(0, 19)}.txt`
+    a.download = `pulsarr-logs-${new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[:T]/g, '-')}.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -429,6 +432,11 @@ export function LogViewerPage() {
             {logs.length === 1 ? '' : 's'} received
             {displayFilter && ` (filtered by "${displayFilter}")`}
           </p>
+          {error && (
+            <p className="text-xs mt-1 text-red-600 dark:text-red-400 break-words">
+              {error}
+            </p>
+          )}
         </div>
         <Separator />
 
