@@ -131,7 +131,8 @@ declare module '@services/database.service.js' {
     /**
      * Deletes multiple users from the database by their IDs
      * @param userIds - Array of user IDs to delete
-     * @returns Promise resolving to object with count of deleted users and array of failed IDs
+     * @returns Promise resolving to object with count of deleted users and array of failed IDs.
+     * @remarks On SQLite, `failedIds` will be `[]` because specific failed IDs cannot be determined reliably.
      */
     deleteUsers(
       userIds: number[],

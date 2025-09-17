@@ -447,17 +447,34 @@ export class PlexWatchlistService {
     // Create a snapshot for this specific operation
     const existingGuidsSnapshot = await this.createGuidsSnapshot()
 
-    const friends = await getFriends(this.config, this.log)
+    const friendsResult = await getFriends(this.config, this.log)
+
+    // Guard against API failures to prevent data loss
+    if (!friendsResult.success) {
+      this.log.warn(
+        'Friend API completely failed - skipping cleanup to prevent data loss',
+      )
+      return {
+        total: 0,
+        users: [],
+      }
+    }
+
+    if (friendsResult.hasApiErrors) {
+      this.log.warn(
+        'Partial friend API failures detected - proceeding with available data',
+      )
+    }
 
     // Ensure token users are up-to-date before cleanup (handles username changes)
     await this.ensureTokenUsers()
 
     // Check for and remove users who are no longer friends
     // This should happen after token users are ensured to prevent accidental deletion
-    await this.checkForRemovedFriends(friends)
+    await this.checkForRemovedFriends(friendsResult.friends)
 
     // Early check for no friends
-    if (friends.size === 0) {
+    if (friendsResult.friends.size === 0) {
       this.log.debug('You do not appear to have any friends... 😢')
       return {
         total: 0,
@@ -465,10 +482,10 @@ export class PlexWatchlistService {
       }
     }
 
-    const userMap = await this.ensureFriendUsers(friends)
+    const userMap = await this.ensureFriendUsers(friendsResult.friends)
 
     const friendsWithIds = new Set(
-      Array.from(friends)
+      Array.from(friendsResult.friends)
         .map(([friend, token]) => {
           const userId = userMap.get(friend.watchlistId)
           if (!userId) {
@@ -1955,9 +1972,11 @@ export class PlexWatchlistService {
       // Get the primary user to exclude from cleanup
       const primaryUser = await this.dbService.getPrimaryUser()
 
-      // Create a set of current friend usernames for O(1) lookup
+      // Create a set of current friend usernames for O(1) lookup (case-insensitive)
       const currentFriendUsernames = new Set(
-        Array.from(currentFriends).map(([friend]) => friend.username),
+        Array.from(currentFriends).map(([friend]) =>
+          friend.username.toLowerCase(),
+        ),
       )
 
       // Find users who are no longer friends (excluding primary user)
@@ -1967,8 +1986,8 @@ export class PlexWatchlistService {
           return false
         }
 
-        // Delete users who are not in the current friends list
-        return !currentFriendUsernames.has(user.name)
+        // Delete users who are not in the current friends list (case-insensitive comparison)
+        return !currentFriendUsernames.has(user.name.toLowerCase())
       })
 
       if (usersToDelete.length > 0) {
