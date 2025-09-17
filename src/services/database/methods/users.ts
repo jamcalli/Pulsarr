@@ -478,3 +478,116 @@ export async function setPrimaryUser(
     return false
   }
 }
+
+/**
+ * Deletes a single user from the database by their ID.
+ *
+ * @param userId - The ID of the user to delete
+ * @returns True if the user was deleted; false if no user was found or an error occurred
+ *
+ * @remarks Due to CASCADE foreign key constraints, this will automatically delete all associated watchlist items for the user.
+ */
+export async function deleteUser(
+  this: DatabaseService,
+  userId: number,
+): Promise<boolean> {
+  try {
+    const deleted = await this.knex('users').where({ id: userId }).del()
+
+    if (deleted > 0) {
+      this.log.debug(`Deleted user ${userId}`)
+      return true
+    } else {
+      this.log.debug(`No user found with ID ${userId} to delete`)
+      return false
+    }
+  } catch (error) {
+    this.log.error({ error, userId }, 'Error deleting user:')
+    return false
+  }
+}
+
+/**
+ * Deletes multiple users from the database by their IDs.
+ *
+ * @param userIds - Array of user IDs to delete
+ * @returns Object with count of deleted users and array of IDs that failed to delete
+ *
+ * @remarks Due to CASCADE foreign key constraints, this will automatically delete all associated watchlist items for these users.
+ */
+export async function deleteUsers(
+  this: DatabaseService,
+  userIds: number[],
+): Promise<{ deletedCount: number; failedIds: number[] }> {
+  if (userIds.length === 0) {
+    return { deletedCount: 0, failedIds: [] }
+  }
+
+  try {
+    if (this.isPostgres) {
+      // PostgreSQL: Use RETURNING to get exact IDs deleted
+      const deletedUsers = await this.knex('users')
+        .whereIn('id', userIds)
+        .del()
+        .returning('id')
+
+      const deletedIds = deletedUsers.map((user) => user.id)
+      const failedIds = userIds.filter((id) => !deletedIds.includes(id))
+
+      this.log.debug(
+        `Deleted ${deletedIds.length} users out of ${userIds.length} requested`,
+      )
+
+      if (failedIds.length > 0) {
+        this.log.debug(
+          `Failed to delete ${failedIds.length} users: ${failedIds.join(', ')}`,
+        )
+      }
+
+      const result = { deletedCount: deletedIds.length, failedIds }
+      this.log.info(
+        `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed`,
+      )
+      return result
+    } else {
+      // SQLite: Use affected rows count and query for remaining IDs
+      const deleted = await this.knex('users').whereIn('id', userIds).del()
+
+      if (deleted === userIds.length) {
+        // All users were deleted successfully
+        this.log.debug(`Deleted all ${deleted} requested users`)
+        const result = { deletedCount: deleted, failedIds: [] }
+        this.log.info(
+          `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed`,
+        )
+        return result
+      } else {
+        // Some users failed to delete - query to find which ones still exist
+        const remainingUsers = await this.knex('users')
+          .select('id')
+          .whereIn('id', userIds)
+
+        const remainingIds = remainingUsers.map((user) => user.id)
+
+        this.log.debug(
+          `Deleted ${deleted} users out of ${userIds.length} requested`,
+        )
+
+        if (remainingIds.length > 0) {
+          this.log.debug(
+            `Failed to delete ${remainingIds.length} users: ${remainingIds.join(', ')}`,
+          )
+        }
+
+        const result = { deletedCount: deleted, failedIds: remainingIds }
+        this.log.info(
+          `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed`,
+        )
+        return result
+      }
+    }
+  } catch (error) {
+    this.log.error({ error, userIds }, 'Error deleting users:')
+    return { deletedCount: 0, failedIds: userIds }
+  }
+}

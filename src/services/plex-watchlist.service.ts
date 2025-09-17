@@ -449,6 +449,10 @@ export class PlexWatchlistService {
 
     const friends = await getFriends(this.config, this.log)
 
+    // Check for and remove users who are no longer friends
+    // This should happen before we process any friends to ensure clean state
+    await this.checkForRemovedFriends(friends)
+
     // Early check for no friends
     if (friends.size === 0) {
       this.log.debug('You do not appear to have any friends... 😢')
@@ -1928,6 +1932,85 @@ export class PlexWatchlistService {
       await this.handleRemovedItems(user.userId, currentKeys, fetchedKeys)
     }
   }
+
+  /**
+   * Checks for and removes users (friends) who are no longer in the current friends list.
+   *
+   * This method compares all existing users in the database (excluding the primary token user)
+   * with the current friends list from Plex. Any users not found in the current friends list
+   * are deleted from the database, which will cascade delete their watchlist items.
+   *
+   * @param currentFriends - Set of current friends from Plex API
+   */
+  private async checkForRemovedFriends(
+    currentFriends: Set<[Friend, string]>,
+  ): Promise<void> {
+    try {
+      // Get all users from database
+      const allUsers = await this.dbService.getAllUsers()
+
+      // Get the primary user to exclude from cleanup
+      const primaryUser = await this.dbService.getPrimaryUser()
+
+      // Create a set of current friend usernames for O(1) lookup
+      const currentFriendUsernames = new Set(
+        Array.from(currentFriends).map(([friend]) => friend.username),
+      )
+
+      // Find users who are no longer friends (excluding primary user)
+      const usersToDelete = allUsers.filter((user) => {
+        // Never delete the primary user
+        if (primaryUser && user.id === primaryUser.id) {
+          return false
+        }
+
+        // Delete users who are not in the current friends list
+        return !currentFriendUsernames.has(user.name)
+      })
+
+      if (usersToDelete.length > 0) {
+        this.log.info(
+          `Found ${usersToDelete.length} users who are no longer friends, removing them from database`,
+        )
+
+        // Delete users (this will cascade delete their watchlist items)
+        const userIds = usersToDelete.map((user) => user.id)
+        const result = await this.dbService.deleteUsers(userIds)
+
+        this.log.info(
+          `Successfully removed ${result.deletedCount} former friends from database`,
+        )
+
+        // Log details of removed users for transparency
+        const successfullyDeleted = usersToDelete.filter(
+          (user) => !result.failedIds.includes(user.id),
+        )
+
+        for (const user of successfullyDeleted) {
+          this.log.debug(`Removed former friend: ${user.name} (ID: ${user.id})`)
+        }
+
+        // Log any failures
+        if (result.failedIds.length > 0) {
+          const failedUsers = usersToDelete.filter((user) =>
+            result.failedIds.includes(user.id),
+          )
+          this.log.warn(
+            `Failed to remove ${result.failedIds.length} former friends: ${failedUsers.map((u) => u.name).join(', ')}`,
+          )
+        }
+      } else {
+        this.log.debug('No removed friends detected, database is up to date')
+      }
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Error checking for and removing former friends:',
+      )
+      // Don't throw - this is cleanup logic and shouldn't break the main flow
+    }
+  }
+
   /**
    * Prepares notification and GUID caches for RSS item matching
    *
