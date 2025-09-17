@@ -18,6 +18,12 @@ export interface Friend {
   userId: number
 }
 
+export interface FriendsResult {
+  friends: Set<[Friend, string]>
+  success: boolean
+  hasApiErrors: boolean
+}
+
 export interface WatchlistItem {
   title: string
   plexKey: string
