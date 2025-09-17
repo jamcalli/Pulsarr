@@ -120,5 +120,21 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to true if successful
      */
     setPrimaryUser(userId: number): Promise<boolean>
+
+    /**
+     * Deletes a user from the database by ID
+     * @param userId - ID of the user to delete
+     * @returns Promise resolving to true if user was deleted, false otherwise
+     */
+    deleteUser(userId: number): Promise<boolean>
+
+    /**
+     * Deletes multiple users from the database by their IDs
+     * @param userIds - Array of user IDs to delete
+     * @returns Promise resolving to object with count of deleted users and array of failed IDs
+     */
+    deleteUsers(
+      userIds: number[],
+    ): Promise<{ deletedCount: number; failedIds: number[] }>
   }
 }
