@@ -449,8 +449,11 @@ export class PlexWatchlistService {
 
     const friends = await getFriends(this.config, this.log)
 
+    // Ensure token users are up-to-date before cleanup (handles username changes)
+    await this.ensureTokenUsers()
+
     // Check for and remove users who are no longer friends
-    // This should happen before we process any friends to ensure clean state
+    // This should happen after token users are ensured to prevent accidental deletion
     await this.checkForRemovedFriends(friends)
 
     // Early check for no friends
