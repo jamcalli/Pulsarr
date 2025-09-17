@@ -492,6 +492,13 @@ export async function deleteUser(
   userId: number,
 ): Promise<boolean> {
   try {
+    // Defensive: avoid accidental deletion of primary token user
+    const primary = await this.getPrimaryUser()
+    if (primary?.id === userId) {
+      this.log.warn(`Refusing to delete primary token user ${userId}`)
+      return false
+    }
+
     const deleted = await this.knex('users').where({ id: userId }).del()
 
     if (deleted > 0) {
@@ -567,9 +574,9 @@ export async function deleteUsers(
         )
       }
 
-      const result = { deletedCount, failedIds: [] }
+      const result = { deletedCount, failedIds: [] as number[] }
       this.log.info(
-        `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed`,
+        `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed (SQLite cannot enumerate failed IDs)`,
       )
       return result
     }

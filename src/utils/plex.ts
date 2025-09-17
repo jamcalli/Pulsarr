@@ -1,6 +1,7 @@
 import type { Config } from '@root/types/config.types.js'
 import type {
   Friend,
+  FriendsResult,
   GraphQLQuery,
   Item,
   PlexApiResponse,
@@ -538,12 +539,14 @@ export const fetchSelfWatchlist = async (
 export const getFriends = async (
   config: Config,
   log: FastifyBaseLogger,
-): Promise<Set<[Friend, string]>> => {
+): Promise<FriendsResult> => {
   const allFriends = new Set<[Friend, string]>()
+  let hasApiErrors = false
+  let hasAnySuccess = false
 
   if (!config.plexTokens || config.plexTokens.length === 0) {
     log.warn('No Plex tokens configured')
-    return allFriends
+    return { friends: allFriends, success: false, hasApiErrors: true }
   }
 
   for (const token of config.plexTokens) {
@@ -577,6 +580,7 @@ export const getFriends = async (
 
       if (!response.ok) {
         log.warn(`Unable to fetch friends from Plex: ${response.statusText}`)
+        hasApiErrors = true
         continue
       }
 
@@ -584,6 +588,7 @@ export const getFriends = async (
       log.debug(`Response JSON: ${JSON.stringify(json)}`)
       if (json.errors) {
         log.warn(`GraphQL errors: ${JSON.stringify(json.errors)}`)
+        hasApiErrors = true
         continue
       }
 
@@ -598,21 +603,38 @@ export const getFriends = async (
 
         if (friends.length === 0) {
           log.warn('No friends found for Plex token')
-          continue
+          // Note: Empty friends list is not an API error - user may legitimately have no friends
         }
 
         for (const friend of friends) {
           allFriends.add(friend)
           log.debug(`Added friend: ${JSON.stringify(friend)}`)
         }
+
+        // Mark as successful if we got a valid response (even if empty)
+        hasAnySuccess = true
       }
     } catch (err) {
       log.warn(`Unable to fetch friends from Plex: ${err}`)
+      hasApiErrors = true
     }
   }
 
-  log.info('All friends fetched successfully.')
-  return allFriends
+  const result: FriendsResult = {
+    friends: allFriends,
+    success: hasAnySuccess,
+    hasApiErrors,
+  }
+
+  if (hasAnySuccess) {
+    log.info(
+      `Friends fetched successfully. Got ${allFriends.size} friends${hasApiErrors ? ' (with some API errors)' : ''}`,
+    )
+  } else {
+    log.error('Failed to fetch friends from any token')
+  }
+
+  return result
 }
 
 export const getWatchlistForUser = async (
