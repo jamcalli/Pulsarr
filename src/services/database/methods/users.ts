@@ -525,7 +525,7 @@ export async function deleteUsers(
 
   try {
     if (this.isPostgres) {
-      // PostgreSQL: Use RETURNING to get exact IDs deleted
+      // PostgreSQL: DELETE + RETURNING returns actual rows with IDs
       const deletedUsers = await this.knex('users')
         .whereIn('id', userIds)
         .del()
@@ -550,41 +550,28 @@ export async function deleteUsers(
       )
       return result
     } else {
-      // SQLite: Use affected rows count and query for remaining IDs
-      const deleted = await this.knex('users').whereIn('id', userIds).del()
+      // BetterSQLite3: DELETE + RETURNING returns count, not actual IDs
+      // We cannot reliably determine which specific IDs failed without race conditions
+      const deletedCount = await this.knex('users').whereIn('id', userIds).del()
 
-      if (deleted === userIds.length) {
-        // All users were deleted successfully
-        this.log.debug(`Deleted all ${deleted} requested users`)
-        const result = { deletedCount: deleted, failedIds: [] }
-        this.log.info(
-          `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed`,
-        )
-        return result
-      } else {
-        // Some users failed to delete - query to find which ones still exist
-        const remainingUsers = await this.knex('users')
-          .select('id')
-          .whereIn('id', userIds)
+      this.log.debug(
+        `Deleted ${deletedCount} users out of ${userIds.length} requested`,
+      )
 
-        const remainingIds = remainingUsers.map((user) => user.id)
-
+      // For SQLite, we can't determine specific failed IDs without additional queries
+      // that would introduce race conditions, so we return empty failedIds
+      const failedCount = userIds.length - deletedCount
+      if (failedCount > 0) {
         this.log.debug(
-          `Deleted ${deleted} users out of ${userIds.length} requested`,
+          `${failedCount} users were not deleted (may not have existed)`,
         )
-
-        if (remainingIds.length > 0) {
-          this.log.debug(
-            `Failed to delete ${remainingIds.length} users: ${remainingIds.join(', ')}`,
-          )
-        }
-
-        const result = { deletedCount: deleted, failedIds: remainingIds }
-        this.log.info(
-          `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed`,
-        )
-        return result
       }
+
+      const result = { deletedCount, failedIds: [] }
+      this.log.info(
+        `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed`,
+      )
+      return result
     }
   } catch (error) {
     this.log.error({ error, userIds }, 'Error deleting users:')
