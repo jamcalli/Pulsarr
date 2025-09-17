@@ -116,7 +116,7 @@
     "fastify-sse-v2": "^4.2.1",
     "fastify-type-provider-zod": "^6.0.0",
     "knex": "^3.1.0",
-    "lucide-react": "^0.543.0",
+    "lucide-react": "^0.544.0",
     "next-themes": "^0.4.6",
     "p-limit": "^7.1.0",
     "pg": "^8.16.0",

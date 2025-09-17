@@ -478,3 +478,110 @@ export async function setPrimaryUser(
     return false
   }
 }
+
+/**
+ * Deletes a single user from the database by their ID.
+ *
+ * @param userId - The ID of the user to delete
+ * @returns True if the user was deleted; false if no user was found or an error occurred
+ *
+ * @remarks Due to CASCADE foreign key constraints, this will automatically delete all associated watchlist items for the user.
+ */
+export async function deleteUser(
+  this: DatabaseService,
+  userId: number,
+): Promise<boolean> {
+  try {
+    // Defensive: avoid accidental deletion of primary token user
+    const primary = await this.getPrimaryUser()
+    if (primary?.id === userId) {
+      this.log.warn(`Refusing to delete primary token user ${userId}`)
+      return false
+    }
+
+    const deleted = await this.knex('users').where({ id: userId }).del()
+
+    if (deleted > 0) {
+      this.log.debug(`Deleted user ${userId}`)
+      return true
+    } else {
+      this.log.debug(`No user found with ID ${userId} to delete`)
+      return false
+    }
+  } catch (error) {
+    this.log.error({ error, userId }, 'Error deleting user:')
+    return false
+  }
+}
+
+/**
+ * Deletes multiple users from the database by their IDs.
+ *
+ * @param userIds - Array of user IDs to delete
+ * @returns Object with count of deleted users and array of IDs that failed to delete
+ *
+ * @remarks Due to CASCADE foreign key constraints, this will automatically delete all associated watchlist items for these users.
+ */
+export async function deleteUsers(
+  this: DatabaseService,
+  userIds: number[],
+): Promise<{ deletedCount: number; failedIds: number[] }> {
+  if (userIds.length === 0) {
+    return { deletedCount: 0, failedIds: [] }
+  }
+
+  try {
+    if (this.isPostgres) {
+      // PostgreSQL: DELETE + RETURNING returns actual rows with IDs
+      const deletedUsers = await this.knex('users')
+        .whereIn('id', userIds)
+        .del()
+        .returning('id')
+
+      const deletedIds = deletedUsers.map((user) => user.id)
+      const failedIds = userIds.filter((id) => !deletedIds.includes(id))
+
+      this.log.debug(
+        `Deleted ${deletedIds.length} users out of ${userIds.length} requested`,
+      )
+
+      if (failedIds.length > 0) {
+        this.log.debug(
+          `Failed to delete ${failedIds.length} users: ${failedIds.join(', ')}`,
+        )
+      }
+
+      const result = { deletedCount: deletedIds.length, failedIds }
+      this.log.info(
+        `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed`,
+      )
+      return result
+    } else {
+      // BetterSQLite3: DELETE + RETURNING returns count, not actual IDs
+      // We cannot reliably determine which specific IDs failed without race conditions
+      const deletedCount = await this.knex('users').whereIn('id', userIds).del()
+
+      this.log.debug(
+        `Deleted ${deletedCount} users out of ${userIds.length} requested`,
+      )
+
+      // For SQLite, we can't determine specific failed IDs without additional queries
+      // that would introduce race conditions, so we return empty failedIds
+      const failedCount = userIds.length - deletedCount
+      if (failedCount > 0) {
+        this.log.debug(
+          `${failedCount} users were not deleted (may not have existed)`,
+        )
+      }
+
+      const result = { deletedCount, failedIds: [] as number[] }
+      this.log.info(
+        `Bulk deleted ${result.deletedCount} users, ${result.failedIds.length} failed (SQLite cannot enumerate failed IDs)`,
+      )
+      return result
+    }
+  } catch (error) {
+    this.log.error({ error, userIds }, 'Error deleting users:')
+    return { deletedCount: 0, failedIds: userIds }
+  }
+}
