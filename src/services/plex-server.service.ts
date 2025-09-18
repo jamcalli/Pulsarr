@@ -30,6 +30,9 @@ import { toItemsSingle } from '@utils/plex.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
+// HTTP timeout constants
+const PLEX_API_TIMEOUT = 30000 // 30 seconds for Plex API operations
+
 /**
  * PlexServerService class for maintaining state and providing Plex operations
  */
@@ -182,7 +185,7 @@ export class PlexServerService {
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': 'Pulsarr',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!resourcesResponse.ok) {
@@ -430,7 +433,7 @@ export class PlexServerService {
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': 'Pulsarr',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!usersResponse.ok) {
@@ -585,7 +588,7 @@ export class PlexServerService {
           'X-Plex-Client-Identifier': 'Pulsarr',
           // This endpoint returns XML format
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!response.ok) {
@@ -777,7 +780,7 @@ export class PlexServerService {
           'X-Plex-Token': token,
           'X-Plex-Client-Identifier': 'Pulsarr',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!response.ok) {
@@ -850,7 +853,7 @@ export class PlexServerService {
           'X-Plex-Token': token,
           'X-Plex-Client-Identifier': 'Pulsarr',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!response.ok) {
@@ -1022,7 +1025,7 @@ export class PlexServerService {
             'X-Plex-Token': token,
             'X-Plex-Client-Identifier': 'Pulsarr',
           },
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
         })
 
         if (!response.ok) {
@@ -1436,7 +1439,7 @@ export class PlexServerService {
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': 'Pulsarr',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!response.ok) {
@@ -1495,7 +1498,7 @@ export class PlexServerService {
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': 'Pulsarr',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!response.ok) {
@@ -1548,7 +1551,7 @@ export class PlexServerService {
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': 'Pulsarr',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!response.ok) {
@@ -1603,7 +1606,7 @@ export class PlexServerService {
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': 'Pulsarr',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!response.ok) {
@@ -1813,7 +1816,7 @@ export class PlexServerService {
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': 'Pulsarr',
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
       })
 
       if (!response.ok) {
