@@ -782,6 +782,7 @@ async function showApprovalHistory(
           approved: '✅',
           rejected: '❌',
           expired: '⏰',
+          auto_approved: '🤖',
         }[approval.status] || '❓'
 
       const contentType =
@@ -955,6 +956,7 @@ async function showItemDetail(
         approved: '✅',
         rejected: '❌',
         expired: '⏰',
+        auto_approved: '🤖',
       }[approval.status] || '❓'
 
     const statusColor =
@@ -963,6 +965,7 @@ async function showItemDetail(
         approved: 0x57f287,
         rejected: 0xed4245,
         expired: 0x6c757d,
+        auto_approved: 0x00d4aa,
       }[approval.status] || 0x5865f2
 
     const detailEmbed = new EmbedBuilder()

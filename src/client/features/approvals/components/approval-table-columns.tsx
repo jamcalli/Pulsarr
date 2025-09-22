@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import {
   AlertCircle,
   ArrowUpDown,
+  Bot,
   CheckCircle,
   Clock,
   Eye,
@@ -211,6 +212,16 @@ export const createApprovalColumns = (
                 Expired
               </Badge>
             )
+          case 'auto_approved':
+            return (
+              <Badge
+                variant="default"
+                className="bg-blue-500 hover:bg-blue-500 text-white"
+              >
+                <Bot className="w-3 h-3 mr-1" />
+                Auto-Approved
+              </Badge>
+            )
           default:
             return <Badge variant="neutral">{status}</Badge>
         }
@@ -410,8 +421,12 @@ export const createApprovalColumns = (
       const status = row.original.status
       const updatedAt = row.original.updatedAt
 
-      // Show resolution date for approved/denied requests
-      if (status === 'approved' || status === 'rejected') {
+      // Show resolution date for approved/denied/auto-approved requests
+      if (
+        status === 'approved' ||
+        status === 'rejected' ||
+        status === 'auto_approved'
+      ) {
         const resolvedDate = new Date(updatedAt)
         return (
           <div className="text-center">

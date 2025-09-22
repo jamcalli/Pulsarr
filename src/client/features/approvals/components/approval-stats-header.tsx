@@ -2,6 +2,7 @@ import type { ApprovalStatsResponse } from '@root/schemas/approval/approval.sche
 import {
   AlertCircle,
   BarChart3,
+  Bot,
   CheckCircle,
   Clock,
   XCircle,
@@ -28,8 +29,15 @@ export default function ApprovalStatsHeader({
 }: ApprovalStatsHeaderProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {['pending', 'approved', 'rejected', 'expired', 'total'].map((type) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        {[
+          'pending',
+          'approved',
+          'rejected',
+          'expired',
+          'auto_approved',
+          'total',
+        ].map((type) => (
           <Skeleton
             key={`skeleton-${type}`}
             className="h-20 w-full rounded-md"
@@ -80,11 +88,18 @@ export default function ApprovalStatsHeader({
       bgColor: 'bg-gray-50 dark:bg-gray-900/20',
     },
     {
+      title: 'Auto-Approved',
+      value: stats.auto_approved,
+      icon: Bot,
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+    },
+    {
       title: 'Total',
       value: stats.totalRequests,
       icon: BarChart3,
-      color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/20',
     },
   ]
 
@@ -95,7 +110,7 @@ export default function ApprovalStatsHeader({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
       {statCards.map((stat) => {
         const Icon = stat.icon
         const percentage =

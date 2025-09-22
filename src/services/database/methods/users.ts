@@ -95,13 +95,19 @@ export async function getUser(
   this: DatabaseService,
   identifier: number | string,
 ): Promise<User | undefined> {
-  const row = await this.knex('users')
-    .where(
-      typeof identifier === 'number'
-        ? { id: identifier }
-        : { name: identifier },
-    )
-    .first()
+  const query = this.knex('users').where(
+    typeof identifier === 'number' ? { id: identifier } : { name: identifier },
+  )
+
+  // Exclude system user (ID: 0) from normal API access
+  if (typeof identifier === 'number' && identifier === 0) {
+    return undefined
+  }
+  if (typeof identifier === 'string' && identifier === 'System') {
+    return undefined
+  }
+
+  const row = await query.first()
 
   if (!row) return undefined
 
@@ -224,7 +230,10 @@ export async function bulkUpdateUsers(
  * @returns An array of all users.
  */
 export async function getAllUsers(this: DatabaseService): Promise<User[]> {
-  const rows = await this.knex('users').select('*').orderBy('name', 'asc')
+  const rows = await this.knex('users')
+    .select('*')
+    .where('id', '>', 0) // Exclude system user (ID: 0)
+    .orderBy('name', 'asc')
 
   return rows.map((row) => mapRowToUser(row))
 }
@@ -243,6 +252,7 @@ export async function getUsersWithWatchlistCount(
       this.knex.raw('COUNT(watchlist_items.id) as watchlist_count'),
     ])
     .leftJoin('watchlist_items', 'users.id', 'watchlist_items.user_id')
+    .where('users.id', '>', 0) // Exclude system user (ID: 0)
     .groupBy('users.id')
     .orderBy('users.name', 'asc')
 
@@ -387,6 +397,7 @@ export async function hasUsersWithSyncDisabled(
   try {
     const count = await this.knex('users')
       .where({ can_sync: false })
+      .where('id', '>', 0) // Exclude system user (ID: 0)
       .count('* as count')
       .first()
 

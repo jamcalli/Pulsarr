@@ -417,6 +417,25 @@ export class ContentRouterService {
         options.userId || 0,
         options.syncing,
       )
+
+      // Create auto-approval record for default routing
+      if (defaultRoutedInstances.length > 0) {
+        const context: RoutingContext = {
+          userId: options.userId,
+          userName: options.userName,
+          itemKey: key,
+          contentType,
+          syncing: options.syncing,
+          syncTargetInstanceId: options.syncTargetInstanceId,
+        }
+        await this.createAutoApprovalRecord(
+          item,
+          context,
+          defaultRoutedInstances,
+          [],
+        )
+      }
+
       return { routedInstances: defaultRoutedInstances }
     }
 
@@ -506,6 +525,9 @@ export class ContentRouterService {
             )
           }
           routedInstances.push(options.syncTargetInstanceId)
+
+          // Note: Sync operations are intentionally excluded from auto-approval records
+          // as they represent internal data movement, not new content additions
         } catch (error) {
           this.log.error(
             { error },
@@ -624,6 +646,24 @@ export class ContentRouterService {
           options.syncing,
         )
         routedInstances.push(...defaultRoutedInstances)
+
+        // Create auto-approval record for fallback default routing
+        if (defaultRoutedInstances.length > 0) {
+          const context: RoutingContext = {
+            userId: options.userId,
+            userName: options.userName,
+            itemKey: key,
+            contentType,
+            syncing: options.syncing,
+            syncTargetInstanceId: options.syncTargetInstanceId,
+          }
+          await this.createAutoApprovalRecord(
+            item,
+            context,
+            defaultRoutedInstances,
+            [],
+          )
+        }
       }
 
       return { routedInstances }
@@ -852,6 +892,16 @@ export class ContentRouterService {
           `Recorded quota usage for user ${options.userId}: ${item.title}`,
         )
       }
+    }
+
+    // Create auto-approval record for tracking all successful content additions
+    if (routedInstances.length > 0) {
+      await this.createAutoApprovalRecord(
+        enrichedItem,
+        context,
+        routedInstances,
+        allDecisions,
+      )
     }
 
     return { routedInstances }
@@ -1928,6 +1978,120 @@ export class ContentRouterService {
       seriesType: primaryDecision.seriesType,
       minimumAvailability: primaryDecision.minimumAvailability,
       syncedInstances: syncedInstances.length > 0 ? syncedInstances : undefined,
+    }
+  }
+
+  /**
+   * Creates an auto-approval record for tracking content that was automatically added
+   * without going through the normal approval process. This ensures all content additions
+   * are tracked in the approval system for audit and UI purposes.
+   */
+  private async createAutoApprovalRecord(
+    item: ContentItem,
+    context: RoutingContext,
+    routedInstances: number[],
+    routingDecisions: RoutingDecision[],
+  ): Promise<void> {
+    try {
+      // Skip if this is a sync operation
+      if (context.syncing) {
+        this.log.debug(
+          `Skipping auto-approval record for sync operation: ${item.title}`,
+        )
+        return
+      }
+
+      // Check if there's already an approval request for this content to avoid duplicates
+      if (context.userId && context.itemKey) {
+        const existingRequest =
+          await this.fastify.db.getApprovalRequestByContent(
+            context.userId,
+            context.itemKey,
+          )
+        if (existingRequest) {
+          this.log.debug(
+            `Auto-approval record already exists for ${item.title}, skipping`,
+          )
+          return
+        }
+      }
+
+      // Use provided user or system user (0) for RSS/immediate processing
+      const userId = context.userId || 0
+      const _userName =
+        context.userName || (userId === 0 ? 'System' : `User ${userId}`)
+
+      // Create the primary routing decision for the approval record
+      let proposedRouting: RouterDecision['routing'] | undefined
+
+      if (routingDecisions.length > 0) {
+        const primaryDecision = routingDecisions[0]
+        const syncedInstances = routedInstances.slice(1) // All instances except the first
+
+        proposedRouting = {
+          instanceId: primaryDecision.instanceId,
+          instanceType: context.contentType === 'movie' ? 'radarr' : 'sonarr',
+          qualityProfile: primaryDecision.qualityProfile,
+          rootFolder: primaryDecision.rootFolder,
+          tags: primaryDecision.tags,
+          priority: primaryDecision.priority,
+          searchOnAdd: primaryDecision.searchOnAdd,
+          seasonMonitoring: primaryDecision.seasonMonitoring,
+          seriesType: primaryDecision.seriesType,
+          minimumAvailability: primaryDecision.minimumAvailability,
+          syncedInstances:
+            syncedInstances.length > 0 ? syncedInstances : undefined,
+        }
+      } else {
+        // Default routing case - use instance information from routed instances
+        const primaryInstanceId = routedInstances[0]
+        const syncedInstances = routedInstances.slice(1)
+
+        proposedRouting = {
+          instanceId: primaryInstanceId,
+          instanceType: context.contentType === 'movie' ? 'radarr' : 'sonarr',
+          qualityProfile: null,
+          rootFolder: null,
+          tags: [],
+          priority: 50,
+          searchOnAdd: null,
+          syncedInstances:
+            syncedInstances.length > 0 ? syncedInstances : undefined,
+        }
+      }
+
+      // Create a direct auto-approval tracking record (bypass approval workflow)
+      // This creates the record with 'pending' status initially, then we'll update it
+      const approvalRequest = await this.fastify.db.createApprovalRequest({
+        userId,
+        contentType: context.contentType as 'movie' | 'show',
+        contentTitle: item.title,
+        contentKey: context.itemKey || item.guids[0] || 'unknown',
+        contentGuids: item.guids,
+        routerDecision: {
+          action: 'route',
+          routing: proposedRouting,
+        },
+        triggeredBy: 'manual_flag',
+        approvalReason: 'Auto-added (no approval required)',
+      })
+
+      // Update to auto_approved status without going through approval service
+      await this.fastify.db.updateApprovalRequest(approvalRequest.id, {
+        status: 'auto_approved',
+        approvedBy: undefined, // No admin approval for auto-approved items
+        approvalNotes: 'Auto-approved (no approval required)',
+      })
+
+      this.log.info(
+        `Created auto-approval tracking record for "${item.title}" (request ID: ${approvalRequest.id})`,
+      )
+    } catch (error) {
+      // Log error but don't fail the routing operation
+      this.log.error(
+        { error },
+        `Failed to create auto-approval record for "${item.title}"`,
+      )
     }
   }
 

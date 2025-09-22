@@ -2,6 +2,7 @@ import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.sc
 import type { Table } from '@tanstack/react-table'
 import {
   AlertCircle,
+  Bot,
   CheckCircle,
   ChevronDown,
   CircleCheckBig,
@@ -38,6 +39,7 @@ const statusOptions = [
   { label: 'Approved', value: 'approved', icon: CheckCircle },
   { label: 'Rejected', value: 'rejected', icon: XCircle },
   { label: 'Expired', value: 'expired', icon: AlertCircle },
+  { label: 'Auto-Approved', value: 'auto_approved', icon: Bot },
 ]
 
 const contentTypeOptions = [

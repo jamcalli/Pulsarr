@@ -63,9 +63,25 @@ export function ApprovalTable({
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'createdAt', desc: true },
   ])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([
-    { id: 'status', value: ['pending'] },
-  ])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    () => {
+      try {
+        const stored = localStorage.getItem(
+          'pulsarr-approval-table-status-filter',
+        )
+        if (stored !== null) {
+          const statusFilters = JSON.parse(stored)
+          return statusFilters.length > 0
+            ? [{ id: 'status', value: statusFilters }]
+            : []
+        }
+        // First time user - default to pending
+        return [{ id: 'status', value: ['pending'] }]
+      } catch {
+        return [{ id: 'status', value: ['pending'] }]
+      }
+    },
+  )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
@@ -87,7 +103,35 @@ export function ApprovalTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: (filters) => {
       setColumnFilters(filters)
-      setIsTableFiltered(filters.length > 0)
+
+      // Handle both function and direct value updates
+      const newFilters =
+        typeof filters === 'function' ? filters(columnFilters) : filters
+      setIsTableFiltered(newFilters.length > 0)
+
+      // Save status filter to localStorage
+      const statusFilter = newFilters.find((f) => f.id === 'status')
+      try {
+        if (
+          statusFilter &&
+          Array.isArray(statusFilter.value) &&
+          statusFilter.value.length > 0
+        ) {
+          // Save the selected status filters
+          localStorage.setItem(
+            'pulsarr-approval-table-status-filter',
+            JSON.stringify(statusFilter.value),
+          )
+        } else {
+          // Save empty array for "show all" state
+          localStorage.setItem(
+            'pulsarr-approval-table-status-filter',
+            JSON.stringify([]),
+          )
+        }
+      } catch {
+        // Ignore localStorage errors
+      }
     },
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
