@@ -364,6 +364,7 @@ export async function getApprovalStats(
     approved: 0,
     rejected: 0,
     expired: 0,
+    auto_approved: 0,
     totalRequests: 0,
   }
 
@@ -383,6 +384,9 @@ export async function getApprovalStats(
         break
       case 'expired':
         result.expired = count
+        break
+      case 'auto_approved':
+        result.auto_approved = count
         break
     }
   }
@@ -479,6 +483,78 @@ export async function deleteApprovalRequest(
     .del()
 
   return deletedCount > 0
+}
+
+/**
+ * Gets approval requests by criteria (user ID, status, etc.)
+ *
+ * @param criteria - Filter criteria for approval requests
+ * @returns Array of matching approval requests
+ */
+export async function getApprovalRequestsByCriteria(
+  this: DatabaseService,
+  criteria: {
+    userId?: number
+    status?: ApprovalStatus
+    contentType?: 'movie' | 'show'
+  },
+): Promise<ApprovalRequest[]> {
+  let query = this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+
+  if (criteria.userId !== undefined) {
+    query = query.where('approval_requests.user_id', criteria.userId)
+  }
+
+  if (criteria.status) {
+    query = query.where('approval_requests.status', criteria.status)
+  }
+
+  if (criteria.contentType) {
+    query = query.where('approval_requests.content_type', criteria.contentType)
+  }
+
+  const rows = await query.orderBy('approval_requests.created_at', 'desc')
+  return rows.map((row) => mapRowToApprovalRequest.call(this, row))
+}
+
+/**
+ * Updates approval request user attribution (for reconciliation)
+ *
+ * @param id - The approval request ID
+ * @param userId - New user ID
+ * @param approvalNotes - Notes about the attribution update
+ * @returns Updated approval request or null if not found
+ */
+export async function updateApprovalRequestAttribution(
+  this: DatabaseService,
+  id: number,
+  userId: number,
+  approvalNotes: string,
+): Promise<ApprovalRequest | null> {
+  const updated = await this.knex('approval_requests')
+    .where('id', id)
+    .update({
+      user_id: userId,
+      approved_by: userId,
+      approval_notes: approvalNotes,
+      updated_at: this.knex.fn.now(),
+    })
+    .returning('*')
+
+  if (updated.length === 0) {
+    return null
+  }
+
+  // Get the updated record with user name
+  const row = await this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .where('approval_requests.id', id)
+    .first()
+
+  return row ? mapRowToApprovalRequest.call(this, row) : null
 }
 
 /**

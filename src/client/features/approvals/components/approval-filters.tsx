@@ -60,6 +60,7 @@ export default function ApprovalFilters() {
         | 'approved'
         | 'rejected'
         | 'expired'
+        | 'auto_approved'
     }
 
     if (localFilters.contentType) {
@@ -109,6 +110,7 @@ export default function ApprovalFilters() {
   // Quick filter presets
   const quickFilters = [
     { label: 'Pending', key: 'status', value: 'pending' },
+    { label: 'Auto-Approved', key: 'status', value: 'auto_approved' },
     { label: 'Quota Exceeded', key: 'triggeredBy', value: 'quota_exceeded' },
     { label: 'Movies', key: 'contentType', value: 'movie' },
     { label: 'TV Shows', key: 'contentType', value: 'show' },
@@ -135,6 +137,7 @@ export default function ApprovalFilters() {
           | 'approved'
           | 'rejected'
           | 'expired'
+          | 'auto_approved'
       } else if (key === 'contentType') {
         newQuery.contentType = newValue as 'movie' | 'show'
       } else if (key === 'triggeredBy') {
@@ -224,6 +227,7 @@ export default function ApprovalFilters() {
                     <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
                     <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="auto_approved">Auto-Approved</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
