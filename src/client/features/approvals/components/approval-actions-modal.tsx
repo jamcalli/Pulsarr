@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import {
   AlertCircle,
   ArrowLeftRight,
+  Bot,
   Calendar,
   Check,
   CheckCircle,
@@ -131,6 +132,11 @@ export default function ApprovalActionsModal({
   useEffect(() => {
     if (open) setShowMediaDetails(false)
   }, [open, request.id])
+
+  // Reset edit routing mode when request changes
+  useEffect(() => {
+    setEditRoutingMode(false)
+  }, [])
 
   const getUserName = (userId: number) => {
     const user = users?.find((u) => u.id === userId)
@@ -410,6 +416,16 @@ export default function ApprovalActionsModal({
             Expired
           </Badge>
         )
+      case 'auto_approved':
+        return (
+          <Badge
+            variant="default"
+            className="bg-blue-500 hover:bg-blue-500 text-black"
+          >
+            <Bot className="w-3 h-3 mr-1" />
+            Auto-Approved
+          </Badge>
+        )
       default:
         return <Badge variant="neutral">{request.status}</Badge>
     }
@@ -472,7 +488,9 @@ export default function ApprovalActionsModal({
             </div>
           </div>
 
-          {request.status === 'approved' || request.status === 'rejected' ? (
+          {request.status === 'approved' ||
+          request.status === 'rejected' ||
+          request.status === 'auto_approved' ? (
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-foreground" />
               <span className="font-medium text-foreground">Resolved:</span>
@@ -545,7 +563,8 @@ export default function ApprovalActionsModal({
                       disabled={
                         isAnyActionInProgress ||
                         request.status === 'approved' ||
-                        request.status === 'expired'
+                        request.status === 'expired' ||
+                        request.status === 'auto_approved'
                       }
                     >
                       Edit Routing
@@ -553,7 +572,8 @@ export default function ApprovalActionsModal({
                   </div>
                 </TooltipTrigger>
                 {(request.status === 'approved' ||
-                  request.status === 'expired') && (
+                  request.status === 'expired' ||
+                  request.status === 'auto_approved') && (
                   <TooltipContent>
                     <p>Cannot edit routing for {request.status} requests</p>
                   </TooltipContent>
@@ -610,24 +630,29 @@ export default function ApprovalActionsModal({
               Approval History
             </h3>
             <div className="space-y-4">
-              {request.status === 'approved' && request.approvedBy && (
-                <div className="flex items-start gap-2 text-green-600 dark:text-green-400">
-                  <CheckCircle className="w-5 h-5 mt-0.5" />
-                  <div>
-                    <div className="font-medium">
-                      Approved by {getUserName(request.approvedBy)}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {format(new Date(request.updatedAt), 'MMM d, yyyy HH:mm')}
-                    </div>
-                    {request.approvalNotes && (
-                      <div className="text-sm mt-1">
-                        {request.approvalNotes}
+              {(request.status === 'approved' ||
+                request.status === 'auto_approved') &&
+                request.approvedBy && (
+                  <div className="flex items-start gap-2 text-green-600 dark:text-green-400">
+                    <CheckCircle className="w-5 h-5 mt-0.5" />
+                    <div>
+                      <div className="font-medium">
+                        Approved by {getUserName(request.approvedBy)}
                       </div>
-                    )}
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {format(
+                          new Date(request.updatedAt),
+                          'MMM d, yyyy HH:mm',
+                        )}
+                      </div>
+                      {request.approvalNotes && (
+                        <div className="text-sm mt-1">
+                          {request.approvalNotes}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {request.status === 'rejected' && (
                 <div className="flex items-start gap-2 text-red-600 dark:text-red-400">

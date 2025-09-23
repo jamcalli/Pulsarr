@@ -168,5 +168,29 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the number of deleted requests
      */
     cleanupExpiredRequests(olderThanDays?: number): Promise<number>
+
+    /**
+     * Gets approval requests by criteria (user ID, status, etc.)
+     * @param criteria - Filter criteria for approval requests
+     * @returns Promise resolving to array of matching approval requests
+     */
+    getApprovalRequestsByCriteria(criteria: {
+      userId?: number
+      status?: ApprovalStatus
+      contentType?: 'movie' | 'show'
+    }): Promise<ApprovalRequest[]>
+
+    /**
+     * Updates approval request user attribution (for reconciliation)
+     * @param id - The approval request ID
+     * @param userId - New user ID
+     * @param approvalNotes - Notes about the attribution update
+     * @returns Promise resolving to updated approval request or null if not found
+     */
+    updateApprovalRequestAttribution(
+      id: number,
+      userId: number,
+      approvalNotes: string,
+    ): Promise<ApprovalRequest | null>
   }
 }

@@ -1514,6 +1514,9 @@ export class WatchlistWorkflowService {
 
       this.log.info(`Watchlist sync completed: ${JSON.stringify(summary)}`)
 
+      // Update auto-approval records to attribute them to actual users
+      await this.updateAutoApprovalUserAttribution()
+
       // Log warnings about unmatched items
       if (unmatchedShows > 0 || unmatchedMovies > 0) {
         this.log.debug(
@@ -1868,6 +1871,134 @@ export class WatchlistWorkflowService {
         'Error cleaning up existing periodic reconciliation job',
       )
       throw error
+    }
+  }
+
+  /**
+   * Updates auto-approval records that were created with System user (ID: 0)
+   * to attribute them to the actual users who added the content to their watchlists.
+   */
+  private async updateAutoApprovalUserAttribution(): Promise<void> {
+    try {
+      this.log.debug('Updating auto-approval user attribution')
+
+      // Get all auto-approval records created by system user (ID: 0)
+      const systemApprovalRecords =
+        await this.dbService.getApprovalRequestsByCriteria({
+          userId: 0,
+          status: 'auto_approved',
+        })
+
+      if (systemApprovalRecords.length === 0) {
+        this.log.debug('No system auto-approval records found to update')
+        return
+      }
+
+      this.log.debug(
+        `Found ${systemApprovalRecords.length} system auto-approval records to process`,
+      )
+
+      // Get all watchlist items for matching
+      const [watchlistShows, watchlistMovies] = await Promise.all([
+        this.dbService.getAllShowWatchlistItems(),
+        this.dbService.getAllMovieWatchlistItems(),
+      ])
+      const allWatchlistItems = [...watchlistShows, ...watchlistMovies]
+
+      let updatedRecords = 0
+
+      for (const approvalRecord of systemApprovalRecords) {
+        try {
+          // Find matching watchlist item by content key or GUID matching
+          const matchingWatchlistItem = allWatchlistItems.find((item) => {
+            // First try exact key match
+            if (item.key === approvalRecord.contentKey) {
+              return true
+            }
+
+            // Fallback to GUID matching for content that might have different keys
+            const recordGuids = parseGuids(approvalRecord.contentGuids)
+            const itemGuids = parseGuids(item.guids)
+            return getGuidMatchScore(recordGuids, itemGuids) > 0
+          })
+
+          if (matchingWatchlistItem && matchingWatchlistItem.user_id > 0) {
+            // Get user details
+            const user = await this.dbService.getUser(
+              matchingWatchlistItem.user_id,
+            )
+            if (!user) {
+              this.log.warn(
+                `User ${matchingWatchlistItem.user_id} not found for approval record ${approvalRecord.id}`,
+              )
+              continue
+            }
+
+            // Update the approval record with the real user
+            const updatedRequest =
+              await this.dbService.updateApprovalRequestAttribution(
+                approvalRecord.id,
+                user.id,
+                `Auto-approved for ${user.name} (attribution updated during reconciliation)`,
+              )
+
+            this.log.debug(
+              `Updated auto-approval record ${approvalRecord.id} from System to ${user.name} for "${approvalRecord.contentTitle}"`,
+            )
+            updatedRecords++
+
+            // Emit SSE event for the updated attribution using the same format as approval service
+            if (
+              this.fastify.progress?.hasActiveConnections() &&
+              updatedRequest
+            ) {
+              const metadata = {
+                action: 'updated' as const,
+                requestId: updatedRequest.id,
+                userId: updatedRequest.userId,
+                userName: updatedRequest.userName || user.name,
+                contentTitle: updatedRequest.contentTitle,
+                contentType: updatedRequest.contentType,
+                status: updatedRequest.status,
+              }
+
+              this.fastify.progress.emit({
+                operationId: `approval-${updatedRequest.id}`,
+                type: 'approval',
+                phase: 'updated',
+                progress: 100,
+                message: `Updated auto-approval attribution for "${updatedRequest.contentTitle}" to ${user.name}`,
+                metadata,
+              })
+            }
+          } else {
+            this.log.debug(
+              `No matching watchlist item found for auto-approval record: "${approvalRecord.contentTitle}" (${approvalRecord.contentKey})`,
+            )
+          }
+        } catch (error) {
+          this.log.error(
+            { error },
+            `Failed to update user attribution for approval record ${approvalRecord.id}`,
+          )
+        }
+      }
+
+      if (updatedRecords > 0) {
+        this.log.info(
+          `Updated user attribution for ${updatedRecords} auto-approval records`,
+        )
+      } else {
+        this.log.debug(
+          'No auto-approval records needed user attribution updates',
+        )
+      }
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Failed to update auto-approval user attribution',
+      )
+      // Don't throw - this is a non-critical operation
     }
   }
 

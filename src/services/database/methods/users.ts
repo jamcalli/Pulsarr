@@ -86,21 +86,26 @@ export async function createUser(
 }
 
 /**
- * Retrieves a user by numeric ID or username.
+ * Retrieve a user by numeric ID or by username.
  *
- * @param identifier - The user ID or username to search for.
- * @returns The user object if found, otherwise undefined.
+ * Looks up a non-system user (id > 0) and returns the mapped User object if found.
+ *
+ * @param identifier - A numeric user ID or a username string to search for.
+ * @returns The matched User, or `undefined` if no non-system user matches.
  */
 export async function getUser(
   this: DatabaseService,
   identifier: number | string,
 ): Promise<User | undefined> {
   const row = await this.knex('users')
-    .where(
-      typeof identifier === 'number'
-        ? { id: identifier }
-        : { name: identifier },
-    )
+    .modify((qb) => {
+      if (typeof identifier === 'number') {
+        qb.where({ id: identifier })
+      } else {
+        qb.where({ name: identifier })
+      }
+    })
+    .andWhere('id', '>', 0) // Exclude system user (ID: 0) from normal API access
     .first()
 
   if (!row) return undefined
@@ -109,17 +114,24 @@ export async function getUser(
 }
 
 /**
- * Updates the specified user's information with the provided data.
+ * Update a user's record with the given partial user fields.
  *
- * @param id - The ID of the user to update
- * @param data - The fields to update for the user
- * @returns True if at least one user was updated; false if no matching user was found
+ * This will set the `updated_at` timestamp on success. The function refuses to
+ * mutate the system user (id <= 0) and will return false in that case.
+ *
+ * @param id - Target user ID (must be > 0; system user IDs are not allowed)
+ * @param data - Partial user fields to update (excluding `id`, `created_at`, and `updated_at`)
+ * @returns True if at least one row was updated; otherwise false
  */
 export async function updateUser(
   this: DatabaseService,
   id: number,
   data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>,
 ): Promise<boolean> {
+  if (id <= 0) {
+    this.log.warn('Refusing to update system user (ID <= 0)')
+    return false
+  }
   const updated = await this.knex('users')
     .where({ id })
     .update({
@@ -163,7 +175,8 @@ export async function bulkUpdateUsers(
       // For efficiency with large arrays, do batches
       const BATCH_SIZE = 50
       for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
-        const batchIds = userIds.slice(i, i + BATCH_SIZE)
+        const batchIds = userIds.slice(i, i + BATCH_SIZE).filter((id) => id > 0)
+        if (batchIds.length === 0) continue
 
         try {
           // Use RETURNING if PostgreSQL, otherwise rely on affected rows count
@@ -219,20 +232,28 @@ export async function bulkUpdateUsers(
 }
 
 /**
- * Retrieves all users from the database, ordered by name.
+ * Retrieve all non-system users, ordered by name (ascending).
  *
- * @returns An array of all users.
+ * Returns every user row with id > 0 mapped to the public User shape.
+ *
+ * @returns An array of User objects ordered by `name` (ascending).
  */
 export async function getAllUsers(this: DatabaseService): Promise<User[]> {
-  const rows = await this.knex('users').select('*').orderBy('name', 'asc')
+  const rows = await this.knex('users')
+    .select('*')
+    .where('id', '>', 0) // Exclude system user (ID: 0)
+    .orderBy('name', 'asc')
 
   return rows.map((row) => mapRowToUser(row))
 }
 
 /**
- * Retrieves all users along with the count of their associated watchlist items.
+ * Retrieve all non-system users with a count of their watchlist items.
  *
- * @returns An array of user objects, each extended with a `watchlist_count` property indicating the number of watchlist items linked to the user.
+ * Returns each user (excluding the system user with id 0) augmented with
+ * `watchlist_count`, the number of watchlist items associated with that user.
+ *
+ * @returns An array of users where each entry includes `watchlist_count` as a number.
  */
 export async function getUsersWithWatchlistCount(
   this: DatabaseService,
@@ -243,6 +264,7 @@ export async function getUsersWithWatchlistCount(
       this.knex.raw('COUNT(watchlist_items.id) as watchlist_count'),
     ])
     .leftJoin('watchlist_items', 'users.id', 'watchlist_items.user_id')
+    .where('users.id', '>', 0) // Exclude system user (ID: 0)
     .groupBy('users.id')
     .orderBy('users.name', 'asc')
 
@@ -253,9 +275,11 @@ export async function getUsersWithWatchlistCount(
 }
 
 /**
- * Retrieves the user marked as the primary token user.
+ * Retrieve the user marked as the primary token user.
  *
- * @returns The primary user if found, otherwise undefined.
+ * Excludes the system user (id <= 0). Returns the mapped User when a primary
+ * user row exists; returns `undefined` if no primary user is found or if an
+ * error occurs during the database query.
  */
 export async function getPrimaryUser(
   this: DatabaseService,
@@ -263,6 +287,7 @@ export async function getPrimaryUser(
   try {
     const row = await this.knex('users')
       .where({ is_primary_token: true })
+      .andWhere('id', '>', 0)
       .first()
 
     if (!row) return undefined
@@ -377,9 +402,11 @@ export async function updateAdminPassword(
 }
 
 /**
- * Checks if any user has synchronization disabled.
+ * Returns whether any non-system user has synchronization disabled.
  *
- * Returns `true` if at least one user has `can_sync` set to false, or if an error occurs during the check; otherwise, returns `false`.
+ * Counts users with `can_sync === false` while excluding the system user (id 0). If at least one matching user exists the function returns `true`. On error the function logs the failure and conservatively returns `true`.
+ *
+ * @returns `true` if any non-system user has syncing disabled or if an error occurs; otherwise `false`.
  */
 export async function hasUsersWithSyncDisabled(
   this: DatabaseService,
@@ -387,6 +414,7 @@ export async function hasUsersWithSyncDisabled(
   try {
     const count = await this.knex('users')
       .where({ can_sync: false })
+      .where('id', '>', 0) // Exclude system user (ID: 0)
       .count('* as count')
       .first()
 
@@ -411,6 +439,7 @@ export async function hasUsersWithApprovalConfig(
     // Check if any users have requires_approval = true
     const usersRequiringApproval = await this.knex('users')
       .where({ requires_approval: true })
+      .andWhere('id', '>', 0)
       .count('* as count')
       .first()
 
@@ -456,6 +485,10 @@ export async function setPrimaryUser(
   this: DatabaseService,
   userId: number,
 ): Promise<boolean> {
+  if (userId <= 0) {
+    this.log.warn('Refusing to set system user (ID <= 0) as primary')
+    return false
+  }
   try {
     await this.knex.transaction(async (trx) => {
       // Clear existing primary flags
@@ -480,12 +513,14 @@ export async function setPrimaryUser(
 }
 
 /**
- * Deletes a single user from the database by their ID.
+ * Delete a user by ID with safety checks.
  *
- * @param userId - The ID of the user to delete
- * @returns True if the user was deleted; false if no user was found or an error occurred
+ * Refuses to remove the system user (ID <= 0) and the current primary-token user; if deletion succeeds returns true, otherwise false.
  *
- * @remarks Due to CASCADE foreign key constraints, this will automatically delete all associated watchlist items for the user.
+ * @param userId - The numeric ID of the user to delete
+ * @returns True if a row was deleted, false if no row matched or an error occurred
+ *
+ * @remarks Associated records (e.g., watchlist items) are removed by database CASCADE foreign keys when present.
  */
 export async function deleteUser(
   this: DatabaseService,
@@ -496,6 +531,10 @@ export async function deleteUser(
     const primary = await this.getPrimaryUser()
     if (primary?.id === userId) {
       this.log.warn(`Refusing to delete primary token user ${userId}`)
+      return false
+    }
+    if (userId <= 0) {
+      this.log.warn('Refusing to delete system user (ID <= 0)')
       return false
     }
 
@@ -515,12 +554,12 @@ export async function deleteUser(
 }
 
 /**
- * Deletes multiple users from the database by their IDs.
+ * Delete multiple users by ID and report which deletions succeeded.
+ *
+ * Deletes all users whose IDs are provided (system user IDs <= 0 are never deleted). For databases that support RETURNING (PostgreSQL) the function will return the exact IDs that were deleted; for SQLite it returns only the number deleted and cannot enumerate which IDs failed. Associated rows that depend on users (for example watchlist items) are removed via cascading foreign-key constraints.
  *
  * @param userIds - Array of user IDs to delete
- * @returns Object with count of deleted users and array of IDs that failed to delete
- *
- * @remarks Due to CASCADE foreign key constraints, this will automatically delete all associated watchlist items for these users.
+ * @returns An object containing `deletedCount` (number of rows deleted) and `failedIds` (IDs that were not deleted; may be empty for SQLite where specific failures cannot be determined)
  */
 export async function deleteUsers(
   this: DatabaseService,
@@ -535,6 +574,7 @@ export async function deleteUsers(
       // PostgreSQL: DELETE + RETURNING returns actual rows with IDs
       const deletedUsers = await this.knex('users')
         .whereIn('id', userIds)
+        .andWhere('id', '>', 0)
         .del()
         .returning('id')
 
@@ -559,7 +599,10 @@ export async function deleteUsers(
     } else {
       // BetterSQLite3: DELETE + RETURNING returns count, not actual IDs
       // We cannot reliably determine which specific IDs failed without race conditions
-      const deletedCount = await this.knex('users').whereIn('id', userIds).del()
+      const deletedCount = await this.knex('users')
+        .whereIn('id', userIds)
+        .andWhere('id', '>', 0)
+        .del()
 
       this.log.debug(
         `Deleted ${deletedCount} users out of ${userIds.length} requested`,
