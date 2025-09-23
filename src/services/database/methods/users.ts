@@ -95,19 +95,16 @@ export async function getUser(
   this: DatabaseService,
   identifier: number | string,
 ): Promise<User | undefined> {
-  const query = this.knex('users').where(
-    typeof identifier === 'number' ? { id: identifier } : { name: identifier },
-  )
-
-  // Exclude system user (ID: 0) from normal API access
-  if (typeof identifier === 'number' && identifier === 0) {
-    return undefined
-  }
-  if (typeof identifier === 'string' && identifier === 'System') {
-    return undefined
-  }
-
-  const row = await query.first()
+  const row = await this.knex('users')
+    .modify((qb) => {
+      if (typeof identifier === 'number') {
+        qb.where({ id: identifier })
+      } else {
+        qb.where({ name: identifier })
+      }
+    })
+    .andWhere('id', '>', 0) // Exclude system user (ID: 0) from normal API access
+    .first()
 
   if (!row) return undefined
 
@@ -126,6 +123,10 @@ export async function updateUser(
   id: number,
   data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>,
 ): Promise<boolean> {
+  if (id <= 0) {
+    this.log.warn('Refusing to update system user (ID 0)')
+    return false
+  }
   const updated = await this.knex('users')
     .where({ id })
     .update({
@@ -169,7 +170,7 @@ export async function bulkUpdateUsers(
       // For efficiency with large arrays, do batches
       const BATCH_SIZE = 50
       for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
-        const batchIds = userIds.slice(i, i + BATCH_SIZE)
+        const batchIds = userIds.slice(i, i + BATCH_SIZE).filter((id) => id > 0)
 
         try {
           // Use RETURNING if PostgreSQL, otherwise rely on affected rows count
@@ -273,6 +274,7 @@ export async function getPrimaryUser(
   try {
     const row = await this.knex('users')
       .where({ is_primary_token: true })
+      .andWhere('id', '>', 0)
       .first()
 
     if (!row) return undefined
@@ -422,6 +424,7 @@ export async function hasUsersWithApprovalConfig(
     // Check if any users have requires_approval = true
     const usersRequiringApproval = await this.knex('users')
       .where({ requires_approval: true })
+      .andWhere('id', '>', 0)
       .count('* as count')
       .first()
 
@@ -467,6 +470,10 @@ export async function setPrimaryUser(
   this: DatabaseService,
   userId: number,
 ): Promise<boolean> {
+  if (userId <= 0) {
+    this.log.warn('Refusing to set system user (ID 0) as primary')
+    return false
+  }
   try {
     await this.knex.transaction(async (trx) => {
       // Clear existing primary flags
@@ -509,6 +516,10 @@ export async function deleteUser(
       this.log.warn(`Refusing to delete primary token user ${userId}`)
       return false
     }
+    if (userId <= 0) {
+      this.log.warn('Refusing to delete system user (ID 0)')
+      return false
+    }
 
     const deleted = await this.knex('users').where({ id: userId }).del()
 
@@ -546,6 +557,7 @@ export async function deleteUsers(
       // PostgreSQL: DELETE + RETURNING returns actual rows with IDs
       const deletedUsers = await this.knex('users')
         .whereIn('id', userIds)
+        .andWhere('id', '>', 0)
         .del()
         .returning('id')
 
@@ -570,7 +582,10 @@ export async function deleteUsers(
     } else {
       // BetterSQLite3: DELETE + RETURNING returns count, not actual IDs
       // We cannot reliably determine which specific IDs failed without race conditions
-      const deletedCount = await this.knex('users').whereIn('id', userIds).del()
+      const deletedCount = await this.knex('users')
+        .whereIn('id', userIds)
+        .andWhere('id', '>', 0)
+        .del()
 
       this.log.debug(
         `Deleted ${deletedCount} users out of ${userIds.length} requested`,

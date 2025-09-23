@@ -200,6 +200,33 @@ export class ContentRouterService {
           )
         }
         routedInstances.push(options.forcedInstanceId)
+
+        // Auto-approval tracking + quota for forced routing
+        const context: RoutingContext = {
+          userId: options.userId,
+          userName: options.userName,
+          itemKey: key,
+          contentType,
+          syncing: options.syncing,
+          syncTargetInstanceId: options.syncTargetInstanceId,
+        }
+        const actualRouting = await this.getActualRoutingFromInstance(
+          options.forcedInstanceId,
+          contentType,
+        )
+        await this.createAutoApprovalRecord(
+          item,
+          context,
+          [options.forcedInstanceId],
+          [],
+          actualRouting,
+        )
+        if (options.userId && options.userId > 0 && !options.syncing) {
+          await this.fastify.quotaService.recordUsage(
+            options.userId,
+            contentType,
+          )
+        }
         return { routedInstances }
       } catch (error) {
         this.log.error(
@@ -2140,24 +2167,21 @@ export class ContentRouterService {
       }
 
       // Check if there's already an approval request for this content to avoid duplicates
-      if (context.userId && context.itemKey) {
-        const existingRequest =
-          await this.fastify.db.getApprovalRequestByContent(
-            context.userId,
-            context.itemKey,
-          )
-        if (existingRequest) {
-          this.log.debug(
-            `Auto-approval record already exists for ${item.title}, skipping`,
-          )
-          return
-        }
+      const lookupUserId = context.userId ?? 0
+      const contentKeyForLookup = context.itemKey || item.guids[0] || 'unknown'
+      const existingRequest = await this.fastify.db.getApprovalRequestByContent(
+        lookupUserId,
+        contentKeyForLookup,
+      )
+      if (existingRequest) {
+        this.log.debug(
+          `Auto-approval record already exists for ${item.title}, skipping`,
+        )
+        return
       }
 
       // Use provided user or system user (0) for RSS/immediate processing
       const userId = context.userId || 0
-      const _userName =
-        context.userName || (userId === 0 ? 'System' : `User ${userId}`)
 
       // Use actual routing that was executed, not proposed routing
       let proposedRouting: RouterDecision['routing'] | undefined
