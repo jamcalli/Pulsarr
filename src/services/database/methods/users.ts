@@ -124,7 +124,7 @@ export async function updateUser(
   data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>,
 ): Promise<boolean> {
   if (id <= 0) {
-    this.log.warn('Refusing to update system user (ID 0)')
+    this.log.warn('Refusing to update system user (ID <= 0)')
     return false
   }
   const updated = await this.knex('users')
@@ -171,6 +171,7 @@ export async function bulkUpdateUsers(
       const BATCH_SIZE = 50
       for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
         const batchIds = userIds.slice(i, i + BATCH_SIZE).filter((id) => id > 0)
+        if (batchIds.length === 0) continue
 
         try {
           // Use RETURNING if PostgreSQL, otherwise rely on affected rows count
@@ -471,7 +472,7 @@ export async function setPrimaryUser(
   userId: number,
 ): Promise<boolean> {
   if (userId <= 0) {
-    this.log.warn('Refusing to set system user (ID 0) as primary')
+    this.log.warn('Refusing to set system user (ID <= 0) as primary')
     return false
   }
   try {
@@ -517,7 +518,7 @@ export async function deleteUser(
       return false
     }
     if (userId <= 0) {
-      this.log.warn('Refusing to delete system user (ID 0)')
+      this.log.warn('Refusing to delete system user (ID <= 0)')
       return false
     }
 
