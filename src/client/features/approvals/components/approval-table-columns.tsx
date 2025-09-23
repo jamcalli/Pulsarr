@@ -216,7 +216,7 @@ export const createApprovalColumns = (
             return (
               <Badge
                 variant="default"
-                className="bg-blue-500 hover:bg-blue-500 text-white"
+                className="bg-blue-500 hover:bg-blue-500 text-black"
               >
                 <Bot className="w-3 h-3 mr-1" />
                 Auto-Approved
@@ -312,16 +312,7 @@ export const createApprovalColumns = (
           parts.push(`Rule ID: ${request.routerRuleId}`)
         }
 
-        // Add proposed routing information if available
-        if (request.proposedRouterDecision?.routing) {
-          const routing = request.proposedRouterDecision.routing
-          if (routing.instanceType && routing.instanceId) {
-            const instanceType =
-              routing.instanceType.charAt(0).toUpperCase() +
-              routing.instanceType.slice(1)
-            parts.push(`→ ${instanceType} Instance ${routing.instanceId}`)
-          }
-        }
+        // Don't show routing information in trigger tooltip - that belongs in the proposed routing section
 
         return parts.length > 0 ? parts.join('\n') : null
       }

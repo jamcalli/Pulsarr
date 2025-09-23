@@ -1935,25 +1935,42 @@ export class WatchlistWorkflowService {
             }
 
             // Update the approval record with the real user
-            await this.dbService.updateApprovalRequestAttribution(
-              approvalRecord.id,
-              user.id,
-              `Auto-approved for ${user.name} (attribution updated during reconciliation)`,
-            )
+            const updatedRequest =
+              await this.dbService.updateApprovalRequestAttribution(
+                approvalRecord.id,
+                user.id,
+                `Auto-approved for ${user.name} (attribution updated during reconciliation)`,
+              )
 
             this.log.debug(
               `Updated auto-approval record ${approvalRecord.id} from System to ${user.name} for "${approvalRecord.contentTitle}"`,
             )
             updatedRecords++
 
-            // Emit SSE event for the updated attribution
-            this.fastify.progress.emit({
-              operationId: `approval-attribution-${approvalRecord.id}`,
-              type: 'approval',
-              phase: 'attribution_updated',
-              progress: 100,
-              message: `Updated approval attribution for "${approvalRecord.contentTitle}" to ${user.name}`,
-            })
+            // Emit SSE event for the updated attribution using the same format as approval service
+            if (
+              this.fastify.progress?.hasActiveConnections() &&
+              updatedRequest
+            ) {
+              const metadata = {
+                action: 'updated' as const,
+                requestId: updatedRequest.id,
+                userId: updatedRequest.userId,
+                userName: updatedRequest.userName || user.name,
+                contentTitle: updatedRequest.contentTitle,
+                contentType: updatedRequest.contentType,
+                status: updatedRequest.status,
+              }
+
+              this.fastify.progress.emit({
+                operationId: `approval-${updatedRequest.id}`,
+                type: 'approval',
+                phase: 'updated',
+                progress: 100,
+                message: `Updated auto-approval attribution for "${updatedRequest.contentTitle}" to ${user.name}`,
+                metadata,
+              })
+            }
           } else {
             this.log.debug(
               `No matching watchlist item found for auto-approval record: "${approvalRecord.contentTitle}" (${approvalRecord.contentKey})`,

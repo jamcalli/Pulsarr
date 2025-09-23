@@ -1,6 +1,7 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import {
   AlertTriangle,
+  Bot,
   Check,
   CheckCircle,
   Clock,
@@ -71,6 +72,9 @@ const FormContent = ({
   const approvedCount = selectedRequests.filter(
     (req) => req.status === 'approved',
   ).length
+  const autoApprovedCount = selectedRequests.filter(
+    (req) => req.status === 'auto_approved',
+  ).length
   const rejectedCount = selectedRequests.filter(
     (req) => req.status === 'rejected',
   ).length
@@ -108,6 +112,15 @@ const FormContent = ({
             >
               <CheckCircle className="w-3 h-3 mr-1" />
               {approvedCount} Approved
+            </Badge>
+          )}
+          {autoApprovedCount > 0 && (
+            <Badge
+              variant="default"
+              className="bg-blue-500 hover:bg-blue-500 text-black"
+            >
+              <Bot className="w-3 h-3 mr-1" />
+              {autoApprovedCount} Auto-Approved
             </Badge>
           )}
           {rejectedCount > 0 && (
@@ -256,7 +269,9 @@ export default function BulkApprovalModal({
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   // Determine which actions are available based on selected request statuses
-  const hasApproved = selectedRequests.some((req) => req.status === 'approved')
+  const hasApproved = selectedRequests.some(
+    (req) => req.status === 'approved' || req.status === 'auto_approved',
+  )
   const hasRejected = selectedRequests.some((req) => req.status === 'rejected')
   const hasPending = selectedRequests.some((req) => req.status === 'pending')
 

@@ -9,7 +9,10 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
 import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-header'
-import { ApprovalTable } from '@/features/approvals/components/approval-table'
+import {
+  ApprovalTable,
+  type ApprovalTableRef,
+} from '@/features/approvals/components/approval-table'
 import BulkApprovalModal from '@/features/approvals/components/bulk-approval-modal'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
@@ -48,6 +51,7 @@ export default function ApprovalsPage() {
   const [selectedRequests, setSelectedRequests] = useState<
     ApprovalRequestResponse[]
   >([])
+  const tableRef = useRef<ApprovalTableRef>(null)
   const [bulkActionStatus, setBulkActionStatus] =
     useState<BulkActionStatus>('idle')
   const [bulkActionType, setBulkActionType] = useState<
@@ -157,6 +161,9 @@ export default function ApprovalsPage() {
       // Refresh data
       await Promise.all([refreshApprovalRequests(), fetchStats()])
 
+      // Clear table selection
+      tableRef.current?.clearSelection()
+
       // Close modal after short delay
       setTimeout(() => setIsBulkModalOpen(false), 1000)
     } catch (error) {
@@ -184,6 +191,9 @@ export default function ApprovalsPage() {
       // Refresh data
       await Promise.all([refreshApprovalRequests(), fetchStats()])
 
+      // Clear table selection
+      tableRef.current?.clearSelection()
+
       // Close modal after short delay
       setTimeout(() => setIsBulkModalOpen(false), 1000)
     } catch (error) {
@@ -210,6 +220,9 @@ export default function ApprovalsPage() {
 
       // Refresh data
       await Promise.all([refreshApprovalRequests(), fetchStats()])
+
+      // Clear table selection
+      tableRef.current?.clearSelection()
 
       // Close modal after short delay
       setTimeout(() => setIsBulkModalOpen(false), 1000)
@@ -271,6 +284,7 @@ export default function ApprovalsPage() {
 
         {/* Approval Table */}
         <ApprovalTable
+          ref={tableRef}
           data={approvalRequests || []}
           onApprove={(request) => handleIndividualAction(request)}
           onReject={(request) => handleIndividualAction(request)}

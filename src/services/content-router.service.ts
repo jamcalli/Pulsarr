@@ -428,11 +428,19 @@ export class ContentRouterService {
           syncing: options.syncing,
           syncTargetInstanceId: options.syncTargetInstanceId,
         }
+
+        // Get actual routing information from the primary instance that was routed to
+        const actualRouting = await this.getActualRoutingFromInstance(
+          defaultRoutedInstances[0],
+          contentType,
+        )
+
         await this.createAutoApprovalRecord(
           item,
           context,
           defaultRoutedInstances,
           [],
+          actualRouting,
         )
       }
 
@@ -657,11 +665,19 @@ export class ContentRouterService {
             syncing: options.syncing,
             syncTargetInstanceId: options.syncTargetInstanceId,
           }
+
+          // Get actual routing information from the primary instance that was routed to
+          const actualRouting = await this.getActualRoutingFromInstance(
+            defaultRoutedInstances[0],
+            contentType,
+          )
+
           await this.createAutoApprovalRecord(
             item,
             context,
             defaultRoutedInstances,
             [],
+            actualRouting,
           )
         }
       }
@@ -789,6 +805,19 @@ export class ContentRouterService {
     }
 
     let routeCount = 0
+    let firstActualRouting:
+      | {
+          instanceId: number
+          instanceType: 'radarr' | 'sonarr'
+          qualityProfile?: number | string | null
+          rootFolder?: string | null
+          tags?: string[]
+          searchOnAdd?: boolean | null
+          minimumAvailability?: string | null
+          seasonMonitoring?: string | null
+          seriesType?: string | null
+        }
+      | undefined
 
     // Process each decision in priority order
     for (const decision of allDecisions) {
@@ -828,6 +857,53 @@ export class ContentRouterService {
             decision.searchOnAdd,
             decision.minimumAvailability,
           )
+
+          // Capture the ACTUAL routing parameters that were sent (first success only)
+          if (!firstActualRouting) {
+            // Get the Radarr instance to resolve actual values
+            const radarrInstance = await this.fastify.db.getRadarrInstance(
+              decision.instanceId,
+            )
+            if (radarrInstance) {
+              // Resolve values using the same logic as RadarrManagerService
+              const toNum = (v: unknown): number | undefined => {
+                if (typeof v === 'number')
+                  return Number.isInteger(v) && v > 0 ? v : undefined
+                if (typeof v === 'string') {
+                  const s = v.trim()
+                  const n = /^\d+$/.test(s) ? Number(s) : NaN
+                  return Number.isInteger(n) && n > 0 ? n : undefined
+                }
+                return undefined
+              }
+
+              const targetRootFolder =
+                rootFolder || radarrInstance.rootFolder || undefined
+              const qpSource =
+                decision.qualityProfile ?? radarrInstance.qualityProfile
+              const targetQualityProfileId =
+                qpSource == null ? undefined : toNum(qpSource)
+              const targetTags = [
+                ...new Set(decision.tags ?? radarrInstance.tags ?? []),
+              ]
+              const targetSearchOnAdd =
+                decision.searchOnAdd ?? radarrInstance.searchOnAdd ?? true
+              const targetMinimumAvailability =
+                decision.minimumAvailability ??
+                radarrInstance.minimumAvailability ??
+                'released'
+
+              firstActualRouting = {
+                instanceId: decision.instanceId,
+                instanceType: 'radarr',
+                qualityProfile: targetQualityProfileId?.toString(),
+                rootFolder: targetRootFolder,
+                tags: targetTags,
+                searchOnAdd: targetSearchOnAdd,
+                minimumAvailability: targetMinimumAvailability,
+              }
+            }
+          }
         } else {
           // Convert rootFolder from string|null|undefined to string|undefined
           const rootFolder =
@@ -848,6 +924,56 @@ export class ContentRouterService {
             decision.seasonMonitoring,
             decision.seriesType,
           )
+
+          // Capture the ACTUAL routing parameters that were sent (first success only)
+          if (!firstActualRouting) {
+            // Get the Sonarr instance to resolve actual values
+            const sonarrInstance = await this.fastify.db.getSonarrInstance(
+              decision.instanceId,
+            )
+            if (sonarrInstance) {
+              // Resolve values using the same logic as SonarrManagerService
+              const toNum = (v: unknown): number | undefined => {
+                if (typeof v === 'number')
+                  return Number.isInteger(v) && v > 0 ? v : undefined
+                if (typeof v === 'string') {
+                  const s = v.trim()
+                  const n = /^\d+$/.test(s) ? Number(s) : NaN
+                  return Number.isInteger(n) && n > 0 ? n : undefined
+                }
+                return undefined
+              }
+
+              const targetRootFolder =
+                rootFolder || sonarrInstance.rootFolder || undefined
+              const qpSource =
+                decision.qualityProfile ?? sonarrInstance.qualityProfile
+              const targetQualityProfileId =
+                qpSource == null ? undefined : toNum(qpSource)
+              const targetTags = [
+                ...new Set(decision.tags ?? sonarrInstance.tags ?? []),
+              ]
+              const targetSearchOnAdd =
+                decision.searchOnAdd ?? sonarrInstance.searchOnAdd ?? true
+              const targetSeasonMonitoring =
+                decision.seasonMonitoring ??
+                sonarrInstance.seasonMonitoring ??
+                'all'
+              const targetSeriesType =
+                decision.seriesType ?? sonarrInstance.seriesType ?? 'standard'
+
+              firstActualRouting = {
+                instanceId: decision.instanceId,
+                instanceType: 'sonarr',
+                qualityProfile: targetQualityProfileId?.toString(),
+                rootFolder: targetRootFolder,
+                tags: targetTags,
+                searchOnAdd: targetSearchOnAdd,
+                seasonMonitoring: targetSeasonMonitoring,
+                seriesType: targetSeriesType,
+              }
+            }
+          }
         }
         routeCount++
         routedInstances.push(decision.instanceId)
@@ -901,6 +1027,7 @@ export class ContentRouterService {
         context,
         routedInstances,
         allDecisions,
+        firstActualRouting,
       )
     }
 
@@ -1991,6 +2118,17 @@ export class ContentRouterService {
     context: RoutingContext,
     routedInstances: number[],
     routingDecisions: RoutingDecision[],
+    actualRouting?: {
+      instanceId: number
+      instanceType: 'radarr' | 'sonarr'
+      qualityProfile?: number | string | null
+      rootFolder?: string | null
+      tags?: string[]
+      searchOnAdd?: boolean | null
+      minimumAvailability?: string | null
+      seasonMonitoring?: string | null
+      seriesType?: string | null
+    },
   ): Promise<void> {
     try {
       // Skip if this is a sync operation
@@ -2021,12 +2159,38 @@ export class ContentRouterService {
       const _userName =
         context.userName || (userId === 0 ? 'System' : `User ${userId}`)
 
-      // Create the primary routing decision for the approval record
+      // Use actual routing that was executed, not proposed routing
       let proposedRouting: RouterDecision['routing'] | undefined
+      const syncedInstances = routedInstances.slice(1) // All instances except the first
 
-      if (routingDecisions.length > 0) {
+      if (actualRouting) {
+        // Use the ACTUAL routing parameters that were sent to Radarr/Sonarr
+        proposedRouting = {
+          instanceId: actualRouting.instanceId,
+          instanceType: actualRouting.instanceType,
+          qualityProfile: actualRouting.qualityProfile,
+          rootFolder: actualRouting.rootFolder,
+          tags: actualRouting.tags,
+          priority: 50, // Default priority
+          searchOnAdd: actualRouting.searchOnAdd,
+          seasonMonitoring: actualRouting.seasonMonitoring,
+          seriesType: actualRouting.seriesType as
+            | 'standard'
+            | 'anime'
+            | 'daily'
+            | null
+            | undefined,
+          minimumAvailability: actualRouting.minimumAvailability as
+            | 'announced'
+            | 'inCinemas'
+            | 'released'
+            | undefined,
+          syncedInstances:
+            syncedInstances.length > 0 ? syncedInstances : undefined,
+        }
+      } else if (routingDecisions.length > 0) {
+        // Fall back to proposed routing from decisions if no actual routing captured
         const primaryDecision = routingDecisions[0]
-        const syncedInstances = routedInstances.slice(1) // All instances except the first
 
         proposedRouting = {
           instanceId: primaryDecision.instanceId,
@@ -2045,7 +2209,6 @@ export class ContentRouterService {
       } else {
         // Default routing case - use instance information from routed instances
         const primaryInstanceId = routedInstances[0]
-        const syncedInstances = routedInstances.slice(1)
 
         proposedRouting = {
           instanceId: primaryInstanceId,
@@ -2062,6 +2225,7 @@ export class ContentRouterService {
 
       // Create a direct auto-approval tracking record (bypass approval workflow)
       // This creates the record with 'pending' status initially, then we'll update it
+      // Use the same structure as regular approval requests for UI compatibility
       const approvalRequest = await this.fastify.db.createApprovalRequest({
         userId,
         contentType: context.contentType as 'movie' | 'show',
@@ -2069,23 +2233,57 @@ export class ContentRouterService {
         contentKey: context.itemKey || item.guids[0] || 'unknown',
         contentGuids: item.guids,
         routerDecision: {
-          action: 'route',
-          routing: proposedRouting,
+          action: 'require_approval',
+          approval: {
+            data: {},
+            reason: 'Auto-added (no approval required)',
+            triggeredBy: 'manual_flag',
+            proposedRouting: proposedRouting,
+          },
         },
         triggeredBy: 'manual_flag',
         approvalReason: 'Auto-added (no approval required)',
       })
 
       // Update to auto_approved status without going through approval service
-      await this.fastify.db.updateApprovalRequest(approvalRequest.id, {
-        status: 'auto_approved',
-        approvedBy: undefined, // No admin approval for auto-approved items
-        approvalNotes: 'Auto-approved (no approval required)',
-      })
+      const updatedRequest = await this.fastify.db.updateApprovalRequest(
+        approvalRequest.id,
+        {
+          status: 'auto_approved',
+          approvedBy: undefined, // No admin approval for auto-approved items
+          approvalNotes: 'Auto-approved (no approval required)',
+        },
+      )
 
       this.log.info(
         `Created auto-approval tracking record for "${item.title}" (request ID: ${approvalRequest.id})`,
       )
+
+      // Emit SSE event for auto-approval creation
+      if (this.fastify.progress?.hasActiveConnections() && updatedRequest) {
+        const finalUserName =
+          updatedRequest.userName ||
+          (userId === 0 ? 'System' : `User ${userId}`)
+
+        const metadata = {
+          action: 'created' as const,
+          requestId: updatedRequest.id,
+          userId: updatedRequest.userId,
+          userName: finalUserName,
+          contentTitle: updatedRequest.contentTitle,
+          contentType: updatedRequest.contentType,
+          status: updatedRequest.status,
+        }
+
+        this.fastify.progress.emit({
+          operationId: `approval-${updatedRequest.id}`,
+          type: 'approval',
+          phase: 'created',
+          progress: 100,
+          message: `Auto-approved "${updatedRequest.contentTitle}" for ${finalUserName}`,
+          metadata,
+        })
+      }
     } catch (error) {
       // Log error but don't fail the routing operation
       this.log.error(
@@ -2173,6 +2371,68 @@ export class ContentRouterService {
     } catch (error) {
       this.log.error({ error }, 'Error routing using approved decision')
       return { routedInstances: [] }
+    }
+  }
+
+  /**
+   * Gets the actual routing configuration from an instance for auto-approval records.
+   * This ensures default routing captures the same information as rule-based routing.
+   */
+  private async getActualRoutingFromInstance(
+    instanceId: number,
+    contentType: 'movie' | 'show',
+  ): Promise<
+    | {
+        instanceId: number
+        instanceType: 'radarr' | 'sonarr'
+        qualityProfile?: number | string | null
+        rootFolder?: string | null
+        tags?: string[]
+        searchOnAdd?: boolean | null
+        minimumAvailability?: string | null
+        seasonMonitoring?: string | null
+        seriesType?: string | null
+      }
+    | undefined
+  > {
+    try {
+      if (contentType === 'movie') {
+        const radarrInstance =
+          await this.fastify.db.getRadarrInstance(instanceId)
+        if (radarrInstance) {
+          return {
+            instanceId: radarrInstance.id,
+            instanceType: 'radarr',
+            qualityProfile: radarrInstance.qualityProfile,
+            rootFolder: radarrInstance.rootFolder,
+            tags: radarrInstance.tags || [],
+            searchOnAdd: radarrInstance.searchOnAdd,
+            minimumAvailability: radarrInstance.minimumAvailability,
+          }
+        }
+      } else {
+        const sonarrInstance =
+          await this.fastify.db.getSonarrInstance(instanceId)
+        if (sonarrInstance) {
+          return {
+            instanceId: sonarrInstance.id,
+            instanceType: 'sonarr',
+            qualityProfile: sonarrInstance.qualityProfile,
+            rootFolder: sonarrInstance.rootFolder,
+            tags: sonarrInstance.tags || [],
+            searchOnAdd: sonarrInstance.searchOnAdd,
+            seasonMonitoring: sonarrInstance.seasonMonitoring,
+            seriesType: sonarrInstance.seriesType,
+          }
+        }
+      }
+      return undefined
+    } catch (error) {
+      this.log.error(
+        { error },
+        `Error getting instance configuration for auto-approval record`,
+      )
+      return undefined
     }
   }
 }
