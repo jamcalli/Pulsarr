@@ -738,13 +738,7 @@ async function showApprovalHistory(
     const offset = page * pageSize
 
     // Map filter to database status
-    let status:
-      | 'pending'
-      | 'approved'
-      | 'rejected'
-      | 'expired'
-      | 'auto_approved'
-      | undefined
+    let status: ApprovalRequest['status'] | undefined
     switch (filter) {
       case 'pending':
         status = 'pending'
@@ -839,8 +833,8 @@ async function showApprovalHistory(
       actionRows.push(itemRow)
     }
 
-    // Filter buttons row
-    const filterRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    // Filter buttons row 1 (All, Pending, Approved)
+    const filterRow1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId('approval_history_filter_all')
         .setLabel('All')
@@ -859,6 +853,11 @@ async function showApprovalHistory(
         .setStyle(
           filter === 'approved' ? ButtonStyle.Primary : ButtonStyle.Secondary,
         ),
+    )
+    actionRows.push(filterRow1)
+
+    // Filter buttons row 2 (Rejected, Expired, Auto-Approved)
+    const filterRow2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId('approval_history_filter_rejected')
         .setLabel('Rejected')
@@ -880,7 +879,7 @@ async function showApprovalHistory(
             : ButtonStyle.Secondary,
         ),
     )
-    actionRows.push(filterRow)
+    actionRows.push(filterRow2)
 
     // Navigation buttons row
     const navRow = new ActionRowBuilder<ButtonBuilder>()
