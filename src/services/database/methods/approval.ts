@@ -347,9 +347,18 @@ export async function getExpiredPendingRequests(
 }
 
 /**
- * Returns the total number of approval requests and counts for each status.
+ * Aggregate counts of approval requests by status and the overall total.
  *
- * @returns An object with counts of pending, approved, rejected, expired, and total approval requests.
+ * Queries the approval_requests table, groups rows by `status`, and returns per-status counts
+ * along with `totalRequests` (the sum of all counted rows).
+ *
+ * @returns An object with numeric counters:
+ *  - `pending` — number of requests with status "pending"
+ *  - `approved` — number of requests with status "approved"
+ *  - `rejected` — number of requests with status "rejected"
+ *  - `expired` — number of requests with status "expired"
+ *  - `auto_approved` — number of requests with status "auto_approved"
+ *  - `totalRequests` — sum of all status counts
  */
 export async function getApprovalStats(
   this: DatabaseService,
@@ -486,10 +495,15 @@ export async function deleteApprovalRequest(
 }
 
 /**
- * Gets approval requests by criteria (user ID, status, etc.)
+ * Retrieve approval requests matching the provided filters.
  *
- * @param criteria - Filter criteria for approval requests
- * @returns Array of matching approval requests
+ * Returns approval requests joined with the submitting user's name, ordered by `created_at` descending.
+ *
+ * @param criteria - Optional filters:
+ *   - `userId`: limit to requests created by a specific user
+ *   - `status`: filter by approval status
+ *   - `contentType`: filter by content type (`'movie'` or `'show'`)
+ * @returns An array of ApprovalRequest objects matching the criteria.
  */
 export async function getApprovalRequestsByCriteria(
   this: DatabaseService,
@@ -520,12 +534,14 @@ export async function getApprovalRequestsByCriteria(
 }
 
 /**
- * Updates approval request user attribution (for reconciliation)
+ * Update the user attribution for an approval request (used for reconciliation).
  *
- * @param id - The approval request ID
- * @param userId - New user ID
- * @param approvalNotes - Notes about the attribution update
- * @returns Updated approval request or null if not found
+ * Sets the request's `user_id`, `approved_by`, and `approval_notes`, and updates the `updated_at` timestamp.
+ *
+ * @param id - ID of the approval request to update
+ * @param userId - New user ID to attribute the request to (also set as `approved_by`)
+ * @param approvalNotes - Notes explaining the attribution change
+ * @returns The updated ApprovalRequest including the user's name, or `null` if no matching request was found
  */
 export async function updateApprovalRequestAttribution(
   this: DatabaseService,
