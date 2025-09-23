@@ -558,7 +558,7 @@ export async function updateApprovalRequestAttribution(
       user_id: userId,
       approved_by: userId,
       approval_notes: approvalNotes,
-      updated_at: this.knex.fn.now(),
+      updated_at: this.timestamp,
     })
     .returning('*')
 

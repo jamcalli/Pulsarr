@@ -718,13 +718,13 @@ async function handleMenuAction(
  * Display a paginated, filterable view of approval history and attach interactive buttons.
  *
  * Shows up to five approval items per page, renders a summary embed, adds item selection buttons,
- * filter buttons (All, Pending, Approved, Rejected), and pagination controls. Edits the original
+ * filter buttons (All, Pending, Approved, Rejected, Expired, Auto-Approved), and pagination controls. Edits the original
  * interaction reply with the constructed embed and components; if there are no results on the
  * first page, returns a small "no history" message and a back-to-menu button.
  *
  * @param page - Zero-based page index to display.
- * @param filter - Filter key to apply to results: "all" (or any non-matching value) for no filter,
- *                 or one of "pending", "approved", "rejected", "expired" to restrict results.
+ * @param filter - Filter key: "all" for no filter, or one of
+ *                 "pending" | "approved" | "rejected" | "expired" | "auto_approved".
  */
 async function showApprovalHistory(
   interaction: ButtonInteraction,
@@ -866,6 +866,12 @@ async function showApprovalHistory(
           filter === 'rejected' ? ButtonStyle.Primary : ButtonStyle.Secondary,
         ),
       new ButtonBuilder()
+        .setCustomId('approval_history_filter_expired')
+        .setLabel('Expired')
+        .setStyle(
+          filter === 'expired' ? ButtonStyle.Primary : ButtonStyle.Secondary,
+        ),
+      new ButtonBuilder()
         .setCustomId('approval_history_filter_auto_approved')
         .setLabel('Auto-Approved')
         .setStyle(
@@ -933,7 +939,7 @@ async function handleItemAction(
   try {
     const approvalId = Number.parseInt(parts[2], 10)
     const returnPage = Number.parseInt(parts[3], 10)
-    const returnFilter = parts[4] || 'all'
+    const returnFilter = parts.slice(4).join('_') || 'all'
 
     if (Number.isNaN(approvalId)) {
       await interaction.editReply('❌ Invalid approval ID')
@@ -1173,7 +1179,7 @@ async function handleDeleteAction(
     if (action === 'confirm') {
       // Show delete confirmation
       const returnPage = Number.parseInt(parts[4], 10) || 0
-      const returnFilter = parts[5] || 'all'
+      const returnFilter = parts.slice(5).join('_') || 'all'
       await showDeleteConfirmation(
         interaction,
         approvalId,
@@ -1185,7 +1191,7 @@ async function handleDeleteAction(
     } else if (action === 'execute') {
       // Execute the delete
       const returnPage = Number.parseInt(parts[4], 10) || 0
-      const returnFilter = parts[5] || 'all'
+      const returnFilter = parts.slice(5).join('_') || 'all'
       await executeDelete(
         interaction,
         approvalId,
@@ -1367,11 +1373,11 @@ async function handleHistoryAction(
     const action = parts[2] // filter, page, etc.
 
     if (action === 'filter') {
-      const filter = parts[3]
+      const filter = parts.slice(3).join('_') || 'all'
       await showApprovalHistory(interaction, 0, filter, fastify, log)
     } else if (action === 'page') {
       const page = Number.parseInt(parts[3], 10)
-      const filter = parts[4] || 'all'
+      const filter = parts.slice(4).join('_') || 'all'
       await showApprovalHistory(interaction, page, filter, fastify, log)
     }
   } catch (error) {
@@ -1462,7 +1468,9 @@ async function handleApprovalAction(
       return
     }
 
-    if (approval.status !== 'pending') {
+    const isReversalAllowed =
+      approval.status === 'rejected' && action === 'approve'
+    if (approval.status !== 'pending' && !isReversalAllowed) {
       const message =
         approval.status === 'auto_approved'
           ? '❌ This approval request was auto-approved and cannot be modified'
