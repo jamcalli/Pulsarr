@@ -9,12 +9,9 @@ import type { Knex } from 'knex'
  */
 export async function up(knex: Knex): Promise<void> {
   return knex.transaction(async (trx) => {
-    // Check if system user already exists
-    const existingSystemUser = await trx('users').where({ id: 0 }).first()
-
-    if (!existingSystemUser) {
-      // Insert system user with ID 0
-      await trx('users').insert({
+    // Insert system user with ID 0; idempotent across reruns
+    await trx('users')
+      .insert({
         id: 0,
         name: 'System',
         apprise: null,
@@ -30,7 +27,8 @@ export async function up(knex: Knex): Promise<void> {
         created_at: trx.fn.now(),
         updated_at: trx.fn.now(),
       })
-    }
+      .onConflict('id')
+      .ignore()
   })
 }
 

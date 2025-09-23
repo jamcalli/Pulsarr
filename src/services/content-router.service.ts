@@ -401,15 +401,11 @@ export class ContentRouterService {
                     )
                   }
 
-                  // Continue with normal routing flow since it's been auto-approved
-                  const defaultRoutedInstances = await this.routeUsingDefault(
-                    item,
-                    key,
-                    contentType,
-                    context.userId,
-                    options.syncing,
+                  // Avoid double-routing; processApprovedRequest already routed
+                  const instanceIds = defaultRoutingDecisions.map(
+                    (d) => d.instanceId,
                   )
-                  return { routedInstances: defaultRoutedInstances }
+                  return { routedInstances: instanceIds }
                 }
               }
 
@@ -2168,7 +2164,10 @@ export class ContentRouterService {
 
       // Check if there's already an approval request for this content to avoid duplicates
       const lookupUserId = context.userId ?? 0
-      const contentKeyForLookup = context.itemKey || item.guids[0] || 'unknown'
+      const contentKeyForLookup =
+        context.itemKey ||
+        item.guids[0] ||
+        `${context.contentType}:${(item.title || 'unknown').slice(0, 128)}`
       const existingRequest = await this.fastify.db.getApprovalRequestByContent(
         lookupUserId,
         contentKeyForLookup,
@@ -2346,7 +2345,7 @@ export class ContentRouterService {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             context.itemKey,
-            context.userId || 1,
+            approvedRequest.userId ?? 0,
             instanceId,
             context.syncing,
             proposedRouting.rootFolder || undefined,
@@ -2370,7 +2369,7 @@ export class ContentRouterService {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             context.itemKey,
-            context.userId || 1,
+            approvedRequest.userId ?? 0,
             instanceId,
             context.syncing,
             proposedRouting.rootFolder || undefined,
