@@ -444,7 +444,10 @@ export async function getUserApprovalStats(
 
     switch (stat.status as ApprovalStatus) {
       case 'approved':
-        stats.approvedRequests = count
+        stats.approvedRequests += count
+        break
+      case 'auto_approved':
+        stats.approvedRequests += count
         break
       case 'rejected':
         stats.rejectedRequests = count
