@@ -236,7 +236,7 @@ export async function bulkUpdateUsers(
  *
  * Returns every user row with id > 0 mapped to the public User shape.
  *
- * @returns An array of User objects ordered by `name` (ascending).  
+ * @returns An array of User objects ordered by `name` (ascending).
  */
 export async function getAllUsers(this: DatabaseService): Promise<User[]> {
   const rows = await this.knex('users')

@@ -738,7 +738,13 @@ async function showApprovalHistory(
     const offset = page * pageSize
 
     // Map filter to database status
-    let status: 'pending' | 'approved' | 'rejected' | 'expired' | undefined
+    let status:
+      | 'pending'
+      | 'approved'
+      | 'rejected'
+      | 'expired'
+      | 'auto_approved'
+      | undefined
     switch (filter) {
       case 'pending':
         status = 'pending'
@@ -751,6 +757,9 @@ async function showApprovalHistory(
         break
       case 'expired':
         status = 'expired'
+        break
+      case 'auto_approved':
+        status = 'auto_approved'
         break
       default:
         status = undefined // 'all'
@@ -855,6 +864,14 @@ async function showApprovalHistory(
         .setLabel('Rejected')
         .setStyle(
           filter === 'rejected' ? ButtonStyle.Primary : ButtonStyle.Secondary,
+        ),
+      new ButtonBuilder()
+        .setCustomId('approval_history_filter_auto_approved')
+        .setLabel('Auto-Approved')
+        .setStyle(
+          filter === 'auto_approved'
+            ? ButtonStyle.Primary
+            : ButtonStyle.Secondary,
         ),
     )
     actionRows.push(filterRow)
@@ -1083,6 +1100,7 @@ async function showItemDetail(
         break
 
       case 'approved':
+      case 'auto_approved':
       case 'expired':
         actionRow.addComponents(
           new ButtonBuilder()
@@ -1445,9 +1463,11 @@ async function handleApprovalAction(
     }
 
     if (approval.status !== 'pending') {
-      await interaction.editReply(
-        `❌ This approval request is already ${approval.status}`,
-      )
+      const message =
+        approval.status === 'auto_approved'
+          ? '❌ This approval request was auto-approved and cannot be modified'
+          : `❌ This approval request is already ${approval.status}`
+      await interaction.editReply(message)
       return
     }
 
