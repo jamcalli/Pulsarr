@@ -358,7 +358,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         if (targetStatus) {
           // Only validate transitions if status is being updated
-          if (currentStatus === 'approved' || currentStatus === 'expired') {
+          if (
+            currentStatus === 'approved' ||
+            currentStatus === 'expired' ||
+            currentStatus === 'auto_approved'
+          ) {
             return reply.conflict(
               `Cannot update ${currentStatus} approval requests`,
             )
@@ -378,7 +382,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         } else {
           // If no status provided, we're just updating other fields (like routing)
           // Still prevent updates to finalized requests
-          if (currentStatus === 'approved' || currentStatus === 'expired') {
+          if (
+            currentStatus === 'approved' ||
+            currentStatus === 'expired' ||
+            currentStatus === 'auto_approved'
+          ) {
             return reply.conflict(
               `Cannot modify routing for ${currentStatus} approval requests`,
             )
@@ -666,7 +674,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         if (
           existingRequest.status === 'approved' ||
-          existingRequest.status === 'expired'
+          existingRequest.status === 'expired' ||
+          existingRequest.status === 'auto_approved'
         ) {
           return reply.conflict(
             `Cannot approve request that is already ${existingRequest.status}`,
