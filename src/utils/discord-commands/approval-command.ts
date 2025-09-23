@@ -715,7 +715,16 @@ async function handleMenuAction(
 }
 
 /**
- * Show approval history with pagination and filtering
+ * Display a paginated, filterable view of approval history and attach interactive buttons.
+ *
+ * Shows up to five approval items per page, renders a summary embed, adds item selection buttons,
+ * filter buttons (All, Pending, Approved, Rejected), and pagination controls. Edits the original
+ * interaction reply with the constructed embed and components; if there are no results on the
+ * first page, returns a small "no history" message and a back-to-menu button.
+ *
+ * @param page - Zero-based page index to display.
+ * @param filter - Filter key to apply to results: "all" (or any non-matching value) for no filter,
+ *                 or one of "pending", "approved", "rejected", "expired" to restrict results.
  */
 async function showApprovalHistory(
   interaction: ButtonInteraction,
@@ -929,7 +938,12 @@ async function handleItemAction(
 }
 
 /**
- * Show individual approval item with available actions
+ * Display a detailed view for a single approval request and present context-appropriate action and navigation buttons.
+ *
+ * Loads the approval by ID, constructs an embed showing request metadata, trigger reason, timestamps, and any approval action history, then updates the interaction reply with action buttons tailored to the approval's current status (e.g., Approve/Reject/Delete) and navigation buttons back to history or the main menu. If the approval is not found, the reply is updated with a not-found message. Errors are logged and reported to the user via an edited reply.
+ *
+ * @param returnPage - The history page number to return to when the user selects "Back to History"
+ * @param returnFilter - The history filter identifier to preserve when returning to the history view
  */
 async function showItemDetail(
   interaction: ButtonInteraction,
