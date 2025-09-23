@@ -49,7 +49,12 @@ export interface QuotaUsageRow {
 
 // Enums
 export type QuotaType = 'daily' | 'weekly_rolling' | 'monthly'
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired'
+export type ApprovalStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'expired'
+  | 'auto_approved'
 export type ApprovalTrigger =
   | 'quota_exceeded'
   | 'router_rule'
@@ -211,6 +216,7 @@ export interface ApprovalStats {
   approved: number
   rejected: number
   expired: number
+  auto_approved: number
   totalRequests: number
 }
 
