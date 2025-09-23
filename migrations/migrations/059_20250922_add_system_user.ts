@@ -37,8 +37,8 @@ export async function up(knex: Knex): Promise<void> {
 /**
  * Removes the system user (ID: 0).
  */
-export async function down(knex: Knex): Promise<void> {
-  return knex.transaction(async (trx) => {
-    await trx('users').where({ id: 0 }).del()
-  })
+export async function down(_: Knex): Promise<void> {
+  throw new Error(
+    'Irreversible: system user (ID 0) may be referenced by auto-approval data.',
+  )
 }

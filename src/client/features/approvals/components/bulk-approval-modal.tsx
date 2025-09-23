@@ -66,18 +66,32 @@ const FormContent = ({
   canApprove,
   canReject,
 }: FormContentProps) => {
-  const pendingCount = selectedRequests.filter(
-    (req) => req.status === 'pending',
-  ).length
-  const approvedCount = selectedRequests.filter(
-    (req) => req.status === 'approved',
-  ).length
-  const autoApprovedCount = selectedRequests.filter(
-    (req) => req.status === 'auto_approved',
-  ).length
-  const rejectedCount = selectedRequests.filter(
-    (req) => req.status === 'rejected',
-  ).length
+  const { pendingCount, approvedCount, autoApprovedCount, rejectedCount } =
+    selectedRequests.reduce(
+      (acc, req) => {
+        switch (req.status) {
+          case 'pending':
+            acc.pendingCount++
+            break
+          case 'approved':
+            acc.approvedCount++
+            break
+          case 'auto_approved':
+            acc.autoApprovedCount++
+            break
+          case 'rejected':
+            acc.rejectedCount++
+            break
+        }
+        return acc
+      },
+      {
+        pendingCount: 0,
+        approvedCount: 0,
+        autoApprovedCount: 0,
+        rejectedCount: 0,
+      },
+    )
 
   return (
     <div className="space-y-4">
@@ -136,24 +150,25 @@ const FormContent = ({
       </div>
 
       {/* Action restrictions */}
-      {!canApprove && approvedCount > 0 && (
+      {!canApprove && (approvedCount > 0 || autoApprovedCount > 0) && (
         <Alert variant="default" className="break-words">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <AlertDescription className="text-sm">
-            Cannot approve requests that are already approved.
+            Cannot approve requests that are already approved or auto-approved.
           </AlertDescription>
         </Alert>
       )}
 
-      {!canReject && (approvedCount > 0 || rejectedCount > 0) && (
-        <Alert variant="default" className="break-words">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <AlertDescription className="text-sm">
-            Cannot reject approved requests. Only pending and rejected requests
-            can be processed.
-          </AlertDescription>
-        </Alert>
-      )}
+      {!canReject &&
+        (approvedCount > 0 || autoApprovedCount > 0 || rejectedCount > 0) && (
+          <Alert variant="default" className="break-words">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <AlertDescription className="text-sm">
+              Cannot reject approved or auto-approved requests. Only pending and
+              rejected requests can be processed.
+            </AlertDescription>
+          </Alert>
+        )}
 
       {/* Action buttons */}
       <div className="flex flex-col gap-3">

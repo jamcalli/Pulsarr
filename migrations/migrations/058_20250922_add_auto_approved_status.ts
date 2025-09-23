@@ -16,11 +16,17 @@ export async function up(knex: Knex): Promise<void> {
           'auto_approved',
         ])
         .defaultTo('pending')
+        .notNullable()
     })
 
     // Copy existing data
     await trx('approval_requests').update({
       status_new: trx.ref('status'),
+    })
+
+    // Drop index before dropping column
+    await trx.schema.alterTable('approval_requests', (table) => {
+      table.dropIndex(['status'])
     })
 
     // Drop old column
@@ -31,6 +37,11 @@ export async function up(knex: Knex): Promise<void> {
     // Rename new column
     await trx.schema.alterTable('approval_requests', (table) => {
       table.renameColumn('status_new', 'status')
+    })
+
+    // Recreate the index on the new column
+    await trx.schema.alterTable('approval_requests', (table) => {
+      table.index(['status'])
     })
   })
 }
@@ -45,13 +56,19 @@ export async function down(knex: Knex): Promise<void> {
     // Create new column without auto_approved
     await trx.schema.alterTable('approval_requests', (table) => {
       table
-        .enum('status_new', ['pending', 'approved', 'rejected', 'expired'])
+        .enum('status_tmp', ['pending', 'approved', 'rejected', 'expired'])
         .defaultTo('pending')
+        .notNullable()
     })
 
     // Copy existing data
     await trx('approval_requests').update({
-      status_new: trx.ref('status'),
+      status_tmp: trx.ref('status'),
+    })
+
+    // Drop index before dropping column
+    await trx.schema.alterTable('approval_requests', (table) => {
+      table.dropIndex(['status'])
     })
 
     // Drop old column
@@ -61,7 +78,12 @@ export async function down(knex: Knex): Promise<void> {
 
     // Rename new column
     await trx.schema.alterTable('approval_requests', (table) => {
-      table.renameColumn('status_new', 'status')
+      table.renameColumn('status_tmp', 'status')
+    })
+
+    // Recreate the index on the new column
+    await trx.schema.alterTable('approval_requests', (table) => {
+      table.index(['status'])
     })
   })
 }
