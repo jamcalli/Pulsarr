@@ -15,13 +15,13 @@ interface ApprovalStatsHeaderProps {
 }
 
 /**
- * Displays approval request statistics in a responsive grid, showing counts for pending, approved, rejected, expired, and total requests.
+ * Render a responsive header showing approval request statistics.
  *
- * Renders loading skeletons while data is loading, an error message if statistics are unavailable, or detailed statistics with icons, color coding, and percentage breakdowns when data is present.
+ * Displays six statistic cards (Pending, Approved, Rejected, Expired, Auto-Approved, Total) with icons, color-coded values, and percentage of the total. While loading, renders six skeleton placeholders; if `stats` is null or undefined, renders a centered "Unable to load approval statistics" message.
  *
- * @param stats - The approval statistics data to display, or null if unavailable.
- * @param loading - Optional flag indicating whether the data is currently loading.
- * @returns A React element showing the statistics cards, loading skeletons, or an error message.
+ * @param stats - The approval statistics object (or `null`/`undefined`). When present, its numeric fields are used to populate the cards; when missing, an error message is shown.
+ * @param loading - If true, renders loading skeletons instead of the stats UI.
+ * @returns A React element containing the stats grid, loading skeletons, or an error message.
  */
 export default function ApprovalStatsHeader({
   stats,
