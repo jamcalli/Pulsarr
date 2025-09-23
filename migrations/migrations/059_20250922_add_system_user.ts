@@ -33,7 +33,13 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the system user (ID: 0).
+ * Prevents rollback of the migration that creates the system user (ID 0).
+ *
+ * This down migration is intentionally irreversible and always throws. The system
+ * user may be referenced by auto-approval or other persistent data, so removing
+ * it could break referential integrity.
+ *
+ * @throws Error indicating the migration cannot be reversed
  */
 export async function down(_: Knex): Promise<void> {
   throw new Error(
