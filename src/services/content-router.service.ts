@@ -2062,14 +2062,34 @@ export class ContentRouterService {
         for (const instanceId of instanceIds) {
           const instance = instanceMap.get(instanceId)
           if (instance) {
+            // Helper function to parse quality profile to number (same logic as routing)
+            const toNum = (v: unknown): number | undefined => {
+              if (typeof v === 'number')
+                return Number.isInteger(v) && v > 0 ? v : undefined
+              if (typeof v === 'string') {
+                const s = v.trim()
+                const n = /^\d+$/.test(s) ? Number(s) : NaN
+                return Number.isInteger(n) && n > 0 ? n : undefined
+              }
+              return undefined
+            }
+
+            // Resolve actual routing values (same logic as actual routing)
+            const resolvedQualityProfile = toNum(instance.qualityProfile)
+            const resolvedRootFolder = instance.rootFolder || undefined
+            const resolvedTags = instance.tags || []
+            const resolvedSearchOnAdd = instance.searchOnAdd ?? true
+            const resolvedMinimumAvailability =
+              instance.minimumAvailability || 'released'
+
             decisions.push({
               instanceId: instance.id,
-              qualityProfile: instance.qualityProfile || null,
-              rootFolder: instance.rootFolder || null,
-              tags: instance.tags || [],
+              qualityProfile: resolvedQualityProfile?.toString() || null,
+              rootFolder: resolvedRootFolder || null,
+              tags: resolvedTags,
               priority: 50, // Default priority
-              searchOnAdd: instance.searchOnAdd ?? null,
-              minimumAvailability: instance.minimumAvailability || undefined,
+              searchOnAdd: resolvedSearchOnAdd,
+              minimumAvailability: resolvedMinimumAvailability,
             })
           }
         }
@@ -2082,15 +2102,35 @@ export class ContentRouterService {
         for (const instanceId of instanceIds) {
           const instance = instanceMap.get(instanceId)
           if (instance) {
+            // Helper function to parse quality profile to number (same logic as routing)
+            const toNum = (v: unknown): number | undefined => {
+              if (typeof v === 'number')
+                return Number.isInteger(v) && v > 0 ? v : undefined
+              if (typeof v === 'string') {
+                const s = v.trim()
+                const n = /^\d+$/.test(s) ? Number(s) : NaN
+                return Number.isInteger(n) && n > 0 ? n : undefined
+              }
+              return undefined
+            }
+
+            // Resolve actual routing values (same logic as actual routing)
+            const resolvedQualityProfile = toNum(instance.qualityProfile)
+            const resolvedRootFolder = instance.rootFolder || undefined
+            const resolvedTags = instance.tags || []
+            const resolvedSearchOnAdd = instance.searchOnAdd ?? true
+            const resolvedSeasonMonitoring = instance.seasonMonitoring || 'all'
+            const resolvedSeriesType = instance.seriesType || 'standard'
+
             decisions.push({
               instanceId: instance.id,
-              qualityProfile: instance.qualityProfile || null,
-              rootFolder: instance.rootFolder || null,
-              tags: instance.tags || [],
+              qualityProfile: resolvedQualityProfile?.toString() || null,
+              rootFolder: resolvedRootFolder || null,
+              tags: resolvedTags,
               priority: 50, // Default priority
-              searchOnAdd: instance.searchOnAdd ?? null,
-              seasonMonitoring: instance.seasonMonitoring || null,
-              seriesType: instance.seriesType || null,
+              searchOnAdd: resolvedSearchOnAdd,
+              seasonMonitoring: resolvedSeasonMonitoring,
+              seriesType: resolvedSeriesType,
             })
           }
         }
