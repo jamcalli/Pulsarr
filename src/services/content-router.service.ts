@@ -1612,6 +1612,7 @@ export class ContentRouterService {
             instance.tags,
             instance.searchOnAdd,
             instance.seasonMonitoring,
+            instance.seriesType,
           )
           routedInstances.push(instanceId)
         } catch (error) {
@@ -2260,11 +2261,11 @@ export class ContentRouterService {
           approval: {
             data: {},
             reason: 'Auto-added (no approval required)',
-            triggeredBy: 'manual_flag',
+            triggeredBy: 'content_criteria',
             proposedRouting: proposedRouting,
           },
         },
-        triggeredBy: 'manual_flag',
+        triggeredBy: 'content_criteria',
         approvalReason: 'Auto-added (no approval required)',
       })
 
@@ -2377,6 +2378,7 @@ export class ContentRouterService {
             proposedRouting.tags || [],
             proposedRouting.searchOnAdd,
             proposedRouting.seasonMonitoring,
+            proposedRouting.seriesType,
           )
           routedInstances.push(instanceId)
           this.log.info(

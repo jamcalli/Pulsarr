@@ -9,6 +9,7 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react'
+import { useMemo } from 'react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -67,30 +68,34 @@ const FormContent = ({
   canReject,
 }: FormContentProps) => {
   const { pendingCount, approvedCount, autoApprovedCount, rejectedCount } =
-    selectedRequests.reduce(
-      (acc, req) => {
-        switch (req.status) {
-          case 'pending':
-            acc.pendingCount++
-            break
-          case 'approved':
-            acc.approvedCount++
-            break
-          case 'auto_approved':
-            acc.autoApprovedCount++
-            break
-          case 'rejected':
-            acc.rejectedCount++
-            break
-        }
-        return acc
-      },
-      {
-        pendingCount: 0,
-        approvedCount: 0,
-        autoApprovedCount: 0,
-        rejectedCount: 0,
-      },
+    useMemo(
+      () =>
+        selectedRequests.reduce(
+          (acc, req) => {
+            switch (req.status) {
+              case 'pending':
+                acc.pendingCount++
+                break
+              case 'approved':
+                acc.approvedCount++
+                break
+              case 'auto_approved':
+                acc.autoApprovedCount++
+                break
+              case 'rejected':
+                acc.rejectedCount++
+                break
+            }
+            return acc
+          },
+          {
+            pendingCount: 0,
+            approvedCount: 0,
+            autoApprovedCount: 0,
+            rejectedCount: 0,
+          },
+        ),
+      [selectedRequests],
     )
 
   return (
@@ -164,8 +169,8 @@ const FormContent = ({
           <Alert variant="default" className="break-words">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <AlertDescription className="text-sm">
-              Cannot reject approved or auto-approved requests. Only pending and
-              rejected requests can be processed.
+              Cannot reject approved or auto-approved requests. Only pending
+              requests can be rejected.
             </AlertDescription>
           </Alert>
         )}
