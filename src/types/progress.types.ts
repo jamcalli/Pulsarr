@@ -10,7 +10,7 @@ export type ApprovalMetadata = {
   userName: string
   contentTitle: string
   contentType: 'movie' | 'show'
-  status: 'pending' | 'approved' | 'rejected' | 'expired'
+  status: 'pending' | 'approved' | 'rejected' | 'expired' | 'auto_approved'
 }
 
 export type ProgressMetadata =

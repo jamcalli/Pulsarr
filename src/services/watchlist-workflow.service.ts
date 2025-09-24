@@ -26,6 +26,7 @@
 import type {
   RssWatchlistResults,
   TemptRssWatchlistItem,
+  TokenWatchlistItem,
   WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
@@ -1514,6 +1515,9 @@ export class WatchlistWorkflowService {
 
       this.log.info(`Watchlist sync completed: ${JSON.stringify(summary)}`)
 
+      // Update auto-approval records to attribute them to actual users
+      await this.updateAutoApprovalUserAttribution(shows, movies)
+
       // Log warnings about unmatched items
       if (unmatchedShows > 0 || unmatchedMovies > 0) {
         this.log.debug(
@@ -1868,6 +1872,229 @@ export class WatchlistWorkflowService {
         'Error cleaning up existing periodic reconciliation job',
       )
       throw error
+    }
+  }
+
+  /**
+   * Updates auto-approval records that were created with System user (ID: 0)
+   * to attribute them to the actual users who added the content to their watchlists.
+   * Optionally accepts prefetched watchlist arrays to avoid extra DB reads.
+   */
+  private async updateAutoApprovalUserAttribution(
+    prefetchedShows?: TokenWatchlistItem[],
+    prefetchedMovies?: TokenWatchlistItem[],
+  ): Promise<void> {
+    try {
+      this.log.debug('Updating auto-approval user attribution')
+
+      // Get all auto-approval records created by system user (ID: 0)
+      const systemApprovalRecords =
+        await this.dbService.getApprovalRequestsByCriteria({
+          userId: 0,
+          status: 'auto_approved',
+        })
+
+      if (systemApprovalRecords.length === 0) {
+        this.log.debug('No system auto-approval records found to update')
+        return
+      }
+
+      this.log.debug(
+        `Found ${systemApprovalRecords.length} system auto-approval records to process`,
+      )
+
+      // Get all watchlist items for matching (reuse prefetched lists if provided)
+      const watchlistShows =
+        prefetchedShows ?? (await this.dbService.getAllShowWatchlistItems())
+      const watchlistMovies =
+        prefetchedMovies ?? (await this.dbService.getAllMovieWatchlistItems())
+      const allWatchlistItems = [...watchlistShows, ...watchlistMovies]
+
+      // Build indexes for fast and unambiguous lookups
+      const keyIndex = new Map<string, TokenWatchlistItem[]>()
+      const guidIndex = new Map<string, TokenWatchlistItem[]>()
+      for (const item of allWatchlistItems) {
+        if (item.key) {
+          const arr = keyIndex.get(item.key)
+          if (arr) arr.push(item)
+          else keyIndex.set(item.key, [item])
+        }
+        for (const g of parseGuids(item.guids)) {
+          const arr = guidIndex.get(g)
+          if (arr) arr.push(item)
+          else guidIndex.set(g, [item])
+        }
+      }
+
+      let updatedRecords = 0
+      let ambiguousRecords = 0
+
+      const normalizeUserId = (val: unknown): number | null => {
+        const id =
+          typeof val === 'number'
+            ? val
+            : typeof val === 'object' && val !== null && 'id' in val
+              ? (val as { id: number }).id
+              : Number.parseInt(String(val), 10)
+        return Number.isFinite(id) && id > 0 ? (id as number) : null
+      }
+
+      for (const approvalRecord of systemApprovalRecords) {
+        try {
+          // Prefer exact content key match
+          let matchingWatchlistItem: TokenWatchlistItem | undefined
+          if (approvalRecord.contentKey) {
+            const keyCandidates = keyIndex.get(approvalRecord.contentKey)
+            if (keyCandidates && keyCandidates.length === 1) {
+              matchingWatchlistItem = keyCandidates[0]
+            } else if (keyCandidates && keyCandidates.length > 1) {
+              // Disambiguate: attribute only if all candidates resolve to the same user
+              const userIds = new Set<number>()
+              for (const it of keyCandidates) {
+                const uid = normalizeUserId(it.user_id)
+                if (uid) userIds.add(uid)
+              }
+              if (userIds.size === 1) {
+                const onlyUserId = [...userIds][0]
+                matchingWatchlistItem = keyCandidates.find(
+                  (it) => normalizeUserId(it.user_id) === onlyUserId,
+                )
+              } else {
+                ambiguousRecords++
+                this.log.warn(
+                  `Ambiguous key match for approval record ${approvalRecord.id} ("${approvalRecord.contentTitle}"); multiple users share content key. Skipping attribution to avoid misattribution.`,
+                )
+                continue
+              }
+            }
+          }
+
+          // Fallback to GUID-based candidates if no key match
+          if (!matchingWatchlistItem) {
+            const recordGuids = parseGuids(approvalRecord.contentGuids)
+            const candidateSet = new Set<TokenWatchlistItem>()
+            for (const g of recordGuids) {
+              const arr = guidIndex.get(g)
+              if (arr) {
+                for (const it of arr) candidateSet.add(it)
+              }
+            }
+            const candidates = [...candidateSet]
+
+            if (candidates.length === 1) {
+              matchingWatchlistItem = candidates[0]
+            } else if (candidates.length > 1) {
+              // Disambiguate: attribute only if all candidates resolve to the same user
+              const userIds = new Set<number>()
+              for (const it of candidates) {
+                const uid = normalizeUserId(it.user_id)
+                if (uid) userIds.add(uid)
+              }
+              if (userIds.size === 1) {
+                const onlyUserId = [...userIds][0]
+                matchingWatchlistItem = candidates.find(
+                  (it) => normalizeUserId(it.user_id) === onlyUserId,
+                )
+              } else {
+                ambiguousRecords++
+                this.log.warn(
+                  `Ambiguous GUID match for approval record ${approvalRecord.id} ("${approvalRecord.contentTitle}"); multiple users share GUIDs. Skipping attribution to avoid misattribution.`,
+                )
+                continue
+              }
+            }
+          }
+
+          if (matchingWatchlistItem) {
+            // Normalize user ID
+            const numericUserId = normalizeUserId(matchingWatchlistItem.user_id)
+
+            if (!numericUserId) {
+              this.log.warn(
+                `Invalid user_id "${matchingWatchlistItem.user_id}" for approval record ${approvalRecord.id}`,
+              )
+              continue
+            }
+
+            // Get user details
+            const user = await this.dbService.getUser(numericUserId)
+            if (!user) {
+              this.log.warn(
+                `User ${numericUserId} not found for approval record ${approvalRecord.id}`,
+              )
+              continue
+            }
+
+            // Update the approval record with the real user
+            const updatedRequest =
+              await this.dbService.updateApprovalRequestAttribution(
+                approvalRecord.id,
+                numericUserId,
+                `Auto-approved for ${user.name} (attribution updated during reconciliation)`,
+              )
+
+            this.log.debug(
+              `Updated auto-approval record ${approvalRecord.id} from System to ${user.name} for "${approvalRecord.contentTitle}"`,
+            )
+            updatedRecords++
+
+            // Emit SSE event for the updated attribution using the same format as approval service
+            if (
+              this.fastify.progress?.hasActiveConnections() &&
+              updatedRequest
+            ) {
+              const metadata = {
+                action: 'updated' as const,
+                requestId: updatedRequest.id,
+                userId: updatedRequest.userId,
+                userName: updatedRequest.userName || user.name,
+                contentTitle: updatedRequest.contentTitle,
+                contentType: updatedRequest.contentType,
+                status: updatedRequest.status,
+              }
+
+              this.fastify.progress.emit({
+                operationId: `approval-${updatedRequest.id}`,
+                type: 'approval',
+                phase: 'updated',
+                progress: 100,
+                message: `Updated auto-approval attribution for "${updatedRequest.contentTitle}" to ${user.name}`,
+                metadata,
+              })
+            }
+          } else {
+            this.log.debug(
+              `No matching watchlist item found for auto-approval record: "${approvalRecord.contentTitle}" (${approvalRecord.contentKey})`,
+            )
+          }
+        } catch (error) {
+          this.log.error(
+            { error },
+            `Failed to update user attribution for approval record ${approvalRecord.id}`,
+          )
+        }
+      }
+
+      if (updatedRecords > 0) {
+        this.log.info(
+          `Updated user attribution for ${updatedRecords} auto-approval records`,
+        )
+      } else {
+        this.log.debug(
+          'No auto-approval records needed user attribution updates',
+        )
+      }
+      if (ambiguousRecords > 0) {
+        this.log.warn(
+          `Skipped ${ambiguousRecords} auto-approval records due to ambiguous GUID matches across multiple users`,
+        )
+      }
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Failed to update auto-approval user attribution',
+      )
+      // Don't throw - this is a non-critical operation
     }
   }
 

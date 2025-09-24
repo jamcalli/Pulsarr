@@ -1,6 +1,7 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import {
   AlertTriangle,
+  Bot,
   Check,
   CheckCircle,
   Clock,
@@ -8,6 +9,7 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react'
+import { useMemo } from 'react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -65,15 +67,36 @@ const FormContent = ({
   canApprove,
   canReject,
 }: FormContentProps) => {
-  const pendingCount = selectedRequests.filter(
-    (req) => req.status === 'pending',
-  ).length
-  const approvedCount = selectedRequests.filter(
-    (req) => req.status === 'approved',
-  ).length
-  const rejectedCount = selectedRequests.filter(
-    (req) => req.status === 'rejected',
-  ).length
+  const { pendingCount, approvedCount, autoApprovedCount, rejectedCount } =
+    useMemo(
+      () =>
+        selectedRequests.reduce(
+          (acc, req) => {
+            switch (req.status) {
+              case 'pending':
+                acc.pendingCount++
+                break
+              case 'approved':
+                acc.approvedCount++
+                break
+              case 'auto_approved':
+                acc.autoApprovedCount++
+                break
+              case 'rejected':
+                acc.rejectedCount++
+                break
+            }
+            return acc
+          },
+          {
+            pendingCount: 0,
+            approvedCount: 0,
+            autoApprovedCount: 0,
+            rejectedCount: 0,
+          },
+        ),
+      [selectedRequests],
+    )
 
   return (
     <div className="space-y-4">
@@ -110,6 +133,15 @@ const FormContent = ({
               {approvedCount} Approved
             </Badge>
           )}
+          {autoApprovedCount > 0 && (
+            <Badge
+              variant="default"
+              className="bg-blue-500 hover:bg-blue-500 text-black"
+            >
+              <Bot className="w-3 h-3 mr-1" />
+              {autoApprovedCount} Auto-Approved
+            </Badge>
+          )}
           {rejectedCount > 0 && (
             <Badge
               variant="warn"
@@ -123,24 +155,25 @@ const FormContent = ({
       </div>
 
       {/* Action restrictions */}
-      {!canApprove && approvedCount > 0 && (
+      {!canApprove && (approvedCount > 0 || autoApprovedCount > 0) && (
         <Alert variant="default" className="break-words">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <AlertDescription className="text-sm">
-            Cannot approve requests that are already approved.
+            Cannot approve requests that are already approved or auto-approved.
           </AlertDescription>
         </Alert>
       )}
 
-      {!canReject && (approvedCount > 0 || rejectedCount > 0) && (
-        <Alert variant="default" className="break-words">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <AlertDescription className="text-sm">
-            Cannot reject approved requests. Only pending and rejected requests
-            can be processed.
-          </AlertDescription>
-        </Alert>
-      )}
+      {!canReject &&
+        (approvedCount > 0 || autoApprovedCount > 0 || rejectedCount > 0) && (
+          <Alert variant="default" className="break-words">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <AlertDescription className="text-sm">
+              Cannot reject approved or auto-approved requests. Only pending
+              requests can be rejected.
+            </AlertDescription>
+          </Alert>
+        )}
 
       {/* Action buttons */}
       <div className="flex flex-col gap-3">
@@ -256,7 +289,9 @@ export default function BulkApprovalModal({
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   // Determine which actions are available based on selected request statuses
-  const hasApproved = selectedRequests.some((req) => req.status === 'approved')
+  const hasApproved = selectedRequests.some(
+    (req) => req.status === 'approved' || req.status === 'auto_approved',
+  )
   const hasRejected = selectedRequests.some((req) => req.status === 'rejected')
   const hasPending = selectedRequests.some((req) => req.status === 'pending')
 

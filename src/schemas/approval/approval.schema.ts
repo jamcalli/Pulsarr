@@ -8,6 +8,7 @@ export const ApprovalStatusSchema = z.enum([
   'approved',
   'rejected',
   'expired',
+  'auto_approved',
 ])
 export const ApprovalTriggerSchema = z.enum([
   'quota_exceeded',
@@ -141,6 +142,7 @@ export const ApprovalStatsResponseSchema = z.object({
     approved: z.number(),
     rejected: z.number(),
     expired: z.number(),
+    auto_approved: z.number(),
     totalRequests: z.number(),
   }),
 })
