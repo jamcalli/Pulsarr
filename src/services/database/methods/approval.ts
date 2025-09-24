@@ -347,9 +347,18 @@ export async function getExpiredPendingRequests(
 }
 
 /**
- * Returns the total number of approval requests and counts for each status.
+ * Aggregate counts of approval requests by status and the overall total.
  *
- * @returns An object with counts of pending, approved, rejected, expired, and total approval requests.
+ * Queries the approval_requests table, groups rows by `status`, and returns per-status counts
+ * along with `totalRequests` (the sum of all counted rows).
+ *
+ * @returns An object with numeric counters:
+ *  - `pending` — number of requests with status "pending"
+ *  - `approved` — number of requests with status "approved"
+ *  - `rejected` — number of requests with status "rejected"
+ *  - `expired` — number of requests with status "expired"
+ *  - `auto_approved` — number of requests with status "auto_approved"
+ *  - `totalRequests` — sum of all status counts
  */
 export async function getApprovalStats(
   this: DatabaseService,
@@ -364,6 +373,7 @@ export async function getApprovalStats(
     approved: 0,
     rejected: 0,
     expired: 0,
+    auto_approved: 0,
     totalRequests: 0,
   }
 
@@ -383,6 +393,9 @@ export async function getApprovalStats(
         break
       case 'expired':
         result.expired = count
+        break
+      case 'auto_approved':
+        result.auto_approved = count
         break
     }
   }
@@ -431,7 +444,10 @@ export async function getUserApprovalStats(
 
     switch (stat.status as ApprovalStatus) {
       case 'approved':
-        stats.approvedRequests = count
+        stats.approvedRequests += count
+        break
+      case 'auto_approved':
+        stats.approvedRequests += count
         break
       case 'rejected':
         stats.rejectedRequests = count
@@ -479,6 +495,85 @@ export async function deleteApprovalRequest(
     .del()
 
   return deletedCount > 0
+}
+
+/**
+ * Retrieve approval requests matching the provided filters.
+ *
+ * Returns approval requests joined with the submitting user's name, ordered by `created_at` descending.
+ *
+ * @param criteria - Optional filters:
+ *   - `userId`: limit to requests created by a specific user
+ *   - `status`: filter by approval status
+ *   - `contentType`: filter by content type (`'movie'` or `'show'`)
+ * @returns An array of ApprovalRequest objects matching the criteria.
+ */
+export async function getApprovalRequestsByCriteria(
+  this: DatabaseService,
+  criteria: {
+    userId?: number
+    status?: ApprovalStatus
+    contentType?: 'movie' | 'show'
+  },
+): Promise<ApprovalRequest[]> {
+  let query = this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+
+  if (criteria.userId !== undefined) {
+    query = query.where('approval_requests.user_id', criteria.userId)
+  }
+
+  if (criteria.status) {
+    query = query.where('approval_requests.status', criteria.status)
+  }
+
+  if (criteria.contentType) {
+    query = query.where('approval_requests.content_type', criteria.contentType)
+  }
+
+  const rows = await query.orderBy('approval_requests.created_at', 'desc')
+  return rows.map((row) => mapRowToApprovalRequest.call(this, row))
+}
+
+/**
+ * Update the user attribution for an approval request (used for reconciliation).
+ *
+ * Sets the request's `user_id`, `approved_by`, and `approval_notes`, and updates the `updated_at` timestamp.
+ *
+ * @param id - ID of the approval request to update
+ * @param userId - New user ID to attribute the request to (also set as `approved_by`)
+ * @param approvalNotes - Notes explaining the attribution change
+ * @returns The updated ApprovalRequest including the user's name, or `null` if no matching request was found
+ */
+export async function updateApprovalRequestAttribution(
+  this: DatabaseService,
+  id: number,
+  userId: number,
+  approvalNotes: string,
+): Promise<ApprovalRequest | null> {
+  const updated = await this.knex('approval_requests')
+    .where('id', id)
+    .update({
+      user_id: userId,
+      approved_by: userId,
+      approval_notes: approvalNotes,
+      updated_at: this.timestamp,
+    })
+    .returning('*')
+
+  if (updated.length === 0) {
+    return null
+  }
+
+  // Get the updated record with user name
+  const row = await this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .where('approval_requests.id', id)
+    .first()
+
+  return row ? mapRowToApprovalRequest.call(this, row) : null
 }
 
 /**
