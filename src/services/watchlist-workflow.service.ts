@@ -26,6 +26,7 @@
 import type {
   RssWatchlistResults,
   TemptRssWatchlistItem,
+  TokenWatchlistItem,
   WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
@@ -1515,7 +1516,7 @@ export class WatchlistWorkflowService {
       this.log.info(`Watchlist sync completed: ${JSON.stringify(summary)}`)
 
       // Update auto-approval records to attribute them to actual users
-      await this.updateAutoApprovalUserAttribution()
+      await this.updateAutoApprovalUserAttribution(shows, movies)
 
       // Log warnings about unmatched items
       if (unmatchedShows > 0 || unmatchedMovies > 0) {
@@ -1877,8 +1878,12 @@ export class WatchlistWorkflowService {
   /**
    * Updates auto-approval records that were created with System user (ID: 0)
    * to attribute them to the actual users who added the content to their watchlists.
+   * Optionally accepts prefetched watchlist arrays to avoid extra DB reads.
    */
-  private async updateAutoApprovalUserAttribution(): Promise<void> {
+  private async updateAutoApprovalUserAttribution(
+    prefetchedShows?: TokenWatchlistItem[],
+    prefetchedMovies?: TokenWatchlistItem[],
+  ): Promise<void> {
     try {
       this.log.debug('Updating auto-approval user attribution')
 
@@ -1898,42 +1903,89 @@ export class WatchlistWorkflowService {
         `Found ${systemApprovalRecords.length} system auto-approval records to process`,
       )
 
-      // Get all watchlist items for matching
-      const [watchlistShows, watchlistMovies] = await Promise.all([
-        this.dbService.getAllShowWatchlistItems(),
-        this.dbService.getAllMovieWatchlistItems(),
-      ])
+      // Get all watchlist items for matching (reuse prefetched lists if provided)
+      const watchlistShows =
+        prefetchedShows ?? (await this.dbService.getAllShowWatchlistItems())
+      const watchlistMovies =
+        prefetchedMovies ?? (await this.dbService.getAllMovieWatchlistItems())
       const allWatchlistItems = [...watchlistShows, ...watchlistMovies]
 
+      // Build indexes for fast and unambiguous lookups
+      const keyIndex = new Map<string, TokenWatchlistItem>()
+      const guidIndex = new Map<string, TokenWatchlistItem[]>()
+      for (const item of allWatchlistItems) {
+        if (item.key) {
+          keyIndex.set(item.key, item)
+        }
+        for (const g of parseGuids(item.guids)) {
+          const arr = guidIndex.get(g)
+          if (arr) arr.push(item)
+          else guidIndex.set(g, [item])
+        }
+      }
+
       let updatedRecords = 0
+      let ambiguousRecords = 0
+
+      const normalizeUserId = (val: unknown): number | null => {
+        const id =
+          typeof val === 'number'
+            ? val
+            : typeof val === 'object' && val !== null && 'id' in val
+              ? (val as { id: number }).id
+              : Number.parseInt(String(val), 10)
+        return Number.isFinite(id) && id > 0 ? (id as number) : null
+      }
 
       for (const approvalRecord of systemApprovalRecords) {
         try {
-          // Find matching watchlist item by content key or GUID matching
-          const matchingWatchlistItem = allWatchlistItems.find((item) => {
-            // First try exact key match
-            if (item.key === approvalRecord.contentKey) {
-              return true
-            }
+          // Prefer exact content key match
+          let matchingWatchlistItem: TokenWatchlistItem | undefined =
+            approvalRecord.contentKey
+              ? keyIndex.get(approvalRecord.contentKey)
+              : undefined
 
-            // Fallback to GUID matching for content that might have different keys
+          // Fallback to GUID-based candidates if no key match
+          if (!matchingWatchlistItem) {
             const recordGuids = parseGuids(approvalRecord.contentGuids)
-            const itemGuids = parseGuids(item.guids)
-            return getGuidMatchScore(recordGuids, itemGuids) > 0
-          })
+            const candidateSet = new Set<TokenWatchlistItem>()
+            for (const g of recordGuids) {
+              const arr = guidIndex.get(g)
+              if (arr) {
+                for (const it of arr) candidateSet.add(it)
+              }
+            }
+            const candidates = [...candidateSet]
+
+            if (candidates.length === 1) {
+              matchingWatchlistItem = candidates[0]
+            } else if (candidates.length > 1) {
+              // Disambiguate: attribute only if all candidates resolve to the same user
+              const userIds = new Set<number>()
+              for (const it of candidates) {
+                const uid = normalizeUserId(it.user_id)
+                if (uid) userIds.add(uid)
+              }
+              if (userIds.size === 1) {
+                const onlyUserId = [...userIds][0]
+                matchingWatchlistItem = candidates.find(
+                  (it) => normalizeUserId(it.user_id) === onlyUserId,
+                )
+              } else {
+                ambiguousRecords++
+                this.log.warn(
+                  `Ambiguous GUID match for approval record ${approvalRecord.id} ("${approvalRecord.contentTitle}"); multiple users share GUIDs. Skipping attribution to avoid misattribution.`,
+                )
+                continue
+              }
+            }
+          }
 
           if (matchingWatchlistItem) {
             // Normalize user ID
-            const numericUserId =
-              typeof matchingWatchlistItem.user_id === 'number'
-                ? matchingWatchlistItem.user_id
-                : typeof matchingWatchlistItem.user_id === 'object' &&
-                    matchingWatchlistItem.user_id !== null &&
-                    'id' in matchingWatchlistItem.user_id
-                  ? (matchingWatchlistItem.user_id as { id: number }).id
-                  : Number.parseInt(String(matchingWatchlistItem.user_id), 10)
+            const numericUserId = normalizeUserId(matchingWatchlistItem.user_id)
 
-            if (Number.isNaN(numericUserId) || numericUserId <= 0) {
+            if (!numericUserId) {
               this.log.warn(
                 `Invalid user_id "${matchingWatchlistItem.user_id}" for approval record ${approvalRecord.id}`,
               )
@@ -2006,6 +2058,11 @@ export class WatchlistWorkflowService {
       } else {
         this.log.debug(
           'No auto-approval records needed user attribution updates',
+        )
+      }
+      if (ambiguousRecords > 0) {
+        this.log.warn(
+          `Skipped ${ambiguousRecords} auto-approval records due to ambiguous GUID matches across multiple users`,
         )
       }
     } catch (error) {
