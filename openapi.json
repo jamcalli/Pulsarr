@@ -953,7 +953,8 @@
                             "pending",
                             "approved",
                             "rejected",
-                            "expired"
+                            "expired",
+                            "auto_approved"
                           ]
                         },
                         "approvedBy": {
@@ -1138,7 +1139,8 @@
                 "pending",
                 "approved",
                 "rejected",
-                "expired"
+                "expired",
+                "auto_approved"
               ]
             },
             "in": "query",
@@ -1508,7 +1510,8 @@
                               "pending",
                               "approved",
                               "rejected",
-                              "expired"
+                              "expired",
+                              "auto_approved"
                             ]
                           },
                           "approvedBy": {
@@ -1984,7 +1987,8 @@
                             "pending",
                             "approved",
                             "rejected",
-                            "expired"
+                            "expired",
+                            "auto_approved"
                           ]
                         },
                         "approvedBy": {
@@ -2173,7 +2177,8 @@
                       "pending",
                       "approved",
                       "rejected",
-                      "expired"
+                      "expired",
+                      "auto_approved"
                     ]
                   },
                   "approvalNotes": {
@@ -2732,7 +2737,8 @@
                             "pending",
                             "approved",
                             "rejected",
-                            "expired"
+                            "expired",
+                            "auto_approved"
                           ]
                         },
                         "approvedBy": {
@@ -3332,6 +3338,9 @@
                         "expired": {
                           "type": "number"
                         },
+                        "auto_approved": {
+                          "type": "number"
+                        },
                         "totalRequests": {
                           "type": "number"
                         }
@@ -3341,6 +3350,7 @@
                         "approved",
                         "rejected",
                         "expired",
+                        "auto_approved",
                         "totalRequests"
                       ],
                       "additionalProperties": false
