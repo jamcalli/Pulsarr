@@ -1922,14 +1922,29 @@ export class WatchlistWorkflowService {
             return getGuidMatchScore(recordGuids, itemGuids) > 0
           })
 
-          if (matchingWatchlistItem && matchingWatchlistItem.user_id > 0) {
+          if (matchingWatchlistItem) {
+            // Normalize user ID
+            const numericUserId =
+              typeof matchingWatchlistItem.user_id === 'number'
+                ? matchingWatchlistItem.user_id
+                : typeof matchingWatchlistItem.user_id === 'object' &&
+                    matchingWatchlistItem.user_id !== null &&
+                    'id' in matchingWatchlistItem.user_id
+                  ? (matchingWatchlistItem.user_id as { id: number }).id
+                  : Number.parseInt(String(matchingWatchlistItem.user_id), 10)
+
+            if (Number.isNaN(numericUserId) || numericUserId <= 0) {
+              this.log.warn(
+                `Invalid user_id "${matchingWatchlistItem.user_id}" for approval record ${approvalRecord.id}`,
+              )
+              continue
+            }
+
             // Get user details
-            const user = await this.dbService.getUser(
-              matchingWatchlistItem.user_id,
-            )
+            const user = await this.dbService.getUser(numericUserId)
             if (!user) {
               this.log.warn(
-                `User ${matchingWatchlistItem.user_id} not found for approval record ${approvalRecord.id}`,
+                `User ${numericUserId} not found for approval record ${approvalRecord.id}`,
               )
               continue
             }
@@ -1938,7 +1953,7 @@ export class WatchlistWorkflowService {
             const updatedRequest =
               await this.dbService.updateApprovalRequestAttribution(
                 approvalRecord.id,
-                user.id,
+                numericUserId,
                 `Auto-approved for ${user.name} (attribution updated during reconciliation)`,
               )
 

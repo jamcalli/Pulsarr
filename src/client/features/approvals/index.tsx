@@ -94,7 +94,7 @@ export default function ApprovalsPage() {
   // Setup minimum loading time
   useEffect(() => {
     let isMounted = true
-    const timer = setTimeout(() => {
+    const _timer = setTimeout(() => {
       if (isMounted) {
         setMinLoadingComplete(true)
         if (isInitialized) {
@@ -105,7 +105,7 @@ export default function ApprovalsPage() {
 
     return () => {
       isMounted = false
-      clearTimeout(timer)
+      clearTimeout(timeoutId)
     }
   }, [isInitialized])
 
@@ -147,11 +147,15 @@ export default function ApprovalsPage() {
   const executeBulkApproval = async (data: BulkApprovalRequest) => {
     setBulkActionStatus('loading')
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
       const response = await fetch('/v1/approval/requests/bulk/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        signal: controller.signal,
       })
+      clearTimeout(timeoutId)
 
       if (!response.ok) throw new Error('Bulk approval failed')
 
@@ -177,11 +181,15 @@ export default function ApprovalsPage() {
   const executeBulkReject = async (data: BulkRejectRequest) => {
     setBulkActionStatus('loading')
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
       const response = await fetch('/v1/approval/requests/bulk/reject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        signal: controller.signal,
       })
+      clearTimeout(timeoutId)
 
       if (!response.ok) throw new Error('Bulk rejection failed')
 
@@ -207,11 +215,15 @@ export default function ApprovalsPage() {
   const executeBulkDelete = async (data: BulkDeleteRequest) => {
     setBulkActionStatus('loading')
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
       const response = await fetch('/v1/approval/requests/bulk/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        signal: controller.signal,
       })
+      clearTimeout(timeoutId)
 
       if (!response.ok) throw new Error('Bulk deletion failed')
 
