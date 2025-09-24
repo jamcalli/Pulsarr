@@ -94,7 +94,7 @@ export default function ApprovalsPage() {
   // Setup minimum loading time
   useEffect(() => {
     let isMounted = true
-    const _timer = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       if (isMounted) {
         setMinLoadingComplete(true)
         if (isInitialized) {
