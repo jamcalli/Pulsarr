@@ -675,6 +675,7 @@ export class ContentRouterService {
           // These are filtered out by updateWatchlistItem() before database insertion
           options.userId || 0,
           options.syncing,
+          /* recordQuota */ false,
         )
         routedInstances.push(...defaultRoutedInstances)
 
@@ -1649,6 +1650,7 @@ export class ContentRouterService {
     contentType: 'movie' | 'show',
     userId: number,
     syncing?: boolean,
+    recordQuota: boolean = true,
   ): Promise<number[]> {
     try {
       // Get all instances that should be routed to (using shared logic)
@@ -1667,9 +1669,15 @@ export class ContentRouterService {
         syncing,
       )
 
-      // Record quota usage if user has quotas enabled and routing was successful
+      // Record quota usage if enabled and routing was successful
       // Only count once per content item regardless of how many instances it was routed to
-      if (userId && userId > 0 && !syncing && routedInstances.length > 0) {
+      if (
+        recordQuota &&
+        userId &&
+        userId > 0 &&
+        !syncing &&
+        routedInstances.length > 0
+      ) {
         const recorded = await this.fastify.quotaService.recordUsage(
           userId,
           contentType,
@@ -2165,13 +2173,13 @@ export class ContentRouterService {
 
       // Check if there's already an approval request for this content to avoid duplicates
       const lookupUserId = context.userId ?? 0
-      const contentKeyForLookup =
+      const contentKey =
         context.itemKey ||
         item.guids[0] ||
         `${context.contentType}:${(item.title || 'unknown').slice(0, 128)}`
       const existingRequest = await this.fastify.db.getApprovalRequestByContent(
         lookupUserId,
-        contentKeyForLookup,
+        contentKey,
       )
       if (existingRequest) {
         this.log.debug(
@@ -2254,7 +2262,7 @@ export class ContentRouterService {
         userId,
         contentType: context.contentType as 'movie' | 'show',
         contentTitle: item.title,
-        contentKey: context.itemKey || item.guids[0] || 'unknown',
+        contentKey,
         contentGuids: item.guids,
         routerDecision: {
           action: 'require_approval',
