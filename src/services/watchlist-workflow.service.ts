@@ -1911,11 +1911,13 @@ export class WatchlistWorkflowService {
       const allWatchlistItems = [...watchlistShows, ...watchlistMovies]
 
       // Build indexes for fast and unambiguous lookups
-      const keyIndex = new Map<string, TokenWatchlistItem>()
+      const keyIndex = new Map<string, TokenWatchlistItem[]>()
       const guidIndex = new Map<string, TokenWatchlistItem[]>()
       for (const item of allWatchlistItems) {
         if (item.key) {
-          keyIndex.set(item.key, item)
+          const arr = keyIndex.get(item.key)
+          if (arr) arr.push(item)
+          else keyIndex.set(item.key, [item])
         }
         for (const g of parseGuids(item.guids)) {
           const arr = guidIndex.get(g)
@@ -1940,10 +1942,32 @@ export class WatchlistWorkflowService {
       for (const approvalRecord of systemApprovalRecords) {
         try {
           // Prefer exact content key match
-          let matchingWatchlistItem: TokenWatchlistItem | undefined =
-            approvalRecord.contentKey
-              ? keyIndex.get(approvalRecord.contentKey)
-              : undefined
+          let matchingWatchlistItem: TokenWatchlistItem | undefined
+          if (approvalRecord.contentKey) {
+            const keyCandidates = keyIndex.get(approvalRecord.contentKey)
+            if (keyCandidates && keyCandidates.length === 1) {
+              matchingWatchlistItem = keyCandidates[0]
+            } else if (keyCandidates && keyCandidates.length > 1) {
+              // Disambiguate: attribute only if all candidates resolve to the same user
+              const userIds = new Set<number>()
+              for (const it of keyCandidates) {
+                const uid = normalizeUserId(it.user_id)
+                if (uid) userIds.add(uid)
+              }
+              if (userIds.size === 1) {
+                const onlyUserId = [...userIds][0]
+                matchingWatchlistItem = keyCandidates.find(
+                  (it) => normalizeUserId(it.user_id) === onlyUserId,
+                )
+              } else {
+                ambiguousRecords++
+                this.log.warn(
+                  `Ambiguous key match for approval record ${approvalRecord.id} ("${approvalRecord.contentTitle}"); multiple users share content key. Skipping attribution to avoid misattribution.`,
+                )
+                continue
+              }
+            }
+          }
 
           // Fallback to GUID-based candidates if no key match
           if (!matchingWatchlistItem) {
