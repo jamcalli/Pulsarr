@@ -230,7 +230,7 @@ export class SonarrManagerService {
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
       const qpSource = qualityProfile ?? instance.qualityProfile
       const targetQualityProfileId =
-        qpSource !== null ? parseQualityProfileId(qpSource) : undefined
+        qpSource == null ? undefined : parseQualityProfileId(qpSource)
 
       // Use provided tags or instance default tags
       const targetTags = Array.from(new Set(tags ?? instance.tags ?? []))
