@@ -27,6 +27,7 @@ import {
   extractTvdbId,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { parseQualityProfileId } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -895,7 +896,7 @@ export class ContentRouterService {
               const qpSource =
                 decision.qualityProfile ?? radarrInstance.qualityProfile
               const targetQualityProfileId =
-                qpSource == null ? undefined : this.toNum(qpSource)
+                qpSource == null ? undefined : parseQualityProfileId(qpSource)
               const targetTags = [
                 ...new Set(decision.tags ?? radarrInstance.tags ?? []),
               ]
@@ -951,7 +952,7 @@ export class ContentRouterService {
               const qpSource =
                 decision.qualityProfile ?? sonarrInstance.qualityProfile
               const targetQualityProfileId =
-                qpSource == null ? undefined : this.toNum(qpSource)
+                qpSource == null ? undefined : parseQualityProfileId(qpSource)
               const targetTags = [
                 ...new Set(decision.tags ?? sonarrInstance.tags ?? []),
               ]
@@ -2041,7 +2042,9 @@ export class ContentRouterService {
           const instance = instanceMap.get(instanceId)
           if (instance) {
             // Resolve actual routing values (same logic as actual routing)
-            const resolvedQualityProfile = this.toNum(instance.qualityProfile)
+            const resolvedQualityProfile = parseQualityProfileId(
+              instance.qualityProfile,
+            )
             const resolvedRootFolder = instance.rootFolder || undefined
             const resolvedTags = instance.tags || []
             const resolvedSearchOnAdd = instance.searchOnAdd ?? true
@@ -2069,7 +2072,9 @@ export class ContentRouterService {
           const instance = instanceMap.get(instanceId)
           if (instance) {
             // Resolve actual routing values (same logic as actual routing)
-            const resolvedQualityProfile = this.toNum(instance.qualityProfile)
+            const resolvedQualityProfile = parseQualityProfileId(
+              instance.qualityProfile,
+            )
             const resolvedRootFolder = instance.rootFolder || undefined
             const resolvedTags = instance.tags || []
             const resolvedSearchOnAdd = instance.searchOnAdd ?? true
@@ -2461,20 +2466,5 @@ export class ContentRouterService {
       )
       return undefined
     }
-  }
-
-  /**
-   * Helper function to parse quality profile to number (same logic as routing)
-   * Converts numeric strings to numbers, returns undefined for non-numeric strings
-   */
-  private toNum(v: unknown): number | undefined {
-    if (typeof v === 'number')
-      return Number.isInteger(v) && v > 0 ? v : undefined
-    if (typeof v === 'string') {
-      const s = v.trim()
-      const n = /^\d+$/.test(s) ? Number(s) : NaN
-      return Number.isInteger(n) && n > 0 ? n : undefined
-    }
-    return undefined
   }
 }

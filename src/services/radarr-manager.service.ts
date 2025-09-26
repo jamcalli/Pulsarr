@@ -7,6 +7,7 @@ import type {
 import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
 import { RadarrService } from '@services/radarr.service.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
   delayWithBackoffAndJitter,
   isSameServerEndpoint,
@@ -201,19 +202,9 @@ export class RadarrManagerService {
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
-      const toNum = (v: unknown): number | undefined => {
-        if (typeof v === 'number')
-          return Number.isInteger(v) && v > 0 ? v : undefined
-        if (typeof v === 'string') {
-          const s = v.trim()
-          const n = /^\d+$/.test(s) ? Number(s) : NaN
-          return Number.isInteger(n) && n > 0 ? n : undefined
-        }
-        return undefined
-      }
       const qpSource = qualityProfile ?? instance.qualityProfile
       const targetQualityProfileId =
-        qpSource == null ? undefined : toNum(qpSource)
+        qpSource == null ? undefined : parseQualityProfileId(qpSource)
 
       // Use provided tags or instance default tags
       const targetTags = [...new Set(tags ?? instance.tags ?? [])]
