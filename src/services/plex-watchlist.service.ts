@@ -201,9 +201,10 @@ export class PlexWatchlistService {
 
     // Send Discord notification (simplified without discord_id check)
     try {
-      // Runtime type guard to ensure valid Discord type
-      const discordType =
-        item.type === 'movie' || item.type === 'show' ? item.type : 'movie'
+      // Runtime type guard to ensure valid Discord type (case-insensitive)
+      const t = typeof item.type === 'string' ? item.type.toLowerCase() : ''
+      const discordType: 'movie' | 'show' =
+        t === 'movie' || t === 'show' ? (t as 'movie' | 'show') : 'movie'
 
       discordSent = await this.fastify.discord.sendMediaNotification({
         username,
@@ -235,7 +236,10 @@ export class PlexWatchlistService {
         appriseSent =
           await this.fastify.apprise.sendWatchlistAdditionNotification({
             title: item.title,
-            type: typeof item.type === 'string' ? item.type : 'unknown',
+            type:
+              typeof item.type === 'string'
+                ? item.type.toLowerCase()
+                : 'unknown',
             addedBy: {
               name: username,
             },
