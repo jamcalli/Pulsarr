@@ -27,6 +27,7 @@ import {
   extractTvdbId,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { parseQualityProfileId } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -890,23 +891,12 @@ export class ContentRouterService {
             )
             if (radarrInstance) {
               // Resolve values using the same logic as RadarrManagerService
-              const toNum = (v: unknown): number | undefined => {
-                if (typeof v === 'number')
-                  return Number.isInteger(v) && v > 0 ? v : undefined
-                if (typeof v === 'string') {
-                  const s = v.trim()
-                  const n = /^\d+$/.test(s) ? Number(s) : NaN
-                  return Number.isInteger(n) && n > 0 ? n : undefined
-                }
-                return undefined
-              }
-
               const targetRootFolder =
                 rootFolder || radarrInstance.rootFolder || undefined
               const qpSource =
                 decision.qualityProfile ?? radarrInstance.qualityProfile
               const targetQualityProfileId =
-                qpSource == null ? undefined : toNum(qpSource)
+                qpSource == null ? undefined : parseQualityProfileId(qpSource)
               const targetTags = [
                 ...new Set(decision.tags ?? radarrInstance.tags ?? []),
               ]
@@ -957,23 +947,12 @@ export class ContentRouterService {
             )
             if (sonarrInstance) {
               // Resolve values using the same logic as SonarrManagerService
-              const toNum = (v: unknown): number | undefined => {
-                if (typeof v === 'number')
-                  return Number.isInteger(v) && v > 0 ? v : undefined
-                if (typeof v === 'string') {
-                  const s = v.trim()
-                  const n = /^\d+$/.test(s) ? Number(s) : NaN
-                  return Number.isInteger(n) && n > 0 ? n : undefined
-                }
-                return undefined
-              }
-
               const targetRootFolder =
                 rootFolder || sonarrInstance.rootFolder || undefined
               const qpSource =
                 decision.qualityProfile ?? sonarrInstance.qualityProfile
               const targetQualityProfileId =
-                qpSource == null ? undefined : toNum(qpSource)
+                qpSource == null ? undefined : parseQualityProfileId(qpSource)
               const targetTags = [
                 ...new Set(decision.tags ?? sonarrInstance.tags ?? []),
               ]
@@ -2062,14 +2041,24 @@ export class ContentRouterService {
         for (const instanceId of instanceIds) {
           const instance = instanceMap.get(instanceId)
           if (instance) {
+            // Resolve actual routing values (same logic as actual routing)
+            const resolvedQualityProfile = parseQualityProfileId(
+              instance.qualityProfile,
+            )
+            const resolvedRootFolder = instance.rootFolder || undefined
+            const resolvedTags = instance.tags || []
+            const resolvedSearchOnAdd = instance.searchOnAdd ?? true
+            const resolvedMinimumAvailability =
+              instance.minimumAvailability || 'released'
+
             decisions.push({
               instanceId: instance.id,
-              qualityProfile: instance.qualityProfile || null,
-              rootFolder: instance.rootFolder || null,
-              tags: instance.tags || [],
+              qualityProfile: resolvedQualityProfile?.toString() || null,
+              rootFolder: resolvedRootFolder || null,
+              tags: resolvedTags,
               priority: 50, // Default priority
-              searchOnAdd: instance.searchOnAdd ?? null,
-              minimumAvailability: instance.minimumAvailability || undefined,
+              searchOnAdd: resolvedSearchOnAdd,
+              minimumAvailability: resolvedMinimumAvailability,
             })
           }
         }
@@ -2082,15 +2071,25 @@ export class ContentRouterService {
         for (const instanceId of instanceIds) {
           const instance = instanceMap.get(instanceId)
           if (instance) {
+            // Resolve actual routing values (same logic as actual routing)
+            const resolvedQualityProfile = parseQualityProfileId(
+              instance.qualityProfile,
+            )
+            const resolvedRootFolder = instance.rootFolder || undefined
+            const resolvedTags = instance.tags || []
+            const resolvedSearchOnAdd = instance.searchOnAdd ?? true
+            const resolvedSeasonMonitoring = instance.seasonMonitoring || 'all'
+            const resolvedSeriesType = instance.seriesType || 'standard'
+
             decisions.push({
               instanceId: instance.id,
-              qualityProfile: instance.qualityProfile || null,
-              rootFolder: instance.rootFolder || null,
-              tags: instance.tags || [],
+              qualityProfile: resolvedQualityProfile?.toString() || null,
+              rootFolder: resolvedRootFolder || null,
+              tags: resolvedTags,
               priority: 50, // Default priority
-              searchOnAdd: instance.searchOnAdd ?? null,
-              seasonMonitoring: instance.seasonMonitoring || null,
-              seriesType: instance.seriesType || null,
+              searchOnAdd: resolvedSearchOnAdd,
+              seasonMonitoring: resolvedSeasonMonitoring,
+              seriesType: resolvedSeriesType,
             })
           }
         }

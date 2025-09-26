@@ -7,6 +7,7 @@ import type {
 } from '@root/types/sonarr.types.js'
 import { SonarrService } from '@services/sonarr.service.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { parseQualityProfileId } from '@utils/quality-profile.js'
 import {
   delayWithBackoffAndJitter,
   isSameServerEndpoint,
@@ -227,19 +228,9 @@ export class SonarrManagerService {
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
       const targetRootFolder = rootFolder || instance.rootFolder || undefined
-      const toNum = (v: unknown): number | undefined => {
-        if (typeof v === 'number')
-          return Number.isInteger(v) && v > 0 ? v : undefined
-        if (typeof v === 'string') {
-          const s = v.trim()
-          const n = /^\d+$/.test(s) ? Number(s) : NaN
-          return Number.isInteger(n) && n > 0 ? n : undefined
-        }
-        return undefined
-      }
       const qpSource = qualityProfile ?? instance.qualityProfile
       const targetQualityProfileId =
-        qpSource !== null ? toNum(qpSource) : undefined
+        qpSource == null ? undefined : parseQualityProfileId(qpSource)
 
       // Use provided tags or instance default tags
       const targetTags = Array.from(new Set(tags ?? instance.tags ?? []))
