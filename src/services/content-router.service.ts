@@ -890,23 +890,12 @@ export class ContentRouterService {
             )
             if (radarrInstance) {
               // Resolve values using the same logic as RadarrManagerService
-              const toNum = (v: unknown): number | undefined => {
-                if (typeof v === 'number')
-                  return Number.isInteger(v) && v > 0 ? v : undefined
-                if (typeof v === 'string') {
-                  const s = v.trim()
-                  const n = /^\d+$/.test(s) ? Number(s) : NaN
-                  return Number.isInteger(n) && n > 0 ? n : undefined
-                }
-                return undefined
-              }
-
               const targetRootFolder =
                 rootFolder || radarrInstance.rootFolder || undefined
               const qpSource =
                 decision.qualityProfile ?? radarrInstance.qualityProfile
               const targetQualityProfileId =
-                qpSource == null ? undefined : toNum(qpSource)
+                qpSource == null ? undefined : this.toNum(qpSource)
               const targetTags = [
                 ...new Set(decision.tags ?? radarrInstance.tags ?? []),
               ]
@@ -957,23 +946,12 @@ export class ContentRouterService {
             )
             if (sonarrInstance) {
               // Resolve values using the same logic as SonarrManagerService
-              const toNum = (v: unknown): number | undefined => {
-                if (typeof v === 'number')
-                  return Number.isInteger(v) && v > 0 ? v : undefined
-                if (typeof v === 'string') {
-                  const s = v.trim()
-                  const n = /^\d+$/.test(s) ? Number(s) : NaN
-                  return Number.isInteger(n) && n > 0 ? n : undefined
-                }
-                return undefined
-              }
-
               const targetRootFolder =
                 rootFolder || sonarrInstance.rootFolder || undefined
               const qpSource =
                 decision.qualityProfile ?? sonarrInstance.qualityProfile
               const targetQualityProfileId =
-                qpSource == null ? undefined : toNum(qpSource)
+                qpSource == null ? undefined : this.toNum(qpSource)
               const targetTags = [
                 ...new Set(decision.tags ?? sonarrInstance.tags ?? []),
               ]
@@ -2062,20 +2040,8 @@ export class ContentRouterService {
         for (const instanceId of instanceIds) {
           const instance = instanceMap.get(instanceId)
           if (instance) {
-            // Helper function to parse quality profile to number (same logic as routing)
-            const toNum = (v: unknown): number | undefined => {
-              if (typeof v === 'number')
-                return Number.isInteger(v) && v > 0 ? v : undefined
-              if (typeof v === 'string') {
-                const s = v.trim()
-                const n = /^\d+$/.test(s) ? Number(s) : NaN
-                return Number.isInteger(n) && n > 0 ? n : undefined
-              }
-              return undefined
-            }
-
             // Resolve actual routing values (same logic as actual routing)
-            const resolvedQualityProfile = toNum(instance.qualityProfile)
+            const resolvedQualityProfile = this.toNum(instance.qualityProfile)
             const resolvedRootFolder = instance.rootFolder || undefined
             const resolvedTags = instance.tags || []
             const resolvedSearchOnAdd = instance.searchOnAdd ?? true
@@ -2102,20 +2068,8 @@ export class ContentRouterService {
         for (const instanceId of instanceIds) {
           const instance = instanceMap.get(instanceId)
           if (instance) {
-            // Helper function to parse quality profile to number (same logic as routing)
-            const toNum = (v: unknown): number | undefined => {
-              if (typeof v === 'number')
-                return Number.isInteger(v) && v > 0 ? v : undefined
-              if (typeof v === 'string') {
-                const s = v.trim()
-                const n = /^\d+$/.test(s) ? Number(s) : NaN
-                return Number.isInteger(n) && n > 0 ? n : undefined
-              }
-              return undefined
-            }
-
             // Resolve actual routing values (same logic as actual routing)
-            const resolvedQualityProfile = toNum(instance.qualityProfile)
+            const resolvedQualityProfile = this.toNum(instance.qualityProfile)
             const resolvedRootFolder = instance.rootFolder || undefined
             const resolvedTags = instance.tags || []
             const resolvedSearchOnAdd = instance.searchOnAdd ?? true
@@ -2507,5 +2461,20 @@ export class ContentRouterService {
       )
       return undefined
     }
+  }
+
+  /**
+   * Helper function to parse quality profile to number (same logic as routing)
+   * Converts numeric strings to numbers, returns undefined for non-numeric strings
+   */
+  private toNum(v: unknown): number | undefined {
+    if (typeof v === 'number')
+      return Number.isInteger(v) && v > 0 ? v : undefined
+    if (typeof v === 'string') {
+      const s = v.trim()
+      const n = /^\d+$/.test(s) ? Number(s) : NaN
+      return Number.isInteger(n) && n > 0 ? n : undefined
+    }
+    return undefined
   }
 }
