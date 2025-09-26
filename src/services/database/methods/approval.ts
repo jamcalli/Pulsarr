@@ -539,10 +539,10 @@ export async function getApprovalRequestsByCriteria(
 /**
  * Update the user attribution for an approval request (used for reconciliation).
  *
- * Sets the request's `user_id`, `approved_by`, and `approval_notes`, and updates the `updated_at` timestamp.
+ * Sets the request's `user_id`, clears `approved_by` (null for auto-approved attribution), and sets `approval_notes`, updating `updated_at`.
  *
  * @param id - ID of the approval request to update
- * @param userId - New user ID to attribute the request to (also set as `approved_by`)
+ * @param userId - New user ID to attribute the request to
  * @param approvalNotes - Notes explaining the attribution change
  * @returns The updated ApprovalRequest including the user's name, or `null` if no matching request was found
  */
