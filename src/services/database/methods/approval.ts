@@ -556,7 +556,7 @@ export async function updateApprovalRequestAttribution(
     .where('id', id)
     .update({
       user_id: userId,
-      approved_by: userId,
+      approved_by: null, // Attribution updates for auto-approved items don't need an admin approver
       approval_notes: approvalNotes,
       updated_at: this.timestamp,
     })
