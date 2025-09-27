@@ -136,11 +136,17 @@
         "nvm",
         "nodenv",
         "asdf",
-        "node-version"
+        "node-version",
+        "npm"
       ],
       "matchDatasources": [
         "docker",
-        "node-version"
+        "node-version",
+        "npm"
+      ],
+      "matchDepNames": [
+        "node",
+        "@types/node"
       ],
       "matchPackageNames": [
         "node"
