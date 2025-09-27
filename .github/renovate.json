@@ -9,7 +9,8 @@
   ],
   "timezone": "UTC",
   "schedule": [
-    "before 6am on monday"
+    "before 6am on monday",
+    "before 6am on thursday"
   ],
   "prConcurrentLimit": 5,
   "prHourlyLimit": 10,
@@ -265,8 +266,48 @@
       "prPriority": 20
     },
     {
-      "description": "Auto-merge patch updates for grouped dependencies",
-      "groupName": ["Radix UI", "TypeScript types", "Database", "React", "Tailwind CSS", "Fastify ecosystem"],
+      "description": "Auto-merge patch updates for Radix UI",
+      "groupName": "Radix UI",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge patch updates for TypeScript types",
+      "groupName": "TypeScript types",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge patch updates for Database",
+      "groupName": "Database",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge patch updates for React",
+      "groupName": "React",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge patch updates for Tailwind CSS",
+      "groupName": "Tailwind CSS",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge patch updates for Fastify ecosystem",
+      "groupName": "Fastify ecosystem",
       "matchUpdateTypes": ["patch"],
       "automerge": true,
       "automergeType": "pr",
@@ -283,7 +324,7 @@
     {
       "description": "Group all other dependencies to reduce PR count",
       "groupName": "All other dependencies",
-      "matchPackageNames": ["*"],
+      "matchPackagePatterns": [".*"],
       "excludePackageNames": [
         "/^@radix-ui//", "/^@fastify//", "/^fastify/", "/^@types//",
         "vite", "@vitejs/plugin-react", "@fastify/vite", "@fastify/react",
