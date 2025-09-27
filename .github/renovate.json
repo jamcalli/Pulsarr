@@ -189,7 +189,9 @@
       "matchPackageNames": [
         "/^(?:ghcr\\.io\\/)?lakker\\/pulsarr$/"
       ],
-      "matchDatasources": ["docker"],
+      "matchDatasources": [
+        "docker"
+      ],
       "enabled": false
     },
     {
@@ -271,7 +273,9 @@
       "matchPackageNames": [
         "/^@radix-ui//"
       ],
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true,
       "automergeType": "pr",
       "minimumReleaseAge": "2 days"
@@ -280,12 +284,12 @@
       "description": "Auto-merge patch updates for TypeScript types",
       "groupName": "TypeScript types",
       "matchPackageNames": [
-        "/^@types//"
+        "/^@types//",
+        "!@types/node"
       ],
-      "excludePackageNames": [
-        "@types/node"
+      "matchUpdateTypes": [
+        "patch"
       ],
-      "matchUpdateTypes": ["patch"],
       "automerge": true,
       "automergeType": "pr",
       "minimumReleaseAge": "2 days"
@@ -300,7 +304,9 @@
         "@types/better-sqlite3",
         "@types/pg"
       ],
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true,
       "automergeType": "pr",
       "minimumReleaseAge": "2 days"
@@ -318,7 +324,9 @@
         "@types/react",
         "@types/react-dom"
       ],
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true,
       "automergeType": "pr",
       "minimumReleaseAge": "2 days"
@@ -335,7 +343,9 @@
         "class-variance-authority",
         "tw-animate-css"
       ],
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true,
       "automergeType": "pr",
       "minimumReleaseAge": "2 days"
@@ -351,15 +361,22 @@
         "!@fastify/vite",
         "!@fastify/react"
       ],
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true,
       "automergeType": "pr",
       "minimumReleaseAge": "2 days"
     },
     {
       "description": "Auto-merge minor and patch updates for dev dependencies",
-      "matchDepTypes": ["devDependencies"],
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "automerge": true,
       "automergeType": "pr",
       "minimumReleaseAge": "3 days"
@@ -367,23 +384,53 @@
     {
       "description": "Group all other dependencies to reduce PR count",
       "groupName": "All other dependencies",
-      "matchPackagePatterns": [".*"],
-      "matchDepTypes": ["dependencies"],
-      "excludePackageNames": [
-        "/^@radix-ui//", "/^@fastify//", "/^fastify/", "/^@types//",
-        "vite", "@vitejs/plugin-react", "@fastify/vite", "@fastify/react",
-        "typescript", "tsc-alias", "tsx", "@biomejs/biome",
-        "knex", "better-sqlite3", "pg", "@types/better-sqlite3", "@types/pg",
-        "react", "react-dom", "react-hook-form", "react-router-dom",
-        "@hookform/resolvers", "zod", "@types/react", "@types/react-dom",
-        "tailwindcss", "@tailwindcss/postcss", "postcss", "autoprefixer",
-        "tailwind-merge", "class-variance-authority", "tw-animate-css",
-        "node", "pino", "recharts"
+      "matchDepTypes": [
+        "dependencies"
       ],
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true,
       "automergeType": "pr",
-      "minimumReleaseAge": "3 days"
+      "minimumReleaseAge": "3 days",
+      "matchPackageNames": [
+        "/.*/",
+        "!/^@radix-ui//",
+        "!/^@fastify//",
+        "!/^fastify/",
+        "!/^@types//",
+        "!vite",
+        "!@vitejs/plugin-react",
+        "!@fastify/vite",
+        "!@fastify/react",
+        "!typescript",
+        "!tsc-alias",
+        "!tsx",
+        "!@biomejs/biome",
+        "!knex",
+        "!better-sqlite3",
+        "!pg",
+        "!@types/better-sqlite3",
+        "!@types/pg",
+        "!react",
+        "!react-dom",
+        "!react-hook-form",
+        "!react-router-dom",
+        "!@hookform/resolvers",
+        "!zod",
+        "!@types/react",
+        "!@types/react-dom",
+        "!tailwindcss",
+        "!@tailwindcss/postcss",
+        "!postcss",
+        "!autoprefixer",
+        "!tailwind-merge",
+        "!class-variance-authority",
+        "!tw-animate-css",
+        "!node",
+        "!pino",
+        "!recharts"
+      ]
     }
   ],
   "vulnerabilityAlerts": {
