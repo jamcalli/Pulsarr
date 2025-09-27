@@ -11,8 +11,8 @@
   "schedule": [
     "before 6am on monday"
   ],
-  "prConcurrentLimit": 3,
-  "prHourlyLimit": 2,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 10,
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
@@ -112,13 +112,6 @@
         "class-variance-authority",
         "tw-animate-css"
       ]
-    },
-    {
-      "description": "Default: manual review for patch updates (overridden by specific manager rules)",
-      "matchUpdateTypes": [
-        "patch"
-      ],
-      "automerge": false
     },
     {
       "description": "Separate major updates for manual review",
@@ -264,6 +257,42 @@
         "enabled": true
       },
       "prPriority": 20
+    },
+    {
+      "description": "Auto-merge patch updates for grouped dependencies",
+      "groupName": ["Radix UI", "TypeScript types", "Database", "React", "Tailwind CSS", "Fastify ecosystem"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
+      "description": "Auto-merge minor and patch updates for dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Group all other dependencies to reduce PR count",
+      "groupName": "All other dependencies",
+      "matchPackageNames": ["*"],
+      "excludePackageNames": [
+        "/^@radix-ui//", "/^@fastify//", "/^fastify/", "/^@types//",
+        "vite", "@vitejs/plugin-react", "@fastify/vite", "@fastify/react",
+        "typescript", "tsc-alias", "tsx", "@biomejs/biome",
+        "knex", "better-sqlite3", "pg", "@types/better-sqlite3", "@types/pg",
+        "react", "react-dom", "react-hook-form", "react-router-dom",
+        "@hookform/resolvers", "zod", "@types/react", "@types/react-dom",
+        "tailwindcss", "@tailwindcss/postcss", "postcss", "autoprefixer",
+        "tailwind-merge", "class-variance-authority", "tw-animate-css",
+        "node", "pino", "recharts"
+      ],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "3 days"
     }
   ],
   "vulnerabilityAlerts": {
