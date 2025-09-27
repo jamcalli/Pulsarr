@@ -5,7 +5,7 @@
   "main": "build/server.js",
   "type": "module",
   "engines": {
-    "node": ">=22.19.0 <23"
+    "node": ">=22.20.0 <23"
   },
   "scripts": {
     "clean:client": "rm -rf dist/client",
