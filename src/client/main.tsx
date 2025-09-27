@@ -2,22 +2,9 @@ import './styles/globals.css'
 import './styles/fonts.css'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
-import PulsarrIcon from '@/assets/images/pulsarr.svg'
 import { SettingsProvider } from '@/components/settings-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { router } from '@/router/router'
-
-const setFavicon = () => {
-  const link =
-    document.querySelector<HTMLLinkElement>("link[rel*='icon']") ||
-    document.createElement('link')
-  link.type = 'image/svg+xml'
-  link.rel = 'icon'
-  link.href = PulsarrIcon
-  document.head.appendChild(link)
-}
-
-setFavicon()
 
 /**
  * Renders the application's routing provider to enable client-side navigation.

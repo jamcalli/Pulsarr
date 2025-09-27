@@ -5,7 +5,7 @@
   "main": "build/server.js",
   "type": "module",
   "engines": {
-    "node": ">=22.19.0 <23"
+    "node": ">=22.20.0 <23"
   },
   "scripts": {
     "clean:client": "rm -rf dist/client",
@@ -143,8 +143,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
-    "@commitlint/cli": "^19.8.0",
-    "@commitlint/config-conventional": "^19.8.0",
+    "@commitlint/cli": "^20.0.0",
+    "@commitlint/config-conventional": "^20.0.0",
     "@tailwindcss/postcss": "^4.1.10",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.15.3",
