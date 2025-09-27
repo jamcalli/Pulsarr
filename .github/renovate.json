@@ -365,6 +365,7 @@
       "description": "Group all other dependencies to reduce PR count",
       "groupName": "All other dependencies",
       "matchPackagePatterns": [".*"],
+      "excludeDepTypes": ["devDependencies"],
       "excludePackageNames": [
         "/^@radix-ui//", "/^@fastify//", "/^fastify/", "/^@types//",
         "vite", "@vitejs/plugin-react", "@fastify/vite", "@fastify/react",
