@@ -282,6 +282,9 @@
       "matchPackageNames": [
         "/^@types//"
       ],
+      "excludePackageNames": [
+        "@types/node"
+      ],
       "matchUpdateTypes": ["patch"],
       "automerge": true,
       "automergeType": "pr",
