@@ -2,10 +2,10 @@ import { ConfigSchema } from '@root/schemas/config/config.schema'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { api } from '@/lib/api'
 import { useApprovalConfiguration } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { api } from '@/lib/api'
 
 // Define the form data type that includes both config and schedule fields
 const approvalConfigurationSchema = z.object({

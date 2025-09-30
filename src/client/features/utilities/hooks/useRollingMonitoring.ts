@@ -109,7 +109,9 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
     setLoading((prev) => ({ ...prev, fetchingInactive: true }))
     try {
       const response = await fetch(
-        api(`/v1/session-monitoring/rolling-monitored/inactive?inactivityDays=${inactivityDays}`),
+        api(
+          `/v1/session-monitoring/rolling-monitored/inactive?inactivityDays=${inactivityDays}`,
+        ),
       )
       if (!response.ok) {
         throw new Error('Failed to fetch inactive shows')
@@ -174,7 +176,9 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
       setLoading((prev) => ({ ...prev, deleting: true }))
 
       try {
-        const url = api(`/v1/session-monitoring/rolling-monitored/${id}${shouldReset ? '?reset=true' : '?reset=false'}`)
+        const url = api(
+          `/v1/session-monitoring/rolling-monitored/${id}${shouldReset ? '?reset=true' : '?reset=false'}`,
+        )
         const response = await fetch(url, { method: 'DELETE' })
         if (!response.ok) {
           throw new Error('Failed to delete show')

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,6 +11,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useSyncProgress } from '@/features/sonarr/hooks/instance/useSyncProgress'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { api } from '@/lib/api'
 
 interface SonarrSyncModalProps {
   open: boolean
