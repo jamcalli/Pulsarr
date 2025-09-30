@@ -17,6 +17,7 @@ import BulkApprovalModal from '@/features/approvals/components/bulk-approval-mod
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 type BulkActionStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -149,7 +150,7 @@ export default function ApprovalsPage() {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 30000)
     try {
-      const response = await fetch('/v1/approval/requests/bulk/approve', {
+      const response = await fetch(api('/v1/approval/requests/bulk/approve'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -184,7 +185,7 @@ export default function ApprovalsPage() {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 30000)
     try {
-      const response = await fetch('/v1/approval/requests/bulk/reject', {
+      const response = await fetch(api('/v1/approval/requests/bulk/reject'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -219,7 +220,7 @@ export default function ApprovalsPage() {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 30000)
     try {
-      const response = await fetch('/v1/approval/requests/bulk/delete', {
+      const response = await fetch(api('/v1/approval/requests/bulk/delete'), {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

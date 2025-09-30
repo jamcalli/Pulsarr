@@ -21,6 +21,7 @@ import {
 import { z } from 'zod'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { api } from '@/lib/api'
 
 // Use the existing schema type for the return type
 export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>
@@ -239,7 +240,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
         // Execute fetch
         const [response] = await Promise.all([
-          fetch(url, fetchOptions),
+          fetch(api(url), fetchOptions),
           minimumLoadingTime,
         ])
 
@@ -409,7 +410,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
             : Promise.resolve()
 
           // Fetch data
-          const responsePromise = fetch('/v1/scheduler/schedules')
+          const responsePromise = fetch(api('/v1/scheduler/schedules'))
 
           // Wait for both the response and (if initial load) the minimum time
           const [response] = await Promise.all([
