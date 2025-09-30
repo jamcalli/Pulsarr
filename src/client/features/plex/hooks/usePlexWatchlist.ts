@@ -2,6 +2,7 @@ import type { OthersWatchlistSuccess } from '@root/schemas/plex/others-watchlist
 import type { SelfWatchlistSuccess } from '@root/schemas/plex/self-watchlist-token.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -40,8 +41,8 @@ export function usePlexWatchlist() {
       )
 
       const [selfResponse, othersResponse] = await Promise.all([
-        fetch('/v1/plex/self-watchlist-token'),
-        fetch('/v1/plex/others-watchlist-token'),
+        fetch(api('/v1/plex/self-watchlist-token')),
+        fetch(api('/v1/plex/others-watchlist-token')),
         minimumLoadingTime,
       ])
 

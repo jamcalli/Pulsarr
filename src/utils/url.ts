@@ -3,6 +3,30 @@
  */
 
 /**
+ * Normalize a basePath for use in route registration and URL construction.
+ *
+ * Ensures the basePath:
+ * - Returns '/' for root paths
+ * - Starts with '/' and doesn't end with '/' for non-root paths
+ * - Strips leading and trailing slashes from the input before reconstructing
+ *
+ * @param basePath - The raw basePath from configuration (e.g., '/', '/pulsarr', 'pulsarr/')
+ * @returns Normalized basePath ('/' or '/something')
+ *
+ * @example
+ * ```typescript
+ * normalizeBasePath('/') // '/'
+ * normalizeBasePath('pulsarr') // '/pulsarr'
+ * normalizeBasePath('/pulsarr/') // '/pulsarr'
+ * normalizeBasePath('//pulsarr//') // '/pulsarr'
+ * ```
+ */
+export function normalizeBasePath(basePath?: string): string {
+  if (!basePath || basePath === '/') return '/'
+  return `/${basePath.replace(/^\/+|\/+$/g, '')}`
+}
+
+/**
  * Waits for an exponentially increasing delay (capped) plus randomized jitter before resolving.
  *
  * The delay is min(baseDelayMs * 2^attempt, maxDelayMs) with up to 10% additional random jitter.

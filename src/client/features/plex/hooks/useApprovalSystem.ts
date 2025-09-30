@@ -6,6 +6,7 @@ import {
 } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { api } from '@/lib/api'
 
 /**
  * Combines approval configuration form management with scheduling controls in a single React hook.
@@ -57,7 +58,7 @@ export function useApprovalSystem() {
         const cronExpression = `0 */${data.scheduleInterval} * * *`
 
         const response = await fetch(
-          '/v1/scheduler/schedules/approval-maintenance',
+          api('/v1/scheduler/schedules/approval-maintenance'),
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },

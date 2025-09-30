@@ -1,6 +1,7 @@
 import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 
 /**
  * React hook for managing the state and data fetching of a user's watchlist in a UI component.
@@ -23,7 +24,7 @@ export function useUserWatchlist() {
     setError(null)
 
     try {
-      const response = await fetch(`/v1/users/${userId}/watchlist`)
+      const response = await fetch(api(`/v1/users/${userId}/watchlist`))
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.message || 'Failed to fetch user watchlist')

@@ -81,6 +81,7 @@ export type PublicContentKeyMap = Record<
 export interface Config {
   id: number
   // System Config
+  basePath: string
   baseUrl: string
   port: number
   // Database Config

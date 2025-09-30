@@ -9,6 +9,7 @@ import type { z } from 'zod'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { plexUserSchema } from '@/features/plex/store/schemas'
+import { api } from '@/lib/api'
 
 export type UserWatchlistInfo = UserWithCount
 
@@ -108,7 +109,7 @@ export const useConfigStore = create<ConfigState>()(
 
         fetchConfig: async () => {
           try {
-            const response = await fetch('/v1/config/config')
+            const response = await fetch(api('/v1/config/config'))
             const data: ConfigResponse = await response.json()
             if (data.success) {
               set((state) => ({
@@ -129,7 +130,7 @@ export const useConfigStore = create<ConfigState>()(
 
         refreshRssFeeds: async () => {
           try {
-            const response = await fetch('/v1/plex/generate-rss-feeds')
+            const response = await fetch(api('/v1/plex/generate-rss-feeds'))
             const result = await response.json()
 
             if (response.ok && result.self && result.friends) {
@@ -147,7 +148,7 @@ export const useConfigStore = create<ConfigState>()(
         updateConfig: async (updates: Partial<Config>) => {
           set({ loading: true })
           try {
-            const response = await fetch('/v1/config/config', {
+            const response = await fetch(api('/v1/config/config'), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updates),
@@ -181,7 +182,9 @@ export const useConfigStore = create<ConfigState>()(
 
           lastUserDataFetch = now
           try {
-            const response = await fetch('/v1/users/users/list/with-counts')
+            const response = await fetch(
+              api('/v1/users/users/list/with-counts'),
+            )
             const data: UserListResponse = await response.json()
 
             if (data.success && data.users) {
@@ -237,17 +240,17 @@ export const useConfigStore = create<ConfigState>()(
             const [quotaConfigsResult, movieStatusResult, showStatusResult] =
               await Promise.allSettled([
                 // 1. Fetch all quota configurations
-                fetch('/v1/quota/users'),
+                fetch(api('/v1/quota/users')),
 
                 // 2. Fetch all movie quota statuses
-                fetch('/v1/quota/users/status/bulk', {
+                fetch(api('/v1/quota/users/status/bulk'), {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ userIds, contentType: 'movie' }),
                 }),
 
                 // 3. Fetch all show quota statuses
-                fetch('/v1/quota/users/status/bulk', {
+                fetch(api('/v1/quota/users/status/bulk'), {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ userIds, contentType: 'show' }),
@@ -433,7 +436,7 @@ export const useConfigStore = create<ConfigState>()(
           updates: z.input<typeof plexUserSchema>,
         ) => {
           try {
-            const response = await fetch(`/v1/users/users/${userId}`, {
+            const response = await fetch(api(`/v1/users/users/${userId}`), {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -499,7 +502,7 @@ export const useConfigStore = create<ConfigState>()(
           set({ currentUserLoading: true, currentUserError: null })
 
           try {
-            const response = await fetch('/v1/users/me', {
+            const response = await fetch(api('/v1/users/me'), {
               credentials: 'include',
             })
 
