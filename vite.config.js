@@ -17,6 +17,18 @@ export default {
     outDir: resolve(import.meta.dirname, 'dist/client'),
     emptyOutDir: false,
     assetsInclude: ['**/*.woff2', '**/*.woff'],
+    experimental: {
+      renderBuiltUrl(filename, { hostType }) {
+        // For JS and CSS, use runtime base path resolution
+        if (hostType === 'js' || hostType === 'css') {
+          return {
+            runtime: `window.__assetBase(${JSON.stringify(filename)})`,
+          }
+        }
+        // For other assets (images, fonts), use relative paths
+        return { relative: true }
+      },
+    },
   },
   resolve: {
     alias: {

@@ -69,6 +69,10 @@ const schema = {
   type: 'object',
   required: ['port'],
   properties: {
+    basePath: {
+      type: 'string',
+      default: '/',
+    },
     baseUrl: {
       type: 'string',
       default: 'http://localhost',

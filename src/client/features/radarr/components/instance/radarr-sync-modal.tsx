@@ -11,6 +11,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useRadarrSyncProgress } from '@/features/radarr/hooks/instance/useRadarrSyncProgress'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import { api } from '@/lib/api'
 
 interface RadarrSyncModalProps {
   open: boolean
@@ -136,7 +137,7 @@ export function RadarrSyncModal({
           const instanceToSync = syncedInstances[currentInstanceIndex]
 
           const response = await fetch(
-            `/v1/sync/instance/${instanceToSync}?type=radarr`,
+            api(`/v1/sync/instance/${instanceToSync}?type=radarr`),
             {
               method: 'POST',
             },

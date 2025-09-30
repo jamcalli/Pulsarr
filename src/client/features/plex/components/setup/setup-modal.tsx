@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { useWatchlistProgress } from '@/hooks/useProgress'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 interface SetupModalProps {
@@ -102,7 +103,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         setTimeout(resolve, 500),
       )
       const [plexPingResponse] = await Promise.all([
-        fetch('/v1/plex/ping', {
+        fetch(api('/v1/plex/ping'), {
           method: 'GET',
         }),
         verifyMinLoadingTime,
@@ -121,7 +122,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         setTimeout(resolve, 500),
       )
       const [watchlistResponse] = await Promise.all([
-        fetch('/v1/plex/self-watchlist-token', {
+        fetch(api('/v1/plex/self-watchlist-token'), {
           method: 'GET',
           headers: { Accept: 'application/json' },
         }),
@@ -140,7 +141,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         setTimeout(resolve, 500),
       )
       const [othersResponse] = await Promise.all([
-        fetch('/v1/plex/others-watchlist-token', {
+        fetch(api('/v1/plex/others-watchlist-token'), {
           method: 'GET',
           headers: { Accept: 'application/json' },
         }),

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useWatchlistStatus } from '@/hooks/workflow/useWatchlistStatus'
+import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -75,7 +76,7 @@ export function WatchlistStatusBadge() {
       const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 500))
       
       if (status === 'running') {
-        const response = await fetch('/v1/watchlist-workflow/stop', { method: 'POST' })
+        const response = await fetch(api('/v1/watchlist-workflow/stop'), { method: 'POST' })
         await minimumLoadingTime
         
         if (!response.ok) {
@@ -92,7 +93,7 @@ export function WatchlistStatusBadge() {
           body: autoStart ? JSON.stringify({ autoStart: true }) : JSON.stringify({ autoStart: false })
         }
         
-        const response = await fetch('/v1/watchlist-workflow/start', requestOptions)
+        const response = await fetch(api('/v1/watchlist-workflow/start'), requestOptions)
         await minimumLoadingTime
         
         if (!response.ok) {

@@ -3,6 +3,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { api } from '@/lib/api'
 
 /**
  * React hook for managing the scheduling, configuration, and execution of approval and quota maintenance jobs.
@@ -185,7 +186,7 @@ export function useApprovalScheduler() {
       setIsSavingSchedule(true)
       try {
         const response = await fetch(
-          `/v1/scheduler/schedules/${scheduleName}`,
+          api(`/v1/scheduler/schedules/${scheduleName}`),
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },

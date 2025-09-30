@@ -6,6 +6,7 @@ import type {
 } from '@root/schemas/approval/approval.schema'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { api } from '@/lib/api'
 
 export interface ApprovalsState {
   // Data
@@ -147,7 +148,9 @@ export const useApprovalsStore = create<ApprovalsState>()(
           }
         }
 
-        const response = await fetch(`/v1/approval/requests?${queryParams}`)
+        const response = await fetch(
+          api(`/v1/approval/requests?${queryParams}`),
+        )
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
@@ -192,7 +195,7 @@ export const useApprovalsStore = create<ApprovalsState>()(
       updates: UpdateApprovalRequest,
     ) => {
       try {
-        const response = await fetch(`/v1/approval/requests/${id}`, {
+        const response = await fetch(api(`/v1/approval/requests/${id}`), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
@@ -230,7 +233,7 @@ export const useApprovalsStore = create<ApprovalsState>()(
 
     deleteApprovalRequest: async (id: number) => {
       try {
-        const response = await fetch(`/v1/approval/requests/${id}`, {
+        const response = await fetch(api(`/v1/approval/requests/${id}`), {
           method: 'DELETE',
         })
 
@@ -259,11 +262,14 @@ export const useApprovalsStore = create<ApprovalsState>()(
 
     approveRequest: async (id: number, notes?: string) => {
       try {
-        const response = await fetch(`/v1/approval/requests/${id}/approve`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notes }),
-        })
+        const response = await fetch(
+          api(`/v1/approval/requests/${id}/approve`),
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes }),
+          },
+        )
 
         if (!response.ok) {
           const errorData = await response.json()
@@ -280,11 +286,14 @@ export const useApprovalsStore = create<ApprovalsState>()(
 
     rejectRequest: async (id: number, reason?: string) => {
       try {
-        const response = await fetch(`/v1/approval/requests/${id}/reject`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason }),
-        })
+        const response = await fetch(
+          api(`/v1/approval/requests/${id}/reject`),
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason }),
+          },
+        )
 
         if (!response.ok) {
           const errorData = await response.json()
@@ -303,7 +312,7 @@ export const useApprovalsStore = create<ApprovalsState>()(
       try {
         set({ statsLoading: true })
 
-        const response = await fetch('/v1/approval/stats')
+        const response = await fetch(api('/v1/approval/stats'))
 
         if (!response.ok) {
           throw new Error(
