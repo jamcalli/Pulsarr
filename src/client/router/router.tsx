@@ -57,12 +57,6 @@ const NotFoundPage = lazy(() => import('@/features/not-found'))
 
 const LoadingFallback = () => null
 
-declare global {
-  interface Window {
-    __BASE_PATH__: string
-  }
-}
-
 /**
  * Get the configured base path for the router
  * Uses runtime configuration set by the server
@@ -70,8 +64,13 @@ declare global {
 function getBasename(): string {
   const basePath = window.__BASE_PATH__ || '/'
 
-  // Return empty string for root, otherwise return the base path
-  return basePath === '/' ? '' : basePath
+  // Return empty string for root
+  if (basePath === '/') {
+    return ''
+  }
+
+  // Remove trailing slash if present (React Router basename must not end with /)
+  return basePath.endsWith('/') ? basePath.slice(0, -1) : basePath
 }
 
 export const router = createBrowserRouter(

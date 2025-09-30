@@ -1,9 +1,3 @@
-declare global {
-  interface Window {
-    __BASE_PATH__: string
-  }
-}
-
 /**
  * Get the appropriate API path with base path support
  * Prepends the configured base path to API routes
