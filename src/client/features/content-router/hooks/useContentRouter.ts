@@ -42,7 +42,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     setError(null)
     try {
       const response = await fetch(
-        `/v1/content-router/rules/target/${targetType}`,
+        api(`/v1/content-router/rules/target/${targetType}`),
       )
 
       if (!response.ok) {

@@ -2,10 +2,10 @@ import { AlertCircle } from 'lucide-react'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { api } from '@/lib/api'
 
 interface TagOption {
   label: string
