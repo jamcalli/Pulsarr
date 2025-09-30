@@ -6,6 +6,7 @@ import type { ErrorResponse } from '@root/schemas/common/error.schema.js'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { hasValidPlexTokens } from '@utils/plex.js'
 import { createTemporaryAdminSession } from '@utils/session.js'
+import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 
 export const options = {
@@ -324,12 +325,8 @@ export default async function serviceApp(
       contentType.includes('text/html') &&
       typeof payload === 'string'
     ) {
-      // Get base path from env variable
-      const basePath = fastify.config.basePath || '/'
-
-      // Normalize base path (ensure it starts with / and doesn't end with /)
-      const normalizedBasePath =
-        basePath === '/' ? '/' : `/${basePath.replace(/^\/+|\/+$/g, '')}`
+      // Get normalized base path from config
+      const normalizedBasePath = normalizeBasePath(fastify.config.basePath)
 
       // Inject base path and asset helper as inline script before any other scripts
       const injectedScript = `<script>
