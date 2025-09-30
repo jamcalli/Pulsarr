@@ -32,7 +32,16 @@ async function init() {
     disableRequestLogging: !enableRequestLogging,
   })
 
-  await app.register(fp(serviceApp))
+  // Register the app with optional base path prefix
+  const basePath = process.env.basePath || '/'
+  if (basePath !== '/') {
+    // Register app under a prefix
+    await app.register(fp(serviceApp), { prefix: basePath })
+  } else {
+    // Register app at root
+    await app.register(fp(serviceApp))
+  }
+
   await app.ready()
 
   const configLogLevel = app.config.logLevel

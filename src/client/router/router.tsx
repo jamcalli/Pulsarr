@@ -57,30 +57,21 @@ const NotFoundPage = lazy(() => import('@/features/not-found'))
 
 const LoadingFallback = () => null
 
-// Get the base path from the URL - everything before the first known route
-function getBasename(): string {
-  const path = window.location.pathname
-  const knownRoutes = [
-    '/dashboard',
-    '/login',
-    '/create-user',
-    '/plex',
-    '/sonarr',
-    '/radarr',
-    '/notifications',
-    '/utilities',
-    '/approvals',
-  ]
-
-  for (const route of knownRoutes) {
-    const index = path.indexOf(route)
-    if (index > 0) {
-      return path.substring(0, index)
-    } else if (index === 0) {
-      return ''
-    }
+declare global {
+  interface Window {
+    __BASE_PATH__: string
   }
-  return ''
+}
+
+/**
+ * Get the configured base path for the router
+ * Uses runtime configuration set by the server
+ */
+function getBasename(): string {
+  const basePath = window.__BASE_PATH__ || '/'
+
+  // Return empty string for root, otherwise return the base path
+  return basePath === '/' ? '' : basePath
 }
 
 export const router = createBrowserRouter(

@@ -121,7 +121,6 @@ export default function ApprovalsPage() {
   useEffect(() => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true
-      console.log('🚀 Initializing stores...')
       configInitialize() // Initialize config store for user data
       initialize() // Initialize approvals store
     }
