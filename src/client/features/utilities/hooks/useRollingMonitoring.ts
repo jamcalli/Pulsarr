@@ -4,6 +4,7 @@ import type {
 } from '@root/types/plex-session.types.js'
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 
 // Minimum loading time for better UX across all actions
 const MIN_LOADING_TIME = 500
@@ -81,7 +82,9 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
     const startTime = Date.now()
     setLoading((prev) => ({ ...prev, fetchingShows: true }))
     try {
-      const response = await fetch('/v1/session-monitoring/rolling-monitored')
+      const response = await fetch(
+        api('/v1/session-monitoring/rolling-monitored'),
+      )
       if (!response.ok) {
         throw new Error('Failed to fetch rolling monitored shows')
       }
@@ -250,7 +253,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
       actionStartTime.current = Date.now()
       setLoading((prev) => ({ ...prev, runningMonitor: true }))
       try {
-        const response = await fetch('/v1/session-monitoring/run', {
+        const response = await fetch(api('/v1/session-monitoring/run'), {
           method: 'POST',
         })
         if (!response.ok) {

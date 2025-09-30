@@ -15,6 +15,7 @@ import type {
 } from '@root/schemas/stats/stats.schema'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { api } from '@/lib/api'
 
 // Cache management for dashboard stats
 // - Prevents duplicate API calls within CACHE_DURATION window
@@ -189,7 +190,7 @@ export const useDashboardStore = create<StatsState>()(
           days: days.toString(),
         })
 
-        const response = await fetch(`/v1/stats/all?${queryParams}`)
+        const response = await fetch(api(`/v1/stats/all?${queryParams}`))
         if (!response.ok) {
           throw new Error('Failed to fetch dashboard statistics')
         }

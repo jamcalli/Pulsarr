@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 interface TmdbMetadataDisplayProps {
@@ -55,7 +56,7 @@ export function TmdbMetadataDisplay({
 
       setLoadingRegions(true)
       try {
-        const response = await fetch('/v1/tmdb/regions')
+        const response = await fetch(api('/v1/tmdb/regions'))
         const data: TmdbRegionsSuccessResponse = await response.json()
 
         if (data.success && data.regions) {

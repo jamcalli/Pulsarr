@@ -1,6 +1,7 @@
 import type { RssFeedsResponse } from '@root/schemas/plex/generate-rss-feeds.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -25,7 +26,7 @@ export function usePlexRssFeeds() {
       )
 
       const [response] = await Promise.all([
-        fetch('/v1/plex/generate-rss-feeds'),
+        fetch(api('/v1/plex/generate-rss-feeds')),
         minimumLoadingTime,
       ])
 

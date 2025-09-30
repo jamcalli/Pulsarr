@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 
 /**
  * Hook for managing the "create admin user" form: validation, submission, and simple UI state.
@@ -54,7 +55,7 @@ export function useCreateUserForm() {
       const { confirmPassword: _, ...submitData } = data
 
       try {
-        const response = await fetch('/v1/users/create-admin', {
+        const response = await fetch(api('/v1/users/create-admin'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(submitData),

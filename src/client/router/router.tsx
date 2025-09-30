@@ -57,272 +57,303 @@ const NotFoundPage = lazy(() => import('@/features/not-found'))
 
 const LoadingFallback = () => null
 
-export const router = createBrowserRouter([
+// Get the base path from the URL - everything before the first known route
+function getBasename(): string {
+  const path = window.location.pathname
+  const knownRoutes = [
+    '/dashboard',
+    '/login',
+    '/create-user',
+    '/plex',
+    '/sonarr',
+    '/radarr',
+    '/notifications',
+    '/utilities',
+    '/approvals',
+  ]
+
+  for (const route of knownRoutes) {
+    const index = path.indexOf(route)
+    if (index > 0) {
+      return path.substring(0, index)
+    } else if (index === 0) {
+      return ''
+    }
+  }
+  return ''
+}
+
+export const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: (
+        <RootLayout>
+          <Outlet />
+        </RootLayout>
+      ),
+      children: [
+        {
+          index: true,
+          element: <Navigate to="/dashboard" replace />,
+        },
+        {
+          path: 'login',
+          element: (
+            <Suspense fallback={<LoadingFallback />}>
+              <LoginPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'create-user',
+          element: (
+            <Suspense fallback={<LoadingFallback />}>
+              <CreateUserPage />
+            </Suspense>
+          ),
+        },
+        {
+          path: 'plex',
+          children: [
+            {
+              index: true,
+              element: <Navigate to="/plex/configuration" replace />,
+            },
+            {
+              path: 'configuration',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PlexConfigurationPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'users',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PlexUsersPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+          ],
+        },
+        {
+          path: 'sonarr',
+          children: [
+            {
+              path: 'instances',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <SonarrInstancesPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'content-router',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <SonarrContentRouterPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+          ],
+        },
+        {
+          path: 'radarr',
+          children: [
+            {
+              path: 'instances',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <RadarrInstancesPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'content-router',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <RadarrContentRouterPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+          ],
+        },
+        {
+          path: 'notifications',
+          element: (
+            <AuthenticatedLayout>
+              <Suspense fallback={<LoadingFallback />}>
+                <NotificationsConfigPage />
+              </Suspense>
+            </AuthenticatedLayout>
+          ),
+        },
+        {
+          path: 'dashboard',
+          element: (
+            <AuthenticatedLayout>
+              <Suspense fallback={<LoadingFallback />}>
+                <DashboardPage />
+              </Suspense>
+            </AuthenticatedLayout>
+          ),
+        },
+        {
+          path: 'utilities',
+          children: [
+            {
+              path: 'delete-sync',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <DeleteSyncPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'plex-notifications',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PlexNotificationsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'new-user-defaults',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <NewUserDefaultsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'plex-session-monitoring',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PlexSessionMonitoringPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'public-content-notifications',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PublicContentNotificationsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'user-tags',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <UserTagsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'plex-labels',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PlexLabelsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'api-keys',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <ApiKeysPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'log-viewer',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <LogViewerPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+          ],
+        },
+        {
+          path: 'approvals',
+          children: [
+            {
+              index: true,
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <ApprovalsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'settings',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <ApprovalSettingsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+            {
+              path: 'quota-settings',
+              element: (
+                <AuthenticatedLayout>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <QuotaSettingsPage />
+                  </Suspense>
+                </AuthenticatedLayout>
+              ),
+            },
+          ],
+        },
+        {
+          path: '*',
+          element: (
+            <Suspense fallback={<LoadingFallback />}>
+              <NotFoundPage />
+            </Suspense>
+          ),
+        },
+      ],
+    },
+  ],
   {
-    path: '/',
-    element: (
-      <RootLayout>
-        <Outlet />
-      </RootLayout>
-    ),
-    children: [
-      {
-        index: true,
-        element: <Navigate to="/dashboard" replace />,
-      },
-      {
-        path: 'login',
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <LoginPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'create-user',
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <CreateUserPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'plex',
-        children: [
-          {
-            index: true,
-            element: <Navigate to="/plex/configuration" replace />,
-          },
-          {
-            path: 'configuration',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <PlexConfigurationPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'users',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <PlexUsersPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'sonarr',
-        children: [
-          {
-            path: 'instances',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <SonarrInstancesPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'content-router',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <SonarrContentRouterPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'radarr',
-        children: [
-          {
-            path: 'instances',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <RadarrInstancesPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'content-router',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <RadarrContentRouterPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'notifications',
-        element: (
-          <AuthenticatedLayout>
-            <Suspense fallback={<LoadingFallback />}>
-              <NotificationsConfigPage />
-            </Suspense>
-          </AuthenticatedLayout>
-        ),
-      },
-      {
-        path: 'dashboard',
-        element: (
-          <AuthenticatedLayout>
-            <Suspense fallback={<LoadingFallback />}>
-              <DashboardPage />
-            </Suspense>
-          </AuthenticatedLayout>
-        ),
-      },
-      {
-        path: 'utilities',
-        children: [
-          {
-            path: 'delete-sync',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <DeleteSyncPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'plex-notifications',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <PlexNotificationsPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'new-user-defaults',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <NewUserDefaultsPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'plex-session-monitoring',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <PlexSessionMonitoringPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'public-content-notifications',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <PublicContentNotificationsPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'user-tags',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <UserTagsPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'plex-labels',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <PlexLabelsPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'api-keys',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <ApiKeysPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'log-viewer',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <LogViewerPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'approvals',
-        children: [
-          {
-            index: true,
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <ApprovalsPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'settings',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <ApprovalSettingsPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-          {
-            path: 'quota-settings',
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <QuotaSettingsPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
-        ],
-      },
-      {
-        path: '*',
-        element: (
-          <Suspense fallback={<LoadingFallback />}>
-            <NotFoundPage />
-          </Suspense>
-        ),
-      },
-    ],
+    basename: getBasename(),
   },
-])
+)

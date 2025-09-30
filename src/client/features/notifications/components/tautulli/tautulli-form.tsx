@@ -32,6 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 interface TautulliFormProps {
@@ -103,7 +104,7 @@ type TautulliFormSchema = z.infer<typeof tautulliFormSchema>
  * @throws Throws an Error containing the server's message or HTTP status code if the connection fails.
  */
 async function testTautulliConnection(url: string, apiKey: string) {
-  const response = await fetch('/v1/tautulli/test-connection', {
+  const response = await fetch(api('/v1/tautulli/test-connection'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

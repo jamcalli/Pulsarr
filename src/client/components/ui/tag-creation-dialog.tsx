@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { api } from '@/lib/api'
 
 // Status type for tracking the dialog state
 type SaveStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -100,7 +101,7 @@ export function TagCreationDialog({
       // Execute with minimum loading time for better UX
       const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 500))
       
-      const response = await fetch(`/v1/${instanceType}/create-tag`, {
+      const response = await fetch(api(`/v1/${instanceType}/create-tag`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import type { BulkQuotaEditStatus } from '@/features/plex/components/user/bulk-quota-edit-modal'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 export interface BulkQuotaFormData {
@@ -52,7 +53,7 @@ export function useBulkQuotaManagement() {
   })
 
   const deleteQuotas = useCallback(async (userIds: number[]) => {
-    const response = await fetch('/v1/quota/users/bulk', {
+    const response = await fetch(api('/v1/quota/users/bulk'), {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -121,7 +122,7 @@ export function useBulkQuotaManagement() {
         }
       }
 
-      const response = await fetch('/v1/quota/users/bulk', {
+      const response = await fetch(api('/v1/quota/users/bulk'), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

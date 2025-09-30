@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 
 /**
  * React hook that manages state, validation, and submission logic for a login form.
@@ -39,7 +40,7 @@ export function useLoginForm() {
       setStatus('loading')
       setBackendError(null)
       try {
-        const response = await fetch('/v1/users/login', {
+        const response = await fetch(api('/v1/users/login'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),

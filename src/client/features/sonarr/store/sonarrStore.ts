@@ -3,6 +3,7 @@ import type { QualityProfile, RootFolder } from '@root/types/sonarr.types'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
+import { api } from '@/lib/api'
 
 export interface SonarrInstance {
   id: number
@@ -106,7 +107,7 @@ export const useSonarrStore = create<SonarrState>()(
     fetchInstances: async () => {
       try {
         const currentInstances = get().instances
-        const response = await fetch('/v1/sonarr/instances')
+        const response = await fetch(api('/v1/sonarr/instances'))
         const newInstances: SonarrInstance[] = await response.json()
 
         const mergedInstances = newInstances.map((newInst) => {
@@ -146,8 +147,8 @@ export const useSonarrStore = create<SonarrState>()(
       state.setLoadingWithMinDuration(true)
       try {
         const [foldersResponse, profilesResponse] = await Promise.all([
-          fetch(`/v1/sonarr/root-folders?instanceId=${instanceId}`),
-          fetch(`/v1/sonarr/quality-profiles?instanceId=${instanceId}`),
+          fetch(api(`/v1/sonarr/root-folders?instanceId=${instanceId}`)),
+          fetch(api(`/v1/sonarr/quality-profiles?instanceId=${instanceId}`)),
         ])
 
         const [foldersData, profilesData] = await Promise.all([
@@ -204,7 +205,7 @@ export const useSonarrStore = create<SonarrState>()(
 
     fetchGenres: async () => {
       try {
-        const response = await fetch('/v1/plex/genres')
+        const response = await fetch(api('/v1/plex/genres'))
         const data: { success: boolean; genres: string[] } =
           await response.json()
         if (data.success) {
@@ -258,7 +259,7 @@ export const useSonarrStore = create<SonarrState>()(
           const updatePromises = state.instances
             .filter((inst) => inst.id !== id && inst.isDefault)
             .map((inst) =>
-              fetch(`/v1/sonarr/instances/${inst.id}`, {
+              fetch(api(`/v1/sonarr/instances/${inst.id}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -272,7 +273,7 @@ export const useSonarrStore = create<SonarrState>()(
           await Promise.all(updatePromises)
         }
 
-        const response = await fetch(`/v1/sonarr/instances/${id}`, {
+        const response = await fetch(api(`/v1/sonarr/instances/${id}`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -312,7 +313,7 @@ export const useSonarrStore = create<SonarrState>()(
 
     deleteInstance: async (id) => {
       try {
-        const response = await fetch(`/v1/sonarr/instances/${id}`, {
+        const response = await fetch(api(`/v1/sonarr/instances/${id}`), {
           method: 'DELETE',
         })
 
