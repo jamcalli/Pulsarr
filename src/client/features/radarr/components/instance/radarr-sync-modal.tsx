@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -136,7 +137,7 @@ export function RadarrSyncModal({
           const instanceToSync = syncedInstances[currentInstanceIndex]
 
           const response = await fetch(
-            `/v1/sync/instance/${instanceToSync}?type=radarr`,
+            api(`/v1/sync/instance/${instanceToSync}?type=radarr`),
             {
               method: 'POST',
             },

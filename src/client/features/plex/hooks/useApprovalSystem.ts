@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 import {
   type ApprovalConfigurationFormData,
   useApprovalConfiguration,
@@ -57,7 +58,7 @@ export function useApprovalSystem() {
         const cronExpression = `0 */${data.scheduleInterval} * * *`
 
         const response = await fetch(
-          '/v1/scheduler/schedules/approval-maintenance',
+          api('/v1/scheduler/schedules/approval-maintenance'),
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },

@@ -2,6 +2,7 @@ import { ConfigSchema } from '@root/schemas/config/config.schema'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { api } from '@/lib/api'
 import { useApprovalConfiguration } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
@@ -86,7 +87,7 @@ export function useQuotaSystem() {
         const cronExpression = `${minute} ${hour} * * ${data.dayOfWeek}`
 
         const response = await fetch(
-          '/v1/scheduler/schedules/quota-maintenance',
+          api('/v1/scheduler/schedules/quota-maintenance'),
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
