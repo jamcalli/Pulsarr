@@ -53,6 +53,11 @@ rateLimitMax=500                       # Max requests per time window
 syncIntervalSeconds=10                 # Sync interval in seconds
 queueProcessDelaySeconds=60            # Queue processing delay in seconds
 
+# Reverse Proxy Configuration (Optional)
+basePath=/                             # Base path for subfolder deployments (default: /)
+                                       # Examples: "/pulsarr", "/apps/pulsarr"
+                                       # Only needed when hosting behind a reverse proxy in a subfolder
+
 # Notification Queue Settings
 pendingWebhookRetryInterval=20         # Retry interval for pending notifications in seconds
 pendingWebhookMaxAge=10                # Max age for pending notifications in minutes
@@ -221,6 +226,7 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 - `baseUrl`, `port`, `TZ` - Essential server configuration
 - `logLevel`, `enableConsoleOutput`, `enableRequestLogging` - Comprehensive logging configuration
 - `authenticationMethod` - Security settings
+- `basePath` - Optional reverse proxy subfolder support
 
 ### Database
 - `dbType` - Database type selection ('sqlite' or 'postgres')
