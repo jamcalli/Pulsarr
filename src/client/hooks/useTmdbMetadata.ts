@@ -1,7 +1,7 @@
-import { api } from '@/lib/api'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { api } from '@/lib/api'
 
 interface UseTmdbMetadataOptions {
   region?: string

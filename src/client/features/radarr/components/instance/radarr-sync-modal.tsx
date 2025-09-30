@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,6 +11,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useRadarrSyncProgress } from '@/features/radarr/hooks/instance/useRadarrSyncProgress'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import { api } from '@/lib/api'
 
 interface RadarrSyncModalProps {
   open: boolean
