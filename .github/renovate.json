@@ -228,11 +228,11 @@
       "minimumReleaseAge": "7 days"
     },
     {
-      "description": "Pin pino to 9.7.0 to prevent FastifyBaseLogger type breakage",
+      "description": "Pin pino to 9.x until Fastify adds support for 10.x",
       "matchPackageNames": [
         "pino"
       ],
-      "allowedVersions": "9.7.0"
+      "allowedVersions": ">=9.0.0 <10.0.0"
     },
     {
       "description": "Pin recharts to v2.x to prevent breaking changes with component library",

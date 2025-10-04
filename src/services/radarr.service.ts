@@ -1381,7 +1381,7 @@ export class RadarrService {
       // Send the update
       await this.putToRadarr(`movie/${movieId}`, movie)
 
-      this.log.debug({ tagIds }, `Updated tags for movie ID ${movieId}`)
+      this.log.debug({ movieId, tagIds }, `Updated tags for movie ${movieId}`)
     } catch (error) {
       this.log.error({ error }, `Failed to update tags for movie ${movieId}:`)
       throw error

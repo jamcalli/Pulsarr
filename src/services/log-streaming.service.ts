@@ -54,7 +54,10 @@ export class LogStreamingService {
 
   addConnection(id: string, options: LogStreamingOptions) {
     this.activeConnections.set(id, options)
-    this.log.debug({ options }, `Adding log streaming connection: ${id}`)
+    this.log.debug(
+      { connectionId: id, options },
+      'Adding log streaming connection',
+    )
 
     // Start watching if this is the first connection
     if (this.activeConnections.size === 1) {

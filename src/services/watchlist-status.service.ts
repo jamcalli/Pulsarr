@@ -1706,10 +1706,13 @@ export class StatusService {
         0,
       )
 
-      this.log.info({
-        radarr: `${radarrResults.length} instances, ${totalRadarrItems} items copied`,
-        sonarr: `${sonarrResults.length} instances, ${totalSonarrItems} items copied`,
-      })
+      this.log.info(
+        {
+          radarr: `${radarrResults.length} instances, ${totalRadarrItems} items copied`,
+          sonarr: `${sonarrResults.length} instances, ${totalSonarrItems} items copied`,
+        },
+        'Completed sync for all configured instances',
+      )
 
       return {
         radarr: radarrResults,
