@@ -1022,7 +1022,14 @@ export class StatusService {
           }
         } catch (itemError) {
           this.log.error(
-            `Error processing movie ${item.title} during analysis: ${itemError}`,
+            {
+              error:
+                itemError instanceof Error
+                  ? itemError
+                  : new Error(String(itemError)),
+              title: item.title,
+            },
+            'Error processing movie during analysis',
           )
         }
       }
@@ -1364,7 +1371,14 @@ export class StatusService {
           }
         } catch (itemError) {
           this.log.error(
-            `Error processing show ${item.title} during analysis: ${itemError}`,
+            {
+              error:
+                itemError instanceof Error
+                  ? itemError
+                  : new Error(String(itemError)),
+              title: item.title,
+            },
+            'Error processing show during analysis',
           )
         }
       }

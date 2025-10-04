@@ -67,7 +67,7 @@ export class LogStreamingService {
 
   removeConnection(id: string) {
     this.activeConnections.delete(id)
-    this.log.debug(`Removing log streaming connection: ${id}`)
+    this.log.debug({ connectionId: id }, 'Removing log streaming connection')
 
     // Stop watching if no connections remain
     if (this.activeConnections.size === 0) {
