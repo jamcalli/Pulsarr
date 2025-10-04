@@ -364,7 +364,7 @@ export async function deleteSonarrInstance(
 
     this.log.info(`Deleted Sonarr instance ${id} and cleaned up references`)
   } catch (error) {
-    this.log.error({ error }, `Error deleting Sonarr instance ${id}:`)
+    this.log.error({ error }, `Error deleting Sonarr instance ${id}`)
     throw error
   }
 }

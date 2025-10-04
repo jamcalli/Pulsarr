@@ -69,7 +69,7 @@ export class StatusService {
           this.log.debug({ tagResults }, 'Applied user tags to Sonarr content')
         } catch (tagError) {
           this.log.error(
-            { err: tagError },
+            { error: tagError },
             'Error applying user tags to Sonarr content',
           )
         }
@@ -120,7 +120,7 @@ export class StatusService {
           this.log.debug({ tagResults }, 'Applied user tags to Radarr content')
         } catch (tagError) {
           this.log.error(
-            { err: tagError },
+            { error: tagError },
             'Error applying user tags to Radarr content',
           )
         }
@@ -192,7 +192,7 @@ export class StatusService {
                 }
               } catch (error) {
                 this.log.error(
-                  error,
+                  { error },
                   `Failed to backfill grabbed status for ${item.title}:`,
                 )
               }
@@ -267,7 +267,7 @@ export class StatusService {
                 }
               } catch (error) {
                 this.log.error(
-                  error,
+                  { error },
                   `Failed to backfill grabbed status for ${item.title}:`,
                 )
               }
@@ -833,7 +833,7 @@ export class StatusService {
       return itemsCopied
     } catch (error) {
       this.log.error(
-        error,
+        { error },
         `Error in syncInstance for ${instanceType} ${instanceId}:`,
       )
       throw error
@@ -1625,7 +1625,7 @@ export class StatusService {
               }
             } catch (error) {
               this.log.error(
-                error,
+                { error },
                 `Error syncing Radarr instance ${instance.id} (${instance.name}):`,
               )
               return {
@@ -1670,7 +1670,7 @@ export class StatusService {
               }
             } catch (error) {
               this.log.error(
-                error,
+                { error },
                 `Error syncing Sonarr instance ${instance.id} (${instance.name}):`,
               )
               return {

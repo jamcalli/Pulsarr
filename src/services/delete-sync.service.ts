@@ -919,10 +919,7 @@ export class DeleteSyncService {
         // Trace sample of protected identifiers (limited to 5)
         if (this.protectedGuids.size > 0 && this.log.level === 'trace') {
           const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
-          this.log.trace('Sample protected GUIDs:')
-          for (const guid of sampleGuids) {
-            this.log.trace(`  Protected GUID: "${guid}"`)
-          }
+          this.log.trace({ sampleGuids }, 'Sample protected GUIDs')
         }
       } catch (protectedItemsError) {
         const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
@@ -1828,7 +1825,7 @@ export class DeleteSyncService {
           malformedItems++
           this.log.warn(
             {
-              error: error instanceof Error ? error.message : String(error),
+              error: error instanceof Error ? error : new Error(String(error)),
               guids: item.guids,
             },
             `Malformed guids in watchlist item "${item.title}"`,
@@ -1848,11 +1845,8 @@ export class DeleteSyncService {
 
       // Trace sample of collected identifiers (limited to 5)
       if (this.log.level === 'trace') {
-        this.log.trace('Sample of watchlist GUIDs (first 5):')
         const sampleGuids = Array.from(guidSet).slice(0, 5)
-        for (const guid of sampleGuids) {
-          this.log.trace(`  Watchlist GUID: "${guid}"`)
-        }
+        this.log.trace({ sampleGuids }, 'Sample of watchlist GUIDs (first 5)')
       }
 
       return guidSet
