@@ -83,8 +83,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               }
             } catch (error) {
               fastify.log.warn(
-                `${kind === 'movie' ? 'Movie' : 'TV'} metadata fetch failed for TMDB ID ${directTmdbId}:`,
-                error,
+                { error },
+                `${kind === 'movie' ? 'Movie' : 'TV'} metadata fetch failed for TMDB ID ${directTmdbId}`,
               )
             }
           }

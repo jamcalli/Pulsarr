@@ -1191,7 +1191,7 @@ export class UserTagService {
       if (this.cleanupOrphanedTags) {
         try {
           orphanedCleanup = await this.cleanupOrphanedUserTags()
-          this.log.info('Completed orphaned user tag cleanup', {
+          this.log.info({
             sonarr: {
               removed: orphanedCleanup.sonarr.removed,
               failed: orphanedCleanup.sonarr.failed,
@@ -1209,7 +1209,7 @@ export class UserTagService {
         }
       }
 
-      this.log.info('User tag synchronization complete', {
+      this.log.info({
         sonarr: {
           tagged: sonarrResults.tagged,
           skipped: sonarrResults.skipped,
@@ -1913,7 +1913,7 @@ export class UserTagService {
       const totalTagsDeleted =
         sonarrResults.tagsDeleted + radarrResults.tagsDeleted
 
-      this.log.info('User tag removal complete', {
+      this.log.info({
         itemsUpdated: totalItemsUpdated,
         tagsRemoved: totalTagsRemoved,
         tagsDeleted: totalTagsDeleted,

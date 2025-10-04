@@ -287,8 +287,8 @@ export async function cleanupDeletedSonarrInstanceReferences(
         }
       } catch (parseError) {
         this.log.error(
-          `Error parsing synced_instances for Sonarr instance ${instance.id}:`,
-          parseError,
+          { error: parseError },
+          `Error parsing synced_instances for Sonarr instance ${instance.id}`,
         )
       }
     }
@@ -298,8 +298,8 @@ export async function cleanupDeletedSonarrInstanceReferences(
     )
   } catch (error) {
     this.log.error(
-      `Error cleaning up references to deleted Sonarr instance ${deletedId}:`,
-      error,
+      { error },
+      `Error cleaning up references to deleted Sonarr instance ${deletedId}`,
     )
     throw error
   }

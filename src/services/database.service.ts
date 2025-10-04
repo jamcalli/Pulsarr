@@ -256,12 +256,15 @@ export class DatabaseService {
     ) {
       return result.rows
     }
-    this.log.error('Unexpected raw query result format', {
-      result,
-      resultType: typeof result,
-      isArray: Array.isArray(result),
-      hasRows: result && typeof result === 'object' && 'rows' in result,
-    })
+    this.log.error(
+      {
+        result,
+        resultType: typeof result,
+        isArray: Array.isArray(result),
+        hasRows: result && typeof result === 'object' && 'rows' in result,
+      },
+      'Unexpected raw query result format',
+    )
     throw new Error('Invalid database query result format')
   }
 
@@ -349,7 +352,7 @@ export class DatabaseService {
     try {
       return JSON.parse(value)
     } catch (error) {
-      this.log.warn('JSON parse error', { value, context, error })
+      this.log.warn({ value, context, error }, 'JSON parse error')
       return defaultValue
     }
   }

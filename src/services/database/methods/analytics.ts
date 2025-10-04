@@ -325,7 +325,7 @@ export async function getRecentActivityStats(
     notifications_sent: Number(notifications?.count || 0),
   }
 
-  this.log.debug('Computed recent activity stats:', stats)
+  this.log.debug({ stats }, 'Computed recent activity stats')
 
   return stats
 }
@@ -702,7 +702,6 @@ export async function getDetailedStatusTransitionMetrics(
         const removedCount = times.length - filteredTimes.length
         const percentRemoved = ((removedCount / times.length) * 100).toFixed(1)
         this.log.debug(
-          `Outlier filtering for ${fromStatus}->${toStatus} (${contentType}): removed ${removedCount}/${times.length} (${percentRemoved}%) data points`,
           {
             originalRange: `${times[0].toFixed(2)} - ${times[times.length - 1].toFixed(2)} days`,
             filteredRange: `${filteredTimes[0].toFixed(2)} - ${filteredTimes[filteredTimes.length - 1].toFixed(2)} days`,
@@ -710,6 +709,7 @@ export async function getDetailedStatusTransitionMetrics(
             filteredMedian:
               filteredTimes[Math.floor(filteredTimes.length / 2)].toFixed(2),
           },
+          `Outlier filtering for ${fromStatus}->${toStatus} (${contentType}): removed ${removedCount}/${times.length} (${percentRemoved}%) data points`,
         )
       }
 

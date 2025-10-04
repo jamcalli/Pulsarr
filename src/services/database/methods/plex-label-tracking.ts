@@ -80,8 +80,8 @@ export async function trackPlexLabelsBulk(
   }
 
   this.log.debug(
-    `trackPlexLabelsBulk: Processing ${operations.length} operations`,
     { operationsCount: operations.length },
+    `trackPlexLabelsBulk: Processing ${operations.length} operations`,
   )
 
   try {
@@ -118,14 +118,17 @@ export async function trackPlexLabelsBulk(
               )
 
               // Use PostgreSQL-specific atomic upsert with unique constraint
-              this.log.debug('Executing PostgreSQL upsert', {
-                guidsJson,
-                contentType,
-                userId,
-                plexRatingKey,
-                labelsJson,
-                timestamp: this.timestamp,
-              })
+              this.log.debug(
+                {
+                  guidsJson,
+                  contentType,
+                  userId,
+                  plexRatingKey,
+                  labelsJson,
+                  timestamp: this.timestamp,
+                },
+                'Executing PostgreSQL upsert',
+              )
 
               const result = await trx.raw(
                 `
@@ -156,11 +159,14 @@ export async function trackPlexLabelsBulk(
                 ],
               )
 
-              this.log.debug('PostgreSQL upsert result', {
-                rows: result.rows,
-                rowCount: result.rowCount,
-                recordId: result.rows[0]?.record_id,
-              })
+              this.log.debug(
+                {
+                  rows: result.rows,
+                  rowCount: result.rowCount,
+                  recordId: result.rows[0]?.record_id,
+                },
+                'PostgreSQL upsert result',
+              )
 
               chunkResults.push({
                 plexRatingKey,
@@ -168,10 +174,13 @@ export async function trackPlexLabelsBulk(
                 recordId: result.rows[0]?.record_id || null,
               })
             } catch (error) {
-              this.log.error('Failed to track labels for operation', {
-                error,
-                operation,
-              })
+              this.log.error(
+                {
+                  error,
+                  operation,
+                },
+                'Failed to track labels for operation',
+              )
               chunkResults.push({
                 plexRatingKey: operation.plexRatingKey,
                 success: false,
@@ -184,8 +193,8 @@ export async function trackPlexLabelsBulk(
             if (result.success) {
               processedCount++
               this.log.debug(
-                `Tracked labels for rating key ${result.plexRatingKey}`,
                 { recordId: result.recordId },
+                `Tracked labels for rating key ${result.plexRatingKey}`,
               )
             } else {
               failedIds.push(result.plexRatingKey)
@@ -272,10 +281,13 @@ export async function trackPlexLabelsBulk(
                 recordId,
               })
             } catch (error) {
-              this.log.error('Failed to track labels for operation', {
-                error,
-                operation,
-              })
+              this.log.error(
+                {
+                  error,
+                  operation,
+                },
+                'Failed to track labels for operation',
+              )
               chunkResults.push({
                 plexRatingKey: operation.plexRatingKey,
                 success: false,
@@ -288,8 +300,8 @@ export async function trackPlexLabelsBulk(
             if (result.success) {
               processedCount++
               this.log.debug(
-                `Tracked labels for rating key ${result.plexRatingKey}`,
                 { recordId: result.recordId },
+                `Tracked labels for rating key ${result.plexRatingKey}`,
               )
             } else {
               failedIds.push(result.plexRatingKey)
@@ -299,7 +311,7 @@ export async function trackPlexLabelsBulk(
       }
     }
   } catch (error) {
-    this.log.error('Error in bulk label tracking transaction', { error })
+    this.log.error({ error }, 'Error in bulk label tracking transaction')
     return {
       processedCount: 0,
       failedIds: operations.map((op) => op.plexRatingKey),
@@ -401,8 +413,8 @@ export async function untrackPlexLabelBulk(
   }
 
   this.log.debug(
-    `untrackPlexLabelBulk: Processing ${operations.length} operations`,
     { operationsCount: operations.length },
+    `untrackPlexLabelBulk: Processing ${operations.length} operations`,
   )
 
   try {
@@ -505,10 +517,13 @@ export async function untrackPlexLabelBulk(
                 updatedCount: totalUpdated,
               })
             } catch (error) {
-              this.log.error('Failed to untrack label for operation', {
-                error,
-                operation,
-              })
+              this.log.error(
+                {
+                  error,
+                  operation,
+                },
+                'Failed to untrack label for operation',
+              )
               chunkResults.push({
                 plexRatingKey: operation.plexRatingKey,
                 success: false,
@@ -521,8 +536,8 @@ export async function untrackPlexLabelBulk(
             if (result.success) {
               processedCount++
               this.log.debug(
-                `Untracked label for rating key ${result.plexRatingKey}`,
                 { updatedCount: result.updatedCount },
+                `Untracked label for rating key ${result.plexRatingKey}`,
               )
             } else {
               failedIds.push(result.plexRatingKey)
@@ -610,10 +625,13 @@ export async function untrackPlexLabelBulk(
                 updatedCount: 1,
               })
             } catch (error) {
-              this.log.error('Failed to untrack label for operation', {
-                error,
-                operation,
-              })
+              this.log.error(
+                {
+                  error,
+                  operation,
+                },
+                'Failed to untrack label for operation',
+              )
               chunkResults.push({
                 plexRatingKey: operation.plexRatingKey,
                 success: false,
@@ -626,8 +644,8 @@ export async function untrackPlexLabelBulk(
             if (result.success) {
               processedCount++
               this.log.debug(
-                `Untracked label for rating key ${result.plexRatingKey}`,
                 { updatedCount: result.updatedCount },
+                `Untracked label for rating key ${result.plexRatingKey}`,
               )
             } else {
               failedIds.push(result.plexRatingKey)
@@ -637,7 +655,7 @@ export async function untrackPlexLabelBulk(
       }
     }
   } catch (error) {
-    this.log.error('Error in bulk label untracking transaction', { error })
+    this.log.error({ error }, 'Error in bulk label untracking transaction')
     return {
       processedCount: 0,
       failedIds: operations.map((op) => op.plexRatingKey),
@@ -736,10 +754,13 @@ export async function getTrackedLabelsForContent(
 
   const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
 
-  this.log.debug('getTrackedLabelsForContent: Searching for records', {
-    contentType,
-    normalizedGuids,
-  })
+  this.log.debug(
+    {
+      contentType,
+      normalizedGuids,
+    },
+    'getTrackedLabelsForContent: Searching for records',
+  )
 
   // Use SQL to find records with overlapping GUIDs
   const rows = this.isPostgres
@@ -809,11 +830,14 @@ export async function cleanupUserContentTracking(
 
   const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
 
-  this.log.debug('cleanupUserContentTracking: Deleting records', {
-    userId,
-    contentType,
-    normalizedGuids,
-  })
+  this.log.debug(
+    {
+      userId,
+      contentType,
+      normalizedGuids,
+    },
+    'cleanupUserContentTracking: Deleting records',
+  )
 
   // Use SQL to delete records with overlapping GUIDs directly
   const deleted = this.isPostgres
@@ -988,13 +1012,16 @@ export async function isLabelTracked(
 
   const normalizedGuids = contentGuids.map((g) => g.toLowerCase())
 
-  this.log.debug('isLabelTracked: Checking label tracking', {
-    userId,
-    contentType,
-    plexRatingKey,
-    labelApplied,
-    normalizedGuids,
-  })
+  this.log.debug(
+    {
+      userId,
+      contentType,
+      plexRatingKey,
+      labelApplied,
+      normalizedGuids,
+    },
+    'isLabelTracked: Checking label tracking',
+  )
 
   // Use SQL to find record with overlapping GUIDs and check if it contains the label
   const record = this.isPostgres
@@ -1078,8 +1105,8 @@ export async function removeTrackedLabels(
   }
 
   this.log.debug(
-    `removeTrackedLabels: Processing ${operations.length} operations`,
     { operationsCount: operations.length },
+    `removeTrackedLabels: Processing ${operations.length} operations`,
   )
 
   try {
@@ -1289,7 +1316,7 @@ export async function removeTrackedLabels(
       }
     }
   } catch (error) {
-    this.log.error('Error in bulk label removal transaction', { error })
+    this.log.error({ error }, 'Error in bulk label removal transaction')
     return {
       processedCount: 0,
       failedIds: operations.map((op) => op.plexRatingKey),
@@ -1434,8 +1461,8 @@ export async function removeOrphanedTrackingBulk(
   }
 
   this.log.debug(
-    `removeOrphanedTrackingBulk: Processing ${operations.length} operations`,
     { operationsCount: operations.length },
+    `removeOrphanedTrackingBulk: Processing ${operations.length} operations`,
   )
 
   try {
@@ -1532,8 +1559,8 @@ export async function removeOrphanedTrackingBulk(
               })
             } catch (error) {
               this.log.error(
-                `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
                 { error, plexRatingKey, orphanedLabels },
+                `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
               )
               chunkResults.push({
                 plexRatingKey,
@@ -1634,8 +1661,8 @@ export async function removeOrphanedTrackingBulk(
               })
             } catch (error) {
               this.log.error(
-                `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
                 { error, plexRatingKey, orphanedLabels },
+                `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
               )
               chunkResults.push({
                 plexRatingKey,
@@ -1662,9 +1689,12 @@ export async function removeOrphanedTrackingBulk(
       }
     }
   } catch (error) {
-    this.log.error('Error in bulk orphaned tracking removal transaction', {
-      error,
-    })
+    this.log.error(
+      {
+        error,
+      },
+      'Error in bulk orphaned tracking removal transaction',
+    )
     return {
       processedCount: 0,
       failedIds: operations.map((op) => op.plexRatingKey),
@@ -1699,8 +1729,8 @@ export async function removeOrphanedTracking(
 
   if (result.failedIds.length > 0) {
     this.log.warn(
-      `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
       { orphanedLabels },
+      `Failed to remove orphaned labels for rating key ${plexRatingKey}`,
     )
     return 0
   }
@@ -1708,8 +1738,8 @@ export async function removeOrphanedTracking(
   // Use the count information from the bulk operation result
   if (result.totalUpdatedCount > 0) {
     this.log.debug(
-      `Updated ${result.totalUpdatedCount} tracking record(s) to remove orphaned labels for rating key ${plexRatingKey}`,
       { orphanedLabels },
+      `Updated ${result.totalUpdatedCount} tracking record(s) to remove orphaned labels for rating key ${plexRatingKey}`,
     )
   }
 

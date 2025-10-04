@@ -276,7 +276,10 @@ export class RadarrService {
         this.log.info(
           `Successfully created Pulsarr webhook with URL for Radarr: ${expectedWebhookUrl}`,
         )
-        this.log.debug('Webhook creation response for Radarr:', response)
+        this.log.debug(
+          { response: response },
+          'Webhook creation response for Radarr:',
+        )
       } catch (createError) {
         this.log.error(
           { error: createError, endpoint: 'notification' },
@@ -1082,7 +1085,7 @@ export class RadarrService {
         }
       } catch (error) {
         // If something else went wrong in the notification check
-        this.log.warn('Webhook API test failed:', error)
+        this.log.warn({ error: error }, 'Webhook API test failed:')
         return {
           success: false,
           message:
@@ -1378,7 +1381,7 @@ export class RadarrService {
       // Send the update
       await this.putToRadarr(`movie/${movieId}`, movie)
 
-      this.log.debug(`Updated tags for movie ID ${movieId}`, { tagIds })
+      this.log.debug({ tagIds }, `Updated tags for movie ID ${movieId}`)
     } catch (error) {
       this.log.error({ error }, `Failed to update tags for movie ${movieId}:`)
       throw error

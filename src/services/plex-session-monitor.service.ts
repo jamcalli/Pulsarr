@@ -332,14 +332,14 @@ export class PlexSessionMonitorService {
       }
 
       this.log.debug(
-        `Extracted identifiers for ${session.grandparentTitle}:`,
         result,
+        `Extracted identifiers for ${session.grandparentTitle}:`,
       )
       return result
     } catch (error) {
       this.log.debug(
-        `Could not fetch metadata for ${session.grandparentTitle}, will fallback to title matching:`,
         error,
+        `Could not fetch metadata for ${session.grandparentTitle}, will fallback to title matching:`,
       )
       return {} // Return empty object to allow title fallback
     }
@@ -355,11 +355,11 @@ export class PlexSessionMonitorService {
     const instances = await this.sonarrManager.getAllInstances()
 
     this.log.debug(
-      `Searching for series in ${instances.length} Sonarr instances`,
       {
         identifiers,
         title,
       },
+      `Searching for series in ${instances.length} Sonarr instances`,
     )
 
     for (const instance of instances) {
@@ -575,8 +575,8 @@ export class PlexSessionMonitorService {
       )
     } catch (error) {
       this.log.error(
-        `Failed to expand monitoring for ${session.grandparentTitle}:`,
         error,
+        `Failed to expand monitoring for ${session.grandparentTitle}:`,
       )
     }
   }
@@ -611,8 +611,8 @@ export class PlexSessionMonitorService {
       )
     } catch (error) {
       this.log.error(
-        `Failed to expand pilot monitoring for ${session.grandparentTitle}:`,
         error,
+        `Failed to expand pilot monitoring for ${session.grandparentTitle}:`,
       )
     }
   }
@@ -651,8 +651,8 @@ export class PlexSessionMonitorService {
       )
     } catch (error) {
       this.log.error(
-        `Failed to switch ${session.grandparentTitle} to monitor all:`,
         error,
+        `Failed to switch ${session.grandparentTitle} to monitor all:`,
       )
     }
   }
@@ -842,8 +842,8 @@ export class PlexSessionMonitorService {
       )
     } catch (error) {
       this.log.error(
-        `Error resetting ${showTitle} to first-season-only:`,
         error,
+        `Error resetting ${showTitle} to first-season-only:`,
       )
       throw error
     }
@@ -894,8 +894,8 @@ export class PlexSessionMonitorService {
           )
         } catch (error) {
           this.log.error(
-            `Failed to reset inactive rolling show ${show.show_title}:`,
             error,
+            `Failed to reset inactive rolling show ${show.show_title}:`,
           )
         }
       }
@@ -1146,8 +1146,8 @@ export class PlexSessionMonitorService {
       return pilotIsMonitored && allNonPilotUnmonitored
     } catch (error) {
       this.log.debug(
-        `Error checking pilot-only state for series ${sonarrSeriesId}:`,
         error,
+        `Error checking pilot-only state for series ${sonarrSeriesId}:`,
       )
       return false
     }
@@ -1226,8 +1226,8 @@ export class PlexSessionMonitorService {
       )
     } catch (error) {
       this.log.error(
-        `Error resetting Season 1 to pilot-only for ${showTitle}:`,
         error,
+        `Error resetting Season 1 to pilot-only for ${showTitle}:`,
       )
       throw error
     }

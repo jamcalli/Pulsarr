@@ -234,7 +234,7 @@ export class SonarrService {
         this.log.info(
           `Successfully created Pulsarr webhook with URL for Sonarr: ${expectedWebhookUrl}`,
         )
-        this.log.debug('Webhook creation response:', response)
+        this.log.debug({ response }, 'Webhook creation response')
       } catch (createError) {
         this.log.error(
           { error: createError, endpoint: 'notification' },
@@ -1338,7 +1338,7 @@ export class SonarrService {
       // Send the update
       await this.putToSonarr(`series/${seriesId}`, series)
 
-      this.log.debug(`Updated tags for series ID ${seriesId}`, { tagIds })
+      this.log.debug({ tagIds })
     } catch (error) {
       this.log.error({ error }, `Failed to update tags for series ${seriesId}:`)
       throw error

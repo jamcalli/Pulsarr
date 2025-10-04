@@ -56,8 +56,8 @@ export default fp(
         })
       } catch (error) {
         fastify.log.error(
-          'Failed to initialize delete-sync scheduled job:',
-          error,
+          { error },
+          'Failed to initialize delete-sync scheduled job',
         )
       }
     })

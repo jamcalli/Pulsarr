@@ -192,8 +192,8 @@ export class StatusService {
                 }
               } catch (error) {
                 this.log.error(
-                  `Failed to backfill grabbed status for ${item.title}:`,
                   error,
+                  `Failed to backfill grabbed status for ${item.title}:`,
                 )
               }
             } else {
@@ -267,8 +267,8 @@ export class StatusService {
                 }
               } catch (error) {
                 this.log.error(
-                  `Failed to backfill grabbed status for ${item.title}:`,
                   error,
+                  `Failed to backfill grabbed status for ${item.title}:`,
                 )
               }
             } else {
@@ -833,8 +833,8 @@ export class StatusService {
       return itemsCopied
     } catch (error) {
       this.log.error(
-        `Error in syncInstance for ${instanceType} ${instanceId}:`,
         error,
+        `Error in syncInstance for ${instanceType} ${instanceId}:`,
       )
       throw error
     }
@@ -1625,8 +1625,8 @@ export class StatusService {
               }
             } catch (error) {
               this.log.error(
-                `Error syncing Radarr instance ${instance.id} (${instance.name}):`,
                 error,
+                `Error syncing Radarr instance ${instance.id} (${instance.name}):`,
               )
               return {
                 id: instance.id,
@@ -1670,8 +1670,8 @@ export class StatusService {
               }
             } catch (error) {
               this.log.error(
-                `Error syncing Sonarr instance ${instance.id} (${instance.name}):`,
                 error,
+                `Error syncing Sonarr instance ${instance.id} (${instance.name}):`,
               )
               return {
                 id: instance.id,
@@ -1706,7 +1706,7 @@ export class StatusService {
         0,
       )
 
-      this.log.info('Sync completed for all instances. Results:', {
+      this.log.info({
         radarr: `${radarrResults.length} instances, ${totalRadarrItems} items copied`,
         sonarr: `${sonarrResults.length} instances, ${totalSonarrItems} items copied`,
       })

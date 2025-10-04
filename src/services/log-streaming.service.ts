@@ -54,7 +54,7 @@ export class LogStreamingService {
 
   addConnection(id: string, options: LogStreamingOptions) {
     this.activeConnections.set(id, options)
-    this.log.debug(`Adding log streaming connection: ${id}`, { options })
+    this.log.debug({ options }, `Adding log streaming connection: ${id}`)
 
     // Start watching if this is the first connection
     if (this.activeConnections.size === 1) {
@@ -159,7 +159,7 @@ export class LogStreamingService {
         await fileHandle.close()
       }
     } catch (error) {
-      this.log.warn('Failed to read log file for tail', { error })
+      this.log.warn({ error }, 'Failed to read log file for tail')
       return []
     }
   }
@@ -190,17 +190,20 @@ export class LogStreamingService {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         this.log.debug(
-          'Log file not found at startup, will watch for creation',
           {
             file: this.logFilePath,
           },
+          'Log file not found at startup, will watch for creation',
         )
       } else {
         // Unexpected error, abort
-        this.log.warn('Failed to start watching log file', {
-          error,
-          file: this.logFilePath,
-        })
+        this.log.warn(
+          {
+            error,
+            file: this.logFilePath,
+          },
+          'Failed to start watching log file',
+        )
         return
       }
     }
@@ -223,7 +226,7 @@ export class LogStreamingService {
       fileInfo.interval = interval
     }
 
-    this.log.debug('Started watching log file', { file: this.logFilePath })
+    this.log.debug({ file: this.logFilePath }, 'Started watching log file')
   }
 
   private stopFileWatching() {
@@ -231,7 +234,7 @@ export class LogStreamingService {
     if (fileInfo?.interval) {
       clearInterval(fileInfo.interval)
       this.watchedFiles.delete(this.logFilePath)
-      this.log.debug('Stopped watching log file', { file: this.logFilePath })
+      this.log.debug({ file: this.logFilePath }, 'Stopped watching log file')
     }
   }
 
@@ -296,15 +299,21 @@ export class LogStreamingService {
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code
       if (code === 'ENOENT') {
-        this.log.debug('Log file not found when checking changes', {
-          file: this.logFilePath,
-        })
+        this.log.debug(
+          {
+            file: this.logFilePath,
+          },
+          'Log file not found when checking changes',
+        )
         return
       }
-      this.log.warn('Error checking file changes', {
-        error,
-        file: this.logFilePath,
-      })
+      this.log.warn(
+        {
+          error,
+          file: this.logFilePath,
+        },
+        'Error checking file changes',
+      )
     }
   }
 }

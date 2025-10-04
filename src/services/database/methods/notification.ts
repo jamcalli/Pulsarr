@@ -590,12 +590,15 @@ export async function getNotificationStats(
     })),
   }
 
-  this.log.debug('Notification statistics gathered:', {
-    total: stats.total_notifications,
-    typeCount: stats.by_type.length,
-    channelCount: stats.by_channel.length,
-    userCount: stats.by_user.length,
-  })
+  this.log.debug(
+    {
+      total: stats.total_notifications,
+      typeCount: stats.by_type.length,
+      channelCount: stats.by_channel.length,
+      userCount: stats.by_user.length,
+    },
+    'Notification statistics gathered',
+  )
 
   return stats
 }
@@ -645,8 +648,8 @@ export async function addStatusHistoryEntry(
     )
   } catch (error) {
     this.log.error(
-      `Error adding status history entry for watchlist item ${watchlistItemId}:`,
-      error,
+      { error },
+      `Error adding status history entry for watchlist item ${watchlistItemId}`,
     )
     throw error
   }

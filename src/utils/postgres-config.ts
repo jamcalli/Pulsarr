@@ -44,6 +44,6 @@ export async function configurePgTypes(log: FastifyBaseLogger): Promise<void> {
       log.warn('PostgreSQL types.setTypeParser not available')
     }
   } catch (error) {
-    log.warn('Failed to configure PostgreSQL type parsers:', error)
+    log.warn({ error }, 'Failed to configure PostgreSQL type parsers')
   }
 }

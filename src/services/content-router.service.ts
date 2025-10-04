@@ -1274,8 +1274,8 @@ export class ContentRouterService {
             }
           } catch (error) {
             this.log.debug(
-              'Failed to check anime status during enrichment:',
-              error,
+              { error },
+              'Failed to check anime status during enrichment',
             )
           }
 
@@ -1355,8 +1355,8 @@ export class ContentRouterService {
               }
             } catch (error) {
               this.log.debug(
-                `Failed to fetch IMDB rating for TV show "${item.title}":`,
-                error,
+                { error },
+                `Failed to fetch IMDB rating for TV show "${item.title}"`,
               )
             }
           }

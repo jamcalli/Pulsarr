@@ -607,8 +607,8 @@ export async function getBulkWatchlistItems(
   }
 
   this.log.debug(
-    `Query returned ${results.length} total matches from database`,
     logContext,
+    `Query returned ${results.length} total matches from database`,
   )
 
   return results.map((row) => ({
@@ -637,10 +637,13 @@ export async function getWatchlistItemsByKeys(
     .whereIn('key', keys)
     .select('*')
 
-  this.log.debug(`Retrieved ${items.length} items by keys`, {
-    keyCount: keys.length,
-    resultCount: items.length,
-  })
+  this.log.debug(
+    {
+      keyCount: keys.length,
+      resultCount: items.length,
+    },
+    `Retrieved ${items.length} items by keys`,
+  )
 
   return items.map((item) => ({
     ...item,

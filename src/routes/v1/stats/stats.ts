@@ -83,7 +83,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             await fastify.db.getDetailedStatusTransitionMetrics()
           statusFlow = await fastify.db.getStatusFlowData()
         } catch (err) {
-          fastify.log.warn('Could not fetch advanced status metrics:', err)
+          fastify.log.warn(
+            { error: err },
+            'Could not fetch advanced status metrics',
+          )
         }
 
         const response = {

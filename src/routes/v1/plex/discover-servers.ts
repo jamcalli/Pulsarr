@@ -140,8 +140,8 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
               }
             } catch (e) {
               fastify.log.warn(
+                { error: e },
                 `Invalid server connection URI: ${connection.uri}`,
-                e,
               )
             }
           }

@@ -78,8 +78,8 @@ export class PendingWebhooksService {
       const parsed = WebhookPayloadSchema.safeParse(payload)
       if (!parsed.success) {
         this.log.debug(
-          `Skipping invalid webhook payload for ${mediaType} webhook ${webhookId}:`,
-          parsed.error.issues,
+          { issues: parsed.error.issues },
+          `Skipping invalid webhook payload for ${mediaType} webhook ${webhookId}`,
         )
         return
       }
@@ -87,8 +87,8 @@ export class PendingWebhooksService {
       await this.fastify.plexLabelSyncService.syncLabelsOnWebhook(parsed.data)
     } catch (labelError) {
       this.log.error(
-        `Error syncing labels for pending ${mediaType} webhook ${webhookId}:`,
-        labelError,
+        { error: labelError },
+        `Error syncing labels for pending ${mediaType} webhook ${webhookId}`,
       )
     }
   }
@@ -184,8 +184,8 @@ export class PendingWebhooksService {
                       : webhook.payload
                 } catch (parseError) {
                   this.log.error(
-                    `Failed to parse payload for movie webhook ${webhook.id}:`,
-                    parseError,
+                    { error: parseError },
+                    `Failed to parse payload for movie webhook ${webhook.id}`,
                   )
                   return await this.deleteWebhookAndCount(webhook.id)
                 }
@@ -234,8 +234,8 @@ export class PendingWebhooksService {
                       : webhook.payload
                 } catch (parseError) {
                   this.log.error(
-                    `Failed to parse payload for webhook ${webhook.id}:`,
-                    parseError,
+                    { error: parseError },
+                    `Failed to parse payload for webhook ${webhook.id}`,
                   )
                   // Delete webhook with malformed payload to prevent infinite retries
                   const deleted = await this.deleteWebhookAndCount(webhook.id)
@@ -309,8 +309,8 @@ export class PendingWebhooksService {
               return 0
             } catch (webhookError) {
               this.log.error(
-                `Error processing pending webhook ${webhook.id}:`,
-                webhookError,
+                { error: webhookError },
+                `Error processing pending webhook ${webhook.id}`,
               )
               return 0
             }
