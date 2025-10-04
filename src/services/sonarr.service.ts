@@ -1338,7 +1338,10 @@ export class SonarrService {
       // Send the update
       await this.putToSonarr(`series/${seriesId}`, series)
 
-      this.log.debug({ tagIds })
+      this.log.debug(
+        { seriesId, tagIds },
+        `Updated tags for series ${seriesId}`,
+      )
     } catch (error) {
       this.log.error({ error }, `Failed to update tags for series ${seriesId}:`)
       throw error
