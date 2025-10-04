@@ -61,15 +61,7 @@ export class PlexLabelSyncService {
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
-    this.log.info(
-      {
-        enabled: this.config.enabled,
-        labelPrefix: this.config.labelPrefix,
-        removedLabelMode: this.config.removedLabelMode || 'remove',
-        removedLabelPrefix: this.config.removedLabelPrefix || 'pulsarr:removed',
-      },
-      'Initializing PlexLabelSyncService',
-    )
+    this.log.info('Initializing PlexLabelSyncService')
   }
 
   /**
