@@ -1291,12 +1291,8 @@ export class PlexWatchlistService {
       // Queue re-added items for label synchronization
       await this.handleLinkedItemsForLabelSync(linkItems)
     } catch (error) {
-      this.log.error(
-        {
-          error: error instanceof Error ? error.message : String(error),
-        },
-        'Error linking existing items',
-      )
+      const err = error instanceof Error ? error : new Error(String(error))
+      this.log.error({ error: err }, 'Error linking existing items')
       throw error
     }
   }
@@ -1842,10 +1838,11 @@ export class PlexWatchlistService {
             )
           }
         } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error))
           this.log.error(
             {
-              error: error instanceof Error ? error.message : String(error),
-              stack: error instanceof Error ? error.stack : undefined,
+              error: err,
+              stack: err.stack,
               userId,
               removedKeys,
             },
@@ -1946,10 +1943,11 @@ export class PlexWatchlistService {
         )
       }
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error))
       this.log.error(
         {
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+          error: err,
+          stack: err.stack,
           linkItemsCount: linkItems.length,
           linkItemsSample: linkItems.slice(0, 3).map((item) => ({
             title: item.title,

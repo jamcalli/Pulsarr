@@ -274,7 +274,7 @@ export class PlexLabelSyncService {
               )
             } catch (error) {
               this.log.error(
-                error,
+                { error },
                 `Error processing movies from instance ${instance.id} (${instance.name}):`,
               )
             }
@@ -361,7 +361,7 @@ export class PlexLabelSyncService {
               )
             } catch (error) {
               this.log.error(
-                error,
+                { error },
                 `Error processing series from instance ${instance.id} (${instance.name}):`,
               )
             }
