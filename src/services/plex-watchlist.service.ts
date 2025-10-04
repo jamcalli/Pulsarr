@@ -189,8 +189,8 @@ export class PlexWatchlistService {
     if (!canSync) {
       const name = user.username ?? 'Unknown User'
       this.log.debug(
-        `Skipping notification for user ${name} (ID: ${user.userId}) - sync disabled`,
         { userId: user.userId },
+        `Skipping notification for user ${name} (ID: ${user.userId}) - sync disabled`,
       )
       return false
     }
@@ -214,8 +214,8 @@ export class PlexWatchlistService {
       })
 
       this.log.debug(
-        `Notified Discord admin endpoints that ${username} added "${item.title}"`,
         { success: discordSent },
+        `Notified Discord admin endpoints that ${username} added "${item.title}"`,
       )
     } catch (error) {
       this.log.error(
@@ -247,8 +247,8 @@ export class PlexWatchlistService {
           })
 
         this.log.debug(
-          `Notified Apprise admin endpoints that ${username} added "${item.title}"`,
           { success: appriseSent },
+          `Notified Apprise admin endpoints that ${username} added "${item.title}"`,
         )
       } catch (error) {
         this.log.error(
@@ -435,7 +435,7 @@ export class PlexWatchlistService {
       friendsRss: Array.from(watchlistUrls)[1] || '',
     }
     await this.dbService.updateConfig(dbUrls)
-    this.log.debug('RSS feed URLs saved to database', dbUrls)
+    this.log.debug(dbUrls, 'RSS feed URLs saved to database')
 
     return {
       self: dbUrls.selfRss,
@@ -795,8 +795,8 @@ export class PlexWatchlistService {
     }
 
     this.log.debug(
-      `Collected ${userKeyMap.size} users and ${allKeys.size} unique keys`,
       { userIds: Array.from(userKeyMap.keys()) },
+      `Collected ${userKeyMap.size} users and ${allKeys.size} unique keys`,
     )
     return { allKeys, userKeyMap }
   }
@@ -811,11 +811,11 @@ export class PlexWatchlistService {
       .filter((id) => !Number.isNaN(id))
 
     this.log.debug(
-      `Looking up existing items with ${userIds.length} users and ${keys.length} unique keys`,
       {
         userIds,
         keySample: keys.slice(0, 5),
       },
+      `Looking up existing items with ${userIds.length} users and ${keys.length} unique keys`,
     )
 
     const allItemsByKey = await this.dbService.getWatchlistItemsByKeys(keys)
@@ -998,16 +998,16 @@ export class PlexWatchlistService {
 
             if (failed.length > 0) {
               this.log.warn(
-                `${failed.length} of ${insertedResults.length} Plex label sync operations failed`,
                 {
                   failures: failed,
                 },
+                `${failed.length} of ${insertedResults.length} Plex label sync operations failed`,
               )
             }
           } catch (error) {
             this.log.warn(
-              'Failed to sync immediate Plex labeling for newly inserted items',
               { error },
+              'Failed to sync immediate Plex labeling for newly inserted items',
             )
           }
         }
@@ -1195,8 +1195,8 @@ export class PlexWatchlistService {
           const normalizedGuid = guid.toLowerCase()
           if (existingGuidsSnapshot.has(normalizedGuid)) {
             this.log.debug(
-              `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync`,
               { title: item.title, guid },
+              `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync`,
             )
             existedBeforeSync = true
             break
@@ -1265,14 +1265,17 @@ export class PlexWatchlistService {
       `Linking ${linkItems.length} existing items to ${existingItemsToLink.size} users`,
     )
 
-    this.log.debug('Linking details:', {
-      userCounts,
-      sample: linkItems.slice(0, 3).map((item) => ({
-        title: item.title,
-        key: item.key,
-        userId: item.user_id,
-      })),
-    })
+    this.log.debug(
+      {
+        userCounts,
+        sample: linkItems.slice(0, 3).map((item) => ({
+          title: item.title,
+          key: item.key,
+          userId: item.user_id,
+        })),
+      },
+      'Linking details:',
+    )
 
     try {
       await this.dbService.createWatchlistItems(linkItems, {
@@ -1288,9 +1291,8 @@ export class PlexWatchlistService {
       // Queue re-added items for label synchronization
       await this.handleLinkedItemsForLabelSync(linkItems)
     } catch (error) {
-      this.log.error('Error linking existing items', {
-        error: error instanceof Error ? error.message : String(error),
-      })
+      const err = error instanceof Error ? error : new Error(String(error))
+      this.log.error({ error: err }, 'Error linking existing items')
       throw error
     }
   }
@@ -1337,11 +1339,14 @@ export class PlexWatchlistService {
       userMap.set(item.user_id, item)
     }
 
-    this.log.debug(`Created key map with ${map.size} unique keys`, {
-      totalItems: existingItems.length,
-      skippedItems: skippedCount,
-      uniqueKeys: map.size,
-    })
+    this.log.debug(
+      {
+        totalItems: existingItems.length,
+        skippedItems: skippedCount,
+        uniqueKeys: map.size,
+      },
+      `Created key map with ${map.size} unique keys`,
+    )
 
     return map
   }
@@ -1367,9 +1372,12 @@ export class PlexWatchlistService {
       const lookupKey = item.key || item.id
 
       if (!lookupKey) {
-        this.log.warn(`Item missing key/id for user ${user.username}`, {
-          title: item.title,
-        })
+        this.log.warn(
+          {
+            title: item.title,
+          },
+          `Item missing key/id for user ${user.username}`,
+        )
         continue
       }
 
@@ -1390,10 +1398,13 @@ export class PlexWatchlistService {
             itemsToLink.add(this.createWatchlistItem(user, item, templateItem))
             toBeLinkedCount++
           } else {
-            this.log.warn(`Invalid template item for ${lookupKey}`, {
-              hasTitle: !!templateItem?.title,
-              hasType: !!templateItem?.type,
-            })
+            this.log.warn(
+              {
+                hasTitle: !!templateItem?.title,
+                hasType: !!templateItem?.type,
+              },
+              `Invalid template item for ${lookupKey}`,
+            )
             newItems.add(item)
             newItemsCount++
           }
@@ -1405,13 +1416,16 @@ export class PlexWatchlistService {
       `Processed ${items.size} items for user ${user.username}: ${newItemsCount} new, ${toBeLinkedCount} to link`,
     )
 
-    this.log.debug(`Detailed separation results for ${user.username}:`, {
-      total: items.size,
-      newItems: newItemsCount,
-      existingInDb: existingItemsCount,
-      alreadyLinked: alreadyLinkedCount,
-      toBeLinked: toBeLinkedCount,
-    })
+    this.log.debug(
+      {
+        total: items.size,
+        newItems: newItemsCount,
+        existingInDb: existingItemsCount,
+        alreadyLinked: alreadyLinkedCount,
+        toBeLinked: toBeLinkedCount,
+      },
+      `Detailed separation results for ${user.username}:`,
+    )
 
     return { newItems, itemsToLink }
   }
@@ -1824,14 +1838,15 @@ export class PlexWatchlistService {
             )
           }
         } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error))
           this.log.error(
-            'Failed to cleanup labels for removed watchlist items:',
             {
-              error: error instanceof Error ? error.message : String(error),
-              stack: error instanceof Error ? error.stack : undefined,
+              error: err,
+              stack: err.stack,
               userId,
               removedKeys,
             },
+            'Failed to cleanup labels for removed watchlist items:',
           )
           // Continue with deletion even if label cleanup fails
         }
@@ -1928,16 +1943,20 @@ export class PlexWatchlistService {
         )
       }
     } catch (error) {
-      this.log.error('Failed to queue re-added items for label sync:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        linkItemsCount: linkItems.length,
-        linkItemsSample: linkItems.slice(0, 3).map((item) => ({
-          title: item.title,
-          key: item.key,
-          user_id: item.user_id,
-        })),
-      })
+      const err = error instanceof Error ? error : new Error(String(error))
+      this.log.error(
+        {
+          error: err,
+          stack: err.stack,
+          linkItemsCount: linkItems.length,
+          linkItemsSample: linkItems.slice(0, 3).map((item) => ({
+            title: item.title,
+            key: item.key,
+            user_id: item.user_id,
+          })),
+        },
+        'Failed to queue re-added items for label sync:',
+      )
       throw error // Re-throw to see the full error chain
     }
   }
@@ -2175,8 +2194,8 @@ export class PlexWatchlistService {
         matchedItemIds.push(pendingItem.id)
 
         this.log.debug(
-          `Matched item "${pendingItem.title}" to user ${bestMatch.user.username}'s item "${bestMatch.item.title}" (score: ${bestMatch.score})`,
           { userId: bestMatch.user.userId, matchScore: bestMatch.score },
+          `Matched item "${pendingItem.title}" to user ${bestMatch.user.username}'s item "${bestMatch.item.title}" (score: ${bestMatch.score})`,
         )
 
         // Check if notification should be sent
@@ -2197,12 +2216,12 @@ export class PlexWatchlistService {
             const normalizedGuid = guid.toLowerCase()
             if (existingGuidsSnapshot.has(normalizedGuid)) {
               this.log.debug(
-                `Skipping notification for "${bestMatch.item.title}" - item with GUID ${guid} already existed before sync for user ID ${bestMatch.user.userId}`,
                 {
                   itemTitle: bestMatch.item.title,
                   guid,
                   userId: bestMatch.user.userId,
                 },
+                `Skipping notification for "${bestMatch.item.title}" - item with GUID ${guid} already existed before sync for user ID ${bestMatch.user.userId}`,
               )
               shouldSendNotification = false
               break
@@ -2226,8 +2245,8 @@ export class PlexWatchlistService {
           !enabledUserIds.has(bestMatch.user.userId)
         ) {
           this.log.debug(
-            `Skipping RSS notification for "${bestMatch.item.title}" - user ${bestMatch.user.username} (ID: ${bestMatch.user.userId}) has sync disabled`,
             { userId: bestMatch.user.userId, itemTitle: bestMatch.item.title },
+            `Skipping RSS notification for "${bestMatch.item.title}" - user ${bestMatch.user.username} (ID: ${bestMatch.user.userId}) has sync disabled`,
           )
         }
       }
@@ -2248,12 +2267,12 @@ export class PlexWatchlistService {
             if (existingItems && existingItems.length > 0) {
               existsInDatabase = true
               this.log.debug(
-                `RSS item "${pendingItem.title}" already exists in watchlist database with GUID ${guid}`,
                 {
                   itemTitle: pendingItem.title,
                   guid,
                   matchCount: existingItems.length,
                 },
+                `RSS item "${pendingItem.title}" already exists in watchlist database with GUID ${guid}`,
               )
               break
             }
@@ -2270,8 +2289,8 @@ export class PlexWatchlistService {
           duplicateItemIds.push(pendingItem.id)
         } else {
           this.log.warn(
-            `No match found for ${source} RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
             { itemTitle: pendingItem.title },
+            `No match found for ${source} RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
           )
           matchedItemIds.push(pendingItem.id)
         }
@@ -2284,12 +2303,15 @@ export class PlexWatchlistService {
       await this.dbService.deleteTempRssItems(allIdsToDelete)
     }
 
-    this.log.debug(`${source} RSS matching complete`, {
-      totalChecked: pendingItems.length,
-      matched: matchCount,
-      unmatched: noMatchCount,
-      duplicatesCleanedUp: duplicateCount,
-      remainingUnmatched: noMatchCount - duplicateCount,
-    })
+    this.log.debug(
+      {
+        totalChecked: pendingItems.length,
+        matched: matchCount,
+        unmatched: noMatchCount,
+        duplicatesCleanedUp: duplicateCount,
+        remainingUnmatched: noMatchCount - duplicateCount,
+      },
+      `${source} RSS matching complete`,
+    )
   }
 }

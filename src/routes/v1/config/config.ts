@@ -181,8 +181,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               await fastify.tautulli.initialize()
             } catch (error) {
               fastify.log.error(
-                'Failed to initialize Tautulli after enabling:',
-                error,
+                { error },
+                'Failed to initialize Tautulli after enabling',
               )
             }
           }

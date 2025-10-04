@@ -69,7 +69,7 @@ export class StatusService {
           this.log.debug({ tagResults }, 'Applied user tags to Sonarr content')
         } catch (tagError) {
           this.log.error(
-            { err: tagError },
+            { error: tagError },
             'Error applying user tags to Sonarr content',
           )
         }
@@ -120,7 +120,7 @@ export class StatusService {
           this.log.debug({ tagResults }, 'Applied user tags to Radarr content')
         } catch (tagError) {
           this.log.error(
-            { err: tagError },
+            { error: tagError },
             'Error applying user tags to Radarr content',
           )
         }
@@ -192,8 +192,8 @@ export class StatusService {
                 }
               } catch (error) {
                 this.log.error(
+                  { error },
                   `Failed to backfill grabbed status for ${item.title}:`,
-                  error,
                 )
               }
             } else {
@@ -267,8 +267,8 @@ export class StatusService {
                 }
               } catch (error) {
                 this.log.error(
+                  { error },
                   `Failed to backfill grabbed status for ${item.title}:`,
-                  error,
                 )
               }
             } else {
@@ -833,8 +833,8 @@ export class StatusService {
       return itemsCopied
     } catch (error) {
       this.log.error(
+        { error },
         `Error in syncInstance for ${instanceType} ${instanceId}:`,
-        error,
       )
       throw error
     }
@@ -1022,7 +1022,14 @@ export class StatusService {
           }
         } catch (itemError) {
           this.log.error(
-            `Error processing movie ${item.title} during analysis: ${itemError}`,
+            {
+              error:
+                itemError instanceof Error
+                  ? itemError
+                  : new Error(String(itemError)),
+              title: item.title,
+            },
+            'Error processing movie during analysis',
           )
         }
       }
@@ -1364,7 +1371,14 @@ export class StatusService {
           }
         } catch (itemError) {
           this.log.error(
-            `Error processing show ${item.title} during analysis: ${itemError}`,
+            {
+              error:
+                itemError instanceof Error
+                  ? itemError
+                  : new Error(String(itemError)),
+              title: item.title,
+            },
+            'Error processing show during analysis',
           )
         }
       }
@@ -1625,8 +1639,8 @@ export class StatusService {
               }
             } catch (error) {
               this.log.error(
+                { error },
                 `Error syncing Radarr instance ${instance.id} (${instance.name}):`,
-                error,
               )
               return {
                 id: instance.id,
@@ -1670,8 +1684,8 @@ export class StatusService {
               }
             } catch (error) {
               this.log.error(
+                { error },
                 `Error syncing Sonarr instance ${instance.id} (${instance.name}):`,
-                error,
               )
               return {
                 id: instance.id,
@@ -1706,10 +1720,13 @@ export class StatusService {
         0,
       )
 
-      this.log.info('Sync completed for all instances. Results:', {
-        radarr: `${radarrResults.length} instances, ${totalRadarrItems} items copied`,
-        sonarr: `${sonarrResults.length} instances, ${totalSonarrItems} items copied`,
-      })
+      this.log.info(
+        {
+          radarr: `${radarrResults.length} instances, ${totalRadarrItems} items copied`,
+          sonarr: `${sonarrResults.length} instances, ${totalSonarrItems} items copied`,
+        },
+        'Completed sync for all configured instances',
+      )
 
       return {
         radarr: radarrResults,

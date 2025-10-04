@@ -87,8 +87,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       })
     } catch (error) {
       fastify.log.error(
-        'Failed to initialize metadata-refresh scheduled job:',
-        error,
+        { error },
+        'Failed to initialize metadata-refresh scheduled job',
       )
     }
   })

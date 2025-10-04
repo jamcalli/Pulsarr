@@ -42,8 +42,8 @@ export default fp(
 
               if (result.errors.length > 0) {
                 fastify.log.error(
+                  { errors: result.errors },
                   `Session monitoring completed with ${result.errors.length} errors`,
-                  result.errors,
                 )
               } else if (
                 result.processedSessions > 0 ||
@@ -153,8 +153,8 @@ export default fp(
         }
       } catch (error) {
         fastify.log.error(
-          'Failed to initialize plex session monitor scheduled jobs:',
-          error,
+          { error },
+          'Failed to initialize plex session monitor scheduled jobs',
         )
       }
     })
