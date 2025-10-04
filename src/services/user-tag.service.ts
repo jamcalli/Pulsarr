@@ -1191,16 +1191,19 @@ export class UserTagService {
       if (this.cleanupOrphanedTags) {
         try {
           orphanedCleanup = await this.cleanupOrphanedUserTags()
-          this.log.info('Completed orphaned user tag cleanup', {
-            sonarr: {
-              removed: orphanedCleanup.sonarr.removed,
-              failed: orphanedCleanup.sonarr.failed,
+          this.log.info(
+            {
+              sonarr: {
+                removed: orphanedCleanup.sonarr.removed,
+                failed: orphanedCleanup.sonarr.failed,
+              },
+              radarr: {
+                removed: orphanedCleanup.radarr.removed,
+                failed: orphanedCleanup.radarr.failed,
+              },
             },
-            radarr: {
-              removed: orphanedCleanup.radarr.removed,
-              failed: orphanedCleanup.radarr.failed,
-            },
-          })
+            'Orphaned user tag cleanup summary',
+          )
         } catch (cleanupError) {
           this.log.error(
             { error: cleanupError },
@@ -1209,18 +1212,21 @@ export class UserTagService {
         }
       }
 
-      this.log.info('User tag synchronization complete', {
-        sonarr: {
-          tagged: sonarrResults.tagged,
-          skipped: sonarrResults.skipped,
-          failed: sonarrResults.failed,
+      this.log.info(
+        {
+          sonarr: {
+            tagged: sonarrResults.tagged,
+            skipped: sonarrResults.skipped,
+            failed: sonarrResults.failed,
+          },
+          radarr: {
+            tagged: radarrResults.tagged,
+            skipped: radarrResults.skipped,
+            failed: radarrResults.failed,
+          },
         },
-        radarr: {
-          tagged: radarrResults.tagged,
-          skipped: radarrResults.skipped,
-          failed: radarrResults.failed,
-        },
-      })
+        'User tag synchronization summary',
+      )
 
       return {
         sonarr: sonarrResults,
@@ -1913,13 +1919,16 @@ export class UserTagService {
       const totalTagsDeleted =
         sonarrResults.tagsDeleted + radarrResults.tagsDeleted
 
-      this.log.info('User tag removal complete', {
-        itemsUpdated: totalItemsUpdated,
-        tagsRemoved: totalTagsRemoved,
-        tagsDeleted: totalTagsDeleted,
-        sonarr: sonarrResults,
-        radarr: radarrResults,
-      })
+      this.log.info(
+        {
+          itemsUpdated: totalItemsUpdated,
+          tagsRemoved: totalTagsRemoved,
+          tagsDeleted: totalTagsDeleted,
+          sonarr: sonarrResults,
+          radarr: radarrResults,
+        },
+        'User tag removal summary',
+      )
 
       return {
         sonarr: sonarrResults,

@@ -801,8 +801,8 @@ export class PlexServerService {
       // Only log as debug if the error is related to not finding the playlist
       // This is expected behavior when we're checking if a playlist exists before creating it
       this.log.debug(
+        { error },
         `Could not find playlist "${title}" for user "${username}":`,
-        error,
       )
       return null
     }
@@ -869,8 +869,8 @@ export class PlexServerService {
       return playlistId || null
     } catch (error) {
       this.log.error(
+        { error },
         `Error creating playlist "${options.title}" for user "${username}":`,
-        error,
       )
       return null
     }
@@ -968,8 +968,8 @@ export class PlexServerService {
           }
         } catch (error) {
           this.log.error(
+            { error },
             `Error processing protection playlist for user "${user.username}":`,
-            error,
           )
         }
       }
@@ -1074,8 +1074,8 @@ export class PlexServerService {
       return allItems
     } catch (error) {
       this.log.error(
+        { error },
         `Error getting playlist items for user "${username}":`,
-        error,
       )
       return new Set()
     }
@@ -1166,8 +1166,8 @@ export class PlexServerService {
               }
             } catch (itemError) {
               this.log.error(
+                { error: itemError },
                 `Error processing protected item "${item.title}":`,
-                itemError,
               )
             }
           }
@@ -1177,8 +1177,8 @@ export class PlexServerService {
           )
         } catch (error) {
           this.log.error(
+            { error },
             `Error processing protected items for user "${username}":`,
-            error,
           )
         }
       }
@@ -1208,8 +1208,8 @@ export class PlexServerService {
       return protectedGuids
     } catch (error) {
       this.log.error(
+        { error },
         'Error getting protected items from user playlists:',
-        error,
       )
       return protectedGuids
     }
@@ -1511,8 +1511,8 @@ export class PlexServerService {
       return data
     } catch (error) {
       this.log.error(
+        { error },
         `Error fetching show metadata for key ${ratingKey}:`,
-        error,
       )
       return null
     }
@@ -1564,7 +1564,6 @@ export class PlexServerService {
       const results = data.MediaContainer.Metadata || []
 
       this.log.debug(
-        `Found ${results.length} results for GUID: ${normalizedGuid}`,
         {
           normalizedGuid,
           originalGuid: guid,
@@ -1572,6 +1571,7 @@ export class PlexServerService {
           containerSize: data.MediaContainer.size,
           fullUrl: url.toString(),
         },
+        `Found ${results.length} results for GUID: ${normalizedGuid}`,
       )
       return results
     } catch (error) {
@@ -1627,8 +1627,8 @@ export class PlexServerService {
       return metadata
     } catch (error) {
       this.log.error(
+        { error },
         `Error fetching metadata for rating key "${ratingKey}":`,
-        error,
       )
       return null
     }
@@ -1652,11 +1652,11 @@ export class PlexServerService {
 
       if (!metadata.Label) {
         this.log.debug(
-          `No Label field found in metadata for rating key ${ratingKey}`,
           {
             metadataKeys: Object.keys(metadata),
             hasLabel: !!metadata.Label,
           },
+          `No Label field found in metadata for rating key ${ratingKey}`,
         )
         return []
       }
@@ -1665,17 +1665,17 @@ export class PlexServerService {
         (tag): tag is string => typeof tag === 'string' && tag.length > 0,
       )
       this.log.debug(
-        `Successfully retrieved ${labels.length} labels for rating key ${ratingKey}`,
         {
           labels,
           labelObjects: metadata.Label,
         },
+        `Successfully retrieved ${labels.length} labels for rating key ${ratingKey}`,
       )
       return labels
     } catch (error) {
       this.log.error(
+        { error },
         `Error getting current labels for rating key "${ratingKey}":`,
-        error,
       )
       return []
     }
@@ -1694,11 +1694,11 @@ export class PlexServerService {
   ): Promise<boolean> {
     try {
       this.log.debug(
-        `Starting removeSpecificLabels for rating key ${ratingKey}`,
         {
           labelsToRemove,
           labelCount: labelsToRemove.length,
         },
+        `Starting removeSpecificLabels for rating key ${ratingKey}`,
       )
 
       if (labelsToRemove.length === 0) {
@@ -1710,18 +1710,21 @@ export class PlexServerService {
       this.log.debug(`Fetching current labels for rating key ${ratingKey}`)
       const currentLabels = await this.getCurrentLabels(ratingKey)
 
-      this.log.debug(`Current labels retrieved for rating key ${ratingKey}`, {
-        currentLabels,
-        currentLabelCount: currentLabels.length,
-      })
+      this.log.debug(
+        {
+          currentLabels,
+          currentLabelCount: currentLabels.length,
+        },
+        `Current labels retrieved for rating key ${ratingKey}`,
+      )
 
       if (currentLabels.length === 0) {
         this.log.warn(
-          `No current labels found for rating key ${ratingKey}, cannot remove labels that don't exist. This may indicate a metadata API issue or the labels have already been removed.`,
           {
             labelsToRemove,
             ratingKey,
           },
+          `No current labels found for rating key ${ratingKey}, cannot remove labels that don't exist. This may indicate a metadata API issue or the labels have already been removed.`,
         )
         return true
       }
@@ -1735,12 +1738,12 @@ export class PlexServerService {
       )
 
       this.log.debug(
-        `Removing labels from rating key ${ratingKey}: ${currentLabels.length} -> ${filteredLabels.length}`,
         {
           currentLabels,
           labelsToRemove,
           filteredLabels,
         },
+        `Removing labels from rating key ${ratingKey}: ${currentLabels.length} -> ${filteredLabels.length}`,
       )
 
       // Handle the case where all labels would be removed via the canonical path
@@ -1756,8 +1759,8 @@ export class PlexServerService {
       return result
     } catch (error) {
       this.log.error(
+        { error },
         `Error removing specific labels from rating key "${ratingKey}":`,
-        error,
       )
       return false
     }
@@ -1837,8 +1840,8 @@ export class PlexServerService {
       return true
     } catch (error) {
       this.log.error(
+        { error },
         `Error updating labels for rating key "${ratingKey}":`,
-        error,
       )
       return false
     }
