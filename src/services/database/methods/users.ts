@@ -466,8 +466,8 @@ export async function hasUsersWithApprovalConfig(
     return Number(approvalRulesCount?.count || 0) > 0
   } catch (error) {
     this.log.error(
-      'Error checking for users with approval configuration:',
-      error,
+      { error },
+      'Error checking for users with approval configuration',
     )
     return true // Conservative: assume we have approval config on error
   }

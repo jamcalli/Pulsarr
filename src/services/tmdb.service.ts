@@ -217,8 +217,8 @@ export class TmdbService {
 
     if (typeof data === 'object' && data !== null && isTmdbError(data)) {
       this.log.warn(
+        { status_message: data.status_message },
         `TMDB API returned error for movie ${tmdbId}:`,
-        data.status_message,
       )
       return null
     }
@@ -256,8 +256,8 @@ export class TmdbService {
 
     if (typeof data === 'object' && data !== null && isTmdbError(data)) {
       this.log.warn(
+        { status_message: data.status_message },
         `TMDB API returned error for TV show ${tmdbId}:`,
-        data.status_message,
       )
       return null
     }
@@ -298,8 +298,8 @@ export class TmdbService {
 
     if (typeof data === 'object' && data !== null && isTmdbError(data)) {
       this.log.warn(
+        { status_message: data.status_message },
         `TMDB API returned error for movie watch providers ${tmdbId}:`,
-        data.status_message,
       )
       return null
     }
@@ -340,8 +340,8 @@ export class TmdbService {
 
     if (typeof data === 'object' && data !== null && isTmdbError(data)) {
       this.log.warn(
+        { status_message: data.status_message },
         `TMDB API returned error for TV watch providers ${tmdbId}:`,
-        data.status_message,
       )
       return null
     }
@@ -377,8 +377,8 @@ export class TmdbService {
 
       if (typeof data === 'object' && data !== null && isTmdbError(data)) {
         this.log.warn(
+          { status_message: data.status_message },
           'TMDB API returned error for regions:',
-          data.status_message,
         )
         return null
       }
@@ -440,8 +440,8 @@ export class TmdbService {
 
       if (typeof data === 'object' && data !== null && isTmdbError(data)) {
         this.log.warn(
+          { status_message: data.status_message },
           `TMDB API returned error for TVDB ID ${tvdbId}:`,
-          data.status_message,
         )
         return null
       }

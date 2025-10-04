@@ -97,13 +97,13 @@ export class PendingLabelSyncProcessorService {
 
       if (result.updated > 0) {
         this.log.info(
-          `Processed ${result.updated} pending label syncs using direct Plex key access`,
           {
             processed: result.processed,
             updated: result.updated,
             failed: result.failed,
             pending: result.pending,
           },
+          `Processed ${result.updated} pending label syncs using direct Plex key access`,
         )
       }
 

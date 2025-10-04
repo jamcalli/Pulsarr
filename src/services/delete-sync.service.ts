@@ -489,19 +489,22 @@ export class DeleteSyncService {
    * Logs the current delete configuration
    */
   private logDeleteConfiguration(dryRun: boolean): void {
-    this.log.debug('Delete configuration:', {
-      deletionMode: this.config.deletionMode ?? 'watchlist',
-      deleteMovie: this.config.deleteMovie,
-      deleteEndedShow: this.config.deleteEndedShow,
-      deleteContinuingShow: this.config.deleteContinuingShow,
-      deleteFiles: this.config.deleteFiles,
-      respectUserSyncSetting: this.config.respectUserSyncSetting,
-      deleteSyncNotify: this.config.deleteSyncNotify,
-      enablePlexPlaylistProtection: this.config.enablePlexPlaylistProtection,
-      plexProtectionPlaylistName: this.config.plexProtectionPlaylistName,
-      removedTagPrefix: this.config.removedTagPrefix ?? '<not-set>',
-      dryRun: dryRun,
-    })
+    this.log.debug(
+      {
+        deletionMode: this.config.deletionMode ?? 'watchlist',
+        deleteMovie: this.config.deleteMovie,
+        deleteEndedShow: this.config.deleteEndedShow,
+        deleteContinuingShow: this.config.deleteContinuingShow,
+        deleteFiles: this.config.deleteFiles,
+        respectUserSyncSetting: this.config.respectUserSyncSetting,
+        deleteSyncNotify: this.config.deleteSyncNotify,
+        enablePlexPlaylistProtection: this.config.enablePlexPlaylistProtection,
+        plexProtectionPlaylistName: this.config.plexProtectionPlaylistName,
+        removedTagPrefix: this.config.removedTagPrefix ?? '<not-set>',
+        dryRun: dryRun,
+      },
+      'Delete configuration',
+    )
   }
 
   /**
@@ -1118,13 +1121,13 @@ export class DeleteSyncService {
             await service.deleteFromRadarr(movie, this.config.deleteFiles)
           } else {
             this.log.debug(
-              `[DRY RUN] Movie "${movie.title}" identified for deletion from Radarr instance ${instanceId}`,
               {
                 title: movie.title,
                 instanceId,
                 deleteFiles: this.config.deleteFiles,
                 guids: movieGuidList,
               },
+              `[DRY RUN] Movie "${movie.title}" identified for deletion from Radarr instance ${instanceId}`,
             )
           }
 
@@ -1132,13 +1135,13 @@ export class DeleteSyncService {
 
           if (!dryRun) {
             this.log.info(
-              `Successfully deleted movie "${movie.title}" from Radarr instance ${instanceId}`,
               {
                 title: movie.title,
                 instanceId,
                 deleteFiles: this.config.deleteFiles,
                 guids: movieGuidList,
               },
+              `Successfully deleted movie "${movie.title}" from Radarr instance ${instanceId}`,
             )
           }
         } catch (error) {
@@ -1300,7 +1303,6 @@ export class DeleteSyncService {
             await service.deleteFromSonarr(show, this.config.deleteFiles)
           } else {
             this.log.debug(
-              `[DRY RUN] ${isContinuing ? 'Continuing' : 'Ended'} show "${show.title}" identified for deletion from Sonarr instance ${instanceId}`,
               {
                 title: show.title,
                 instanceId,
@@ -1308,6 +1310,7 @@ export class DeleteSyncService {
                 deleteFiles: this.config.deleteFiles,
                 guids: showGuidList,
               },
+              `[DRY RUN] ${isContinuing ? 'Continuing' : 'Ended'} show "${show.title}" identified for deletion from Sonarr instance ${instanceId}`,
             )
           }
 
@@ -1320,7 +1323,6 @@ export class DeleteSyncService {
 
           if (!dryRun) {
             this.log.info(
-              `Successfully deleted ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" from Sonarr instance ${instanceId}`,
               {
                 title: show.title,
                 instanceId,
@@ -1328,6 +1330,7 @@ export class DeleteSyncService {
                 deleteFiles: this.config.deleteFiles,
                 guids: showGuidList,
               },
+              `Successfully deleted ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" from Sonarr instance ${instanceId}`,
             )
           }
         } catch (error) {
@@ -1395,11 +1398,11 @@ export class DeleteSyncService {
 
     // Log detailed summary at debug level
     this.log.debug(
-      `Detailed tag-based deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary:`,
       {
         ...deletionSummary,
         dryRun,
       },
+      `Detailed tag-based deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary`,
     )
 
     // Resources will be cleared in finally block of run() method
@@ -1823,10 +1826,13 @@ export class DeleteSyncService {
           // Standardized identifiers enable cross-platform content matching
         } catch (error) {
           malformedItems++
-          this.log.warn(`Malformed guids in watchlist item "${item.title}":`, {
-            error: error instanceof Error ? error.message : String(error),
-            guids: item.guids,
-          })
+          this.log.warn(
+            {
+              error: error instanceof Error ? error.message : String(error),
+              guids: item.guids,
+            },
+            `Malformed guids in watchlist item "${item.title}"`,
+          )
         }
       }
 
@@ -1984,13 +1990,13 @@ export class DeleteSyncService {
               await service.deleteFromRadarr(movie, this.config.deleteFiles)
             } else {
               this.log.debug(
-                `[DRY RUN] Movie "${movie.title}" identified for deletion from Radarr instance ${instanceId}`,
                 {
                   title: movie.title,
                   instanceId,
                   deleteFiles: this.config.deleteFiles,
                   guids: movieGuidList,
                 },
+                `[DRY RUN] Movie "${movie.title}" identified for deletion from Radarr instance ${instanceId}`,
               )
             }
 
@@ -1998,13 +2004,13 @@ export class DeleteSyncService {
 
             if (!dryRun) {
               this.log.info(
-                `Successfully deleted movie "${movie.title}" from Radarr instance ${instanceId}`,
                 {
                   title: movie.title,
                   instanceId,
                   deleteFiles: this.config.deleteFiles,
                   guids: movieGuidList,
                 },
+                `Successfully deleted movie "${movie.title}" from Radarr instance ${instanceId}`,
               )
             }
           } catch (error) {
@@ -2145,7 +2151,6 @@ export class DeleteSyncService {
               await service.deleteFromSonarr(show, this.config.deleteFiles)
             } else {
               this.log.debug(
-                `[DRY RUN] ${isContinuing ? 'Continuing' : 'Ended'} show "${show.title}" identified for deletion from Sonarr instance ${instanceId}`,
                 {
                   title: show.title,
                   instanceId,
@@ -2153,6 +2158,7 @@ export class DeleteSyncService {
                   deleteFiles: this.config.deleteFiles,
                   guids: showGuidList,
                 },
+                `[DRY RUN] ${isContinuing ? 'Continuing' : 'Ended'} show "${show.title}" identified for deletion from Sonarr instance ${instanceId}`,
               )
             }
 
@@ -2165,7 +2171,6 @@ export class DeleteSyncService {
 
             if (!dryRun) {
               this.log.info(
-                `Successfully deleted ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" from Sonarr instance ${instanceId}`,
                 {
                   title: show.title,
                   instanceId,
@@ -2173,6 +2178,7 @@ export class DeleteSyncService {
                   deleteFiles: this.config.deleteFiles,
                   guids: showGuidList,
                 },
+                `Successfully deleted ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" from Sonarr instance ${instanceId}`,
               )
             }
           } catch (error) {
@@ -2242,11 +2248,11 @@ export class DeleteSyncService {
 
     // Log detailed summary at debug level
     this.log.debug(
-      `Detailed deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary:`,
       {
         ...deletionSummary,
         dryRun,
       },
+      `Detailed deletion ${dryRun ? '(DRY RUN)' : 'operation'} summary`,
     )
 
     // Resources will be cleared in finally block of run() method
