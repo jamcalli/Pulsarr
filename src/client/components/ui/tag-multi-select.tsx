@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { api } from '@/lib/api'
 
 interface TagOption {
   label: string
@@ -97,7 +98,7 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
       // Both use natural loading timing based on network requests
       
       const response = await fetch(
-        `/v1/${instanceType}/tags?instanceId=${instanceId}`,
+        api(`/v1/${instanceType}/tags?instanceId=${instanceId}`),
         { signal }
       )
 

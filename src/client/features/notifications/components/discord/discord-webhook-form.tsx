@@ -24,6 +24,7 @@ import {
   type WebhookFormSchema,
   webhookFormSchema,
 } from '@/features/notifications/schemas/form-schemas'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 interface DiscordWebhookFormProps {
@@ -120,7 +121,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
       }
 
       // Call our backend validation endpoint
-      const response = await fetch('/v1/notifications/validatewebhook', {
+      const response = await fetch(api('/v1/notifications/validatewebhook'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

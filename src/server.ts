@@ -1,4 +1,5 @@
 import { createLoggerConfig, validLogLevels } from '@utils/logger.js'
+import { normalizeBasePath } from '@utils/url.js'
 import closeWithGrace from 'close-with-grace'
 import Fastify from 'fastify'
 import fp from 'fastify-plugin'
@@ -32,7 +33,16 @@ async function init() {
     disableRequestLogging: !enableRequestLogging,
   })
 
-  await app.register(fp(serviceApp))
+  // Register the app with optional base path prefix
+  const basePath = normalizeBasePath(process.env.basePath)
+  if (basePath !== '/') {
+    // Register app under a prefix
+    await app.register(fp(serviceApp), { prefix: basePath })
+  } else {
+    // Register app at root
+    await app.register(fp(serviceApp))
+  }
+
   await app.ready()
 
   const configLogLevel = app.config.logLevel

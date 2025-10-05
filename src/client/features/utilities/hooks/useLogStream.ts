@@ -1,6 +1,7 @@
 import type { LogEntry } from '@root/schemas/logs/logs.schema.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 
 interface LogStreamOptions {
   tail: number
@@ -76,7 +77,7 @@ export function useLogStream(
   }, [options])
 
   const buildStreamUrl = useCallback((streamOptions: LogStreamOptions) => {
-    const url = new URL('/v1/logs/stream', window.location.origin)
+    const url = new URL(api('/v1/logs/stream'), window.location.origin)
     url.searchParams.set('tail', streamOptions.tail.toString())
     url.searchParams.set('follow', streamOptions.follow.toString())
     if (streamOptions.filter) {

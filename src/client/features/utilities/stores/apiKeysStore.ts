@@ -10,6 +10,7 @@ import type { ApiKey } from '@root/types/api-key.types'
 import { z } from 'zod'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { api } from '@/lib/api'
 
 export interface ApiKeysState {
   apiKeys: ApiKey[]
@@ -157,7 +158,7 @@ export const useApiKeysStore = create<ApiKeysState>()(
 
         // Execute fetch
         const [response] = await Promise.all([
-          fetch(url, fetchOptions),
+          fetch(api(url), fetchOptions),
           minimumLoadingTime,
         ])
 
@@ -264,7 +265,7 @@ export const useApiKeysStore = create<ApiKeysState>()(
               : Promise.resolve()
 
           // Fetch data
-          const responsePromise = fetch('/v1/api-keys/api-keys')
+          const responsePromise = fetch(api('/v1/api-keys/api-keys'))
 
           // Wait for both the response and (if initial load) the minimum time
           const [response] = await Promise.all([

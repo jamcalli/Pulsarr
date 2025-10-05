@@ -6,6 +6,7 @@ import type { ErrorResponse } from '@root/schemas/common/error.schema.js'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { hasValidPlexTokens } from '@utils/plex.js'
 import { createTemporaryAdminSession } from '@utils/session.js'
+import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 
 export const options = {
@@ -314,4 +315,33 @@ export default async function serviceApp(
   })
 
   await fastify.vite.ready()
+
+  // Inject runtime base path into HTML responses
+  fastify.addHook('onSend', async (_request, reply, payload) => {
+    // Only modify HTML responses for the SPA
+    const contentType = reply.getHeader('content-type')
+    if (
+      typeof contentType === 'string' &&
+      contentType.includes('text/html') &&
+      typeof payload === 'string'
+    ) {
+      // Get normalized base path from config
+      const normalizedBasePath = normalizeBasePath(fastify.config.basePath)
+
+      // Inject base path and asset helper as inline script before any other scripts
+      const injectedScript = `<script>
+        window.__BASE_PATH__ = ${JSON.stringify(normalizedBasePath)};
+        window.__assetBase = function(filename) {
+          return window.__BASE_PATH__ === '/' ? '/' + filename : window.__BASE_PATH__ + '/' + filename;
+        };
+      </script>`
+      const modifiedPayload = payload.replace(
+        '<head>',
+        `<head>${injectedScript}`,
+      )
+
+      return modifiedPayload
+    }
+    return payload
+  })
 }

@@ -7,6 +7,7 @@ import type {
 } from '@root/schemas/content-router/content-router.schema'
 import { createContext, useCallback, useState } from 'react'
 import { toast } from 'sonner'
+import { api } from '@/lib/api'
 
 export interface UseContentRouterParams {
   targetType: 'radarr' | 'sonarr'
@@ -41,7 +42,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     setError(null)
     try {
       const response = await fetch(
-        `/v1/content-router/rules/target/${targetType}`,
+        api(`/v1/content-router/rules/target/${targetType}`),
       )
 
       if (!response.ok) {
@@ -80,7 +81,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        const response = await fetch('/v1/content-router/rules', {
+        const response = await fetch(api('/v1/content-router/rules'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -116,7 +117,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        const response = await fetch(`/v1/content-router/rules/${id}`, {
+        const response = await fetch(api(`/v1/content-router/rules/${id}`), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -154,7 +155,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     setError(null)
 
     try {
-      const response = await fetch(`/v1/content-router/rules/${id}`, {
+      const response = await fetch(api(`/v1/content-router/rules/${id}`), {
         method: 'DELETE',
       })
 
@@ -189,13 +190,16 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       )
 
       const toggleData: ContentRouterRuleToggle = { enabled }
-      const response = await fetch(`/v1/content-router/rules/${id}/toggle`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        api(`/v1/content-router/rules/${id}/toggle`),
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(toggleData),
         },
-        body: JSON.stringify(toggleData),
-      })
+      )
 
       if (!response.ok) {
         // Revert on non-2xx status

@@ -1,5 +1,6 @@
 import fastifySwagger from '@fastify/swagger'
 import apiReference from '@scalar/fastify-api-reference'
+import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import {
@@ -199,8 +200,13 @@ export default fp(
      * Register Swagger UI
      * @see {@link https://github.com/fastify/fastify-swagger-ui}
      */
+    const normalizedBasePath = normalizeBasePath(fastify.config.basePath)
+    const swaggerRoute =
+      normalizedBasePath === '/'
+        ? '/api/docs'
+        : (`${normalizedBasePath}/api/docs` as `/${string}`)
     await fastify.register(apiReference, {
-      routePrefix: '/api/docs',
+      routePrefix: swaggerRoute,
     })
   },
   {

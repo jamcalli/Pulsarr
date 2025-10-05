@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 import { discordWebhookStringSchema } from '@/utils/discord-webhook-validation'
 
@@ -183,7 +184,7 @@ export function usePublicContentNotifications() {
 
       try {
         // Call the same backend validation endpoint used by notifications
-        const response = await fetch('/v1/notifications/validatewebhook', {
+        const response = await fetch(api('/v1/notifications/validatewebhook'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

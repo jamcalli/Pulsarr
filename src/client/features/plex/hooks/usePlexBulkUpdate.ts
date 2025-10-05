@@ -6,6 +6,7 @@ import type {
   PlexUserTableRow,
   PlexUserUpdates,
 } from '@/features/plex/store/types'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -42,7 +43,7 @@ export function usePlexBulkUpdate() {
       }
 
       const [response] = await Promise.all([
-        fetch('/v1/users/bulk', {
+        fetch(api('/v1/users/bulk'), {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

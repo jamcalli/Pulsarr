@@ -484,8 +484,8 @@ export class ApprovalService {
               }
             } catch (error) {
               this.log.error(
-                `Failed to auto-approve expired request ${request.id}:`,
-                error,
+                { error },
+                `Failed to auto-approve expired request ${request.id}`,
               )
             }
           }

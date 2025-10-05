@@ -1,6 +1,7 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { api } from '@/lib/api'
 
 interface UseTmdbMetadataOptions {
   region?: string
@@ -100,7 +101,7 @@ export function useTmdbMetadata(
       
       const queryString = queryParams.toString()
       const metadataResponse = await fetch(
-        `/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}${queryString ? `?${queryString}` : ''}`,
+        api(`/v1/tmdb/metadata/${encodeURIComponent(guidToUse)}${queryString ? `?${queryString}` : ''}`),
         {
           signal: abortController.signal,
           cache: regionOnly ? 'no-store' : 'default',

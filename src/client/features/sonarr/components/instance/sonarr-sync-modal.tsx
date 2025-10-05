@@ -11,6 +11,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { useSyncProgress } from '@/features/sonarr/hooks/instance/useSyncProgress'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { api } from '@/lib/api'
 
 interface SonarrSyncModalProps {
   open: boolean
@@ -137,7 +138,7 @@ export function SonarrSyncModal({
           const instanceToSync = syncedInstances[currentInstanceIndex]
 
           const response = await fetch(
-            `/v1/sync/instance/${instanceToSync}?type=sonarr`,
+            api(`/v1/sync/instance/${instanceToSync}?type=sonarr`),
             {
               method: 'POST',
             },

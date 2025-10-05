@@ -69,6 +69,7 @@ import {
   type ConditionalRouteFormValues,
 } from '@/features/content-router/schemas/content-router.schema'
 import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
+import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -411,7 +412,7 @@ const AccordionRouteCard = ({
     setError(null)
 
     try {
-      const response = await fetch('/v1/content-router/plugins/metadata')
+      const response = await fetch(api('/v1/content-router/plugins/metadata'))
 
       if (!response.ok) {
         throw new Error(

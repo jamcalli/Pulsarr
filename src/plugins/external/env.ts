@@ -69,6 +69,10 @@ const schema = {
   type: 'object',
   required: ['port'],
   properties: {
+    basePath: {
+      type: 'string',
+      default: '/',
+    },
     baseUrl: {
       type: 'string',
       default: 'http://localhost',
@@ -506,8 +510,8 @@ export default fp(
         return JSON.parse(value)
       } catch (error) {
         fastify.log.warn(
-          `Failed to parse ${fieldName} config, using default:`,
-          error,
+          { error },
+          `Failed to parse ${fieldName} config, using default`,
         )
         return defaultValue
       }

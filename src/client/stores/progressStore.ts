@@ -1,6 +1,7 @@
 import type { ProgressEvent } from '@root/types/progress.types.js'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { api } from '@/lib/api'
 
 interface ProgressState {
   eventSource: EventSource | null
@@ -40,7 +41,7 @@ export const useProgressStore = create<ProgressState>()(
       set({ isConnecting: true })
       console.log('Initializing persistent EventSource connection')
 
-      const eventSource = new EventSource('/v1/progress')
+      const eventSource = new EventSource(api('/v1/progress'))
 
       eventSource.onopen = () => {
         console.log('EventSource connection established')

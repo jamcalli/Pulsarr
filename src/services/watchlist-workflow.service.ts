@@ -226,8 +226,8 @@ export class WatchlistWorkflowService {
         await this.cleanupExistingManualSync()
       } catch (cleanupError) {
         this.log.warn(
-          'Error during cleanup of existing manual sync jobs (non-fatal)',
           { error: cleanupError },
+          'Error during cleanup of existing manual sync jobs (non-fatal)',
         )
         // Continue despite this error
       }
@@ -254,8 +254,8 @@ export class WatchlistWorkflowService {
 
         if ('error' in rssFeeds) {
           this.log.warn(
-            'Failed to generate RSS feeds, falling back to manual sync',
             { error: rssFeeds.error },
+            'Failed to generate RSS feeds, falling back to manual sync',
           )
           this.isUsingRssFallback = true
           this.rssMode = false
@@ -284,9 +284,12 @@ export class WatchlistWorkflowService {
         this.log.debug('Setting up periodic reconciliation job')
         await this.setupPeriodicReconciliation()
       } catch (reconciliationError) {
-        this.log.warn('Error setting up periodic reconciliation (non-fatal)', {
-          error: reconciliationError,
-        })
+        this.log.warn(
+          {
+            error: reconciliationError,
+          },
+          'Failed to setup periodic reconciliation',
+        )
         // Continue despite this error
       }
 
@@ -511,7 +514,7 @@ export class WatchlistWorkflowService {
           `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
         )
       } catch (error) {
-        this.log.warn('Error syncing statuses (non-fatal):', error)
+        this.log.warn({ error }, 'Error syncing statuses (non-fatal)')
         // Continue despite this error
       }
     } catch (error) {
@@ -543,9 +546,12 @@ export class WatchlistWorkflowService {
       this.previousSelfItems = this.createItemMap(
         results.self.users[0].watchlist,
       )
-      this.log.debug('Initialized self RSS snapshot', {
-        itemCount: this.previousSelfItems.size,
-      })
+      this.log.debug(
+        {
+          itemCount: this.previousSelfItems.size,
+        },
+        'Initialized self RSS feed snapshot',
+      )
     }
 
     // Process friends watchlist
@@ -553,9 +559,12 @@ export class WatchlistWorkflowService {
       this.previousFriendsItems = this.createItemMap(
         results.friends.users[0].watchlist,
       )
-      this.log.debug('Initialized friends RSS snapshot', {
-        itemCount: this.previousFriendsItems.size,
-      })
+      this.log.debug(
+        {
+          itemCount: this.previousFriendsItems.size,
+        },
+        'Initialized friends RSS feed snapshot',
+      )
     }
   }
 
@@ -716,7 +725,10 @@ export class WatchlistWorkflowService {
 
       if (!previousItem) {
         // New item
-        this.log.debug('New item detected', { guid, title: currentItem.title })
+        this.log.debug(
+          { guid, title: currentItem.title },
+          'New item detected in RSS feed',
+        )
         changes.add(this.convertToTempItem(currentItem))
       } else {
         const hasChanged =
@@ -729,19 +741,22 @@ export class WatchlistWorkflowService {
           )
 
         if (hasChanged) {
-          this.log.debug('Modified item detected', {
-            guid,
-            title: currentItem.title,
-            changes: {
-              title: previousItem.title !== currentItem.title,
-              type: previousItem.type !== currentItem.type,
-              thumb: previousItem.thumb !== currentItem.thumb,
-              genres: !this.arraysEqualIgnoreOrder(
-                this.safeParseArray(previousItem.genres),
-                this.safeParseArray(currentItem.genres),
-              ),
+          this.log.debug(
+            {
+              guid,
+              title: currentItem.title,
+              changes: {
+                title: previousItem.title !== currentItem.title,
+                type: previousItem.type !== currentItem.type,
+                thumb: previousItem.thumb !== currentItem.thumb,
+                genres: !this.arraysEqualIgnoreOrder(
+                  this.safeParseArray(previousItem.genres),
+                  this.safeParseArray(currentItem.genres),
+                ),
+              },
             },
-          })
+            'Item metadata changed in RSS feed',
+          )
           changes.add(this.convertToTempItem(currentItem))
         }
       }
@@ -750,17 +765,23 @@ export class WatchlistWorkflowService {
     // Check for removed items (for logging purposes)
     previousItems.forEach((item, guid) => {
       if (!currentItems.has(guid)) {
-        this.log.debug('Removed item detected', { guid, title: item.title })
+        this.log.debug(
+          { guid, title: item.title },
+          'Item removed from RSS feed',
+        )
       }
     })
 
     // Log summary if changes were detected
     if (changes.size > 0) {
-      this.log.info('Detected RSS feed changes', {
-        changedItemsCount: changes.size,
-        previousItemsCount: previousItems.size,
-        currentItemsCount: currentItems.size,
-      })
+      this.log.info(
+        {
+          changedItemsCount: changes.size,
+          previousItemsCount: previousItems.size,
+          currentItemsCount: currentItems.size,
+        },
+        'RSS feed changes detected',
+      )
     }
 
     return changes
@@ -1007,10 +1028,10 @@ export class WatchlistWorkflowService {
       const tvdbId = extractTvdbId(item.guids)
       if (tvdbId === 0) {
         this.log.warn(
-          `Show ${item.title} has no valid TVDB ID, skipping verification`,
           {
             guids: item.guids,
           },
+          `Show ${item.title} has no valid TVDB ID, skipping verification`,
         )
         return false
       }
@@ -1028,12 +1049,12 @@ export class WatchlistWorkflowService {
         // If service unavailable, skip processing and let periodic sync handle it
         if (!result.checked) {
           this.log.warn(
-            `Sonarr instance ${instance.name} unavailable for ${item.title}, skipping immediate processing`,
             {
               error: result.error,
               serviceName: result.serviceName,
               instanceId: result.instanceId,
             },
+            `Sonarr instance ${instance.name} unavailable for ${item.title}, skipping immediate processing`,
           )
           return false
         }
@@ -1067,10 +1088,10 @@ export class WatchlistWorkflowService {
       const tmdbId = extractTmdbId(item.guids)
       if (tmdbId === 0) {
         this.log.warn(
-          `Movie ${item.title} has no valid TMDB ID, skipping verification`,
           {
             guids: item.guids,
           },
+          `Movie ${item.title} has no valid TMDB ID, skipping verification`,
         )
         return false
       }
@@ -1088,12 +1109,12 @@ export class WatchlistWorkflowService {
         // If service unavailable, skip processing and let periodic sync handle it
         if (!result.checked) {
           this.log.warn(
-            `Radarr instance ${instance.name} unavailable for ${item.title}, skipping immediate processing`,
             {
               error: result.error,
               serviceName: result.serviceName,
               instanceId: result.instanceId,
             },
+            `Radarr instance ${instance.name} unavailable for ${item.title}, skipping immediate processing`,
           )
           return false
         }
@@ -1133,10 +1154,10 @@ export class WatchlistWorkflowService {
       const tmdbId = extractTmdbId(item.guids)
       if (tmdbId === 0) {
         this.log.warn(
-          `Movie ${item.title} has no valid TMDB ID, skipping Radarr processing`,
           {
             guids: item.guids,
           },
+          `Movie ${item.title} has no valid TMDB ID, skipping Radarr processing`,
         )
         return false
       }
@@ -1196,10 +1217,10 @@ export class WatchlistWorkflowService {
       const tvdbId = extractTvdbId(item.guids)
       if (tvdbId === 0) {
         this.log.warn(
-          `Show ${item.title} has no valid TVDB ID, skipping Sonarr processing`,
           {
             guids: item.guids,
           },
+          `Show ${item.title} has no valid TVDB ID, skipping Sonarr processing`,
         )
         return false
       }
@@ -1302,10 +1323,13 @@ export class WatchlistWorkflowService {
         const hasMatch = series.guids.some((guid) => watchlistGuids.has(guid))
         if (!hasMatch) {
           unmatchedShows++
-          this.log.debug(`Show in Sonarr not in watchlist: ${series.title}`, {
-            title: series.title,
-            guids: series.guids,
-          })
+          this.log.debug(
+            {
+              title: series.title,
+              guids: series.guids,
+            },
+            'Sonarr series not matched to any watchlist item',
+          )
         }
       }
 
@@ -1313,10 +1337,13 @@ export class WatchlistWorkflowService {
         const hasMatch = movie.guids.some((guid) => watchlistGuids.has(guid))
         if (!hasMatch) {
           unmatchedMovies++
-          this.log.debug(`Movie in Radarr not in watchlist: ${movie.title}`, {
-            title: movie.title,
-            guids: movie.guids,
-          })
+          this.log.debug(
+            {
+              title: movie.title,
+              guids: movie.guids,
+            },
+            'Radarr movie not matched to any watchlist item',
+          )
         }
       }
 
@@ -1393,12 +1420,12 @@ export class WatchlistWorkflowService {
 
             if (!serviceCheck.checked) {
               this.log.warn(
-                `Sonarr service unavailable for ${tempItem.title}, skipping addition during sync`,
                 {
                   error: serviceCheck.error,
                   serviceName: serviceCheck.serviceName,
                   instanceId: serviceCheck.instanceId,
                 },
+                `Sonarr service unavailable for ${tempItem.title}, skipping addition during sync`,
               )
               continue
             }
@@ -1463,12 +1490,12 @@ export class WatchlistWorkflowService {
 
             if (!serviceCheck.checked) {
               this.log.warn(
-                `Radarr service unavailable for ${tempItem.title}, skipping addition during sync`,
                 {
                   error: serviceCheck.error,
                   serviceName: serviceCheck.serviceName,
                   instanceId: serviceCheck.instanceId,
                 },
+                `Radarr service unavailable for ${tempItem.title}, skipping addition during sync`,
               )
               continue
             }
