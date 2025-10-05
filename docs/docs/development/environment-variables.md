@@ -133,6 +133,8 @@ deleteFiles=true                       # Delete files from disk setting
 respectUserSyncSetting=true            # Only delete content from users with sync enabled
 deleteSyncNotify=none                  # Notify of delete sync status: 'none', 'message', 'webhook', 'both', 'all', 'discord-only', 'apprise-only', 'webhook-only', 'dm-only', 'discord-webhook', 'discord-message', 'discord-both' (default: none)
 deleteSyncNotifyOnlyOnDeletion=false   # Only send notifications when items are actually deleted
+deleteSyncTrackedOnly=false            # Only delete content tracked in the approval system (default: false)
+deleteSyncCleanupApprovals=false       # Cleanup approval requests after content is deleted (default: false)
 approvalNotify=none                    # Notify of approval status: 'none', 'all', 'discord-only', 'apprise-only', 'webhook-only', 'dm-only', 'discord-webhook', 'discord-message', 'discord-both' (default: none)
 maxDeletionPrevention=10               # Safeguard to prevent mass deletion. % of total library to allow during delete sync
 
