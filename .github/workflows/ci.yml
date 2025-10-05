@@ -8,6 +8,9 @@ on:
     branches: [ master, develop ]
     paths-ignore:
       - 'title.ratings.filtered.tsv.gz'
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest

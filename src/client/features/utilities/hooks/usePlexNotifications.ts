@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 // Minimum loading delay
@@ -72,7 +73,7 @@ export function usePlexNotifications() {
       // Add a timeout to prevent hanging
       const timeoutId = setTimeout(() => controller.abort(), 5000)
 
-      const response = await fetch('/v1/plex/notification-status', {
+      const response = await fetch(api('/v1/plex/notification-status'), {
         signal,
       })
 
@@ -123,7 +124,7 @@ export function usePlexNotifications() {
         )
 
         // Execute fetch with the abort signal
-        const responsePromise = fetch('/v1/plex/notification-status', {
+        const responsePromise = fetch(api('/v1/plex/notification-status'), {
           signal,
         })
 
@@ -209,7 +210,7 @@ export function usePlexNotifications() {
         )
 
         // Send the request to configure Plex notifications with abort signal
-        const responsePromise = fetch('/v1/plex/configure-notifications', {
+        const responsePromise = fetch(api('/v1/plex/configure-notifications'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -298,7 +299,7 @@ export function usePlexNotifications() {
       )
 
       // Send the request to remove Plex notifications with abort signal
-      const responsePromise = fetch('/v1/plex/remove-notifications', {
+      const responsePromise = fetch(api('/v1/plex/remove-notifications'), {
         method: 'DELETE',
         signal: signal, // Add the abort signal to the fetch request
       })

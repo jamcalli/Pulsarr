@@ -8,6 +8,7 @@ import type {
   SonarrConnectionValues,
   SonarrInstance,
 } from '@/features/sonarr/types/types'
+import { api } from '@/lib/api'
 
 /**
  * Checks if a Sonarr instance is missing required configuration fields.
@@ -64,7 +65,7 @@ export function useSonarrConnection(
         setTimeout(resolve, 500),
       )
       const [response] = await Promise.all([
-        fetch('/v1/sonarr/test-connection', {
+        fetch(api('/v1/sonarr/test-connection'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ baseUrl, apiKey }),
@@ -217,7 +218,7 @@ export function useSonarrConnection(
               ])
               if (!isValid) return
 
-              const createResponse = await fetch('/v1/sonarr/instances', {
+              const createResponse = await fetch(api('/v1/sonarr/instances'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

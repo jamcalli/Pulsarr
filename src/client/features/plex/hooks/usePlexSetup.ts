@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
 
 export function usePlexSetup() {
@@ -16,11 +17,11 @@ export function usePlexSetup() {
 
     // Sync watchlists
     await Promise.all([
-      fetch('/v1/plex/self-watchlist-token', {
+      fetch(api('/v1/plex/self-watchlist-token'), {
         method: 'GET',
         headers: { Accept: 'application/json' },
       }),
-      fetch('/v1/plex/others-watchlist-token', {
+      fetch(api('/v1/plex/others-watchlist-token'), {
         method: 'GET',
         headers: { Accept: 'application/json' },
       }),

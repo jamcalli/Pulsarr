@@ -8,6 +8,7 @@ import type {
   RadarrConnectionValues,
   RadarrInstance,
 } from '@/features/radarr/types/types'
+import { api } from '@/lib/api'
 
 /**
  * Checks if a Radarr instance is missing required configuration fields.
@@ -64,7 +65,7 @@ export function useRadarrConnection(
         setTimeout(resolve, 500),
       )
       const [response] = await Promise.all([
-        fetch('/v1/radarr/test-connection', {
+        fetch(api('/v1/radarr/test-connection'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ baseUrl, apiKey }),
@@ -217,7 +218,7 @@ export function useRadarrConnection(
               ])
               if (!isValid) return
 
-              const createResponse = await fetch('/v1/radarr/instances', {
+              const createResponse = await fetch(api('/v1/radarr/instances'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

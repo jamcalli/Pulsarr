@@ -12,6 +12,7 @@ import {
   transformQuotaFormToAPI,
 } from '@/features/plex/quota/form-schema'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import { api } from '@/lib/api'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -30,7 +31,7 @@ export function useQuotaManagement() {
 
   const updateSeparateQuotas = useCallback(
     async (userId: number, quotaData: UpdateSeparateQuotas) => {
-      const response = await fetch(`/v1/quota/users/${userId}/separate`, {
+      const response = await fetch(api(`/v1/quota/users/${userId}/separate`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -53,7 +54,7 @@ export function useQuotaManagement() {
   )
 
   const deleteQuota = useCallback(async (userId: number) => {
-    const response = await fetch(`/v1/quota/users/${userId}`, {
+    const response = await fetch(api(`/v1/quota/users/${userId}`), {
       method: 'DELETE',
     })
 
@@ -70,7 +71,7 @@ export function useQuotaManagement() {
   }, [])
 
   const getQuotaStatus = useCallback(async (userId: number) => {
-    const response = await fetch(`/v1/quota/users/${userId}/status`)
+    const response = await fetch(api(`/v1/quota/users/${userId}/status`))
 
     if (!response.ok) {
       throw new Error(`Failed to get quota status: ${response.status}`)
