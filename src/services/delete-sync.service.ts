@@ -39,6 +39,11 @@ export class DeleteSyncService {
   private protectedGuids: Set<string> | null = null
 
   /**
+   * Cache of tracked content GUIDs (from approval_requests) for efficient lookup
+   */
+  private trackedGuids: Set<string> | null = null
+
+  /**
    * Cache of tags by instance for efficient lookup during tag-based deletion
    * Key format: "{instanceType}-{instanceId}" to avoid collisions between Sonarr and Radarr
    */
@@ -48,6 +53,11 @@ export class DeleteSyncService {
    * Flag to prevent concurrent runs of the delete sync process
    */
   private _running = false
+
+  /**
+   * Set to track GUIDs of deleted content for approval cleanup
+   */
+  private deletedGuids: Set<string> = new Set()
 
   /**
    * Creates a new DeleteSyncService instance
@@ -94,6 +104,43 @@ export class DeleteSyncService {
    */
   private get radarrManager() {
     return this.fastify.radarrManager
+  }
+
+  /**
+   * Ensures tracked content cache is loaded once per workflow
+   * Loads GUIDs from approval_requests table for tracked-only deletion
+   */
+  private async ensureTrackedCache(): Promise<Set<string> | null> {
+    // Return cached value if already loaded
+    if (this.trackedGuids !== null) {
+      return this.trackedGuids
+    }
+
+    // Only load if tracked-only deletion is enabled
+    if (!this.config.deleteSyncTrackedOnly) {
+      this.trackedGuids = null
+      return null
+    }
+
+    try {
+      this.log.debug('Loading tracked content GUIDs from approval requests...')
+
+      // Get all GUIDs from approved and auto-approved requests
+      this.trackedGuids = await this.dbService.getTrackedContentGuids()
+
+      this.log.info(
+        `Loaded ${this.trackedGuids.size} tracked content GUIDs from approval system`,
+      )
+
+      return this.trackedGuids
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Error loading tracked content GUIDs from approval requests',
+      )
+      this.trackedGuids = null
+      throw error
+    }
   }
 
   /**
@@ -178,6 +225,27 @@ export class DeleteSyncService {
   }
 
   /**
+   * Returns true if any of the provided GUIDs exist in the tracked set.
+   * When deleteSyncTrackedOnly is enabled, only tracked content can be deleted.
+   * Optional onHit callback lets callers log the first matching GUID.
+   */
+  private isAnyGuidTracked(
+    guidList: string[],
+    onHit?: (guid: string) => void,
+  ): boolean {
+    if (!this.config.deleteSyncTrackedOnly || !this.trackedGuids) {
+      return true // If tracked-only is disabled, consider all content as tracked
+    }
+    for (const guid of guidList) {
+      if (this.trackedGuids.has(guid)) {
+        onHit?.(guid)
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
    * Gets the normalized removal tag prefix (trimmed and lowercased)
    * @returns The normalized removal tag prefix, or empty string if not configured
    */
@@ -234,8 +302,10 @@ export class DeleteSyncService {
 
       // Clear tag cache at the start of each run
       this.clearTagCache()
-      // Reset per-run caches to ensure fresh protection data every run
+      // Reset per-run caches to ensure fresh data every run
       this.protectedGuids = null
+      this.trackedGuids = null
+      this.deletedGuids.clear()
       this.fastify.plexServerService.clearWorkflowCaches()
 
       // Make sure the Plex server is initialized if needed
@@ -333,7 +403,43 @@ export class DeleteSyncService {
           `Found ${allWatchlistItems.size} unique GUIDs across all watchlists${this.config.respectUserSyncSetting ? ' (respecting user sync settings)' : ''}`,
         )
 
-        // Step 7: Load protection playlists if enabled (needed for accurate safety check)
+        // Step 7: Load tracked content GUIDs if tracked-only deletion is enabled
+        if (this.config.deleteSyncTrackedOnly) {
+          this.log.info(
+            'Tracked-only deletion is enabled - only content from approval system will be deleted',
+          )
+
+          try {
+            const trackedGuids = await this.ensureTrackedCache()
+
+            if (!trackedGuids) {
+              throw new Error('Failed to retrieve tracked content GUIDs')
+            }
+
+            this.log.info(
+              `Found ${trackedGuids.size} tracked content GUIDs in approval system`,
+            )
+          } catch (trackedError) {
+            const errorMsg = `Error retrieving tracked content GUIDs: ${trackedError instanceof Error ? trackedError.message : String(trackedError)}`
+            this.log.error(
+              {
+                error:
+                  trackedError instanceof Error
+                    ? trackedError
+                    : new Error(String(trackedError)),
+              },
+              errorMsg,
+            )
+            return this.createSafetyTriggeredResult(
+              errorMsg,
+              dryRun,
+              existingSeries.length,
+              existingMovies.length,
+            )
+          }
+        }
+
+        // Step 8: Load protection playlists if enabled (needed for accurate safety check)
         let protectedGuids: Set<string> | null = null
         if (this.config.enablePlexPlaylistProtection) {
           if (!this.fastify.plexServerService.isInitialized()) {
@@ -414,7 +520,30 @@ export class DeleteSyncService {
         `Delete sync operation${dryRun ? ' (DRY RUN)' : ''} completed successfully`,
       )
 
-      // Step 10: Send notifications about results if enabled
+      // Step 10: Clean up approval requests for deleted content if enabled
+      if (
+        this.config.deleteSyncCleanupApprovals &&
+        !dryRun &&
+        this.deletedGuids.size > 0
+      ) {
+        try {
+          this.log.info(
+            `Cleaning up ${this.deletedGuids.size} approval request records for deleted content`,
+          )
+          const cleanedCount =
+            await this.dbService.deleteApprovalRequestsByGuids(
+              this.deletedGuids,
+            )
+          this.log.info(`Cleaned up ${cleanedCount} approval request records`)
+        } catch (cleanupError) {
+          this.log.error(
+            { error: cleanupError },
+            'Error cleaning up approval requests for deleted content',
+          )
+        }
+      }
+
+      // Step 11: Send notifications about results if enabled
       await this.sendNotificationsIfEnabled(result, dryRun)
 
       return result
@@ -426,6 +555,8 @@ export class DeleteSyncService {
       // Always reset caches, even if we exited early
       this.fastify.plexServerService.clearWorkflowCaches()
       this.protectedGuids = null
+      this.trackedGuids = null
+      this.deletedGuids.clear()
       this.clearTagCache()
     }
   }
@@ -898,6 +1029,42 @@ export class DeleteSyncService {
 
     // Cache is already cleared at the start of run() method
 
+    // Load tracked content GUIDs if tracked-only deletion is enabled
+    if (this.config.deleteSyncTrackedOnly) {
+      this.log.info(
+        'Tracked-only deletion is enabled - only content from approval system will be deleted',
+      )
+
+      try {
+        const trackedGuids = await this.ensureTrackedCache()
+
+        if (!trackedGuids) {
+          throw new Error('Failed to retrieve tracked content GUIDs')
+        }
+
+        this.log.info(
+          `Found ${trackedGuids.size} tracked content GUIDs in approval system`,
+        )
+      } catch (trackedError) {
+        const errorMsg = `Error retrieving tracked content GUIDs: ${trackedError instanceof Error ? trackedError.message : String(trackedError)}`
+        this.log.error(
+          {
+            error:
+              trackedError instanceof Error
+                ? trackedError
+                : new Error(String(trackedError)),
+          },
+          errorMsg,
+        )
+        return this.createSafetyTriggeredResult(
+          errorMsg,
+          dryRun,
+          existingSeries.length,
+          existingMovies.length,
+        )
+      }
+    }
+
     // Check if Plex playlist protection is enabled
     if (this.config.enablePlexPlaylistProtection) {
       this.log.info(
@@ -1070,8 +1237,25 @@ export class DeleteSyncService {
             continue
           }
 
-          // Parse GUIDs once and reuse for both protection check and deletion
+          // Parse GUIDs once and reuse for all checks
           const movieGuidList = parseGuids(movie.guids)
+
+          // Check if the movie is tracked by Pulsarr (if tracked-only deletion is enabled)
+          if (this.config.deleteSyncTrackedOnly) {
+            const isTracked = this.isAnyGuidTracked(movieGuidList, (guid) =>
+              this.log.debug(
+                `Movie "${movie.title}" is tracked by GUID "${guid}"`,
+              ),
+            )
+
+            if (!isTracked) {
+              this.log.debug(
+                `Skipping deletion of movie "${movie.title}" as it is not tracked in approval system (tracked-only deletion enabled)`,
+              )
+              moviesSkipped++
+              continue
+            }
+          }
 
           // Check if the movie is protected based on its GUIDs
           if (this.config.enablePlexPlaylistProtection) {
@@ -1252,8 +1436,29 @@ export class DeleteSyncService {
             continue
           }
 
-          // Parse GUIDs once and reuse for both protection check and deletion
+          // Parse GUIDs once and reuse for all checks
           const showGuidList = parseGuids(show.guids)
+
+          // Check if the show is tracked by Pulsarr (if tracked-only deletion is enabled)
+          if (this.config.deleteSyncTrackedOnly) {
+            const isTracked = this.isAnyGuidTracked(showGuidList, (guid) =>
+              this.log.debug(
+                `Show "${show.title}" is tracked by GUID "${guid}"`,
+              ),
+            )
+
+            if (!isTracked) {
+              this.log.debug(
+                `Skipping deletion of ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" as it is not tracked in approval system (tracked-only deletion enabled)`,
+              )
+              if (isContinuing) {
+                continuingShowsSkipped++
+              } else {
+                endedShowsSkipped++
+              }
+              continue
+            }
+          }
 
           // Check if the show is protected based on its GUIDs
           if (this.config.enablePlexPlaylistProtection) {
@@ -1958,6 +2163,23 @@ export class DeleteSyncService {
               }
             }
 
+            // Check if the movie is tracked by Pulsarr (if tracked-only deletion is enabled)
+            if (this.config.deleteSyncTrackedOnly) {
+              const isTracked = this.isAnyGuidTracked(movieGuidList, (guid) =>
+                this.log.debug(
+                  `Movie "${movie.title}" is tracked by GUID "${guid}"`,
+                ),
+              )
+
+              if (!isTracked) {
+                this.log.debug(
+                  `Skipping deletion of movie "${movie.title}" as it is not tracked in approval system (tracked-only deletion enabled)`,
+                )
+                moviesSkipped++
+                continue
+              }
+            }
+
             // Get the appropriate Radarr service for this instance
             const service = this.radarrManager.getRadarrService(instanceId)
 
@@ -1982,6 +2204,11 @@ export class DeleteSyncService {
                 `Deleting movie "${movie.title}" (delete files: ${this.config.deleteFiles})`,
               )
               await service.deleteFromRadarr(movie, this.config.deleteFiles)
+
+              // Track deleted GUIDs for approval cleanup
+              for (const guid of movieGuidList) {
+                this.deletedGuids.add(guid)
+              }
             } else {
               this.log.debug(
                 {
@@ -2114,6 +2341,27 @@ export class DeleteSyncService {
               }
             }
 
+            // Check if the show is tracked by Pulsarr (if tracked-only deletion is enabled)
+            if (this.config.deleteSyncTrackedOnly) {
+              const isTracked = this.isAnyGuidTracked(showGuidList, (guid) =>
+                this.log.debug(
+                  `Show "${show.title}" is tracked by GUID "${guid}"`,
+                ),
+              )
+
+              if (!isTracked) {
+                this.log.debug(
+                  `Skipping deletion of ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" as it is not tracked in approval system (tracked-only deletion enabled)`,
+                )
+                if (isContinuing) {
+                  continuingShowsSkipped++
+                } else {
+                  endedShowsSkipped++
+                }
+                continue
+              }
+            }
+
             // Get the appropriate Sonarr service for this instance
             const service = this.sonarrManager.getSonarrService(instanceId)
 
@@ -2143,6 +2391,11 @@ export class DeleteSyncService {
                 `Deleting ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" (delete files: ${this.config.deleteFiles})`,
               )
               await service.deleteFromSonarr(show, this.config.deleteFiles)
+
+              // Track deleted GUIDs for approval cleanup
+              for (const guid of showGuidList) {
+                this.deletedGuids.add(guid)
+              }
             } else {
               this.log.debug(
                 {

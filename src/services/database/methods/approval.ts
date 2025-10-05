@@ -537,6 +537,97 @@ export async function getApprovalRequestsByCriteria(
 }
 
 /**
+ * Retrieves all unique content GUIDs from approval requests with 'approved' or 'auto_approved' status.
+ *
+ * Used by delete sync to determine which content has been tracked by Pulsarr through the approval system.
+ * When deleteSyncTrackedOnly is enabled, only content with GUIDs in this set will be eligible for deletion.
+ *
+ * @returns A Set of all GUIDs from approved and auto-approved content
+ */
+export async function getTrackedContentGuids(
+  this: DatabaseService,
+): Promise<Set<string>> {
+  const rows = await this.knex('approval_requests')
+    .select('content_guids')
+    .whereIn('status', ['approved', 'auto_approved'])
+
+  const guidSet = new Set<string>()
+
+  for (const row of rows) {
+    try {
+      const guids = this.safeJsonParse(
+        row.content_guids,
+        [],
+        'approval.content_guids',
+      )
+      for (const guid of guids) {
+        if (guid) {
+          guidSet.add(guid)
+        }
+      }
+    } catch (error) {
+      this.log.warn(
+        { error, content_guids: row.content_guids },
+        'Error parsing content_guids from approval_requests',
+      )
+    }
+  }
+
+  return guidSet
+}
+
+/**
+ * Deletes approval requests by matching content GUIDs.
+ *
+ * Used by delete sync cleanup to remove approval records for content that has been deleted.
+ * Matches any approval request where at least one GUID in content_guids matches the provided set.
+ *
+ * @param guids - Set of content GUIDs to match against
+ * @returns Number of approval requests deleted
+ */
+export async function deleteApprovalRequestsByGuids(
+  this: DatabaseService,
+  guids: Set<string>,
+): Promise<number> {
+  if (guids.size === 0) {
+    return 0
+  }
+
+  // Convert Set to Array for query
+  const guidArray = Array.from(guids)
+
+  // For PostgreSQL, we can use the @> operator to check if the JSON array contains any of the GUIDs
+  // For SQLite, we need to check each GUID individually with JSON containment
+  const client = this.knex.client.config.client
+
+  if (client === 'pg' || client === 'postgres' || client === 'postgresql') {
+    // PostgreSQL: Use @> (contains) operator with ANY to check if content_guids contains any of our GUIDs
+    const deletedCount = await this.knex('approval_requests')
+      .whereRaw(
+        `content_guids::jsonb ?| array[${guidArray.map(() => '?').join(',')}]`,
+        guidArray,
+      )
+      .del()
+
+    return deletedCount
+  } else {
+    // SQLite: Use JSON_EXTRACT and check each GUID
+    // This is less efficient but works across both databases
+    let query = this.knex('approval_requests')
+
+    for (const guid of guidArray) {
+      query = query.orWhereRaw(
+        "json_extract(content_guids, '$') LIKE ?",
+        `%"${guid}"%`,
+      )
+    }
+
+    const deletedCount = await query.del()
+    return deletedCount
+  }
+}
+
+/**
  * Update the user attribution for an approval request (used for reconciliation).
  *
  * Sets the request's `user_id`, clears `approved_by` (null for auto-approved attribution), and sets `approval_notes`, updating `updated_at`.

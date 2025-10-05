@@ -192,5 +192,20 @@ declare module '@services/database.service.js' {
       userId: number,
       approvalNotes: string,
     ): Promise<ApprovalRequest | null>
+
+    /**
+     * Retrieves all unique content GUIDs from approved and auto-approved requests
+     * Used by delete sync to filter tracked content
+     * @returns Promise resolving to a Set of GUIDs
+     */
+    getTrackedContentGuids(): Promise<Set<string>>
+
+    /**
+     * Deletes approval requests by matching content GUIDs
+     * Used by delete sync cleanup to remove approval records for deleted content
+     * @param guids - Set of content GUIDs to match against
+     * @returns Promise resolving to the number of approval requests deleted
+     */
+    deleteApprovalRequestsByGuids(guids: Set<string>): Promise<number>
   }
 }
