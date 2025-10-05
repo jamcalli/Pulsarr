@@ -388,7 +388,7 @@ export class AppriseNotificationService {
       return success
     } catch (error) {
       this.log.error(
-        { error },
+        { error: error as Error },
         `Error sending media notification to user ${user.name}`,
       )
       return false

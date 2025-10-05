@@ -284,9 +284,12 @@ export class WatchlistWorkflowService {
         this.log.debug('Setting up periodic reconciliation job')
         await this.setupPeriodicReconciliation()
       } catch (reconciliationError) {
-        this.log.warn({
-          error: reconciliationError,
-        })
+        this.log.warn(
+          {
+            error: reconciliationError,
+          },
+          'Failed to setup periodic reconciliation',
+        )
         // Continue despite this error
       }
 
@@ -543,9 +546,12 @@ export class WatchlistWorkflowService {
       this.previousSelfItems = this.createItemMap(
         results.self.users[0].watchlist,
       )
-      this.log.debug({
-        itemCount: this.previousSelfItems.size,
-      })
+      this.log.debug(
+        {
+          itemCount: this.previousSelfItems.size,
+        },
+        'Initialized self RSS feed snapshot',
+      )
     }
 
     // Process friends watchlist
@@ -553,9 +559,12 @@ export class WatchlistWorkflowService {
       this.previousFriendsItems = this.createItemMap(
         results.friends.users[0].watchlist,
       )
-      this.log.debug({
-        itemCount: this.previousFriendsItems.size,
-      })
+      this.log.debug(
+        {
+          itemCount: this.previousFriendsItems.size,
+        },
+        'Initialized friends RSS feed snapshot',
+      )
     }
   }
 
@@ -716,7 +725,10 @@ export class WatchlistWorkflowService {
 
       if (!previousItem) {
         // New item
-        this.log.debug({ guid, title: currentItem.title })
+        this.log.debug(
+          { guid, title: currentItem.title },
+          'New item detected in RSS feed',
+        )
         changes.add(this.convertToTempItem(currentItem))
       } else {
         const hasChanged =
@@ -729,19 +741,22 @@ export class WatchlistWorkflowService {
           )
 
         if (hasChanged) {
-          this.log.debug({
-            guid,
-            title: currentItem.title,
-            changes: {
-              title: previousItem.title !== currentItem.title,
-              type: previousItem.type !== currentItem.type,
-              thumb: previousItem.thumb !== currentItem.thumb,
-              genres: !this.arraysEqualIgnoreOrder(
-                this.safeParseArray(previousItem.genres),
-                this.safeParseArray(currentItem.genres),
-              ),
+          this.log.debug(
+            {
+              guid,
+              title: currentItem.title,
+              changes: {
+                title: previousItem.title !== currentItem.title,
+                type: previousItem.type !== currentItem.type,
+                thumb: previousItem.thumb !== currentItem.thumb,
+                genres: !this.arraysEqualIgnoreOrder(
+                  this.safeParseArray(previousItem.genres),
+                  this.safeParseArray(currentItem.genres),
+                ),
+              },
             },
-          })
+            'Item metadata changed in RSS feed',
+          )
           changes.add(this.convertToTempItem(currentItem))
         }
       }
@@ -750,17 +765,23 @@ export class WatchlistWorkflowService {
     // Check for removed items (for logging purposes)
     previousItems.forEach((item, guid) => {
       if (!currentItems.has(guid)) {
-        this.log.debug({ guid, title: item.title })
+        this.log.debug(
+          { guid, title: item.title },
+          'Item removed from RSS feed',
+        )
       }
     })
 
     // Log summary if changes were detected
     if (changes.size > 0) {
-      this.log.info({
-        changedItemsCount: changes.size,
-        previousItemsCount: previousItems.size,
-        currentItemsCount: currentItems.size,
-      })
+      this.log.info(
+        {
+          changedItemsCount: changes.size,
+          previousItemsCount: previousItems.size,
+          currentItemsCount: currentItems.size,
+        },
+        'RSS feed changes detected',
+      )
     }
 
     return changes
@@ -1302,10 +1323,13 @@ export class WatchlistWorkflowService {
         const hasMatch = series.guids.some((guid) => watchlistGuids.has(guid))
         if (!hasMatch) {
           unmatchedShows++
-          this.log.debug({
-            title: series.title,
-            guids: series.guids,
-          })
+          this.log.debug(
+            {
+              title: series.title,
+              guids: series.guids,
+            },
+            'Sonarr series not matched to any watchlist item',
+          )
         }
       }
 
@@ -1313,10 +1337,13 @@ export class WatchlistWorkflowService {
         const hasMatch = movie.guids.some((guid) => watchlistGuids.has(guid))
         if (!hasMatch) {
           unmatchedMovies++
-          this.log.debug({
-            title: movie.title,
-            guids: movie.guids,
-          })
+          this.log.debug(
+            {
+              title: movie.title,
+              guids: movie.guids,
+            },
+            'Radarr movie not matched to any watchlist item',
+          )
         }
       }
 

@@ -599,7 +599,7 @@ export class PlexLabelSyncService {
           'No match found with available strategies',
         )
       } catch (error) {
-        this.log.debug(error, 'Error during folder matching fallback:')
+        this.log.debug({ error }, 'Error during folder matching fallback:')
       }
 
       this.log.debug(
@@ -2283,13 +2283,16 @@ export class PlexLabelSyncService {
           ...new Set([...nonAppLabels, ...userLabels, ...tagLabels]),
         ]
 
-        this.log.debug({
-          ratingKey,
-          mode: 'remove',
-          preservedCount: nonAppLabels.length,
-          userLabelCount: userLabels.length,
-          tagLabelCount: tagLabels.length,
-        })
+        this.log.debug(
+          {
+            ratingKey,
+            mode: 'remove',
+            preservedCount: nonAppLabels.length,
+            userLabelCount: userLabels.length,
+            tagLabelCount: tagLabels.length,
+          },
+          'Using remove mode - filtering obsolete labels',
+        )
       }
 
       this.log.debug(
@@ -3062,10 +3065,13 @@ export class PlexLabelSyncService {
               if (!user) {
                 // Remove from pending queue if user doesn't exist
                 await this.db.deletePendingLabelSync(pendingSync.id)
-                this.log.debug({
-                  userId: pendingSync.user_id,
-                  title: pendingSync.content_title,
-                })
+                this.log.debug(
+                  {
+                    userId: pendingSync.user_id,
+                    title: pendingSync.content_title,
+                  },
+                  'User not found for pending sync, removing from queue',
+                )
                 return syncResult
               }
 
