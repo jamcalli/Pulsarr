@@ -514,7 +514,7 @@ export class WatchlistWorkflowService {
           `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
         )
       } catch (error) {
-        this.log.warn({ error }, 'Error syncing statuses (non-fatal):')
+        this.log.warn({ error }, 'Error syncing statuses (non-fatal)')
         // Continue despite this error
       }
     } catch (error) {
