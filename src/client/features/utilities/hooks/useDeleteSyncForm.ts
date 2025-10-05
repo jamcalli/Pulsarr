@@ -21,6 +21,8 @@ const ApiDeleteSyncSchema = ConfigSchema.pick({
   deleteSyncNotify: true,
   deleteSyncNotifyOnlyOnDeletion: true,
   maxDeletionPrevention: true,
+  deleteSyncTrackedOnly: true,
+  deleteSyncCleanupApprovals: true,
   removedTagPrefix: true,
   removedTagMode: true,
 })
@@ -124,6 +126,8 @@ export function useDeleteSyncForm() {
       deleteSyncNotify: 'none',
       deleteSyncNotifyOnlyOnDeletion: false,
       maxDeletionPrevention: undefined,
+      deleteSyncTrackedOnly: false,
+      deleteSyncCleanupApprovals: false,
       scheduleTime: undefined,
       dayOfWeek: '*',
       removedTagPrefix: 'pulsarr:removed',
@@ -161,6 +165,9 @@ export function useDeleteSyncForm() {
           deleteSyncNotifyOnlyOnDeletion:
             config.deleteSyncNotifyOnlyOnDeletion || false,
           maxDeletionPrevention: config.maxDeletionPrevention,
+          deleteSyncTrackedOnly: config.deleteSyncTrackedOnly || false,
+          deleteSyncCleanupApprovals:
+            config.deleteSyncCleanupApprovals || false,
           scheduleTime: scheduleTime || form.getValues('scheduleTime'),
           dayOfWeek: dayOfWeek,
           removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
@@ -215,6 +222,8 @@ export function useDeleteSyncForm() {
         deleteSyncNotify: data.deleteSyncNotify,
         deleteSyncNotifyOnlyOnDeletion: data.deleteSyncNotifyOnlyOnDeletion,
         maxDeletionPrevention: data.maxDeletionPrevention,
+        deleteSyncTrackedOnly: data.deleteSyncTrackedOnly,
+        deleteSyncCleanupApprovals: data.deleteSyncCleanupApprovals,
         // We still send the removedTagPrefix value from the form
         // This value is now read-only in Delete Sync but needed for the tag-based deletion logic
         // Always persist the prefix so it is not lost when toggling modes
@@ -278,6 +287,9 @@ export function useDeleteSyncForm() {
           deleteSyncNotifyOnlyOnDeletion:
             updatedConfig.deleteSyncNotifyOnlyOnDeletion || false,
           maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
+          deleteSyncTrackedOnly: updatedConfig.deleteSyncTrackedOnly || false,
+          deleteSyncCleanupApprovals:
+            updatedConfig.deleteSyncCleanupApprovals || false,
           scheduleTime: data.scheduleTime,
           dayOfWeek: data.dayOfWeek,
           removedTagPrefix: updatedConfig.removedTagPrefix || 'pulsarr:removed',
@@ -325,6 +337,8 @@ export function useDeleteSyncForm() {
         deleteSyncNotifyOnlyOnDeletion:
           config.deleteSyncNotifyOnlyOnDeletion || false,
         maxDeletionPrevention: config.maxDeletionPrevention,
+        deleteSyncTrackedOnly: config.deleteSyncTrackedOnly || false,
+        deleteSyncCleanupApprovals: config.deleteSyncCleanupApprovals || false,
         scheduleTime: scheduleTime,
         dayOfWeek: dayOfWeek,
         removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
