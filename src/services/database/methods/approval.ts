@@ -577,54 +577,54 @@ export async function getTrackedContentGuids(
 }
 
 /**
- * Deletes approval requests by matching content GUIDs.
+ * Retrieves approval requests by matching content GUIDs and content type.
  *
- * Used by delete sync cleanup to remove approval records for content that has been deleted.
- * Matches any approval request where at least one GUID in content_guids matches the provided set.
+ * Used by delete sync cleanup to find approval records for content that has been deleted.
+ * Matches any approval request where at least one GUID in content_guids matches the provided set
+ * AND the content_type matches.
  *
  * @param guids - Set of content GUIDs to match against
- * @returns Number of approval requests deleted
+ * @param contentType - Content type to match ('movie' or 'show')
+ * @returns Array of matching approval requests
  */
-export async function deleteApprovalRequestsByGuids(
+export async function getApprovalRequestsByGuids(
   this: DatabaseService,
   guids: Set<string>,
-): Promise<number> {
+  contentType: 'movie' | 'show',
+): Promise<ApprovalRequest[]> {
   if (guids.size === 0) {
-    return 0
+    return []
   }
 
   // Convert Set to Array for query
   const guidArray = Array.from(guids)
 
-  // For PostgreSQL, we can use the @> operator to check if the JSON array contains any of the GUIDs
-  // For SQLite, we need to check each GUID individually with JSON containment
-  const client = this.knex.client.config.client
+  let query = this.knex('approval_requests')
+    .select('approval_requests.*')
+    .where('content_type', contentType)
 
-  if (client === 'pg' || client === 'postgres' || client === 'postgresql') {
-    // PostgreSQL: Use @> (contains) operator with ANY to check if content_guids contains any of our GUIDs
-    const deletedCount = await this.knex('approval_requests')
-      .whereRaw(
-        `content_guids::jsonb ?| array[${guidArray.map(() => '?').join(',')}]`,
-        guidArray,
-      )
-      .del()
-
-    return deletedCount
+  if (this.isPostgres) {
+    // PostgreSQL: Use jsonb_array_elements_text to check if any GUID matches
+    // Note: content_guids is stored as json, so we cast to jsonb first
+    query = query.whereRaw(
+      'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids::jsonb) elem WHERE lower(elem) = ANY(?))',
+      [guidArray.map((g) => g.toLowerCase())],
+    )
   } else {
-    // SQLite: Use JSON_EXTRACT and check each GUID
-    // This is less efficient but works across both databases
-    let query = this.knex('approval_requests')
-
-    for (const guid of guidArray) {
-      query = query.orWhereRaw(
-        "json_extract(content_guids, '$') LIKE ?",
-        `%"${guid}"%`,
-      )
-    }
-
-    const deletedCount = await query.del()
-    return deletedCount
+    // SQLite: Check each GUID individually using json_each
+    query = query.andWhere((builder) => {
+      for (const guid of guidArray) {
+        builder.orWhereRaw(
+          "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+          [guid.toLowerCase()],
+        )
+      }
+    })
   }
+
+  const rows = await query
+
+  return rows.map((row) => mapRowToApprovalRequest.call(this, row))
 }
 
 /**
