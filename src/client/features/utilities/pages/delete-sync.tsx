@@ -582,6 +582,41 @@ export default function DeleteSyncPage() {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="deleteSyncCleanupApprovals"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground m-0">
+                            Clean Up Approval Records
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Automatically remove approval request records
+                                  when content is deleted. This helps keep the
+                                  approval history clean and prevents old
+                                  records from accumulating.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </div>
 
@@ -877,6 +912,41 @@ export default function DeleteSyncPage() {
                           </FormControl>
                         </div>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="deleteSyncTrackedOnly"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground m-0">
+                            Delete Tracked Content Only
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Only delete content that was added through the
+                                  approval system. Content added manually or
+                                  outside of Pulsarr will be protected from
+                                  deletion.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </FormItem>
                     )}
                   />

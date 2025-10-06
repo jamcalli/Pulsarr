@@ -7,6 +7,7 @@ import type {
   UpdateApprovalRequestData,
   UserApprovalStats,
 } from '@root/types/approval.types.js'
+import { normalizeGuid } from '@root/utils/guid-handler.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
@@ -537,6 +538,100 @@ export async function getApprovalRequestsByCriteria(
 }
 
 /**
+ * Retrieves all unique content GUIDs from approval requests with 'approved' or 'auto_approved' status.
+ *
+ * Used by delete sync to determine which content has been tracked by Pulsarr through the approval system.
+ * When deleteSyncTrackedOnly is enabled, only content with GUIDs in this set will be eligible for deletion.
+ *
+ * @returns A Set of all GUIDs from approved and auto-approved content
+ */
+export async function getTrackedContentGuids(
+  this: DatabaseService,
+): Promise<Set<string>> {
+  const rows = await this.knex('approval_requests')
+    .select('content_guids')
+    .whereIn('status', ['approved', 'auto_approved'])
+
+  const guidSet = new Set<string>()
+
+  for (const row of rows) {
+    try {
+      const guids = this.safeJsonParse<string[]>(
+        row.content_guids,
+        [],
+        'approval.content_guids',
+      )
+      for (const guid of guids) {
+        if (guid && typeof guid === 'string') {
+          const normalized = normalizeGuid(guid.trim())
+          if (normalized) {
+            guidSet.add(normalized)
+          }
+        }
+      }
+    } catch (error) {
+      this.log.warn(
+        { error, content_guids: row.content_guids },
+        'Error parsing content_guids from approval_requests',
+      )
+    }
+  }
+
+  return guidSet
+}
+
+/**
+ * Retrieves approval requests by matching content GUIDs and content type.
+ *
+ * Used by delete sync cleanup to find approval records for content that has been deleted.
+ * Matches any approval request where at least one GUID in content_guids matches the provided set
+ * AND the content_type matches.
+ *
+ * @param guids - Set of content GUIDs to match against
+ * @param contentType - Content type to match ('movie' or 'show')
+ * @returns Array of matching approval requests
+ */
+export async function getApprovalRequestsByGuids(
+  this: DatabaseService,
+  guids: Set<string>,
+  contentType: 'movie' | 'show',
+): Promise<ApprovalRequest[]> {
+  if (guids.size === 0) {
+    return []
+  }
+
+  // Convert Set to Array for query
+  const guidArray = Array.from(guids)
+
+  let query = this.knex('approval_requests')
+    .select('approval_requests.*')
+    .where('content_type', contentType)
+
+  if (this.isPostgres) {
+    // PostgreSQL: Use jsonb_array_elements_text to check if any GUID matches
+    // Note: content_guids column type is json, cast to jsonb required
+    query = query.whereRaw(
+      'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids::jsonb) elem WHERE lower(elem) = ANY(?))',
+      [guidArray.map((g) => g.toLowerCase())],
+    )
+  } else {
+    // SQLite: Check each GUID individually using json_each
+    query = query.andWhere((builder) => {
+      for (const guid of guidArray) {
+        builder.orWhereRaw(
+          "EXISTS (SELECT 1 FROM json_each(content_guids) WHERE json_each.type = 'text' AND lower(json_each.value) = ?)",
+          [guid.toLowerCase()],
+        )
+      }
+    })
+  }
+
+  const rows = await query
+
+  return rows.map((row) => mapRowToApprovalRequest.call(this, row))
+}
+
+/**
  * Update the user attribution for an approval request (used for reconciliation).
  *
  * Sets the request's `user_id`, clears `approved_by` (null for auto-approved attribution), and sets `approval_notes`, updating `updated_at`.
@@ -610,7 +705,7 @@ export async function createApprovalRequestWithExpiredHandling(
         // Delete expired request to make room for new one
         await trx('approval_requests').where('id', existing.id).del()
       }
-      // For approved/rejected, we continue to create a new request
+      // For approved/rejected status, create new request
     }
 
     // Create new approval request
