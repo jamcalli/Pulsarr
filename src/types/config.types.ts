@@ -173,6 +173,8 @@ export interface Config {
   approvalNotify: NotifyOption
   deleteSyncNotifyOnlyOnDeletion: boolean
   maxDeletionPrevention: number
+  deleteSyncTrackedOnly: boolean // Only delete content tracked in approval_requests
+  deleteSyncCleanupApprovals: boolean // Clean up approval_requests for deleted content
   enablePlexPlaylistProtection: boolean
   plexProtectionPlaylistName: string
   plexServerUrl?: string // Optional: Only set this if automatic discovery fails, URL is auto-detected in most cases
