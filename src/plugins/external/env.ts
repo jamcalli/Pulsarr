@@ -349,6 +349,14 @@ const schema = {
       type: 'boolean',
       default: false,
     },
+    deleteSyncTrackedOnly: {
+      type: 'boolean',
+      default: false,
+    },
+    deleteSyncCleanupApprovals: {
+      type: 'boolean',
+      default: false,
+    },
     approvalNotify: {
       type: 'string',
       enum: [
