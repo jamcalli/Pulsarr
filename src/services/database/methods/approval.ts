@@ -7,6 +7,7 @@ import type {
   UpdateApprovalRequestData,
   UserApprovalStats,
 } from '@root/types/approval.types.js'
+import { normalizeGuid } from '@root/utils/guid-handler.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
@@ -555,14 +556,17 @@ export async function getTrackedContentGuids(
 
   for (const row of rows) {
     try {
-      const guids = this.safeJsonParse(
+      const guids = this.safeJsonParse<string[]>(
         row.content_guids,
         [],
         'approval.content_guids',
       )
       for (const guid of guids) {
-        if (guid) {
-          guidSet.add(guid)
+        if (guid && typeof guid === 'string') {
+          const normalized = normalizeGuid(guid.trim())
+          if (normalized) {
+            guidSet.add(normalized)
+          }
         }
       }
     } catch (error) {
@@ -605,7 +609,7 @@ export async function getApprovalRequestsByGuids(
 
   if (this.isPostgres) {
     // PostgreSQL: Use jsonb_array_elements_text to check if any GUID matches
-    // Note: content_guids is stored as json, so we cast to jsonb first
+    // Note: content_guids column type is json, cast to jsonb required
     query = query.whereRaw(
       'EXISTS (SELECT 1 FROM jsonb_array_elements_text(content_guids::jsonb) elem WHERE lower(elem) = ANY(?))',
       [guidArray.map((g) => g.toLowerCase())],
@@ -701,7 +705,7 @@ export async function createApprovalRequestWithExpiredHandling(
         // Delete expired request to make room for new one
         await trx('approval_requests').where('id', existing.id).del()
       }
-      // For approved/rejected, we continue to create a new request
+      // For approved/rejected status, create new request
     }
 
     // Create new approval request

@@ -2185,6 +2185,23 @@ export class DeleteSyncService {
           }
 
           try {
+            // Check if the movie is tracked by Pulsarr (if tracked-only deletion is enabled)
+            if (this.config.deleteSyncTrackedOnly) {
+              const isTracked = this.isAnyGuidTracked(movieGuidList, (guid) =>
+                this.log.debug(
+                  `Movie "${movie.title}" is tracked by GUID "${guid}"`,
+                ),
+              )
+
+              if (!isTracked) {
+                this.log.debug(
+                  `Skipping deletion of movie "${movie.title}" as it is not tracked in approval system (tracked-only deletion enabled)`,
+                )
+                moviesSkipped++
+                continue
+              }
+            }
+
             // Check if the movie is protected based on its GUIDs
             if (this.config.enablePlexPlaylistProtection) {
               // Double-check if protectedGuids is correctly initialized
@@ -2213,23 +2230,6 @@ export class DeleteSyncService {
                   `Skipping deletion of movie "${movie.title}" as it is protected in Plex playlist "${this.getProtectionPlaylistName()}"`,
                 )
                 moviesProtected++
-                continue
-              }
-            }
-
-            // Check if the movie is tracked by Pulsarr (if tracked-only deletion is enabled)
-            if (this.config.deleteSyncTrackedOnly) {
-              const isTracked = this.isAnyGuidTracked(movieGuidList, (guid) =>
-                this.log.debug(
-                  `Movie "${movie.title}" is tracked by GUID "${guid}"`,
-                ),
-              )
-
-              if (!isTracked) {
-                this.log.debug(
-                  `Skipping deletion of movie "${movie.title}" as it is not tracked in approval system (tracked-only deletion enabled)`,
-                )
-                moviesSkipped++
                 continue
               }
             }
@@ -2363,6 +2363,27 @@ export class DeleteSyncService {
           }
 
           try {
+            // Check if the show is tracked by Pulsarr (if tracked-only deletion is enabled)
+            if (this.config.deleteSyncTrackedOnly) {
+              const isTracked = this.isAnyGuidTracked(showGuidList, (guid) =>
+                this.log.debug(
+                  `Show "${show.title}" is tracked by GUID "${guid}"`,
+                ),
+              )
+
+              if (!isTracked) {
+                this.log.debug(
+                  `Skipping deletion of ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" as it is not tracked in approval system (tracked-only deletion enabled)`,
+                )
+                if (isContinuing) {
+                  continuingShowsSkipped++
+                } else {
+                  endedShowsSkipped++
+                }
+                continue
+              }
+            }
+
             // Check if the show is protected based on its GUIDs
             if (this.config.enablePlexPlaylistProtection) {
               // Double-check if protectedGuids is correctly initialized
@@ -2391,27 +2412,6 @@ export class DeleteSyncService {
                   `Skipping deletion of ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" as it is protected in Plex playlist "${this.getProtectionPlaylistName()}"`,
                 )
                 showsProtected++
-                continue
-              }
-            }
-
-            // Check if the show is tracked by Pulsarr (if tracked-only deletion is enabled)
-            if (this.config.deleteSyncTrackedOnly) {
-              const isTracked = this.isAnyGuidTracked(showGuidList, (guid) =>
-                this.log.debug(
-                  `Show "${show.title}" is tracked by GUID "${guid}"`,
-                ),
-              )
-
-              if (!isTracked) {
-                this.log.debug(
-                  `Skipping deletion of ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" as it is not tracked in approval system (tracked-only deletion enabled)`,
-                )
-                if (isContinuing) {
-                  continuingShowsSkipped++
-                } else {
-                  endedShowsSkipped++
-                }
                 continue
               }
             }
