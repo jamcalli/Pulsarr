@@ -201,11 +201,15 @@ declare module '@services/database.service.js' {
     getTrackedContentGuids(): Promise<Set<string>>
 
     /**
-     * Deletes approval requests by matching content GUIDs
-     * Used by delete sync cleanup to remove approval records for deleted content
+     * Retrieves approval requests by matching content GUIDs and content type
+     * Used by delete sync cleanup to find approval records for deleted content
      * @param guids - Set of content GUIDs to match against
-     * @returns Promise resolving to the number of approval requests deleted
+     * @param contentType - Content type to match ('movie' or 'show')
+     * @returns Promise resolving to array of matching approval requests
      */
-    deleteApprovalRequestsByGuids(guids: Set<string>): Promise<number>
+    getApprovalRequestsByGuids(
+      guids: Set<string>,
+      contentType: 'movie' | 'show',
+    ): Promise<ApprovalRequest[]>
   }
 }

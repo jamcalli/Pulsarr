@@ -55,9 +55,10 @@ export class DeleteSyncService {
   private _running = false
 
   /**
-   * Set to track GUIDs of deleted content for approval cleanup
+   * Track deleted content by type for approval cleanup
    */
-  private deletedGuids: Set<string> = new Set()
+  private deletedMovieGuids: Set<string> = new Set()
+  private deletedShowGuids: Set<string> = new Set()
 
   /**
    * Creates a new DeleteSyncService instance
@@ -305,7 +306,8 @@ export class DeleteSyncService {
       // Reset per-run caches to ensure fresh data every run
       this.protectedGuids = null
       this.trackedGuids = null
-      this.deletedGuids.clear()
+      this.deletedMovieGuids.clear()
+      this.deletedShowGuids.clear()
       this.fastify.plexServerService.clearWorkflowCaches()
 
       // Make sure the Plex server is initialized if needed
@@ -521,20 +523,61 @@ export class DeleteSyncService {
       )
 
       // Step 10: Clean up approval requests for deleted content if enabled
-      if (
-        this.config.deleteSyncCleanupApprovals &&
-        !dryRun &&
-        this.deletedGuids.size > 0
-      ) {
+      if (this.config.deleteSyncCleanupApprovals && !dryRun) {
         try {
-          this.log.info(
-            `Cleaning up ${this.deletedGuids.size} approval request records for deleted content`,
-          )
-          const cleanedCount =
-            await this.dbService.deleteApprovalRequestsByGuids(
-              this.deletedGuids,
+          let totalCleaned = 0
+
+          // Clean up movie approval requests
+          if (this.deletedMovieGuids.size > 0) {
+            this.log.info(
+              `Cleaning up movie approval requests for content with ${this.deletedMovieGuids.size} deleted GUIDs`,
             )
-          this.log.info(`Cleaned up ${cleanedCount} approval request records`)
+            const movieApprovals =
+              await this.dbService.getApprovalRequestsByGuids(
+                this.deletedMovieGuids,
+                'movie',
+              )
+
+            // Use ApprovalService to delete each request (handles SSE events)
+            for (const approval of movieApprovals) {
+              await this.fastify.approvalService.deleteApprovalRequest(
+                approval.id,
+              )
+              totalCleaned++
+            }
+
+            this.log.info(
+              `Cleaned up ${movieApprovals.length} movie approval records`,
+            )
+          }
+
+          // Clean up show approval requests
+          if (this.deletedShowGuids.size > 0) {
+            this.log.info(
+              `Cleaning up show approval requests for content with ${this.deletedShowGuids.size} deleted GUIDs`,
+            )
+            const showApprovals =
+              await this.dbService.getApprovalRequestsByGuids(
+                this.deletedShowGuids,
+                'show',
+              )
+
+            // Use ApprovalService to delete each request (handles SSE events)
+            for (const approval of showApprovals) {
+              await this.fastify.approvalService.deleteApprovalRequest(
+                approval.id,
+              )
+              totalCleaned++
+            }
+
+            this.log.info(
+              `Cleaned up ${showApprovals.length} show approval records`,
+            )
+          }
+
+          if (totalCleaned > 0) {
+            this.log.info(`Total approval requests cleaned up: ${totalCleaned}`)
+          }
         } catch (cleanupError) {
           this.log.error(
             { error: cleanupError },
@@ -556,7 +599,8 @@ export class DeleteSyncService {
       this.fastify.plexServerService.clearWorkflowCaches()
       this.protectedGuids = null
       this.trackedGuids = null
-      this.deletedGuids.clear()
+      this.deletedMovieGuids.clear()
+      this.deletedShowGuids.clear()
       this.clearTagCache()
     }
   }
@@ -1300,6 +1344,11 @@ export class DeleteSyncService {
               `Deleting movie "${movie.title}" (delete files: ${this.config.deleteFiles})`,
             )
             await service.deleteFromRadarr(movie, this.config.deleteFiles)
+
+            // Track deleted GUIDs for approval cleanup
+            for (const guid of movieGuidList) {
+              this.deletedMovieGuids.add(guid)
+            }
           } else {
             this.log.debug(
               {
@@ -1503,6 +1552,11 @@ export class DeleteSyncService {
               `Deleting ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" (delete files: ${this.config.deleteFiles})`,
             )
             await service.deleteFromSonarr(show, this.config.deleteFiles)
+
+            // Track deleted GUIDs for approval cleanup
+            for (const guid of showGuidList) {
+              this.deletedShowGuids.add(guid)
+            }
           } else {
             this.log.debug(
               {
@@ -2207,7 +2261,7 @@ export class DeleteSyncService {
 
               // Track deleted GUIDs for approval cleanup
               for (const guid of movieGuidList) {
-                this.deletedGuids.add(guid)
+                this.deletedMovieGuids.add(guid)
               }
             } else {
               this.log.debug(
@@ -2394,7 +2448,7 @@ export class DeleteSyncService {
 
               // Track deleted GUIDs for approval cleanup
               for (const guid of showGuidList) {
-                this.deletedGuids.add(guid)
+                this.deletedShowGuids.add(guid)
               }
             } else {
               this.log.debug(
