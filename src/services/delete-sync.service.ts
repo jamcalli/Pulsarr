@@ -540,10 +540,21 @@ export class DeleteSyncService {
 
             // Use ApprovalService to delete each request (handles SSE events)
             for (const approval of movieApprovals) {
-              await this.fastify.approvalService.deleteApprovalRequest(
-                approval.id,
-              )
-              totalCleaned++
+              try {
+                await this.fastify.approvalService.deleteApprovalRequest(
+                  approval.id,
+                )
+                totalCleaned++
+              } catch (error) {
+                this.log.error(
+                  {
+                    error,
+                    approvalId: approval.id,
+                    title: approval.contentTitle,
+                  },
+                  'Error deleting individual approval request during cleanup',
+                )
+              }
             }
 
             this.log.info(
@@ -564,10 +575,21 @@ export class DeleteSyncService {
 
             // Use ApprovalService to delete each request (handles SSE events)
             for (const approval of showApprovals) {
-              await this.fastify.approvalService.deleteApprovalRequest(
-                approval.id,
-              )
-              totalCleaned++
+              try {
+                await this.fastify.approvalService.deleteApprovalRequest(
+                  approval.id,
+                )
+                totalCleaned++
+              } catch (error) {
+                this.log.error(
+                  {
+                    error,
+                    approvalId: approval.id,
+                    title: approval.contentTitle,
+                  },
+                  'Error deleting individual approval request during cleanup',
+                )
+              }
             }
 
             this.log.info(
