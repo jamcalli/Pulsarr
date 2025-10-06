@@ -142,6 +142,10 @@ export const ConfigSchema = z.object({
   // Deletion mode
   deletionMode: DeletionModeEnum.optional(),
   removedTagPrefix: RemovedTagPrefixSchema.optional(),
+  // Tracked-only deletion - only delete content tracked by Pulsarr in approval_requests
+  deleteSyncTrackedOnly: z.boolean().optional(),
+  // Cleanup approval_requests when content is deleted
+  deleteSyncCleanupApprovals: z.boolean().optional(),
   // Tag removal mode
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
   // Plex Playlist Protection
