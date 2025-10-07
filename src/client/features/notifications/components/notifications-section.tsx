@@ -5,6 +5,7 @@ import { DiscordBotForm } from '@/features/notifications/components/discord/disc
 import { DiscordWebhookForm } from '@/features/notifications/components/discord/discord-webhook-form'
 import { GeneralSettingsForm } from '@/features/notifications/components/general/general-settings-form'
 import { TautulliForm } from '@/features/notifications/components/tautulli/tautulli-form'
+import { navPath } from '@/lib/api'
 
 interface NotificationsSectionProps {
   isInitialized: boolean
@@ -38,7 +39,7 @@ export function NotificationsSection({
             <button
               type="button"
               onClick={() =>
-                navigate('/utilities/public-content-notifications')
+                navigate(navPath('/utilities/public-content-notifications'))
               }
               className="underline font-medium hover:opacity-80 cursor-pointer"
             >

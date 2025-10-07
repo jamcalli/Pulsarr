@@ -11,7 +11,7 @@ import {
   CredenzaHeader,
   CredenzaTitle,
 } from '@/components/ui/credenza';
-import { api } from '@/lib/api'
+import { api, navPath } from '@/lib/api'
 
 interface LogoutAlertProps {
   open: boolean;
@@ -46,7 +46,7 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
       
       if (response.ok && data.success) {
         toast.success(data.message || 'Successfully logged out');
-        navigate('/login');
+        navigate(navPath('/login'));
       } else {
         // Close the logout dialog
         onOpenChange(false);
