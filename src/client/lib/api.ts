@@ -19,3 +19,12 @@ export function api(path: string): string {
     ? normalizedPath
     : `${normalizedBase}${normalizedPath}`
 }
+
+/**
+ * Get the appropriate navigation path with base path support
+ * Prepends the configured base path to navigation routes
+ * Uses runtime configuration set by the server
+ */
+export function navPath(path: string): string {
+  return api(path)
+}

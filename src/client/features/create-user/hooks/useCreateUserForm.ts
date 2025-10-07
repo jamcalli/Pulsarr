@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { api, navPath } from '@/lib/api'
 
 /**
  * Hook for managing the "create admin user" form: validation, submission, and simple UI state.
@@ -72,7 +72,7 @@ export function useCreateUserForm() {
           toast.success('User created successfully!')
 
           setTimeout(() => {
-            navigate('/login')
+            navigate(navPath('/login'))
           }, 1000)
         } else {
           setStatus('idle')
