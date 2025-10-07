@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { api } from '@/lib/api'
+import { api, navPath } from '@/lib/api'
 
 /**
  * React hook that manages state, validation, and submission logic for a login form.
@@ -54,7 +54,8 @@ export function useLoginForm() {
           setStatus('success')
           toast.success(`Welcome back, ${responseData.username}!`)
           setTimeout(() => {
-            navigate(responseData.redirectTo || '/dashboard')
+            // Server should return redirectTo with basePath, but use navPath as fallback
+            navigate(responseData.redirectTo || navPath('/dashboard'))
           }, 1000)
         } else {
           setStatus('idle')
