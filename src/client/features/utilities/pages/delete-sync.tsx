@@ -44,6 +44,7 @@ import { DeleteSyncPageSkeleton } from '@/features/utilities/components/delete-s
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useInitializeWithMinDuration } from '@/hooks/useInitializeWithMinDuration'
+import { navPath } from '@/lib/api'
 import { formatScheduleDisplay } from '@/lib/utils'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -389,7 +390,7 @@ export default function DeleteSyncPage() {
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      navigate('/utilities/user-tags')
+                                      navigate(navPath('/utilities/user-tags'))
                                     }
                                     className="underline font-medium hover:text-yellow-900 dark:hover:text-yellow-300 cursor-pointer"
                                   >

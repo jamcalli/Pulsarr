@@ -27,6 +27,13 @@ export default async function serviceApp(
   fastify: FastifyInstance,
   opts: FastifyPluginOptions,
 ) {
+  // Helper to build paths with basePath prefix
+  const buildPath = (path: string): string => {
+    const basePath = normalizeBasePath(fastify.config.basePath)
+    if (basePath === '/') return path
+    return `${basePath}${path}`
+  }
+
   // Basic setup
   fastify.register(FastifyFormBody)
 
@@ -136,7 +143,7 @@ export default async function serviceApp(
       // Use the in-memory config instead of querying the database
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
       return reply.redirect(
-        hasPlexTokens ? '/dashboard' : '/plex/configuration',
+        buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
       )
     }
 
@@ -157,7 +164,7 @@ export default async function serviceApp(
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
       return reply.redirect(
-        hasPlexTokens ? '/dashboard' : '/plex/configuration',
+        buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
       )
     }
 
@@ -175,17 +182,17 @@ export default async function serviceApp(
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
         return reply.redirect(
-          hasPlexTokens ? '/dashboard' : '/plex/configuration',
+          buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
         )
       }
 
       // No users exist yet with local bypass, redirect to create user
-      return reply.redirect('/create-user')
+      return reply.redirect(buildPath('/create-user'))
     }
 
     // CASE 3: Normal flow
     const hasUsers = await fastify.db.hasAdminUsers()
-    return reply.redirect(hasUsers ? '/login' : '/create-user')
+    return reply.redirect(buildPath(hasUsers ? '/login' : '/create-user'))
   })
 
   // Register SPA routes
@@ -224,7 +231,7 @@ export default async function serviceApp(
           // If trying to access login or create-user, redirect appropriately
           if (isLoginPage || isCreateUserPage) {
             return reply.redirect(
-              hasPlexTokens ? '/dashboard' : '/plex/configuration',
+              buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
             )
           }
 
@@ -237,7 +244,7 @@ export default async function serviceApp(
           // If trying to access login or create-user, redirect appropriately
           if (isLoginPage || isCreateUserPage) {
             return reply.redirect(
-              hasPlexTokens ? '/dashboard' : '/plex/configuration',
+              buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
             )
           }
 
@@ -259,7 +266,7 @@ export default async function serviceApp(
             // If trying to access login or create-user, redirect appropriately
             if (isLoginPage || isCreateUserPage) {
               return reply.redirect(
-                hasPlexTokens ? '/dashboard' : '/plex/configuration',
+                buildPath(hasPlexTokens ? '/dashboard' : '/plex/configuration'),
               )
             }
 
@@ -269,7 +276,7 @@ export default async function serviceApp(
 
           // No users exist yet with local bypass, force create-user page
           if (!isCreateUserPage) {
-            return reply.redirect('/create-user')
+            return reply.redirect(buildPath('/create-user'))
           }
 
           // Allow access to create-user page
@@ -280,7 +287,7 @@ export default async function serviceApp(
         if (!hasUsers) {
           // No users exist yet, force create-user page
           if (!isCreateUserPage) {
-            return reply.redirect('/create-user')
+            return reply.redirect(buildPath('/create-user'))
           }
 
           // Allow access to create-user page
@@ -290,12 +297,12 @@ export default async function serviceApp(
         // CASE 5: Users exist, normal auth flow
         // Prevent create-user access when users already exist
         if (isCreateUserPage) {
-          return reply.redirect('/login')
+          return reply.redirect(buildPath('/login'))
         }
 
         // If trying to access any page other than login, redirect to login
         if (!isLoginPage) {
-          return reply.redirect('/login')
+          return reply.redirect(buildPath('/login'))
         }
 
         // Allow access to login page
