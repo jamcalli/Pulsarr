@@ -808,6 +808,12 @@ export class DeleteSyncService {
           watchlistGuidsSet.has(g),
         )
         if (!existsInWatchlist) {
+          // Check if movie is tracked (if tracked-only deletion is enabled)
+          const isTracked = this.isAnyGuidTracked(movieGuidList)
+          if (!isTracked) {
+            continue // Skip non-tracked items when tracked-only is enabled
+          }
+
           // Check if movie is protected by playlist
           const isProtected =
             protectedGuidsSet != null
@@ -832,6 +838,12 @@ export class DeleteSyncService {
         watchlistGuidsSet.has(g),
       )
       if (!existsInWatchlist) {
+        // Check if show is tracked (if tracked-only deletion is enabled)
+        const isTracked = this.isAnyGuidTracked(showGuidList)
+        if (!isTracked) {
+          continue // Skip non-tracked items when tracked-only is enabled
+        }
+
         // Check if show is protected by playlist
         const isProtected =
           protectedGuidsSet != null
