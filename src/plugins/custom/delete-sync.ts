@@ -73,6 +73,7 @@ export default fp(
       'discord-notification-service',
       'plex-watchlist',
       'plex-server',
+      'approval',
     ],
   },
 )
