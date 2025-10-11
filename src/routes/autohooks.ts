@@ -14,6 +14,10 @@ export default async function (fastify: FastifyInstance) {
   const fullPublicPaths = publicPaths.map((path) =>
     basePath === '/' ? path : `${basePath}${path}`,
   )
+  fastify.log.debug(
+    { basePath, fullPublicPaths },
+    'Computed public paths for authentication bypass',
+  )
 
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip authentication for public paths
