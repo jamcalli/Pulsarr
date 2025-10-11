@@ -1,4 +1,5 @@
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
+import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 
 export default async function (fastify: FastifyInstance) {
@@ -10,7 +11,14 @@ export default async function (fastify: FastifyInstance) {
     ]
 
     // Skip authentication for public paths
-    if (publicPaths.some((path) => request.url.startsWith(path))) {
+    // When basePath is set, request.url includes the basePath prefix
+    const basePath = normalizeBasePath(fastify.config.basePath)
+    const isPublicPath = publicPaths.some((path) => {
+      const fullPath = basePath === '/' ? path : `${basePath}${path}`
+      return request.url.startsWith(fullPath)
+    })
+
+    if (isPublicPath) {
       return
     }
 
