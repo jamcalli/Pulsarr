@@ -215,8 +215,14 @@ export default async function serviceApp(
           request,
         )
 
-        const isCreateUserPage = request.url === '/create-user'
-        const isLoginPage = request.url === '/login'
+        // When using basePath prefix, request.url includes the prefix
+        const basePath = normalizeBasePath(fastify.config.basePath)
+        const createUserPath =
+          basePath === '/' ? '/create-user' : `${basePath}/create-user`
+        const loginPath = basePath === '/' ? '/login' : `${basePath}/login`
+
+        const isCreateUserPage = request.url === createUserPath
+        const isLoginPage = request.url === loginPath
 
         // Use the in-memory config to check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
