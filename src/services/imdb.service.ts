@@ -86,13 +86,11 @@ export class ImdbService {
    */
   async updateImdbDatabase(): Promise<{ count: number; updated: boolean }> {
     try {
-      this.log.info('Starting IMDb ratings database update...')
+      this.log.info('Updating IMDb ratings database...')
 
       const allRecords: InsertImdbRating[] = []
       let lineIdx = 0
 
-      // Stream into memory first (dataset is small enough)
-      this.log.info('Streaming IMDb data into memory...')
       for await (const line of streamLines({
         url: IMDB_RATINGS_URL,
         isGzipped: true,
@@ -127,41 +125,25 @@ export class ImdbService {
         allRecords.push({ tconst: tconst as Tconst, average_rating, num_votes })
 
         if (allRecords.length % 100_000 === 0) {
-          this.log.debug(
-            `Streamed ${allRecords.length} IMDb ratings into memory`,
-          )
+          this.log.debug(`Processing IMDb ratings: ${allRecords.length}`)
         }
       }
 
       const total = allRecords.length
 
-      this.log.info(
-        `Streamed ${total} records into memory, now updating database...`,
-      )
-
       if (total === 0) {
         const current = await this.db.getImdbRatingCount()
-        this.log.warn(
-          'Parsed 0 IMDb ratings; skipping truncate to avoid wiping existing data',
-        )
+        this.log.warn('No IMDb ratings found, skipping update')
         return { count: current, updated: false }
       }
 
-      // Quick atomic replacement using short transaction
       await this.db.knex.transaction(async (trx) => {
         await trx('imdb_ratings').truncate()
-        this.log.info('Cleared existing IMDb ratings (pending commit)')
-
-        // Use optimized bulk replacement method (no conflict resolution needed)
         await this.db.bulkReplaceImdbRatings(allRecords, trx)
       })
 
-      this.log.info(`Processed ${total} IMDb rating entries via streaming`)
-
       const finalCount = await this.db.getImdbRatingCount()
-      this.log.info(
-        `IMDb ratings database updated successfully with ${finalCount} entries`,
-      )
+      this.log.info(`IMDb ratings database updated: ${finalCount} entries`)
 
       return { count: finalCount, updated: true }
     } catch (error) {
