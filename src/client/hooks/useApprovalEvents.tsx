@@ -3,7 +3,6 @@ import { CheckCircle, FileText, Trash2, XCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { navPath } from '@/lib/api'
 import { useProgressStore } from '@/stores/progressStore'
 
 interface UseApprovalEventsOptions {
@@ -61,7 +60,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               {
                 action: {
                   label: 'View',
-                  onClick: () => navigate(navPath('/approvals'))
+                  onClick: () => navigate('/approvals')
                 }
               }
             )
@@ -116,7 +115,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               {
                 action: {
                   label: 'View',
-                  onClick: () => navigate(navPath('/approvals'))
+                  onClick: () => navigate('/approvals')
                 }
               }
             )
