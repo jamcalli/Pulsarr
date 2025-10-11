@@ -13,9 +13,13 @@ export default async function (fastify: FastifyInstance) {
     // Skip authentication for public paths
     // When basePath is set, request.url includes the basePath prefix
     const basePath = normalizeBasePath(fastify.config.basePath)
+    const urlWithoutQuery = request.url.split('?')[0]
     const isPublicPath = publicPaths.some((path) => {
       const fullPath = basePath === '/' ? path : `${basePath}${path}`
-      return request.url.startsWith(fullPath)
+      return (
+        urlWithoutQuery === fullPath ||
+        urlWithoutQuery.startsWith(`${fullPath}/`)
+      )
     })
 
     if (isPublicPath) {
