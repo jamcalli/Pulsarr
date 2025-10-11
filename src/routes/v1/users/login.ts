@@ -3,7 +3,6 @@ import {
   LoginErrorSchema,
   LoginResponseSchema,
 } from '@schemas/auth/login.js'
-import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 
@@ -49,11 +48,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             config.plexTokens.length > 0,
         )
 
-        // Build redirect path with basePath support
-        const basePath = normalizeBasePath(config.basePath)
-        const redirectPath = hasPlexTokens ? '/dashboard' : '/plex'
-        const redirectTo =
-          basePath === '/' ? redirectPath : `${basePath}${redirectPath}`
+        // Client-side router handles basePath automatically
+        const redirectTo = hasPlexTokens ? '/dashboard' : '/plex'
 
         return {
           success: true,
