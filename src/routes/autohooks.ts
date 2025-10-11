@@ -3,24 +3,26 @@ import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 
 export default async function (fastify: FastifyInstance) {
-  fastify.addHook('onRequest', async (request, reply) => {
-    const publicPaths = [
-      '/v1/users/login',
-      '/v1/users/create-admin',
-      '/v1/notifications/webhook',
-    ]
+  const publicPaths = [
+    '/v1/users/login',
+    '/v1/users/create-admin',
+    '/v1/notifications/webhook',
+  ]
 
+  // Compute full public paths with basePath prefix at startup
+  const basePath = normalizeBasePath(fastify.config.basePath)
+  const fullPublicPaths = publicPaths.map((path) =>
+    basePath === '/' ? path : `${basePath}${path}`,
+  )
+
+  fastify.addHook('onRequest', async (request, reply) => {
     // Skip authentication for public paths
-    // When basePath is set, request.url includes the basePath prefix
-    const basePath = normalizeBasePath(fastify.config.basePath)
     const urlWithoutQuery = request.url.split('?')[0]
-    const isPublicPath = publicPaths.some((path) => {
-      const fullPath = basePath === '/' ? path : `${basePath}${path}`
-      return (
+    const isPublicPath = fullPublicPaths.some(
+      (fullPath) =>
         urlWithoutQuery === fullPath ||
-        urlWithoutQuery.startsWith(`${fullPath}/`)
-      )
-    })
+        urlWithoutQuery.startsWith(`${fullPath}/`),
+    )
 
     if (isPublicPath) {
       return
