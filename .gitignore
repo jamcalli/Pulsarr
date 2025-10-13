@@ -43,3 +43,7 @@ CLAUDE.md
 
 # temporary files
 tmp/
+.test-db.sqlite*
+
+# test coverage
+coverage/

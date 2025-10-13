@@ -15,6 +15,10 @@
     "dev:server": "tsx watch src/server.ts",
     "dev": "npm run build:server && node dist/server.js --dev",
     "start:prod": "node dist/server.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "fix": "biome format --write . && biome lint --write .",
     "fix:unsafe": "biome check --write --unsafe .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p src/client/tsconfig.json",
@@ -154,6 +158,8 @@
     "@types/safe-regex": "^1.1.6",
     "@types/semver": "^7.7.0",
     "@types/turndown": "^5.0.5",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.20",
     "fastify-cli": "^7.4.0",
     "fastify-tsconfig": "^3.0.0",
@@ -161,6 +167,7 @@
     "postcss": "^8.5.2",
     "tailwindcss": "^4.1.10",
     "tsc-alias": "^1.8.15",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.4"
   }
 }

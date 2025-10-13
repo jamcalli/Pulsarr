@@ -12,8 +12,8 @@ import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 export const options = {
   ajv: {
     customOptions: {
-      coerceTypes: 'array',
-      removeAdditional: 'all',
+      coerceTypes: 'array' as const,
+      removeAdditional: 'all' as const,
     },
   },
 }
@@ -320,14 +320,17 @@ export default async function serviceApp(
   )
 
   // FastifyVite is the core of the app - register it at the end
-  await fastify.register(FastifyVite, {
-    root: resolve(import.meta.dirname, '../'),
-    dev: process.argv.includes('--dev'),
-    spa: true,
-    distDir: 'dist/client',
-  })
+  // Skip Vite in test environment
+  if (process.env.NODE_ENV !== 'test') {
+    await fastify.register(FastifyVite, {
+      root: resolve(import.meta.dirname, '../'),
+      dev: process.argv.includes('--dev'),
+      spa: true,
+      distDir: 'dist/client',
+    })
 
-  await fastify.vite.ready()
+    await fastify.vite.ready()
+  }
 
   // Inject runtime base path into HTML responses
   fastify.addHook('onSend', async (_request, reply, payload) => {
