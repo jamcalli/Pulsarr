@@ -1028,6 +1028,11 @@ export class WatchlistWorkflowService {
       const instances = await this.sonarrManager.getAllInstances()
 
       // Check each Sonarr instance
+      let anyChecked = false
+      let existsSomewhere = false
+      let eligibleForExclusions = 0
+      let excludedEligibleCount = 0
+
       for (const instance of instances) {
         // Check if series exists using lookup API
         const result = await this.sonarrManager.seriesExistsByTvdbId(
@@ -1035,7 +1040,7 @@ export class WatchlistWorkflowService {
           tvdbId,
         )
 
-        // Skip if instance is unavailable
+        // Skip this instance if unavailable; continue checking others
         if (!result.checked) {
           this.log.warn(
             {
@@ -1043,17 +1048,19 @@ export class WatchlistWorkflowService {
               serviceName: result.serviceName,
               instanceId: result.instanceId,
             },
-            `Sonarr instance ${instance.name} unavailable for ${item.title}, skipping immediate processing`,
+            `Sonarr instance ${instance.name} unavailable for ${item.title}, skipping instance`,
           )
-          return false
+          continue
         }
+        anyChecked = true
 
         // Skip if series already exists
         if (result.found) {
           this.log.info(
             `Show ${item.title} already exists in Sonarr instance ${instance.name}, skipping addition`,
           )
-          return false
+          existsSomewhere = true
+          break
         }
 
         // Check exclusions if instance is configured to respect them
@@ -1079,22 +1086,25 @@ export class WatchlistWorkflowService {
             return exclusionTvdbId !== 0 && exclusionTvdbId === tvdbId
           })
 
-          if (isInExclusions) {
-            this.log.info(
-              {
-                title: item.title,
-                tvdbId,
-                instanceId: instance.id,
-                instanceName: instance.name,
-              },
-              'Skipping series - found in Sonarr exclusions list',
-            )
-            return false
-          }
+          // Track exclusion coverage across eligible instances
+          eligibleForExclusions++
+          if (isInExclusions) excludedEligibleCount++
         }
       }
 
-      return true
+      if (existsSomewhere) return false
+      if (
+        eligibleForExclusions > 0 &&
+        excludedEligibleCount === eligibleForExclusions
+      ) {
+        this.log.info(
+          { title: item.title, tvdbId },
+          'Skipping series - excluded in all eligible Sonarr instances',
+        )
+        return false
+      }
+      // Only proceed if at least one instance responded
+      return anyChecked
     } catch (error) {
       this.log.error({ error }, `Error verifying show ${item.title} in Sonarr:`)
       throw error
@@ -1126,6 +1136,11 @@ export class WatchlistWorkflowService {
       const instances = await this.radarrManager.getAllInstances()
 
       // Check each Radarr instance
+      let anyChecked = false
+      let existsSomewhere = false
+      let eligibleForExclusions = 0
+      let excludedEligibleCount = 0
+
       for (const instance of instances) {
         // Check if movie exists using lookup API
         const result = await this.radarrManager.movieExistsByTmdbId(
@@ -1133,7 +1148,7 @@ export class WatchlistWorkflowService {
           tmdbId,
         )
 
-        // Skip if instance is unavailable
+        // Skip this instance if unavailable; continue checking others
         if (!result.checked) {
           this.log.warn(
             {
@@ -1141,17 +1156,19 @@ export class WatchlistWorkflowService {
               serviceName: result.serviceName,
               instanceId: result.instanceId,
             },
-            `Radarr instance ${instance.name} unavailable for ${item.title}, skipping immediate processing`,
+            `Radarr instance ${instance.name} unavailable for ${item.title}, skipping instance`,
           )
-          return false
+          continue
         }
+        anyChecked = true
 
         // Skip if movie already exists
         if (result.found) {
           this.log.info(
             `Movie ${item.title} already exists in Radarr instance ${instance.name}, skipping addition`,
           )
-          return false
+          existsSomewhere = true
+          break
         }
 
         // Check exclusions if instance is configured to respect them
@@ -1177,22 +1194,25 @@ export class WatchlistWorkflowService {
             return exclusionTmdbId !== 0 && exclusionTmdbId === tmdbId
           })
 
-          if (isInExclusions) {
-            this.log.info(
-              {
-                title: item.title,
-                tmdbId,
-                instanceId: instance.id,
-                instanceName: instance.name,
-              },
-              'Skipping movie - found in Radarr exclusions list',
-            )
-            return false
-          }
+          // Track exclusion coverage across eligible instances
+          eligibleForExclusions++
+          if (isInExclusions) excludedEligibleCount++
         }
       }
 
-      return true
+      if (existsSomewhere) return false
+      if (
+        eligibleForExclusions > 0 &&
+        excludedEligibleCount === eligibleForExclusions
+      ) {
+        this.log.info(
+          { title: item.title, tmdbId },
+          'Skipping movie - excluded in all eligible Radarr instances',
+        )
+        return false
+      }
+      // Only proceed if at least one instance responded
+      return anyChecked
     } catch (error) {
       this.log.error(
         { error },

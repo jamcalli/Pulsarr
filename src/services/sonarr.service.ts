@@ -630,40 +630,7 @@ export class SonarrService {
       const showItems = shows.map((show) => this.toItem(show))
       const allItems = [...showItems, ...exclusions]
 
-      // Deduplicate by a stable composite key:
-      // 1) sonarr:<id> when Sonarr ID is present
-      // 2) tvdb:<id> when TVDB ID is present
-      // 3) guid:<first-guid> as a last-resort fallback
-      const map = new Map<string, Item>()
-      for (const item of allItems) {
-        const sId = extractSonarrId(item.guids)
-        const key =
-          sId > 0
-            ? `sonarr:${sId}`
-            : (() => {
-                const tvdb = extractTvdbId(item.guids)
-                return tvdb > 0
-                  ? `tvdb:${tvdb}`
-                  : `guid:${(Array.isArray(item.guids) ? item.guids[0] : item.guids) ?? ''}`
-              })()
-        map.set(key, item) // later entries (exclusions) overwrite earlier ones
-      }
-      const deduplicatedItems = Array.from(map.values())
-
-      // Log if we found duplicates
-      if (deduplicatedItems.length < allItems.length) {
-        const duplicateCount = allItems.length - deduplicatedItems.length
-        this.log.warn(
-          {
-            duplicateCount,
-            totalBeforeDedup: allItems.length,
-            totalAfterDedup: deduplicatedItems.length,
-          },
-          'Found series that exist in both active series and exclusions, deduplicated by composite key',
-        )
-      }
-
-      return new Set(deduplicatedItems)
+      return new Set(allItems)
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching series')
       throw err

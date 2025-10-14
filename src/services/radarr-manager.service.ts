@@ -145,6 +145,14 @@ export class RadarrManagerService {
         bypassExclusions !== undefined
           ? bypassExclusions
           : instance.bypassIgnored || false
+      this.log.debug(
+        {
+          instanceId: instance.id,
+          instanceName: instance.name,
+          bypassExclusions: shouldBypassExclusions,
+        },
+        'Fetching movies with per-instance bypass setting',
+      )
       const movies = await radarrService.fetchMovies(shouldBypassExclusions)
       return Array.from(movies).map((m) => ({
         ...m,

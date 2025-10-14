@@ -1015,7 +1015,8 @@ export class UserTagService {
       await this.createSonarrUserTags()
 
       // Fetch all shows and series needed for tagging
-      const existingSeries = await this.fastify.sonarrManager.fetchAllSeries()
+      const existingSeries =
+        await this.fastify.sonarrManager.fetchAllSeries(true)
 
       const watchlistItems = await this.fastify.db.getAllShowWatchlistItems()
 
@@ -1104,7 +1105,8 @@ export class UserTagService {
       await this.createRadarrUserTags()
 
       // Fetch all movies and watchlist items needed for tagging
-      const existingMovies = await this.fastify.radarrManager.fetchAllMovies()
+      const existingMovies =
+        await this.fastify.radarrManager.fetchAllMovies(true)
 
       const watchlistItems = await this.fastify.db.getAllMovieWatchlistItems()
 
