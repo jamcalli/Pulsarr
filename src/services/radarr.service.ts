@@ -24,6 +24,7 @@ import {
   normalizeGuid,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 // HTTP timeout constants
@@ -124,8 +125,12 @@ export class RadarrService {
       }
     }
 
-    // Set the webhook path
-    url.pathname = '/v1/notifications/webhook'
+    // Set the webhook path with basePath
+    const basePath = normalizeBasePath(this.fastify.config.basePath)
+    url.pathname =
+      basePath === '/'
+        ? '/v1/notifications/webhook'
+        : `${basePath}/v1/notifications/webhook`
 
     // Add instance identifier for tracking
     const urlIdentifier = this.radarrConfig.radarrBaseUrl
