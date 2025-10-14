@@ -623,7 +623,30 @@ export class SonarrService {
       }
 
       const showItems = shows.map((show) => this.toItem(show))
-      return new Set([...showItems, ...exclusions])
+      const allItems = [...showItems, ...exclusions]
+
+      // Deduplicate by Sonarr ID - some series may exist in both regular series and exclusions
+      // Keep the last occurrence (exclusion takes precedence if it exists in both)
+      const deduplicatedItems = Array.from(
+        new Map(
+          allItems.map((item) => [extractSonarrId(item.guids), item]),
+        ).values(),
+      )
+
+      // Log if we found duplicates
+      if (deduplicatedItems.length < allItems.length) {
+        const duplicateCount = allItems.length - deduplicatedItems.length
+        this.log.warn(
+          {
+            duplicateCount,
+            totalBeforeDedup: allItems.length,
+            totalAfterDedup: deduplicatedItems.length,
+          },
+          'Found series that exist in both active series and exclusions, deduplicated by Sonarr ID',
+        )
+      }
+
+      return new Set(deduplicatedItems)
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching series')
       throw err

@@ -149,7 +149,7 @@ export class SonarrManagerService {
     }
   }
 
-  async fetchAllSeries(bypassExclusions = false): Promise<SonarrItem[]> {
+  async fetchAllSeries(): Promise<SonarrItem[]> {
     const allSeries: SonarrItem[] = []
     const instances = await this.fastify.db.getAllSonarrInstances()
 
@@ -162,7 +162,11 @@ export class SonarrManagerService {
         )
         return []
       }
-      const series = await sonarrService.fetchSeries(bypassExclusions)
+      // Respect per-instance bypassIgnored setting
+      // If true: fetch only actual content (bypass exclusions)
+      // If false: fetch both content and exclusions
+      const shouldBypassExclusions = instance.bypassIgnored || false
+      const series = await sonarrService.fetchSeries(shouldBypassExclusions)
       return Array.from(series).map((s) => ({
         ...s,
         sonarr_instance_id: instance.id,

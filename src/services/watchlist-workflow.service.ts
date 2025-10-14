@@ -506,17 +506,6 @@ export class WatchlistWorkflowService {
       }
 
       this.log.info('Watchlists refreshed successfully')
-
-      // Sync statuses with Sonarr/Radarr
-      try {
-        const { shows, movies } = await this.showStatusService.syncAllStatuses()
-        this.log.debug(
-          `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
-        )
-      } catch (error) {
-        this.log.warn({ error }, 'Error syncing statuses (non-fatal)')
-        // Continue despite this error
-      }
     } catch (error) {
       this.log.error(
         {
@@ -1024,7 +1013,7 @@ export class WatchlistWorkflowService {
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
     try {
-      // Use utility function to extract TVDB ID
+      // Extract TVDB ID from item GUIDs
       const tvdbId = extractTvdbId(item.guids)
       if (tvdbId === 0) {
         this.log.warn(
@@ -1036,17 +1025,17 @@ export class WatchlistWorkflowService {
         return false
       }
 
-      // Get all Sonarr instances
       const instances = await this.sonarrManager.getAllInstances()
 
-      // Check each instance for the show using efficient lookup
+      // Check each Sonarr instance
       for (const instance of instances) {
+        // Check if series exists using lookup API
         const result = await this.sonarrManager.seriesExistsByTvdbId(
           instance.id,
           tvdbId,
         )
 
-        // If service unavailable, skip processing and let periodic sync handle it
+        // Skip if instance is unavailable
         if (!result.checked) {
           this.log.warn(
             {
@@ -1059,11 +1048,49 @@ export class WatchlistWorkflowService {
           return false
         }
 
+        // Skip if series already exists
         if (result.found) {
           this.log.info(
             `Show ${item.title} already exists in Sonarr instance ${instance.name}, skipping addition`,
           )
           return false
+        }
+
+        // Check exclusions if instance is configured to respect them
+        if (!instance.bypassIgnored) {
+          const sonarrService = this.sonarrManager.getSonarrService(instance.id)
+          if (!sonarrService) {
+            this.log.warn(
+              {
+                instanceId: instance.id,
+                instanceName: instance.name,
+              },
+              `Sonarr service not found for instance ${instance.name}, skipping exclusion check`,
+            )
+            continue
+          }
+
+          // Fetch exclusions list for this instance
+          const exclusions = await sonarrService.fetchExclusions()
+
+          // Check if item matches any exclusion by TVDB ID
+          const isInExclusions = [...exclusions].some((exclusion) => {
+            const exclusionTvdbId = extractTvdbId(exclusion.guids)
+            return exclusionTvdbId !== 0 && exclusionTvdbId === tvdbId
+          })
+
+          if (isInExclusions) {
+            this.log.info(
+              {
+                title: item.title,
+                tvdbId,
+                instanceId: instance.id,
+                instanceName: instance.name,
+              },
+              'Skipping series - found in Sonarr exclusions list',
+            )
+            return false
+          }
         }
       }
 
@@ -1084,7 +1111,7 @@ export class WatchlistWorkflowService {
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
     try {
-      // Use utility function to extract TMDB ID
+      // Extract TMDB ID from item GUIDs
       const tmdbId = extractTmdbId(item.guids)
       if (tmdbId === 0) {
         this.log.warn(
@@ -1096,17 +1123,17 @@ export class WatchlistWorkflowService {
         return false
       }
 
-      // Get all Radarr instances
       const instances = await this.radarrManager.getAllInstances()
 
-      // Check each instance for the movie using efficient lookup
+      // Check each Radarr instance
       for (const instance of instances) {
+        // Check if movie exists using lookup API
         const result = await this.radarrManager.movieExistsByTmdbId(
           instance.id,
           tmdbId,
         )
 
-        // If service unavailable, skip processing and let periodic sync handle it
+        // Skip if instance is unavailable
         if (!result.checked) {
           this.log.warn(
             {
@@ -1119,11 +1146,49 @@ export class WatchlistWorkflowService {
           return false
         }
 
+        // Skip if movie already exists
         if (result.found) {
           this.log.info(
             `Movie ${item.title} already exists in Radarr instance ${instance.name}, skipping addition`,
           )
           return false
+        }
+
+        // Check exclusions if instance is configured to respect them
+        if (!instance.bypassIgnored) {
+          const radarrService = this.radarrManager.getRadarrService(instance.id)
+          if (!radarrService) {
+            this.log.warn(
+              {
+                instanceId: instance.id,
+                instanceName: instance.name,
+              },
+              `Radarr service not found for instance ${instance.name}, skipping exclusion check`,
+            )
+            continue
+          }
+
+          // Fetch exclusions list for this instance
+          const exclusions = await radarrService.fetchExclusions()
+
+          // Check if item matches any exclusion by TMDB ID
+          const isInExclusions = [...exclusions].some((exclusion) => {
+            const exclusionTmdbId = extractTmdbId(exclusion.guids)
+            return exclusionTmdbId !== 0 && exclusionTmdbId === tmdbId
+          })
+
+          if (isInExclusions) {
+            this.log.info(
+              {
+                title: item.title,
+                tmdbId,
+                instanceId: instance.id,
+                instanceName: instance.name,
+              },
+              'Skipping movie - found in Radarr exclusions list',
+            )
+            return false
+          }
         }
       }
 
@@ -1296,6 +1361,7 @@ export class WatchlistWorkflowService {
       const allWatchlistItems = [...shows, ...movies]
 
       // Get all existing series and movies from Sonarr/Radarr
+      // Each instance's bypassIgnored setting determines if exclusions are included
       const [existingSeries, existingMovies] = await Promise.all([
         this.sonarrManager.fetchAllSeries(),
         this.radarrManager.fetchAllMovies(),
@@ -1544,6 +1610,25 @@ export class WatchlistWorkflowService {
 
       // Update auto-approval records to attribute them to actual users
       await this.updateAutoApprovalUserAttribution(shows, movies)
+
+      // Sync statuses after adding new content to ensure tags are applied
+      // Pass the already-fetched data to avoid redundant API calls
+      try {
+        const { shows: showUpdates, movies: movieUpdates } =
+          await this.showStatusService.syncAllStatuses({
+            existingSeries,
+            existingMovies,
+          })
+        this.log.debug(
+          `Updated ${showUpdates} show statuses and ${movieUpdates} movie statuses after watchlist sync`,
+        )
+      } catch (statusError) {
+        this.log.warn(
+          { error: statusError },
+          'Error syncing statuses after watchlist sync (non-fatal)',
+        )
+        // Continue despite this error
+      }
 
       // Log warnings about unmatched items
       if (unmatchedShows > 0 || unmatchedMovies > 0) {

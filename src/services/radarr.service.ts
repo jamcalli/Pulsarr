@@ -502,7 +502,30 @@ export class RadarrService {
       }
 
       const movieItems = movies.map((movie) => this.toItem(movie))
-      return new Set([...movieItems, ...exclusions])
+      const allItems = [...movieItems, ...exclusions]
+
+      // Deduplicate by Radarr ID - some movies may exist in both regular movies and exclusions
+      // Keep the last occurrence (exclusion takes precedence if it exists in both)
+      const deduplicatedItems = Array.from(
+        new Map(
+          allItems.map((item) => [extractRadarrId(item.guids), item]),
+        ).values(),
+      )
+
+      // Log if we found duplicates
+      if (deduplicatedItems.length < allItems.length) {
+        const duplicateCount = allItems.length - deduplicatedItems.length
+        this.log.warn(
+          {
+            duplicateCount,
+            totalBeforeDedup: allItems.length,
+            totalAfterDedup: deduplicatedItems.length,
+          },
+          'Found movies that exist in both active movies and exclusions, deduplicated by Radarr ID',
+        )
+      }
+
+      return new Set(deduplicatedItems)
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching movies')
       throw err
