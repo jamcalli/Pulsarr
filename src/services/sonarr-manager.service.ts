@@ -170,6 +170,14 @@ export class SonarrManagerService {
         bypassExclusions !== undefined
           ? bypassExclusions
           : instance.bypassIgnored || false
+      this.log.debug(
+        {
+          instanceId: instance.id,
+          instanceName: instance.name,
+          bypassExclusions: shouldBypassExclusions,
+        },
+        'Fetching series with per-instance bypass setting',
+      )
       const series = await sonarrService.fetchSeries(shouldBypassExclusions)
       return Array.from(series).map((s) => ({
         ...s,

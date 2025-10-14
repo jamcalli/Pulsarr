@@ -23,6 +23,17 @@ export class StatusService {
     private readonly fastify: FastifyInstance,
   ) {}
 
+  /**
+   * Syncs status information for all watchlist items from Sonarr and Radarr instances.
+   *
+   * @param prefetchedData - Optional pre-fetched data to avoid duplicate API calls.
+   *   When provided, this method will use the already-fetched series/movies data instead of
+   *   making new API requests to Sonarr/Radarr. This is useful when the caller has already
+   *   fetched this data (e.g., during reconciliation workflows) to improve performance.
+   * @param prefetchedData.existingSeries - Pre-fetched Sonarr series data (bypasses exclusions)
+   * @param prefetchedData.existingMovies - Pre-fetched Radarr movies data (bypasses exclusions)
+   * @returns Promise resolving to counts of updated shows and movies
+   */
   async syncAllStatuses(prefetchedData?: {
     existingSeries?: SonarrItem[]
     existingMovies?: RadarrItem[]
@@ -37,7 +48,7 @@ export class StatusService {
   async syncSonarrStatuses(prefetchedSeries?: SonarrItem[]): Promise<number> {
     try {
       const existingSeries =
-        prefetchedSeries ?? (await this.sonarrManager.fetchAllSeries())
+        prefetchedSeries ?? (await this.sonarrManager.fetchAllSeries(true))
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
       const mainUpdates = await this.processShowStatusUpdates(
@@ -88,7 +99,7 @@ export class StatusService {
   async syncRadarrStatuses(prefetchedMovies?: RadarrItem[]): Promise<number> {
     try {
       const existingMovies =
-        prefetchedMovies ?? (await this.radarrManager.fetchAllMovies())
+        prefetchedMovies ?? (await this.radarrManager.fetchAllMovies(true))
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
       const mainUpdates = await this.processMovieStatusUpdates(

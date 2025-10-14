@@ -509,40 +509,7 @@ export class RadarrService {
       const movieItems = movies.map((movie) => this.toItem(movie))
       const allItems = [...movieItems, ...exclusions]
 
-      // Deduplicate by a stable composite key:
-      // 1) radarr:<id> when Radarr ID is present
-      // 2) tmdb:<id> when TMDB ID is present
-      // 3) guid:<first-guid> as a last-resort fallback
-      const map = new Map<string, Item>()
-      for (const item of allItems) {
-        const rId = extractRadarrId(item.guids)
-        const key =
-          rId > 0
-            ? `radarr:${rId}`
-            : (() => {
-                const tmdb = extractTmdbId(item.guids)
-                return tmdb > 0
-                  ? `tmdb:${tmdb}`
-                  : `guid:${(Array.isArray(item.guids) ? item.guids[0] : item.guids) ?? ''}`
-              })()
-        map.set(key, item) // later entries (exclusions) overwrite earlier ones
-      }
-      const deduplicatedItems = Array.from(map.values())
-
-      // Log if we found duplicates
-      if (deduplicatedItems.length < allItems.length) {
-        const duplicateCount = allItems.length - deduplicatedItems.length
-        this.log.warn(
-          {
-            duplicateCount,
-            totalBeforeDedup: allItems.length,
-            totalAfterDedup: deduplicatedItems.length,
-          },
-          'Found movies that exist in both active movies and exclusions, deduplicated by composite key',
-        )
-      }
-
-      return new Set(deduplicatedItems)
+      return new Set(allItems)
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching movies')
       throw err
