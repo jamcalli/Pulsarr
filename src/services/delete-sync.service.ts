@@ -769,8 +769,8 @@ export class DeleteSyncService {
   }> {
     this.log.debug('Retrieving all content from Sonarr and Radarr instances')
     const [existingSeries, existingMovies] = await Promise.all([
-      this.sonarrManager.fetchAllSeries(), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
-      this.radarrManager.fetchAllMovies(), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
+      this.sonarrManager.fetchAllSeries(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
+      this.radarrManager.fetchAllMovies(true), // Pass true to bypass exclusions (we don't want exclusions in deletion decisions)
     ])
     this.log.info(
       `Found ${existingSeries.length} series in Sonarr and ${existingMovies.length} movies in Radarr`,
