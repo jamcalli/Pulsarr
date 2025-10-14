@@ -7,7 +7,8 @@
       "!**/dist",
       "!**/tests",
       "!**/docs",
-      "!**/src/client/dist"
+      "!**/src/client/dist",
+      "!**/tmp"
     ]
   },
   "formatter": {

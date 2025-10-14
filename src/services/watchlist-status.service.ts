@@ -23,18 +23,21 @@ export class StatusService {
     private readonly fastify: FastifyInstance,
   ) {}
 
-  async syncAllStatuses(): Promise<{ shows: number; movies: number }> {
+  async syncAllStatuses(prefetchedData?: {
+    existingSeries?: SonarrItem[]
+    existingMovies?: RadarrItem[]
+  }): Promise<{ shows: number; movies: number }> {
     const [showUpdates, movieUpdates] = await Promise.all([
-      this.syncSonarrStatuses(),
-      this.syncRadarrStatuses(),
+      this.syncSonarrStatuses(prefetchedData?.existingSeries),
+      this.syncRadarrStatuses(prefetchedData?.existingMovies),
     ])
     return { shows: showUpdates, movies: movieUpdates }
   }
 
-  async syncSonarrStatuses(): Promise<number> {
+  async syncSonarrStatuses(prefetchedSeries?: SonarrItem[]): Promise<number> {
     try {
-      // Pass true to bypass exclusions (dont include the exclusions in watchlist status)
-      const existingSeries = await this.sonarrManager.fetchAllSeries(true)
+      const existingSeries =
+        prefetchedSeries ?? (await this.sonarrManager.fetchAllSeries())
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
       const mainUpdates = await this.processShowStatusUpdates(
@@ -82,10 +85,10 @@ export class StatusService {
     }
   }
 
-  async syncRadarrStatuses(): Promise<number> {
+  async syncRadarrStatuses(prefetchedMovies?: RadarrItem[]): Promise<number> {
     try {
-      // Pass true to bypass exclusions (dont include the exclusions in watchlist status)
-      const existingMovies = await this.radarrManager.fetchAllMovies(true)
+      const existingMovies =
+        prefetchedMovies ?? (await this.radarrManager.fetchAllMovies())
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
       const mainUpdates = await this.processMovieStatusUpdates(

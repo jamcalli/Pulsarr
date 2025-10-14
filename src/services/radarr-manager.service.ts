@@ -124,7 +124,7 @@ export class RadarrManagerService {
     }
   }
 
-  async fetchAllMovies(bypassExclusions = false): Promise<RadarrItem[]> {
+  async fetchAllMovies(): Promise<RadarrItem[]> {
     const allMovies: RadarrItem[] = []
     const instances = await this.fastify.db.getAllRadarrInstances()
 
@@ -137,7 +137,11 @@ export class RadarrManagerService {
         )
         return []
       }
-      const movies = await radarrService.fetchMovies(bypassExclusions)
+      // Respect per-instance bypassIgnored setting
+      // If true: fetch only actual content (bypass exclusions)
+      // If false: fetch both content and exclusions
+      const shouldBypassExclusions = instance.bypassIgnored || false
+      const movies = await radarrService.fetchMovies(shouldBypassExclusions)
       return Array.from(movies).map((m) => ({
         ...m,
         radarr_instance_id: instance.id,
