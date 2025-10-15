@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.5/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.2.6/schema.json",
   "files": {
     "maxSize": 2097152,
     "includes": [
@@ -7,7 +7,8 @@
       "!**/dist",
       "!**/tests",
       "!**/docs",
-      "!**/src/client/dist"
+      "!**/src/client/dist",
+      "!**/tmp"
     ]
   },
   "formatter": {
