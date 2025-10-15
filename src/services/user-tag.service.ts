@@ -440,9 +440,9 @@ export class UserTagService {
             users,
           )
 
-          // Get series from this instance
+          // Get series from this instance, filtering out exclusions
           const instanceSeries = series.filter(
-            (s) => s.sonarr_instance_id === instance.id,
+            (s) => s.sonarr_instance_id === instance.id && !s.isExclusion,
           )
 
           // Check if the passed data already includes tags
@@ -737,9 +737,9 @@ export class UserTagService {
             users,
           )
 
-          // Get movies from this instance
+          // Get movies from this instance, filtering out exclusions
           const instanceMovies = movies.filter(
-            (m) => m.radarr_instance_id === instance.id,
+            (m) => m.radarr_instance_id === instance.id && !m.isExclusion,
           )
 
           // Check if the passed data already includes tags

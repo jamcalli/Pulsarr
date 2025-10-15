@@ -254,6 +254,7 @@ export interface Item extends ContentItem {
   genres?: string[]
   sonarr_instance_id?: number
   tags?: number[]
+  isExclusion?: boolean
 }
 
 // Alias for better semantics - we can gradually migrate to this

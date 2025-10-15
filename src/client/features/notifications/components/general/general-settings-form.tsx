@@ -30,7 +30,7 @@ const generalFormSchema = z.object({
     .number()
     .int()
     .min(0, { error: 'Queue wait time must be at least 0 minutes' })
-    .max(5, { error: 'Queue wait time cannot exceed 5 minutes' })
+    .max(30, { error: 'Queue wait time cannot exceed 30 minutes' })
     .optional(),
   newEpisodeThreshold: z.coerce
     .number()
@@ -210,7 +210,7 @@ export function GeneralSettingsForm({
                     placeholder="Enter queue wait time"
                     type="number"
                     min="0"
-                    max="5"
+                    max="30"
                     step={1}
                     disabled={generalStatus === 'loading'}
                     className="w-full"

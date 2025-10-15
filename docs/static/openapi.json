@@ -4239,7 +4239,7 @@
                         "queueWaitTime": {
                           "type": "integer",
                           "minimum": 0,
-                          "maximum": 300000
+                          "maximum": 1800000
                         },
                         "newEpisodeThreshold": {
                           "type": "integer",
@@ -4826,7 +4826,7 @@
                   "queueWaitTime": {
                     "type": "integer",
                     "minimum": 0,
-                    "maximum": 300000
+                    "maximum": 1800000
                   },
                   "newEpisodeThreshold": {
                     "type": "integer",
@@ -5352,7 +5352,7 @@
                         "queueWaitTime": {
                           "type": "integer",
                           "minimum": 0,
-                          "maximum": 300000
+                          "maximum": 1800000
                         },
                         "newEpisodeThreshold": {
                           "type": "integer",

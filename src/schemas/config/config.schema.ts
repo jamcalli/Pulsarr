@@ -6,7 +6,7 @@ import {
 import { z } from 'zod'
 
 // Max constants for validation
-const QUEUE_WAIT_TIME_MAX_MS = 5 * 60 * 1000
+const QUEUE_WAIT_TIME_MAX_MS = 30 * 60 * 1000
 const NEW_EPISODE_THRESHOLD_MAX_MS = 720 * 60 * 60 * 1000
 const UPGRADE_BUFFER_TIME_MAX_MS = 10 * 1000
 
@@ -101,9 +101,9 @@ export const ConfigSchema = z.object({
     .int()
     .min(0, { error: 'Queue wait time must be at least 0 milliseconds' })
     .max(QUEUE_WAIT_TIME_MAX_MS, {
-      error: `Queue wait time cannot exceed ${QUEUE_WAIT_TIME_MAX_MS} milliseconds (5 minutes)`,
+      error: `Queue wait time cannot exceed ${QUEUE_WAIT_TIME_MAX_MS} milliseconds (30 minutes)`,
     })
-    .optional(), // 0-5 minutes in ms
+    .optional(), // 0-30 minutes in ms
   newEpisodeThreshold: z.coerce
     .number()
     .int()
