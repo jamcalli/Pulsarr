@@ -507,7 +507,14 @@ export class RadarrService {
       }
 
       const movieItems = movies.map((movie) => this.toItem(movie))
-      const allItems = [...movieItems, ...exclusions]
+
+      // Mark exclusions so they can be filtered out from tagging
+      const exclusionItems = Array.from(exclusions).map((item) => ({
+        ...item,
+        isExclusion: true,
+      }))
+
+      const allItems = [...movieItems, ...exclusionItems]
 
       return new Set(allItems)
     } catch (err) {

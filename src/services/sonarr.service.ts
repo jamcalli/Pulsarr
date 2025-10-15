@@ -628,7 +628,14 @@ export class SonarrService {
       }
 
       const showItems = shows.map((show) => this.toItem(show))
-      const allItems = [...showItems, ...exclusions]
+
+      // Mark exclusions so they can be filtered out from tagging
+      const exclusionItems = Array.from(exclusions).map((item) => ({
+        ...item,
+        isExclusion: true,
+      }))
+
+      const allItems = [...showItems, ...exclusionItems]
 
       return new Set(allItems)
     } catch (err) {
