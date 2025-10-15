@@ -40,3 +40,6 @@ CLAUDE.md
 
 # fixes folder
 /fixes/
+
+# temporary files
+tmp/

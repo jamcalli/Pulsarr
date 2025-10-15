@@ -24,6 +24,7 @@ import {
   normalizeGuid,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 // HTTP timeout constants
@@ -125,8 +126,12 @@ export class SonarrService {
       }
     }
 
-    // Set the webhook path
-    url.pathname = '/v1/notifications/webhook'
+    // Set the webhook path with basePath
+    const basePath = normalizeBasePath(this.fastify.config.basePath)
+    url.pathname =
+      basePath === '/'
+        ? '/v1/notifications/webhook'
+        : `${basePath}/v1/notifications/webhook`
 
     // Add instance identifier for tracking
     const urlIdentifier = this.sonarrConfig.sonarrBaseUrl
@@ -623,7 +628,16 @@ export class SonarrService {
       }
 
       const showItems = shows.map((show) => this.toItem(show))
-      return new Set([...showItems, ...exclusions])
+
+      // Mark exclusions so they can be filtered out from tagging
+      const exclusionItems = Array.from(exclusions).map((item) => ({
+        ...item,
+        isExclusion: true,
+      }))
+
+      const allItems = [...showItems, ...exclusionItems]
+
+      return new Set(allItems)
     } catch (err) {
       this.log.error({ error: err }, 'Error fetching series')
       throw err
