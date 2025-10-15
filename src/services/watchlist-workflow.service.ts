@@ -1052,8 +1052,7 @@ export class WatchlistWorkflowService {
       // Check each Sonarr instance
       let anyChecked = false
       let existsSomewhere = false
-      let eligibleForExclusions = 0
-      let excludedEligibleCount = 0
+      let canAcceptSomewhere = false
 
       for (const instance of instances) {
         // Check if series exists using lookup API
@@ -1085,8 +1084,12 @@ export class WatchlistWorkflowService {
           break
         }
 
-        // Check exclusions if instance is configured to respect them
-        if (!instance.bypassIgnored) {
+        // Determine if this instance can accept the item
+        if (instance.bypassIgnored) {
+          // Instance bypasses exclusions, can accept any item
+          canAcceptSomewhere = true
+        } else {
+          // Instance respects exclusions, check if item is excluded
           // Use cached exclusions if available, otherwise fetch on demand
           let exclusions: Set<SonarrItem>
           const cachedExclusions = exclusionsCache?.get(instance.id)
@@ -1115,24 +1118,20 @@ export class WatchlistWorkflowService {
             return exclusionTvdbId !== 0 && exclusionTvdbId === tvdbId
           })
 
-          // Track exclusion coverage across eligible instances
-          eligibleForExclusions++
-          if (isInExclusions) excludedEligibleCount++
+          if (!isInExclusions) {
+            canAcceptSomewhere = true
+          }
         }
       }
 
       if (existsSomewhere) return false
-      if (
-        eligibleForExclusions > 0 &&
-        excludedEligibleCount === eligibleForExclusions
-      ) {
+      if (!canAcceptSomewhere && anyChecked) {
         this.log.info(
           { title: item.title, tvdbId },
-          'Skipping series - excluded in all eligible Sonarr instances',
+          'Skipping series - all available Sonarr instances either have it or exclude it',
         )
         return false
       }
-      // Only proceed if at least one instance responded
       return anyChecked
     } catch (error) {
       this.log.error({ error }, `Error verifying show ${item.title} in Sonarr:`)
@@ -1169,8 +1168,7 @@ export class WatchlistWorkflowService {
       // Check each Radarr instance
       let anyChecked = false
       let existsSomewhere = false
-      let eligibleForExclusions = 0
-      let excludedEligibleCount = 0
+      let canAcceptSomewhere = false
 
       for (const instance of instances) {
         // Check if movie exists using lookup API
@@ -1202,8 +1200,12 @@ export class WatchlistWorkflowService {
           break
         }
 
-        // Check exclusions if instance is configured to respect them
-        if (!instance.bypassIgnored) {
+        // Determine if this instance can accept the item
+        if (instance.bypassIgnored) {
+          // Instance bypasses exclusions, can accept any item
+          canAcceptSomewhere = true
+        } else {
+          // Instance respects exclusions, check if item is excluded
           // Use cached exclusions if available, otherwise fetch on demand
           let exclusions: Set<RadarrItem>
           const cachedExclusions = exclusionsCache?.get(instance.id)
@@ -1232,24 +1234,20 @@ export class WatchlistWorkflowService {
             return exclusionTmdbId !== 0 && exclusionTmdbId === tmdbId
           })
 
-          // Track exclusion coverage across eligible instances
-          eligibleForExclusions++
-          if (isInExclusions) excludedEligibleCount++
+          if (!isInExclusions) {
+            canAcceptSomewhere = true
+          }
         }
       }
 
       if (existsSomewhere) return false
-      if (
-        eligibleForExclusions > 0 &&
-        excludedEligibleCount === eligibleForExclusions
-      ) {
+      if (!canAcceptSomewhere && anyChecked) {
         this.log.info(
           { title: item.title, tmdbId },
-          'Skipping movie - excluded in all eligible Radarr instances',
+          'Skipping movie - all available Radarr instances either have it or exclude it',
         )
         return false
       }
-      // Only proceed if at least one instance responded
       return anyChecked
     } catch (error) {
       this.log.error(
