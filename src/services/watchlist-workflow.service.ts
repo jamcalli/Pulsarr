@@ -871,9 +871,10 @@ export class WatchlistWorkflowService {
 
   /**
    * Check if at least one Sonarr instance is available for service operations
+   * and aggregate existence across all available instances
    *
    * @param item - Watchlist item to check (for logging context)
-   * @returns Promise resolving to ExistenceCheckResult indicating availability
+   * @returns Promise resolving to ExistenceCheckResult indicating availability and existence across all instances
    */
   private async checkSonarrServiceAvailability(
     item: TemptRssWatchlistItem,
@@ -901,31 +902,40 @@ export class WatchlistWorkflowService {
         }
       }
 
-      // Check if at least one instance is available
+      // Aggregate results across all instances
+      let anyChecked = false
+      let existsSomewhere = false
+
       for (const instance of instances) {
         const result = await this.sonarrManager.seriesExistsByTvdbId(
           instance.id,
           tvdbId,
         )
 
-        // If this instance is available, return its result
+        // Track if any instance is available
         if (result.checked) {
-          return {
-            found: result.found,
-            checked: true,
-            serviceName: result.serviceName,
-            instanceId: result.instanceId,
+          anyChecked = true
+          // Track if item exists in any available instance
+          if (result.found) {
+            existsSomewhere = true
+            // Continue checking all instances to ensure complete coverage
           }
         }
       }
 
-      // No instances were available
-      return {
-        found: false,
-        checked: false,
-        serviceName: 'Sonarr',
-        error: 'All Sonarr instances unavailable',
-      }
+      // Return aggregated result
+      return anyChecked
+        ? {
+            found: existsSomewhere,
+            checked: true,
+            serviceName: 'Sonarr',
+          }
+        : {
+            found: false,
+            checked: false,
+            serviceName: 'Sonarr',
+            error: 'All Sonarr instances unavailable',
+          }
     } catch (error) {
       return {
         found: false,
@@ -938,9 +948,10 @@ export class WatchlistWorkflowService {
 
   /**
    * Check if at least one Radarr instance is available for service operations
+   * and aggregate existence across all available instances
    *
    * @param item - Watchlist item to check (for logging context)
-   * @returns Promise resolving to ExistenceCheckResult indicating availability
+   * @returns Promise resolving to ExistenceCheckResult indicating availability and existence across all instances
    */
   private async checkRadarrServiceAvailability(
     item: TemptRssWatchlistItem,
@@ -968,31 +979,40 @@ export class WatchlistWorkflowService {
         }
       }
 
-      // Check if at least one instance is available
+      // Aggregate results across all instances
+      let anyChecked = false
+      let existsSomewhere = false
+
       for (const instance of instances) {
         const result = await this.radarrManager.movieExistsByTmdbId(
           instance.id,
           tmdbId,
         )
 
-        // If this instance is available, return its result
+        // Track if any instance is available
         if (result.checked) {
-          return {
-            found: result.found,
-            checked: true,
-            serviceName: result.serviceName,
-            instanceId: result.instanceId,
+          anyChecked = true
+          // Track if item exists in any available instance
+          if (result.found) {
+            existsSomewhere = true
+            // Continue checking all instances to ensure complete coverage
           }
         }
       }
 
-      // No instances were available
-      return {
-        found: false,
-        checked: false,
-        serviceName: 'Radarr',
-        error: 'All Radarr instances unavailable',
-      }
+      // Return aggregated result
+      return anyChecked
+        ? {
+            found: existsSomewhere,
+            checked: true,
+            serviceName: 'Radarr',
+          }
+        : {
+            found: false,
+            checked: false,
+            serviceName: 'Radarr',
+            error: 'All Radarr instances unavailable',
+          }
     } catch (error) {
       return {
         found: false,
@@ -1007,10 +1027,12 @@ export class WatchlistWorkflowService {
    * Verify if a show already exists in any Sonarr instance
    *
    * @param item - Watchlist item to check
+   * @param exclusionsCache - Optional pre-fetched exclusions map by instance ID to avoid N+1 queries
    * @returns Promise resolving to true if the item should be added, false otherwise
    */
   private async verifySonarrItem(
     item: TemptRssWatchlistItem,
+    exclusionsCache?: Map<number, Set<SonarrItem>>,
   ): Promise<boolean> {
     try {
       // Extract TVDB ID from item GUIDs
@@ -1065,20 +1087,27 @@ export class WatchlistWorkflowService {
 
         // Check exclusions if instance is configured to respect them
         if (!instance.bypassIgnored) {
-          const sonarrService = this.sonarrManager.getSonarrService(instance.id)
-          if (!sonarrService) {
-            this.log.warn(
-              {
-                instanceId: instance.id,
-                instanceName: instance.name,
-              },
-              `Sonarr service not found for instance ${instance.name}, skipping exclusion check`,
+          // Use cached exclusions if available, otherwise fetch on demand
+          let exclusions: Set<SonarrItem>
+          const cachedExclusions = exclusionsCache?.get(instance.id)
+          if (cachedExclusions) {
+            exclusions = cachedExclusions
+          } else {
+            const sonarrService = this.sonarrManager.getSonarrService(
+              instance.id,
             )
-            continue
+            if (!sonarrService) {
+              this.log.warn(
+                {
+                  instanceId: instance.id,
+                  instanceName: instance.name,
+                },
+                `Sonarr service not found for instance ${instance.name}, skipping exclusion check`,
+              )
+              continue
+            }
+            exclusions = await sonarrService.fetchExclusions()
           }
-
-          // Fetch exclusions list for this instance
-          const exclusions = await sonarrService.fetchExclusions()
 
           // Check if item matches any exclusion by TVDB ID
           const isInExclusions = [...exclusions].some((exclusion) => {
@@ -1115,10 +1144,12 @@ export class WatchlistWorkflowService {
    * Verify if a movie already exists in any Radarr instance
    *
    * @param item - Watchlist item to check
+   * @param exclusionsCache - Optional pre-fetched exclusions map by instance ID to avoid N+1 queries
    * @returns Promise resolving to true if the item should be added, false otherwise
    */
   private async verifyRadarrItem(
     item: TemptRssWatchlistItem,
+    exclusionsCache?: Map<number, Set<RadarrItem>>,
   ): Promise<boolean> {
     try {
       // Extract TMDB ID from item GUIDs
@@ -1173,20 +1204,27 @@ export class WatchlistWorkflowService {
 
         // Check exclusions if instance is configured to respect them
         if (!instance.bypassIgnored) {
-          const radarrService = this.radarrManager.getRadarrService(instance.id)
-          if (!radarrService) {
-            this.log.warn(
-              {
-                instanceId: instance.id,
-                instanceName: instance.name,
-              },
-              `Radarr service not found for instance ${instance.name}, skipping exclusion check`,
+          // Use cached exclusions if available, otherwise fetch on demand
+          let exclusions: Set<RadarrItem>
+          const cachedExclusions = exclusionsCache?.get(instance.id)
+          if (cachedExclusions) {
+            exclusions = cachedExclusions
+          } else {
+            const radarrService = this.radarrManager.getRadarrService(
+              instance.id,
             )
-            continue
+            if (!radarrService) {
+              this.log.warn(
+                {
+                  instanceId: instance.id,
+                  instanceName: instance.name,
+                },
+                `Radarr service not found for instance ${instance.name}, skipping exclusion check`,
+              )
+              continue
+            }
+            exclusions = await radarrService.fetchExclusions()
           }
-
-          // Fetch exclusions list for this instance
-          const exclusions = await radarrService.fetchExclusions()
 
           // Check if item matches any exclusion by TMDB ID
           const isInExclusions = [...exclusions].some((exclusion) => {
