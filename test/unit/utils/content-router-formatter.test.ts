@@ -1,6 +1,6 @@
+import type { RouterRule } from '@root/types/router.types.js'
+import { formatRule } from '@utils/content-router-formatter.js'
 import { describe, expect, it } from 'vitest'
-import type { RouterRule } from '../../../src/types/router.types.js'
-import { formatRule } from '../../../src/utils/content-router-formatter.js'
 import { createMockLogger } from '../../mocks/logger.js'
 
 // Helper to create a mock database row (database returns raw types)

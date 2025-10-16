@@ -1,7 +1,7 @@
+import serviceApp, { options } from '@root/app.js'
 import type { FastifyInstance } from 'fastify'
 import Fastify from 'fastify'
 import type { TestContext } from 'vitest'
-import serviceApp, { options } from '../../src/app.js'
 import { initializeTestDatabase } from './database.js'
 
 /**

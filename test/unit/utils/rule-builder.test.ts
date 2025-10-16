@@ -1,5 +1,5 @@
+import { RuleBuilder } from '@utils/rule-builder.js'
 import { describe, expect, it } from 'vitest'
-import { RuleBuilder } from '../../../src/utils/rule-builder.js'
 
 describe('rule-builder', () => {
   describe('condition', () => {
@@ -404,7 +404,9 @@ describe('rule-builder', () => {
       })
 
       expect(rule.criteria.condition).toHaveProperty('operator', 'AND')
-      expect(rule.criteria.condition.conditions).toHaveLength(3)
+      expect(
+        (rule.criteria.condition as { conditions: unknown[] }).conditions,
+      ).toHaveLength(3)
     })
 
     it('should use default values for order and enabled', () => {

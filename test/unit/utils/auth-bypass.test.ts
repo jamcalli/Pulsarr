@@ -1,6 +1,6 @@
+import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { describe, expect, it } from 'vitest'
-import { getAuthBypassStatus } from '../../../src/utils/auth-bypass.js'
 
 describe('auth-bypass', () => {
   describe('getAuthBypassStatus', () => {

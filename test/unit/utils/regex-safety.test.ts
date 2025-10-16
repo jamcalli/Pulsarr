@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest'
 import {
   evaluateRegexSafely,
   evaluateRegexSafelyMultiple,
-} from '../../../src/utils/regex-safety'
-import { createMockLogger } from '../../mocks/logger'
+} from '@utils/regex-safety.js'
+import { describe, expect, it } from 'vitest'
+import { createMockLogger } from '../../mocks/logger.js'
 
 describe('evaluateRegexSafely', () => {
   describe('valid regex patterns', () => {

@@ -1,5 +1,5 @@
+import { getPathBasename, normalizePath } from '@utils/path.js'
 import { describe, expect, it } from 'vitest'
-import { getPathBasename, normalizePath } from '../../../src/utils/path'
 
 describe('normalizePath', () => {
   describe('basic path normalization', () => {

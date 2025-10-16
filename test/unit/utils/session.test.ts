@@ -1,6 +1,6 @@
+import { createTemporaryAdminSession } from '@utils/session.js'
 import type { FastifyRequest } from 'fastify'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createTemporaryAdminSession } from '../../../src/utils/session.js'
 
 describe('session', () => {
   describe('createTemporaryAdminSession', () => {
@@ -67,11 +67,16 @@ describe('session', () => {
     })
 
     it('should preserve other session properties', () => {
-      mockRequest.session.customProperty = 'preserved'
+      ;(
+        mockRequest.session as unknown as Record<string, unknown>
+      ).customProperty = 'preserved'
 
       createTemporaryAdminSession(mockRequest)
 
-      expect(mockRequest.session.customProperty).toBe('preserved')
+      expect(
+        (mockRequest.session as unknown as Record<string, unknown>)
+          .customProperty,
+      ).toBe('preserved')
       expect(mockRequest.session.user).toBeDefined()
     })
   })

@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest'
 import {
   serializeDate,
   serializeRollingShowDates,
-} from '../../../src/utils/date-serializer.js'
+} from '@utils/date-serializer.js'
+import { describe, expect, it } from 'vitest'
 
 describe('date-serializer', () => {
   describe('serializeDate', () => {

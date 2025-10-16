@@ -1,5 +1,5 @@
+import { parseQualityProfileId } from '@utils/quality-profile.js'
 import { describe, expect, it } from 'vitest'
-import { parseQualityProfileId } from '../../../src/utils/quality-profile'
 
 describe('parseQualityProfileId', () => {
   describe('valid numeric inputs', () => {

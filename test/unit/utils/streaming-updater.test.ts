@@ -1,11 +1,8 @@
 import { Readable } from 'node:stream'
 import { createGzip } from 'node:zlib'
+import { fetchContent, streamLines } from '@utils/streaming-updater.js'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  fetchContent,
-  streamLines,
-} from '../../../src/utils/streaming-updater.js'
 import { server } from '../../setup/msw-setup.js'
 
 describe('streaming-updater', () => {

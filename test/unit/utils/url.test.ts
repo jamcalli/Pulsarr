@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest'
 import {
   delayWithBackoffAndJitter,
   isSameServerEndpoint,
   normalizeBasePath,
   normalizeEndpointWithPath,
-} from '../../../src/utils/url.js'
+} from '@utils/url.js'
+import { describe, expect, it } from 'vitest'
 
 describe('url', () => {
   describe('normalizeBasePath', () => {
