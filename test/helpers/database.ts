@@ -83,6 +83,9 @@ export async function resetDatabase(): Promise<void> {
     throw new Error('Database connection not initialized')
   }
 
+  // Temporarily disable foreign key constraints for truncation
+  await anchorConnection.raw('PRAGMA foreign_keys = OFF')
+
   // Get all table names except knex migrations table
   const result = await anchorConnection.raw<{ name: string }[]>(`
     SELECT name FROM sqlite_master
@@ -90,10 +93,13 @@ export async function resetDatabase(): Promise<void> {
     AND name NOT LIKE 'knex_%'
   `)
 
-  // Truncate each table
+  // Truncate each table using query builder for safe identifier handling
   for (const row of result) {
-    await anchorConnection.raw(`DELETE FROM ${row.name}`)
+    await anchorConnection(row.name).del()
   }
+
+  // Re-enable foreign key constraints
+  await anchorConnection.raw('PRAGMA foreign_keys = ON')
 }
 
 /**

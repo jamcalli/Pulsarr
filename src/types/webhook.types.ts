@@ -31,7 +31,7 @@ export interface SeasonQueue {
   firstReceived: Date
   lastUpdated: Date
   notifiedSeasons: Set<number>
-  timeoutId: NodeJS.Timeout
+  timeoutId?: NodeJS.Timeout
   upgradeTracker: Map<string, RecentWebhook[]>
   instanceId?: number | null
 }

@@ -22,6 +22,8 @@ export function isRecentEpisode(
     const now = Date.now()
     const threshold = fastify.config.newEpisodeThreshold
     const age = now - airDate
+    // Intentionally treats future episodes (negative age) as recent
+    // This handles early releases, leaks, timezone differences, and pre-releases
     const isRecent = age <= threshold
 
     fastify.log.debug(

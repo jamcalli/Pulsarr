@@ -15,7 +15,6 @@
       "@schemas/*": ["./src/schemas/*"],
       "@services/*": ["./src/services/*"],
       "@types/*": ["./src/types/*"],
-      "@/*": ["./src/client/*"],
       "@commitlint/types": ["./node_modules/@commitlint/types"]
     }
   },
