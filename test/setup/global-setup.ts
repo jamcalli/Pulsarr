@@ -44,9 +44,13 @@ export async function setup(): Promise<void> {
  * Runs once after all tests complete
  */
 export async function teardown(): Promise<void> {
+  // Import cleanup function dynamically to avoid circular dependencies
+  const { cleanupTestDatabase } = await import('../helpers/database.js')
+
+  // Clean up the database connection
+  await cleanupTestDatabase()
+
   // Clean up all test database files
-  // Note: The anchor connection in helper.ts is automatically cleaned up
-  // when the process exits, so we only need to remove the files here
   const filesToClean = [
     TEST_DB_PATH,
     `${TEST_DB_PATH}-shm`,
