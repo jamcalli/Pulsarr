@@ -11,10 +11,7 @@ interface UpgradeWebhookEvent {
  */
 function ensureShowQueue(tvdbId: string, fastify: FastifyInstance): void {
   if (!webhookQueue[tvdbId]) {
-    fastify.log.debug(
-      { tvdbId },
-      'Initializing queue for upgrade check',
-    )
+    fastify.log.debug({ tvdbId }, 'Initializing queue for upgrade check')
 
     webhookQueue[tvdbId] = {
       seasons: {},
@@ -93,9 +90,7 @@ function cleanExpiredEntries(
   let cleanedEntries = 0
 
   for (const [key, webhooks] of seasonQueue.upgradeTracker.entries()) {
-    const filtered = webhooks.filter(
-      (w) => now - w.timestamp < bufferTime,
-    )
+    const filtered = webhooks.filter((w) => now - w.timestamp < bufferTime)
 
     if (filtered.length === 0) {
       seasonQueue.upgradeTracker.delete(key)
@@ -156,7 +151,12 @@ export async function checkForUpgrade(
   ensureShowQueue(tvdbId, fastify)
   ensureSeasonQueue(tvdbId, seasonNumber, instanceId, fastify)
   recordWebhookEvent(tvdbId, seasonNumber, episodeNumber, isUpgrade)
-  cleanExpiredEntries(tvdbId, seasonNumber, fastify.config.upgradeBufferTime, fastify)
+  cleanExpiredEntries(
+    tvdbId,
+    seasonNumber,
+    fastify.config.upgradeBufferTime,
+    fastify,
+  )
 
   // Wait briefly to allow for concurrent webhook events
   await new Promise((resolve) => setTimeout(resolve, 500))
@@ -168,7 +168,11 @@ export async function checkForUpgrade(
       tvdbId,
       seasonNumber,
       episodeNumber,
-      recentWebhooksCount: (webhookQueue[tvdbId].seasons[seasonNumber].upgradeTracker.get(`${seasonNumber}-${episodeNumber}`) || []).length,
+      recentWebhooksCount: (
+        webhookQueue[tvdbId].seasons[seasonNumber].upgradeTracker.get(
+          `${seasonNumber}-${episodeNumber}`,
+        ) || []
+      ).length,
       hasUpgrade,
     },
     'Upgrade check result',
