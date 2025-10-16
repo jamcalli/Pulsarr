@@ -8,7 +8,11 @@ import { webhookQueue } from './queue-state.js'
 /**
  * Remove the season queue and clean up the show queue if empty
  */
-function cleanupSeasonQueue(tvdbId: string, seasonNumber: number, fastify: FastifyInstance): void {
+function cleanupSeasonQueue(
+  tvdbId: string,
+  seasonNumber: number,
+  fastify: FastifyInstance,
+): void {
   const queue = webhookQueue[tvdbId]
 
   delete queue.seasons[seasonNumber]
@@ -22,7 +26,11 @@ function cleanupSeasonQueue(tvdbId: string, seasonNumber: number, fastify: Fasti
 /**
  * Validate that the queue exists and has episodes to process
  */
-function validateQueue(tvdbId: string, seasonNumber: number, fastify: FastifyInstance): boolean {
+function validateQueue(
+  tvdbId: string,
+  seasonNumber: number,
+  fastify: FastifyInstance,
+): boolean {
   const queue = webhookQueue[tvdbId]
 
   if (!queue?.seasons[seasonNumber]) {
@@ -56,7 +64,11 @@ function validateQueue(tvdbId: string, seasonNumber: number, fastify: FastifyIns
 /**
  * Check if the season should be processed based on recency and notification state
  */
-function shouldProcessSeason(tvdbId: string, seasonNumber: number, fastify: FastifyInstance): boolean {
+function shouldProcessSeason(
+  tvdbId: string,
+  seasonNumber: number,
+  fastify: FastifyInstance,
+): boolean {
   const queue = webhookQueue[tvdbId]
   const seasonQueue = queue.seasons[seasonNumber]
   const episodes = seasonQueue.episodes
