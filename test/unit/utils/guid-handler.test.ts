@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest'
 import {
   createGuidSet,
   extractImdbId,
@@ -12,7 +11,8 @@ import {
   hasMatchingParsedGuids,
   normalizeGuid,
   parseGuids,
-} from '../../../src/utils/guid-handler.js'
+} from '@utils/guid-handler.js'
+import { describe, expect, it } from 'vitest'
 
 describe('guid-handler', () => {
   describe('normalizeGuid', () => {

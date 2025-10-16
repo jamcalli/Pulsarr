@@ -24,6 +24,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p src/client/tsconfig.json",
     "typecheck:server": "tsc --noEmit",
     "typecheck:client": "tsc --noEmit -p src/client/tsconfig.json",
+    "typecheck:tests": "tsc --noEmit -p test/tsconfig.json",
     "migrate": "tsx migrations/migrate.ts",
     "migrate:make": "knex migrate:make -x ts",
     "migrate:rollback": "tsx migrations/rollback.ts",

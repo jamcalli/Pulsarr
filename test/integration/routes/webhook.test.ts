@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { build } from '../../helper.js'
+import { build } from '../../helpers/app.js'
 
 describe('Webhook Routes', () => {
   describe('POST /v1/notifications/webhook', () => {

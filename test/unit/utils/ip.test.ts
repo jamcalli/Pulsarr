@@ -1,5 +1,5 @@
+import { isLocalIpAddress } from '@utils/ip.js'
 import { describe, expect, it } from 'vitest'
-import { isLocalIpAddress } from '../../../src/utils/ip.js'
 
 describe('ip', () => {
   describe('isLocalIpAddress', () => {

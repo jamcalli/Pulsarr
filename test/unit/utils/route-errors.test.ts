@@ -1,10 +1,10 @@
-import type { FastifyReply, FastifyRequest } from 'fastify'
-import { describe, expect, it, vi } from 'vitest'
 import {
   handleRouteError,
   logRouteError,
   logServiceError,
-} from '../../../src/utils/route-errors.js'
+} from '@utils/route-errors.js'
+import type { FastifyReply, FastifyRequest } from 'fastify'
+import { describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
 
 describe('route-errors', () => {
