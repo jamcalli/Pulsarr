@@ -18,7 +18,7 @@ import {
   processQueuedWebhooks,
   queuePendingWebhook,
   webhookQueue,
-} from '@root/utils/webhookQueue.js'
+} from '@root/utils/webhook/index.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 
