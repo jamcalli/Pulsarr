@@ -47,6 +47,3 @@ tmp/
 
 # test coverage
 coverage/
-
-# temporary files
-tmp/

@@ -36,16 +36,13 @@ function ensureSeasonQueue(
     )
 
     webhookQueue[tvdbId].seasons[seasonNumber] = {
+      // Initialize all SeasonQueue fields even though upgrade tracking only uses upgradeTracker
+      // These fields are used by queue-processor when actual episodes are queued
       episodes: [],
       firstReceived: new Date(),
       lastUpdated: new Date(),
       notifiedSeasons: new Set(),
-      timeoutId: setTimeout(() => {
-        fastify.log.debug(
-          { tvdbId, seasonNumber },
-          'Placeholder timeout in upgrade check',
-        )
-      }, 0),
+      // No timeoutId - only set by webhook route when episodes are queued
       upgradeTracker: new Map(),
       instanceId: instanceId,
     }
@@ -158,7 +155,11 @@ export async function checkForUpgrade(
     fastify,
   )
 
-  // Wait briefly to allow for concurrent webhook events
+  // Webhook deduplication: Wait 500ms to collect near-simultaneous webhooks
+  // Sonarr/Radarr often send multiple webhooks for the same episode within ~1 second
+  // (e.g., grab event + import event). Some may indicate upgrade, others may not.
+  // This delay allows us to collect all webhooks that arrive at nearly the same time
+  // and determine if ANY of them indicate an upgrade.
   await new Promise((resolve) => setTimeout(resolve, 500))
 
   const hasUpgrade = hasRecentUpgrade(tvdbId, seasonNumber, episodeNumber)

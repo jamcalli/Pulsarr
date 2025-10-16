@@ -52,6 +52,7 @@ describe('upgrade-tracker', () => {
       expect(webhookQueue['12345'].seasons[1]).toBeDefined()
       expect(webhookQueue['12345'].seasons[1].upgradeTracker).toBeDefined()
       expect(webhookQueue['12345'].seasons[1].instanceId).toBe(123)
+      expect(webhookQueue['12345'].seasons[1].timeoutId).toBeUndefined()
       expect(result).toBe(false)
     })
 

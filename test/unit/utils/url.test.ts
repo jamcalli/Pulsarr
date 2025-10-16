@@ -28,8 +28,8 @@ describe('url', () => {
       expect(normalizeBasePath('/pulsarr/')).toBe('/pulsarr')
     })
 
-    it('should handle path with both leading and trailing slashes', () => {
-      expect(normalizeBasePath('/pulsarr/')).toBe('/pulsarr')
+    it('should handle path without leading slash but with trailing slash', () => {
+      expect(normalizeBasePath('pulsarr/')).toBe('/pulsarr')
     })
 
     it('should handle multiple leading slashes', () => {
@@ -162,7 +162,7 @@ describe('url', () => {
       expect(result).toBe('not a valid url!!')
     })
 
-    it('should handle URL with query parameters by including them', () => {
+    it('should remove query parameters from URL', () => {
       expect(
         normalizeEndpointWithPath('http://example.com/api?key=value'),
       ).toBe('http://example.com/api')
