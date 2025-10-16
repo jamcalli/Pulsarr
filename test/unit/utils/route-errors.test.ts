@@ -1,19 +1,16 @@
-import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import { describe, expect, it, vi } from 'vitest'
 import {
   handleRouteError,
   logRouteError,
   logServiceError,
 } from '../../../src/utils/route-errors.js'
+import { createMockLogger } from '../../mocks/logger.js'
 
 describe('route-errors', () => {
   describe('logRouteError', () => {
     it('should log error with default message and route', () => {
-      const mockLogger = {
-        error: vi.fn(),
-        warn: vi.fn(),
-        info: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -35,9 +32,7 @@ describe('route-errors', () => {
     })
 
     it('should use custom message when provided', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'POST',
@@ -61,9 +56,7 @@ describe('route-errors', () => {
     })
 
     it('should include userId when authenticated user exists', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -85,9 +78,7 @@ describe('route-errors', () => {
     })
 
     it('should handle user without id', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -109,9 +100,7 @@ describe('route-errors', () => {
     })
 
     it('should include additional context when provided', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -138,9 +127,7 @@ describe('route-errors', () => {
     })
 
     it('should include direct context fields from options', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -165,11 +152,7 @@ describe('route-errors', () => {
     })
 
     it('should use warn level when specified', () => {
-      const mockLogger = {
-        error: vi.fn(),
-        warn: vi.fn(),
-        info: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -189,11 +172,7 @@ describe('route-errors', () => {
     })
 
     it('should use info level when specified', () => {
-      const mockLogger = {
-        error: vi.fn(),
-        warn: vi.fn(),
-        info: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -213,9 +192,7 @@ describe('route-errors', () => {
     })
 
     it('should fall back to request.url when routeOptions is missing', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -237,9 +214,7 @@ describe('route-errors', () => {
 
   describe('logServiceError', () => {
     it('should extract instanceId from route params', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -263,9 +238,7 @@ describe('route-errors', () => {
     })
 
     it('should extract instanceId from query params if not in route params', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -289,9 +262,7 @@ describe('route-errors', () => {
     })
 
     it('should prefer route params over query params for instanceId', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -314,9 +285,7 @@ describe('route-errors', () => {
     })
 
     it('should use custom message when provided', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -345,9 +314,7 @@ describe('route-errors', () => {
     })
 
     it('should handle missing instanceId', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
@@ -373,9 +340,7 @@ describe('route-errors', () => {
 
   describe('handleRouteError', () => {
     it('should log error and send 500 response', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'POST',
@@ -413,9 +378,7 @@ describe('route-errors', () => {
     })
 
     it('should use custom log message when provided', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'DELETE',
@@ -451,9 +414,7 @@ describe('route-errors', () => {
     })
 
     it('should use default log message when not provided', () => {
-      const mockLogger = {
-        error: vi.fn(),
-      } as unknown as FastifyBaseLogger
+      const mockLogger = createMockLogger()
 
       const mockRequest = {
         method: 'GET',
