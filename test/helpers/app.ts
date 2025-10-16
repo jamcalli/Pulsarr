@@ -16,8 +16,8 @@ export async function build(t?: TestContext): Promise<FastifyInstance> {
   await initializeTestDatabase()
 
   const app = Fastify({
-    logger: false, // Disable logging in tests
     ...options,
+    logger: false, // Disable logging in tests
   })
 
   // Register the main app

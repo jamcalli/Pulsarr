@@ -9,7 +9,7 @@ describe('ip', () => {
       })
 
       it('should return true for 127.x.x.x range', () => {
-        expect(isLocalIpAddress('127.0.0.1')).toBe(true)
+        expect(isLocalIpAddress('127.0.0.0')).toBe(true)
         expect(isLocalIpAddress('127.1.1.1')).toBe(true)
         expect(isLocalIpAddress('127.255.255.255')).toBe(true)
       })
@@ -94,7 +94,7 @@ describe('ip', () => {
     })
 
     describe('invalid inputs', () => {
-      it('should return false for null/undefined', () => {
+      it('should return false for empty or whitespace-only strings', () => {
         expect(isLocalIpAddress('')).toBe(false)
         expect(isLocalIpAddress('   ')).toBe(false)
       })

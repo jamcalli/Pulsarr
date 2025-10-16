@@ -187,7 +187,7 @@ describe('streaming-updater', () => {
     it('should timeout when request exceeds timeout value', async () => {
       server.use(
         http.get('https://example.com/slow', async () => {
-          await new Promise((resolve) => setTimeout(resolve, 5000))
+          await new Promise((resolve) => setTimeout(resolve, 200))
           return new HttpResponse('line1\n', {
             headers: { 'Content-Type': 'text/plain' },
           })
@@ -531,7 +531,7 @@ describe('streaming-updater', () => {
     it('should timeout when request exceeds timeout value', async () => {
       server.use(
         http.get('https://example.com/slow.txt', async () => {
-          await new Promise((resolve) => setTimeout(resolve, 5000))
+          await new Promise((resolve) => setTimeout(resolve, 200))
           return new HttpResponse('content', {
             headers: { 'Content-Type': 'text/plain' },
           })
