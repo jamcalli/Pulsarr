@@ -1,11 +1,11 @@
-import { processContentNotifications } from '@root/utils/notification-processor.js'
+import { processContentNotifications } from '@root/utils/notifications/index.js'
 import { processQueuedWebhooks } from '@utils/webhook/queue-processor.js'
 import { webhookQueue } from '@utils/webhook/queue-state.js'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 
-vi.mock('@root/utils/notification-processor.js', () => ({
+vi.mock('@root/utils/notifications/index.js', () => ({
   processContentNotifications: vi.fn(),
 }))
 

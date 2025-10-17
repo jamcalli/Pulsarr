@@ -9,7 +9,7 @@ import {
   createPublicContentNotification,
   determineNotificationType,
   getPublicContentNotificationFlags,
-} from '@root/utils/notification-processor.js'
+} from '@root/utils/notifications/index.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
 
