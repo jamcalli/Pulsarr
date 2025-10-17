@@ -31,7 +31,6 @@ describe('queue-processor', () => {
 
     mockProcessContentNotifications.mockResolvedValue({
       matchedCount: 1,
-      notifiedCount: 1,
     })
   })
 
@@ -347,7 +346,6 @@ describe('queue-processor', () => {
       vi.mocked(isRecentEpisode).mockReturnValue(true)
       mockProcessContentNotifications.mockResolvedValue({
         matchedCount: 0,
-        notifiedCount: 0,
       })
 
       webhookQueue['12345'] = {
@@ -410,7 +408,6 @@ describe('queue-processor', () => {
       vi.mocked(isRecentEpisode).mockReturnValue(true)
       mockProcessContentNotifications.mockResolvedValue({
         matchedCount: 2,
-        notifiedCount: 2,
       })
 
       webhookQueue['12345'] = {

@@ -13,7 +13,7 @@ import { vi } from 'vitest'
  * expect(logger.error).toHaveBeenCalledWith(...)
  */
 export function createMockLogger(): FastifyBaseLogger {
-  return {
+  const mockLogger = {
     trace: vi.fn(),
     debug: vi.fn(),
     info: vi.fn(),
@@ -24,4 +24,9 @@ export function createMockLogger(): FastifyBaseLogger {
     silent: vi.fn(),
     level: 'info',
   } as unknown as FastifyBaseLogger
+
+  // Make child() return a new mock logger
+  mockLogger.child = vi.fn(() => createMockLogger())
+
+  return mockLogger
 }
