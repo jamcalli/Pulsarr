@@ -10,7 +10,7 @@ import {
 import {
   isWebhookProcessable,
   processContentNotifications,
-} from '@root/utils/notification-processor.js'
+} from '@root/utils/notifications/index.js'
 import {
   checkForUpgrade,
   isEpisodeAlreadyQueued,

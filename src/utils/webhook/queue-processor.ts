@@ -1,5 +1,5 @@
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
-import { processContentNotifications } from '@root/utils/notification-processor.js'
+import { processContentNotifications } from '@root/utils/notifications/index.js'
 import type { FastifyInstance } from 'fastify'
 import { isRecentEpisode } from './episode-checker.js'
 import { queuePendingWebhook } from './pending-webhook.js'

@@ -15,7 +15,7 @@ import {
   handleProfileEditModal,
   notificationsCommand,
 } from '@root/utils/discord-commands/notifications-command.js'
-import { getPublicContentUrls } from '@root/utils/notification-processor.js'
+import { getPublicContentUrls } from '@root/utils/notifications/index.js'
 import { createServiceLogger } from '@utils/logger.js'
 import {
   ActionRowBuilder,
