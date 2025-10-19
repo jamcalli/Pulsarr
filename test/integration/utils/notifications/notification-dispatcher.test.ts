@@ -8,7 +8,7 @@ import {
 } from '../../../helpers/database.js'
 import { seedAll } from '../../../helpers/seeds/index.js'
 
-describe('Notification Integration Tests', () => {
+describe.sequential('Notification Integration Tests', () => {
   beforeEach(async () => {
     await initializeTestDatabase()
     await resetDatabase()

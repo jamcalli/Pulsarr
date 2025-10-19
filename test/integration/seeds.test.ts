@@ -14,7 +14,7 @@ import {
   seedAll,
 } from '../helpers/seeds/index.js'
 
-describe('Database Seeds', () => {
+describe.sequential('Database Seeds', () => {
   beforeEach(async () => {
     await initializeTestDatabase()
     await resetDatabase()
