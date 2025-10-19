@@ -8,6 +8,7 @@ import { hasValidPlexTokens } from '@utils/plex.js'
 import { createTemporaryAdminSession } from '@utils/session.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
+import fp from 'fastify-plugin'
 
 export const options = {
   ajv: {
@@ -23,7 +24,7 @@ export const options = {
  *
  * Loads external and custom plugins, registers route handlers, and integrates Vite for serving a single-page application. Implements global error and not-found handlers with logging and rate limiting. Defines root and SPA routes that manage user sessions, authentication bypass, and redirects based on user existence and Plex token configuration.
  */
-export default async function serviceApp(
+async function serviceApp(
   fastify: FastifyInstance,
   opts: FastifyPluginOptions,
 ) {
@@ -374,3 +375,5 @@ export default async function serviceApp(
     return payload
   })
 }
+
+export default fp(serviceApp)
