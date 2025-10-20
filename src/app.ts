@@ -348,10 +348,23 @@ export default async function serviceApp(
           return window.__BASE_PATH__ === '/' ? '/' + filename : window.__BASE_PATH__ + '/' + filename;
         };
       </script>`
-      const modifiedPayload = payload.replace(
-        '<head>',
-        `<head>${injectedScript}`,
-      )
+      let modifiedPayload = payload.replace('<head>', `<head>${injectedScript}`)
+
+      // Rewrite asset paths in HTML to include basePath for reverse proxy compatibility
+      if (normalizedBasePath !== '/') {
+        modifiedPayload = modifiedPayload.replace(
+          /src="\/assets\//g,
+          `src="${normalizedBasePath}/assets/`,
+        )
+        modifiedPayload = modifiedPayload.replace(
+          /href="\/assets\//g,
+          `href="${normalizedBasePath}/assets/`,
+        )
+        modifiedPayload = modifiedPayload.replace(
+          /href="\/favicon\./g,
+          `href="${normalizedBasePath}/favicon.`,
+        )
+      }
 
       return modifiedPayload
     }
