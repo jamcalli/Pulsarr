@@ -2,6 +2,7 @@ import type { Config } from '@root/types/config.types.js'
 import { DatabaseService } from '@services/database.service.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
+import type { Knex } from 'knex'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -11,11 +12,24 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const dbService = await DatabaseService.create(fastify.log, fastify)
+    let testKnex: Knex | undefined
+    if (process.env.NODE_ENV === 'test') {
+      const dbModule = await import(
+        new URL('../../../test/helpers/database.js', import.meta.url).href
+      )
+      testKnex = await dbModule.initializeTestDatabase()
+    }
+    const dbService = await DatabaseService.create(
+      fastify.log,
+      fastify,
+      testKnex,
+    )
     fastify.decorate('db', dbService)
     fastify.addHook('onClose', async () => {
-      fastify.log.info('Closing database service...')
-      await dbService.close()
+      if (process.env.NODE_ENV !== 'test') {
+        fastify.log.info('Closing database service...')
+        await dbService.close()
+      }
     })
 
     const isSetInEnvironment = (key: string): boolean => {

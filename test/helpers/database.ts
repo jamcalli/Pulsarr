@@ -1,61 +1,41 @@
-import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import type { Knex } from 'knex'
 import knex from 'knex'
 
-// Global test database connection kept alive to prevent database from being wiped
-// This "anchor" connection ensures the test database persists across tests
 let anchorConnection: Knex | null = null
+
+const TEST_DB_PATH = path.join(os.tmpdir(), `pulsarr-test-${process.pid}.db`)
 
 /**
  * Initialize the test database connection and run migrations
- * Should be called once before running tests
- *
- * @returns The initialized database connection
+ * Uses a temp file per process to avoid WAL issues and enable sharing
  */
 export async function initializeTestDatabase(): Promise<Knex> {
   if (anchorConnection) {
     return anchorConnection
   }
 
-  const dbPath = process.env.dbPath
-  if (!dbPath) {
-    throw new Error('dbPath environment variable not set in test configuration')
-  }
-
-  // Clean up all SQLite-related files from previous test runs
-  const filesToClean = [
-    dbPath,
-    `${dbPath}-shm`,
-    `${dbPath}-wal`,
-    `${dbPath}-journal`,
-  ]
-  for (const file of filesToClean) {
-    if (fs.existsSync(file)) {
-      fs.unlinkSync(file)
-    }
-  }
-
-  // Create connection with test-specific config that doesn't load .env
   anchorConnection = knex({
     client: 'better-sqlite3',
     connection: {
-      filename: dbPath,
+      filename: TEST_DB_PATH,
     },
     useNullAsDefault: true,
     migrations: {
       directory: './migrations/migrations',
     },
     pool: {
+      min: 1,
+      max: 1,
       afterCreate: (conn: unknown, cb: () => void): void => {
         const sqliteConn = conn as { exec: (sql: string) => void }
-        sqliteConn.exec('PRAGMA journal_mode = WAL;')
         sqliteConn.exec('PRAGMA foreign_keys = ON;')
         cb()
       },
     },
   })
 
-  // Run migrations
   await anchorConnection.migrate.latest()
 
   return anchorConnection
@@ -103,12 +83,25 @@ export async function resetDatabase(): Promise<void> {
 }
 
 /**
- * Clean up the test database connection
+ * Clean up the test database connection and temp files
  * Should be called in global teardown
  */
 export async function cleanupTestDatabase(): Promise<void> {
   if (anchorConnection) {
     await anchorConnection.destroy()
     anchorConnection = null
+  }
+
+  const fs = await import('node:fs')
+  const filesToClean = [
+    TEST_DB_PATH,
+    `${TEST_DB_PATH}-shm`,
+    `${TEST_DB_PATH}-wal`,
+    `${TEST_DB_PATH}-journal`,
+  ]
+  for (const file of filesToClean) {
+    if (fs.existsSync(file)) {
+      fs.unlinkSync(file)
+    }
   }
 }
