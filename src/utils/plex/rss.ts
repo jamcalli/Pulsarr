@@ -154,15 +154,20 @@ export const fetchWatchlistFromRss = async (
                   typeof guid === 'string' && guid.trim().length > 0,
               )
               .map((guid) => normalizeGuid(guid)),
-            genres: (metadata.keywords || []).map((genre) => {
-              if (genre.toLowerCase() === 'sci-fi & fantasy') {
-                return 'Sci-Fi & Fantasy'
-              }
-              return genre
-                .split(' ')
-                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ')
-            }),
+            genres: (Array.isArray(metadata.keywords) ? metadata.keywords : [])
+              .filter(
+                (genre): genre is string =>
+                  typeof genre === 'string' && genre.trim().length > 0,
+              )
+              .map((genre) => {
+                if (genre.toLowerCase() === 'sci-fi & fantasy') {
+                  return 'Sci-Fi & Fantasy'
+                }
+                return genre
+                  .split(' ')
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' ')
+              }),
             user_id: userId,
             status: 'pending',
             created_at: new Date().toISOString(),
