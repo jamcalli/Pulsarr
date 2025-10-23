@@ -8,7 +8,7 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
   isRateLimitError,
@@ -313,23 +313,8 @@ export const getWatchlistForUser = async (
           // Normalize guids using the parseGuids utility to handle JSON strings, arrays, and null values
           const guids = parseGuids(item.guids)
 
-          // Normalize genres to handle JSON strings, arrays, and null values
-          const genres = Array.isArray(item.genres)
-            ? item.genres.filter((g): g is string => typeof g === 'string')
-            : typeof item.genres === 'string'
-              ? (() => {
-                  try {
-                    const parsed = JSON.parse(item.genres)
-                    return Array.isArray(parsed)
-                      ? parsed.filter(
-                          (g: unknown): g is string => typeof g === 'string',
-                        )
-                      : []
-                  } catch {
-                    return []
-                  }
-                })()
-              : []
+          // Normalize genres using the parseGenres utility to handle JSON strings, arrays, and null values
+          const genres = parseGenres(item.genres)
 
           const tokenItem: TokenWatchlistItem = {
             id: item.key,
