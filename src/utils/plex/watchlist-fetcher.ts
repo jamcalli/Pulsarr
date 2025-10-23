@@ -264,7 +264,7 @@ export const getOthersWatchlist = async (
   const friendsWithEmptyWatchlists = userWatchlistMap.size - friendsWithItems
 
   log.info(
-    `Others' watchlist fetched successfully with ${totalItems} total items from ${friendsWithItems} friends (${friendsWithEmptyWatchlists} friends with empty watchlists)`,
+    `Others' watchlist fetched successfully with ${totalItems} total item${totalItems === 1 ? '' : 's'} from ${friendsWithItems} friend${friendsWithItems === 1 ? '' : 's'} (${friendsWithEmptyWatchlists} friend${friendsWithEmptyWatchlists === 1 ? '' : 's'} with empty watchlist${friendsWithEmptyWatchlists === 1 ? '' : 's'})`,
   )
   return userWatchlistMap
 }

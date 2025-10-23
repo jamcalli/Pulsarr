@@ -151,7 +151,7 @@ export const fetchWatchlistFromRss = async (
             guids: (metadata.guids ?? [])
               .filter(
                 (guid): guid is string =>
-                  typeof guid === 'string' && guid.length > 0,
+                  typeof guid === 'string' && guid.trim().length > 0,
               )
               .map((guid) => normalizeGuid(guid)),
             genres: (metadata.keywords || []).map((genre) => {
