@@ -10,6 +10,11 @@ export async function setup(): Promise<void> {
 }
 
 export async function teardown(): Promise<void> {
-  const { cleanupTestDatabase } = await import('../helpers/database.js')
-  await cleanupTestDatabase()
+  try {
+    const { cleanupTestDatabase } = await import('../helpers/database.js')
+    await cleanupTestDatabase()
+  } catch (error) {
+    console.error('Failed to cleanup test database:', error)
+    // Don't throw - allow tests to complete even if cleanup fails
+  }
 }

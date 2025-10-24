@@ -2,7 +2,7 @@ import type { Knex } from 'knex'
 
 /**
  * Seed data for watchlist_items table
- * Copied directly from production Postgres database
+ * Synthetic test data using well-known public movies and TV shows
  *
  * Schema reference:
  * - id: integer (primary key)

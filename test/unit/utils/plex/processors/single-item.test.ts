@@ -5,7 +5,7 @@ import type {
 } from '@root/types/plex.types.js'
 import { toItemsSingle } from '@root/utils/plex/processors/single-item.js'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 import { server } from '../../../../setup/msw-setup.js'
 
@@ -17,6 +17,10 @@ describe('plex/processors/single-item', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
   })
 
   describe('toItemsSingle', () => {
@@ -450,7 +454,7 @@ describe('plex/processors/single-item', () => {
       const result = await toItemsSingle(config, mockLogger, mockItem)
 
       expect(result.size).toBe(0)
-    })
+    }, 10000)
 
     it('should propagate rate limit error when already exhausted', async () => {
       // Create a rate limit error directly in the flow

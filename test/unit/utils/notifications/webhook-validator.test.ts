@@ -1,28 +1,22 @@
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
-import { isWebhookProcessable } from '@utils/notifications/webhook-validator.js'
+import {
+  clearWebhookCacheForTests,
+  isWebhookProcessable,
+} from '@utils/notifications/webhook-validator.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
-
-// We need to clear the webhook cache between tests since it's a module-level variable
-// The cache is not exported, so we need to force module reload or wait for TTL
-vi.mock('@utils/notifications/webhook-validator.js', async () => {
-  const actual = await vi.importActual<
-    typeof import('@utils/notifications/webhook-validator.js')
-  >('@utils/notifications/webhook-validator.js')
-  return actual
-})
 
 describe('webhook-validator', () => {
   const mockLogger = createMockLogger()
 
   beforeEach(() => {
     vi.clearAllMocks()
+    clearWebhookCacheForTests()
   })
 
   afterEach(() => {
-    // Give tests enough time between runs to avoid cache collisions
-    // Since the cache TTL is 10 seconds, we can't clear it directly
     vi.clearAllMocks()
+    clearWebhookCacheForTests()
   })
 
   describe('isWebhookProcessable', () => {

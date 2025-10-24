@@ -6,7 +6,7 @@ import {
   getOthersWatchlist,
 } from '@root/utils/plex/watchlist-fetcher.js'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
@@ -17,6 +17,10 @@ describe('plex/watchlist-fetcher', () => {
     vi.clearAllMocks()
     // Reset rate limiter state between tests
     PlexRateLimiter.getInstance().reset()
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
   })
 
   describe('fetchSelfWatchlist', () => {

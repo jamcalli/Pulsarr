@@ -14,8 +14,7 @@
       "@data/*": ["./src/data/*"],
       "@schemas/*": ["./src/schemas/*"],
       "@services/*": ["./src/services/*"],
-      "@types/*": ["./src/types/*"],
-      "@commitlint/types": ["./node_modules/@commitlint/types"]
+      "@types/*": ["./src/types/*"]
     }
   },
   "include": ["**/*", "../src/**/*"],

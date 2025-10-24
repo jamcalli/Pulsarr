@@ -6,7 +6,7 @@ import type {
 } from '@root/types/plex.types.js'
 import { processWatchlistItems } from '@root/utils/plex/processors/watchlist-processor.js'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 import { server } from '../../../../setup/msw-setup.js'
 
@@ -18,6 +18,10 @@ describe('plex/processors/watchlist-processor', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
   })
 
   describe('processWatchlistItems', () => {
