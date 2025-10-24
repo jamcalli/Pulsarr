@@ -246,13 +246,17 @@ describe('plex/watchlist-fetcher', () => {
         plexTokens: ['token1', 'token2'],
       } as Config
 
-      const result = await fetchSelfWatchlist(config, mockLogger, 1)
+      vi.useFakeTimers()
+      const promise = fetchSelfWatchlist(config, mockLogger, 1)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(1)
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Rate limit exhausted'),
       )
-    }, 20000)
+    })
 
     it('should fall back to database items on error', async () => {
       server.use(
