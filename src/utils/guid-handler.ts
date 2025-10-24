@@ -74,6 +74,33 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
 }
 
 /**
+ * Parses genre input from various formats into an array of genre strings.
+ *
+ * Accepts an array of strings, a JSON-encoded string array, or undefined. Filters out non-string values for safety. Returns an empty array if the input is undefined or invalid.
+ *
+ * @param genres - Input containing genres in various formats (array, JSON string, or undefined)
+ * @returns An array of genre strings extracted from the input
+ */
+export function parseGenres(genres: unknown): string[] {
+  if (Array.isArray(genres)) {
+    return genres.filter((g): g is string => typeof g === 'string')
+  }
+
+  if (typeof genres === 'string') {
+    try {
+      const parsed = JSON.parse(genres)
+      return Array.isArray(parsed)
+        ? parsed.filter((g: unknown): g is string => typeof g === 'string')
+        : []
+    } catch {
+      return []
+    }
+  }
+
+  return []
+}
+
+/**
  * Determines whether two GUID inputs have at least one GUID in common.
  *
  * Accepts GUIDs as a string, an array of strings, or undefined. Both inputs are parsed and compared for overlap.

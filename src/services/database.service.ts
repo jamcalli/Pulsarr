@@ -117,9 +117,12 @@ export class DatabaseService {
   constructor(
     public readonly baseLog: FastifyBaseLogger,
     public readonly fastify: FastifyInstance,
+    testKnex?: Knex,
   ) {
     this.isPostgres = fastify.config.dbType === 'postgres'
-    this.knex = knex(DatabaseService.createKnexConfig(fastify.config, this.log))
+    this.knex =
+      testKnex ??
+      knex(DatabaseService.createKnexConfig(fastify.config, this.log))
 
     // Bind all modular database methods to this instance
     this.bindMethods()
@@ -145,8 +148,9 @@ export class DatabaseService {
   static async create(
     log: FastifyBaseLogger,
     fastify: FastifyInstance,
+    testKnex?: Knex,
   ): Promise<DatabaseService> {
-    const service = new DatabaseService(log, fastify)
+    const service = new DatabaseService(log, fastify, testKnex)
 
     // Configure PostgreSQL type parsers if needed
     if (fastify.config.dbType === 'postgres') {
