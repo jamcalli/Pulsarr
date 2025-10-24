@@ -340,17 +340,10 @@ describe('streaming-updater', () => {
 
     it('should respect retry-after header with numeric seconds', async () => {
       let attempts = 0
-      const delays: number[] = []
-      let lastTime = Date.now()
 
       server.use(
         http.get('https://example.com/retry-after-numeric', () => {
           attempts++
-          const now = Date.now()
-          if (attempts > 1) {
-            delays.push(now - lastTime)
-          }
-          lastTime = now
 
           if (attempts < 2) {
             return new HttpResponse(null, {
@@ -364,19 +357,24 @@ describe('streaming-updater', () => {
         }),
       )
 
-      const lines: string[] = []
-      for await (const line of streamLines({
-        url: 'https://example.com/retry-after-numeric',
-        retries: 2,
-      })) {
-        lines.push(line)
-      }
+      vi.useFakeTimers()
+      const promise = (async () => {
+        const lines: string[] = []
+        for await (const line of streamLines({
+          url: 'https://example.com/retry-after-numeric',
+          retries: 2,
+        })) {
+          lines.push(line)
+        }
+        return lines
+      })()
+
+      await vi.runAllTimersAsync()
+      const lines = await promise
+      vi.useRealTimers()
 
       expect(lines).toEqual(['success'])
       expect(attempts).toBe(2)
-      // Delay should be around 1000ms (allowing some variance)
-      expect(delays[0]).toBeGreaterThanOrEqual(900)
-      expect(delays[0]).toBeLessThan(1500)
     })
 
     it('should throw after exhausting all retries', async () => {

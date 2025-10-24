@@ -38,7 +38,11 @@ function createWebhookHash(payload: WebhookPayload): string {
     }
   }
 
-  const hashString = JSON.stringify(hashData, Object.keys(hashData).sort())
+  // Build a deterministic string by sorting keys and joining key:value pairs
+  const sortedKeys = Object.keys(hashData).sort()
+  const hashString = sortedKeys
+    .map((key) => `${key}:${hashData[key]}`)
+    .join('|')
   return crypto
     .createHash('sha256')
     .update(hashString)
