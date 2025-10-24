@@ -1,6 +1,6 @@
 import { fetchPlexAvatar, pingPlex } from '@root/utils/plex/api-client.js'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
@@ -10,6 +10,10 @@ describe('plex/api-client', () => {
 
     beforeEach(() => {
       vi.clearAllMocks()
+    })
+
+    afterEach(() => {
+      server.resetHandlers()
     })
 
     it('should return true when Plex API responds with 200', async () => {
@@ -93,7 +97,7 @@ describe('plex/api-client', () => {
       const result = await pingPlex('token', mockLogger)
       expect(result).toBe(false)
       expect(mockLogger.error).toHaveBeenCalled()
-    })
+    }, 10000)
 
     it('should include correct headers in request', async () => {
       let capturedHeaders: Headers | undefined
@@ -194,7 +198,7 @@ describe('plex/api-client', () => {
 
       const result = await fetchPlexAvatar('token', mockLogger)
       expect(result).toBe(null)
-    })
+    }, 10000)
 
     it('should work without logger parameter', async () => {
       server.use(

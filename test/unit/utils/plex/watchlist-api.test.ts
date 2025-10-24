@@ -11,7 +11,7 @@ import {
   getWatchlistForUser,
 } from '@root/utils/plex/watchlist-api.js'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
@@ -22,6 +22,10 @@ describe('plex/watchlist-api', () => {
     vi.clearAllMocks()
     // Reset rate limiter state between tests
     PlexRateLimiter.getInstance().reset()
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
   })
 
   describe('getWatchlist', () => {
@@ -223,7 +227,7 @@ describe('plex/watchlist-api', () => {
       )
 
       await expect(getWatchlist('token', mockLogger)).rejects.toThrow()
-    }, 30000)
+    }, 10000)
 
     it('should handle network error', async () => {
       server.use(

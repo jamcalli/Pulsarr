@@ -188,3 +188,11 @@ export function isWebhookProcessable(
   // Check for duplicates
   return !checkDuplicateWebhook(payload, logger)
 }
+
+/**
+ * Test-only function to clear the webhook deduplication cache
+ * @internal
+ */
+export function clearWebhookCacheForTests(): void {
+  webhookCache.clear()
+}

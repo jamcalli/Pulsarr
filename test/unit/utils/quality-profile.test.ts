@@ -131,10 +131,10 @@ describe('parseQualityProfileId', () => {
 
     it('should reject numbers beyond safe integer range', () => {
       const tooBig = Number.MAX_SAFE_INTEGER + 1
-      // JavaScript loses precision here, so we can't reliably test this
-      // Just ensure it doesn't crash
-      const result = parseQualityProfileId(tooBig)
-      expect(typeof result === 'number' || result === undefined).toBe(true)
+      expect(parseQualityProfileId(tooBig)).toBeUndefined()
+
+      // Also test with string representation of unsafe integer
+      expect(parseQualityProfileId('9007199254740992')).toBeUndefined()
     })
   })
 })

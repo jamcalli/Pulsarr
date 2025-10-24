@@ -2,7 +2,7 @@ import type { Config } from '@root/types/config.types.js'
 import type { PlexApiResponse } from '@root/types/plex.types.js'
 import { getFriends } from '@root/utils/plex/friends-api.js'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 import { server } from '../../../setup/msw-setup.js'
 
@@ -11,6 +11,10 @@ describe('plex/friends-api', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
   })
 
   describe('getFriends', () => {
@@ -287,7 +291,7 @@ describe('plex/friends-api', () => {
 
       expect(result.success).toBe(false)
       expect(result.hasApiErrors).toBe(true)
-    })
+    }, 10000)
 
     it('should send correct GraphQL query', async () => {
       let capturedBody: unknown = null

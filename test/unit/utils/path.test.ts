@@ -79,8 +79,6 @@ describe('normalizePath', () => {
   })
 
   describe('platform-specific behavior', () => {
-    const _originalPlatform = process.platform
-
     it('should handle paths appropriately for current platform', () => {
       const path = 'folder/subfolder/../file.txt'
       const result = normalizePath(path)
