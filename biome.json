@@ -8,7 +8,8 @@
       "!**/tests",
       "!**/docs",
       "!**/src/client/dist",
-      "!**/tmp"
+      "!**/tmp",
+      "!**/coverage"
     ]
   },
   "formatter": {

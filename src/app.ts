@@ -4,16 +4,17 @@ import FastifyFormBody from '@fastify/formbody'
 import FastifyVite from '@fastify/vite'
 import type { ErrorResponse } from '@root/schemas/common/error.schema.js'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
-import { hasValidPlexTokens } from '@utils/plex.js'
+import { hasValidPlexTokens } from '@utils/plex/index.js'
 import { createTemporaryAdminSession } from '@utils/session.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
+import fp from 'fastify-plugin'
 
 export const options = {
   ajv: {
     customOptions: {
-      coerceTypes: 'array',
-      removeAdditional: 'all',
+      coerceTypes: 'array' as const,
+      removeAdditional: 'all' as const,
     },
   },
 }
@@ -23,7 +24,7 @@ export const options = {
  *
  * Loads external and custom plugins, registers route handlers, and integrates Vite for serving a single-page application. Implements global error and not-found handlers with logging and rate limiting. Defines root and SPA routes that manage user sessions, authentication bypass, and redirects based on user existence and Plex token configuration.
  */
-export default async function serviceApp(
+async function serviceApp(
   fastify: FastifyInstance,
   opts: FastifyPluginOptions,
 ) {
@@ -320,14 +321,17 @@ export default async function serviceApp(
   )
 
   // FastifyVite is the core of the app - register it at the end
-  await fastify.register(FastifyVite, {
-    root: resolve(import.meta.dirname, '../'),
-    dev: process.argv.includes('--dev'),
-    spa: true,
-    distDir: 'dist/client',
-  })
+  // Skip Vite in test environment
+  if (process.env.NODE_ENV !== 'test') {
+    await fastify.register(FastifyVite, {
+      root: resolve(import.meta.dirname, '../'),
+      dev: process.argv.includes('--dev'),
+      spa: true,
+      distDir: 'dist/client',
+    })
 
-  await fastify.vite.ready()
+    await fastify.vite.ready()
+  }
 
   // Inject runtime base path into HTML responses
   fastify.addHook('onSend', async (_request, reply, payload) => {
@@ -371,3 +375,5 @@ export default async function serviceApp(
     return payload
   })
 }
+
+export default fp(serviceApp)
