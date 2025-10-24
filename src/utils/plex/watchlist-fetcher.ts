@@ -79,12 +79,12 @@ export const fetchSelfWatchlist = async (
             allItems.add(item as TokenWatchlistItem)
           }
 
-          if (totalSize <= currentStart + items.length) {
+          if (totalSize <= currentStart + metadata.length) {
             log.debug('Completed processing all pages for current token')
             break
           }
 
-          currentStart += items.length
+          currentStart += metadata.length
         } catch (innerError) {
           // Check if this is a rate limit exhaustion error
           if (isRateLimitError(innerError)) {
@@ -228,10 +228,11 @@ export const getOthersWatchlist = async (
     }
   }
 
-  // Add each result to the map
+  // Add each successfully fetched result to the map
+  // Note: Failed fetches are excluded to prevent data loss in downstream processing
   for (const { user, watchlistItems, success } of results) {
     if (success) {
-      // Always add the user to the map, even if they have no items
+      // Add user to map (even with empty watchlist if they legitimately have no items)
       userWatchlistMap.set(user, watchlistItems)
       log.debug(
         `Added ${watchlistItems.size} items for friend ${user.username}`,
