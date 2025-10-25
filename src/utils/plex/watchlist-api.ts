@@ -68,10 +68,21 @@ export const getWatchlist = async (
     const contentType = response.headers.get('Content-Type')
     if (!response.ok) {
       if (response.status === 429) {
-        // Get retry-after header if provided and validate it
-        const retryAfter = response.headers.get('Retry-After')
-        const parsed = retryAfter ? Number.parseInt(retryAfter, 10) : NaN
-        const retryAfterSec = Number.isNaN(parsed) ? undefined : parsed
+        // Parse Retry-After: supports both delay-seconds and HTTP-date formats
+        const retryAfterHeader = response.headers.get('Retry-After')
+        let retryAfterSec: number | undefined
+        if (retryAfterHeader) {
+          const asSeconds = Number.parseInt(retryAfterHeader, 10)
+          if (!Number.isNaN(asSeconds)) {
+            retryAfterSec = asSeconds
+          } else {
+            const asDateMs = Date.parse(retryAfterHeader)
+            if (!Number.isNaN(asDateMs)) {
+              const deltaMs = Math.max(0, asDateMs - Date.now())
+              retryAfterSec = Math.ceil(deltaMs / 1000)
+            }
+          }
+        }
 
         // Set global rate limiter with the retry-after value
         rateLimiter.setRateLimited(retryAfterSec, log)
@@ -206,6 +217,10 @@ export const getWatchlistForUser = async (
   }
 
   try {
+    // Check global rate limiter before making the request
+    const rateLimiter = PlexRateLimiter.getInstance()
+    await rateLimiter.waitIfLimited(log)
+
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
@@ -218,13 +233,60 @@ export const getWatchlistForUser = async (
 
     if (!response.ok) {
       if (response.status === 429) {
-        const err = new Error(
-          'Rate limited by Plex GraphQL (429)',
-        ) as RateLimitError
-        err.isRateLimitExhausted = retryCount >= maxRetries
-        throw err
+        // Parse Retry-After: supports both delay-seconds and HTTP-date formats
+        const retryAfterHeader = response.headers.get('Retry-After')
+        let retryAfterSec: number | undefined
+        if (retryAfterHeader) {
+          const asSeconds = Number.parseInt(retryAfterHeader, 10)
+          if (!Number.isNaN(asSeconds)) {
+            retryAfterSec = asSeconds
+          } else {
+            const asDateMs = Date.parse(retryAfterHeader)
+            if (!Number.isNaN(asDateMs)) {
+              const deltaMs = Math.max(0, asDateMs - Date.now())
+              retryAfterSec = Math.ceil(deltaMs / 1000)
+            }
+          }
+        }
+
+        // Set global rate limiter
+        rateLimiter.setRateLimited(retryAfterSec, log)
+
+        if (retryCount < maxRetries) {
+          // Wait for the cooldown period
+          await rateLimiter.waitIfLimited(log)
+          // Retry the request
+          return getWatchlistForUser(
+            config,
+            log,
+            token,
+            user,
+            userId,
+            page,
+            retryCount + 1,
+            maxRetries,
+            getAllWatchlistItemsForUser,
+          )
+        }
+
+        // Retries exhausted - check if we can fall back to database
+        if (getAllWatchlistItemsForUser) {
+          // Throw generic error to trigger database fallback in catch block
+          throw new Error(
+            `Rate limited by Plex GraphQL (429) - Maximum retries (${maxRetries}) reached`,
+          )
+        } else {
+          // No database fallback available - propagate rate limit error
+          const err = new Error(
+            'Rate limited by Plex GraphQL (429)',
+          ) as RateLimitError
+          err.isRateLimitExhausted = true
+          throw err
+        }
       }
-      throw new Error(`Plex API error: ${response.statusText}`)
+      throw new Error(
+        `Plex API error: HTTP ${response.status} - ${response.statusText}`,
+      )
     }
 
     const json = (await response.json()) as PlexApiResponse

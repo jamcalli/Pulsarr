@@ -18,13 +18,14 @@ import { PlexRateLimiter } from '../rate-limiter.js'
 /**
  * Handle a Plex API rate-limit for a single watchlist item: apply a global cooldown, optionally wait and retry, or fail when retries are exhausted.
  *
- * If a Retry-After value is provided the global rate limiter is set accordingly. When retryCount < maxRetries this function waits for the limiter to clear and retries processing the same item. When retries are exhausted it either throws a RateLimitError (for non-HTTP-429 conditions) or returns an empty set (when the path originated from an HTTP 429 with a Retry-After).
+ * If a Retry-After value is provided the global rate limiter is set accordingly. When retryCount < maxRetries this function waits for the limiter to clear and retries processing the same item. When retries are exhausted it either throws a RateLimitError (for non-HTTP-429 conditions) or returns an empty set (when the path originated from an HTTP 429).
  *
  * @param item - The token-scoped watchlist item being retried.
  * @param retryCount - Current retry attempt (0-based).
  * @param maxRetries - Maximum allowed retry attempts before giving up.
  * @param progressInfo - Optional progress reporting context used while waiting for the cooldown.
- * @param retryAfterSec - Optional cooldown duration (seconds) supplied by the Plex API (HTTP Retry-After). If undefined the error path is treated as a caught/non-429 error.
+ * @param retryAfterSec - Optional cooldown duration (seconds) supplied by the Plex API (HTTP Retry-After header).
+ * @param fromHttp429 - Whether this rate limit originated from a direct HTTP 429 response (true) or a caught error (false).
  * @param notFoundCollector - Optional array to collect titles of items that returned HTTP 404 during processing.
  * @returns A set of processed Item objects, or an empty set when skipping the item after exhausting retries for an HTTP 429 condition.
  *
@@ -42,6 +43,7 @@ async function handleRateLimitAndRetry(
     type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
   },
   retryAfterSec?: number,
+  fromHttp429?: boolean,
   notFoundCollector?: string[],
 ): Promise<Set<Item>> {
   // Set global rate limiter with the retry-after value
@@ -78,7 +80,7 @@ async function handleRateLimitAndRetry(
   ) as RateLimitError
   rateLimitError.isRateLimitExhausted = true
 
-  if (retryAfterSec === undefined) {
+  if (!fromHttp429) {
     // This is a caught error, not an HTTP 429
     throw rateLimitError
   }
@@ -149,12 +151,23 @@ export const toItemsSingle = async (
 
     // Handle rate limiting specifically
     if (response.status === 429) {
-      // Get retry-after header if provided and validate it
-      const retryAfter = response.headers.get('Retry-After')
-      const parsed = retryAfter ? Number.parseInt(retryAfter, 10) : NaN
-      const retryAfterSec = Number.isNaN(parsed) ? undefined : parsed
+      // Parse Retry-After: supports both delay-seconds and HTTP-date formats
+      const retryAfterHeader = response.headers.get('Retry-After')
+      let retryAfterSec: number | undefined
+      if (retryAfterHeader) {
+        const asSeconds = Number.parseInt(retryAfterHeader, 10)
+        if (!Number.isNaN(asSeconds)) {
+          retryAfterSec = asSeconds
+        } else {
+          const asDateMs = Date.parse(retryAfterHeader)
+          if (!Number.isNaN(asDateMs)) {
+            const deltaMs = Math.max(0, asDateMs - Date.now())
+            retryAfterSec = Math.ceil(deltaMs / 1000)
+          }
+        }
+      }
 
-      // Use the centralized helper function to handle rate limiting and retries
+      // Use the centralized helper to handle rate limiting and retries
       return handleRateLimitAndRetry(
         config,
         log,
@@ -163,6 +176,7 @@ export const toItemsSingle = async (
         maxRetries,
         progressInfo,
         retryAfterSec,
+        true, // fromHttp429
         notFoundCollector,
       )
     }
@@ -263,6 +277,7 @@ export const toItemsSingle = async (
         maxRetries,
         progressInfo,
         undefined, // No retry-after header in this case
+        false, // fromHttp429 - this is a caught error
         notFoundCollector,
       )
     }
