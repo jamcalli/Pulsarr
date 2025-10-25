@@ -528,30 +528,36 @@ describe('plex/processors/single-item', () => {
 
     it('should retry on rate limit error string', async () => {
       let callCount = 0
-      server.use(
-        http.get(
-          'https://discover.provider.plex.tv/library/metadata/12345',
-          () => {
-            callCount++
-            if (callCount === 1) {
-              throw new Error('Rate limit exceeded')
-            }
-            return HttpResponse.json({
-              MediaContainer: {
-                Metadata: [{ Guid: [{ id: 'tmdb://123' }], Genre: [] }],
-              },
-            } as unknown as PlexApiResponse)
-          },
-        ),
-      )
+      const originalFetch = global.fetch
+      global.fetch = vi.fn(async (url, init?: RequestInit) => {
+        callCount++
+        if (callCount === 1) {
+          // Simulate a transport error so the catch block sees the message
+          throw new Error('Rate limit exceeded')
+        }
+        // Success on retry
+        return new Response(
+          JSON.stringify({
+            MediaContainer: {
+              Metadata: [{ Guid: [{ id: 'tmdb://123' }], Genre: [] }],
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      })
 
-      vi.useFakeTimers()
-      const promise = toItemsSingle(config, mockLogger, mockItem)
-      await vi.runAllTimersAsync()
-      const result = await promise
-      vi.useRealTimers()
+      try {
+        vi.useFakeTimers()
+        const promise = toItemsSingle(config, mockLogger, mockItem)
+        await vi.runAllTimersAsync()
+        const result = await promise
+        vi.useRealTimers()
 
-      expect(result.size).toBe(1)
+        expect(result.size).toBe(1)
+        expect(callCount).toBe(2)
+      } finally {
+        global.fetch = originalFetch
+      }
     })
 
     it('should handle 404 in catch block', async () => {
