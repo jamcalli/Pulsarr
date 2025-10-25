@@ -1,7 +1,7 @@
 /**
  * Parses quality profile ID from various input types.
  *
- * Accepts numeric IDs as numbers or numeric strings and validates they are positive integers.
+ * Accepts numeric IDs as numbers or numeric strings and validates they are positive safe integers.
  * Non-numeric strings and invalid values return undefined.
  *
  * @param value - The quality profile value to parse (number, string, or other)
@@ -15,12 +15,12 @@
  */
 export function parseQualityProfileId(value: unknown): number | undefined {
   if (typeof value === 'number') {
-    return Number.isInteger(value) && value > 0 ? value : undefined
+    return Number.isSafeInteger(value) && value > 0 ? value : undefined
   }
   if (typeof value === 'string') {
     const trimmed = value.trim()
     const parsed = /^\d+$/.test(trimmed) ? Number(trimmed) : NaN
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined
   }
   return undefined
 }
