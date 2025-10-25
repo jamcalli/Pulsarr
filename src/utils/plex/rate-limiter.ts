@@ -15,6 +15,7 @@ export class PlexRateLimiter {
   private baseMultiplier = 2 // seconds
   private maxCooldown = 30 // seconds
   private lastErrorTime = 0
+  private hasLoggedWait = false // Track if we've logged for current cooldown
 
   // Singleton access
   public static getInstance(): PlexRateLimiter {
@@ -30,6 +31,7 @@ export class PlexRateLimiter {
     // Clear rate limited state if cooldown period has passed
     if (this.isRateLimited && now > this.cooldownEndTime) {
       this.isRateLimited = false
+      this.hasLoggedWait = false // Reset log flag when cooldown expires
     }
     return this.isRateLimited
   }
@@ -48,6 +50,8 @@ export class PlexRateLimiter {
   ): number {
     // Track consecutive rate limits if they happen close together (within 10 seconds)
     const now = Date.now()
+    const wasAlreadyLimited = this.isRateLimited
+
     if (now - this.lastErrorTime < 10000) {
       this.consecutiveRateLimits++
     } else {
@@ -74,10 +78,16 @@ export class PlexRateLimiter {
     cooldownSeconds = Math.min(Math.max(cooldownSeconds, 0.1), this.maxCooldown)
 
     // Calculate end time of cooldown
-    this.cooldownEndTime = now + cooldownSeconds * 1000
+    const newCooldownEnd = now + cooldownSeconds * 1000
+
+    // Only log if this is a NEW rate limit or significantly extends the cooldown
+    const shouldLog =
+      !wasAlreadyLimited || newCooldownEnd > this.cooldownEndTime + 1000
+
+    this.cooldownEndTime = Math.max(this.cooldownEndTime, newCooldownEnd)
     this.isRateLimited = true
 
-    if (log) {
+    if (log && shouldLog) {
       log.warn(
         `Plex rate limit detected. Cooling down ALL processes for ${cooldownSeconds.toFixed(1)}s. Consecutive rate limits: ${this.consecutiveRateLimits}`,
       )
@@ -102,10 +112,12 @@ export class PlexRateLimiter {
 
       if (remaining <= 0) return false
 
-      if (log) {
+      // Only log once per cooldown period (first caller logs)
+      if (log && !this.hasLoggedWait) {
         log.info(
           `Waiting ${(remaining / 1000).toFixed(1)}s for Plex rate limit cooldown to expire`,
         )
+        this.hasLoggedWait = true
       }
 
       if (progress) {
@@ -136,5 +148,6 @@ export class PlexRateLimiter {
     this.cooldownEndTime = 0
     this.consecutiveRateLimits = 0
     this.lastErrorTime = 0
+    this.hasLoggedWait = false
   }
 }
