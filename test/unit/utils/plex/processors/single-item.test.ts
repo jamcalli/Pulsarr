@@ -529,7 +529,7 @@ describe('plex/processors/single-item', () => {
     it('should retry on rate limit error string', async () => {
       let callCount = 0
       const originalFetch = global.fetch
-      global.fetch = vi.fn(async (url, init?: RequestInit) => {
+      global.fetch = vi.fn(async (_url, _init?: RequestInit) => {
         callCount++
         if (callCount === 1) {
           // Simulate a transport error so the catch block sees the message
