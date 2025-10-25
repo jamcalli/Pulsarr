@@ -78,6 +78,9 @@ export async function resetDatabase(): Promise<void> {
     await anchorConnection(name).del()
   }
 
+  // Reset autoincrement sequences (SQLite)
+  await anchorConnection.raw('DELETE FROM sqlite_sequence')
+
   // Re-enable foreign key constraints
   await anchorConnection.raw('PRAGMA foreign_keys = ON')
 }

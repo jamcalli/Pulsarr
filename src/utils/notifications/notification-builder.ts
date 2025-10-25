@@ -9,11 +9,15 @@ import type {
 /**
  * Returns a deduplicated array of valid Discord user IDs from notification results, excluding virtual users and empty IDs.
  *
+ * Only includes users who have opted into Discord notifications via their notify_discord preference.
+ *
  * @param notifications - Array of notification results containing user objects.
- * @returns Unique, non-empty Discord user IDs, excluding users with ID -1.
+ * @returns Unique, non-empty Discord user IDs, excluding users with ID -1 and those who opted out.
  */
 export function extractUserDiscordIds(
-  notifications: Array<{ user: { id: number; discord_id: string | null } }>,
+  notifications: Array<{
+    user: { id: number; discord_id: string | null; notify_discord?: boolean }
+  }>,
 ): string[] {
   return Array.from(
     new Set(
@@ -22,7 +26,8 @@ export function extractUserDiscordIds(
           (r) =>
             r.user.id !== -1 &&
             r.user.discord_id &&
-            r.user.discord_id.trim() !== '',
+            r.user.discord_id.trim() !== '' &&
+            r.user.notify_discord !== false,
         )
         .map((r) => r.user.discord_id as string),
     ),

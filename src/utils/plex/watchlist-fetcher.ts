@@ -25,6 +25,7 @@ export const fetchSelfWatchlist = async (
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>()
+  const seenKeys = new Set<string>()
 
   if (!config.plexTokens || config.plexTokens.length === 0) {
     log.warn('No Plex tokens configured')
@@ -76,7 +77,11 @@ export const fetchSelfWatchlist = async (
 
           log.debug(`Found ${items.length} items in current page`)
           for (const item of items) {
-            allItems.add(item as TokenWatchlistItem)
+            const key = String(item.key)
+            if (!seenKeys.has(key)) {
+              allItems.add(item as TokenWatchlistItem)
+              seenKeys.add(key)
+            }
           }
 
           if (totalSize <= currentStart + metadata.length) {
@@ -127,7 +132,11 @@ export const fetchSelfWatchlist = async (
               guids,
               genres,
             }
-            allItems.add(tokenItem)
+            const key = String(tokenItem.key)
+            if (!seenKeys.has(key)) {
+              allItems.add(tokenItem)
+              seenKeys.add(key)
+            }
           }
 
           log.info(
