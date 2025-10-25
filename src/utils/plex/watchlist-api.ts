@@ -170,6 +170,7 @@ export const getWatchlist = async (
  * @param retryCount - Current retry attempt (default: 0)
  * @param maxRetries - Maximum number of retries (default: 3)
  * @param getAllWatchlistItemsForUser - Optional fallback function to get database items
+ * @param progressInfo - Optional progress tracking information for UI feedback during rate-limit waits
  * @returns Promise resolving to a Set of TokenWatchlistItems
  */
 export const getWatchlistForUser = async (
@@ -182,6 +183,11 @@ export const getWatchlistForUser = async (
   retryCount = 0,
   maxRetries = 3,
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
+  progressInfo?: {
+    progress: ProgressService
+    operationId: string
+    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
+  },
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>()
   const seenKeys = new Set<string>()
@@ -219,7 +225,7 @@ export const getWatchlistForUser = async (
   try {
     // Check global rate limiter before making the request
     const rateLimiter = PlexRateLimiter.getInstance()
-    await rateLimiter.waitIfLimited(log)
+    await rateLimiter.waitIfLimited(log, progressInfo)
 
     const response = await fetch(url.toString(), {
       method: 'POST',
@@ -254,7 +260,7 @@ export const getWatchlistForUser = async (
 
         if (retryCount < maxRetries) {
           // Wait for the cooldown period
-          await rateLimiter.waitIfLimited(log)
+          await rateLimiter.waitIfLimited(log, progressInfo)
           // Retry the request
           return getWatchlistForUser(
             config,
@@ -266,23 +272,64 @@ export const getWatchlistForUser = async (
             retryCount + 1,
             maxRetries,
             getAllWatchlistItemsForUser,
+            progressInfo,
           )
         }
 
         // Retries exhausted - check if we can fall back to database
         if (getAllWatchlistItemsForUser) {
-          // Throw generic error to trigger database fallback in catch block
-          throw new Error(
-            `Rate limited by Plex GraphQL (429) - Maximum retries (${maxRetries}) reached`,
+          log.warn(
+            `Rate limited by Plex GraphQL (429) - Maximum retries (${maxRetries}) reached. Falling back to database.`,
           )
-        } else {
-          // No database fallback available - propagate rate limit error
-          const err = new Error(
-            'Rate limited by Plex GraphQL (429)',
-          ) as RateLimitError
-          err.isRateLimitExhausted = true
-          throw err
+          try {
+            const existingItems = await getAllWatchlistItemsForUser(userId)
+
+            // Convert database items to TokenWatchlistItems
+            for (const item of existingItems) {
+              // Normalize guids using the parseGuids utility to handle JSON strings, arrays, and null values
+              const guids = parseGuids(item.guids)
+
+              // Normalize genres using the parseGenres utility to handle JSON strings, arrays, and null values
+              const genres = parseGenres(item.genres)
+
+              const tokenItem: TokenWatchlistItem = {
+                id: item.key,
+                key: item.key,
+                title: item.title,
+                type: item.type,
+                user_id: userId,
+                status: item.status || 'pending',
+                created_at: item.created_at,
+                updated_at: item.updated_at,
+                guids,
+                genres,
+              }
+              const key = String(tokenItem.key)
+              if (!seenKeys.has(key)) {
+                allItems.add(tokenItem)
+                seenKeys.add(key)
+              }
+            }
+
+            log.info(
+              `Retrieved ${existingItems.length} existing items from database for user ${userId}`,
+            )
+            return allItems
+          } catch (dbError) {
+            log.error(
+              { error: dbError },
+              'Failed to retrieve existing items from database after rate limit',
+            )
+            // Fall through to throw RateLimitError below
+          }
         }
+
+        // No database fallback available or fallback failed - propagate rate limit error
+        const err = new Error(
+          'Rate limited by Plex GraphQL (429)',
+        ) as RateLimitError
+        err.isRateLimitExhausted = true
+        throw err
       }
       throw new Error(
         `Plex API error: HTTP ${response.status} - ${response.statusText}`,
@@ -328,6 +375,7 @@ export const getWatchlistForUser = async (
           retryCount,
           maxRetries,
           getAllWatchlistItemsForUser,
+          progressInfo,
         )
         for (const item of nextPageItems) {
           const key = String(item.key)
@@ -366,6 +414,7 @@ export const getWatchlistForUser = async (
         retryCount + 1,
         maxRetries,
         getAllWatchlistItemsForUser,
+        progressInfo,
       )
     }
 

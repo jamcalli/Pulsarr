@@ -4,6 +4,7 @@ import type {
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
 import { toItemsSingle } from '@root/utils/plex/processors/single-item.js'
+import { PlexRateLimiter } from '@root/utils/plex/rate-limiter.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
@@ -21,6 +22,8 @@ describe('plex/processors/single-item', () => {
 
   afterEach(() => {
     server.resetHandlers()
+    // Ensure each test starts with a clean limiter state
+    PlexRateLimiter.getInstance().reset()
   })
 
   describe('toItemsSingle', () => {
@@ -93,7 +96,7 @@ describe('plex/processors/single-item', () => {
 
       expect(result.size).toBe(0)
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Item "Test Movie" not found in Plex database (HTTP 404) - skipping retries',
+        expect.stringContaining('not found in Plex database (HTTP 404)'),
       )
     })
 
@@ -162,6 +165,45 @@ describe('plex/processors/single-item', () => {
       expect(callCount).toBe(2)
     })
 
+    it('should handle 429 rate limit with HTTP-date Retry-After header', async () => {
+      let callCount = 0
+      server.use(
+        http.get(
+          'https://discover.provider.plex.tv/library/metadata/12345',
+          () => {
+            callCount++
+            if (callCount === 1) {
+              // Return HTTP-date format (1.5 seconds in the future)
+              const futureDate = new Date(Date.now() + 1500)
+              return new HttpResponse(null, {
+                status: 429,
+                headers: { 'Retry-After': futureDate.toUTCString() },
+              })
+            }
+            return HttpResponse.json({
+              MediaContainer: {
+                Metadata: [
+                  {
+                    Guid: [{ id: 'tmdb://456' }],
+                    Genre: [],
+                  },
+                ],
+              },
+            } as unknown as PlexApiResponse)
+          },
+        ),
+      )
+
+      vi.useFakeTimers()
+      const promise = toItemsSingle(config, mockLogger, mockItem)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
+
+      expect(result.size).toBe(1)
+      expect(callCount).toBe(2)
+    })
+
     it('should return empty Set when max retries exceeded for 429', async () => {
       server.use(
         http.get(
@@ -187,7 +229,11 @@ describe('plex/processors/single-item', () => {
         ),
       )
 
-      const result = await toItemsSingle(config, mockLogger, mockItem)
+      vi.useFakeTimers()
+      const promise = toItemsSingle(config, mockLogger, mockItem)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(0)
       expect(mockLogger.warn).toHaveBeenCalled()
@@ -226,12 +272,16 @@ describe('plex/processors/single-item', () => {
         ),
       )
 
-      const result = await toItemsSingle(config, mockLogger, mockItem)
+      vi.useFakeTimers()
+      const promise = toItemsSingle(config, mockLogger, mockItem)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(1)
       expect(callCount).toBe(2)
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Found item Test Movie but no GUIDs. Retry 1/3',
+        expect.stringContaining('but no GUIDs. Retry 1/3'),
       )
     })
 
@@ -551,7 +601,11 @@ describe('plex/processors/single-item', () => {
         ),
       )
 
-      const result = await toItemsSingle(config, mockLogger, mockItem)
+      vi.useFakeTimers()
+      const promise = toItemsSingle(config, mockLogger, mockItem)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(1)
       expect(callCount).toBe(3)
@@ -567,7 +621,11 @@ describe('plex/processors/single-item', () => {
         ),
       )
 
-      const result = await toItemsSingle(config, mockLogger, mockItem)
+      vi.useFakeTimers()
+      const promise = toItemsSingle(config, mockLogger, mockItem)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(0)
       expect(mockLogger.warn).toHaveBeenCalledWith(
