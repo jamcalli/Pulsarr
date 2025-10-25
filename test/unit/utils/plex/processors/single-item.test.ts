@@ -162,7 +162,7 @@ describe('plex/processors/single-item', () => {
       expect(callCount).toBe(2)
     })
 
-    it('should throw RateLimitError when max retries exceeded for 429', async () => {
+    it('should return empty Set when max retries exceeded for 429', async () => {
       server.use(
         http.get(
           'https://discover.provider.plex.tv/library/metadata/12345',
@@ -172,13 +172,9 @@ describe('plex/processors/single-item', () => {
         ),
       )
 
-      // Don't use fake timers - with retryCount=0 and maxRetries=0, it should fail immediately
-      await expect(
-        toItemsSingle(config, mockLogger, mockItem, 0, 0),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('Rate limit exceeded'),
-        isRateLimitExhausted: true,
-      })
+      // HTTP 429 responses should skip the item and return empty Set when retries are exhausted
+      const result = await toItemsSingle(config, mockLogger, mockItem, 0, 0)
+      expect(result).toEqual(new Set())
     })
 
     it('should handle 500 error', async () => {
