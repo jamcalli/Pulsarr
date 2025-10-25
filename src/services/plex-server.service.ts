@@ -26,7 +26,7 @@ import type {
 } from '@root/types/plex-session.types.js'
 import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { toItemsSingle } from '@utils/plex.js'
+import { toItemsSingle } from '@utils/plex/index.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 

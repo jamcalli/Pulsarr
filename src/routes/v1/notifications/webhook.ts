@@ -10,7 +10,7 @@ import {
 import {
   isWebhookProcessable,
   processContentNotifications,
-} from '@root/utils/notification-processor.js'
+} from '@root/utils/notifications/index.js'
 import {
   checkForUpgrade,
   isEpisodeAlreadyQueued,
@@ -18,7 +18,7 @@ import {
   processQueuedWebhooks,
   queuePendingWebhook,
   webhookQueue,
-} from '@root/utils/webhookQueue.js'
+} from '@root/utils/webhook/index.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 
@@ -397,9 +397,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   // Keep queue metadata fresh and extend the window
                   webhookQueue[tvdbId].seasons[seasonNumber].lastUpdated =
                     new Date()
-                  clearTimeout(
-                    webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
-                  )
+                  if (webhookQueue[tvdbId].seasons[seasonNumber].timeoutId) {
+                    clearTimeout(
+                      webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
+                    )
+                  }
                   webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
                     setTimeout(() => {
                       const queuedCount =
@@ -629,9 +631,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   'Clearing existing timeout and setting a new one',
                 )
 
-                clearTimeout(
-                  webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
-                )
+                if (webhookQueue[tvdbId].seasons[seasonNumber].timeoutId) {
+                  clearTimeout(
+                    webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
+                  )
+                }
                 webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
                   setTimeout(() => {
                     const queuedCount =
