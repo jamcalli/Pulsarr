@@ -173,6 +173,7 @@ export const getWatchlistForUser = async (
   getAllWatchlistItemsForUser?: (userId: number) => Promise<Item[]>,
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>()
+  const seenKeys = new Set<string>()
   const url = new URL('https://community.plex.tv/api')
 
   if (!user || !user.watchlistId) {
@@ -247,7 +248,11 @@ export const getWatchlistForUser = async (
           guids: [],
           genres: [],
         }
-        allItems.add(item)
+        const key = String(item.key)
+        if (!seenKeys.has(key)) {
+          allItems.add(item)
+          seenKeys.add(key)
+        }
       }
 
       if (watchlist.pageInfo.hasNextPage && watchlist.pageInfo.endCursor) {
@@ -263,7 +268,11 @@ export const getWatchlistForUser = async (
           getAllWatchlistItemsForUser,
         )
         for (const item of nextPageItems) {
-          allItems.add(item)
+          const key = String(item.key)
+          if (!seenKeys.has(key)) {
+            allItems.add(item)
+            seenKeys.add(key)
+          }
         }
       }
     }
@@ -328,7 +337,11 @@ export const getWatchlistForUser = async (
             guids,
             genres,
           }
-          allItems.add(tokenItem)
+          const key = String(tokenItem.key)
+          if (!seenKeys.has(key)) {
+            allItems.add(tokenItem)
+            seenKeys.add(key)
+          }
         }
 
         log.info(

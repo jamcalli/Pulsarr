@@ -124,6 +124,10 @@ describe('plex/api-client', () => {
       vi.clearAllMocks()
     })
 
+    afterEach(() => {
+      server.resetHandlers()
+    })
+
     it('should return avatar URL when user has thumb', async () => {
       server.use(
         http.get('https://plex.tv/api/v2/user', () => {

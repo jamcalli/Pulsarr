@@ -241,7 +241,6 @@ export const toItemsSingle = async (
     const error = err as Error
     const errorStr = String(error)
 
-    // Check if error is related to rate limiting
     // Check if this is already a rate limit exhaustion error
     if (isRateLimitError(error)) {
       log.warn(
@@ -250,7 +249,7 @@ export const toItemsSingle = async (
       throw error
     }
 
-    // Check if error is related to rate limiting
+    // Fallback: check for rate limit indicators in error message
     if (
       errorStr.includes('429') ||
       errorStr.toLowerCase().includes('rate limit')

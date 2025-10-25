@@ -95,6 +95,7 @@ describe('auth-bypass', () => {
         const mockRequest = { ip } as unknown as FastifyRequest
         const result = getAuthBypassStatus(mockFastify, mockRequest)
 
+        expect(result.isAuthDisabled).toBe(false)
         expect(result.isLocalBypass).toBe(true)
         expect(result.shouldBypass).toBe(true)
       }
@@ -113,6 +114,7 @@ describe('auth-bypass', () => {
         const mockRequest = { ip } as unknown as FastifyRequest
         const result = getAuthBypassStatus(mockFastify, mockRequest)
 
+        expect(result.isAuthDisabled).toBe(false)
         expect(result.isLocalBypass).toBe(false)
         expect(result.shouldBypass).toBe(false)
       }

@@ -1,7 +1,7 @@
 /**
  * Parses quality profile ID from various input types.
  *
- * Accepts numeric IDs as numbers or numeric strings and validates they are positive integers.
+ * Accepts numeric IDs as numbers or numeric strings and validates they are positive safe integers.
  * Non-numeric strings and invalid values return undefined.
  *
  * @param value - The quality profile value to parse (number, string, or other)

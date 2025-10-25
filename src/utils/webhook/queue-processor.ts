@@ -14,6 +14,7 @@ function cleanupSeasonQueue(
   fastify: FastifyInstance,
 ): void {
   const queue = webhookQueue[tvdbId]
+  if (!queue) return
 
   delete queue.seasons[seasonNumber]
 

@@ -397,9 +397,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   // Keep queue metadata fresh and extend the window
                   webhookQueue[tvdbId].seasons[seasonNumber].lastUpdated =
                     new Date()
-                  clearTimeout(
-                    webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
-                  )
+                  if (webhookQueue[tvdbId].seasons[seasonNumber].timeoutId) {
+                    clearTimeout(
+                      webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
+                    )
+                  }
                   webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
                     setTimeout(() => {
                       const queuedCount =
@@ -629,9 +631,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   'Clearing existing timeout and setting a new one',
                 )
 
-                clearTimeout(
-                  webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
-                )
+                if (webhookQueue[tvdbId].seasons[seasonNumber].timeoutId) {
+                  clearTimeout(
+                    webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
+                  )
+                }
                 webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
                   setTimeout(() => {
                     const queuedCount =
