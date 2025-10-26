@@ -357,12 +357,12 @@ async function serviceApp(
       // Rewrite asset paths in HTML to include basePath for reverse proxy compatibility
       if (normalizedBasePath !== '/') {
         modifiedPayload = modifiedPayload.replace(
-          /src="\/assets\//g,
-          `src="${normalizedBasePath}/assets/`,
+          /src="\/app\/assets\//g,
+          `src="${normalizedBasePath}/app/assets/`,
         )
         modifiedPayload = modifiedPayload.replace(
-          /href="\/assets\//g,
-          `href="${normalizedBasePath}/assets/`,
+          /href="\/app\/assets\//g,
+          `href="${normalizedBasePath}/app/assets/`,
         )
         modifiedPayload = modifiedPayload.replace(
           /href="\/favicon\./g,

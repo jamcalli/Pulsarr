@@ -1443,6 +1443,7 @@ export async function deleteAllTempRssItems(
  * Deletes specified watchlist items for a user.
  *
  * Removes watchlist items matching the given keys for the provided user ID. If the keys array is empty, no action is taken.
+ * Also deletes any associated `watchlist_add` notifications to allow re-notification when items are re-added.
  */
 export async function deleteWatchlistItems(
   this: DatabaseService,
@@ -1454,10 +1455,62 @@ export async function deleteWatchlistItems(
   const numericUserId =
     typeof userId === 'object' ? (userId as { id: number }).id : userId
 
-  await this.knex('watchlist_items')
-    .where('user_id', numericUserId)
-    .whereIn('key', keys)
-    .delete()
+  // Wrap in transaction for atomicity
+  await this.knex.transaction(async (trx) => {
+    // Fetch titles and types of items being deleted for notification cleanup
+    const itemsToDelete = await trx('watchlist_items')
+      .where('user_id', numericUserId)
+      .whereIn('key', keys)
+      .select('title', 'type')
+
+    // Delete watchlist_add notifications for these items to allow re-notification
+    // These are typically orphaned (NULL watchlist_item_id) and won't CASCADE delete
+    // Match by user_id + title + inferred type from message to avoid duplicate title conflicts
+    if (itemsToDelete.length > 0) {
+      let totalDeleted = 0
+
+      for (const item of itemsToDelete) {
+        // Infer notification message pattern based on item type
+        const messagePattern =
+          item.type === 'movie'
+            ? '%movie%'
+            : item.type === 'show'
+              ? '%show%'
+              : '%'
+
+        const query = trx('notifications').where({
+          user_id: numericUserId,
+          type: 'watchlist_add',
+          notification_status: 'active',
+          title: item.title,
+        })
+
+        // Use database-specific case-insensitive matching
+        if (this.isPostgres) {
+          query.andWhere('message', 'ilike', messagePattern)
+        } else {
+          // SQLite's LIKE is case-insensitive by default
+          query.andWhere('message', 'like', messagePattern)
+        }
+
+        const deleteCount = await query.del()
+
+        totalDeleted += deleteCount
+      }
+
+      if (totalDeleted > 0) {
+        this.log.debug(
+          `Deleted ${totalDeleted} watchlist_add notification(s) for user ${numericUserId} during watchlist item deletion`,
+        )
+      }
+    }
+
+    // Delete watchlist items (CASCADE will handle notifications with non-NULL watchlist_item_id)
+    await trx('watchlist_items')
+      .where('user_id', numericUserId)
+      .whereIn('key', keys)
+      .delete()
+  })
 }
 
 /**
