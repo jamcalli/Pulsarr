@@ -1478,15 +1478,22 @@ export async function deleteWatchlistItems(
               ? '%show%'
               : '%'
 
-        const deleteCount = await trx('notifications')
-          .where({
-            user_id: numericUserId,
-            type: 'watchlist_add',
-            notification_status: 'active',
-            title: item.title,
-          })
-          .andWhere('message', 'ilike', messagePattern)
-          .del()
+        const query = trx('notifications').where({
+          user_id: numericUserId,
+          type: 'watchlist_add',
+          notification_status: 'active',
+          title: item.title,
+        })
+
+        // Use database-specific case-insensitive matching
+        if (this.isPostgres) {
+          query.andWhere('message', 'ilike', messagePattern)
+        } else {
+          // SQLite's LIKE is case-insensitive by default
+          query.andWhere('message', 'like', messagePattern)
+        }
+
+        const deleteCount = await query.del()
 
         totalDeleted += deleteCount
       }
