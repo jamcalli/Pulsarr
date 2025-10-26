@@ -540,7 +540,6 @@ export async function getNotificationStats(
   const channelQueries = [
     { channel: 'discord', column: 'sent_to_discord' },
     { channel: 'apprise', column: 'sent_to_apprise' },
-    { channel: 'webhook', column: 'sent_to_webhook' },
     { channel: 'tautulli', column: 'sent_to_tautulli' },
   ]
 
