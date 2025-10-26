@@ -1011,7 +1011,7 @@ export async function getAllGuidsFromWatchlist(
  *
  * @param userId - The user ID to check notifications for
  * @param titles - Array of titles to check for existing webhook notifications
-  * @returns A map where each title is mapped to true if a webhook notification exists, or false otherwise
+ * @returns A map where each title is mapped to true if a webhook notification exists, or false otherwise
  */
 export async function checkExistingWebhooks(
   this: DatabaseService,
