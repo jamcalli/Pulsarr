@@ -1455,38 +1455,55 @@ export async function deleteWatchlistItems(
   const numericUserId =
     typeof userId === 'object' ? (userId as { id: number }).id : userId
 
-  // Fetch titles of items being deleted for notification cleanup
-  const itemsToDelete = await this.knex('watchlist_items')
-    .where('user_id', numericUserId)
-    .whereIn('key', keys)
-    .select('title')
+  // Wrap in transaction for atomicity
+  await this.knex.transaction(async (trx) => {
+    // Fetch titles and types of items being deleted for notification cleanup
+    const itemsToDelete = await trx('watchlist_items')
+      .where('user_id', numericUserId)
+      .whereIn('key', keys)
+      .select('title', 'type')
 
-  const titles = itemsToDelete.map((item) => item.title)
+    // Delete watchlist_add notifications for these items to allow re-notification
+    // These are typically orphaned (NULL watchlist_item_id) and won't CASCADE delete
+    // Match by user_id + title + inferred type from message to avoid duplicate title conflicts
+    if (itemsToDelete.length > 0) {
+      let totalDeleted = 0
 
-  // Delete watchlist_add notifications for these titles to allow re-notification
-  // These are typically orphaned (NULL watchlist_item_id) and won't CASCADE delete
-  if (titles.length > 0) {
-    const deleteCount = await this.knex('notifications')
-      .where({
-        user_id: numericUserId,
-        type: 'watchlist_add',
-        notification_status: 'active',
-      })
-      .whereIn('title', titles)
-      .del()
+      for (const item of itemsToDelete) {
+        // Infer notification message pattern based on item type
+        const messagePattern =
+          item.type === 'movie'
+            ? '%movie%'
+            : item.type === 'show'
+              ? '%show%'
+              : '%'
 
-    if (deleteCount > 0) {
-      this.log.debug(
-        `Deleted ${deleteCount} watchlist_add notification(s) for user ${numericUserId} during watchlist item deletion`,
-      )
+        const deleteCount = await trx('notifications')
+          .where({
+            user_id: numericUserId,
+            type: 'watchlist_add',
+            notification_status: 'active',
+            title: item.title,
+          })
+          .andWhere('message', 'ilike', messagePattern)
+          .del()
+
+        totalDeleted += deleteCount
+      }
+
+      if (totalDeleted > 0) {
+        this.log.debug(
+          `Deleted ${totalDeleted} watchlist_add notification(s) for user ${numericUserId} during watchlist item deletion`,
+        )
+      }
     }
-  }
 
-  // Delete watchlist items (CASCADE will handle notifications with non-NULL watchlist_item_id)
-  await this.knex('watchlist_items')
-    .where('user_id', numericUserId)
-    .whereIn('key', keys)
-    .delete()
+    // Delete watchlist items (CASCADE will handle notifications with non-NULL watchlist_item_id)
+    await trx('watchlist_items')
+      .where('user_id', numericUserId)
+      .whereIn('key', keys)
+      .delete()
+  })
 }
 
 /**
