@@ -1011,7 +1011,7 @@ export async function getAllGuidsFromWatchlist(
  *
  * @param userId - The user ID to check notifications for
  * @param titles - Array of titles to check for existing webhook notifications
- * @returns A map where each title is mapped to true if a webhook notification exists, or false otherwise
+  * @returns A map where each title is mapped to true if a webhook notification exists, or false otherwise
  */
 export async function checkExistingWebhooks(
   this: DatabaseService,
@@ -1443,6 +1443,7 @@ export async function deleteAllTempRssItems(
  * Deletes specified watchlist items for a user.
  *
  * Removes watchlist items matching the given keys for the provided user ID. If the keys array is empty, no action is taken.
+ * Also deletes any associated `watchlist_add` notifications to allow re-notification when items are re-added.
  */
 export async function deleteWatchlistItems(
   this: DatabaseService,
@@ -1454,6 +1455,34 @@ export async function deleteWatchlistItems(
   const numericUserId =
     typeof userId === 'object' ? (userId as { id: number }).id : userId
 
+  // Fetch titles of items being deleted for notification cleanup
+  const itemsToDelete = await this.knex('watchlist_items')
+    .where('user_id', numericUserId)
+    .whereIn('key', keys)
+    .select('title')
+
+  const titles = itemsToDelete.map((item) => item.title)
+
+  // Delete watchlist_add notifications for these titles to allow re-notification
+  // These are typically orphaned (NULL watchlist_item_id) and won't CASCADE delete
+  if (titles.length > 0) {
+    const deleteCount = await this.knex('notifications')
+      .where({
+        user_id: numericUserId,
+        type: 'watchlist_add',
+        notification_status: 'active',
+      })
+      .whereIn('title', titles)
+      .del()
+
+    if (deleteCount > 0) {
+      this.log.debug(
+        `Deleted ${deleteCount} watchlist_add notification(s) for user ${numericUserId} during watchlist item deletion`,
+      )
+    }
+  }
+
+  // Delete watchlist items (CASCADE will handle notifications with non-NULL watchlist_item_id)
   await this.knex('watchlist_items')
     .where('user_id', numericUserId)
     .whereIn('key', keys)
