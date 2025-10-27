@@ -1,0 +1,268 @@
+import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import type { TagCache } from '@services/delete-sync/cache/index.js'
+import type { RadarrManagerService } from '@services/radarr-manager.service.js'
+import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
+import { parseGuids } from '@utils/guid-handler.js'
+import type { FastifyBaseLogger } from 'fastify'
+import pLimit from 'p-limit'
+import { getRemovalTagPrefixNormalized } from './tag-matcher.js'
+
+/**
+ * Configuration needed for tag counting
+ */
+export interface TagCountConfig {
+  deleteEndedShow: boolean
+  deleteContinuingShow: boolean
+  deleteMovie: boolean
+  enablePlexPlaylistProtection: boolean
+  removedTagPrefix: string | undefined
+}
+
+/**
+ * Count series that have the removal tag
+ *
+ * @param series - Array of all series
+ * @param config - Tag count configuration
+ * @param sonarrManager - Sonarr manager service
+ * @param tagCache - Tag cache instance
+ * @param protectedGuids - Set of protected GUIDs
+ * @param isAnyGuidProtected - Function to check if GUID is protected
+ * @param logger - Logger instance
+ * @returns Promise resolving to count of series with removal tag
+ */
+export async function countTaggedSeries(
+  series: SonarrItem[],
+  config: TagCountConfig,
+  sonarrManager: SonarrManagerService,
+  tagCache: TagCache,
+  protectedGuids: Set<string> | null,
+  isAnyGuidProtected: (guidList: string[]) => boolean,
+  logger: FastifyBaseLogger,
+): Promise<number> {
+  let count = 0
+  let processed = 0
+
+  // Quick exit if both continuing and ended show deletions are disabled
+  if (!config.deleteEndedShow && !config.deleteContinuingShow) {
+    return 0
+  }
+
+  // Group series by instance for efficient processing
+  const seriesByInstance = new Map<number, SonarrItem[]>()
+
+  for (const show of series) {
+    // Respect configured show types
+    const isContinuing = show.series_status !== 'ended'
+    const shouldConsider = isContinuing
+      ? config.deleteContinuingShow
+      : config.deleteEndedShow
+    if (!shouldConsider) continue
+
+    if (show.sonarr_instance_id) {
+      if (!seriesByInstance.has(show.sonarr_instance_id)) {
+        seriesByInstance.set(show.sonarr_instance_id, [])
+      }
+      seriesByInstance.get(show.sonarr_instance_id)?.push(show)
+    }
+  }
+
+  // Process each instance
+  for (const [instanceId, instanceSeries] of seriesByInstance.entries()) {
+    const service = sonarrManager.getSonarrService(instanceId)
+    if (!service) {
+      logger.warn(
+        `Sonarr service for instance ${instanceId} not found, skipping tag count`,
+      )
+      continue
+    }
+
+    // Get tags from cache (reusing existing cache infrastructure)
+    const tagMap = await tagCache.getTagsForInstance(
+      instanceId,
+      service,
+      'sonarr',
+      logger,
+    )
+    const removalTagPrefix = getRemovalTagPrefixNormalized(
+      config.removedTagPrefix,
+    )
+    if (!removalTagPrefix) {
+      // Avoid treating every tag as a removal tag when prefix is blank
+      processed += instanceSeries.length
+      continue
+    }
+    const removedTagIds = Array.from(tagMap.entries())
+      .filter(([, label]) => label.startsWith(removalTagPrefix))
+      .map(([id]) => id)
+
+    if (removedTagIds.length === 0) {
+      // No matching tags in this instance
+      processed += instanceSeries.length
+      continue
+    }
+
+    // Process each series with limited concurrency to avoid API rate limits
+    const limit = pLimit(10)
+
+    const results = await Promise.allSettled(
+      instanceSeries.map((show) =>
+        limit(async () => {
+          try {
+            const hasRemoval = removedTagIds.some((id) =>
+              (show.tags || []).includes(id),
+            )
+            if (!hasRemoval) return false
+            if (config.enablePlexPlaylistProtection && protectedGuids) {
+              const guids = parseGuids(show.guids)
+              // Count only if NOT protected
+              return !isAnyGuidProtected(guids)
+            }
+            return true
+          } catch (error) {
+            logger.error(
+              {
+                error:
+                  error instanceof Error ? error : new Error(String(error)),
+                show: { title: show.title, guids: show.guids },
+              },
+              `Error checking tags for series "${show.title}":`,
+            )
+            return false
+          }
+        }),
+      ),
+    )
+
+    count += results.filter(
+      (result) => result.status === 'fulfilled' && result.value,
+    ).length
+    processed += instanceSeries.length
+
+    logger.debug(
+      `Checked ${processed} series for removal tag, found ${count} tagged`,
+    )
+  }
+
+  return count
+}
+
+/**
+ * Count movies that have the removal tag
+ *
+ * @param movies - Array of all movies
+ * @param config - Tag count configuration
+ * @param radarrManager - Radarr manager service
+ * @param tagCache - Tag cache instance
+ * @param protectedGuids - Set of protected GUIDs
+ * @param isAnyGuidProtected - Function to check if GUID is protected
+ * @param logger - Logger instance
+ * @returns Promise resolving to count of movies with removal tag
+ */
+export async function countTaggedMovies(
+  movies: RadarrItem[],
+  config: TagCountConfig,
+  radarrManager: RadarrManagerService,
+  tagCache: TagCache,
+  protectedGuids: Set<string> | null,
+  isAnyGuidProtected: (guidList: string[]) => boolean,
+  logger: FastifyBaseLogger,
+): Promise<number> {
+  let count = 0
+  let processed = 0
+
+  if (!config.deleteMovie) {
+    return 0
+  }
+
+  // Group movies by instance for efficient processing
+  const moviesByInstance = new Map<number, RadarrItem[]>()
+
+  for (const movie of movies) {
+    if (movie.radarr_instance_id) {
+      if (!moviesByInstance.has(movie.radarr_instance_id)) {
+        moviesByInstance.set(movie.radarr_instance_id, [])
+      }
+      moviesByInstance.get(movie.radarr_instance_id)?.push(movie)
+    }
+  }
+
+  // Process each instance
+  for (const [instanceId, instanceMovies] of moviesByInstance.entries()) {
+    const service = radarrManager.getRadarrService(instanceId)
+    if (!service) {
+      logger.warn(
+        `Radarr service for instance ${instanceId} not found, skipping tag count`,
+      )
+      continue
+    }
+
+    // Get tags from cache (reusing existing cache infrastructure)
+    const tagMap = await tagCache.getTagsForInstance(
+      instanceId,
+      service,
+      'radarr',
+      logger,
+    )
+    const removalTagPrefix = getRemovalTagPrefixNormalized(
+      config.removedTagPrefix,
+    )
+    if (!removalTagPrefix) {
+      // Avoid treating every tag as a removal tag when prefix is blank
+      processed += instanceMovies.length
+      continue
+    }
+    const removedTagIds = Array.from(tagMap.entries())
+      .filter(([, label]) => label.startsWith(removalTagPrefix))
+      .map(([id]) => id)
+
+    if (removedTagIds.length === 0) {
+      // No matching tags in this instance
+      processed += instanceMovies.length
+      continue
+    }
+
+    // Process each movie with limited concurrency to avoid API rate limits
+    const limit = pLimit(10)
+
+    const results = await Promise.allSettled(
+      instanceMovies.map((movie) =>
+        limit(async () => {
+          try {
+            const hasRemoval = removedTagIds.some((id) =>
+              (movie.tags || []).includes(id),
+            )
+            if (!hasRemoval) return false
+            if (config.enablePlexPlaylistProtection && protectedGuids) {
+              const guids = parseGuids(movie.guids)
+              // Count only if NOT protected
+              return !isAnyGuidProtected(guids)
+            }
+            return true
+          } catch (error) {
+            logger.error(
+              {
+                error:
+                  error instanceof Error ? error : new Error(String(error)),
+                movie: { title: movie.title, guids: movie.guids },
+              },
+              `Error checking tags for movie "${movie.title}":`,
+            )
+            return false
+          }
+        }),
+      ),
+    )
+
+    count += results.filter(
+      (result) => result.status === 'fulfilled' && result.value,
+    ).length
+    processed += instanceMovies.length
+
+    logger.debug(
+      `Checked ${processed} movies for removal tag, found ${count} tagged`,
+    )
+  }
+
+  return count
+}
