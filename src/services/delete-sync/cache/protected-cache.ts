@@ -18,14 +18,14 @@ export async function ensureProtectionCache(
   playlistName: string,
   logger: FastifyBaseLogger,
 ): Promise<Set<string> | null> {
-  // Return cached value if already loaded
-  if (currentCache !== null) {
-    return currentCache
-  }
-
   // Only load if protection is enabled
   if (!enabled) {
     return null
+  }
+
+  // Return cached value if already loaded
+  if (currentCache !== null) {
+    return currentCache
   }
 
   // Ensure Plex server is initialized
