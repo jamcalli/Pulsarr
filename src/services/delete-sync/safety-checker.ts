@@ -52,7 +52,11 @@ export function performSafetyCheck(
 
   const totalItems =
     (config.deleteMovie ? existingMovies.length : 0) + eligibleSeriesCount
-  const totalTaggedItems = taggedSeriesCount + taggedMoviesCount
+  // Defensive check: ensure tagged counts respect config flags
+  // Note: The count functions already filter by config, but this provides
+  // additional safety in case those functions are modified in the future
+  const totalTaggedItems =
+    (config.deleteMovie ? taggedMoviesCount : 0) + taggedSeriesCount
 
   // Check if there's any content
   if (totalItems === 0) {

@@ -3,7 +3,7 @@ import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
-import safeRegex from 'safe-regex'
+import safeRegex from 'safe-regex2'
 import { z } from 'zod'
 
 // Max constants for validation
@@ -64,7 +64,7 @@ const DeleteSyncTagRegexSchema = z
   .min(1, { message: 'Tag regex pattern cannot be empty' })
   .refine(
     (pattern) => {
-      // Check if the regex is safe using safe-regex library
+      // Check if the regex is safe using safe-regex2 library
       if (!safeRegex(pattern)) {
         return false
       }

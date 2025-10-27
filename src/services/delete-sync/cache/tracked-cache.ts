@@ -17,14 +17,14 @@ export async function ensureTrackedCache(
   dbService: DatabaseService,
   logger: FastifyBaseLogger,
 ): Promise<Set<string> | null> {
-  // Return cached value if already loaded
-  if (currentCache !== null) {
-    return currentCache
-  }
-
   // Only load if tracked-only deletion is enabled
   if (!enabled) {
     return null
+  }
+
+  // Return cached value if already loaded
+  if (currentCache !== null) {
+    return currentCache
   }
 
   try {

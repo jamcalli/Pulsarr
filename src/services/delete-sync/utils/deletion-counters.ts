@@ -11,42 +11,78 @@ export interface DeletionRecord {
  * Manages deletion statistics and records during delete sync operations
  */
 export class DeletionCounters {
-  // Movie counters
-  moviesDeleted = 0
-  moviesSkipped = 0
-  moviesProtected = 0
+  // Private movie counters
+  private _moviesDeleted = 0
+  private _moviesSkipped = 0
+  private _moviesProtected = 0
 
-  // Show counters
-  endedShowsDeleted = 0
-  endedShowsSkipped = 0
-  continuingShowsDeleted = 0
-  continuingShowsSkipped = 0
-  showsProtected = 0
+  // Private show counters
+  private _endedShowsDeleted = 0
+  private _endedShowsSkipped = 0
+  private _continuingShowsDeleted = 0
+  private _continuingShowsSkipped = 0
+  private _showsProtected = 0
 
-  // Deletion records for reporting
-  moviesToDelete: DeletionRecord[] = []
-  showsToDelete: DeletionRecord[] = []
+  // Private deletion records for reporting
+  private _moviesToDelete: DeletionRecord[] = []
+  private _showsToDelete: DeletionRecord[] = []
+
+  // Public getters for movie counters
+  get moviesDeleted(): number {
+    return this._moviesDeleted
+  }
+  get moviesSkipped(): number {
+    return this._moviesSkipped
+  }
+  get moviesProtected(): number {
+    return this._moviesProtected
+  }
+
+  // Public getters for show counters
+  get endedShowsDeleted(): number {
+    return this._endedShowsDeleted
+  }
+  get endedShowsSkipped(): number {
+    return this._endedShowsSkipped
+  }
+  get continuingShowsDeleted(): number {
+    return this._continuingShowsDeleted
+  }
+  get continuingShowsSkipped(): number {
+    return this._continuingShowsSkipped
+  }
+  get showsProtected(): number {
+    return this._showsProtected
+  }
+
+  // Public getters for deletion records (readonly to prevent external mutation)
+  get moviesToDelete(): readonly DeletionRecord[] {
+    return this._moviesToDelete
+  }
+  get showsToDelete(): readonly DeletionRecord[] {
+    return this._showsToDelete
+  }
 
   /**
    * Increment movie deleted counter and add to deletion records
    */
   incrementMovieDeleted(record: DeletionRecord): void {
-    this.moviesDeleted++
-    this.moviesToDelete.push(record)
+    this._moviesDeleted++
+    this._moviesToDelete.push(record)
   }
 
   /**
    * Increment movie skipped counter
    */
   incrementMovieSkipped(): void {
-    this.moviesSkipped++
+    this._moviesSkipped++
   }
 
   /**
    * Increment movie protected counter
    */
   incrementMovieProtected(): void {
-    this.moviesProtected++
+    this._moviesProtected++
   }
 
   /**
@@ -55,11 +91,11 @@ export class DeletionCounters {
    */
   incrementShowDeleted(record: DeletionRecord, isContinuing: boolean): void {
     if (isContinuing) {
-      this.continuingShowsDeleted++
+      this._continuingShowsDeleted++
     } else {
-      this.endedShowsDeleted++
+      this._endedShowsDeleted++
     }
-    this.showsToDelete.push(record)
+    this._showsToDelete.push(record)
   }
 
   /**
@@ -68,9 +104,9 @@ export class DeletionCounters {
    */
   incrementShowSkipped(isContinuing: boolean): void {
     if (isContinuing) {
-      this.continuingShowsSkipped++
+      this._continuingShowsSkipped++
     } else {
-      this.endedShowsSkipped++
+      this._endedShowsSkipped++
     }
   }
 
@@ -78,7 +114,7 @@ export class DeletionCounters {
    * Increment show protected counter
    */
   incrementShowProtected(): void {
-    this.showsProtected++
+    this._showsProtected++
   }
 
   /**
@@ -86,7 +122,9 @@ export class DeletionCounters {
    */
   get totalDeleted(): number {
     return (
-      this.moviesDeleted + this.endedShowsDeleted + this.continuingShowsDeleted
+      this._moviesDeleted +
+      this._endedShowsDeleted +
+      this._continuingShowsDeleted
     )
   }
 
@@ -95,7 +133,9 @@ export class DeletionCounters {
    */
   get totalSkipped(): number {
     return (
-      this.moviesSkipped + this.endedShowsSkipped + this.continuingShowsSkipped
+      this._moviesSkipped +
+      this._endedShowsSkipped +
+      this._continuingShowsSkipped
     )
   }
 
@@ -103,7 +143,7 @@ export class DeletionCounters {
    * Get total protected count across all types
    */
   get totalProtected(): number {
-    return this.moviesProtected + this.showsProtected
+    return this._moviesProtected + this._showsProtected
   }
 
   /**
@@ -117,13 +157,13 @@ export class DeletionCounters {
    * Get total shows deleted (ended + continuing)
    */
   get totalShowsDeleted(): number {
-    return this.endedShowsDeleted + this.continuingShowsDeleted
+    return this._endedShowsDeleted + this._continuingShowsDeleted
   }
 
   /**
    * Get total shows skipped (ended + continuing)
    */
   get totalShowsSkipped(): number {
-    return this.endedShowsSkipped + this.continuingShowsSkipped
+    return this._endedShowsSkipped + this._continuingShowsSkipped
   }
 }

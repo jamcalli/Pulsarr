@@ -9,13 +9,13 @@ export type DeleteSyncResult = {
     deleted: number
     skipped: number
     protected?: number
-    items: Array<{ title: string; guid: string; instance: string }>
+    items: ReadonlyArray<{ title: string; guid: string; instance: string }>
   }
   shows: {
     deleted: number
     skipped: number
     protected?: number
-    items: Array<{ title: string; guid: string; instance: string }>
+    items: ReadonlyArray<{ title: string; guid: string; instance: string }>
   }
   safetyTriggered?: boolean
   safetyMessage?: string
