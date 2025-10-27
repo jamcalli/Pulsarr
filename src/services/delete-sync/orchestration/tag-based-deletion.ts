@@ -1,16 +1,15 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import type { DatabaseService } from '@services/database.service.js'
 import type { TagCache } from '@services/delete-sync/cache/index.js'
 import {
-  ensureProtectionCache,
-  ensureTrackedCache,
+  isAnyGuidProtected,
+  isAnyGuidTracked,
 } from '@services/delete-sync/cache/index.js'
 import {
   processMovieDeletions,
   processShowDeletions,
-} from '@services/delete-sync/processors/index.js'
+} from '@services/delete-sync/processors/content-deleter.js'
 import {
   createEmptyResult,
   createSafetyTriggeredResult,
@@ -21,10 +20,10 @@ import {
   countTaggedSeries,
   getRemovalTagPrefixNormalized,
 } from '@services/delete-sync/tag-operations/index.js'
-import { DeletionCounters } from '@services/delete-sync/utils/index.js'
+import { DeletionCounters } from '@services/delete-sync/utils/deletion-counters.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { FastifyBaseLogger } from 'fastify'
 
 export interface TagBasedDeletionContext {
   config: {
@@ -40,8 +39,6 @@ export interface TagBasedDeletionContext {
   }
   sonarrManager: SonarrManagerService
   radarrManager: RadarrManagerService
-  dbService: DatabaseService
-  fastify: FastifyInstance
   tagCache: TagCache
   protectedGuids: Set<string> | null
   trackedGuids: Set<string> | null
@@ -87,109 +84,31 @@ export async function executeTagBasedDeletion(
     )
   }
 
-  // Cache is already cleared at the start of run() method
-
-  // Load tracked content GUIDs if tracked-only deletion is enabled
-  if (config.deleteSyncTrackedOnly) {
-    logger.info(
-      'Tracked-only deletion is enabled - only content from approval system will be deleted',
+  // Cache is already loaded in service before calling this function
+  // Safety check to verify caches were loaded if features are enabled
+  if (config.deleteSyncTrackedOnly && !context.trackedGuids) {
+    const errorMsg =
+      'Tracked-only deletion is enabled but tracked GUIDs were not loaded'
+    logger.error(errorMsg)
+    return createSafetyTriggeredResult(
+      errorMsg,
+      existingSeries.length,
+      existingMovies.length,
     )
-
-    try {
-      const trackedGuids = await ensureTrackedCache(
-        context.trackedGuids,
-        config.deleteSyncTrackedOnly,
-        context.dbService,
-        logger,
-      )
-
-      if (!trackedGuids) {
-        throw new Error('Failed to retrieve tracked content GUIDs')
-      }
-
-      context.setTrackedGuids(trackedGuids)
-
-      logger.info(
-        `Found ${trackedGuids.size} tracked content GUIDs in approval system`,
-      )
-    } catch (trackedError) {
-      const errorMsg = `Error retrieving tracked content GUIDs: ${trackedError instanceof Error ? trackedError.message : String(trackedError)}`
-      logger.error(
-        {
-          error:
-            trackedError instanceof Error
-              ? trackedError
-              : new Error(String(trackedError)),
-        },
-        errorMsg,
-      )
-
-      logger.error(errorMsg)
-      logger.error('Delete operation aborted to prevent mass deletion.')
-      return createSafetyTriggeredResult(
-        errorMsg,
-        existingSeries.length,
-        existingMovies.length,
-      )
-    }
   }
 
-  // Check if Plex playlist protection is enabled
-  if (config.enablePlexPlaylistProtection) {
-    logger.info(
-      `Plex playlist protection is enabled with playlist name "${context.protectionPlaylistName}"`,
+  if (config.enablePlexPlaylistProtection && !context.protectedGuids) {
+    const errorMsg =
+      'Plex playlist protection is enabled but protected GUIDs were not loaded'
+    logger.error(errorMsg)
+    return createSafetyTriggeredResult(
+      errorMsg,
+      existingSeries.length,
+      existingMovies.length,
     )
-
-    try {
-      // Use cached protection loading to avoid redundant API calls
-      const protectedGuids = await ensureProtectionCache(
-        context.protectedGuids,
-        config.enablePlexPlaylistProtection,
-        context.fastify,
-        context.protectionPlaylistName,
-        logger,
-      )
-
-      if (!protectedGuids) {
-        throw new Error('Failed to retrieve protected items')
-      }
-
-      context.setProtectedGuids(protectedGuids)
-
-      logger.info(
-        `Protection playlists "${context.protectionPlaylistName}" contain a total of ${protectedGuids.size} protected GUIDs`,
-      )
-
-      // Trace sample of protected identifiers (limited to 5)
-      if (protectedGuids.size > 0 && logger.level === 'trace') {
-        const sampleGuids = Array.from(protectedGuids).slice(0, 5)
-        logger.trace({ sampleGuids }, 'Sample protected GUIDs')
-      }
-    } catch (protectedItemsError) {
-      const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
-      logger.error(
-        {
-          error:
-            protectedItemsError instanceof Error
-              ? protectedItemsError
-              : new Error(String(protectedItemsError)),
-        },
-        errorMsg,
-      )
-
-      logger.error(errorMsg)
-      logger.error('Delete operation aborted to prevent mass deletion.')
-      return createSafetyTriggeredResult(
-        errorMsg,
-        existingSeries.length,
-        existingMovies.length,
-      )
-    }
-  } else {
-    logger.debug('Plex playlist protection is disabled')
   }
 
-  // First, run a safety check to prevent mass deletion
+  // Run safety check to prevent mass deletion
   try {
     // Count how many items would be deleted by tag-based deletion
     const [taggedForDeletionSeries, taggedForDeletionMovies] =
@@ -289,14 +208,20 @@ export async function executeTagBasedDeletion(
         removedTagPrefix: config.removedTagPrefix,
       },
       validators: {
-        isAnyGuidTracked: (guids) => {
-          if (!context.trackedGuids) return false
-          return guids.some((guid) => context.trackedGuids?.has(guid))
-        },
-        isAnyGuidProtected: (guids) => {
-          if (!context.protectedGuids) return false
-          return guids.some((guid) => context.protectedGuids?.has(guid))
-        },
+        isAnyGuidTracked: (guids, onHit) =>
+          isAnyGuidTracked(
+            guids,
+            context.trackedGuids,
+            config.deleteSyncTrackedOnly,
+            onHit,
+          ),
+        isAnyGuidProtected: (guids, onHit) =>
+          isAnyGuidProtected(
+            guids,
+            context.protectedGuids,
+            config.enablePlexPlaylistProtection,
+            onHit,
+          ),
       },
       radarrManager,
       tagCache,
@@ -324,14 +249,20 @@ export async function executeTagBasedDeletion(
         removedTagPrefix: config.removedTagPrefix,
       },
       validators: {
-        isAnyGuidTracked: (guids) => {
-          if (!context.trackedGuids) return false
-          return guids.some((guid) => context.trackedGuids?.has(guid))
-        },
-        isAnyGuidProtected: (guids) => {
-          if (!context.protectedGuids) return false
-          return guids.some((guid) => context.protectedGuids?.has(guid))
-        },
+        isAnyGuidTracked: (guids, onHit) =>
+          isAnyGuidTracked(
+            guids,
+            context.trackedGuids,
+            config.deleteSyncTrackedOnly,
+            onHit,
+          ),
+        isAnyGuidProtected: (guids, onHit) =>
+          isAnyGuidProtected(
+            guids,
+            context.protectedGuids,
+            config.enablePlexPlaylistProtection,
+            onHit,
+          ),
       },
       sonarrManager,
       tagCache,
