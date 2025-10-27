@@ -963,6 +963,16 @@ export class DeleteSyncService {
     existingMovies: RadarrItem[],
     dryRun = false,
   ): Promise<DeleteSyncResult> {
+    // Load tracked cache if tracked-only deletion is enabled (MUST be done before orchestration)
+    if (this.config.deleteSyncTrackedOnly) {
+      await this.ensureTrackedCache()
+    }
+
+    // Load protection cache if enabled (MUST be done before orchestration)
+    if (this.config.enablePlexPlaylistProtection) {
+      await this.ensureProtectionCache()
+    }
+
     return executeTagBasedDeletion(
       existingSeries,
       existingMovies,
@@ -981,8 +991,6 @@ export class DeleteSyncService {
         },
         sonarrManager: this.sonarrManager,
         radarrManager: this.radarrManager,
-        dbService: this.dbService,
-        fastify: this.fastify,
         tagCache: this.tagCache,
         protectedGuids: this.protectedGuids,
         trackedGuids: this.trackedGuids,

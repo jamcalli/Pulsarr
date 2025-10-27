@@ -80,7 +80,7 @@ export async function validateTagBasedDeletion(
   validators: ContentValidators,
   tagCache: TagCache,
   logger: FastifyBaseLogger,
-  protectedGuids: Set<string> | null,
+  _protectedGuids: Set<string> | null,
 ): Promise<ValidationResult> {
   // Check if the item has the removal tag
   const hasRemoval = await hasRemovalTag(
@@ -161,12 +161,12 @@ export function validateWatchlistDeletion(
   config: ValidationConfig,
   validators: ContentValidators,
   logger: FastifyBaseLogger,
-  protectedGuids: Set<string> | null,
+  _protectedGuids: Set<string> | null,
 ): ValidationResult {
   // Check if item is IN watchlist - skip deletion if it is
   if (config.watchlistGuids) {
     const existsInWatchlist = itemGuids.some((guid) =>
-      config.watchlistGuids!.has(guid),
+      config.watchlistGuids?.has(guid),
     )
     if (existsInWatchlist) {
       return { skip: true, protected: false, reason: 'in-watchlist' }

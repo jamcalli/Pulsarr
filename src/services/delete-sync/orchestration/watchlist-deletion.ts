@@ -3,10 +3,14 @@ import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { TagCache } from '@services/delete-sync/cache/index.js'
 import {
+  isAnyGuidProtected,
+  isAnyGuidTracked,
+} from '@services/delete-sync/cache/index.js'
+import {
   processMovieDeletions,
   processShowDeletions,
-} from '@services/delete-sync/processors/index.js'
-import { DeletionCounters } from '@services/delete-sync/utils/index.js'
+} from '@services/delete-sync/processors/content-deleter.js'
+import { DeletionCounters } from '@services/delete-sync/utils/deletion-counters.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -73,14 +77,20 @@ export async function executeWatchlistDeletion(
         watchlistGuids,
       },
       validators: {
-        isAnyGuidTracked: (guids) => {
-          if (!context.trackedGuids) return false
-          return guids.some((guid) => context.trackedGuids?.has(guid))
-        },
-        isAnyGuidProtected: (guids) => {
-          if (!context.protectedGuids) return false
-          return guids.some((guid) => context.protectedGuids?.has(guid))
-        },
+        isAnyGuidTracked: (guids, onHit) =>
+          isAnyGuidTracked(
+            guids,
+            context.trackedGuids,
+            config.deleteSyncTrackedOnly,
+            onHit,
+          ),
+        isAnyGuidProtected: (guids, onHit) =>
+          isAnyGuidProtected(
+            guids,
+            context.protectedGuids,
+            config.enablePlexPlaylistProtection,
+            onHit,
+          ),
       },
       radarrManager,
       tagCache,
@@ -107,14 +117,20 @@ export async function executeWatchlistDeletion(
         watchlistGuids,
       },
       validators: {
-        isAnyGuidTracked: (guids) => {
-          if (!context.trackedGuids) return false
-          return guids.some((guid) => context.trackedGuids?.has(guid))
-        },
-        isAnyGuidProtected: (guids) => {
-          if (!context.protectedGuids) return false
-          return guids.some((guid) => context.protectedGuids?.has(guid))
-        },
+        isAnyGuidTracked: (guids, onHit) =>
+          isAnyGuidTracked(
+            guids,
+            context.trackedGuids,
+            config.deleteSyncTrackedOnly,
+            onHit,
+          ),
+        isAnyGuidProtected: (guids, onHit) =>
+          isAnyGuidProtected(
+            guids,
+            context.protectedGuids,
+            config.enablePlexPlaylistProtection,
+            onHit,
+          ),
       },
       sonarrManager,
       tagCache,
