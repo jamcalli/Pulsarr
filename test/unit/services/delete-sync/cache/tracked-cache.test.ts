@@ -232,16 +232,16 @@ describe('tracked-cache', () => {
       expect(result).toBe(false)
     })
 
-    it('should return true when cache is null and tracked-only is enabled', () => {
-      // When cache is null, the function returns true as a safety measure
-      // This prevents blocking deletion if the cache failed to load
+    it('should return false when cache is null and tracked-only is enabled (fail-safe)', () => {
+      // Fail-safe behavior: if tracked-only is enabled but cache is null,
+      // block deletion to prevent removing content when tracking data is unavailable
       const result = isAnyGuidTracked(
         ['tmdb://12345'],
         null, // no cache
         true, // enabled
       )
 
-      expect(result).toBe(true)
+      expect(result).toBe(false)
     })
 
     it('should handle onHit being undefined', () => {

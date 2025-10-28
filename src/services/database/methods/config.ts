@@ -299,7 +299,7 @@ export async function createConfig(
       deleteSyncNotifyOnlyOnDeletion: config.deleteSyncNotifyOnlyOnDeletion,
       deleteSyncTrackedOnly: config.deleteSyncTrackedOnly ?? false,
       deleteSyncCleanupApprovals: config.deleteSyncCleanupApprovals ?? false,
-      deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
+      deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
       approvalNotify: config.approvalNotify || 'none',
       maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
       // Plex playlist protection

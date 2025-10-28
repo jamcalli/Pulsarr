@@ -382,7 +382,7 @@ describe('protected-cache', () => {
       expect(onHit).toHaveBeenCalledWith('tmdb://second')
     })
 
-    it('should return true when protection disabled but with populated cache', () => {
+    it('should return false when protection is disabled even with populated cache', () => {
       // Even though cache has GUIDs, protection is disabled
       const protectedSet = new Set(['tmdb://12345'])
 

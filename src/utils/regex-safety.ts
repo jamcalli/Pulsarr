@@ -10,18 +10,33 @@ import safeRegex from 'safe-regex2'
  * @remark This only validates the pattern itself, does not test against input.
  * Uses safe-regex2 to detect catastrophic backtracking patterns and validates syntax.
  * Tests with unicode flag for strict validation of modern JavaScript regex syntax.
+ * Enforces maximum length to prevent pathologically large patterns.
  */
 export function isRegexPatternSafe(pattern: string): boolean {
-  // Reject potentially catastrophic patterns using safe-regex2
-  if (!safeRegex(pattern)) {
+  // Normalize and validate pattern
+  const p = (pattern ?? '').trim()
+
+  // Allow empty strings (treated as disabled/not set)
+  if (p.length === 0) {
+    return true
+  }
+
+  // Reject patterns that are too long (defense-in-depth)
+  if (p.length > 1024) {
     return false
   }
+
+  // Reject potentially catastrophic patterns using safe-regex2
+  if (!safeRegex(p)) {
+    return false
+  }
+
   // Verify the regex syntax is valid in both standard and unicode mode
   try {
-    new RegExp(pattern)
+    new RegExp(p)
     // Also test with unicode flag for stricter validation
     // This catches invalid syntax like {,5} that would be accepted in non-unicode mode
-    new RegExp(pattern, 'u')
+    new RegExp(p, 'u')
     return true
   } catch {
     return false
@@ -51,8 +66,8 @@ export function evaluateRegexSafely(
     return false
   }
 
-  // Pattern is safe, construct and test
-  const regex = new RegExp(pattern)
+  // Pattern is safe, construct and test (with 'u' flag for consistency with validation)
+  const regex = new RegExp(pattern, 'u')
   return regex.test(input)
 }
 
@@ -77,7 +92,7 @@ export function evaluateRegexSafelyMultiple(
     return false
   }
 
-  // Pattern is safe, construct and test
-  const regex = new RegExp(pattern)
+  // Pattern is safe, construct and test (with 'u' flag for consistency with validation)
+  const regex = new RegExp(pattern, 'u')
   return inputs.some((input) => regex.test(input))
 }

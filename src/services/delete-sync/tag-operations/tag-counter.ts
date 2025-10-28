@@ -16,6 +16,7 @@ export interface TagCountConfig {
   deleteMovie: boolean
   enablePlexPlaylistProtection: boolean
   removedTagPrefix: string | undefined
+  deleteSyncRequiredTagRegex?: string
 }
 
 /**
@@ -91,23 +92,38 @@ export async function countTaggedSeries(
       processed += instanceSeries.length
       continue
     }
-    const removedTagIds = Array.from(tagMap.entries())
-      .filter(([, label]) => label.startsWith(removalTagPrefix))
-      .map(([id]) => id)
+    const removedTagIdSet = new Set(
+      Array.from(tagMap.entries())
+        .filter(([, label]) => label.startsWith(removalTagPrefix))
+        .map(([id]) => id),
+    )
 
-    if (removedTagIds.length === 0) {
+    if (removedTagIdSet.size === 0) {
       // No matching tags in this instance
       processed += instanceSeries.length
       continue
     }
 
+    // Compile regex if required tag pattern is configured
+    const regex = config.deleteSyncRequiredTagRegex
+      ? tagCache.getCompiledRegex(config.deleteSyncRequiredTagRegex)
+      : null
+
     // Process each series (all operations are synchronous)
     for (const show of instanceSeries) {
       try {
-        const hasRemoval = removedTagIds.some((id) =>
-          (show.tags || []).includes(id),
-        )
+        const showTags = show.tags || []
+        const hasRemoval = showTags.some((id) => removedTagIdSet.has(id))
         if (!hasRemoval) continue
+
+        // Check if the show has a tag matching the required regex pattern
+        if (regex) {
+          const hasRequired = showTags.some((id) => {
+            const label = tagMap.get(id)
+            return label ? regex.test(label) : false
+          })
+          if (!hasRequired) continue
+        }
 
         if (config.enablePlexPlaylistProtection && protectedGuids) {
           const guids = parseGuids(show.guids)
@@ -202,23 +218,38 @@ export async function countTaggedMovies(
       processed += instanceMovies.length
       continue
     }
-    const removedTagIds = Array.from(tagMap.entries())
-      .filter(([, label]) => label.startsWith(removalTagPrefix))
-      .map(([id]) => id)
+    const removedTagIdSet = new Set(
+      Array.from(tagMap.entries())
+        .filter(([, label]) => label.startsWith(removalTagPrefix))
+        .map(([id]) => id),
+    )
 
-    if (removedTagIds.length === 0) {
+    if (removedTagIdSet.size === 0) {
       // No matching tags in this instance
       processed += instanceMovies.length
       continue
     }
 
+    // Compile regex if required tag pattern is configured
+    const regex = config.deleteSyncRequiredTagRegex
+      ? tagCache.getCompiledRegex(config.deleteSyncRequiredTagRegex)
+      : null
+
     // Process each movie (all operations are synchronous)
     for (const movie of instanceMovies) {
       try {
-        const hasRemoval = removedTagIds.some((id) =>
-          (movie.tags || []).includes(id),
-        )
+        const movieTags = movie.tags || []
+        const hasRemoval = movieTags.some((id) => removedTagIdSet.has(id))
         if (!hasRemoval) continue
+
+        // Check if the movie has a tag matching the required regex pattern
+        if (regex) {
+          const hasRequired = movieTags.some((id) => {
+            const label = tagMap.get(id)
+            return label ? regex.test(label) : false
+          })
+          if (!hasRequired) continue
+        }
 
         if (config.enablePlexPlaylistProtection && protectedGuids) {
           const guids = parseGuids(movie.guids)
