@@ -104,8 +104,8 @@ export async function hasTagMatchingRegex(
   }
 
   try {
-    // Compile the regex once per call
-    const regex = new RegExp(regexPattern)
+    // Get compiled regex from cache (reuses across all calls within a single run)
+    const regex = tagCache.getCompiledRegex(regexPattern)
 
     // Get tags from cache or fetch them using the explicit instance type
     const tagMap = await tagCache.getTagsForInstance(

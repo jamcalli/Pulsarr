@@ -13,6 +13,7 @@ export interface TagService {
  */
 export class TagCache {
   private cache: Map<string, Map<number, string>> = new Map()
+  private regexCache: { pattern: string; compiled: RegExp } | null = null
 
   /**
    * Get tags for a specific instance, using cache if available
@@ -62,9 +63,27 @@ export class TagCache {
   }
 
   /**
-   * Clear the tag cache (should be called at the start of each sync run)
+   * Get compiled regex for tag matching, using cache to avoid recompilation
+   *
+   * @param pattern - The regex pattern string
+   * @returns Compiled RegExp object
+   */
+  getCompiledRegex(pattern: string): RegExp {
+    // Use cached compiled regex or compile if pattern changed
+    if (!this.regexCache || this.regexCache.pattern !== pattern) {
+      this.regexCache = {
+        pattern,
+        compiled: new RegExp(pattern),
+      }
+    }
+    return this.regexCache.compiled
+  }
+
+  /**
+   * Clear the tag cache and regex cache (should be called at the start of each sync run)
    */
   clear(): void {
     this.cache.clear()
+    this.regexCache = null
   }
 }
