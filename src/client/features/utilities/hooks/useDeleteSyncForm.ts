@@ -23,6 +23,7 @@ const ApiDeleteSyncSchema = ConfigSchema.pick({
   maxDeletionPrevention: true,
   deleteSyncTrackedOnly: true,
   deleteSyncCleanupApprovals: true,
+  deleteSyncRequiredTagRegex: true,
   removedTagPrefix: true,
   removedTagMode: true,
 })
@@ -128,6 +129,7 @@ export function useDeleteSyncForm() {
       maxDeletionPrevention: undefined,
       deleteSyncTrackedOnly: false,
       deleteSyncCleanupApprovals: false,
+      deleteSyncRequiredTagRegex: undefined,
       scheduleTime: undefined,
       dayOfWeek: '*',
       removedTagPrefix: 'pulsarr:removed',
@@ -168,6 +170,7 @@ export function useDeleteSyncForm() {
           deleteSyncTrackedOnly: config.deleteSyncTrackedOnly || false,
           deleteSyncCleanupApprovals:
             config.deleteSyncCleanupApprovals || false,
+          deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
           scheduleTime: scheduleTime || form.getValues('scheduleTime'),
           dayOfWeek: dayOfWeek,
           removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
@@ -224,6 +227,7 @@ export function useDeleteSyncForm() {
         maxDeletionPrevention: data.maxDeletionPrevention,
         deleteSyncTrackedOnly: data.deleteSyncTrackedOnly,
         deleteSyncCleanupApprovals: data.deleteSyncCleanupApprovals,
+        deleteSyncRequiredTagRegex: data.deleteSyncRequiredTagRegex,
         // We still send the removedTagPrefix value from the form
         // This value is now read-only in Delete Sync but needed for the tag-based deletion logic
         // Always persist the prefix so it is not lost when toggling modes
@@ -290,6 +294,7 @@ export function useDeleteSyncForm() {
           deleteSyncTrackedOnly: updatedConfig.deleteSyncTrackedOnly || false,
           deleteSyncCleanupApprovals:
             updatedConfig.deleteSyncCleanupApprovals || false,
+          deleteSyncRequiredTagRegex: updatedConfig.deleteSyncRequiredTagRegex,
           scheduleTime: data.scheduleTime,
           dayOfWeek: data.dayOfWeek,
           removedTagPrefix: updatedConfig.removedTagPrefix || 'pulsarr:removed',
@@ -339,6 +344,7 @@ export function useDeleteSyncForm() {
         maxDeletionPrevention: config.maxDeletionPrevention,
         deleteSyncTrackedOnly: config.deleteSyncTrackedOnly || false,
         deleteSyncCleanupApprovals: config.deleteSyncCleanupApprovals || false,
+        deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
         scheduleTime: scheduleTime,
         dayOfWeek: dayOfWeek,
         removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',

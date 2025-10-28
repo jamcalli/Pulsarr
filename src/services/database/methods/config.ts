@@ -177,7 +177,7 @@ export async function getConfig(
     deleteSyncCleanupApprovals: Boolean(
       config.deleteSyncCleanupApprovals ?? false,
     ),
-    deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || undefined,
+    deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex || '',
     approvalNotify: config.approvalNotify || 'none',
     // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
