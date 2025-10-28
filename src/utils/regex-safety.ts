@@ -9,15 +9,19 @@ import safeRegex from 'safe-regex2'
  *
  * @remark This only validates the pattern itself, does not test against input.
  * Uses safe-regex2 to detect catastrophic backtracking patterns and validates syntax.
+ * Tests with unicode flag for strict validation of modern JavaScript regex syntax.
  */
 export function isRegexPatternSafe(pattern: string): boolean {
   // Reject potentially catastrophic patterns using safe-regex2
   if (!safeRegex(pattern)) {
     return false
   }
-  // Verify the regex syntax is valid
+  // Verify the regex syntax is valid in both standard and unicode mode
   try {
     new RegExp(pattern)
+    // Also test with unicode flag for stricter validation
+    // This catches invalid syntax like {,5} that would be accepted in non-unicode mode
+    new RegExp(pattern, 'u')
     return true
   } catch {
     return false

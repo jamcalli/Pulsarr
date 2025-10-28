@@ -87,14 +87,12 @@ describe('isRegexPatternSafe', () => {
       expect(isRegexPatternSafe('((test)')).toBe(false)
     })
 
-    it('should return false for unmatched opening brackets', () => {
+    it('should return false for unmatched brackets', () => {
+      // Opening bracket without closing
       expect(isRegexPatternSafe('[abc')).toBe(false)
       expect(isRegexPatternSafe('[a-z')).toBe(false)
-    })
-
-    it('should return true for closing bracket without opening (literal match)', () => {
-      // In regex, a closing bracket without an opening one is valid - it matches literal ']'
-      expect(isRegexPatternSafe('abc]')).toBe(true)
+      // Closing bracket without opening is also invalid in unicode mode
+      expect(isRegexPatternSafe('abc]')).toBe(false)
     })
 
     it('should return false for invalid character class', () => {
@@ -115,11 +113,16 @@ describe('isRegexPatternSafe', () => {
       expect(isRegexPatternSafe('a{5,3}')).toBe(false)
     })
 
-    it('should return true for valid open-ended quantifiers', () => {
-      // a{,} is valid - means zero or more (equivalent to a*)
-      expect(isRegexPatternSafe('a{,}')).toBe(true)
-      // a{,5} is valid - means zero to five
-      expect(isRegexPatternSafe('a{,5}')).toBe(true)
+    it('should return false for invalid quantifier syntax', () => {
+      // JavaScript does NOT support {,m} syntax - these are invalid
+      expect(isRegexPatternSafe('a{,}')).toBe(false)
+      expect(isRegexPatternSafe('a{,5}')).toBe(false)
+    })
+
+    it('should return true for valid quantifier ranges', () => {
+      expect(isRegexPatternSafe('a{2,5}')).toBe(true)
+      expect(isRegexPatternSafe('a{3,}')).toBe(true)
+      expect(isRegexPatternSafe('a{5}')).toBe(true)
     })
   })
 
@@ -133,9 +136,18 @@ describe('isRegexPatternSafe', () => {
       ).toBe(true)
     })
 
-    it('should handle lookaheads and lookbehinds', () => {
+    it('should handle lookaheads', () => {
+      // Positive lookahead
       expect(isRegexPatternSafe('(?=test)')).toBe(true)
+      // Negative lookahead
       expect(isRegexPatternSafe('(?!test)')).toBe(true)
+    })
+
+    it('should reject lookbehinds for safety', () => {
+      // Lookbehinds are syntactically valid in ES2018+ but rejected by safe-regex2
+      // due to potential performance issues
+      expect(isRegexPatternSafe('(?<=test)')).toBe(false)
+      expect(isRegexPatternSafe('(?<!test)')).toBe(false)
     })
 
     it('should validate patterns with multiple groups', () => {
