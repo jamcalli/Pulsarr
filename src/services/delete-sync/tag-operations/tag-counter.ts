@@ -5,7 +5,6 @@ import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
-import pLimit from 'p-limit'
 import { getRemovalTagPrefixNormalized } from './tag-matcher.js'
 
 /**
@@ -102,41 +101,32 @@ export async function countTaggedSeries(
       continue
     }
 
-    // Process each series with limited concurrency to avoid API rate limits
-    const limit = pLimit(10)
+    // Process each series (all operations are synchronous)
+    for (const show of instanceSeries) {
+      try {
+        const hasRemoval = removedTagIds.some((id) =>
+          (show.tags || []).includes(id),
+        )
+        if (!hasRemoval) continue
 
-    const results = await Promise.allSettled(
-      instanceSeries.map((show) =>
-        limit(async () => {
-          try {
-            const hasRemoval = removedTagIds.some((id) =>
-              (show.tags || []).includes(id),
-            )
-            if (!hasRemoval) return false
-            if (config.enablePlexPlaylistProtection && protectedGuids) {
-              const guids = parseGuids(show.guids)
-              // Count only if NOT protected
-              return !isAnyGuidProtected(guids)
-            }
-            return true
-          } catch (error) {
-            logger.error(
-              {
-                error:
-                  error instanceof Error ? error : new Error(String(error)),
-                show: { title: show.title, guids: show.guids },
-              },
-              `Error checking tags for series "${show.title}":`,
-            )
-            return false
-          }
-        }),
-      ),
-    )
+        if (config.enablePlexPlaylistProtection && protectedGuids) {
+          const guids = parseGuids(show.guids)
+          // Count only if NOT protected
+          if (isAnyGuidProtected(guids)) continue
+        }
 
-    count += results.filter(
-      (result) => result.status === 'fulfilled' && result.value,
-    ).length
+        count++
+      } catch (error) {
+        logger.error(
+          {
+            error: error instanceof Error ? error : new Error(String(error)),
+            show: { title: show.title, guids: show.guids },
+          },
+          `Error checking tags for series "${show.title}":`,
+        )
+      }
+    }
+
     processed += instanceSeries.length
 
     logger.debug(
@@ -222,41 +212,32 @@ export async function countTaggedMovies(
       continue
     }
 
-    // Process each movie with limited concurrency to avoid API rate limits
-    const limit = pLimit(10)
+    // Process each movie (all operations are synchronous)
+    for (const movie of instanceMovies) {
+      try {
+        const hasRemoval = removedTagIds.some((id) =>
+          (movie.tags || []).includes(id),
+        )
+        if (!hasRemoval) continue
 
-    const results = await Promise.allSettled(
-      instanceMovies.map((movie) =>
-        limit(async () => {
-          try {
-            const hasRemoval = removedTagIds.some((id) =>
-              (movie.tags || []).includes(id),
-            )
-            if (!hasRemoval) return false
-            if (config.enablePlexPlaylistProtection && protectedGuids) {
-              const guids = parseGuids(movie.guids)
-              // Count only if NOT protected
-              return !isAnyGuidProtected(guids)
-            }
-            return true
-          } catch (error) {
-            logger.error(
-              {
-                error:
-                  error instanceof Error ? error : new Error(String(error)),
-                movie: { title: movie.title, guids: movie.guids },
-              },
-              `Error checking tags for movie "${movie.title}":`,
-            )
-            return false
-          }
-        }),
-      ),
-    )
+        if (config.enablePlexPlaylistProtection && protectedGuids) {
+          const guids = parseGuids(movie.guids)
+          // Count only if NOT protected
+          if (isAnyGuidProtected(guids)) continue
+        }
 
-    count += results.filter(
-      (result) => result.status === 'fulfilled' && result.value,
-    ).length
+        count++
+      } catch (error) {
+        logger.error(
+          {
+            error: error instanceof Error ? error : new Error(String(error)),
+            movie: { title: movie.title, guids: movie.guids },
+          },
+          `Error checking tags for movie "${movie.title}":`,
+        )
+      }
+    }
+
     processed += instanceMovies.length
 
     logger.debug(
