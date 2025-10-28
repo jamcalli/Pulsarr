@@ -73,7 +73,7 @@ export class TagCache {
     if (!this.regexCache || this.regexCache.pattern !== pattern) {
       this.regexCache = {
         pattern,
-        compiled: new RegExp(pattern),
+        compiled: new RegExp(pattern, 'iu'),
       }
     }
     return this.regexCache.compiled

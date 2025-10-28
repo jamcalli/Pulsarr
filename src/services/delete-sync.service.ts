@@ -26,7 +26,7 @@ import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   ensureProtectionCache,
   ensureTrackedCache,
-  isAnyGuidTracked,
+  isAnyGuidTracked as isAnyGuidTrackedHelper,
   TagCache,
 } from '@services/delete-sync/cache/index.js'
 import {
@@ -158,7 +158,7 @@ export class DeleteSyncService {
     guidList: string[],
     onHit?: (guid: string) => void,
   ): boolean {
-    return isAnyGuidTracked(
+    return isAnyGuidTrackedHelper(
       guidList,
       this.trackedGuids,
       this.config.deleteSyncTrackedOnly,
@@ -1058,14 +1058,24 @@ export class DeleteSyncService {
     existingMovies: RadarrItem[],
     dryRun = false,
   ): Promise<DeleteSyncResult> {
-    // Load tracked cache if tracked-only deletion is enabled (MUST be done before orchestration)
-    if (this.config.deleteSyncTrackedOnly) {
-      await this.ensureTrackedCache()
+    // Load tracked cache with safety-guarded wrapper (parity with watchlist path)
+    const trackedLoadResult = await this.loadTrackedCacheIfEnabled(
+      existingSeries.length,
+      existingMovies.length,
+      dryRun,
+    )
+    if (!trackedLoadResult.success) {
+      return trackedLoadResult.result
     }
 
-    // Load protection cache if enabled (MUST be done before orchestration)
-    if (this.config.enablePlexPlaylistProtection) {
-      await this.ensureProtectionCache()
+    // Load protection cache with safety-guarded wrapper (parity with watchlist path)
+    const protectionLoadResult = await this.loadProtectionCacheIfEnabled(
+      existingSeries.length,
+      existingMovies.length,
+      dryRun,
+    )
+    if (!protectionLoadResult.success) {
+      return protectionLoadResult.result
     }
 
     return executeTagBasedDeletion(

@@ -466,14 +466,14 @@ describe('tag-cache', () => {
       expect(regex.test('admin-john-123')).toBe(false) // wrong prefix
     })
 
-    it('should handle regex with flags in pattern string', () => {
-      // Note: new RegExp('pattern') doesn't support flags in the pattern string
-      // This test documents current behavior
-      const pattern = 'USER' // Case-sensitive by default
+    it('should compile regex with case-insensitive and unicode flags', () => {
+      // Regex is compiled with 'iu' flags to match lowercased tags and support Unicode
+      const pattern = 'USER'
       const regex = tagCache.getCompiledRegex(pattern)
 
       expect(regex.test('USER')).toBe(true)
-      expect(regex.test('user')).toBe(false) // Case-sensitive
+      expect(regex.test('user')).toBe(true) // Case-insensitive due to 'i' flag
+      expect(regex.test('UsEr')).toBe(true) // Case-insensitive
     })
 
     it('should handle special regex characters', () => {

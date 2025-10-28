@@ -73,14 +73,17 @@ async function performTagBasedSafetyCheck(
             deleteMovie: config.deleteMovie,
             enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
             removedTagPrefix: config.removedTagPrefix,
+            deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
           },
           sonarrManager,
           tagCache,
           context.protectedGuids,
-          (guids) => {
-            if (!context.protectedGuids) return false
-            return guids.some((guid) => context.protectedGuids?.has(guid))
-          },
+          (guids) =>
+            isAnyGuidProtected(
+              guids,
+              context.protectedGuids,
+              config.enablePlexPlaylistProtection,
+            ),
           logger,
         ),
         countTaggedMovies(
@@ -91,14 +94,17 @@ async function performTagBasedSafetyCheck(
             deleteMovie: config.deleteMovie,
             enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
             removedTagPrefix: config.removedTagPrefix,
+            deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
           },
           radarrManager,
           tagCache,
           context.protectedGuids,
-          (guids) => {
-            if (!context.protectedGuids) return false
-            return guids.some((guid) => context.protectedGuids?.has(guid))
-          },
+          (guids) =>
+            isAnyGuidProtected(
+              guids,
+              context.protectedGuids,
+              config.enablePlexPlaylistProtection,
+            ),
           logger,
         ),
       ])

@@ -20,6 +20,7 @@ describe('tag-counter', () => {
     mockLogger = createMockLogger()
     mockTagCache = {
       getTagsForInstance: vi.fn(),
+      getCompiledRegex: vi.fn((pattern: string) => new RegExp(pattern, 'iu')),
       clear: vi.fn(),
     } as unknown as TagCache
     mockIsAnyGuidProtected = vi.fn(() => false)
@@ -373,6 +374,155 @@ describe('tag-counter', () => {
       // Should call getTagsForInstance for each unique instance
       expect(mockTagCache.getTagsForInstance).toHaveBeenCalledTimes(2)
     })
+
+    it('should exclude movies with removal tag but no required regex match', async () => {
+      const movies: RadarrItem[] = [
+        {
+          id: 1,
+          title: 'Movie with removal tag only',
+          tags: [1], // has removal tag but no user tag
+          radarr_instance_id: 1,
+          guids: 'tmdb://11111',
+        } as unknown as RadarrItem,
+        {
+          id: 2,
+          title: 'Movie with both tags',
+          tags: [1, 2], // has both removal tag and user tag
+          radarr_instance_id: 1,
+          guids: 'tmdb://22222',
+        } as unknown as RadarrItem,
+      ]
+
+      const tagMap = new Map([
+        [1, 'removed'], // removal tag
+        [2, 'user-john'], // matches regex
+        [3, 'admin-jane'], // doesn't match regex
+      ])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const config: TagCountConfig = {
+        deleteMovie: true,
+        deleteEndedShow: false,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        removedTagPrefix: 'removed',
+        deleteSyncRequiredTagRegex: 'user-.*', // Requires a tag matching this pattern
+      }
+
+      const count = await countTaggedMovies(
+        movies,
+        config,
+        mockRadarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        mockLogger,
+      )
+
+      expect(count).toBe(1) // Only movie 2 has both removal tag AND required regex match
+      expect(mockTagCache.getCompiledRegex).toHaveBeenCalledWith('user-.*')
+    })
+
+    it('should count all movies when they have both removal tag and required regex match', async () => {
+      const movies: RadarrItem[] = [
+        {
+          id: 1,
+          title: 'Movie 1',
+          tags: [1, 2], // removal tag + user-john
+          radarr_instance_id: 1,
+          guids: 'tmdb://11111',
+        } as unknown as RadarrItem,
+        {
+          id: 2,
+          title: 'Movie 2',
+          tags: [1, 3], // removal tag + user-jane
+          radarr_instance_id: 1,
+          guids: 'tmdb://22222',
+        } as unknown as RadarrItem,
+        {
+          id: 3,
+          title: 'Movie 3',
+          tags: [1], // removal tag only (no user tag)
+          radarr_instance_id: 1,
+          guids: 'tmdb://33333',
+        } as unknown as RadarrItem,
+      ]
+
+      const tagMap = new Map([
+        [1, 'removed'], // removal tag
+        [2, 'user-john'], // matches regex
+        [3, 'user-jane'], // matches regex
+      ])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const config: TagCountConfig = {
+        deleteMovie: true,
+        deleteEndedShow: false,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        removedTagPrefix: 'removed',
+        deleteSyncRequiredTagRegex: 'user-.*',
+      }
+
+      const count = await countTaggedMovies(
+        movies,
+        config,
+        mockRadarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        mockLogger,
+      )
+
+      expect(count).toBe(2) // Only movies 1 and 2 have both required conditions
+    })
+
+    it('should count all movies with removal tag when no regex is configured', async () => {
+      const movies: RadarrItem[] = [
+        {
+          id: 1,
+          title: 'Movie 1',
+          tags: [1], // just removal tag
+          radarr_instance_id: 1,
+          guids: 'tmdb://11111',
+        } as unknown as RadarrItem,
+        {
+          id: 2,
+          title: 'Movie 2',
+          tags: [1, 2], // removal tag + user tag
+          radarr_instance_id: 1,
+          guids: 'tmdb://22222',
+        } as unknown as RadarrItem,
+      ]
+
+      const tagMap = new Map([
+        [1, 'removed'],
+        [2, 'user-john'],
+      ])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const config: TagCountConfig = {
+        deleteMovie: true,
+        deleteEndedShow: false,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        removedTagPrefix: 'removed',
+        // No deleteSyncRequiredTagRegex - should count all with removal tag
+      }
+
+      const count = await countTaggedMovies(
+        movies,
+        config,
+        mockRadarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        mockLogger,
+      )
+
+      expect(count).toBe(2) // Both movies have removal tag
+      expect(mockTagCache.getCompiledRegex).not.toHaveBeenCalled()
+    })
   })
 
   describe('countTaggedSeries', () => {
@@ -663,6 +813,162 @@ describe('tag-counter', () => {
       )
 
       expect(count).toBe(0)
+    })
+
+    it('should exclude series with removal tag but no required regex match', async () => {
+      const series: SonarrItem[] = [
+        {
+          id: 1,
+          title: 'Show with removal tag only',
+          tags: [1], // has removal tag but no user tag
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://11111',
+        } as unknown as SonarrItem,
+        {
+          id: 2,
+          title: 'Show with both tags',
+          tags: [1, 2], // has both removal tag and user tag
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://22222',
+        } as unknown as SonarrItem,
+      ]
+
+      const tagMap = new Map([
+        [1, 'removed'], // removal tag
+        [2, 'user-john'], // matches regex
+        [3, 'admin-jane'], // doesn't match regex
+      ])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const config: TagCountConfig = {
+        deleteMovie: false,
+        deleteEndedShow: true,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        removedTagPrefix: 'removed',
+        deleteSyncRequiredTagRegex: 'user-.*', // Requires a tag matching this pattern
+      }
+
+      const count = await countTaggedSeries(
+        series,
+        config,
+        mockSonarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        mockLogger,
+      )
+
+      expect(count).toBe(1) // Only show 2 has both removal tag AND required regex match
+      expect(mockTagCache.getCompiledRegex).toHaveBeenCalledWith('user-.*')
+    })
+
+    it('should count all series when they have both removal tag and required regex match', async () => {
+      const series: SonarrItem[] = [
+        {
+          id: 1,
+          title: 'Show 1',
+          tags: [1, 2], // removal tag + user-john
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://11111',
+        } as unknown as SonarrItem,
+        {
+          id: 2,
+          title: 'Show 2',
+          tags: [1, 3], // removal tag + user-jane
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://22222',
+        } as unknown as SonarrItem,
+        {
+          id: 3,
+          title: 'Show 3',
+          tags: [1], // removal tag only (no user tag)
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://33333',
+        } as unknown as SonarrItem,
+      ]
+
+      const tagMap = new Map([
+        [1, 'removed'], // removal tag
+        [2, 'user-john'], // matches regex
+        [3, 'user-jane'], // matches regex
+      ])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const config: TagCountConfig = {
+        deleteMovie: false,
+        deleteEndedShow: true,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        removedTagPrefix: 'removed',
+        deleteSyncRequiredTagRegex: 'user-.*',
+      }
+
+      const count = await countTaggedSeries(
+        series,
+        config,
+        mockSonarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        mockLogger,
+      )
+
+      expect(count).toBe(2) // Only shows 1 and 2 have both required conditions
+    })
+
+    it('should count all series with removal tag when no regex is configured', async () => {
+      const series: SonarrItem[] = [
+        {
+          id: 1,
+          title: 'Show 1',
+          tags: [1], // just removal tag
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://11111',
+        } as unknown as SonarrItem,
+        {
+          id: 2,
+          title: 'Show 2',
+          tags: [1, 2], // removal tag + user tag
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://22222',
+        } as unknown as SonarrItem,
+      ]
+
+      const tagMap = new Map([
+        [1, 'removed'],
+        [2, 'user-john'],
+      ])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const config: TagCountConfig = {
+        deleteMovie: false,
+        deleteEndedShow: true,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        removedTagPrefix: 'removed',
+        // No deleteSyncRequiredTagRegex - should count all with removal tag
+      }
+
+      const count = await countTaggedSeries(
+        series,
+        config,
+        mockSonarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        mockLogger,
+      )
+
+      expect(count).toBe(2) // Both shows have removal tag
+      expect(mockTagCache.getCompiledRegex).not.toHaveBeenCalled()
     })
   })
 })

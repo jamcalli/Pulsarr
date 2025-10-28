@@ -64,8 +64,13 @@ export function isAnyGuidTracked(
   enabled: boolean,
   onHit?: (guid: string) => void,
 ): boolean {
-  if (!enabled || !trackedGuids) {
-    return true // If tracked-only is disabled, consider all content as tracked
+  // Feature disabled - all content considered tracked
+  if (!enabled) {
+    return true
+  }
+  // Fail-safe: feature enabled but cache missing - block deletion
+  if (!trackedGuids) {
+    return false
   }
   for (const guid of guidList) {
     if (trackedGuids.has(guid)) {

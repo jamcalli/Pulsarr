@@ -55,7 +55,7 @@ describe('tag-matcher', () => {
       mockService = {} as TagService
       mockTagCache = {
         getTagsForInstance: vi.fn(),
-        getCompiledRegex: vi.fn((pattern: string) => new RegExp(pattern)),
+        getCompiledRegex: vi.fn((pattern: string) => new RegExp(pattern, 'iu')),
         clear: vi.fn(),
       } as unknown as TagCache
     })
@@ -331,7 +331,7 @@ describe('tag-matcher', () => {
       mockService = {} as TagService
       mockTagCache = {
         getTagsForInstance: vi.fn(),
-        getCompiledRegex: vi.fn((pattern: string) => new RegExp(pattern)),
+        getCompiledRegex: vi.fn((pattern: string) => new RegExp(pattern, 'iu')),
         clear: vi.fn(),
       } as unknown as TagCache
     })
@@ -432,24 +432,23 @@ describe('tag-matcher', () => {
       expect(result).toBe(true)
     })
 
-    it('should support case-insensitive regex with i flag', async () => {
-      const tagMap = new Map([[1, 'USER-JOHN']])
+    it('should support case-insensitive regex matching', async () => {
+      const tagMap = new Map([[1, 'user-john']]) // Tags are always lowercased in cache
 
       vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
 
-      // This test depends on how the regex is constructed
-      // The current implementation doesn't add flags, so this tests exact behavior
+      // Uppercase pattern should match lowercase tag due to 'i' flag
       const result = await hasTagMatchingRegex(
         1,
         mockService,
         [1],
         'radarr',
-        'user-john', // lowercase pattern won't match uppercase tag
+        'USER-JOHN', // Uppercase pattern should match lowercase tag
         mockTagCache,
         mockLogger,
       )
 
-      expect(result).toBe(false)
+      expect(result).toBe(true)
     })
 
     it('should handle regex special characters', async () => {
