@@ -7,7 +7,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
 describe('tracked-cache', () => {
-  let mockDbService: Partial<DatabaseService>
+  let mockDbService: {
+    getTrackedContentGuids: ReturnType<typeof vi.fn>
+  }
   let mockLogger: ReturnType<typeof createMockLogger>
 
   beforeEach(() => {
@@ -46,9 +48,7 @@ describe('tracked-cache', () => {
 
     it('should load tracked GUIDs from database when cache is null', async () => {
       const guidSet = new Set(['tmdb://11111', 'tmdb://22222', 'imdb://tt123'])
-      vi.mocked(mockDbService.getTrackedContentGuids!).mockResolvedValue(
-        guidSet,
-      )
+      vi.mocked(mockDbService.getTrackedContentGuids).mockResolvedValue(guidSet)
 
       const result = await ensureTrackedCache(
         null, // no cache
@@ -69,7 +69,7 @@ describe('tracked-cache', () => {
 
     it('should handle empty guid set from database', async () => {
       const emptySet = new Set<string>()
-      vi.mocked(mockDbService.getTrackedContentGuids!).mockResolvedValue(
+      vi.mocked(mockDbService.getTrackedContentGuids).mockResolvedValue(
         emptySet,
       )
 
@@ -88,7 +88,7 @@ describe('tracked-cache', () => {
 
     it('should throw and log error on database failure', async () => {
       const error = new Error('Database connection failed')
-      vi.mocked(mockDbService.getTrackedContentGuids!).mockRejectedValue(error)
+      vi.mocked(mockDbService.getTrackedContentGuids).mockRejectedValue(error)
 
       await expect(
         ensureTrackedCache(
