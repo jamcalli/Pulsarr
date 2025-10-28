@@ -51,64 +51,16 @@ export interface TagBasedDeletionContext {
 }
 
 /**
- * Orchestrates tag-based deletion process
- *
- * @param existingSeries - All series from Sonarr
- * @param existingMovies - All movies from Radarr
- * @param context - Context containing services and configuration
- * @param dryRun - Whether to simulate without making changes
- * @returns Delete sync result
+ * Performs tag-based safety check to prevent mass deletion
+ * Returns a result if safety check fails, or null if it passes
  */
-export async function executeTagBasedDeletion(
+async function performTagBasedSafetyCheck(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
   context: TagBasedDeletionContext,
-  dryRun = false,
-): Promise<DeleteSyncResult> {
-  const { config, logger, sonarrManager, radarrManager, tagCache } = context
+): Promise<DeleteSyncResult | null> {
+  const { config, sonarrManager, radarrManager, tagCache, logger } = context
 
-  logger.debug(
-    `Beginning tag-based deletion ${dryRun ? '(DRY RUN)' : 'process'} using tag "${config.removedTagPrefix}"`,
-  )
-
-  // Validate once to avoid per-item warnings/work
-  const removalTagPrefix = getRemovalTagPrefixNormalized(
-    config.removedTagPrefix,
-  )
-  if (!removalTagPrefix) {
-    logger.info(
-      'Tag-based deletion requested but removedTagPrefix is blank – skipping operation',
-    )
-    return createEmptyResult(
-      'Tag-based deletion requested but removedTagPrefix is blank – skipping operation',
-    )
-  }
-
-  // Cache is already loaded in service before calling this function
-  // Safety check to verify caches were loaded if features are enabled
-  if (config.deleteSyncTrackedOnly && !context.trackedGuids) {
-    const errorMsg =
-      'Tracked-only deletion is enabled but tracked GUIDs were not loaded'
-    logger.error(errorMsg)
-    return createSafetyTriggeredResult(
-      errorMsg,
-      existingSeries.length,
-      existingMovies.length,
-    )
-  }
-
-  if (config.enablePlexPlaylistProtection && !context.protectedGuids) {
-    const errorMsg =
-      'Plex playlist protection is enabled but protected GUIDs were not loaded'
-    logger.error(errorMsg)
-    return createSafetyTriggeredResult(
-      errorMsg,
-      existingSeries.length,
-      existingMovies.length,
-    )
-  }
-
-  // Run safety check to prevent mass deletion
   try {
     // Count how many items would be deleted by tag-based deletion
     const [taggedForDeletionSeries, taggedForDeletionMovies] =
@@ -176,6 +128,8 @@ export async function executeTagBasedDeletion(
         existingMovies.length,
       )
     }
+
+    return null // Safety check passed
   } catch (error) {
     logger.error(
       { error: error instanceof Error ? error : new Error(String(error)) },
@@ -189,6 +143,75 @@ export async function executeTagBasedDeletion(
       existingSeries.length,
       existingMovies.length,
     )
+  }
+}
+
+/**
+ * Orchestrates tag-based deletion process
+ *
+ * @param existingSeries - All series from Sonarr
+ * @param existingMovies - All movies from Radarr
+ * @param context - Context containing services and configuration
+ * @param dryRun - Whether to simulate without making changes
+ * @returns Delete sync result
+ */
+export async function executeTagBasedDeletion(
+  existingSeries: SonarrItem[],
+  existingMovies: RadarrItem[],
+  context: TagBasedDeletionContext,
+  dryRun = false,
+): Promise<DeleteSyncResult> {
+  const { config, logger, sonarrManager, radarrManager, tagCache } = context
+
+  logger.debug(
+    `Beginning tag-based deletion ${dryRun ? '(DRY RUN)' : 'process'} using tag "${config.removedTagPrefix}"`,
+  )
+
+  // Validate once to avoid per-item warnings/work
+  const removalTagPrefix = getRemovalTagPrefixNormalized(
+    config.removedTagPrefix,
+  )
+  if (!removalTagPrefix) {
+    logger.info(
+      'Tag-based deletion requested but removedTagPrefix is blank – skipping operation',
+    )
+    return createEmptyResult(
+      'Tag-based deletion requested but removedTagPrefix is blank – skipping operation',
+    )
+  }
+
+  // Cache is already loaded in service before calling this function
+  // Safety check to verify caches were loaded if features are enabled
+  if (config.deleteSyncTrackedOnly && !context.trackedGuids) {
+    const errorMsg =
+      'Tracked-only deletion is enabled but tracked GUIDs were not loaded'
+    logger.error(errorMsg)
+    return createSafetyTriggeredResult(
+      errorMsg,
+      existingSeries.length,
+      existingMovies.length,
+    )
+  }
+
+  if (config.enablePlexPlaylistProtection && !context.protectedGuids) {
+    const errorMsg =
+      'Plex playlist protection is enabled but protected GUIDs were not loaded'
+    logger.error(errorMsg)
+    return createSafetyTriggeredResult(
+      errorMsg,
+      existingSeries.length,
+      existingMovies.length,
+    )
+  }
+
+  // Run safety check to prevent mass deletion
+  const safetyCheckResult = await performTagBasedSafetyCheck(
+    existingSeries,
+    existingMovies,
+    context,
+  )
+  if (safetyCheckResult) {
+    return safetyCheckResult
   }
 
   // Initialize deletion counters

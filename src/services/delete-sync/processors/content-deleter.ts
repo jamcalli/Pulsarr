@@ -65,6 +65,134 @@ export interface ShowDeletionContext {
 }
 
 /**
+ * Helper function to execute movie deletion and track GUIDs
+ */
+async function executeMovieDeletion(
+  service: {
+    deleteFromRadarr: (item: RadarrItem, deleteFiles: boolean) => Promise<void>
+  },
+  movie: RadarrItem,
+  movieGuids: string[],
+  deleteFiles: boolean,
+  dryRun: boolean,
+  logger: FastifyBaseLogger,
+  deletedGuidsTracker: Set<string>,
+  instanceId: number,
+): Promise<void> {
+  if (!dryRun) {
+    logger.debug(
+      `Deleting movie "${movie.title}" (delete files: ${deleteFiles})`,
+    )
+    await service.deleteFromRadarr(movie, deleteFiles)
+
+    // Track deleted GUIDs for approval cleanup
+    for (const guid of movieGuids) {
+      deletedGuidsTracker.add(guid)
+    }
+  } else {
+    logger.debug(
+      {
+        title: movie.title,
+        instanceId,
+        deleteFiles,
+        guids: movieGuids,
+      },
+      `[DRY RUN] Movie "${movie.title}" identified for deletion from instance ${instanceId}`,
+    )
+  }
+}
+
+/**
+ * Helper function to execute show deletion and track GUIDs
+ */
+async function executeShowDeletion(
+  service: {
+    deleteFromSonarr: (item: SonarrItem, deleteFiles: boolean) => Promise<void>
+  },
+  show: SonarrItem,
+  showGuids: string[],
+  deleteFiles: boolean,
+  dryRun: boolean,
+  logger: FastifyBaseLogger,
+  deletedGuidsTracker: Set<string>,
+  instanceId: number,
+  isContinuing: boolean,
+): Promise<void> {
+  if (!dryRun) {
+    logger.debug(
+      `Deleting ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" (delete files: ${deleteFiles})`,
+    )
+    await service.deleteFromSonarr(show, deleteFiles)
+
+    // Track deleted GUIDs for approval cleanup
+    for (const guid of showGuids) {
+      deletedGuidsTracker.add(guid)
+    }
+  } else {
+    logger.debug(
+      {
+        title: show.title,
+        instanceId,
+        status: isContinuing ? 'continuing' : 'ended',
+        deleteFiles,
+        guids: showGuids,
+      },
+      `[DRY RUN] ${isContinuing ? 'Continuing' : 'Ended'} show "${show.title}" identified for deletion from instance ${instanceId}`,
+    )
+  }
+}
+
+/**
+ * Helper function to log successful movie deletion
+ */
+function logMovieDeletionSuccess(
+  logger: FastifyBaseLogger,
+  movie: RadarrItem,
+  movieGuids: string[],
+  deleteFiles: boolean,
+  dryRun: boolean,
+  instanceId: number,
+): void {
+  if (!dryRun) {
+    logger.info(
+      {
+        title: movie.title,
+        instanceId,
+        deleteFiles,
+        guids: movieGuids,
+      },
+      `Successfully deleted movie "${movie.title}" from instance ${instanceId}`,
+    )
+  }
+}
+
+/**
+ * Helper function to log successful show deletion
+ */
+function logShowDeletionSuccess(
+  logger: FastifyBaseLogger,
+  show: SonarrItem,
+  showGuids: string[],
+  deleteFiles: boolean,
+  dryRun: boolean,
+  instanceId: number,
+  isContinuing: boolean,
+): void {
+  if (!dryRun) {
+    logger.info(
+      {
+        title: show.title,
+        instanceId,
+        status: isContinuing ? 'continuing' : 'ended',
+        deleteFiles,
+        guids: showGuids,
+      },
+      `Successfully deleted ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" from instance ${instanceId}`,
+    )
+  }
+}
+
+/**
  * Process movie deletions in tag-based mode
  *
  * @param context - Movie deletion context
@@ -173,27 +301,16 @@ export async function processMovieDeletions(
         }
 
         // Execute deletion
-        if (!dryRun) {
-          logger.debug(
-            `Deleting movie "${movie.title}" (delete files: ${config.deleteFiles})`,
-          )
-          await service.deleteFromRadarr(movie, config.deleteFiles)
-
-          // Track deleted GUIDs for approval cleanup
-          for (const guid of movieGuidList) {
-            deletedGuidsTracker.add(guid)
-          }
-        } else {
-          logger.debug(
-            {
-              title: movie.title,
-              instanceId,
-              deleteFiles: config.deleteFiles,
-              guids: movieGuidList,
-            },
-            `[DRY RUN] Movie "${movie.title}" identified for deletion from Radarr instance ${instanceId}`,
-          )
-        }
+        await executeMovieDeletion(
+          service,
+          movie,
+          movieGuidList,
+          config.deleteFiles,
+          dryRun,
+          logger,
+          deletedGuidsTracker,
+          instanceId,
+        )
 
         // Record deletion
         counters.incrementMovieDeleted({
@@ -202,17 +319,15 @@ export async function processMovieDeletions(
           instance: instanceId.toString(),
         })
 
-        if (!dryRun) {
-          logger.info(
-            {
-              title: movie.title,
-              instanceId,
-              deleteFiles: config.deleteFiles,
-              guids: movieGuidList,
-            },
-            `Successfully deleted movie "${movie.title}" from Radarr instance ${instanceId}`,
-          )
-        }
+        // Log success
+        logMovieDeletionSuccess(
+          logger,
+          movie,
+          movieGuidList,
+          config.deleteFiles,
+          dryRun,
+          instanceId,
+        )
       } catch (error) {
         logger.error(
           {
@@ -360,28 +475,17 @@ export async function processShowDeletions(
         }
 
         // Execute deletion
-        if (!dryRun) {
-          logger.debug(
-            `Deleting ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" (delete files: ${config.deleteFiles})`,
-          )
-          await service.deleteFromSonarr(show, config.deleteFiles)
-
-          // Track deleted GUIDs for approval cleanup
-          for (const guid of showGuidList) {
-            deletedGuidsTracker.add(guid)
-          }
-        } else {
-          logger.debug(
-            {
-              title: show.title,
-              instanceId,
-              status: isContinuing ? 'continuing' : 'ended',
-              deleteFiles: config.deleteFiles,
-              guids: showGuidList,
-            },
-            `[DRY RUN] ${isContinuing ? 'Continuing' : 'Ended'} show "${show.title}" identified for deletion from Sonarr instance ${instanceId}`,
-          )
-        }
+        await executeShowDeletion(
+          service,
+          show,
+          showGuidList,
+          config.deleteFiles,
+          dryRun,
+          logger,
+          deletedGuidsTracker,
+          instanceId,
+          isContinuing,
+        )
 
         // Record deletion
         counters.incrementShowDeleted(
@@ -393,18 +497,16 @@ export async function processShowDeletions(
           isContinuing,
         )
 
-        if (!dryRun) {
-          logger.info(
-            {
-              title: show.title,
-              instanceId,
-              status: isContinuing ? 'continuing' : 'ended',
-              deleteFiles: config.deleteFiles,
-              guids: showGuidList,
-            },
-            `Successfully deleted ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" from Sonarr instance ${instanceId}`,
-          )
-        }
+        // Log success
+        logShowDeletionSuccess(
+          logger,
+          show,
+          showGuidList,
+          config.deleteFiles,
+          dryRun,
+          instanceId,
+          isContinuing,
+        )
       } catch (error) {
         logger.error(
           {

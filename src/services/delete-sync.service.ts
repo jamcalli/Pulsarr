@@ -318,92 +318,27 @@ export class DeleteSyncService {
         )
 
         // Step 7: Load tracked content GUIDs if tracked-only deletion is enabled
-        if (this.config.deleteSyncTrackedOnly) {
-          this.log.info(
-            'Tracked-only deletion is enabled - only content from approval system will be deleted',
-          )
-
-          try {
-            const trackedGuids = await this.ensureTrackedCache()
-
-            if (!trackedGuids) {
-              throw new Error('Failed to retrieve tracked content GUIDs')
-            }
-
-            this.log.info(
-              `Found ${trackedGuids.size} tracked content GUIDs in approval system`,
-            )
-          } catch (trackedError) {
-            const errorMsg = `Error retrieving tracked content GUIDs: ${trackedError instanceof Error ? trackedError.message : String(trackedError)}`
-            this.log.error(
-              {
-                error:
-                  trackedError instanceof Error
-                    ? trackedError
-                    : new Error(String(trackedError)),
-              },
-              errorMsg,
-            )
-            return this.handleSafetyTriggered(
-              errorMsg,
-              dryRun,
-              existingSeries.length,
-              existingMovies.length,
-            )
-          }
+        const trackedLoadResult = await this.loadTrackedCacheIfEnabled(
+          existingSeries.length,
+          existingMovies.length,
+          dryRun,
+        )
+        if (!trackedLoadResult.success) {
+          return trackedLoadResult.result
         }
 
         // Step 8: Load protection playlists if enabled (needed for accurate safety check)
-        let protectedGuids: Set<string> | null = null
-        if (this.config.enablePlexPlaylistProtection) {
-          if (!this.fastify.plexServerService.isInitialized()) {
-            return this.handleSafetyTriggered(
-              'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
-              dryRun,
-              existingSeries.length,
-              existingMovies.length,
-            )
-          }
-
-          try {
-            this.log.info(
-              `Beginning deletion analysis; Plex playlist protection enabled with playlist "${this.getProtectionPlaylistName()}"`,
-            )
-
-            // Use cached protection loading to avoid redundant API calls
-            protectedGuids = await this.ensureProtectionCache()
-
-            if (!protectedGuids) {
-              throw new Error('Failed to retrieve protected items')
-            }
-
-            this.log.info(
-              `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${protectedGuids.size} protected GUIDs`,
-            )
-            this.log.info(
-              'Protection uses standardized GUIDs for maximum compatibility across all systems',
-            )
-          } catch (protectedItemsError) {
-            const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
-            this.log.error(
-              {
-                error:
-                  protectedItemsError instanceof Error
-                    ? protectedItemsError
-                    : new Error(String(protectedItemsError)),
-              },
-              errorMsg,
-            )
-            return this.handleSafetyTriggered(
-              errorMsg,
-              dryRun,
-              existingSeries.length,
-              existingMovies.length,
-            )
-          }
+        const protectionLoadResult = await this.loadProtectionCacheIfEnabled(
+          existingSeries.length,
+          existingMovies.length,
+          dryRun,
+        )
+        if (!protectionLoadResult.success) {
+          return protectionLoadResult.result
         }
+        const protectedGuids = protectionLoadResult.protectedGuids
 
-        // Step 8: Perform safety check for mass deletion prevention (with protection awareness)
+        // Step 9: Perform safety check for mass deletion prevention (with protection awareness)
         const safetyResult = this.performSafetyCheck(
           existingSeries,
           existingMovies,
@@ -435,90 +370,7 @@ export class DeleteSyncService {
       )
 
       // Step 10: Clean up approval requests for deleted content if enabled
-      if (this.config.deleteSyncCleanupApprovals && !dryRun) {
-        try {
-          let totalCleaned = 0
-
-          // Clean up movie approval requests
-          if (this.deletedMovieGuids.size > 0) {
-            this.log.info(
-              `Cleaning up movie approval requests for content with ${this.deletedMovieGuids.size} deleted GUIDs`,
-            )
-            const movieApprovals =
-              await this.dbService.getApprovalRequestsByGuids(
-                this.deletedMovieGuids,
-                'movie',
-              )
-
-            // Use ApprovalService to delete each request (handles SSE events)
-            for (const approval of movieApprovals) {
-              try {
-                await this.fastify.approvalService.deleteApprovalRequest(
-                  approval.id,
-                )
-                totalCleaned++
-              } catch (error) {
-                this.log.error(
-                  {
-                    error,
-                    approvalId: approval.id,
-                    title: approval.contentTitle,
-                  },
-                  'Error deleting individual approval request during cleanup',
-                )
-              }
-            }
-
-            this.log.info(
-              `Cleaned up ${movieApprovals.length} movie approval records`,
-            )
-          }
-
-          // Clean up show approval requests
-          if (this.deletedShowGuids.size > 0) {
-            this.log.info(
-              `Cleaning up show approval requests for content with ${this.deletedShowGuids.size} deleted GUIDs`,
-            )
-            const showApprovals =
-              await this.dbService.getApprovalRequestsByGuids(
-                this.deletedShowGuids,
-                'show',
-              )
-
-            // Use ApprovalService to delete each request (handles SSE events)
-            for (const approval of showApprovals) {
-              try {
-                await this.fastify.approvalService.deleteApprovalRequest(
-                  approval.id,
-                )
-                totalCleaned++
-              } catch (error) {
-                this.log.error(
-                  {
-                    error,
-                    approvalId: approval.id,
-                    title: approval.contentTitle,
-                  },
-                  'Error deleting individual approval request during cleanup',
-                )
-              }
-            }
-
-            this.log.info(
-              `Cleaned up ${showApprovals.length} show approval records`,
-            )
-          }
-
-          if (totalCleaned > 0) {
-            this.log.info(`Total approval requests cleaned up: ${totalCleaned}`)
-          }
-        } catch (cleanupError) {
-          this.log.error(
-            { error: cleanupError },
-            'Error cleaning up approval requests for deleted content',
-          )
-        }
-      }
+      await this.cleanupApprovalRequestsForDeletedContent(dryRun)
 
       // Step 11: Send notifications about results if enabled
       await this.sendNotificationsIfEnabled(result, dryRun)
@@ -678,16 +530,72 @@ export class DeleteSyncService {
     allWatchlistItems: Set<string>,
     protectedGuids: Set<string> | null = null,
   ): { safe: boolean; message: string } {
-    // Calculate deletion percentages by doing a count of items that would be deleted
+    // Count potential deletions
+    const deletionCounts = this.countPotentialDeletions(
+      existingSeries,
+      existingMovies,
+      allWatchlistItems,
+      protectedGuids,
+    )
+
+    const totalPotentialDeletes = deletionCounts.movies + deletionCounts.shows
+    const potentialDeletionPercentage =
+      deletionCounts.totalConsidered > 0
+        ? (totalPotentialDeletes / deletionCounts.totalConsidered) * 100
+        : 0
+
+    // Prevent mass deletion if percentage is too high
+    const MAX_DELETION_PERCENTAGE = Number(
+      this.config.maxDeletionPrevention ?? 10,
+    ) // Default to 10% as configured in the database
+
+    if (
+      Number.isNaN(MAX_DELETION_PERCENTAGE) ||
+      MAX_DELETION_PERCENTAGE < 0 ||
+      MAX_DELETION_PERCENTAGE > 100
+    ) {
+      // Debug breadcrumbs for config validation failures
+      this.log.debug({
+        rawMaxDeletionPrevention: this.config.maxDeletionPrevention,
+        parsed: MAX_DELETION_PERCENTAGE,
+        type: typeof this.config.maxDeletionPrevention,
+      })
+      return {
+        safe: false,
+        message: `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100 inclusive.`,
+      }
+    }
+
+    if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
+      return {
+        safe: false,
+        message: `Safety check failed: Would delete ${totalPotentialDeletes} out of ${deletionCounts.totalConsidered} eligible items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
+      }
+    }
+
+    return { safe: true, message: 'Safety check passed' }
+  }
+
+  /**
+   * Counts potential deletions for safety check
+   * Returns counts of movies, shows, and total items considered
+   */
+  private countPotentialDeletions(
+    existingSeries: SonarrItem[],
+    existingMovies: RadarrItem[],
+    watchlistGuids: Set<string>,
+    protectedGuids: Set<string> | null,
+  ): { movies: number; shows: number; totalConsidered: number } {
     let potentialMovieDeletes = 0
     let potentialShowDeletes = 0
+    let totalConsideredItems = 0
+
     const considerMovies = this.config.deleteMovie === true
     const considerEnded = this.config.deleteEndedShow === true
     const considerContinuing = this.config.deleteContinuingShow === true
-    let totalConsideredItems = 0
 
     // Use Set membership directly for O(1) lookups
-    const watchlistGuidsSet = allWatchlistItems
+    const watchlistGuidsSet = watchlistGuids
     const protectedGuidsSet = protectedGuids ?? null
 
     // Count movies not in watchlist and not protected (only if we actually delete movies)
@@ -746,42 +654,229 @@ export class DeleteSyncService {
       }
     }
 
-    const totalPotentialDeletes = potentialMovieDeletes + potentialShowDeletes
-    const potentialDeletionPercentage =
-      totalConsideredItems > 0
-        ? (totalPotentialDeletes / totalConsideredItems) * 100
-        : 0
+    return {
+      movies: potentialMovieDeletes,
+      shows: potentialShowDeletes,
+      totalConsidered: totalConsideredItems,
+    }
+  }
 
-    // Prevent mass deletion if percentage is too high
-    const MAX_DELETION_PERCENTAGE = Number(
-      this.config.maxDeletionPrevention ?? 10,
-    ) // Default to 10% as configured in the database
+  /**
+   * Load tracked content GUIDs if tracked-only deletion is enabled
+   * Returns success status
+   */
+  private async loadTrackedCacheIfEnabled(
+    seriesCount: number,
+    moviesCount: number,
+    dryRun: boolean,
+  ): Promise<{ success: true } | { success: false; result: DeleteSyncResult }> {
+    if (!this.config.deleteSyncTrackedOnly) {
+      return { success: true }
+    }
 
-    if (
-      Number.isNaN(MAX_DELETION_PERCENTAGE) ||
-      MAX_DELETION_PERCENTAGE < 0 ||
-      MAX_DELETION_PERCENTAGE > 100
-    ) {
-      // Debug breadcrumbs for config validation failures
-      this.log.debug({
-        rawMaxDeletionPrevention: this.config.maxDeletionPrevention,
-        parsed: MAX_DELETION_PERCENTAGE,
-        type: typeof this.config.maxDeletionPrevention,
-      })
+    this.log.info(
+      'Tracked-only deletion is enabled - only content from approval system will be deleted',
+    )
+
+    try {
+      const trackedGuids = await this.ensureTrackedCache()
+
+      if (!trackedGuids) {
+        throw new Error('Failed to retrieve tracked content GUIDs')
+      }
+
+      this.log.info(
+        `Found ${trackedGuids.size} tracked content GUIDs in approval system`,
+      )
+
+      return { success: true }
+    } catch (trackedError) {
+      const errorMsg = `Error retrieving tracked content GUIDs: ${trackedError instanceof Error ? trackedError.message : String(trackedError)}`
+      this.log.error(
+        {
+          error:
+            trackedError instanceof Error
+              ? trackedError
+              : new Error(String(trackedError)),
+        },
+        errorMsg,
+      )
       return {
-        safe: false,
-        message: `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100 inclusive.`,
+        success: false,
+        result: this.handleSafetyTriggered(
+          errorMsg,
+          dryRun,
+          seriesCount,
+          moviesCount,
+        ),
+      }
+    }
+  }
+
+  /**
+   * Load protection playlists if Plex playlist protection is enabled
+   * Returns success status and protected GUIDs set
+   */
+  private async loadProtectionCacheIfEnabled(
+    seriesCount: number,
+    moviesCount: number,
+    dryRun: boolean,
+  ): Promise<
+    | { success: true; protectedGuids: Set<string> | null }
+    | { success: false; protectedGuids: null; result: DeleteSyncResult }
+  > {
+    if (!this.config.enablePlexPlaylistProtection) {
+      return { success: true, protectedGuids: null }
+    }
+
+    if (!this.fastify.plexServerService.isInitialized()) {
+      return {
+        success: false,
+        protectedGuids: null,
+        result: this.handleSafetyTriggered(
+          'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
+          dryRun,
+          seriesCount,
+          moviesCount,
+        ),
       }
     }
 
-    if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
+    try {
+      this.log.info(
+        `Beginning deletion analysis; Plex playlist protection enabled with playlist "${this.getProtectionPlaylistName()}"`,
+      )
+
+      // Use cached protection loading to avoid redundant API calls
+      const protectedGuids = await this.ensureProtectionCache()
+
+      if (!protectedGuids) {
+        throw new Error('Failed to retrieve protected items')
+      }
+
+      this.log.info(
+        `Protection playlists "${this.getProtectionPlaylistName()}" contain a total of ${protectedGuids.size} protected GUIDs`,
+      )
+      this.log.info(
+        'Protection uses standardized GUIDs for maximum compatibility across all systems',
+      )
+
+      return { success: true, protectedGuids }
+    } catch (protectedItemsError) {
+      const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
+      this.log.error(
+        {
+          error:
+            protectedItemsError instanceof Error
+              ? protectedItemsError
+              : new Error(String(protectedItemsError)),
+        },
+        errorMsg,
+      )
       return {
-        safe: false,
-        message: `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalConsideredItems} eligible items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
+        success: false,
+        protectedGuids: null,
+        result: this.handleSafetyTriggered(
+          errorMsg,
+          dryRun,
+          seriesCount,
+          moviesCount,
+        ),
       }
     }
+  }
 
-    return { safe: true, message: 'Safety check passed' }
+  /**
+   * Clean up approval requests for content that was deleted
+   * This removes approval records from the database for items that no longer exist
+   */
+  private async cleanupApprovalRequestsForDeletedContent(
+    dryRun: boolean,
+  ): Promise<void> {
+    if (!this.config.deleteSyncCleanupApprovals || dryRun) {
+      return
+    }
+
+    try {
+      let totalCleaned = 0
+
+      // Clean up movie approval requests
+      if (this.deletedMovieGuids.size > 0) {
+        this.log.info(
+          `Cleaning up movie approval requests for content with ${this.deletedMovieGuids.size} deleted GUIDs`,
+        )
+        const movieApprovals = await this.dbService.getApprovalRequestsByGuids(
+          this.deletedMovieGuids,
+          'movie',
+        )
+
+        // Use ApprovalService to delete each request (handles SSE events)
+        for (const approval of movieApprovals) {
+          try {
+            await this.fastify.approvalService.deleteApprovalRequest(
+              approval.id,
+            )
+            totalCleaned++
+          } catch (error) {
+            this.log.error(
+              {
+                error,
+                approvalId: approval.id,
+                title: approval.contentTitle,
+              },
+              'Error deleting individual approval request during cleanup',
+            )
+          }
+        }
+
+        this.log.info(
+          `Cleaned up ${movieApprovals.length} movie approval records`,
+        )
+      }
+
+      // Clean up show approval requests
+      if (this.deletedShowGuids.size > 0) {
+        this.log.info(
+          `Cleaning up show approval requests for content with ${this.deletedShowGuids.size} deleted GUIDs`,
+        )
+        const showApprovals = await this.dbService.getApprovalRequestsByGuids(
+          this.deletedShowGuids,
+          'show',
+        )
+
+        // Use ApprovalService to delete each request (handles SSE events)
+        for (const approval of showApprovals) {
+          try {
+            await this.fastify.approvalService.deleteApprovalRequest(
+              approval.id,
+            )
+            totalCleaned++
+          } catch (error) {
+            this.log.error(
+              {
+                error,
+                approvalId: approval.id,
+                title: approval.contentTitle,
+              },
+              'Error deleting individual approval request during cleanup',
+            )
+          }
+        }
+
+        this.log.info(
+          `Cleaned up ${showApprovals.length} show approval records`,
+        )
+      }
+
+      if (totalCleaned > 0) {
+        this.log.info(`Total approval requests cleaned up: ${totalCleaned}`)
+      }
+    } catch (cleanupError) {
+      this.log.error(
+        { error: cleanupError },
+        'Error cleaning up approval requests for deleted content',
+      )
+    }
   }
 
   /**
@@ -1037,109 +1132,139 @@ export class DeleteSyncService {
     respectUserSyncSetting = false,
   ): Promise<Set<string>> {
     try {
-      let watchlistItems: Array<{ title: string; guids?: string | string[] }> =
-        []
-
-      if (respectUserSyncSetting) {
-        // Get all users to check their sync permissions
-        const allUsers = await this.dbService.getAllUsers()
-        const syncEnabledUserIds = allUsers
-          .filter((user) => user.can_sync !== false)
-          .map((user) => user.id)
-
-        this.log.info(
-          `Found ${syncEnabledUserIds.length} users with sync enabled out of ${allUsers.length} total users`,
-        )
-
-        // Only get watchlist items from users with sync enabled
-        const [shows, movies] = await Promise.all([
-          this.dbService.getAllShowWatchlistItems().then((items) =>
-            items.filter((item) => {
-              const userId =
-                typeof item.user_id === 'object'
-                  ? (item.user_id as { id: number }).id
-                  : Number(item.user_id)
-              return syncEnabledUserIds.includes(userId)
-            }),
-          ),
-          this.dbService.getAllMovieWatchlistItems().then((items) =>
-            items.filter((item) => {
-              const userId =
-                typeof item.user_id === 'object'
-                  ? (item.user_id as { id: number }).id
-                  : Number(item.user_id)
-              return syncEnabledUserIds.includes(userId)
-            }),
-          ),
-        ])
-
-        watchlistItems = [...shows, ...movies]
-        this.log.info(
-          `Found ${watchlistItems.length} watchlist items from users with sync enabled`,
-        )
-      } else {
-        // Get all watchlist items regardless of user sync settings
-        const [shows, movies] = await Promise.all([
-          this.dbService.getAllShowWatchlistItems(),
-          this.dbService.getAllMovieWatchlistItems(),
-        ])
-
-        watchlistItems = [...shows, ...movies]
-        this.log.info(
-          `Found ${watchlistItems.length} watchlist items from all users`,
-        )
-      }
-
-      // Create a set of unique GUIDs for efficient lookup
-      const guidSet = new Set<string>()
-      let malformedItems = 0
-
-      // Process all items to extract GUIDs using the standardized GUID handler
-      for (const item of watchlistItems) {
-        try {
-          // Use parseGuids utility for consistent GUID parsing and normalization
-          const parsedGuids = parseGuids(item.guids)
-
-          // Add each parsed and normalized GUID to the set for efficient lookup
-          for (const guid of parsedGuids) {
-            guidSet.add(guid)
-          }
-
-          // Protection system uses standardized GUIDs instead of keys
-          // Standardized identifiers enable cross-platform content matching
-        } catch (error) {
-          malformedItems++
-          this.log.warn(
-            {
-              error: error instanceof Error ? error : new Error(String(error)),
-              guids: item.guids,
-            },
-            `Malformed guids in watchlist item "${item.title}"`,
-          )
-        }
-      }
-
-      if (malformedItems > 0) {
-        this.log.warn(
-          `Found ${malformedItems} watchlist items with malformed GUIDs`,
-        )
-      }
-
-      this.log.debug(
-        `Extracted ${guidSet.size} unique GUIDs from watchlist items`,
+      const watchlistItems = await this.fetchWatchlistItems(
+        respectUserSyncSetting,
       )
-
-      // Trace sample of collected identifiers (limited to 5)
-      if (this.log.level === 'trace') {
-        const sampleGuids = Array.from(guidSet).slice(0, 5)
-        this.log.trace({ sampleGuids }, 'Sample of watchlist GUIDs (first 5)')
-      }
-
-      return guidSet
+      return this.extractGuidsFromWatchlistItems(watchlistItems)
     } catch (error) {
       this.log.error({ error }, 'Error in getAllWatchlistItems:')
       throw error
     }
+  }
+
+  /**
+   * Fetches all watchlist items from the database
+   * Optionally filters by user sync settings
+   */
+  private async fetchWatchlistItems(
+    respectUserSyncSetting: boolean,
+  ): Promise<Array<{ title: string; guids?: string | string[] }>> {
+    if (respectUserSyncSetting) {
+      return this.fetchWatchlistItemsWithUserFilter()
+    }
+
+    // Get all watchlist items regardless of user sync settings
+    const [shows, movies] = await Promise.all([
+      this.dbService.getAllShowWatchlistItems(),
+      this.dbService.getAllMovieWatchlistItems(),
+    ])
+
+    const watchlistItems = [...shows, ...movies]
+    this.log.info(
+      `Found ${watchlistItems.length} watchlist items from all users`,
+    )
+
+    return watchlistItems
+  }
+
+  /**
+   * Fetches watchlist items filtered by users with sync enabled
+   */
+  private async fetchWatchlistItemsWithUserFilter(): Promise<
+    Array<{ title: string; guids?: string | string[] }>
+  > {
+    // Get all users to check their sync permissions
+    const allUsers = await this.dbService.getAllUsers()
+    const syncEnabledUserIds = allUsers
+      .filter((user) => user.can_sync !== false)
+      .map((user) => user.id)
+
+    this.log.info(
+      `Found ${syncEnabledUserIds.length} users with sync enabled out of ${allUsers.length} total users`,
+    )
+
+    // Only get watchlist items from users with sync enabled
+    const [shows, movies] = await Promise.all([
+      this.dbService.getAllShowWatchlistItems().then((items) =>
+        items.filter((item) => {
+          const userId =
+            typeof item.user_id === 'object'
+              ? (item.user_id as { id: number }).id
+              : Number(item.user_id)
+          return syncEnabledUserIds.includes(userId)
+        }),
+      ),
+      this.dbService.getAllMovieWatchlistItems().then((items) =>
+        items.filter((item) => {
+          const userId =
+            typeof item.user_id === 'object'
+              ? (item.user_id as { id: number }).id
+              : Number(item.user_id)
+          return syncEnabledUserIds.includes(userId)
+        }),
+      ),
+    ])
+
+    const watchlistItems = [...shows, ...movies]
+    this.log.info(
+      `Found ${watchlistItems.length} watchlist items from users with sync enabled`,
+    )
+
+    return watchlistItems
+  }
+
+  /**
+   * Extracts GUIDs from watchlist items into a set for efficient lookup
+   */
+  private extractGuidsFromWatchlistItems(
+    watchlistItems: Array<{ title: string; guids?: string | string[] }>,
+  ): Set<string> {
+    // Create a set of unique GUIDs for efficient lookup
+    const guidSet = new Set<string>()
+    let malformedItems = 0
+
+    // Process all items to extract GUIDs using the standardized GUID handler
+    for (const item of watchlistItems) {
+      try {
+        // Use parseGuids utility for consistent GUID parsing and normalization
+        const parsedGuids = parseGuids(item.guids)
+
+        // Add each parsed and normalized GUID to the set for efficient lookup
+        for (const guid of parsedGuids) {
+          guidSet.add(guid)
+        }
+
+        // Protection system uses standardized GUIDs instead of keys
+        // Standardized identifiers enable cross-platform content matching
+      } catch (error) {
+        malformedItems++
+        this.log.warn(
+          {
+            error: error instanceof Error ? error : new Error(String(error)),
+            guids: item.guids,
+          },
+          `Malformed guids in watchlist item "${item.title}"`,
+        )
+      }
+    }
+
+    if (malformedItems > 0) {
+      this.log.warn(
+        `Found ${malformedItems} watchlist items with malformed GUIDs`,
+      )
+    }
+
+    this.log.debug(
+      `Extracted ${guidSet.size} unique GUIDs from watchlist items`,
+    )
+
+    // Trace sample of collected identifiers (limited to 5)
+    if (this.log.level === 'trace') {
+      const sampleGuids = Array.from(guidSet).slice(0, 5)
+      this.log.trace({ sampleGuids }, 'Sample of watchlist GUIDs (first 5)')
+    }
+
+    return guidSet
   }
 
   /**
