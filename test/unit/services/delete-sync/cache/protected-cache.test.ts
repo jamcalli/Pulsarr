@@ -8,7 +8,11 @@ import { createMockLogger } from '../../../../mocks/logger.js'
 
 describe('protected-cache', () => {
   let mockFastify: Partial<FastifyInstance>
-  let mockPlexServerService: any
+  let mockPlexServerService: {
+    isInitialized: ReturnType<typeof vi.fn>
+    getOrCreateProtectionPlaylists: ReturnType<typeof vi.fn>
+    getProtectedItems: ReturnType<typeof vi.fn>
+  }
   let mockLogger: ReturnType<typeof createMockLogger>
 
   beforeEach(() => {

@@ -211,6 +211,52 @@ describe('tag-matcher', () => {
       expect(result).toBe(false)
     })
 
+    it('should not match similar prefixes (multi-instance safety)', async () => {
+      // Edge case: pulsarr1:removed should NOT match pulsarr2:removed
+      const tagMap = new Map([
+        [1, 'pulsarr2:removed'], // Different prefix
+        [2, 'pulsarr2:removed-by-admin'],
+        [3, 'pulsarr10:removed'], // Numeric variation
+      ])
+
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const result = await hasRemovalTag(
+        1,
+        mockService,
+        [1, 2, 3],
+        'radarr',
+        'pulsarr1:removed', // Looking for pulsarr1, not pulsarr2
+        mockTagCache,
+        mockLogger,
+      )
+
+      expect(result).toBe(false)
+    })
+
+    it('should match only exact prefix in multi-instance scenario', async () => {
+      // Edge case: pulsarr1:removed SHOULD match pulsarr1:removed and pulsarr1:removed-by-admin
+      const tagMap = new Map([
+        [1, 'pulsarr1:removed'], // Exact match
+        [2, 'pulsarr1:removed-by-admin'], // Prefix match
+        [3, 'pulsarr2:removed'], // Different instance
+      ])
+
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const result = await hasRemovalTag(
+        1,
+        mockService,
+        [1, 2, 3],
+        'radarr',
+        'pulsarr1:removed',
+        mockTagCache,
+        mockLogger,
+      )
+
+      expect(result).toBe(true) // Should match tags 1 and 2, but not 3
+    })
+
     it('should handle tags that are undefined in the map', async () => {
       const tagMap = new Map([[1, 'removed']])
 

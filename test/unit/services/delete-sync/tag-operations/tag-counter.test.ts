@@ -27,7 +27,9 @@ describe('tag-counter', () => {
 
   describe('countTaggedMovies', () => {
     let mockRadarrManager: RadarrManagerService
-    let mockRadarrService: any
+    let mockRadarrService: {
+      getTags: ReturnType<typeof vi.fn>
+    }
 
     beforeEach(() => {
       mockRadarrService = {
@@ -375,7 +377,9 @@ describe('tag-counter', () => {
 
   describe('countTaggedSeries', () => {
     let mockSonarrManager: SonarrManagerService
-    let mockSonarrService: any
+    let mockSonarrService: {
+      getTags: ReturnType<typeof vi.fn>
+    }
 
     beforeEach(() => {
       mockSonarrService = {
