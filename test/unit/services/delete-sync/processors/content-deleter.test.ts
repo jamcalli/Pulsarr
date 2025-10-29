@@ -1105,4 +1105,113 @@ describe('content-deleter', () => {
       expect(mockSonarrService.deleteFromSonarr).not.toHaveBeenCalled()
     })
   })
+
+  describe('processMovieDeletions - error handling', () => {
+    it('should increment skip counter when deletion throws error', async () => {
+      const movies: RadarrItem[] = [
+        {
+          id: 1,
+          title: 'Movie With Error',
+          tags: [1],
+          radarr_instance_id: 1,
+          guids: 'tmdb://11111',
+        } as unknown as RadarrItem,
+      ]
+
+      vi.mocked(validateTagBasedDeletion).mockResolvedValue({
+        skip: false,
+        protected: false,
+      })
+
+      // Mock deletion to throw error
+      mockRadarrService.deleteFromRadarr = vi
+        .fn()
+        .mockRejectedValue(new Error('Deletion failed'))
+
+      const counters = new DeletionCounters()
+      const deletedGuidsTracker = new Set<string>()
+
+      await processMovieDeletions(
+        {
+          movies,
+          config: {
+            deletionMode: 'tag-based',
+            deleteMovie: true,
+            deleteFiles: false,
+            deleteSyncTrackedOnly: false,
+            enablePlexPlaylistProtection: false,
+            removedTagPrefix: 'removed',
+          },
+          validators: mockValidators,
+          radarrManager: mockRadarrManager,
+          tagCache: mockTagCache,
+          protectedGuids: null,
+          logger: mockLogger,
+          dryRun: false,
+          deletedGuidsTracker,
+        },
+        counters,
+      )
+
+      expect(counters.moviesSkipped).toBe(1)
+      expect(counters.moviesDeleted).toBe(0)
+      expect(counters.totalProcessed).toBe(1)
+      expect(mockLogger.error).toHaveBeenCalled()
+    })
+  })
+
+  describe('processShowDeletions - error handling', () => {
+    it('should increment skip counter when show deletion throws error', async () => {
+      const shows: SonarrItem[] = [
+        {
+          id: 1,
+          title: 'Show With Error',
+          tags: [1],
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://11111',
+        } as unknown as SonarrItem,
+      ]
+
+      vi.mocked(validateTagBasedDeletion).mockResolvedValue({
+        skip: false,
+        protected: false,
+      })
+
+      mockSonarrService.deleteFromSonarr = vi
+        .fn()
+        .mockRejectedValue(new Error('Deletion failed'))
+
+      const counters = new DeletionCounters()
+      const deletedGuidsTracker = new Set<string>()
+
+      await processShowDeletions(
+        {
+          shows,
+          config: {
+            deletionMode: 'tag-based',
+            deleteEndedShow: true,
+            deleteContinuingShow: false,
+            deleteFiles: false,
+            deleteSyncTrackedOnly: false,
+            enablePlexPlaylistProtection: false,
+            removedTagPrefix: 'removed',
+          },
+          validators: mockValidators,
+          sonarrManager: mockSonarrManager,
+          tagCache: mockTagCache,
+          protectedGuids: null,
+          logger: mockLogger,
+          dryRun: false,
+          deletedGuidsTracker,
+        },
+        counters,
+      )
+
+      expect(counters.endedShowsSkipped).toBe(1)
+      expect(counters.totalShowsDeleted).toBe(0)
+      expect(counters.totalProcessed).toBe(1)
+      expect(mockLogger.error).toHaveBeenCalled()
+    })
+  })
 })

@@ -76,8 +76,6 @@ describe('Notification Integration Tests', () => {
       )
 
       expect(result.matchedCount).toBe(0)
-
-      await app.close()
     })
 
     it('should process TV show notifications with episodes', async (ctx) => {
@@ -175,8 +173,6 @@ describe('Notification Integration Tests', () => {
 
       expect(notifications.length).toBeGreaterThan(0)
       expect(Boolean(notifications[0].sent_to_discord)).toBe(true)
-
-      await app.close()
     })
   })
 })
