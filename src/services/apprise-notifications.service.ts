@@ -560,11 +560,7 @@ export class AppriseNotificationService {
    * @returns Promise resolving to true if sent successfully
    */
   async sendDeleteSyncNotification(
-    results: DeleteSyncResult & {
-      total: { protected?: number }
-      movies: { protected?: number }
-      shows: { protected?: number }
-    },
+    results: DeleteSyncResult,
     dryRun: boolean,
   ): Promise<boolean> {
     if (!this.isEnabled()) {

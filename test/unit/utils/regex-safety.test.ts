@@ -1,9 +1,161 @@
 import {
   evaluateRegexSafely,
   evaluateRegexSafelyMultiple,
+  isRegexPatternSafe,
 } from '@utils/regex-safety.js'
 import { describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../mocks/logger.js'
+
+describe('isRegexPatternSafe', () => {
+  describe('safe patterns', () => {
+    it('should return true for simple safe patterns', () => {
+      expect(isRegexPatternSafe('test')).toBe(true)
+      expect(isRegexPatternSafe('simple')).toBe(true)
+      expect(isRegexPatternSafe('pattern')).toBe(true)
+    })
+
+    it('should return true for character classes', () => {
+      expect(isRegexPatternSafe('[a-z]+')).toBe(true)
+      expect(isRegexPatternSafe('[A-Z]+')).toBe(true)
+      expect(isRegexPatternSafe('[0-9]+')).toBe(true)
+      expect(isRegexPatternSafe('[a-zA-Z0-9]')).toBe(true)
+    })
+
+    it('should return true for anchors', () => {
+      expect(isRegexPatternSafe('^test')).toBe(true)
+      expect(isRegexPatternSafe('test$')).toBe(true)
+      expect(isRegexPatternSafe('^test$')).toBe(true)
+    })
+
+    it('should return true for quantifiers', () => {
+      expect(isRegexPatternSafe('a+')).toBe(true)
+      expect(isRegexPatternSafe('a*')).toBe(true)
+      expect(isRegexPatternSafe('a?')).toBe(true)
+      expect(isRegexPatternSafe('a{2,5}')).toBe(true)
+    })
+
+    it('should return true for word boundaries', () => {
+      expect(isRegexPatternSafe('\\btest\\b')).toBe(true)
+      expect(isRegexPatternSafe('\\Btest')).toBe(true)
+    })
+
+    it('should return true for alternation', () => {
+      expect(isRegexPatternSafe('cat|dog')).toBe(true)
+      expect(isRegexPatternSafe('foo|bar|baz')).toBe(true)
+    })
+
+    it('should return true for groups', () => {
+      expect(isRegexPatternSafe('(test)')).toBe(true)
+      expect(isRegexPatternSafe('(abc)+')).toBe(true)
+      expect(isRegexPatternSafe('(?:non-capturing)')).toBe(true)
+    })
+
+    it('should return true for escaped special characters', () => {
+      expect(isRegexPatternSafe('\\.')).toBe(true)
+      expect(isRegexPatternSafe('\\*')).toBe(true)
+      expect(isRegexPatternSafe('\\+')).toBe(true)
+      expect(isRegexPatternSafe('\\?')).toBe(true)
+    })
+
+    it('should return true for empty pattern', () => {
+      expect(isRegexPatternSafe('')).toBe(true)
+    })
+
+    it('should return true for unicode patterns', () => {
+      expect(isRegexPatternSafe('café')).toBe(true)
+      expect(isRegexPatternSafe('文字')).toBe(true)
+    })
+  })
+
+  describe('unsafe patterns (catastrophic backtracking)', () => {
+    it('should return false for nested quantifiers', () => {
+      expect(isRegexPatternSafe('(a+)+$')).toBe(false)
+      expect(isRegexPatternSafe('(x+x+)+y')).toBe(false)
+    })
+
+    it('should return false for complex backtracking patterns', () => {
+      expect(isRegexPatternSafe('(a+)+b')).toBe(false)
+      expect(isRegexPatternSafe('(a*)*')).toBe(false)
+      expect(isRegexPatternSafe('(.*)*')).toBe(false)
+    })
+  })
+
+  describe('invalid syntax', () => {
+    it('should return false for unmatched parentheses', () => {
+      expect(isRegexPatternSafe('(test')).toBe(false)
+      expect(isRegexPatternSafe('test)')).toBe(false)
+      expect(isRegexPatternSafe('((test)')).toBe(false)
+    })
+
+    it('should return false for unmatched brackets', () => {
+      // Opening bracket without closing
+      expect(isRegexPatternSafe('[abc')).toBe(false)
+      expect(isRegexPatternSafe('[a-z')).toBe(false)
+      // Closing bracket without opening is also invalid in unicode mode
+      expect(isRegexPatternSafe('abc]')).toBe(false)
+    })
+
+    it('should return false for invalid character class', () => {
+      expect(isRegexPatternSafe('[z-a]')).toBe(false)
+    })
+
+    it('should return false for invalid quantifier placement', () => {
+      expect(isRegexPatternSafe('*test')).toBe(false)
+      expect(isRegexPatternSafe('+test')).toBe(false)
+      expect(isRegexPatternSafe('?test')).toBe(false)
+    })
+
+    it('should return false for invalid escape sequences', () => {
+      expect(isRegexPatternSafe('\\')).toBe(false)
+    })
+
+    it('should return false for invalid quantifier range', () => {
+      expect(isRegexPatternSafe('a{5,3}')).toBe(false)
+    })
+
+    it('should return false for invalid quantifier syntax', () => {
+      // JavaScript does NOT support {,m} syntax - these are invalid
+      expect(isRegexPatternSafe('a{,}')).toBe(false)
+      expect(isRegexPatternSafe('a{,5}')).toBe(false)
+    })
+
+    it('should return true for valid quantifier ranges', () => {
+      expect(isRegexPatternSafe('a{2,5}')).toBe(true)
+      expect(isRegexPatternSafe('a{3,}')).toBe(true)
+      expect(isRegexPatternSafe('a{5}')).toBe(true)
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle complex valid patterns', () => {
+      expect(
+        isRegexPatternSafe('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'),
+      ).toBe(true)
+      expect(
+        isRegexPatternSafe('\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}'),
+      ).toBe(true)
+    })
+
+    it('should handle lookaheads', () => {
+      // Positive lookahead
+      expect(isRegexPatternSafe('(?=test)')).toBe(true)
+      // Negative lookahead
+      expect(isRegexPatternSafe('(?!test)')).toBe(true)
+    })
+
+    it('should reject lookbehinds for safety', () => {
+      // Lookbehinds are syntactically valid in ES2018+ but rejected by safe-regex2
+      // due to potential performance issues
+      expect(isRegexPatternSafe('(?<=test)')).toBe(false)
+      expect(isRegexPatternSafe('(?<!test)')).toBe(false)
+    })
+
+    it('should validate patterns with multiple groups', () => {
+      expect(isRegexPatternSafe('(\\d+)-(\\d+)-(\\d+)')).toBe(true)
+      expect(isRegexPatternSafe('((a)(b))')).toBe(true)
+    })
+  })
+})
 
 describe('evaluateRegexSafely', () => {
   describe('valid regex patterns', () => {
@@ -146,14 +298,14 @@ describe('evaluateRegexSafely', () => {
   })
 
   describe('invalid regex syntax', () => {
-    // Note: safe-regex lib also rejects invalid syntax patterns by returning false
+    // Note: safe-regex2 lib also rejects invalid syntax patterns by returning false
     // So these patterns are caught by the unsafe check warning, not the error handler
     it('should reject regex with unmatched parentheses', () => {
       const logger = createMockLogger()
       const result = evaluateRegexSafely('(test', 'test', logger, 'genre rule')
 
       expect(result).toBe(false)
-      // safe-regex catches this as unsafe, triggering a warn (not error)
+      // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '(test' },
         'Rejected unsafe regex in genre rule',
@@ -165,7 +317,7 @@ describe('evaluateRegexSafely', () => {
       const result = evaluateRegexSafely('[z-a]', 'test', logger, 'genre rule')
 
       expect(result).toBe(false)
-      // safe-regex catches this as unsafe, triggering a warn (not error)
+      // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '[z-a]' },
         'Rejected unsafe regex in genre rule',
@@ -177,7 +329,7 @@ describe('evaluateRegexSafely', () => {
       const result = evaluateRegexSafely('[abc', 'test', logger, 'genre rule')
 
       expect(result).toBe(false)
-      // safe-regex catches this as unsafe, triggering a warn (not error)
+      // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '[abc' },
         'Rejected unsafe regex in genre rule',
@@ -189,7 +341,7 @@ describe('evaluateRegexSafely', () => {
       const result = evaluateRegexSafely('*test', 'test', logger, 'genre rule')
 
       expect(result).toBe(false)
-      // safe-regex catches this as unsafe, triggering a warn (not error)
+      // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '*test' },
         'Rejected unsafe regex in genre rule',
@@ -351,7 +503,7 @@ describe('evaluateRegexSafelyMultiple', () => {
       )
 
       expect(result).toBe(false)
-      // safe-regex catches this as unsafe, triggering a warn (not error)
+      // safe-regex2 catches this as unsafe, triggering a warn (not error)
       expect(logger.warn).toHaveBeenCalledWith(
         { pattern: '(test' },
         'Rejected unsafe regex in genre rule',
