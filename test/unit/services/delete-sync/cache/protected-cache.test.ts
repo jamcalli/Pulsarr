@@ -24,7 +24,7 @@ describe('protected-cache', () => {
     }
     mockFastify = {
       plexServerService: mockPlexServerService,
-    } as Partial<FastifyInstance>
+    } as unknown as FastifyInstance
   })
 
   describe('ensureProtectionCache', () => {
