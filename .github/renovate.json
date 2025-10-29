@@ -129,41 +129,15 @@
       "prPriority": 10
     },
     {
-      "description": "Group all Node.js version updates - only LTS versions",
-      "groupName": "Node.js LTS",
-      "matchManagers": [
-        "dockerfile",
-        "github-actions",
-        "nvm",
-        "nodenv",
-        "asdf",
-        "node-version",
-        "npm"
-      ],
-      "matchDatasources": [
-        "docker",
-        "node-version",
-        "npm"
-      ],
-      "matchDepNames": [
-        "node",
-        "@types/node"
-      ],
-      "matchPackageNames": [
-        "node",
-        "@types/node"
-      ],
+      "description": "Group all Node.js version updates across all sources",
+      "groupName": "Node.js",
+      "matchDatasources": ["docker", "node-version"],
+      "matchPackageNames": ["node", "@types/node"],
       "rangeStrategy": "pin",
-      "allowedVersions": "/^24\\./",
       "automerge": false,
       "prPriority": 15,
-      "reviewers": [
-        "jamcalli"
-      ],
-      "labels": [
-        "dependencies",
-        "node-version"
-      ]
+      "reviewers": ["jamcalli"],
+      "labels": ["dependencies", "node-version"]
     },
     {
       "description": "Weekly digest for dev dependencies",
