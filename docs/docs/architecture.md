@@ -9,7 +9,7 @@ Pulsarr uses a modern full-stack architecture built for reliability, performance
 ## Backend Stack
 
 ### **Core Server**
-- **Node.js 22 LTS**: Modern JavaScript runtime with latest performance optimizations
+- **Node.js 24 LTS**: Modern JavaScript runtime with latest performance optimizations
 - **Fastify**: High-performance HTTP server with extensive plugin ecosystem
 - **TypeScript**: Full type safety across server and client for maintainability
 - **Plugin Architecture**: Modular services with dependency injection and lifecycle management
