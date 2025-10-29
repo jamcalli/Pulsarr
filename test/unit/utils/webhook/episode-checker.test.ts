@@ -27,9 +27,13 @@ describe('episode-checker', () => {
 
     it('should return true for episode aired exactly at threshold', () => {
       const now = Date.now()
-      const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
+      // Subtract threshold minus 100ms to ensure we're definitely within the threshold
+      // accounting for execution time between test setup and the actual check
+      const justWithinThreshold = new Date(
+        now - (7 * 24 * 60 * 60 * 1000 - 100),
+      ).toISOString()
 
-      const result = isRecentEpisode(sevenDaysAgo, mockFastify)
+      const result = isRecentEpisode(justWithinThreshold, mockFastify)
 
       expect(result).toBe(true)
     })
