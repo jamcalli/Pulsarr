@@ -150,10 +150,11 @@
         "@types/node"
       ],
       "matchPackageNames": [
-        "node"
+        "node",
+        "@types/node"
       ],
       "rangeStrategy": "pin",
-      "allowedVersions": "/^22\\./",
+      "allowedVersions": "/^24\\./",
       "automerge": false,
       "prPriority": 15,
       "reviewers": [

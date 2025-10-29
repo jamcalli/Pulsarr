@@ -5,7 +5,7 @@
   "main": "build/server.js",
   "type": "module",
   "engines": {
-    "node": "22.21.0"
+    "node": "24.11.0"
   },
   "scripts": {
     "clean:client": "rm -rf dist/client",
@@ -152,7 +152,7 @@
     "@commitlint/config-conventional": "^20.0.0",
     "@tailwindcss/postcss": "^4.1.10",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^22.15.3",
+    "@types/node": "^24.9.2",
     "@types/pg": "^8.15.4",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",

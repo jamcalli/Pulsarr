@@ -94,8 +94,12 @@ Alternatively, you can use the Docker installation method described above.
 
 If you prefer to build and run Pulsarr manually:
 
+:::warning Upgrading from Previous Versions
+If you previously installed Pulsarr with Node.js 22 or earlier, you must upgrade to Node.js 24 LTS before updating to the latest version. Using nvm: `nvm install 24 && nvm use 24`, or download from [nodejs.org](https://nodejs.org/).
+:::
+
 #### Prerequisites
-- Node.js 22 LTS or higher
+- Node.js 24 LTS or higher
 - Git
 
 #### Steps
