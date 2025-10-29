@@ -175,6 +175,7 @@ export interface Config {
   maxDeletionPrevention: number
   deleteSyncTrackedOnly: boolean // Only delete content tracked in approval_requests
   deleteSyncCleanupApprovals: boolean // Clean up approval_requests for deleted content
+  deleteSyncRequiredTagRegex?: string // Additional regex filter - content must have BOTH removal tag AND tag matching this regex to be deleted
   enablePlexPlaylistProtection: boolean
   plexProtectionPlaylistName: string
   plexServerUrl?: string // Optional: Only set this if automatic discovery fails, URL is auto-detected in most cases

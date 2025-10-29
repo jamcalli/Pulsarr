@@ -440,6 +440,64 @@ export default function DeleteSyncPage() {
                         {form.watch('removedTagPrefix') || 'pulsarr:removed'}
                       </code>
                     </div>
+
+                    <div className="mt-4">
+                      <FormField
+                        control={form.control}
+                        name="deleteSyncRequiredTagRegex"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <div className="flex flex-col space-y-2">
+                              <div className="flex items-center">
+                                <FormLabel className="text-foreground m-0">
+                                  Additional Tag Regex Filter (Optional)
+                                </FormLabel>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <div className="max-w-xs space-y-2">
+                                        <p>
+                                          If specified, content must have BOTH
+                                          the removal tag AND a tag matching
+                                          this regex pattern to be deleted.
+                                        </p>
+                                        <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                          <strong>Example use case:</strong> For
+                                          multi-instance coordination, match the
+                                          OTHER instance's removal tag (e.g.,{' '}
+                                          <code>pulsarr2:removed</code> on
+                                          instance 1) to ensure content is only
+                                          deleted when BOTH instances have
+                                          marked it for removal.
+                                        </p>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  value={
+                                    isSaving && submittedValues
+                                      ? (submittedValues.deleteSyncRequiredTagRegex ??
+                                        '')
+                                      : (field.value ?? '')
+                                  }
+                                  className="w-full"
+                                  placeholder="e.g., pulsarr2:removed"
+                                  disabled={isSaving}
+                                />
+                              </FormControl>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 )}
 
