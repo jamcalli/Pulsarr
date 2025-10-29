@@ -15,6 +15,7 @@ export interface TagCountConfig {
   deleteContinuingShow: boolean
   deleteMovie: boolean
   enablePlexPlaylistProtection: boolean
+  deleteSyncTrackedOnly: boolean
   removedTagPrefix: string | undefined
   deleteSyncRequiredTagRegex?: string
 }
@@ -28,6 +29,8 @@ export interface TagCountConfig {
  * @param tagCache - Tag cache instance
  * @param protectedGuids - Set of protected GUIDs
  * @param isAnyGuidProtected - Function to check if GUID is protected
+ * @param trackedGuids - Set of tracked GUIDs (for tracked-only mode)
+ * @param isAnyGuidTracked - Function to check if GUID is tracked
  * @param logger - Logger instance
  * @returns Promise resolving to count of series with removal tag
  */
@@ -38,6 +41,8 @@ export async function countTaggedSeries(
   tagCache: TagCache,
   protectedGuids: Set<string> | null,
   isAnyGuidProtected: (guidList: string[]) => boolean,
+  trackedGuids: Set<string> | null,
+  isAnyGuidTracked: (guidList: string[]) => boolean,
   logger: FastifyBaseLogger,
 ): Promise<number> {
   let count = 0
@@ -131,6 +136,13 @@ export async function countTaggedSeries(
           if (isAnyGuidProtected(guids)) continue
         }
 
+        // Check tracked-only deletion
+        if (config.deleteSyncTrackedOnly && trackedGuids) {
+          const guids = parseGuids(show.guids)
+          // Count only if tracked
+          if (!isAnyGuidTracked(guids)) continue
+        }
+
         count++
       } catch (error) {
         logger.error(
@@ -162,6 +174,8 @@ export async function countTaggedSeries(
  * @param tagCache - Tag cache instance
  * @param protectedGuids - Set of protected GUIDs
  * @param isAnyGuidProtected - Function to check if GUID is protected
+ * @param trackedGuids - Set of tracked GUIDs (for tracked-only mode)
+ * @param isAnyGuidTracked - Function to check if GUID is tracked
  * @param logger - Logger instance
  * @returns Promise resolving to count of movies with removal tag
  */
@@ -172,6 +186,8 @@ export async function countTaggedMovies(
   tagCache: TagCache,
   protectedGuids: Set<string> | null,
   isAnyGuidProtected: (guidList: string[]) => boolean,
+  trackedGuids: Set<string> | null,
+  isAnyGuidTracked: (guidList: string[]) => boolean,
   logger: FastifyBaseLogger,
 ): Promise<number> {
   let count = 0
@@ -255,6 +271,13 @@ export async function countTaggedMovies(
           const guids = parseGuids(movie.guids)
           // Count only if NOT protected
           if (isAnyGuidProtected(guids)) continue
+        }
+
+        // Check tracked-only deletion
+        if (config.deleteSyncTrackedOnly && trackedGuids) {
+          const guids = parseGuids(movie.guids)
+          // Count only if tracked
+          if (!isAnyGuidTracked(guids)) continue
         }
 
         count++

@@ -69,11 +69,14 @@ describe('isRegexPatternSafe', () => {
 
   describe('unsafe patterns (catastrophic backtracking)', () => {
     it('should return false for nested quantifiers', () => {
+      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
       expect(isRegexPatternSafe('(a+)+$')).toBe(false)
+      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
       expect(isRegexPatternSafe('(x+x+)+y')).toBe(false)
     })
 
     it('should return false for complex backtracking patterns', () => {
+      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
       expect(isRegexPatternSafe('(a+)+b')).toBe(false)
       expect(isRegexPatternSafe('(a*)*')).toBe(false)
       expect(isRegexPatternSafe('(.*)*')).toBe(false)
@@ -254,6 +257,7 @@ describe('evaluateRegexSafely', () => {
     it('should reject potentially catastrophic backtracking patterns', () => {
       const logger = createMockLogger()
       // Known unsafe pattern that can cause catastrophic backtracking
+      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
       const unsafePattern = '(a+)+$'
       const result = evaluateRegexSafely(
         unsafePattern,
@@ -271,6 +275,7 @@ describe('evaluateRegexSafely', () => {
 
     it('should reject nested quantifiers pattern', () => {
       const logger = createMockLogger()
+      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
       const unsafePattern = '(x+x+)+y'
       const result = evaluateRegexSafely(
         unsafePattern,
@@ -288,6 +293,7 @@ describe('evaluateRegexSafely', () => {
 
     it('should include context in warning message', () => {
       const logger = createMockLogger()
+      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
       evaluateRegexSafely('(a+)+$', 'test', logger, 'custom context')
 
       expect(logger.warn).toHaveBeenCalledWith(
@@ -461,6 +467,7 @@ describe('evaluateRegexSafelyMultiple', () => {
   describe('unsafe regex patterns', () => {
     it('should reject potentially catastrophic backtracking patterns', () => {
       const logger = createMockLogger()
+      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
       const unsafePattern = '(a+)+$'
       const result = evaluateRegexSafelyMultiple(
         unsafePattern,
@@ -478,6 +485,7 @@ describe('evaluateRegexSafelyMultiple', () => {
 
     it('should include context in warning message', () => {
       const logger = createMockLogger()
+      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
       evaluateRegexSafelyMultiple(
         '(a+)+$',
         ['test'],

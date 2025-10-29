@@ -286,9 +286,7 @@ export async function processMovieDeletions(
 
         // Handle validation results
         if (validation.skip) {
-          if (validation.notTracked) {
-            counters.incrementMovieSkipped()
-          }
+          counters.incrementMovieSkipped()
           continue
         }
 
@@ -460,9 +458,7 @@ export async function processShowDeletions(
 
         // Handle validation results
         if (validation.skip) {
-          if (validation.notTracked) {
-            counters.incrementShowSkipped(isContinuing)
-          }
+          counters.incrementShowSkipped(isContinuing)
           continue
         }
 
