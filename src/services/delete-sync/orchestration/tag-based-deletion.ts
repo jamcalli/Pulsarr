@@ -72,6 +72,7 @@ async function performTagBasedSafetyCheck(
             deleteContinuingShow: config.deleteContinuingShow,
             deleteMovie: config.deleteMovie,
             enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
+            deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
             removedTagPrefix: config.removedTagPrefix,
             deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
           },
@@ -84,6 +85,13 @@ async function performTagBasedSafetyCheck(
               context.protectedGuids,
               config.enablePlexPlaylistProtection,
             ),
+          context.trackedGuids,
+          (guids) =>
+            isAnyGuidTracked(
+              guids,
+              context.trackedGuids,
+              config.deleteSyncTrackedOnly,
+            ),
           logger,
         ),
         countTaggedMovies(
@@ -93,6 +101,7 @@ async function performTagBasedSafetyCheck(
             deleteContinuingShow: config.deleteContinuingShow,
             deleteMovie: config.deleteMovie,
             enablePlexPlaylistProtection: config.enablePlexPlaylistProtection,
+            deleteSyncTrackedOnly: config.deleteSyncTrackedOnly,
             removedTagPrefix: config.removedTagPrefix,
             deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
           },
@@ -104,6 +113,13 @@ async function performTagBasedSafetyCheck(
               guids,
               context.protectedGuids,
               config.enablePlexPlaylistProtection,
+            ),
+          context.trackedGuids,
+          (guids) =>
+            isAnyGuidTracked(
+              guids,
+              context.trackedGuids,
+              config.deleteSyncTrackedOnly,
             ),
           logger,
         ),

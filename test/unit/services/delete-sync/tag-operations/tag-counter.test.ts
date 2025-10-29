@@ -15,6 +15,7 @@ describe('tag-counter', () => {
   let mockLogger: ReturnType<typeof createMockLogger>
   let mockTagCache: TagCache
   let mockIsAnyGuidProtected: ReturnType<typeof vi.fn>
+  let mockIsAnyGuidTracked: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     mockLogger = createMockLogger()
@@ -24,6 +25,7 @@ describe('tag-counter', () => {
       clear: vi.fn(),
     } as unknown as TagCache
     mockIsAnyGuidProtected = vi.fn(() => false)
+    mockIsAnyGuidTracked = vi.fn(() => true)
   })
 
   describe('countTaggedMovies', () => {
@@ -57,6 +59,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -67,6 +70,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -103,6 +108,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -113,6 +119,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -150,6 +158,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: true,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -160,6 +169,8 @@ describe('tag-counter', () => {
         mockTagCache,
         protectedGuids,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -185,6 +196,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: '', // empty
       }
 
@@ -195,6 +207,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -223,6 +237,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed', // No tags start with this
       }
 
@@ -233,6 +248,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -255,6 +272,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -265,6 +283,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -290,6 +310,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -300,6 +321,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -315,6 +338,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -325,6 +349,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -357,6 +383,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -367,6 +394,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -405,6 +434,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
         deleteSyncRequiredTagRegex: 'user-.*', // Requires a tag matching this pattern
       }
@@ -416,6 +446,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -460,6 +492,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
         deleteSyncRequiredTagRegex: 'user-.*',
       }
@@ -471,6 +504,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -506,6 +541,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
         // No deleteSyncRequiredTagRegex - should count all with removal tag
       }
@@ -517,11 +553,113 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
       expect(count).toBe(2) // Both movies have removal tag
       expect(mockTagCache.getCompiledRegex).not.toHaveBeenCalled()
+    })
+
+    it('should exclude movies not in tracked set when deleteSyncTrackedOnly is true', async () => {
+      const movies: RadarrItem[] = [
+        {
+          id: 1,
+          title: 'Tracked movie with tag',
+          tags: [1],
+          radarr_instance_id: 1,
+          guids: 'tmdb://tracked',
+        } as unknown as RadarrItem,
+        {
+          id: 2,
+          title: 'Untracked movie with tag',
+          tags: [1],
+          radarr_instance_id: 1,
+          guids: 'tmdb://untracked',
+        } as unknown as RadarrItem,
+      ]
+
+      const tagMap = new Map([[1, 'removed']])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const trackedGuids = new Set(['tmdb:tracked']) // normalized format
+      mockIsAnyGuidTracked = vi.fn((guids) =>
+        guids.some((g: string) => trackedGuids.has(g)),
+      )
+
+      const config: TagCountConfig = {
+        deleteMovie: true,
+        deleteEndedShow: false,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: true,
+        removedTagPrefix: 'removed',
+      }
+
+      const count = await countTaggedMovies(
+        movies,
+        config,
+        mockRadarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        trackedGuids,
+        mockIsAnyGuidTracked,
+        mockLogger,
+      )
+
+      expect(count).toBe(1) // Only tracked movie counted
+    })
+
+    it('should count all tagged movies when deleteSyncTrackedOnly is false', async () => {
+      const movies: RadarrItem[] = [
+        {
+          id: 1,
+          title: 'Movie 1',
+          tags: [1],
+          radarr_instance_id: 1,
+          guids: 'tmdb://11111',
+        } as unknown as RadarrItem,
+        {
+          id: 2,
+          title: 'Movie 2',
+          tags: [1],
+          radarr_instance_id: 1,
+          guids: 'tmdb://22222',
+        } as unknown as RadarrItem,
+      ]
+
+      const tagMap = new Map([[1, 'removed']])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const trackedGuids = new Set(['tmdb:11111']) // Only one tracked
+      mockIsAnyGuidTracked = vi.fn((guids) =>
+        guids.some((g: string) => trackedGuids.has(g)),
+      )
+
+      const config: TagCountConfig = {
+        deleteMovie: true,
+        deleteEndedShow: false,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false, // Tracked-only disabled
+        removedTagPrefix: 'removed',
+      }
+
+      const count = await countTaggedMovies(
+        movies,
+        config,
+        mockRadarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        trackedGuids,
+        mockIsAnyGuidTracked,
+        mockLogger,
+      )
+
+      expect(count).toBe(2) // Both movies counted even though only one is tracked
     })
   })
 
@@ -557,6 +695,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -567,6 +706,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -602,6 +743,7 @@ describe('tag-counter', () => {
         deleteEndedShow: true,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -612,6 +754,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -646,6 +790,7 @@ describe('tag-counter', () => {
         deleteEndedShow: false,
         deleteContinuingShow: true,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -656,6 +801,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -690,6 +837,7 @@ describe('tag-counter', () => {
         deleteEndedShow: true,
         deleteContinuingShow: true,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -700,6 +848,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -739,6 +889,7 @@ describe('tag-counter', () => {
         deleteEndedShow: true,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: true,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -749,6 +900,8 @@ describe('tag-counter', () => {
         mockTagCache,
         protectedGuids,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -774,6 +927,7 @@ describe('tag-counter', () => {
         deleteEndedShow: true,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -784,6 +938,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -799,6 +955,7 @@ describe('tag-counter', () => {
         deleteEndedShow: true,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
       }
 
@@ -809,6 +966,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -847,6 +1006,7 @@ describe('tag-counter', () => {
         deleteEndedShow: true,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
         deleteSyncRequiredTagRegex: 'user-.*', // Requires a tag matching this pattern
       }
@@ -858,6 +1018,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -905,6 +1067,7 @@ describe('tag-counter', () => {
         deleteEndedShow: true,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
         deleteSyncRequiredTagRegex: 'user-.*',
       }
@@ -916,6 +1079,8 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
@@ -953,6 +1118,7 @@ describe('tag-counter', () => {
         deleteEndedShow: true,
         deleteContinuingShow: false,
         enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false,
         removedTagPrefix: 'removed',
         // No deleteSyncRequiredTagRegex - should count all with removal tag
       }
@@ -964,11 +1130,117 @@ describe('tag-counter', () => {
         mockTagCache,
         null,
         mockIsAnyGuidProtected,
+        null,
+        mockIsAnyGuidTracked,
         mockLogger,
       )
 
       expect(count).toBe(2) // Both shows have removal tag
       expect(mockTagCache.getCompiledRegex).not.toHaveBeenCalled()
+    })
+
+    it('should exclude series not in tracked set when deleteSyncTrackedOnly is true', async () => {
+      const series: SonarrItem[] = [
+        {
+          id: 1,
+          title: 'Tracked Show',
+          tags: [1],
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://tracked',
+        } as unknown as SonarrItem,
+        {
+          id: 2,
+          title: 'Untracked Show',
+          tags: [1],
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://untracked',
+        } as unknown as SonarrItem,
+      ]
+
+      const tagMap = new Map([[1, 'removed']])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const trackedGuids = new Set(['tvdb:tracked']) // normalized format
+      mockIsAnyGuidTracked = vi.fn((guids) =>
+        guids.some((g: string) => trackedGuids.has(g)),
+      )
+
+      const config: TagCountConfig = {
+        deleteMovie: false,
+        deleteEndedShow: true,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: true,
+        removedTagPrefix: 'removed',
+      }
+
+      const count = await countTaggedSeries(
+        series,
+        config,
+        mockSonarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        trackedGuids,
+        mockIsAnyGuidTracked,
+        mockLogger,
+      )
+
+      expect(count).toBe(1) // Only tracked show counted
+    })
+
+    it('should count all tagged series when deleteSyncTrackedOnly is false', async () => {
+      const series: SonarrItem[] = [
+        {
+          id: 1,
+          title: 'Show 1',
+          tags: [1],
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://11111',
+        } as unknown as SonarrItem,
+        {
+          id: 2,
+          title: 'Show 2',
+          tags: [1],
+          sonarr_instance_id: 1,
+          series_status: 'ended',
+          guids: 'tvdb://22222',
+        } as unknown as SonarrItem,
+      ]
+
+      const tagMap = new Map([[1, 'removed']])
+      vi.mocked(mockTagCache.getTagsForInstance).mockResolvedValue(tagMap)
+
+      const trackedGuids = new Set(['tvdb:11111']) // Only one tracked
+      mockIsAnyGuidTracked = vi.fn((guids) =>
+        guids.some((g: string) => trackedGuids.has(g)),
+      )
+
+      const config: TagCountConfig = {
+        deleteMovie: false,
+        deleteEndedShow: true,
+        deleteContinuingShow: false,
+        enablePlexPlaylistProtection: false,
+        deleteSyncTrackedOnly: false, // Tracked-only disabled
+        removedTagPrefix: 'removed',
+      }
+
+      const count = await countTaggedSeries(
+        series,
+        config,
+        mockSonarrManager,
+        mockTagCache,
+        null,
+        mockIsAnyGuidProtected,
+        trackedGuids,
+        mockIsAnyGuidTracked,
+        mockLogger,
+      )
+
+      expect(count).toBe(2) // Both shows counted even though only one is tracked
     })
   })
 })
