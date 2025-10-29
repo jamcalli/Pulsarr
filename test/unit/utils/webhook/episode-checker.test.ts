@@ -25,7 +25,7 @@ describe('episode-checker', () => {
       expect(result).toBe(true)
     })
 
-    it('should return true for episode aired exactly at threshold', () => {
+    it('should return true for episode within threshold (100ms buffer)', () => {
       const now = Date.now()
       // Subtract threshold minus 100ms to ensure we're definitely within the threshold
       // accounting for execution time between test setup and the actual check

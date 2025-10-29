@@ -6,6 +6,9 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     pool: 'forks',
+    env: {
+      NODE_ENV: 'test',
+    },
     // Vitest v4: poolOptions removed, options moved to top level
     execArgv: ['--import', 'tsx'],
     coverage: {
