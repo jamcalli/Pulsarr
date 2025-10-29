@@ -7,9 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
 describe('tracked-cache', () => {
-  let mockDbService: {
-    getTrackedContentGuids: ReturnType<typeof vi.fn>
-  }
+  let mockDbService: Pick<DatabaseService, 'getTrackedContentGuids'>
   let mockLogger: ReturnType<typeof createMockLogger>
 
   beforeEach(() => {
@@ -24,7 +22,7 @@ describe('tracked-cache', () => {
       const result = await ensureTrackedCache(
         null,
         false, // disabled
-        mockDbService as DatabaseService,
+        mockDbService as unknown as DatabaseService,
         mockLogger,
       )
 
@@ -38,7 +36,7 @@ describe('tracked-cache', () => {
       const result = await ensureTrackedCache(
         cachedSet,
         true, // enabled
-        mockDbService as DatabaseService,
+        mockDbService as unknown as DatabaseService,
         mockLogger,
       )
 
@@ -53,7 +51,7 @@ describe('tracked-cache', () => {
       const result = await ensureTrackedCache(
         null, // no cache
         true, // enabled
-        mockDbService as DatabaseService,
+        mockDbService as unknown as DatabaseService,
         mockLogger,
       )
 
@@ -76,7 +74,7 @@ describe('tracked-cache', () => {
       const result = await ensureTrackedCache(
         null,
         true,
-        mockDbService as DatabaseService,
+        mockDbService as unknown as DatabaseService,
         mockLogger,
       )
 
@@ -94,7 +92,7 @@ describe('tracked-cache', () => {
         ensureTrackedCache(
           null,
           true,
-          mockDbService as DatabaseService,
+          mockDbService as unknown as DatabaseService,
           mockLogger,
         ),
       ).rejects.toThrow('Database connection failed')
@@ -109,7 +107,7 @@ describe('tracked-cache', () => {
       const result = await ensureTrackedCache(
         null,
         false, // disabled
-        mockDbService as DatabaseService,
+        mockDbService as unknown as DatabaseService,
         mockLogger,
       )
 
