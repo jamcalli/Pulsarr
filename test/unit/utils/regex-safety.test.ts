@@ -69,14 +69,14 @@ describe('isRegexPatternSafe', () => {
 
   describe('unsafe patterns (catastrophic backtracking)', () => {
     it('should return false for nested quantifiers', () => {
-      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
+      // codeql[js/polynomial-redos] - Intentionally unsafe pattern for testing
       expect(isRegexPatternSafe('(a+)+$')).toBe(false)
-      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
+      // codeql[js/polynomial-redos] - Intentionally unsafe pattern for testing
       expect(isRegexPatternSafe('(x+x+)+y')).toBe(false)
     })
 
     it('should return false for complex backtracking patterns', () => {
-      // lgtm[js/polynomial-redos] - Intentionally unsafe pattern for testing
+      // codeql[js/polynomial-redos] - Intentionally unsafe pattern for testing
       expect(isRegexPatternSafe('(a+)+b')).toBe(false)
       expect(isRegexPatternSafe('(a*)*')).toBe(false)
       expect(isRegexPatternSafe('(.*)*')).toBe(false)
