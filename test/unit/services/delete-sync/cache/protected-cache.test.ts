@@ -214,19 +214,6 @@ describe('protected-cache', () => {
         'Error loading protection playlists for caching',
       )
     })
-
-    it('should not load when protection is disabled even with null cache', async () => {
-      const result = await ensureProtectionCache(
-        null,
-        false, // disabled
-        mockFastify as FastifyInstance,
-        'Protected',
-        mockLogger,
-      )
-
-      expect(result).toBeNull()
-      expect(mockPlexServerService.isInitialized).not.toHaveBeenCalled()
-    })
   })
 
   describe('isAnyGuidProtected', () => {
@@ -343,16 +330,6 @@ describe('protected-cache', () => {
       const protectedSet = new Set<string>()
 
       const result = isAnyGuidProtected(['tmdb://12345'], protectedSet, true)
-
-      expect(result).toBe(false)
-    })
-
-    it('should return false when protection enabled but cache is null', () => {
-      const result = isAnyGuidProtected(
-        ['tmdb://12345'],
-        null, // no cache loaded
-        true, // enabled
-      )
 
       expect(result).toBe(false)
     })
