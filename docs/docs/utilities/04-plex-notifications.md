@@ -6,26 +6,48 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Plex Notifications
 
-## Automatic Library Updates
+Automatically configures webhooks in all your connected Sonarr and Radarr instances to keep your Plex libraries fresh without manual intervention.
 
-Pulsarr's Plex Notifications feature automatically configures webhooks in all your connected Sonarr and Radarr instances to keep your Plex libraries fresh without manual intervention.
+## Quick Setup
 
-### Key Features
-
-- **Automatic Configuration**: Sets up notification webhooks in all connected Sonarr and Radarr instances
-- **Server Discovery**: Easily find and select your Plex server with the built-in discovery tool
-- **Content Synchronization**: Keeps your Plex libraries updated when content is added, removed, or modified
-- **Multi-Instance Support**: Works across all your Sonarr and Radarr instances simultaneously
-- **SSL Support**: Secure connections to your Plex server
-
-### Setup Instructions
-
-1. Navigate to the **Utilities** section in the Pulsarr web interface
-2. Enter your Plex authentication token (defaults to the token provided during setup)
-3. Click "Find Servers" to automatically discover available Plex servers
-4. Select your server or manually enter your Plex host, port, and SSL settings
-5. Save your changes to automatically configure webhooks in all Sonarr and Radarr instances
+1. Navigate to **Utilities → Plex Notifications**
+2. Enter your Plex authentication token (defaults to setup token)
+3. Click **Find Servers** to discover available Plex servers
+4. Select your server or manually enter host, port, and SSL settings
+5. Click **Save** to configure webhooks in all Sonarr and Radarr instances
 
 <img src={useBaseUrl('/img/Plex-Notifications.png')} alt="Plex Notifications Setup Interface" />
 
-Once configured, anytime content is added, modified, or removed via Sonarr or Radarr, your Plex libraries will automatically refresh to reflect these changes.
+## Configuration
+
+| Field | Description |
+|-------|-------------|
+| **Plex Token** | Authentication token for Plex access |
+| **Server Discovery** | Automatically find available Plex servers |
+| **Host** | Plex server hostname or IP address |
+| **Port** | Plex server port (default: 32400) |
+| **Use SSL** | Enable HTTPS for secure connections |
+
+## Features
+
+- **Automatic Configuration**: Sets up webhooks in all connected Sonarr/Radarr instances
+- **Server Discovery**: Built-in tool to find your Plex server
+- **Content Synchronization**: Auto-refresh libraries when content changes
+- **Multi-Instance Support**: Works across all your Sonarr/Radarr instances
+- **SSL Support**: Secure HTTPS connections
+
+## Troubleshooting
+
+**Server not discovered:**
+- Verify Plex token is valid
+- Ensure Plex server is running and accessible
+- Check network connectivity
+
+**Webhooks not working:**
+- Confirm server settings are correct
+- Verify Sonarr/Radarr instances are connected
+- Check Plex server logs for errors
+
+## API Reference
+
+See the [Plex Notifications API documentation](/docs/api/configure-plex-notifications) for detailed endpoint information.

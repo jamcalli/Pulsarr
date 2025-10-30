@@ -6,60 +6,59 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # User Tagging
 
-Pulsarr's User Tagging feature organizes your media by automatically adding user tags to content in Sonarr and Radarr, making it easy to track which users requested which content.
+Automatically adds user tags to content in Sonarr and Radarr, making it easy to track which users requested which content.
 
-## Key Features
+## Quick Setup
 
-- **Automatic User Tracking**: Tags movies and shows with the usernames of people who added them to their watchlists
-- **Multi-Instance Support**: Works across all your Sonarr and Radarr instances simultaneously
-- **Customizable Prefix**: Configure your own prefix for user tags (default: "pulsarr:user")
-- **Enhanced Tag Management**: Flexible tag removal options when content leaves watchlists
-- **Tag-Based Deletion**: Option to use tags for content deletion instead of watchlist status
-- **Batch Processing**: Efficiently processes large libraries with minimal performance impact
+1. Navigate to **Utilities → User Tagging**
+2. Enable tagging for Sonarr and/or Radarr
+3. Configure tag prefix (default: "pulsarr:user")
+4. Set tag removal behavior (keep, remove, or prefix)
+5. Click **Sync Tags Now** to apply tags to all content
 
-## Usage Benefits
-
-- **Content Organization**: Easily identify who requested specific content
-- **User-Based Filtering**: Create custom filters in Sonarr/Radarr based on user tags
-- **Accountability**: Track which users are driving your media library growth
-- **Lifecycle Management**: Use tags to manage content from request to removal
-- **Management**: Quickly find all content requested by specific users
-- **Integration**: Works seamlessly with Sonarr and Radarr's existing tag system
+<img src={useBaseUrl('/img/User-Tags.png')} alt="User Tagging Interface" />
 
 ## Configuration
 
-1. Navigate to the **Utilities** section in the Pulsarr web interface
-2. Find the User Tagging section
-3. Configure options including:
-   - Enable/disable tagging for Sonarr and Radarr
-   - Set a custom tag prefix
-   - Choose whether to preserve historical tags
-   - Enable/disable cleanup of orphaned tags
-4. Save your changes to apply the settings
-5. Click "Sync Tags Now" to immediately apply tags to all content
+Navigate to **Utilities → User Tagging**:
 
-## Enhanced Tag Management
+- **Enable Tagging**: Toggle for Sonarr and Radarr instances
+- **Tag Prefix**: Customize prefix for user tags (default: "pulsarr:user")
+- **Tag Removal Options**:
+  - **Keep**: Preserve tags for historical tracking
+  - **Remove**: Delete tags when content leaves watchlists
+  - **Prefix**: Add custom prefix (e.g., "removed:") to existing tags
+- **Removal Prefix**: Custom prefix for removed content tags
+- **Clean Up Orphaned Tags**: Auto-remove tags for deleted users
+- **Manual Actions**: Remove all user tags or sync immediately
 
-When content is removed from a user's watchlist, you have multiple options for handling the associated tags:
+## Features
 
-- **Keep**: Preserve tags for historical tracking even after content is removed from watchlists
-- **Remove**: Delete tags when content is removed from watchlists
-- **Prefix**: Add a customizable prefix (e.g., "removed:") to existing tags when content is removed from watchlists
+- **Automatic User Tracking**: Tags content with usernames of requesting users
+- **Multi-Instance Support**: Works across all Sonarr and Radarr instances
+- **Customizable Prefix**: Configure tag prefix (default: "pulsarr:user")
+- **Flexible Tag Removal**: Keep, remove, or prefix tags when content leaves watchlists
+- **Tag-Based Deletion**: Integrate with Delete Sync for tag-based workflows
+- **Batch Processing**: Efficiently processes large libraries
 
-These tag management options work seamlessly with Delete Sync's tag-based deletion mode, allowing you to:
-- Identify content for deletion based on tag status rather than watchlist presence
-- Maintain historical records of who requested content
-- Create custom workflows based on tag lifecycle
+## Advanced Tag Management
 
-## Advanced Settings
+When content is removed from a user's watchlist, choose how to handle tags:
 
-- **Tag Prefix**: Customize the prefix used for all user tags (default: "pulsarr:user")
-- **Tag Removal Options**: Configure how tags are handled when content is removed from watchlists
-- **Customizable Removal Prefix**: Define your own prefix for removed content tags
-- **Tag-Based Deletion**: Enable tags to identify content for deletion instead of watchlist status
-- **Preserve Historical Tags**: When enabled, keeps tags even after content is removed from a user's watchlist
-- **Clean Up Orphaned Tags**: Automatically removes tags for deleted users
-- **Manual Tag Removal**: Option to remove all user tags if needed
+**Keep Mode:**
+- Preserves tags for historical tracking
+- Maintains record of original requesters
+- Useful for accountability and analytics
+
+**Remove Mode:**
+- Automatically deletes tags when content leaves watchlists
+- Keeps tag lists clean and current
+- Best for active library management
+
+**Prefix Mode:**
+- Adds customizable prefix (e.g., "removed:") to existing tags
+- Preserves history while marking inactive content
+- Enables custom deletion workflows with Delete Sync
 
 ## Integration with Delete Sync
 
@@ -69,4 +68,25 @@ User Tagging works seamlessly with Delete Sync's tag-based deletion mode:
 - Protect content with specific tags from deletion
 - Create complex deletion workflows based on tag lifecycle
 
-<img src={useBaseUrl('/img/User-Tags.png')} alt="User Tagging Interface" />
+## Best Practices
+
+- Use descriptive tag prefixes to avoid conflicts with existing tags
+- Enable "Clean Up Orphaned Tags" to maintain tag hygiene
+- Consider "Prefix Mode" for deletion workflows requiring historical tracking
+- Sync tags regularly to keep Sonarr/Radarr updated
+
+## Troubleshooting
+
+**Tags not appearing:**
+- Verify tagging is enabled for the instance
+- Check that content was added via Pulsarr (not manually)
+- Run manual sync to apply tags immediately
+
+**Orphaned tags accumulating:**
+- Enable "Clean Up Orphaned Tags" option
+- Run manual cleanup to remove tags for deleted users
+- Review tag prefix configuration
+
+## API Reference
+
+See the [User Tags API documentation](/docs/api/sync-user-tags) for detailed endpoint information.

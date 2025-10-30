@@ -40,9 +40,11 @@ The system uses **either** content-specific URLs **or** general URLs (not both):
 
 ## Features
 
-- **@ Mentions**: Discord notifications automatically mention users who have the content watchlisted and have Discord IDs associated with their user
+- **@ Mentions**: Discord notifications automatically mention users with the content watchlisted
 - **Multiple Services**: Discord and Apprise work independently
-- **Content Types**: Movies, TV episodes, and season packs
+- **Content Type Filtering**: Separate channels for movies and TV shows
+- **Multiple URLs**: Configure multiple endpoints per content type
+- **Flexible Routing**: Content-specific URLs override general URLs
 
 ## Example Configurations
 
@@ -61,12 +63,16 @@ Apprise URLs: slack://workspace/channel/token
 ## Troubleshooting
 
 **No notifications received:**
-1. Feature enabled in Utilities?
-2. At least one URL configured?
-3. Discord/Apprise services enabled?
-4. Check logs for errors
+1. Verify feature is enabled in Utilities
+2. Confirm at least one URL is configured
+3. Check Discord/Apprise services are enabled
+4. Review application logs for errors
 
 **Partial notifications:**
-- Verify URL formatting
+- Verify URL formatting is correct
 - Check service-specific configuration
-- Review error logs
+- Review error logs for delivery issues
+
+## API Reference
+
+See the [Config API documentation](/docs/api/update-config) for managing public content notification settings.

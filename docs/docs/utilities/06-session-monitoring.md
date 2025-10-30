@@ -8,6 +8,17 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 Automatically searches for upcoming episodes and seasons by monitoring what users are currently watching. When someone nears the end of a season, Pulsarr proactively downloads the next content.
 
+## Quick Setup
+
+1. Navigate to **Utilities → Plex Session Monitoring**
+2. Toggle **Enable Session Monitoring** to `ON`
+3. Configure polling interval (default: 15 minutes)
+4. Set episode threshold (default: 2 episodes remaining)
+5. Optionally filter specific users
+6. Click **Save** to activate monitoring
+
+<img src={useBaseUrl('/img/Plex-Session-Monitoring.png')} alt="Plex Session Monitoring Configuration Interface" />
+
 ## How It Works
 
 1. **Monitors active Plex sessions** via polling (configurable interval)
@@ -73,13 +84,33 @@ Rolling monitoring options appear in:
 Rolling monitoring options only appear when Session Monitoring is enabled.
 :::
 
-<img src={useBaseUrl('/img/Plex-Session-Monitoring.png')} alt="Plex Session Monitoring Configuration Interface" />
+## Best Practices
+
+- Start with conservative thresholds (2-3 episodes remaining)
+- Use user filtering to monitor specific groups
+- Enable progressive cleanup to manage storage efficiently
+- Adjust polling intervals based on viewing patterns
 
 ## Troubleshooting
 
-- **Sessions not detected**: Check Plex connection and polling interval
-- **Searches not triggering**: Verify series exists in Sonarr with matching metadata  
-- **Rolling monitoring issues**: Ensure Session Monitoring is enabled and content was added with rolling options
+**Sessions not detected:**
+- Verify Plex connection is active
+- Check polling interval isn't too long
+- Ensure users are actually watching content
+
+**Searches not triggering:**
+- Verify series exists in Sonarr with matching metadata
+- Check episode threshold configuration
+- Review application logs for errors
+
+**Rolling monitoring issues:**
+- Ensure Session Monitoring is enabled
+- Confirm content was added with rolling options
+- Check that shows haven't been manually modified in Sonarr
+
+## API Reference
+
+See the [Session Monitoring API documentation](/docs/api/run-session-monitor) for detailed endpoint information.
 
 ## Attribution
 

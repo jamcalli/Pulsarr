@@ -15,6 +15,7 @@ Automatically removes content from Sonarr/Radarr instances when it's no longer o
 **Tag-based**: Uses removal tags for granular control:
 - Adds removal tags when content leaves watchlists
 - Configurable tag behavior: keep, remove, or prefix existing tags
+- Optional regex filter: require additional tag matching for deletion
 - Allows delayed deletion based on tag presence
 
 ## Plex Playlist Protection
@@ -32,6 +33,9 @@ Navigate to **Utilities → Delete Sync**:
 - **Content Types**: Select movies, ended shows, continuing shows
 - **File Management**: Delete or retain media files from disk
 - **Playlist Protection**: Configure protection playlist names
+- **Tag-Based Options** (when using tag-based mode):
+  - **Required Tag Regex**: Optional regex pattern - content must match this pattern to be deleted (in addition to having removal tag)
+  - **Tracked Content Only**: Only delete content tracked in Pulsarr's approval system
 - **Notifications**: Choose Discord, Apprise, or both
   - **Notify Only on Deletion**: Reduce noise by only notifying when items are actually deleted
 - **Safety Threshold**: Prevent mass deletion with configurable limits
@@ -64,9 +68,59 @@ Tag-based mode works with User Tagging:
 - Tags can be kept for history, removed, or prefixed
 - Protected playlist content excluded regardless of tags
 
+## Advanced Tag Filtering
+
+The **Required Tag Regex** option provides an additional layer of control for tag-based deletion. When configured:
+
+- Content must have **both** the removal tag AND a tag matching the regex pattern to be deleted
+- If no regex is configured, only the removal tag is required
+- Regex patterns are validated for safety to prevent catastrophic backtracking
+- Maximum pattern length: 1024 characters
+
+### Use Cases
+
+**Multi-instance deletion sync:**
+```
+Scenario: Two Pulsarr instances sharing Sonarr/Radarr
+Instance 1: Removal prefix = pulsarr1:removed, Regex = pulsarr2:removed
+Instance 2: Removal prefix = pulsarr2:removed, Regex = pulsarr1:removed
+Result: Content is only deleted when BOTH instances mark it for removal
+```
+
+**User-specific deletion:**
+```
+Pattern: ^pulsarr:user:john$
+Result: Only delete content tagged with removal tag AND specific user tag
+```
+
+**Category-based deletion:**
+```
+Pattern: ^genre:(horror|thriller)$
+Result: Only delete content with removal tag AND specific genre tags
+```
+
+**Exclusion patterns:**
+```
+Pattern: ^(?!.*protected).*$
+Result: Delete content with removal tag UNLESS it has a "protected" tag
+```
+
+### Safety Features
+
+All regex patterns are validated for:
+- Valid JavaScript regex syntax
+- Unicode mode compatibility
+- Safe execution (no catastrophic backtracking patterns)
+
 ## Best Practices
 
 - Start with dry runs to understand impact
-- Use playlist protection for favorites or seasonal content  
+- Use playlist protection for favorites or seasonal content
 - Consider tag-based mode for complex deletion workflows
+- Test regex patterns with simple examples before applying broadly
+- Use the "Tracked Content Only" option to avoid deleting manually added content
 - Keep files for shows that may return
+
+## API Reference
+
+See the [Delete Sync API documentation](/docs/api/dry-run-delete-sync) and [Config API](/docs/api/update-config) for detailed endpoint information.
