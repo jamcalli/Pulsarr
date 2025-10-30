@@ -4335,6 +4335,10 @@
                           "minLength": 1,
                           "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                         },
+                        "deleteSyncRequiredTagRegex": {
+                          "type": "string",
+                          "maxLength": 1024
+                        },
                         "deleteSyncTrackedOnly": {
                           "type": "boolean"
                         },
@@ -4922,6 +4926,10 @@
                     "minLength": 1,
                     "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                   },
+                  "deleteSyncRequiredTagRegex": {
+                    "type": "string",
+                    "maxLength": 1024
+                  },
                   "deleteSyncTrackedOnly": {
                     "type": "boolean"
                   },
@@ -5447,6 +5455,10 @@
                           "type": "string",
                           "minLength": 1,
                           "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                        },
+                        "deleteSyncRequiredTagRegex": {
+                          "type": "string",
+                          "maxLength": 1024
                         },
                         "deleteSyncTrackedOnly": {
                           "type": "boolean"
@@ -18622,6 +18634,7 @@
                               "type": "number"
                             },
                             "items": {
+                              "readOnly": true,
                               "type": "array",
                               "items": {
                                 "type": "object",
@@ -18665,6 +18678,7 @@
                               "type": "number"
                             },
                             "items": {
+                              "readOnly": true,
                               "type": "array",
                               "items": {
                                 "type": "object",
