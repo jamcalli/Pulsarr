@@ -107,7 +107,7 @@ export function DeleteSyncDryRunModal({
     }
   }, [open, loading.deleteSyncDryRun, deleteSyncDryRunResults, showResults])
 
-  const filterItems = (items: MediaItem[] | undefined) => {
+  const filterItems = (items: readonly MediaItem[] | undefined) => {
     if (!items) return []
     if (!searchTerm) return items
 
