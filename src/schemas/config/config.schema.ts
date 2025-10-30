@@ -3,6 +3,7 @@ import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import safeRegex from 'safe-regex2'
 import { z } from 'zod'
 
 // Max constants for validation
@@ -52,6 +53,38 @@ const DeletionModeEnum = z.enum([
   'watchlist', // Remove content when it's no longer on any watchlist
   'tag-based', // Only remove content that has a specific tag
 ])
+
+/**
+ * Schema for validating regex patterns used in delete sync tag matching.
+ * Ensures the regex is safe (not catastrophic) and syntactically valid.
+ * Enforces maximum length to prevent pathologically large patterns.
+ */
+const DeleteSyncTagRegexSchema = z
+  .string()
+  .max(1024, { message: 'Regex pattern too long (max 1024 characters)' })
+  .refine(
+    (pattern) => {
+      const p = (pattern ?? '').trim()
+      // Allow empty string (treated as not set)
+      if (p.length === 0) return true
+      // Check if the regex is safe using safe-regex2 library
+      if (!safeRegex(p)) {
+        return false
+      }
+      // Verify the regex syntax is valid in both standard and unicode mode
+      try {
+        new RegExp(p)
+        new RegExp(p, 'u')
+        return true
+      } catch {
+        return false
+      }
+    },
+    {
+      message:
+        'Invalid or unsafe regex pattern. Pattern must be valid regex syntax and not contain catastrophic backtracking patterns.',
+    },
+  )
 
 export const ConfigSchema = z.object({
   port: z.number().optional(),
@@ -142,6 +175,8 @@ export const ConfigSchema = z.object({
   // Deletion mode
   deletionMode: DeletionModeEnum.optional(),
   removedTagPrefix: RemovedTagPrefixSchema.optional(),
+  // Additional regex filter for tag-based deletion - content must have BOTH the removal tag AND a tag matching this regex to be deleted
+  deleteSyncRequiredTagRegex: DeleteSyncTagRegexSchema.optional(),
   // Tracked-only deletion - only delete content tracked by Pulsarr in approval_requests
   deleteSyncTrackedOnly: z.boolean().optional(),
   // Cleanup approval_requests when content is deleted

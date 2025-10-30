@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
   DiscordEmbed,
   DiscordWebhookPayload,
@@ -955,28 +956,7 @@ export class DiscordNotificationService {
    * @returns The created Discord embed
    */
   private createDeleteSyncEmbed(
-    results: {
-      total: {
-        deleted: number
-        skipped: number
-        processed: number
-        protected?: number
-      }
-      movies: {
-        deleted: number
-        skipped: number
-        protected?: number
-        items: Array<{ title: string; guid: string; instance: string }>
-      }
-      shows: {
-        deleted: number
-        skipped: number
-        protected?: number
-        items: Array<{ title: string; guid: string; instance: string }>
-      }
-      safetyTriggered?: boolean
-      safetyMessage?: string
-    },
+    results: DeleteSyncResult,
     dryRun: boolean,
   ): DiscordEmbed {
     let title: string
@@ -1123,28 +1103,7 @@ export class DiscordNotificationService {
    * @returns Promise resolving to true if successful, false otherwise
    */
   async sendDeleteSyncNotification(
-    results: {
-      total: {
-        deleted: number
-        skipped: number
-        processed: number
-        protected?: number
-      }
-      movies: {
-        deleted: number
-        skipped: number
-        protected?: number
-        items: Array<{ title: string; guid: string; instance: string }>
-      }
-      shows: {
-        deleted: number
-        skipped: number
-        protected?: number
-        items: Array<{ title: string; guid: string; instance: string }>
-      }
-      safetyTriggered?: boolean
-      safetyMessage?: string
-    },
+    results: DeleteSyncResult,
     dryRun: boolean,
     notifyOption?: string,
   ): Promise<boolean> {

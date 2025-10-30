@@ -5,7 +5,7 @@
   "main": "build/server.js",
   "type": "module",
   "engines": {
-    "node": "22.21.0"
+    "node": "24.11.0"
   },
   "scripts": {
     "clean:client": "rm -rf dist/client",
@@ -121,7 +121,7 @@
     "fastify-sse-v2": "^4.2.1",
     "fastify-type-provider-zod": "^6.0.0",
     "knex": "^3.1.0",
-    "lucide-react": "^0.546.0",
+    "lucide-react": "^0.548.0",
     "next-themes": "^0.4.6",
     "p-limit": "^7.1.0",
     "pg": "^8.16.0",
@@ -133,7 +133,7 @@
     "react-router-dom": "^7.8.0",
     "recharts": "^2.15.3",
     "rotating-file-stream": "^3.2.6",
-    "safe-regex": "^2.1.1",
+    "safe-regex2": "^5.0.0",
     "semver": "^7.7.1",
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.1",
@@ -147,20 +147,19 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.4",
+    "@biomejs/biome": "^2.3.2",
     "@commitlint/cli": "^20.0.0",
     "@commitlint/config-conventional": "^20.0.0",
     "@tailwindcss/postcss": "^4.1.10",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^22.15.3",
+    "@types/node": "^24.9.2",
     "@types/pg": "^8.15.4",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@types/safe-regex": "^1.1.6",
     "@types/semver": "^7.7.0",
     "@types/turndown": "^5.0.5",
-    "@vitest/coverage-v8": "^3.2.4",
-    "@vitest/ui": "^3.2.4",
+    "@vitest/coverage-v8": "^4.0.0",
+    "@vitest/ui": "^4.0.0",
     "autoprefixer": "^10.4.20",
     "fastify-cli": "^7.4.0",
     "fastify-tsconfig": "^3.0.0",
@@ -170,6 +169,6 @@
     "tailwindcss": "^4.1.10",
     "tsc-alias": "^1.8.15",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.0"
   }
 }

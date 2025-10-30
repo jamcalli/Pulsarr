@@ -8,6 +8,15 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 Manage user content requests with configurable quotas and administrative approval workflows. Set limits by user, require approval for specific content, and maintain control over library growth.
 
+## Quick Setup
+
+1. Navigate to **Plex → Users** and select a user
+2. Click **Edit Quotas** to configure limits
+3. Set quota type (daily, weekly rolling, or monthly) and limits
+4. Optionally enable **Requires Approval** for manual review
+5. Configure approval settings in **Settings → Approvals** (expiration, notifications)
+6. Monitor and manage requests in the **Approvals** section
+
 ## Key Features
 
 - **User Quotas**: Set daily, weekly rolling, or monthly limits per user for movies and shows
@@ -41,7 +50,7 @@ Configure default quota and approval settings for newly discovered Plex users vi
 
 ### Individual User Management
 
-Navigate to **Users** section to manage individual user quotas:
+Navigate to **Plex → Users** to manage individual user quotas:
 
 ### User Quota Settings
 - **Quota Type**: Daily, Weekly Rolling, or Monthly

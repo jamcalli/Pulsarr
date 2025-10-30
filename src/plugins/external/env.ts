@@ -357,6 +357,9 @@ const schema = {
       type: 'boolean',
       default: false,
     },
+    deleteSyncRequiredTagRegex: {
+      type: 'string',
+    },
     approvalNotify: {
       type: 'string',
       enum: [
