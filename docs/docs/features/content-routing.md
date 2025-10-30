@@ -16,6 +16,15 @@ If you're upgrading from a version prior to 0.2.15, you may need to delete and r
 
 <img src={useBaseUrl('/img/Content-Route-2.png')} alt="Content Router Advanced Interface" />
 
+## Quick Setup
+
+1. Navigate to **Content Router** in the Pulsarr interface
+2. Click **Add Rule** to create your first routing rule
+3. Configure conditions (e.g., "IF genre contains 'Anime'")
+4. Select target instance and configure overrides (quality profile, root folder)
+5. Set priority (higher numbers = higher priority)
+6. Save and test by adding content that matches your rule
+
 ## Key Features
 
 **Conditional Logic**: Complex decision trees with AND/OR operators, nested condition groups, and priority-based processing.
@@ -142,3 +151,40 @@ THEN route to "Classics-Radarr" with "Archive" profile
 - Use higher priorities (90-100) for specific rules
 - Start with simple rules before adding complexity
 - Review logs if content isn't routing as expected
+- Test rules with dry runs before applying to production
+- Document your routing strategy for team collaboration
+
+## Troubleshooting
+
+**Rules not matching content:**
+- Verify the condition field matches available metadata (check TMDB/TVDB data)
+- Review genre spelling and casing (case-sensitive matching)
+- Check that content has the required metadata fields populated
+- Use logs to see which rules are evaluated and why they fail
+
+**Content routing to wrong instance:**
+- Review rule priorities - highest priority wins for same instance
+- Check for overlapping rules targeting different instances
+- Verify target instance is configured and online
+- Confirm quality profiles and root folders exist on target instance
+
+**Multiple instances receiving same content unexpectedly:**
+- This is expected behavior if multiple rules match and target different instances
+- Review all matching rules and their target instances
+- Use priority to control which settings apply when multiple rules target same instance
+
+**Anime not being detected:**
+- Verify anime database has been downloaded (first run may take time)
+- Check that content has external IDs (TVDB, TMDB, IMDb)
+- Review logs for anime detection results
+- Wait for weekly update if content is new (Sundays at 3 AM)
+
+**Router overrides not applying:**
+- Confirm the rule is actually matching (check logs)
+- Verify override values are valid for the target instance
+- Check that router rule has higher priority than conflicting rules
+- Ensure target instance supports the configured overrides
+
+## API Reference
+
+See the [Content Router API documentation](/docs/api/content-router) for managing routing rules programmatically.

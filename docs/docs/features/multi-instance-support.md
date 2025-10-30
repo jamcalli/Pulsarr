@@ -6,6 +6,14 @@ sidebar_position: 2
 
 Pulsarr provides comprehensive multi-instance support, allowing you to distribute and synchronize content across multiple Sonarr and Radarr instances with intelligent routing and automated synchronization.
 
+## Quick Setup
+
+1. Navigate to **Sonarr** or **Radarr** in the settings
+2. Configure your primary instance and toggle **Default Instance** to `ON`
+3. Add secondary instances (the ones you want to sync to)
+4. Edit your default instance and select target instances from the **Synced Instances** dropdown
+5. Content added to the default instance will automatically sync to selected instances
+
 ## Core Features
 
 **Instance Synchronization**: Automatically sync content between instances using configurable sync relationships and default instance behavior.
@@ -26,15 +34,9 @@ Each instance type (Sonarr/Radarr) can have one designated default instance:
 
 ### Synced Instances Configuration
 
-Only the default instance contains a `syncedInstances` array that defines its sync targets:
+Only the default instance has a **Synced Instances** dropdown where you select which instances should receive synced content.
 
-```json
-{
-  "syncedInstances": [2, 3, 5]
-}
-```
-
-This means when content is added to the default instance, it will automatically sync to instances 2, 3, and 5 using their respective configurations.
+When you select instances in this dropdown, content added to the default instance will automatically sync to those selected instances using their respective configurations (quality profiles, root folders, etc.).
 
 ### Instance Sync Architecture
 
@@ -145,6 +147,31 @@ Multi-instance support works seamlessly with content routing:
 - Use sync operations for manual library maintenance
 - Regularly verify sync status across instances
 
+## Troubleshooting
+
+**Content not syncing between instances:**
+- Verify the default instance has target instances selected in **Synced Instances** dropdown
+- Check that target instances are online and accessible
+- Review logs for sync operation errors
+- Ensure target instances have valid quality profiles and root folders
+
+**Duplicate notifications:**
+- Verify notification suppression is enabled for sync operations
+- Check webhook processing status in logs
+- Confirm sync detection is working properly
+
+**Sync operations failing:**
+- Verify all instances have correct API keys and URLs
+- Check target instance has sufficient storage space
+- Review content router rules for conflicts
+- Ensure network connectivity between instances
+
+**Wrong instance receiving content:**
+- Review content router rule priorities
+- Verify default instance designation
+- Check synced instances selection in default instance settings
+- Confirm router rules are evaluating correctly
+
 ## Example Configurations
 
 ### Simple Quality Tiers
@@ -158,9 +185,13 @@ Default Sonarr (HD) → Sync to:
 ```
 Default Sonarr → Syncs to:
 ├── Family Sonarr
-├── Archive Sonarr  
+├── Archive Sonarr
 ├── Kids Sonarr
 └── Backup Sonarr
 ```
 
 This powerful multi-instance architecture enables sophisticated content distribution strategies while maintaining automated synchronization and intelligent notification handling.
+
+## API Reference
+
+See the [Sync API documentation](/docs/api/sync-all-instances) for programmatic instance synchronization and the [Sonarr](/docs/api/sonarr) and [Radarr](/docs/api/radarr) APIs for instance management.
