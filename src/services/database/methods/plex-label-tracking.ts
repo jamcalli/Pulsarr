@@ -141,7 +141,7 @@ export async function trackPlexLabelsBulk(
                     synced_at
                   )
                   VALUES (?::jsonb, ?, ?, ?, ?::jsonb, ?)
-                  ON CONFLICT (md5(content_guids::text), user_id, content_type)
+                  ON CONFLICT (md5(content_guids::text), user_id, content_type, plex_rating_key)
                   DO UPDATE SET
                     content_guids = excluded.content_guids,
                     plex_rating_key = excluded.plex_rating_key,
