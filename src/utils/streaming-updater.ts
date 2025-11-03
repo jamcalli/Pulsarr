@@ -132,11 +132,23 @@ export async function* streamLines(
 
   const rl = createInterface({ input: stream, crlfDelay: Infinity })
 
-  for await (const rawLine of rl) {
-    const line = String(rawLine)
-    if (line.length > 0) {
-      yield line
+  try {
+    for await (const rawLine of rl) {
+      const line = String(rawLine)
+      if (line.length > 0) {
+        yield line
+      }
     }
+  } catch (err) {
+    // Check if this is a normal close or an actual error
+    if (err instanceof Error && err.message.includes('closed')) {
+      // Readline was closed normally, this is fine
+      return
+    }
+    throw err
+  } finally {
+    // Ensure readline is properly closed
+    rl.close()
   }
 }
 
