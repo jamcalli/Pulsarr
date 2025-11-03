@@ -1727,7 +1727,7 @@ export class WatchlistWorkflowService {
       return true
     }
 
-    this.log.info(
+    this.log.debug(
       `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
     )
     return false
@@ -1798,7 +1798,7 @@ export class WatchlistWorkflowService {
       return true
     }
 
-    this.log.info(
+    this.log.debug(
       `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
     )
     return false
