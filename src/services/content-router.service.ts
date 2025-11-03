@@ -2562,6 +2562,11 @@ export class ContentRouterService {
         return [...targetInstanceIds]
       }
 
+      // No routing rules matched - check if we should use sync target
+      if (context.syncing && context.syncTargetInstanceId !== undefined) {
+        return [context.syncTargetInstanceId]
+      }
+
       // No routing rules matched, fall back to default instance(s)
       return await this.getDefaultRoutingInstanceIds(contentType)
     } catch (error) {
@@ -2569,14 +2574,18 @@ export class ContentRouterService {
         { error },
         `Error determining target instances for ${item.title}`,
       )
-      // On error, fall back to default instance
+      // On error, check if we should use sync target before falling back to defaults
+      if (context.syncing && context.syncTargetInstanceId !== undefined) {
+        return [context.syncTargetInstanceId]
+      }
+
+      // Fall back to default instance
       if (contentType === 'movie') {
         const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
         return defaultInstance ? [defaultInstance.id] : []
-      } else {
-        const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
-        return defaultInstance ? [defaultInstance.id] : []
       }
+      const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+      return defaultInstance ? [defaultInstance.id] : []
     }
   }
 }

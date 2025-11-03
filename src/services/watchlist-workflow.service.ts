@@ -1371,8 +1371,7 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Determine target instances based on routing rules for this user/content
-          // This ensures we only check existence in instances where the router would send this content
+          // Use helper for routing-aware existence check and routing
           const user = userById.get(numericUserId)
           const sonarrItem: SonarrItem = {
             title: tempItem.title,
@@ -1383,59 +1382,17 @@ export class WatchlistWorkflowService {
             status: 'pending',
             series_status: 'continuing',
           }
-          const context: RoutingContext = {
-            userId: numericUserId,
+
+          const wasAdded = await this.processShowWithRouting({
+            tempItem,
+            numericUserId,
             userName: user?.name,
-            itemKey: tempItem.key,
-            contentType: 'show',
-            syncing: false,
-          }
-          const targetInstanceIds = await this.contentRouter.getTargetInstances(
             sonarrItem,
-            context,
-          )
+            existingSeries,
+          })
 
-          if (targetInstanceIds.length === 0) {
-            this.log.warn(
-              `No target instances available for show ${tempItem.title}, skipping`,
-            )
-            continue
-          }
-
-          // Check if show exists ONLY in the target instances (routing-aware existence check)
-          // Filter existingSeries to only include series from target instances
-          const targetInstanceSeries = existingSeries.filter(
-            (series) =>
-              series.sonarr_instance_id !== undefined &&
-              targetInstanceIds.includes(series.sonarr_instance_id),
-          )
-
-          const potentialMatches = targetInstanceSeries
-            .map((series) => ({
-              series,
-              score: getGuidMatchScore(
-                parseGuids(series.guids),
-                parseGuids(tempItem.guids),
-              ),
-            }))
-            .filter((match) => match.score > 0)
-            .sort((a, b) => b.score - a.score)
-
-          const existsInTargetInstance = potentialMatches.length > 0
-
-          // Add to Sonarr if not exists in target instance(s)
-          if (!existsInTargetInstance) {
-            // Pass user id to the router (reuse sonarrItem from above)
-            await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
-              userId: numericUserId,
-              syncing: false,
-            })
-
+          if (wasAdded) {
             showsAdded++
-          } else {
-            this.log.info(
-              `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
-            )
           }
         }
         // Process movies
@@ -1449,8 +1406,7 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Determine target instances based on routing rules for this user/content
-          // This ensures we only check existence in instances where the router would send this content
+          // Use helper for routing-aware existence check and routing
           const user = userById.get(numericUserId)
           const radarrItem: RadarrItem = {
             title: tempItem.title,
@@ -1458,59 +1414,17 @@ export class WatchlistWorkflowService {
             type: 'movie',
             genres: this.safeParseArray<string>(tempItem.genres),
           }
-          const context: RoutingContext = {
-            userId: numericUserId,
+
+          const wasAdded = await this.processMovieWithRouting({
+            tempItem,
+            numericUserId,
             userName: user?.name,
-            itemKey: tempItem.key,
-            contentType: 'movie',
-            syncing: false,
-          }
-          const targetInstanceIds = await this.contentRouter.getTargetInstances(
             radarrItem,
-            context,
-          )
+            existingMovies,
+          })
 
-          if (targetInstanceIds.length === 0) {
-            this.log.warn(
-              `No target instances available for movie ${tempItem.title}, skipping`,
-            )
-            continue
-          }
-
-          // Check if movie exists ONLY in the target instances (routing-aware existence check)
-          // Filter existingMovies to only include movies from target instances
-          const targetInstanceMovies = existingMovies.filter(
-            (movie) =>
-              movie.radarr_instance_id !== undefined &&
-              targetInstanceIds.includes(movie.radarr_instance_id),
-          )
-
-          const potentialMatches = targetInstanceMovies
-            .map((movie) => ({
-              movie,
-              score: getGuidMatchScore(
-                parseGuids(movie.guids),
-                parseGuids(tempItem.guids),
-              ),
-            }))
-            .filter((match) => match.score > 0)
-            .sort((a, b) => b.score - a.score)
-
-          const existsInTargetInstance = potentialMatches.length > 0
-
-          // Add to Radarr if not exists in target instance(s)
-          if (!existsInTargetInstance) {
-            // Pass user id to the router (reuse radarrItem from above)
-            await this.contentRouter.routeContent(radarrItem, tempItem.key, {
-              userId: numericUserId,
-              syncing: false,
-            })
-
+          if (wasAdded) {
             moviesAdded++
-          } else {
-            this.log.info(
-              `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
-            )
           }
         }
       }
@@ -1746,6 +1660,148 @@ export class WatchlistWorkflowService {
       hasUserRoutingRules ||
       hasUsersWithApprovalConfig
     )
+  }
+
+  /**
+   * Helper to check if shows exist in target instances and route if needed.
+   *
+   * @returns true if content was added, false if it already exists
+   */
+  private async processShowWithRouting(params: {
+    tempItem: TemptRssWatchlistItem
+    numericUserId: number
+    userName: string | undefined
+    sonarrItem: SonarrItem
+    existingSeries: SonarrItem[]
+  }): Promise<boolean> {
+    const { tempItem, numericUserId, userName, sonarrItem, existingSeries } =
+      params
+
+    // Get target instances based on routing rules for this user/content
+    const context: RoutingContext = {
+      userId: numericUserId,
+      userName,
+      itemKey: tempItem.key,
+      contentType: 'show',
+      syncing: false,
+    }
+    const targetInstanceIds = await this.contentRouter.getTargetInstances(
+      sonarrItem,
+      context,
+    )
+
+    if (targetInstanceIds.length === 0) {
+      this.log.warn(
+        `No target instances available for show ${tempItem.title}, skipping`,
+      )
+      return false
+    }
+
+    // Check if show exists ONLY in the target instances (routing-aware existence check)
+    const targetInstanceSeries = existingSeries.filter((series) => {
+      return (
+        series.sonarr_instance_id !== undefined &&
+        targetInstanceIds.includes(series.sonarr_instance_id)
+      )
+    })
+
+    const potentialMatches = targetInstanceSeries
+      .map((series) => ({
+        series,
+        score: getGuidMatchScore(
+          parseGuids(series.guids),
+          parseGuids(tempItem.guids),
+        ),
+      }))
+      .filter((match) => match.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    const existsInTargetInstance = potentialMatches.length > 0
+
+    // Add to Sonarr if not exists in target instance(s)
+    if (!existsInTargetInstance) {
+      await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
+        userId: numericUserId,
+        syncing: false,
+      })
+      return true
+    }
+
+    this.log.info(
+      `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    )
+    return false
+  }
+
+  /**
+   * Helper to check if movies exist in target instances and route if needed.
+   *
+   * @returns true if content was added, false if it already exists
+   */
+  private async processMovieWithRouting(params: {
+    tempItem: TemptRssWatchlistItem
+    numericUserId: number
+    userName: string | undefined
+    radarrItem: RadarrItem
+    existingMovies: RadarrItem[]
+  }): Promise<boolean> {
+    const { tempItem, numericUserId, userName, radarrItem, existingMovies } =
+      params
+
+    // Get target instances based on routing rules for this user/content
+    const context: RoutingContext = {
+      userId: numericUserId,
+      userName,
+      itemKey: tempItem.key,
+      contentType: 'movie',
+      syncing: false,
+    }
+    const targetInstanceIds = await this.contentRouter.getTargetInstances(
+      radarrItem,
+      context,
+    )
+
+    if (targetInstanceIds.length === 0) {
+      this.log.warn(
+        `No target instances available for movie ${tempItem.title}, skipping`,
+      )
+      return false
+    }
+
+    // Check if movie exists ONLY in the target instances (routing-aware existence check)
+    const targetInstanceMovies = existingMovies.filter((movie) => {
+      return (
+        movie.radarr_instance_id !== undefined &&
+        targetInstanceIds.includes(movie.radarr_instance_id)
+      )
+    })
+
+    const potentialMatches = targetInstanceMovies
+      .map((movie) => ({
+        movie,
+        score: getGuidMatchScore(
+          parseGuids(movie.guids),
+          parseGuids(tempItem.guids),
+        ),
+      }))
+      .filter((match) => match.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    const existsInTargetInstance = potentialMatches.length > 0
+
+    // Add to Radarr if not exists in target instance(s)
+    if (!existsInTargetInstance) {
+      await this.contentRouter.routeContent(radarrItem, tempItem.key, {
+        userId: numericUserId,
+        syncing: false,
+      })
+      return true
+    }
+
+    this.log.info(
+      `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    )
+    return false
   }
 
   private safeParseArray<T>(value: unknown): T[] {
