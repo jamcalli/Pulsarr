@@ -1247,10 +1247,12 @@ export class WatchlistWorkflowService {
       // Get all users to check their sync permissions
       const allUsers = await this.dbService.getAllUsers()
       const userSyncStatus = new Map<number, boolean>()
+      const userById = new Map<number, (typeof allUsers)[number]>()
 
-      // Create a map of user ID to their can_sync status for quick lookups
+      // Create maps for user sync status and user objects for quick lookups (avoids N+1 queries)
       for (const user of allUsers) {
         userSyncStatus.set(user.id, user.can_sync !== false)
+        userById.set(user.id, user)
       }
 
       // DEBUG: Log user sync settings
@@ -1371,7 +1373,7 @@ export class WatchlistWorkflowService {
 
           // Determine target instances based on routing rules for this user/content
           // This ensures we only check existence in instances where the router would send this content
-          const user = await this.dbService.getUser(numericUserId)
+          const user = userById.get(numericUserId)
           const sonarrItem: SonarrItem = {
             title: tempItem.title,
             guids: parseGuids(tempItem.guids),
@@ -1449,7 +1451,7 @@ export class WatchlistWorkflowService {
 
           // Determine target instances based on routing rules for this user/content
           // This ensures we only check existence in instances where the router would send this content
-          const user = await this.dbService.getUser(numericUserId)
+          const user = userById.get(numericUserId)
           const radarrItem: RadarrItem = {
             title: tempItem.title,
             guids: parseGuids(tempItem.guids),
@@ -1530,7 +1532,7 @@ export class WatchlistWorkflowService {
       this.log.info(`Watchlist sync completed: ${JSON.stringify(summary)}`)
 
       // Update auto-approval records to attribute them to actual users
-      await this.updateAutoApprovalUserAttribution(shows, movies)
+      await this.updateAutoApprovalUserAttribution(shows, movies, userById)
 
       // Sync statuses after adding new content to ensure tags are applied
       // Pass the already-fetched data to avoid redundant API calls
@@ -1916,6 +1918,7 @@ export class WatchlistWorkflowService {
   private async updateAutoApprovalUserAttribution(
     prefetchedShows?: TokenWatchlistItem[],
     prefetchedMovies?: TokenWatchlistItem[],
+    userById?: Map<number, Awaited<ReturnType<typeof this.dbService.getUser>>>,
   ): Promise<void> {
     try {
       this.log.debug('Updating auto-approval user attribution')
@@ -2049,8 +2052,10 @@ export class WatchlistWorkflowService {
               continue
             }
 
-            // Get user details
-            const user = await this.dbService.getUser(numericUserId)
+            // Get user details (from cache if available, otherwise query DB)
+            const user =
+              userById?.get(numericUserId) ??
+              (await this.dbService.getUser(numericUserId))
             if (!user) {
               this.log.warn(
                 `User ${numericUserId} not found for approval record ${approvalRecord.id}`,

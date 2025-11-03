@@ -2493,6 +2493,30 @@ export class ContentRouterService {
       const allRouterRules = await this.fastify.db.getAllRouterRules()
       const targetInstanceIds = new Set<number>()
 
+      // Check if we have any conditional rules (to determine if enrichment is needed)
+      const hasConditionalRules = allRouterRules.some(
+        (rule) => rule.enabled && rule.type === 'conditional',
+      )
+
+      // IMPORTANT: Enrich item with metadata before evaluation (mirrors routeContent behavior)
+      // This ensures rules that depend on enriched metadata (anime detection, IMDb ratings, etc.)
+      // will match correctly during the dry-run existence check
+      let itemForEvaluation = item
+      if (hasConditionalRules) {
+        try {
+          itemForEvaluation = await this.enrichItemMetadata(item, context)
+          this.log.debug(
+            `Item "${item.title}" enriched for routing target evaluation`,
+          )
+        } catch (error) {
+          this.log.error(
+            { error },
+            `Failed to enrich metadata for "${item.title}" during target evaluation, using original item`,
+          )
+          // Continue with original item if enrichment fails
+        }
+      }
+
       // Check each enabled conditional rule to see if it matches
       for (const rule of allRouterRules) {
         if (!rule.enabled) continue
@@ -2508,10 +2532,14 @@ export class ContentRouterService {
         if (ruleTargetType && ruleTargetType !== contentType) continue
 
         try {
-          // Evaluate the rule's condition
+          // Evaluate the rule's condition using enriched item
           if (rule.criteria && typeof rule.criteria === 'object') {
             const condition = rule.criteria.condition as ConditionGroup
-            const matches = this.evaluateCondition(condition, item, context)
+            const matches = this.evaluateCondition(
+              condition,
+              itemForEvaluation,
+              context,
+            )
 
             if (matches && rule.target_instance_id) {
               // This rule matches, add its target instance
