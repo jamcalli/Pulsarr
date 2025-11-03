@@ -1,7 +1,12 @@
 import { readdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { RouterDecision } from '@root/types/approval.types.js'
+import type {
+  ApprovalData,
+  ApprovalRequest,
+  ApprovalTrigger,
+  RouterDecision,
+} from '@root/types/approval.types.js'
 import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
@@ -1735,8 +1740,8 @@ export class ContentRouterService {
   ): Promise<{
     required: boolean
     reason?: string
-    trigger?: import('@root/types/approval.types.js').ApprovalTrigger
-    data?: import('@root/types/approval.types.js').ApprovalData
+    trigger?: ApprovalTrigger
+    data?: ApprovalData
   }> {
     if (!context.userId) {
       return { required: false }
@@ -2328,7 +2333,7 @@ export class ContentRouterService {
    * Routes content using a previously approved decision
    */
   private async routeUsingApprovedDecision(
-    approvedRequest: import('@root/types/approval.types.js').ApprovalRequest,
+    approvedRequest: ApprovalRequest,
     item: ContentItem,
     context: RoutingContext,
   ): Promise<{ routedInstances: number[] }> {
@@ -2465,6 +2470,122 @@ export class ContentRouterService {
         `Error getting instance configuration for auto-approval record`,
       )
       return undefined
+    }
+  }
+
+  /**
+   * Determines which instance(s) would be targeted for a given content item based on routing rules.
+   * This is a "dry-run" method that evaluates routing decisions without actually performing the route.
+   * Used by sync operations to perform routing-aware existence checks.
+   *
+   * @param item - The content item to evaluate
+   * @param context - Routing context with user information and content type
+   * @returns Promise resolving to array of instance IDs that would be targeted
+   */
+  async getTargetInstances(
+    item: ContentItem,
+    context: RoutingContext,
+  ): Promise<number[]> {
+    const contentType = context.contentType
+
+    try {
+      // Get all router rules and evaluate them for this content
+      const allRouterRules = await this.fastify.db.getAllRouterRules()
+      const targetInstanceIds = new Set<number>()
+
+      // Check if we have any conditional rules (to determine if enrichment is needed)
+      const hasConditionalRules = allRouterRules.some(
+        (rule) => rule.enabled && rule.type === 'conditional',
+      )
+
+      // IMPORTANT: Enrich item with metadata before evaluation (mirrors routeContent behavior)
+      // This ensures rules that depend on enriched metadata (anime detection, IMDb ratings, etc.)
+      // will match correctly during the dry-run existence check
+      let itemForEvaluation = item
+      if (hasConditionalRules) {
+        try {
+          itemForEvaluation = await this.enrichItemMetadata(item, context)
+          this.log.debug(
+            `Item "${item.title}" enriched for routing target evaluation`,
+          )
+        } catch (error) {
+          this.log.error(
+            { error },
+            `Failed to enrich metadata for "${item.title}" during target evaluation, using original item`,
+          )
+          // Continue with original item if enrichment fails
+        }
+      }
+
+      // Check each enabled conditional rule to see if it matches
+      for (const rule of allRouterRules) {
+        if (!rule.enabled) continue
+        if (rule.type !== 'conditional') continue
+
+        // Check if rule matches content type (router uses 'radarr'/'sonarr', context uses 'movie'/'show')
+        const ruleTargetType =
+          rule.target_type === 'radarr'
+            ? 'movie'
+            : rule.target_type === 'sonarr'
+              ? 'show'
+              : null
+        if (ruleTargetType && ruleTargetType !== contentType) continue
+
+        try {
+          // Evaluate the rule's condition using enriched item
+          if (rule.criteria && typeof rule.criteria === 'object') {
+            const condition = rule.criteria.condition as ConditionGroup
+            const matches = this.evaluateCondition(
+              condition,
+              itemForEvaluation,
+              context,
+            )
+
+            if (matches && rule.target_instance_id) {
+              // This rule matches, add its target instance
+              targetInstanceIds.add(rule.target_instance_id)
+              this.log.debug(
+                `Router rule "${rule.name}" matches ${item.title}, targeting instance ${rule.target_instance_id}`,
+              )
+            }
+          }
+        } catch (error) {
+          this.log.error(
+            { error },
+            `Error evaluating router rule ${rule.id} for ${item.title}`,
+          )
+        }
+      }
+
+      // If routing rules matched, return those target instances
+      if (targetInstanceIds.size > 0) {
+        return [...targetInstanceIds]
+      }
+
+      // No routing rules matched - check if we should use sync target
+      if (context.syncing && context.syncTargetInstanceId !== undefined) {
+        return [context.syncTargetInstanceId]
+      }
+
+      // No routing rules matched, fall back to default instance(s)
+      return await this.getDefaultRoutingInstanceIds(contentType)
+    } catch (error) {
+      this.log.error(
+        { error },
+        `Error determining target instances for ${item.title}`,
+      )
+      // On error, check if we should use sync target before falling back to defaults
+      if (context.syncing && context.syncTargetInstanceId !== undefined) {
+        return [context.syncTargetInstanceId]
+      }
+
+      // Fall back to default instance
+      if (contentType === 'movie') {
+        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
+        return defaultInstance ? [defaultInstance.id] : []
+      }
+      const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+      return defaultInstance ? [defaultInstance.id] : []
     }
   }
 }

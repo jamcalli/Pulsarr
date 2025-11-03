@@ -30,8 +30,11 @@ import type {
   WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
-import type { Condition, ConditionGroup } from '@root/types/router.types.js'
-import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
+import type {
+  Condition,
+  ConditionGroup,
+  RoutingContext,
+} from '@root/types/router.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   extractTmdbId,
@@ -870,160 +873,6 @@ export class WatchlistWorkflowService {
   }
 
   /**
-   * Check if at least one Sonarr instance is available for service operations
-   * and aggregate existence across all available instances
-   *
-   * @param item - Watchlist item to check (for logging context)
-   * @returns Promise resolving to ExistenceCheckResult indicating availability and existence across all instances
-   */
-  private async checkSonarrServiceAvailability(
-    item: TemptRssWatchlistItem,
-  ): Promise<ExistenceCheckResult> {
-    try {
-      // Use utility function to extract TVDB ID
-      const tvdbId = extractTvdbId(item.guids)
-      if (tvdbId === 0) {
-        return {
-          found: false,
-          checked: false,
-          serviceName: 'Sonarr',
-          error: 'No valid TVDB ID found',
-        }
-      }
-
-      // Get all Sonarr instances
-      const instances = await this.sonarrManager.getAllInstances()
-      if (instances.length === 0) {
-        return {
-          found: false,
-          checked: false,
-          serviceName: 'Sonarr',
-          error: 'No Sonarr instances configured',
-        }
-      }
-
-      // Aggregate results across all instances
-      let anyChecked = false
-      let existsSomewhere = false
-
-      for (const instance of instances) {
-        const result = await this.sonarrManager.seriesExistsByTvdbId(
-          instance.id,
-          tvdbId,
-        )
-
-        // Track if any instance is available
-        if (result.checked) {
-          anyChecked = true
-          // Track if item exists in any available instance
-          if (result.found) {
-            existsSomewhere = true
-            // Continue checking all instances to ensure complete coverage
-          }
-        }
-      }
-
-      // Return aggregated result
-      return anyChecked
-        ? {
-            found: existsSomewhere,
-            checked: true,
-            serviceName: 'Sonarr',
-          }
-        : {
-            found: false,
-            checked: false,
-            serviceName: 'Sonarr',
-            error: 'All Sonarr instances unavailable',
-          }
-    } catch (error) {
-      return {
-        found: false,
-        checked: false,
-        serviceName: 'Sonarr',
-        error: error instanceof Error ? error.message : String(error),
-      }
-    }
-  }
-
-  /**
-   * Check if at least one Radarr instance is available for service operations
-   * and aggregate existence across all available instances
-   *
-   * @param item - Watchlist item to check (for logging context)
-   * @returns Promise resolving to ExistenceCheckResult indicating availability and existence across all instances
-   */
-  private async checkRadarrServiceAvailability(
-    item: TemptRssWatchlistItem,
-  ): Promise<ExistenceCheckResult> {
-    try {
-      // Use utility function to extract TMDB ID
-      const tmdbId = extractTmdbId(item.guids)
-      if (tmdbId === 0) {
-        return {
-          found: false,
-          checked: false,
-          serviceName: 'Radarr',
-          error: 'No valid TMDB ID found',
-        }
-      }
-
-      // Get all Radarr instances
-      const instances = await this.radarrManager.getAllInstances()
-      if (instances.length === 0) {
-        return {
-          found: false,
-          checked: false,
-          serviceName: 'Radarr',
-          error: 'No Radarr instances configured',
-        }
-      }
-
-      // Aggregate results across all instances
-      let anyChecked = false
-      let existsSomewhere = false
-
-      for (const instance of instances) {
-        const result = await this.radarrManager.movieExistsByTmdbId(
-          instance.id,
-          tmdbId,
-        )
-
-        // Track if any instance is available
-        if (result.checked) {
-          anyChecked = true
-          // Track if item exists in any available instance
-          if (result.found) {
-            existsSomewhere = true
-            // Continue checking all instances to ensure complete coverage
-          }
-        }
-      }
-
-      // Return aggregated result
-      return anyChecked
-        ? {
-            found: existsSomewhere,
-            checked: true,
-            serviceName: 'Radarr',
-          }
-        : {
-            found: false,
-            checked: false,
-            serviceName: 'Radarr',
-            error: 'All Radarr instances unavailable',
-          }
-    } catch (error) {
-      return {
-        found: false,
-        checked: false,
-        serviceName: 'Radarr',
-        error: error instanceof Error ? error.message : String(error),
-      }
-    }
-  }
-
-  /**
    * Verify if a show already exists in any Sonarr instance
    *
    * @param item - Watchlist item to check
@@ -1398,10 +1247,12 @@ export class WatchlistWorkflowService {
       // Get all users to check their sync permissions
       const allUsers = await this.dbService.getAllUsers()
       const userSyncStatus = new Map<number, boolean>()
+      const userById = new Map<number, (typeof allUsers)[number]>()
 
-      // Create a map of user ID to their can_sync status for quick lookups
+      // Create maps for user sync status and user objects for quick lookups (avoids N+1 queries)
       for (const user of allUsers) {
         userSyncStatus.set(user.id, user.can_sync !== false)
+        userById.set(user.id, user)
       }
 
       // DEBUG: Log user sync settings
@@ -1520,62 +1371,27 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Check if show exists using GUID weighting system
-          const potentialMatches = existingSeries
-            .map((series) => ({
-              series,
-              score: getGuidMatchScore(
-                parseGuids(series.guids),
-                parseGuids(tempItem.guids),
-              ),
-            }))
-            .filter((match) => match.score > 0)
-            .sort((a, b) => b.score - a.score)
+          // Use helper for routing-aware existence check and routing
+          const user = userById.get(numericUserId)
+          const sonarrItem: SonarrItem = {
+            title: tempItem.title,
+            guids: parseGuids(tempItem.guids),
+            type: 'show',
+            ended: false,
+            genres: this.safeParseArray<string>(tempItem.genres),
+            status: 'pending',
+            series_status: 'continuing',
+          }
 
-          const exists = potentialMatches.length > 0
+          const wasAdded = await this.processShowWithRouting({
+            tempItem,
+            numericUserId,
+            userName: user?.name,
+            sonarrItem,
+            existingSeries,
+          })
 
-          // Add to Sonarr if not exists
-          if (!exists) {
-            // Check service availability before attempting to route
-            const serviceCheck =
-              await this.checkSonarrServiceAvailability(tempItem)
-
-            if (!serviceCheck.checked) {
-              this.log.warn(
-                {
-                  error: serviceCheck.error,
-                  serviceName: serviceCheck.serviceName,
-                  instanceId: serviceCheck.instanceId,
-                },
-                `Sonarr service unavailable for ${tempItem.title}, skipping addition during sync`,
-              )
-              continue
-            }
-
-            // If the item already exists in an available service, skip it
-            if (serviceCheck.found) {
-              this.log.info(
-                `Show ${tempItem.title} already exists in available Sonarr instance, skipping addition`,
-              )
-              continue
-            }
-
-            const sonarrItem: SonarrItem = {
-              title: tempItem.title,
-              guids: parseGuids(tempItem.guids),
-              type: 'show',
-              ended: false,
-              genres: this.safeParseArray<string>(tempItem.genres),
-              status: 'pending',
-              series_status: 'continuing',
-            }
-
-            // Pass user id to the router
-            await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
-              userId: numericUserId,
-              syncing: false,
-            })
-
+          if (wasAdded) {
             showsAdded++
           }
         }
@@ -1590,59 +1406,24 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Check if movie exists using GUID weighting system
-          const potentialMatches = existingMovies
-            .map((movie) => ({
-              movie,
-              score: getGuidMatchScore(
-                parseGuids(movie.guids),
-                parseGuids(tempItem.guids),
-              ),
-            }))
-            .filter((match) => match.score > 0)
-            .sort((a, b) => b.score - a.score)
+          // Use helper for routing-aware existence check and routing
+          const user = userById.get(numericUserId)
+          const radarrItem: RadarrItem = {
+            title: tempItem.title,
+            guids: parseGuids(tempItem.guids),
+            type: 'movie',
+            genres: this.safeParseArray<string>(tempItem.genres),
+          }
 
-          const exists = potentialMatches.length > 0
+          const wasAdded = await this.processMovieWithRouting({
+            tempItem,
+            numericUserId,
+            userName: user?.name,
+            radarrItem,
+            existingMovies,
+          })
 
-          // Add to Radarr if not exists
-          if (!exists) {
-            // Check service availability before attempting to route
-            const serviceCheck =
-              await this.checkRadarrServiceAvailability(tempItem)
-
-            if (!serviceCheck.checked) {
-              this.log.warn(
-                {
-                  error: serviceCheck.error,
-                  serviceName: serviceCheck.serviceName,
-                  instanceId: serviceCheck.instanceId,
-                },
-                `Radarr service unavailable for ${tempItem.title}, skipping addition during sync`,
-              )
-              continue
-            }
-
-            // If the item already exists in an available service, skip it
-            if (serviceCheck.found) {
-              this.log.info(
-                `Movie ${tempItem.title} already exists in available Radarr instance, skipping addition`,
-              )
-              continue
-            }
-
-            const radarrItem: RadarrItem = {
-              title: tempItem.title,
-              guids: parseGuids(tempItem.guids),
-              type: 'movie',
-              genres: this.safeParseArray<string>(tempItem.genres),
-            }
-
-            // Pass user id to the router
-            await this.contentRouter.routeContent(radarrItem, tempItem.key, {
-              userId: numericUserId,
-              syncing: false,
-            })
-
+          if (wasAdded) {
             moviesAdded++
           }
         }
@@ -1665,7 +1446,7 @@ export class WatchlistWorkflowService {
       this.log.info(`Watchlist sync completed: ${JSON.stringify(summary)}`)
 
       // Update auto-approval records to attribute them to actual users
-      await this.updateAutoApprovalUserAttribution(shows, movies)
+      await this.updateAutoApprovalUserAttribution(shows, movies, userById)
 
       // Sync statuses after adding new content to ensure tags are applied
       // Pass the already-fetched data to avoid redundant API calls
@@ -1881,6 +1662,148 @@ export class WatchlistWorkflowService {
     )
   }
 
+  /**
+   * Helper to check if shows exist in target instances and route if needed.
+   *
+   * @returns true if content was added, false if it already exists
+   */
+  private async processShowWithRouting(params: {
+    tempItem: TemptRssWatchlistItem
+    numericUserId: number
+    userName: string | undefined
+    sonarrItem: SonarrItem
+    existingSeries: SonarrItem[]
+  }): Promise<boolean> {
+    const { tempItem, numericUserId, userName, sonarrItem, existingSeries } =
+      params
+
+    // Get target instances based on routing rules for this user/content
+    const context: RoutingContext = {
+      userId: numericUserId,
+      userName,
+      itemKey: tempItem.key,
+      contentType: 'show',
+      syncing: false,
+    }
+    const targetInstanceIds = await this.contentRouter.getTargetInstances(
+      sonarrItem,
+      context,
+    )
+
+    if (targetInstanceIds.length === 0) {
+      this.log.warn(
+        `No target instances available for show ${tempItem.title}, skipping`,
+      )
+      return false
+    }
+
+    // Check if show exists ONLY in the target instances (routing-aware existence check)
+    const targetInstanceSeries = existingSeries.filter((series) => {
+      return (
+        series.sonarr_instance_id !== undefined &&
+        targetInstanceIds.includes(series.sonarr_instance_id)
+      )
+    })
+
+    const potentialMatches = targetInstanceSeries
+      .map((series) => ({
+        series,
+        score: getGuidMatchScore(
+          parseGuids(series.guids),
+          parseGuids(tempItem.guids),
+        ),
+      }))
+      .filter((match) => match.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    const existsInTargetInstance = potentialMatches.length > 0
+
+    // Add to Sonarr if not exists in target instance(s)
+    if (!existsInTargetInstance) {
+      await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
+        userId: numericUserId,
+        syncing: false,
+      })
+      return true
+    }
+
+    this.log.info(
+      `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    )
+    return false
+  }
+
+  /**
+   * Helper to check if movies exist in target instances and route if needed.
+   *
+   * @returns true if content was added, false if it already exists
+   */
+  private async processMovieWithRouting(params: {
+    tempItem: TemptRssWatchlistItem
+    numericUserId: number
+    userName: string | undefined
+    radarrItem: RadarrItem
+    existingMovies: RadarrItem[]
+  }): Promise<boolean> {
+    const { tempItem, numericUserId, userName, radarrItem, existingMovies } =
+      params
+
+    // Get target instances based on routing rules for this user/content
+    const context: RoutingContext = {
+      userId: numericUserId,
+      userName,
+      itemKey: tempItem.key,
+      contentType: 'movie',
+      syncing: false,
+    }
+    const targetInstanceIds = await this.contentRouter.getTargetInstances(
+      radarrItem,
+      context,
+    )
+
+    if (targetInstanceIds.length === 0) {
+      this.log.warn(
+        `No target instances available for movie ${tempItem.title}, skipping`,
+      )
+      return false
+    }
+
+    // Check if movie exists ONLY in the target instances (routing-aware existence check)
+    const targetInstanceMovies = existingMovies.filter((movie) => {
+      return (
+        movie.radarr_instance_id !== undefined &&
+        targetInstanceIds.includes(movie.radarr_instance_id)
+      )
+    })
+
+    const potentialMatches = targetInstanceMovies
+      .map((movie) => ({
+        movie,
+        score: getGuidMatchScore(
+          parseGuids(movie.guids),
+          parseGuids(tempItem.guids),
+        ),
+      }))
+      .filter((match) => match.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    const existsInTargetInstance = potentialMatches.length > 0
+
+    // Add to Radarr if not exists in target instance(s)
+    if (!existsInTargetInstance) {
+      await this.contentRouter.routeContent(radarrItem, tempItem.key, {
+        userId: numericUserId,
+        syncing: false,
+      })
+      return true
+    }
+
+    this.log.info(
+      `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    )
+    return false
+  }
+
   private safeParseArray<T>(value: unknown): T[] {
     if (Array.isArray(value)) {
       return value as T[]
@@ -2051,6 +1974,7 @@ export class WatchlistWorkflowService {
   private async updateAutoApprovalUserAttribution(
     prefetchedShows?: TokenWatchlistItem[],
     prefetchedMovies?: TokenWatchlistItem[],
+    userById?: Map<number, Awaited<ReturnType<typeof this.dbService.getUser>>>,
   ): Promise<void> {
     try {
       this.log.debug('Updating auto-approval user attribution')
@@ -2184,8 +2108,10 @@ export class WatchlistWorkflowService {
               continue
             }
 
-            // Get user details
-            const user = await this.dbService.getUser(numericUserId)
+            // Get user details (from cache if available, otherwise query DB)
+            const user =
+              userById?.get(numericUserId) ??
+              (await this.dbService.getUser(numericUserId))
             if (!user) {
               this.log.warn(
                 `User ${numericUserId} not found for approval record ${approvalRecord.id}`,
