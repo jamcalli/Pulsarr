@@ -1399,6 +1399,7 @@ export class PlexServerService {
     this.protectedItemsCache = null
     this.sharedServerInfo = null
     this.sharedServerInfoTimestamp = 0
+    this.serverListCache = null
 
     // Only reset the initialized state if explicitly requested
     if (resetInitialized) {
@@ -1616,16 +1617,16 @@ export class PlexServerService {
         return false
       }
 
-      // Get list of all servers accessible to this token
+      // Get list of all server connections accessible to this token
       const servers = await this.getServerList(adminToken)
 
       if (servers.length === 0) {
-        this.log.debug('No Plex servers found for existence check')
+        this.log.debug('No Plex server connections found for existence check')
         return false
       }
 
       this.log.debug(
-        `Checking content existence across ${servers.length} Plex servers`,
+        `Checking content existence across ${servers.length} Plex server connections`,
       )
 
       // Try each GUID (prioritize plex:// GUIDs first)
@@ -1693,10 +1694,12 @@ export class PlexServerService {
   }
 
   /**
-   * Gets list of all Plex servers accessible to the current token.
+   * Gets list of all Plex server connections accessible to the current token.
+   * Returns all available connection URIs (not just the first one) to handle
+   * hosted deployments where LAN URIs may be unreachable.
    *
    * @param token - The Plex token to use for authentication
-   * @returns Promise<Array<{name: string, uri: string}>>
+   * @returns Promise<Array<{name: string, uri: string}>> - All server connections sorted by preference
    */
   private async getServerList(
     token: string,
@@ -1704,7 +1707,7 @@ export class PlexServerService {
     // Return cached server list if available (within same reconciliation cycle)
     if (this.serverListCache) {
       this.log.debug(
-        `Using cached server list (${this.serverListCache.length} servers)`,
+        `Using cached server list (${this.serverListCache.length} connections)`,
       )
       return this.serverListCache
     }
@@ -1729,20 +1732,37 @@ export class PlexServerService {
 
       const data = (await response.json()) as PlexResource[]
 
-      // Filter for Plex Media Server resources with valid connections
+      // Filter for Plex Media Server resources and flatten all connections
+      // Include all connection URIs (not just the first) to handle hosted deployments
+      // where LAN URIs may be listed first but are unreachable
       const servers = data
-        .filter((r) => r.provides === 'server')
-        .map((r) => ({
-          name: r.name,
-          uri: r.connections?.[0]?.uri || '',
-        }))
-        .filter((s) => s.uri) // Only include servers with valid URIs
+        .filter((resource) => resource.provides === 'server')
+        .flatMap((resource) =>
+          (resource.connections ?? []).map((connection) => ({
+            name: resource.name,
+            uri: connection.uri,
+            local: connection.local,
+            relay: connection.relay,
+          })),
+        )
+        .filter((s) => s.uri)
+        // Sort to prefer non-local, non-relay connections (more likely reachable in hosted deployments)
+        .sort((a, b) => {
+          // Prefer non-local over local
+          if (!a.local && b.local) return -1
+          if (a.local && !b.local) return 1
+          // Prefer non-relay over relay
+          if (!a.relay && b.relay) return -1
+          if (a.relay && !b.relay) return 1
+          return 0
+        })
+        .map(({ name, uri }) => ({ name, uri }))
 
       // Cache the result for this reconciliation cycle
       this.serverListCache = servers
 
       this.log.debug(
-        `Found ${servers.length} accessible Plex servers for existence check`,
+        `Found ${servers.length} accessible Plex server connections for existence check`,
       )
 
       return servers
