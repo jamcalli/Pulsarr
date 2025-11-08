@@ -58,7 +58,13 @@ export class PlexServerService {
   private sharedServerInfoTimestamp = 0
 
   // Server list cache for existence checking (workflow-scoped)
-  private serverListCache: Array<{ name: string; uri: string }> | null = null
+  private serverListCache: Array<{
+    name: string
+    uri: string
+    local: boolean
+    relay: boolean
+    accessToken: string | null
+  }> | null = null
 
   // Playlist and protection workflow cache
   // These are intended to be used within a single workflow execution
@@ -1644,9 +1650,18 @@ export class PlexServerService {
         // Check each server for this GUID
         for (const server of servers) {
           try {
+            // Use server-specific access token for shared servers, fall back to admin token
+            const serverToken = server.accessToken || adminToken
+            if (!serverToken) {
+              this.log.debug(
+                `No access token available for server "${server.name}", skipping`,
+              )
+              continue
+            }
+
             const url = new URL('/library/all', server.uri)
             url.searchParams.append('guid', normalizedGuid)
-            url.searchParams.append('X-Plex-Token', adminToken)
+            url.searchParams.append('X-Plex-Token', serverToken)
 
             const response = await fetch(url.toString(), {
               headers: {
@@ -1697,13 +1712,20 @@ export class PlexServerService {
    * Gets list of all Plex server connections accessible to the current token.
    * Returns all available connection URIs (not just the first one) to handle
    * hosted deployments where LAN URIs may be unreachable.
+   * Includes per-server access tokens for shared server authentication.
    *
    * @param token - The Plex token to use for authentication
-   * @returns Promise<Array<{name: string, uri: string}>> - All server connections sorted by preference
+   * @returns All server connections sorted by preference with their access tokens
    */
-  private async getServerList(
-    token: string,
-  ): Promise<Array<{ name: string; uri: string }>> {
+  private async getServerList(token: string): Promise<
+    Array<{
+      name: string
+      uri: string
+      local: boolean
+      relay: boolean
+      accessToken: string | null
+    }>
+  > {
     // Return cached server list if available (within same reconciliation cycle)
     if (this.serverListCache) {
       this.log.debug(
@@ -1743,6 +1765,7 @@ export class PlexServerService {
             uri: connection.uri,
             local: connection.local,
             relay: connection.relay,
+            accessToken: resource.accessToken ?? null,
           })),
         )
         .filter((s) => s.uri)
@@ -1756,7 +1779,6 @@ export class PlexServerService {
           if (a.relay && !b.relay) return 1
           return 0
         })
-        .map(({ name, uri }) => ({ name, uri }))
 
       // Cache the result for this reconciliation cycle
       this.serverListCache = servers
