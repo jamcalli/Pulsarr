@@ -1,3 +1,4 @@
+import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
@@ -66,6 +67,22 @@ export function PlexConnectionSkeleton() {
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-10 w-full" />
             </div>
+          </div>
+        </div>
+
+        {/* Separator */}
+        <Separator className="my-6" />
+
+        {/* Content Availability Check section */}
+        <div className="space-y-4">
+          <Skeleton className="h-6 w-56" />
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-6 w-11 rounded-full" />
+            <Skeleton className="h-4 w-64" />
+            <Skeleton className="h-4 w-4 rounded-full" />
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <Skeleton className="h-10 w-32" />
           </div>
         </div>
       </div>
