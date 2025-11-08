@@ -57,6 +57,15 @@ export class PlexServerService {
   private sharedServerInfo: Map<string, PlexSharedServerInfo> | null = null
   private sharedServerInfoTimestamp = 0
 
+  // Server list cache for existence checking (workflow-scoped)
+  private serverListCache: Array<{
+    name: string
+    uri: string
+    local: boolean
+    relay: boolean
+    accessToken: string | null
+  }> | null = null
+
   // Playlist and protection workflow cache
   // These are intended to be used within a single workflow execution
   private protectedPlaylistsMap: Map<string, string> | null = null
@@ -1396,6 +1405,7 @@ export class PlexServerService {
     this.protectedItemsCache = null
     this.sharedServerInfo = null
     this.sharedServerInfoTimestamp = 0
+    this.serverListCache = null
 
     // Only reset the initialized state if explicitly requested
     if (resetInitialized) {
@@ -1415,6 +1425,16 @@ export class PlexServerService {
 
     // Ensure we don't reset the initialized state, as that's managed separately
     // through the initialize() method
+  }
+
+  /**
+   * Clears the server list cache
+   *
+   * Should be called at the start of reconciliation to ensure fresh server list
+   */
+  clearServerListCache(): void {
+    this.serverListCache = null
+    this.log.debug('Cleared server list cache')
   }
 
   /**
@@ -1576,6 +1596,200 @@ export class PlexServerService {
       return results
     } catch (error) {
       this.log.error({ error }, `Error searching library by GUID "${guid}":`)
+      return []
+    }
+  }
+
+  /**
+   * Checks if content exists across ALL accessible Plex servers using the primary token.
+   * This can only be called during reconciliation phase when we have access to primary token.
+   *
+   * @param guids - Array of GUIDs to search for
+   * @returns Promise<boolean> true if found on any accessible server, false otherwise
+   */
+  async checkExistenceAcrossServers(guids: string[]): Promise<boolean> {
+    if (!guids || guids.length === 0) {
+      this.log.debug('No GUIDs provided for Plex existence check')
+      return false
+    }
+
+    try {
+      const adminToken = this.config.plexTokens?.[0] || ''
+
+      if (!adminToken) {
+        this.log.warn(
+          'No Plex admin token available for multi-server existence check',
+        )
+        return false
+      }
+
+      // Get list of all server connections accessible to this token
+      const servers = await this.getServerList(adminToken)
+
+      if (servers.length === 0) {
+        this.log.debug('No Plex server connections found for existence check')
+        return false
+      }
+
+      this.log.debug(
+        `Checking content existence across ${servers.length} Plex server connections`,
+      )
+
+      // Try each GUID (prioritize plex:// GUIDs first)
+      const sortedGuids = [...guids].sort((a, b) => {
+        if (a.startsWith('plex://') && !b.startsWith('plex://')) return -1
+        if (!a.startsWith('plex://') && b.startsWith('plex://')) return 1
+        return 0
+      })
+
+      for (const guid of sortedGuids) {
+        const normalizedGuid = guid.startsWith('plex://')
+          ? guid
+          : normalizeGuid(guid)
+
+        // Check each server for this GUID
+        for (const server of servers) {
+          try {
+            // Use server-specific access token for shared servers, fall back to admin token
+            const serverToken = server.accessToken || adminToken
+            if (!serverToken) {
+              this.log.debug(
+                `No access token available for server "${server.name}", skipping`,
+              )
+              continue
+            }
+
+            const url = new URL('/library/all', server.uri)
+            url.searchParams.append('guid', normalizedGuid)
+            url.searchParams.append('X-Plex-Token', serverToken)
+
+            const response = await fetch(url.toString(), {
+              headers: {
+                Accept: 'application/json',
+                'X-Plex-Client-Identifier': 'Pulsarr',
+              },
+              signal: AbortSignal.timeout(5000), // 5 second timeout per server
+            })
+
+            if (!response.ok) {
+              continue // Server error, try next
+            }
+
+            const data = (await response.json()) as PlexSearchResponse
+
+            if (
+              data.MediaContainer?.Metadata?.length &&
+              data.MediaContainer.Metadata.length > 0
+            ) {
+              this.log.info(
+                `Content found on Plex server "${server.name}" - skipping download`,
+              )
+              return true // Found!
+            }
+          } catch (serverError) {
+            // Server unavailable or timeout, continue to next
+            this.log.debug(
+              { error: serverError, server: server.name },
+              'Unable to check Plex server for content',
+            )
+          }
+        }
+      }
+
+      this.log.debug('Content not found on any accessible Plex server')
+      return false
+    } catch (error) {
+      this.log.error(
+        { error, guids },
+        'Error checking Plex servers for content existence',
+      )
+      // On error, return false to allow download (fail open)
+      return false
+    }
+  }
+
+  /**
+   * Gets list of all Plex server connections accessible to the current token.
+   * Returns all available connection URIs (not just the first one) to handle
+   * hosted deployments where LAN URIs may be unreachable.
+   * Includes per-server access tokens for shared server authentication.
+   *
+   * @param token - The Plex token to use for authentication
+   * @returns All server connections sorted by preference with their access tokens
+   */
+  private async getServerList(token: string): Promise<
+    Array<{
+      name: string
+      uri: string
+      local: boolean
+      relay: boolean
+      accessToken: string | null
+    }>
+  > {
+    // Return cached server list if available (within same reconciliation cycle)
+    if (this.serverListCache) {
+      this.log.debug(
+        `Using cached server list (${this.serverListCache.length} connections)`,
+      )
+      return this.serverListCache
+    }
+
+    try {
+      this.log.debug('Fetching fresh server list from Plex.tv')
+      const url = new URL('https://plex.tv/api/v2/resources')
+      url.searchParams.append('includeHttps', '1')
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          Accept: 'application/json',
+          'X-Plex-Token': token,
+          'X-Plex-Client-Identifier': 'Pulsarr',
+        },
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      })
+
+      if (!response.ok) {
+        throw new Error(`Plex.tv API error: ${response.statusText}`)
+      }
+
+      const data = (await response.json()) as PlexResource[]
+
+      // Filter for Plex Media Server resources and flatten all connections
+      // Include all connection URIs (not just the first) to handle hosted deployments
+      // where LAN URIs may be listed first but are unreachable
+      const servers = data
+        .filter((resource) => resource.provides === 'server')
+        .flatMap((resource) =>
+          (resource.connections ?? []).map((connection) => ({
+            name: resource.name,
+            uri: connection.uri,
+            local: connection.local,
+            relay: connection.relay,
+            accessToken: resource.accessToken ?? null,
+          })),
+        )
+        .filter((s) => s.uri)
+        // Sort to prefer non-local, non-relay connections (more likely reachable in hosted deployments)
+        .sort((a, b) => {
+          // Prefer non-local over local
+          if (!a.local && b.local) return -1
+          if (a.local && !b.local) return 1
+          // Prefer non-relay over relay
+          if (!a.relay && b.relay) return -1
+          if (a.relay && !b.relay) return 1
+          return 0
+        })
+
+      // Cache the result for this reconciliation cycle
+      this.serverListCache = servers
+
+      this.log.debug(
+        `Found ${servers.length} accessible Plex server connections for existence check`,
+      )
+
+      return servers
+    } catch (error) {
+      this.log.error({ error }, 'Error fetching Plex server list')
       return []
     }
   }

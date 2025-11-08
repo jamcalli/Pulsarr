@@ -4362,6 +4362,9 @@
                         "plexServerUrl": {
                           "type": "string"
                         },
+                        "skipIfExistsOnPlex": {
+                          "type": "boolean"
+                        },
                         "plexLabelSync": {
                           "type": "object",
                           "properties": {
@@ -4953,6 +4956,9 @@
                   "plexServerUrl": {
                     "type": "string"
                   },
+                  "skipIfExistsOnPlex": {
+                    "type": "boolean"
+                  },
                   "plexLabelSync": {
                     "type": "object",
                     "properties": {
@@ -5482,6 +5488,9 @@
                         },
                         "plexServerUrl": {
                           "type": "string"
+                        },
+                        "skipIfExistsOnPlex": {
+                          "type": "boolean"
                         },
                         "plexLabelSync": {
                           "type": "object",
