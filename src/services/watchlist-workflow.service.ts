@@ -1244,6 +1244,9 @@ export class WatchlistWorkflowService {
     this.log.info('Performing watchlist item sync')
 
     try {
+      // Clear server list cache to ensure fresh data for this reconciliation cycle
+      this.fastify.plexServerService.clearServerListCache()
+
       // Get all users to check their sync permissions
       const allUsers = await this.dbService.getAllUsers()
       const userSyncStatus = new Map<number, boolean>()
@@ -1655,10 +1658,16 @@ export class WatchlistWorkflowService {
     const hasUsersWithApprovalConfig =
       await this.dbService.hasUsersWithApprovalConfig()
 
+    // Check if Plex existence checking is enabled
+    // This requires deferring to reconciliation since we can only use the primary token
+    const plexExistenceCheckEnabled =
+      this.fastify.config.skipIfExistsOnPlex === true
+
     return (
       hasUsersWithSyncDisabled ||
       hasUserRoutingRules ||
-      hasUsersWithApprovalConfig
+      hasUsersWithApprovalConfig ||
+      plexExistenceCheckEnabled
     )
   }
 
@@ -1718,8 +1727,25 @@ export class WatchlistWorkflowService {
 
     const existsInTargetInstance = potentialMatches.length > 0
 
-    // Add to Sonarr if not exists in target instance(s)
-    if (!existsInTargetInstance) {
+    // If already exists in target instance, skip without checking Plex
+    if (existsInTargetInstance) {
+      this.log.debug(
+        `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+      )
+      return false
+    }
+
+    // Only check Plex if item doesn't exist in Sonarr AND config is enabled
+    let existsOnPlex = false
+    if (this.fastify.config.skipIfExistsOnPlex) {
+      existsOnPlex =
+        await this.fastify.plexServerService.checkExistenceAcrossServers(
+          parseGuids(tempItem.guids),
+        )
+    }
+
+    // Add to Sonarr if not exists on Plex
+    if (!existsOnPlex) {
       await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
         userId: numericUserId,
         syncing: false,
@@ -1727,8 +1753,9 @@ export class WatchlistWorkflowService {
       return true
     }
 
-    this.log.debug(
-      `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    // If we get here, item exists on Plex - skip addition
+    this.log.info(
+      `Show ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
     )
     return false
   }
@@ -1789,8 +1816,25 @@ export class WatchlistWorkflowService {
 
     const existsInTargetInstance = potentialMatches.length > 0
 
-    // Add to Radarr if not exists in target instance(s)
-    if (!existsInTargetInstance) {
+    // If already exists in target instance, skip without checking Plex
+    if (existsInTargetInstance) {
+      this.log.debug(
+        `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+      )
+      return false
+    }
+
+    // Only check Plex if item doesn't exist in Radarr AND config is enabled
+    let existsOnPlex = false
+    if (this.fastify.config.skipIfExistsOnPlex) {
+      existsOnPlex =
+        await this.fastify.plexServerService.checkExistenceAcrossServers(
+          parseGuids(tempItem.guids),
+        )
+    }
+
+    // Add to Radarr if not exists on Plex
+    if (!existsOnPlex) {
       await this.contentRouter.routeContent(radarrItem, tempItem.key, {
         userId: numericUserId,
         syncing: false,
@@ -1798,8 +1842,9 @@ export class WatchlistWorkflowService {
       return true
     }
 
-    this.log.debug(
-      `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    // If we get here, item exists on Plex - skip addition
+    this.log.info(
+      `Movie ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
     )
     return false
   }

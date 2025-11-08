@@ -1,4 +1,12 @@
-import { Check, Loader2, RefreshCw, Trash2 } from 'lucide-react'
+import {
+  Check,
+  HelpCircle,
+  Loader2,
+  RefreshCw,
+  Save,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,9 +19,18 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import PlexConnectionSkeleton from '@/features/plex/components/connection/connection-section-skeleton'
 import SetupModal from '@/features/plex/components/setup/setup-modal'
 import { usePlexConnection } from '@/features/plex/hooks/usePlexConnection'
+import { usePlexExistenceCheck } from '@/features/plex/hooks/usePlexExistenceCheck'
 import { usePlexRssFeeds } from '@/features/plex/hooks/usePlexRssFeeds'
 import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
@@ -47,6 +64,14 @@ export default function PlexConfigurationPage() {
   // Connection state
   const { form, status, handleUpdateToken, handleRemoveToken } =
     usePlexConnection()
+
+  // Existence check state
+  const {
+    form: existenceCheckForm,
+    isSaving: isExistenceCheckSaving,
+    onSubmit: onExistenceCheckSubmit,
+    handleCancel: handleExistenceCheckCancel,
+  } = usePlexExistenceCheck()
 
   // Media query for mobile/desktop
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -328,6 +353,93 @@ export default function PlexConfigurationPage() {
                   </FormControl>
                 </FormItem>
               </div>
+            </div>
+          </form>
+        </Form>
+
+        {/* Plex Existence Check Configuration */}
+        <Separator className="my-6" />
+        <Form {...existenceCheckForm}>
+          <form
+            onSubmit={existenceCheckForm.handleSubmit(onExistenceCheckSubmit)}
+            className="space-y-4"
+          >
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                Content Availability Check
+              </h3>
+              <FormField
+                control={existenceCheckForm.control}
+                name="skipIfExistsOnPlex"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="flex items-center">
+                      <FormLabel className="text-foreground m-0">
+                        Skip downloading if content exists on Plex
+                      </FormLabel>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              When enabled, Pulsarr will check all accessible
+                              Plex servers (using your primary token) and skip
+                              downloading content that already exists, even if
+                              it's not in Sonarr/Radarr. This prevents duplicate
+                              downloads across multiple servers.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Save/Cancel buttons */}
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
+              {existenceCheckForm.formState.isDirty &&
+                !isExistenceCheckSaving && (
+                  <Button
+                    type="button"
+                    variant="cancel"
+                    onClick={handleExistenceCheckCancel}
+                    disabled={isExistenceCheckSaving}
+                    className="flex items-center gap-1"
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Cancel</span>
+                  </Button>
+                )}
+
+              <Button
+                type="submit"
+                disabled={
+                  isExistenceCheckSaving ||
+                  !existenceCheckForm.formState.isDirty
+                }
+                className="flex items-center gap-2"
+                variant="blue"
+              >
+                {isExistenceCheckSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                <span>
+                  {isExistenceCheckSaving ? 'Saving...' : 'Save Changes'}
+                </span>
+              </Button>
             </div>
           </form>
         </Form>

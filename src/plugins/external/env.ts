@@ -299,6 +299,10 @@ const schema = {
       type: 'string',
       default: 'http://localhost:32400',
     },
+    skipIfExistsOnPlex: {
+      type: 'boolean',
+      default: false,
+    },
     enablePlexPlaylistProtection: {
       type: 'boolean',
       default: false,
