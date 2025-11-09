@@ -7,9 +7,10 @@ import type { z } from 'zod'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { useConfigStore } from '@/stores/configStore'
 
-// Pick only the skipIfExistsOnPlex field from the backend ConfigSchema
+// Pick Plex existence check fields from the backend ConfigSchema
 const plexExistenceCheckFormSchema = ConfigSchema.pick({
   skipIfExistsOnPlex: true,
+  plexServerUrl: true,
 })
 
 type PlexExistenceCheckFormValues = z.infer<typeof plexExistenceCheckFormSchema>
@@ -29,6 +30,7 @@ export function usePlexExistenceCheck() {
     resolver: zodResolver(plexExistenceCheckFormSchema),
     defaultValues: {
       skipIfExistsOnPlex: false,
+      plexServerUrl: '',
     },
   })
 
@@ -37,6 +39,7 @@ export function usePlexExistenceCheck() {
     if (config) {
       form.reset({
         skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,
+        plexServerUrl: config.plexServerUrl ?? '',
       })
     }
   }, [config, form])
@@ -50,15 +53,16 @@ export function usePlexExistenceCheck() {
 
       const configUpdate: Partial<Config> = {
         skipIfExistsOnPlex: data.skipIfExistsOnPlex,
+        plexServerUrl: data.plexServerUrl || '',
       }
 
       await Promise.all([updateConfig(configUpdate), minimumLoadingTime])
 
-      toast.success('Plex existence check setting updated successfully')
+      toast.success('Plex settings updated successfully')
       form.reset(data) // Mark form as pristine
     } catch (error) {
-      console.error('Failed to update existence check setting:', error)
-      toast.error('Failed to update setting')
+      console.error('Failed to update Plex settings:', error)
+      toast.error('Failed to update settings')
     } finally {
       setIsSaving(false)
     }

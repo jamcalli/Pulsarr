@@ -1244,8 +1244,8 @@ export class WatchlistWorkflowService {
     this.log.info('Performing watchlist item sync')
 
     try {
-      // Clear server list cache to ensure fresh data for this reconciliation cycle
-      this.fastify.plexServerService.clearServerListCache()
+      // Clear Plex resources cache to ensure fresh data for this reconciliation cycle
+      this.fastify.plexServerService.clearPlexResourcesCache()
 
       // Get all users to check their sync permissions
       const allUsers = await this.dbService.getAllUsers()
@@ -1257,6 +1257,9 @@ export class WatchlistWorkflowService {
         userSyncStatus.set(user.id, user.can_sync !== false)
         userById.set(user.id, user)
       }
+
+      // Fetch primary user once to avoid N+1 queries during item processing
+      const primaryUser = await this.dbService.getPrimaryUser()
 
       // DEBUG: Log user sync settings
       for (const [userId, canSync] of userSyncStatus.entries()) {
@@ -1392,6 +1395,7 @@ export class WatchlistWorkflowService {
             userName: user?.name,
             sonarrItem,
             existingSeries,
+            primaryUser,
           })
 
           if (wasAdded) {
@@ -1424,6 +1428,7 @@ export class WatchlistWorkflowService {
             userName: user?.name,
             radarrItem,
             existingMovies,
+            primaryUser,
           })
 
           if (wasAdded) {
@@ -1682,9 +1687,16 @@ export class WatchlistWorkflowService {
     userName: string | undefined
     sonarrItem: SonarrItem
     existingSeries: SonarrItem[]
+    primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
   }): Promise<boolean> {
-    const { tempItem, numericUserId, userName, sonarrItem, existingSeries } =
-      params
+    const {
+      tempItem,
+      numericUserId,
+      userName,
+      sonarrItem,
+      existingSeries,
+      primaryUser,
+    } = params
 
     // Get target instances based on routing rules for this user/content
     const context: RoutingContext = {
@@ -1738,9 +1750,16 @@ export class WatchlistWorkflowService {
     // Only check Plex if item doesn't exist in Sonarr AND config is enabled
     let existsOnPlex = false
     if (this.fastify.config.skipIfExistsOnPlex) {
+      // Determine if the requesting user is the primary token user
+      const isPrimaryUser = primaryUser
+        ? numericUserId === primaryUser.id
+        : false
+
       existsOnPlex =
         await this.fastify.plexServerService.checkExistenceAcrossServers(
-          parseGuids(tempItem.guids),
+          tempItem.key,
+          'show',
+          isPrimaryUser,
         )
     }
 
@@ -1771,9 +1790,16 @@ export class WatchlistWorkflowService {
     userName: string | undefined
     radarrItem: RadarrItem
     existingMovies: RadarrItem[]
+    primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
   }): Promise<boolean> {
-    const { tempItem, numericUserId, userName, radarrItem, existingMovies } =
-      params
+    const {
+      tempItem,
+      numericUserId,
+      userName,
+      radarrItem,
+      existingMovies,
+      primaryUser,
+    } = params
 
     // Get target instances based on routing rules for this user/content
     const context: RoutingContext = {
@@ -1827,9 +1853,16 @@ export class WatchlistWorkflowService {
     // Only check Plex if item doesn't exist in Radarr AND config is enabled
     let existsOnPlex = false
     if (this.fastify.config.skipIfExistsOnPlex) {
+      // Determine if the requesting user is the primary token user
+      const isPrimaryUser = primaryUser
+        ? numericUserId === primaryUser.id
+        : false
+
       existsOnPlex =
         await this.fastify.plexServerService.checkExistenceAcrossServers(
-          parseGuids(tempItem.guids),
+          tempItem.key,
+          'movie',
+          isPrimaryUser,
         )
     }
 

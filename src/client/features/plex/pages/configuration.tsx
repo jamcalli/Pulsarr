@@ -4,11 +4,20 @@ import {
   Loader2,
   RefreshCw,
   Save,
+  Search,
+  ServerIcon,
   Trash2,
   X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -35,6 +44,7 @@ import { usePlexRssFeeds } from '@/features/plex/hooks/usePlexRssFeeds'
 import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import { usePlexServerDiscovery } from '@/features/utilities/hooks/usePlexServerDiscovery'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useWatchlistProgress } from '@/hooks/useProgress'
 import { useConfigStore } from '@/stores/configStore'
@@ -64,6 +74,17 @@ export default function PlexConfigurationPage() {
   // Connection state
   const { form, status, handleUpdateToken, handleRemoveToken } =
     usePlexConnection()
+
+  // Server discovery state
+  const { isDiscovering, servers, discoverServers } = usePlexServerDiscovery()
+  const [showServerCards, setShowServerCards] = useState(false)
+
+  // Show server cards when servers are discovered
+  useEffect(() => {
+    if (servers.length > 0) {
+      setShowServerCards(true)
+    }
+  }, [servers])
 
   // Existence check state
   const {
@@ -364,10 +385,10 @@ export default function PlexConfigurationPage() {
             onSubmit={existenceCheckForm.handleSubmit(onExistenceCheckSubmit)}
             className="space-y-4"
           >
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-4">
-                Content Availability Check
-              </h3>
+            <div
+              className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}
+            >
+              {/* Toggle */}
               <FormField
                 control={existenceCheckForm.control}
                 name="skipIfExistsOnPlex"
@@ -394,7 +415,9 @@ export default function PlexConfigurationPage() {
                               Plex servers (using your primary token) and skip
                               downloading content that already exists, even if
                               it's not in Sonarr/Radarr. This prevents duplicate
-                              downloads across multiple servers.
+                              downloads across multiple servers. For your owned
+                              server, the configured Server Connection will be
+                              used; shared servers use auto-discovery.
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -404,7 +427,134 @@ export default function PlexConfigurationPage() {
                   </FormItem>
                 )}
               />
+
+              {/* Server Connection */}
+              <FormField
+                control={existenceCheckForm.control}
+                name="plexServerUrl"
+                render={({ field }) => {
+                  const defaultUrl = 'http://localhost:32400'
+                  // Display empty input when value is the default URL or empty string
+                  // Backend treats both identically as "use auto-discovery"
+                  const displayValue =
+                    field.value === defaultUrl ? '' : field.value || ''
+
+                  return (
+                    <FormItem>
+                      <div className="flex items-center">
+                        <FormLabel className="text-foreground m-0">
+                          Server Connection (Optional)
+                        </FormLabel>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Specify which connection method to use for all
+                                Plex server communication (session monitoring,
+                                label sync, content existence checks, etc.). Use
+                                "Find Server" to discover and select from
+                                available connection options, or leave empty to
+                                attempt auto-negotiation.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <div className="flex space-x-2 mt-2">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            value={displayValue}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            placeholder="Leave empty to auto-negotiate"
+                            className="flex-1"
+                            disabled={isExistenceCheckSaving}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="noShadow"
+                          onClick={() => {
+                            const token = config?.plexTokens?.[0]
+                            if (token) {
+                              discoverServers(token)
+                            }
+                          }}
+                          disabled={isDiscovering || !config?.plexTokens?.[0]}
+                        >
+                          {isDiscovering ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Search className="h-4 w-4 mr-2" />
+                          )}
+                          Find Server
+                        </Button>
+                      </div>
+                      <FormMessage className="text-xs mt-1" />
+                    </FormItem>
+                  )
+                }}
+              />
             </div>
+
+            {/* Server Selection Cards */}
+            {showServerCards && servers.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {servers.map((server, index) => (
+                  <Card
+                    key={`${server.host}-${server.port}-${index}`}
+                    className="cursor-pointer hover:border-primary transition-colors flex flex-col"
+                  >
+                    <CardHeader className="py-3 px-4 pb-2">
+                      <CardTitle className="text-base flex items-center">
+                        <ServerIcon className="h-4 w-4 mr-2 text-primary" />
+                        {server.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {server.local
+                          ? 'Local Connection'
+                          : 'Remote Connection'}
+                        {server.useSsl && ' • Secure'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="py-2 px-4 text-xs">
+                      <div className="flex items-center space-x-1">
+                        <span className="font-medium">Host:</span>
+                        <span>{server.host}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="font-medium">Port:</span>
+                        <span>{server.port}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="font-medium">SSL:</span>
+                        <span>{server.useSsl ? 'Yes' : 'No'}</span>
+                      </div>
+                    </CardContent>
+                    <div className="mt-auto px-4 pb-3">
+                      <Button
+                        type="button"
+                        variant="blue"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          const url = `${server.useSsl ? 'https' : 'http'}://${server.host}:${server.port}`
+                          existenceCheckForm.setValue('plexServerUrl', url, {
+                            shouldDirty: true,
+                          })
+                          setShowServerCards(false)
+                        }}
+                      >
+                        Select
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
 
             {/* Save/Cancel buttons */}
             <div className="flex justify-end gap-2 pt-4 border-t border-border">
