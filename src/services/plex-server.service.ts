@@ -57,15 +57,6 @@ export class PlexServerService {
   private sharedServerInfo: Map<string, PlexSharedServerInfo> | null = null
   private sharedServerInfoTimestamp = 0
 
-  // Server list cache for existence checking (workflow-scoped)
-  private serverListCache: Array<{
-    name: string
-    uri: string
-    local: boolean
-    relay: boolean
-    accessToken: string | null
-  }> | null = null
-
   // Playlist and protection workflow cache
   // These are intended to be used within a single workflow execution
   private protectedPlaylistsMap: Map<string, string> | null = null
@@ -1602,7 +1593,8 @@ export class PlexServerService {
 
   /**
    * Checks if content exists across ALL accessible Plex servers using the primary token.
-   * This can only be called during reconciliation phase when we have access to primary token.
+   * For the owner's server, uses the plexServerUrl setting to determine connection method.
+   * For shared servers, uses auto-discovered connections from plex.tv API.
    *
    * @param guids - Array of GUIDs to search for
    * @returns Promise<boolean> true if found on any accessible server, false otherwise
@@ -1623,8 +1615,20 @@ export class PlexServerService {
         return false
       }
 
-      // Get list of all server connections accessible to this token
-      const servers = await this.getServerList(adminToken)
+      // Get owner's server connections (respects plexServerUrl setting)
+      const ownerConnections = await this.getPlexServerConnectionInfo()
+
+      // Fetch all accessible servers from plex.tv API
+      const allResources = await this.getAllPlexResources(adminToken)
+
+      // Build combined server list
+      // For owner's server: use connections from getPlexServerConnectionInfo()
+      // For shared servers: use connections from API resources
+      const servers = await this.buildServerListForExistenceCheck(
+        ownerConnections,
+        allResources,
+        adminToken,
+      )
 
       if (servers.length === 0) {
         this.log.debug('No Plex server connections found for existence check')
@@ -1709,33 +1713,13 @@ export class PlexServerService {
   }
 
   /**
-   * Gets list of all Plex server connections accessible to the current token.
-   * Returns all available connection URIs (not just the first one) to handle
-   * hosted deployments where LAN URIs may be unreachable.
-   * Includes per-server access tokens for shared server authentication.
+   * Fetches all Plex resources (servers) from plex.tv API
    *
    * @param token - The Plex token to use for authentication
-   * @returns All server connections sorted by preference with their access tokens
+   * @returns Array of PlexResource objects
    */
-  private async getServerList(token: string): Promise<
-    Array<{
-      name: string
-      uri: string
-      local: boolean
-      relay: boolean
-      accessToken: string | null
-    }>
-  > {
-    // Return cached server list if available (within same reconciliation cycle)
-    if (this.serverListCache) {
-      this.log.debug(
-        `Using cached server list (${this.serverListCache.length} connections)`,
-      )
-      return this.serverListCache
-    }
-
+  private async getAllPlexResources(token: string): Promise<PlexResource[]> {
     try {
-      this.log.debug('Fetching fresh server list from Plex.tv')
       const url = new URL('https://plex.tv/api/v2/resources')
       url.searchParams.append('includeHttps', '1')
 
@@ -1753,45 +1737,107 @@ export class PlexServerService {
       }
 
       const data = (await response.json()) as PlexResource[]
-
-      // Filter for Plex Media Server resources and flatten all connections
-      // Include all connection URIs (not just the first) to handle hosted deployments
-      // where LAN URIs may be listed first but are unreachable
-      const servers = data
-        .filter((resource) => resource.provides === 'server')
-        .flatMap((resource) =>
-          (resource.connections ?? []).map((connection) => ({
-            name: resource.name,
-            uri: connection.uri,
-            local: connection.local,
-            relay: connection.relay,
-            accessToken: resource.accessToken ?? null,
-          })),
-        )
-        .filter((s) => s.uri)
-        // Sort to prefer non-local, non-relay connections (more likely reachable in hosted deployments)
-        .sort((a, b) => {
-          // Prefer non-local over local
-          if (!a.local && b.local) return -1
-          if (a.local && !b.local) return 1
-          // Prefer non-relay over relay
-          if (!a.relay && b.relay) return -1
-          if (a.relay && !b.relay) return 1
-          return 0
-        })
-
-      // Cache the result for this reconciliation cycle
-      this.serverListCache = servers
-
-      this.log.debug(
-        `Found ${servers.length} accessible Plex server connections for existence check`,
-      )
-
-      return servers
+      return data.filter((resource) => resource.provides === 'server')
     } catch (error) {
-      this.log.error({ error }, 'Error fetching Plex server list')
+      this.log.error({ error }, 'Error fetching Plex resources')
       return []
     }
+  }
+
+  /**
+   * Builds a combined server list for existence checking by:
+   * - Using owner's configured connections (respects plexServerUrl)
+   * - Adding shared servers from plex.tv API
+   *
+   * @param ownerConnections - The owner's server connections from getPlexServerConnectionInfo()
+   * @param allResources - All Plex resources from plex.tv API
+   * @param adminToken - The admin token for authentication
+   * @returns Combined server list for existence checking
+   */
+  private async buildServerListForExistenceCheck(
+    ownerConnections: PlexServerConnectionInfo[],
+    allResources: PlexResource[],
+    adminToken: string,
+  ): Promise<
+    Array<{
+      name: string
+      uri: string
+      local: boolean
+      relay: boolean
+      accessToken: string | null
+    }>
+  > {
+    const servers: Array<{
+      name: string
+      uri: string
+      local: boolean
+      relay: boolean
+      accessToken: string | null
+    }> = []
+
+    // Find the owner's server resource to get its name
+    const ownerResource = allResources.find(
+      (r) => r.clientIdentifier === this.serverMachineId || r.owned === true,
+    )
+
+    if (ownerResource && ownerConnections.length > 0) {
+      // Add owner's server connections using the configured plexServerUrl setting
+      this.log.debug(
+        `Using configured connections for owner's server "${ownerResource.name}"`,
+      )
+
+      for (const conn of ownerConnections) {
+        servers.push({
+          name: ownerResource.name,
+          uri: conn.url,
+          local: conn.local,
+          relay: conn.relay,
+          accessToken: adminToken, // Owner uses admin token
+        })
+      }
+    }
+
+    // Add all shared servers (not owned by user)
+    const sharedServers = allResources.filter(
+      (r) =>
+        r.owned === false &&
+        r.clientIdentifier !== this.serverMachineId &&
+        r.connections &&
+        r.connections.length > 0,
+    )
+
+    this.log.debug(`Found ${sharedServers.length} shared server(s)`)
+
+    for (const server of sharedServers) {
+      for (const connection of server.connections) {
+        if (!connection.uri) continue
+
+        servers.push({
+          name: server.name,
+          uri: connection.uri,
+          local: connection.local ?? false,
+          relay: connection.relay ?? false,
+          accessToken: server.accessToken ?? null,
+        })
+      }
+    }
+
+    // Sort to prefer non-local, non-relay connections
+    servers.sort((a, b) => {
+      // Prefer non-local over local
+      if (!a.local && b.local) return -1
+      if (a.local && !b.local) return 1
+      // Prefer non-relay over relay
+      if (!a.relay && b.relay) return -1
+      if (a.relay && !b.relay) return 1
+      return 0
+    })
+
+    this.log.debug(
+      `Built combined server list with ${servers.length} total connection(s)`,
+    )
+
+    return servers
   }
 
   /**
