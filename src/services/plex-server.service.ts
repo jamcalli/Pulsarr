@@ -57,6 +57,9 @@ export class PlexServerService {
   private sharedServerInfo: Map<string, PlexSharedServerInfo> | null = null
   private sharedServerInfoTimestamp = 0
 
+  // Server list cache - caches the raw Plex resources from plex.tv API
+  private plexResourcesCache: PlexResource[] | null = null
+
   // Playlist and protection workflow cache
   // These are intended to be used within a single workflow execution
   private protectedPlaylistsMap: Map<string, string> | null = null
@@ -1396,7 +1399,7 @@ export class PlexServerService {
     this.protectedItemsCache = null
     this.sharedServerInfo = null
     this.sharedServerInfoTimestamp = 0
-    this.serverListCache = null
+    this.plexResourcesCache = null
 
     // Only reset the initialized state if explicitly requested
     if (resetInitialized) {
@@ -1424,7 +1427,7 @@ export class PlexServerService {
    * Should be called at the start of reconciliation to ensure fresh server list
    */
   clearServerListCache(): void {
-    this.serverListCache = null
+    this.plexResourcesCache = null
     this.log.debug('Cleared server list cache')
   }
 
@@ -1592,14 +1595,20 @@ export class PlexServerService {
   }
 
   /**
-   * Checks if content exists across ALL accessible Plex servers using the primary token.
+   * Checks if content exists across accessible Plex servers using the primary token.
    * For the owner's server, uses the plexServerUrl setting to determine connection method.
    * For shared servers, uses auto-discovered connections from plex.tv API.
    *
    * @param guids - Array of GUIDs to search for
+   * @param isPrimaryUser - Whether the requesting user is the primary token user (server owner)
+   *                        - If true: checks owner's server + all shared servers
+   *                        - If false: checks only owner's server
    * @returns Promise<boolean> true if found on any accessible server, false otherwise
    */
-  async checkExistenceAcrossServers(guids: string[]): Promise<boolean> {
+  async checkExistenceAcrossServers(
+    guids: string[],
+    isPrimaryUser: boolean,
+  ): Promise<boolean> {
     if (!guids || guids.length === 0) {
       this.log.debug('No GUIDs provided for Plex existence check')
       return false
@@ -1616,18 +1625,27 @@ export class PlexServerService {
       }
 
       // Get owner's server connections (respects plexServerUrl setting)
+      // This method already has its own caching via serverConnections property
       const ownerConnections = await this.getPlexServerConnectionInfo()
 
-      // Fetch all accessible servers from plex.tv API
-      const allResources = await this.getAllPlexResources(adminToken)
+      // Fetch all accessible servers from plex.tv API (with caching)
+      let allResources = this.plexResourcesCache
+      if (!allResources) {
+        this.log.debug('Server resources cache miss, fetching from plex.tv API')
+        allResources = await this.getAllPlexResources(adminToken)
+        this.plexResourcesCache = allResources
+      } else {
+        this.log.debug('Using cached server resources')
+      }
 
       // Build combined server list
       // For owner's server: use connections from getPlexServerConnectionInfo()
-      // For shared servers: use connections from API resources
+      // For shared servers: use connections from API resources (only if primary user)
       const servers = await this.buildServerListForExistenceCheck(
         ownerConnections,
         allResources,
         adminToken,
+        isPrimaryUser,
       )
 
       if (servers.length === 0) {
@@ -1747,17 +1765,19 @@ export class PlexServerService {
   /**
    * Builds a combined server list for existence checking by:
    * - Using owner's configured connections (respects plexServerUrl)
-   * - Adding shared servers from plex.tv API
+   * - Adding shared servers from plex.tv API (only if isPrimaryUser is true)
    *
    * @param ownerConnections - The owner's server connections from getPlexServerConnectionInfo()
    * @param allResources - All Plex resources from plex.tv API
    * @param adminToken - The admin token for authentication
+   * @param isPrimaryUser - Whether the requesting user is the primary token user
    * @returns Combined server list for existence checking
    */
   private async buildServerListForExistenceCheck(
     ownerConnections: PlexServerConnectionInfo[],
     allResources: PlexResource[],
     adminToken: string,
+    isPrimaryUser: boolean,
   ): Promise<
     Array<{
       name: string
@@ -1797,29 +1817,36 @@ export class PlexServerService {
       }
     }
 
-    // Add all shared servers (not owned by user)
-    const sharedServers = allResources.filter(
-      (r) =>
-        r.owned === false &&
-        r.clientIdentifier !== this.serverMachineId &&
-        r.connections &&
-        r.connections.length > 0,
-    )
+    // Add shared servers only if the user is the primary token user
+    // Friend users can only check the owner's server
+    if (isPrimaryUser) {
+      const sharedServers = allResources.filter(
+        (r) =>
+          r.owned === false &&
+          r.clientIdentifier !== this.serverMachineId &&
+          r.connections &&
+          r.connections.length > 0,
+      )
 
-    this.log.debug(`Found ${sharedServers.length} shared server(s)`)
+      this.log.debug(`Found ${sharedServers.length} shared server(s)`)
 
-    for (const server of sharedServers) {
-      for (const connection of server.connections) {
-        if (!connection.uri) continue
+      for (const server of sharedServers) {
+        for (const connection of server.connections) {
+          if (!connection.uri) continue
 
-        servers.push({
-          name: server.name,
-          uri: connection.uri,
-          local: connection.local ?? false,
-          relay: connection.relay ?? false,
-          accessToken: server.accessToken ?? null,
-        })
+          servers.push({
+            name: server.name,
+            uri: connection.uri,
+            local: connection.local ?? false,
+            relay: connection.relay ?? false,
+            accessToken: server.accessToken ?? null,
+          })
+        }
       }
+    } else {
+      this.log.debug(
+        'Skipping shared servers check - user is not primary token user',
+      )
     }
 
     // Sort to prefer non-local, non-relay connections
