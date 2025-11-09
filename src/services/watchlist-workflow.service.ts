@@ -1746,7 +1746,8 @@ export class WatchlistWorkflowService {
 
       existsOnPlex =
         await this.fastify.plexServerService.checkExistenceAcrossServers(
-          parseGuids(tempItem.guids),
+          tempItem.key,
+          'show',
           isPrimaryUser,
         )
     }
@@ -1842,7 +1843,8 @@ export class WatchlistWorkflowService {
 
       existsOnPlex =
         await this.fastify.plexServerService.checkExistenceAcrossServers(
-          parseGuids(tempItem.guids),
+          tempItem.key,
+          'movie',
           isPrimaryUser,
         )
     }

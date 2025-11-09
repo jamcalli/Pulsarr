@@ -1599,18 +1599,20 @@ export class PlexServerService {
    * For the owner's server, uses the plexServerUrl setting to determine connection method.
    * For shared servers, uses auto-discovered connections from plex.tv API.
    *
-   * @param guids - Array of GUIDs to search for
+   * @param plexKey - The Plex GUID part (e.g., "5d7768376f4521001ea9c9ad")
+   * @param contentType - The content type ("movie" or "show")
    * @param isPrimaryUser - Whether the requesting user is the primary token user (server owner)
    *                        - If true: checks owner's server + all shared servers
    *                        - If false: checks only owner's server
    * @returns Promise<boolean> true if found on any accessible server, false otherwise
    */
   async checkExistenceAcrossServers(
-    guids: string[],
+    plexKey: string | undefined,
+    contentType: 'movie' | 'show',
     isPrimaryUser: boolean,
   ): Promise<boolean> {
-    if (!guids || guids.length === 0) {
-      this.log.debug('No GUIDs provided for Plex existence check')
+    if (!plexKey) {
+      this.log.debug('No Plex key provided for existence check')
       return false
     }
 
@@ -1653,68 +1655,65 @@ export class PlexServerService {
         return false
       }
 
+      // Construct the plex:// format GUID
+      // This is the ONLY format that works with Plex's /library/all?guid= search
+      const plexGuid = `plex://${contentType}/${plexKey}`
+
       this.log.debug(
-        `Checking content existence across ${servers.length} Plex server connections`,
+        {
+          plexKey,
+          contentType,
+          plexGuid,
+          serverCount: servers.length,
+        },
+        'Checking content existence across Plex servers',
       )
 
-      // Try each GUID (prioritize plex:// GUIDs first)
-      const sortedGuids = [...guids].sort((a, b) => {
-        if (a.startsWith('plex://') && !b.startsWith('plex://')) return -1
-        if (!a.startsWith('plex://') && b.startsWith('plex://')) return 1
-        return 0
-      })
-
-      for (const guid of sortedGuids) {
-        const normalizedGuid = guid.startsWith('plex://')
-          ? guid
-          : normalizeGuid(guid)
-
-        // Check each server for this GUID
-        for (const server of servers) {
-          try {
-            // Use server-specific access token for shared servers, fall back to admin token
-            const serverToken = server.accessToken || adminToken
-            if (!serverToken) {
-              this.log.debug(
-                `No access token available for server "${server.name}", skipping`,
-              )
-              continue
-            }
-
-            const url = new URL('/library/all', server.uri)
-            url.searchParams.append('guid', normalizedGuid)
-            url.searchParams.append('X-Plex-Token', serverToken)
-
-            const response = await fetch(url.toString(), {
-              headers: {
-                Accept: 'application/json',
-                'X-Plex-Client-Identifier': 'Pulsarr',
-              },
-              signal: AbortSignal.timeout(5000), // 5 second timeout per server
-            })
-
-            if (!response.ok) {
-              continue // Server error, try next
-            }
-
-            const data = (await response.json()) as PlexSearchResponse
-
-            if (
-              data.MediaContainer?.Metadata?.length &&
-              data.MediaContainer.Metadata.length > 0
-            ) {
-              this.log.info(
-                `Content found on Plex server "${server.name}" - skipping download`,
-              )
-              return true // Found!
-            }
-          } catch (serverError) {
-            // Server unavailable or timeout, continue to next
+      // Check each server for this content
+      for (const server of servers) {
+        try {
+          // Use server-specific access token for shared servers, fall back to admin token
+          const serverToken = server.accessToken || adminToken
+          if (!serverToken) {
             this.log.debug(
-              { error: serverError, server: server.name },
-              'Unable to check Plex server for content',
+              `No access token available for server "${server.name}", skipping`,
             )
+            continue
           }
+
+          const url = new URL('/library/all', server.uri)
+          url.searchParams.append('guid', plexGuid)
+          url.searchParams.append('X-Plex-Token', serverToken)
+
+          const response = await fetch(url.toString(), {
+            headers: {
+              Accept: 'application/json',
+              'X-Plex-Client-Identifier': 'Pulsarr',
+            },
+            signal: AbortSignal.timeout(5000), // 5 second timeout per server
+          })
+
+          if (!response.ok) {
+            continue // Server error, try next
+          }
+
+          const data = (await response.json()) as PlexSearchResponse
+
+          if (
+            data.MediaContainer?.Metadata?.length &&
+            data.MediaContainer.Metadata.length > 0
+          ) {
+            this.log.info(
+              `Content found on Plex server "${server.name}" - skipping download`,
+            )
+            return true // Found!
+          }
+        } catch (serverError) {
+          // Server unavailable or timeout, continue to next
+          this.log.debug(
+            { error: serverError, server: server.name },
+            'Unable to check Plex server for content',
+          )
         }
       }
 
@@ -1722,7 +1721,7 @@ export class PlexServerService {
       return false
     } catch (error) {
       this.log.error(
-        { error, guids },
+        { error, plexKey, contentType },
         'Error checking Plex servers for content existence',
       )
       // On error, return false to allow download (fail open)
