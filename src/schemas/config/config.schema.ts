@@ -186,7 +186,12 @@ export const ConfigSchema = z.object({
   // Plex Playlist Protection
   enablePlexPlaylistProtection: z.boolean().optional(),
   plexProtectionPlaylistName: z.string().optional(),
-  plexServerUrl: z.string().optional(),
+  plexServerUrl: z
+    .union([
+      z.url({ error: 'Must be a valid URL (http:// or https://)' }),
+      z.literal(''),
+    ])
+    .optional(),
   // Plex Existence Check - skip downloading if content exists on accessible Plex servers
   skipIfExistsOnPlex: z.boolean().optional(),
   // Plex Label Sync Configuration - nested object following complex config pattern
