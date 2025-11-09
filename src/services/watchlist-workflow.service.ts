@@ -1738,9 +1738,16 @@ export class WatchlistWorkflowService {
     // Only check Plex if item doesn't exist in Sonarr AND config is enabled
     let existsOnPlex = false
     if (this.fastify.config.skipIfExistsOnPlex) {
+      // Determine if the requesting user is the primary token user
+      const primaryUser = await this.dbService.getPrimaryUser()
+      const isPrimaryUser = primaryUser
+        ? numericUserId === primaryUser.id
+        : false
+
       existsOnPlex =
         await this.fastify.plexServerService.checkExistenceAcrossServers(
           parseGuids(tempItem.guids),
+          isPrimaryUser,
         )
     }
 
@@ -1827,9 +1834,16 @@ export class WatchlistWorkflowService {
     // Only check Plex if item doesn't exist in Radarr AND config is enabled
     let existsOnPlex = false
     if (this.fastify.config.skipIfExistsOnPlex) {
+      // Determine if the requesting user is the primary token user
+      const primaryUser = await this.dbService.getPrimaryUser()
+      const isPrimaryUser = primaryUser
+        ? numericUserId === primaryUser.id
+        : false
+
       existsOnPlex =
         await this.fastify.plexServerService.checkExistenceAcrossServers(
           parseGuids(tempItem.guids),
+          isPrimaryUser,
         )
     }
 
