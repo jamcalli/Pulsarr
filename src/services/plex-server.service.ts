@@ -1422,13 +1422,13 @@ export class PlexServerService {
   }
 
   /**
-   * Clears the server list cache
+   * Clears the Plex resources cache
    *
    * Should be called at the start of reconciliation to ensure fresh server list
    */
-  clearServerListCache(): void {
+  clearPlexResourcesCache(): void {
     this.plexResourcesCache = null
-    this.log.debug('Cleared server list cache')
+    this.log.debug('Cleared Plex resources cache')
   }
 
   /**
