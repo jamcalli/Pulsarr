@@ -434,7 +434,10 @@ export default function PlexConfigurationPage() {
                 name="plexServerUrl"
                 render={({ field }) => {
                   const defaultUrl = 'http://localhost:32400'
-                  const isDefaultValue = field.value === defaultUrl
+                  // Display empty input when value is the default URL or empty string
+                  // Backend treats both identically as "use auto-discovery"
+                  const displayValue =
+                    field.value === defaultUrl ? '' : field.value || ''
 
                   return (
                     <FormItem>
@@ -464,11 +467,8 @@ export default function PlexConfigurationPage() {
                         <FormControl>
                           <Input
                             {...field}
-                            value={isDefaultValue ? '' : field.value || ''}
-                            onChange={(e) => {
-                              const newValue = e.target.value
-                              field.onChange(newValue || defaultUrl)
-                            }}
+                            value={displayValue}
+                            onChange={(e) => field.onChange(e.target.value)}
                             placeholder="Leave empty to auto-negotiate"
                             className="flex-1"
                             disabled={isExistenceCheckSaving}
