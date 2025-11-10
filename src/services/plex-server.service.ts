@@ -1669,8 +1669,11 @@ export class PlexServerService {
         'Checking content existence across Plex servers',
       )
 
-      // Check each server for this content
-      for (const server of servers) {
+      // Check all servers in parallel for faster results
+      // Use AbortController to cancel remaining requests when content is found
+      const abortController = new AbortController()
+
+      const serverChecks = servers.map(async (server) => {
         try {
           // Use server-specific access token for shared servers, fall back to admin token
           const serverToken = server.accessToken || adminToken
@@ -1678,7 +1681,7 @@ export class PlexServerService {
             this.log.debug(
               `No access token available for server "${server.name}", skipping`,
             )
-            continue
+            return { server: server.name, found: false }
           }
 
           const url = new URL('/library/all', server.uri)
@@ -1690,35 +1693,64 @@ export class PlexServerService {
               Accept: 'application/json',
               'X-Plex-Client-Identifier': 'Pulsarr',
             },
-            signal: AbortSignal.timeout(5000), // 5 second timeout per server
+            signal: AbortSignal.any([
+              AbortSignal.timeout(5000), // 5 second timeout per server
+              abortController.signal, // Cancel if found on another server
+            ]),
           })
 
           if (!response.ok) {
-            continue // Server error, try next
+            return { server: server.name, found: false }
           }
 
           const data = (await response.json()) as PlexSearchResponse
 
-          if (
+          const found =
             data.MediaContainer?.Metadata?.length &&
             data.MediaContainer.Metadata.length > 0
-          ) {
+
+          if (found) {
             this.log.info(
               `Content found on Plex server "${server.name}" - skipping download`,
             )
-            return true // Found!
+            // Cancel other pending requests
+            abortController.abort()
           }
+
+          return { server: server.name, found: !!found }
         } catch (serverError) {
-          // Server unavailable or timeout, continue to next
-          this.log.debug(
-            { error: serverError, server: server.name },
-            'Unable to check Plex server for content',
-          )
+          // Server unavailable, timeout, or aborted - not an error
+          if (
+            serverError instanceof Error &&
+            serverError.name === 'AbortError'
+          ) {
+            this.log.debug(
+              { server: server.name },
+              'Server check aborted (content found on another server)',
+            )
+          } else {
+            this.log.debug(
+              { error: serverError, server: server.name },
+              'Unable to check Plex server for content',
+            )
+          }
+          return { server: server.name, found: false }
         }
+      })
+
+      // Wait for all checks to complete or first found
+      const results = await Promise.allSettled(serverChecks)
+
+      // Check if any server found the content
+      const foundOnAnyServer = results.some(
+        (result) => result.status === 'fulfilled' && result.value.found,
+      )
+
+      if (!foundOnAnyServer) {
+        this.log.debug('Content not found on any accessible Plex server')
       }
 
-      this.log.debug('Content not found on any accessible Plex server')
-      return false
+      return foundOnAnyServer
     } catch (error) {
       this.log.error(
         { error, plexKey, contentType },
