@@ -1340,7 +1340,6 @@ export class WatchlistWorkflowService {
       const processingResults = await Promise.allSettled(
         allWatchlistItems.map((item) =>
           limit(async () => {
-            // Get user ID (guaranteed to be a number from database)
             const numericUserId = item.user_id
 
             if (!Number.isFinite(numericUserId) || numericUserId <= 0) {
