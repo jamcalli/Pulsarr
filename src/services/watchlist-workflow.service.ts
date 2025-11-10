@@ -1359,12 +1359,15 @@ export class WatchlistWorkflowService {
               return { type: 'skipped', reason: 'user_setting' }
             }
 
+            // Parse GUIDs once for reuse
+            const parsedGuids = parseGuids(item.guids)
+
             // Convert item to temp format for processing
             const tempItem: TemptRssWatchlistItem = {
               title: item.title,
               type: item.type,
               thumb: item.thumb ?? undefined,
-              guids: parseGuids(item.guids),
+              guids: parsedGuids,
               genres: this.safeParseArray<string>(item.genres),
               key: item.key,
             }
@@ -1372,7 +1375,7 @@ export class WatchlistWorkflowService {
             // Process shows
             if (item.type === 'show') {
               // Check for TVDB ID using extractTvdbId
-              const tvdbId = extractTvdbId(tempItem.guids)
+              const tvdbId = extractTvdbId(parsedGuids)
 
               if (tvdbId === 0) {
                 return {
@@ -1387,7 +1390,7 @@ export class WatchlistWorkflowService {
               const user = userById.get(numericUserId)
               const sonarrItem: SonarrItem = {
                 title: tempItem.title,
-                guids: parseGuids(tempItem.guids),
+                guids: parsedGuids,
                 type: 'show',
                 ended: false,
                 genres: this.safeParseArray<string>(tempItem.genres),
@@ -1409,7 +1412,7 @@ export class WatchlistWorkflowService {
             // Process movies
             else if (item.type === 'movie') {
               // Check for TMDB ID using extractTmdbId
-              const tmdbId = extractTmdbId(tempItem.guids)
+              const tmdbId = extractTmdbId(parsedGuids)
 
               if (tmdbId === 0) {
                 return {
@@ -1424,7 +1427,7 @@ export class WatchlistWorkflowService {
               const user = userById.get(numericUserId)
               const radarrItem: RadarrItem = {
                 title: tempItem.title,
-                guids: parseGuids(tempItem.guids),
+                guids: parsedGuids,
                 type: 'movie',
                 genres: this.safeParseArray<string>(tempItem.genres),
               }
