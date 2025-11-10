@@ -44,6 +44,7 @@ import {
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
@@ -1326,114 +1327,151 @@ export class WatchlistWorkflowService {
         }
       }
 
-      // Process each watchlist item
-      for (const item of allWatchlistItems) {
-        // Normalize user ID
-        const numericUserId =
-          typeof item.user_id === 'number'
-            ? item.user_id
-            : typeof item.user_id === 'object' &&
-                item.user_id !== null &&
-                'id' in item.user_id
-              ? (item.user_id as { id: number }).id
-              : Number.parseInt(String(item.user_id), 10)
+      // Process watchlist items with rate limiting to prevent overwhelming Plex
+      // Use same concurrency pattern as label sync service
+      const concurrencyLimit =
+        this.fastify.config.plexLabelSync?.concurrencyLimit || 5
+      const limit = pLimit(concurrencyLimit)
 
-        if (Number.isNaN(numericUserId)) {
-          this.log.warn(
-            `Item "${item.title}" has invalid user_id: ${item.user_id}, skipping`,
-          )
-          continue
-        }
+      this.log.debug(
+        `Processing ${allWatchlistItems.length} watchlist items with concurrency limit of ${concurrencyLimit}`,
+      )
 
-        // Check if user has sync enabled
-        const canSync = userSyncStatus.get(numericUserId)
+      const processingResults = await Promise.allSettled(
+        allWatchlistItems.map((item) =>
+          limit(async () => {
+            // Get user ID (guaranteed to be a number from database)
+            const numericUserId = item.user_id
 
-        if (canSync === false) {
-          this.log.debug(
-            `Skipping item "${item.title}" during sync as user ${numericUserId} has sync disabled`,
-          )
-          skippedDueToUserSetting++
-          continue
-        }
+            if (!Number.isFinite(numericUserId) || numericUserId <= 0) {
+              this.log.warn(
+                `Item "${item.title}" has invalid user_id: ${item.user_id}, skipping`,
+              )
+              return { type: 'skipped', reason: 'invalid_user_id' }
+            }
 
-        // Convert item to temp format for processing
-        const tempItem: TemptRssWatchlistItem = {
-          title: item.title,
-          type: item.type,
-          thumb: item.thumb ?? undefined,
-          guids: parseGuids(item.guids),
-          genres: this.safeParseArray<string>(item.genres),
-          key: item.key,
-        }
+            // Check if user has sync enabled
+            const canSync = userSyncStatus.get(numericUserId)
 
-        // Process shows
-        if (item.type === 'show') {
-          // Check for TVDB ID using extractTvdbId
-          const tvdbId = extractTvdbId(tempItem.guids)
+            if (canSync === false) {
+              this.log.debug(
+                `Skipping item "${item.title}" during sync as user ${numericUserId} has sync disabled`,
+              )
+              return { type: 'skipped', reason: 'user_setting' }
+            }
 
-          if (tvdbId === 0) {
-            skippedItems.shows.push(tempItem.title)
-            skippedDueToMissingIds++
-            continue
-          }
+            // Convert item to temp format for processing
+            const tempItem: TemptRssWatchlistItem = {
+              title: item.title,
+              type: item.type,
+              thumb: item.thumb ?? undefined,
+              guids: parseGuids(item.guids),
+              genres: this.safeParseArray<string>(item.genres),
+              key: item.key,
+            }
 
-          // Use helper for routing-aware existence check and routing
-          const user = userById.get(numericUserId)
-          const sonarrItem: SonarrItem = {
-            title: tempItem.title,
-            guids: parseGuids(tempItem.guids),
-            type: 'show',
-            ended: false,
-            genres: this.safeParseArray<string>(tempItem.genres),
-            status: 'pending',
-            series_status: 'continuing',
-          }
+            // Process shows
+            if (item.type === 'show') {
+              // Check for TVDB ID using extractTvdbId
+              const tvdbId = extractTvdbId(tempItem.guids)
 
-          const wasAdded = await this.processShowWithRouting({
-            tempItem,
-            numericUserId,
-            userName: user?.name,
-            sonarrItem,
-            existingSeries,
-            primaryUser,
-          })
+              if (tvdbId === 0) {
+                return {
+                  type: 'skipped',
+                  reason: 'missing_id',
+                  title: tempItem.title,
+                  contentType: 'show',
+                }
+              }
 
-          if (wasAdded) {
+              // Use helper for routing-aware existence check and routing
+              const user = userById.get(numericUserId)
+              const sonarrItem: SonarrItem = {
+                title: tempItem.title,
+                guids: parseGuids(tempItem.guids),
+                type: 'show',
+                ended: false,
+                genres: this.safeParseArray<string>(tempItem.genres),
+                status: 'pending',
+                series_status: 'continuing',
+              }
+
+              const wasAdded = await this.processShowWithRouting({
+                tempItem,
+                numericUserId,
+                userName: user?.name,
+                sonarrItem,
+                existingSeries,
+                primaryUser,
+              })
+
+              return { type: 'show', added: wasAdded }
+            }
+            // Process movies
+            else if (item.type === 'movie') {
+              // Check for TMDB ID using extractTmdbId
+              const tmdbId = extractTmdbId(tempItem.guids)
+
+              if (tmdbId === 0) {
+                return {
+                  type: 'skipped',
+                  reason: 'missing_id',
+                  title: tempItem.title,
+                  contentType: 'movie',
+                }
+              }
+
+              // Use helper for routing-aware existence check and routing
+              const user = userById.get(numericUserId)
+              const radarrItem: RadarrItem = {
+                title: tempItem.title,
+                guids: parseGuids(tempItem.guids),
+                type: 'movie',
+                genres: this.safeParseArray<string>(tempItem.genres),
+              }
+
+              const wasAdded = await this.processMovieWithRouting({
+                tempItem,
+                numericUserId,
+                userName: user?.name,
+                radarrItem,
+                existingMovies,
+                primaryUser,
+              })
+
+              return { type: 'movie', added: wasAdded }
+            }
+
+            return { type: 'unknown' }
+          }),
+        ),
+      )
+
+      // Aggregate results
+      for (const result of processingResults) {
+        if (result.status === 'fulfilled') {
+          const value = result.value
+          if (value.type === 'show' && value.added) {
             showsAdded++
-          }
-        }
-        // Process movies
-        else if (item.type === 'movie') {
-          // Check for TMDB ID using extractTmdbId
-          const tmdbId = extractTmdbId(tempItem.guids)
-
-          if (tmdbId === 0) {
-            skippedItems.movies.push(tempItem.title)
-            skippedDueToMissingIds++
-            continue
-          }
-
-          // Use helper for routing-aware existence check and routing
-          const user = userById.get(numericUserId)
-          const radarrItem: RadarrItem = {
-            title: tempItem.title,
-            guids: parseGuids(tempItem.guids),
-            type: 'movie',
-            genres: this.safeParseArray<string>(tempItem.genres),
-          }
-
-          const wasAdded = await this.processMovieWithRouting({
-            tempItem,
-            numericUserId,
-            userName: user?.name,
-            radarrItem,
-            existingMovies,
-            primaryUser,
-          })
-
-          if (wasAdded) {
+          } else if (value.type === 'movie' && value.added) {
             moviesAdded++
+          } else if (value.type === 'skipped') {
+            if (value.reason === 'user_setting') {
+              skippedDueToUserSetting++
+            } else if (value.reason === 'missing_id') {
+              skippedDueToMissingIds++
+              if (value.contentType === 'show') {
+                skippedItems.shows.push(value.title)
+              } else if (value.contentType === 'movie') {
+                skippedItems.movies.push(value.title)
+              }
+            }
           }
+        } else {
+          this.log.error(
+            { error: result.reason },
+            'Error processing watchlist item during reconciliation',
+          )
         }
       }
 
