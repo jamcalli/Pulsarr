@@ -8,10 +8,7 @@
 import type { Item } from '@root/types/plex.types.js'
 import type {
   PlexMetadata,
-  PlexMetadataResponse,
   PlexPlaylistItem,
-  PlexPlaylistItemsResponse,
-  PlexPlaylistResponse,
   PlexResource,
   PlexSearchResponse,
   PlexServerConnectionInfo,
@@ -20,15 +17,28 @@ import type {
 } from '@root/types/plex-server.types.js'
 import type {
   PlexSession,
-  PlexSessionResponse,
   PlexShowMetadata,
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
-import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
+import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { toItemsSingle } from '@utils/plex/index.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import {
+  getCurrentLabels,
+  getMetadata,
+  removeSpecificLabels,
+  updateLabels,
+} from './plex-server/labels/index.js'
+import { getShowMetadata, searchByGuid } from './plex-server/metadata/index.js'
+import {
+  createUserPlaylist,
+  findUserPlaylistByTitle,
+  getUserPlaylistItems,
+} from './plex-server/playlists/index.js'
+import { getAllPlexResources } from './plex-server/resources/resource-operations.js'
+import { getActiveSessions } from './plex-server/sessions/session-operations.js'
 
 // HTTP timeout constants
 const PLEX_API_TIMEOUT = 30000 // 30 seconds for Plex API operations
@@ -767,48 +777,15 @@ export class PlexServerService {
     username: string,
     title: string,
   ): Promise<string | null> {
-    try {
-      const baseUrl = await this.getPlexServerUrl()
-      const token = await this.getUserToken(username)
+    const serverUrl = await this.getPlexServerUrl()
+    const token = await this.getUserToken(username)
 
-      if (!token) {
-        this.log.warn(`No token available for user "${username}"`)
-        return null
-      }
-
-      const url = new URL('/playlists', baseUrl)
-      const response = await fetch(url.toString(), {
-        headers: {
-          Accept: 'application/json',
-          'X-Plex-Token': token,
-          'X-Plex-Client-Identifier': 'Pulsarr',
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch playlists for user "${username}": ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = (await response.json()) as PlexPlaylistResponse
-      const playlists = data.MediaContainer.Metadata
-
-      const matchingPlaylist = playlists.find(
-        (playlist) => playlist.title === title,
-      )
-
-      return matchingPlaylist ? matchingPlaylist.ratingKey : null
-    } catch (error) {
-      // Only log as debug if the error is related to not finding the playlist
-      // This is expected behavior when we're checking if a playlist exists before creating it
-      this.log.debug(
-        { error },
-        `Could not find playlist "${title}" for user "${username}":`,
-      )
+    if (!token) {
+      this.log.warn(`No token available for user "${username}"`)
       return null
     }
+
+    return findUserPlaylistByTitle(title, serverUrl, token, this.log)
   }
 
   /**
@@ -826,57 +803,19 @@ export class PlexServerService {
       smart?: boolean
     },
   ): Promise<string | null> {
-    try {
-      const baseUrl = await this.getPlexServerUrl()
-      const token = await this.getUserToken(username)
+    const serverUrl = await this.getPlexServerUrl()
+    const token = await this.getUserToken(username)
 
-      if (!token) {
-        this.log.warn(`No token available for user "${username}"`)
-        return null
-      }
-
-      // For Plex, let's use video type which is more compatible
-      const playlistType = options.type === 'mixed' ? 'video' : options.type
-
-      // Build the URL with required parameters
-      const url = new URL('/playlists', baseUrl)
-      url.searchParams.append('title', options.title)
-      url.searchParams.append('type', playlistType)
-      url.searchParams.append('smart', options.smart ? '1' : '0')
-      url.searchParams.append('uri', 'library://all')
-
-      this.log.debug(
-        `Creating playlist "${options.title}" for user "${username}"`,
-      )
-
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'X-Plex-Token': token,
-          'X-Plex-Client-Identifier': 'Pulsarr',
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to create playlist for user "${username}": ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = (await response.json()) as PlexPlaylistResponse
-      const playlistId = data.MediaContainer?.Metadata?.[0]?.ratingKey
-
-      // Don't log here - we'll log in the parent function to avoid duplicate logs
-      return playlistId || null
-    } catch (error) {
-      this.log.error(
-        { error },
-        `Error creating playlist "${options.title}" for user "${username}":`,
-      )
+    if (!token) {
+      this.log.warn(`No token available for user "${username}"`)
       return null
     }
+
+    this.log.debug(
+      `Creating playlist "${options.title}" for user "${username}"`,
+    )
+
+    return createUserPlaylist(options, serverUrl, token, this.log)
   }
 
   /**
@@ -1002,86 +941,15 @@ export class PlexServerService {
     username: string,
     playlistId: string,
   ): Promise<Set<PlexPlaylistItem>> {
-    try {
-      const baseUrl = await this.getPlexServerUrl()
-      const token = await this.getUserToken(username)
+    const serverUrl = await this.getPlexServerUrl()
+    const token = await this.getUserToken(username)
 
-      if (!token) {
-        this.log.warn(`No token available for user "${username}"`)
-        return new Set()
-      }
-
-      const allItems = new Set<PlexPlaylistItem>()
-      let offset = 0
-      const limit = 100 // Standard pagination limit for Plex
-      let hasMoreItems = true
-
-      // Handle pagination by fetching items until we get them all
-      while (hasMoreItems) {
-        const url = new URL(`/playlists/${playlistId}/items`, baseUrl)
-        url.searchParams.append('X-Plex-Container-Start', offset.toString())
-        url.searchParams.append('X-Plex-Container-Size', limit.toString())
-
-        const response = await fetch(url.toString(), {
-          headers: {
-            Accept: 'application/json',
-            'X-Plex-Token': token,
-            'X-Plex-Client-Identifier': 'Pulsarr',
-          },
-          signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-        })
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch playlist items for user "${username}": ${response.status} ${response.statusText}`,
-          )
-        }
-
-        const data = (await response.json()) as PlexPlaylistItemsResponse
-        const items = data.MediaContainer.Metadata || []
-
-        // Add current batch of items to our result set
-        for (const item of items) {
-          // Only include movies, shows, and episodes in playlist protection checks
-          if (
-            item.type === 'movie' ||
-            item.type === 'show' ||
-            item.type === 'episode'
-          ) {
-            allItems.add({
-              guid: item.guid,
-              grandparentGuid: item.grandparentGuid,
-              parentGuid: item.parentGuid,
-              type: item.type,
-              title: item.grandparentTitle || item.title,
-            })
-          }
-        }
-
-        // Check if we need to fetch more items
-        const currentSize = items.length
-        const totalSize = data.MediaContainer.totalSize || items.length
-
-        // Update offset and check if we have more items to fetch
-        offset += currentSize
-        hasMoreItems = offset < totalSize && currentSize > 0
-
-        this.log.debug(
-          `Fetched ${currentSize} playlist items for user "${username}", total so far: ${offset} of ${totalSize}`,
-        )
-      }
-
-      this.log.debug(
-        `Found ${allItems.size} items in playlist ${playlistId} for user "${username}"`,
-      )
-      return allItems
-    } catch (error) {
-      this.log.error(
-        { error },
-        `Error getting playlist items for user "${username}":`,
-      )
+    if (!token) {
+      this.log.warn(`No token available for user "${username}"`)
       return new Set()
     }
+
+    return getUserPlaylistItems(playlistId, serverUrl, token, this.log)
   }
 
   /**
@@ -1437,40 +1305,9 @@ export class PlexServerService {
    * @returns Promise resolving to array of active sessions
    */
   async getActiveSessions(): Promise<PlexSession[]> {
-    try {
-      const serverUrl = await this.getPlexServerUrl()
-      const adminToken = this.config.plexTokens?.[0] || ''
-
-      if (!adminToken) {
-        this.log.warn('No Plex admin token available for session monitoring')
-        return []
-      }
-
-      const url = new URL('/status/sessions', serverUrl)
-      const response = await fetch(url.toString(), {
-        headers: {
-          Accept: 'application/json',
-          'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': 'Pulsarr',
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch sessions: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = (await response.json()) as PlexSessionResponse
-      const sessions = data.MediaContainer.Metadata || []
-
-      this.log.debug(`Found ${sessions.length} active Plex sessions`)
-      return sessions
-    } catch (error) {
-      this.log.error({ error }, 'Error fetching Plex sessions:')
-      return []
-    }
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return getActiveSessions(serverUrl, token, this.log)
   }
 
   /**
@@ -1492,44 +1329,15 @@ export class PlexServerService {
     ratingKey: string,
     includeChildren = true,
   ): Promise<PlexShowMetadata | PlexShowMetadataResponse | null> {
-    try {
-      const serverUrl = await this.getPlexServerUrl()
-      const adminToken = this.config.plexTokens?.[0] || ''
-
-      if (!adminToken) {
-        this.log.warn('No Plex admin token available for metadata retrieval')
-        return null
-      }
-
-      const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
-      if (includeChildren) {
-        url.searchParams.append('includeChildren', '1')
-      }
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          Accept: 'application/json',
-          'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': 'Pulsarr',
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch show metadata: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = (await response.json()) as PlexShowMetadata
-      return data
-    } catch (error) {
-      this.log.error(
-        { error },
-        `Error fetching show metadata for key ${ratingKey}:`,
-      )
-      return null
-    }
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return getShowMetadata(
+      ratingKey,
+      includeChildren,
+      serverUrl,
+      token,
+      this.log,
+    )
   }
 
   /**
@@ -1539,59 +1347,9 @@ export class PlexServerService {
    * @returns Promise resolving to array of matching PlexMetadata items
    */
   async searchByGuid(guid: string): Promise<PlexMetadata[]> {
-    try {
-      const serverUrl = await this.getPlexServerUrl()
-      const adminToken = this.config.plexTokens?.[0] || ''
-
-      if (!adminToken) {
-        this.log.warn('No Plex admin token available for library search')
-        return []
-      }
-
-      // Don't normalize plex:// GUIDs as they're internal Plex identifiers
-      // Only normalize external provider GUIDs (tmdb://, tvdb://, etc.)
-      const normalizedGuid = guid.startsWith('plex://')
-        ? guid
-        : normalizeGuid(guid)
-
-      const url = new URL('/library/all', serverUrl)
-      url.searchParams.append('guid', normalizedGuid)
-
-      this.log.debug(`Searching Plex library for GUID: ${normalizedGuid}`)
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          Accept: 'application/json',
-          'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': 'Pulsarr',
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to search library by GUID: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = (await response.json()) as PlexSearchResponse
-      const results = data.MediaContainer.Metadata || []
-
-      this.log.debug(
-        {
-          normalizedGuid,
-          originalGuid: guid,
-          hasMetadata: !!data.MediaContainer.Metadata,
-          containerSize: data.MediaContainer.size,
-          fullUrl: url.toString(),
-        },
-        `Found ${results.length} results for GUID: ${normalizedGuid}`,
-      )
-      return results
-    } catch (error) {
-      this.log.error({ error }, `Error searching library by GUID "${guid}":`)
-      return []
-    }
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return searchByGuid(guid, serverUrl, token, this.log)
   }
 
   /**
@@ -1669,8 +1427,11 @@ export class PlexServerService {
         'Checking content existence across Plex servers',
       )
 
-      // Check each server for this content
-      for (const server of servers) {
+      // Check all servers in parallel for faster results
+      // Use AbortController to cancel remaining requests when content is found
+      const abortController = new AbortController()
+
+      const serverChecks = servers.map(async (server) => {
         try {
           // Use server-specific access token for shared servers, fall back to admin token
           const serverToken = server.accessToken || adminToken
@@ -1678,7 +1439,7 @@ export class PlexServerService {
             this.log.debug(
               `No access token available for server "${server.name}", skipping`,
             )
-            continue
+            return { server: server.name, found: false }
           }
 
           const url = new URL('/library/all', server.uri)
@@ -1690,35 +1451,64 @@ export class PlexServerService {
               Accept: 'application/json',
               'X-Plex-Client-Identifier': 'Pulsarr',
             },
-            signal: AbortSignal.timeout(5000), // 5 second timeout per server
+            signal: AbortSignal.any([
+              AbortSignal.timeout(5000), // 5 second timeout per server
+              abortController.signal, // Cancel if found on another server
+            ]),
           })
 
           if (!response.ok) {
-            continue // Server error, try next
+            return { server: server.name, found: false }
           }
 
           const data = (await response.json()) as PlexSearchResponse
 
-          if (
+          const found =
             data.MediaContainer?.Metadata?.length &&
             data.MediaContainer.Metadata.length > 0
-          ) {
+
+          if (found) {
             this.log.info(
               `Content found on Plex server "${server.name}" - skipping download`,
             )
-            return true // Found!
+            // Cancel other pending requests
+            abortController.abort()
           }
+
+          return { server: server.name, found: !!found }
         } catch (serverError) {
-          // Server unavailable or timeout, continue to next
-          this.log.debug(
-            { error: serverError, server: server.name },
-            'Unable to check Plex server for content',
-          )
+          // Server unavailable, timeout, or aborted - not an error
+          if (
+            serverError instanceof Error &&
+            serverError.name === 'AbortError'
+          ) {
+            this.log.debug(
+              { server: server.name },
+              'Server check aborted (content found on another server)',
+            )
+          } else {
+            this.log.debug(
+              { error: serverError, server: server.name },
+              'Unable to check Plex server for content',
+            )
+          }
+          return { server: server.name, found: false }
         }
+      })
+
+      // Wait for all checks to complete or first found
+      const results = await Promise.allSettled(serverChecks)
+
+      // Check if any server found the content
+      const foundOnAnyServer = results.some(
+        (result) => result.status === 'fulfilled' && result.value.found,
+      )
+
+      if (!foundOnAnyServer) {
+        this.log.debug('Content not found on any accessible Plex server')
       }
 
-      this.log.debug('Content not found on any accessible Plex server')
-      return false
+      return foundOnAnyServer
     } catch (error) {
       this.log.error(
         { error, plexKey, contentType },
@@ -1736,29 +1526,7 @@ export class PlexServerService {
    * @returns Array of PlexResource objects
    */
   private async getAllPlexResources(token: string): Promise<PlexResource[]> {
-    try {
-      const url = new URL('https://plex.tv/api/v2/resources')
-      url.searchParams.append('includeHttps', '1')
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          Accept: 'application/json',
-          'X-Plex-Token': token,
-          'X-Plex-Client-Identifier': 'Pulsarr',
-        },
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      })
-
-      if (!response.ok) {
-        throw new Error(`Plex.tv API error: ${response.statusText}`)
-      }
-
-      const data = (await response.json()) as PlexResource[]
-      return data.filter((resource) => resource.provides === 'server')
-    } catch (error) {
-      this.log.error({ error }, 'Error fetching Plex resources')
-      return []
-    }
+    return getAllPlexResources(token, this.log)
   }
 
   /**
@@ -1873,51 +1641,9 @@ export class PlexServerService {
    * @returns Promise resolving to metadata or null if not found
    */
   async getMetadata(ratingKey: string): Promise<PlexMetadata | null> {
-    try {
-      const serverUrl = await this.getPlexServerUrl()
-      const adminToken = this.config.plexTokens?.[0] || ''
-
-      if (!adminToken) {
-        this.log.warn('No Plex admin token available for metadata retrieval')
-        return null
-      }
-
-      const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
-
-      this.log.debug(`Fetching metadata for rating key: ${ratingKey}`)
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          Accept: 'application/json',
-          'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': 'Pulsarr',
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch metadata: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      const data = (await response.json()) as PlexMetadataResponse
-      const metadata = data.MediaContainer.Metadata?.[0] || null
-
-      if (!metadata) {
-        this.log.warn(`No metadata found for rating key: ${ratingKey}`)
-        return null
-      }
-
-      this.log.debug(`Retrieved metadata for: ${metadata.title}`)
-      return metadata
-    } catch (error) {
-      this.log.error(
-        { error },
-        `Error fetching metadata for rating key "${ratingKey}":`,
-      )
-      return null
-    }
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return getMetadata(ratingKey, serverUrl, token, this.log)
   }
 
   /**
@@ -1927,44 +1653,9 @@ export class PlexServerService {
    * @returns Promise resolving to array of current label strings, or empty array if none found
    */
   async getCurrentLabels(ratingKey: string): Promise<string[]> {
-    try {
-      this.log.debug(`Fetching metadata for rating key ${ratingKey}`)
-      const metadata = await this.getMetadata(ratingKey)
-
-      if (!metadata) {
-        this.log.warn(`No metadata found for rating key ${ratingKey}`)
-        return []
-      }
-
-      if (!metadata.Label) {
-        this.log.debug(
-          {
-            metadataKeys: Object.keys(metadata),
-            hasLabel: !!metadata.Label,
-          },
-          `No Label field found in metadata for rating key ${ratingKey}`,
-        )
-        return []
-      }
-
-      const labels = metadata.Label.map((label) => label.tag).filter(
-        (tag): tag is string => typeof tag === 'string' && tag.length > 0,
-      )
-      this.log.debug(
-        {
-          labels,
-          labelObjects: metadata.Label,
-        },
-        `Successfully retrieved ${labels.length} labels for rating key ${ratingKey}`,
-      )
-      return labels
-    } catch (error) {
-      this.log.error(
-        { error },
-        `Error getting current labels for rating key "${ratingKey}":`,
-      )
-      return []
-    }
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return getCurrentLabels(ratingKey, serverUrl, token, this.log)
   }
 
   /**
@@ -1978,78 +1669,15 @@ export class PlexServerService {
     ratingKey: string,
     labelsToRemove: string[],
   ): Promise<boolean> {
-    try {
-      this.log.debug(
-        {
-          labelsToRemove,
-          labelCount: labelsToRemove.length,
-        },
-        `Starting removeSpecificLabels for rating key ${ratingKey}`,
-      )
-
-      if (labelsToRemove.length === 0) {
-        this.log.debug(`No labels to remove for rating key ${ratingKey}`)
-        return true // Nothing to remove
-      }
-
-      // Get current labels
-      this.log.debug(`Fetching current labels for rating key ${ratingKey}`)
-      const currentLabels = await this.getCurrentLabels(ratingKey)
-
-      this.log.debug(
-        {
-          currentLabels,
-          currentLabelCount: currentLabels.length,
-        },
-        `Current labels retrieved for rating key ${ratingKey}`,
-      )
-
-      if (currentLabels.length === 0) {
-        this.log.warn(
-          {
-            labelsToRemove,
-            ratingKey,
-          },
-          `No current labels found for rating key ${ratingKey}, cannot remove labels that don't exist. This may indicate a metadata API issue or the labels have already been removed.`,
-        )
-        return true
-      }
-
-      // Filter out labels to remove (case-insensitive comparison)
-      const labelsToRemoveLower = labelsToRemove.map((label) =>
-        label.toLowerCase(),
-      )
-      const filteredLabels = currentLabels.filter(
-        (label) => !labelsToRemoveLower.includes(label.toLowerCase()),
-      )
-
-      this.log.debug(
-        {
-          currentLabels,
-          labelsToRemove,
-          filteredLabels,
-        },
-        `Removing labels from rating key ${ratingKey}: ${currentLabels.length} -> ${filteredLabels.length}`,
-      )
-
-      // Handle the case where all labels would be removed via the canonical path
-      if (filteredLabels.length === 0) {
-        this.log.debug(
-          `All labels will be removed from rating key ${ratingKey}. Delegating to updateLabels([]).`,
-        )
-        return this.updateLabels(ratingKey, [])
-      }
-
-      // Use updateLabels with the filtered list (some labels remain)
-      const result = await this.updateLabels(ratingKey, filteredLabels)
-      return result
-    } catch (error) {
-      this.log.error(
-        { error },
-        `Error removing specific labels from rating key "${ratingKey}":`,
-      )
-      return false
-    }
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return removeSpecificLabels(
+      ratingKey,
+      labelsToRemove,
+      serverUrl,
+      token,
+      this.log,
+    )
   }
 
   /**
@@ -2060,76 +1688,8 @@ export class PlexServerService {
    * @returns Promise resolving to true if successful, false otherwise
    */
   async updateLabels(ratingKey: string, labels: string[]): Promise<boolean> {
-    try {
-      const serverUrl = await this.getPlexServerUrl()
-      const adminToken = this.config.plexTokens?.[0] || ''
-
-      if (!adminToken) {
-        this.log.warn('No Plex admin token available for label update')
-        return false
-      }
-
-      const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
-
-      // Handle empty labels array — clear all labels
-      // Use the proper Plex API syntax for array-clears
-      if (labels.length === 0) {
-        // Use the - operator to clear all labels from the array field.
-        // Format: label[].tag.tag- with an empty value (URLSearchParams encodes as label%5B%5D.tag.tag-=)
-        url.searchParams.append('label[].tag.tag-', '')
-        // Lock the labels field to prevent Plex from modifying during metadata refreshes
-        url.searchParams.append('label.locked', '1')
-        this.log.debug(
-          `Clearing all labels for rating key ${ratingKey} using - operator with lock`,
-        )
-      } else {
-        // Add each label as a separate parameter — this is the format Plex expects.
-        // Sanitize and de-duplicate to avoid sending blanks/duplicates to Plex.
-        const sanitized = [
-          ...new Set(labels.map((l) => l.trim()).filter((l) => l.length > 0)),
-        ]
-        for (const label of sanitized) {
-          url.searchParams.append('label[].tag.tag', label)
-        }
-        // Lock the labels field to prevent Plex from modifying during metadata refreshes
-        url.searchParams.append('label.locked', '1')
-
-        this.log.debug(
-          `Updating labels for rating key ${ratingKey}: [${sanitized.join(', ')}] with lock`,
-        )
-      }
-
-      const response = await fetch(url.toString(), {
-        method: 'PUT',
-        headers: {
-          'X-Plex-Token': adminToken,
-          'X-Plex-Client-Identifier': 'Pulsarr',
-        },
-        signal: AbortSignal.timeout(PLEX_API_TIMEOUT),
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to update labels: ${response.status} ${response.statusText}`,
-        )
-      }
-
-      if (labels.length === 0) {
-        this.log.debug(
-          `Successfully removed all labels from rating key ${ratingKey}`,
-        )
-      } else {
-        this.log.debug(
-          `Successfully updated labels for rating key ${ratingKey}`,
-        )
-      }
-      return true
-    } catch (error) {
-      this.log.error(
-        { error },
-        `Error updating labels for rating key "${ratingKey}":`,
-      )
-      return false
-    }
+    const serverUrl = await this.getPlexServerUrl()
+    const token = this.config.plexTokens?.[0] || ''
+    return updateLabels(ratingKey, labels, serverUrl, token, this.log)
   }
 }
