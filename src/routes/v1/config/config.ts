@@ -188,6 +188,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        // Handle Plex server URL changes - clear connection cache
+        if (
+          'plexServerUrl' in safeConfigUpdate ||
+          'plexTokens' in safeConfigUpdate
+        ) {
+          fastify.log.info(
+            'Plex server connection settings changed, clearing caches',
+          )
+          fastify.plexServerService.clearCaches()
+        }
+
         // Handle Plex Label Sync config changes - compare before/after states
         if ('plexLabelSync' in safeConfigUpdate) {
           const wasEnabled = currentConfig?.plexLabelSync?.enabled === true
