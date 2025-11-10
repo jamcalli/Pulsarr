@@ -172,15 +172,23 @@ export async function updateLabels(
       const sanitized = [
         ...new Set(labels.map((l) => l.trim()).filter((l) => l.length > 0)),
       ]
-      for (const label of sanitized) {
-        url.searchParams.append('label[].tag.tag', label)
+
+      // Handle case where sanitization results in empty array (e.g., whitespace-only labels)
+      if (sanitized.length === 0) {
+        url.searchParams.append('label[].tag.tag-', '')
+        log.debug(
+          `Sanitized labels empty; clearing all labels for rating key ${ratingKey} via - operator with lock`,
+        )
+      } else {
+        for (const label of sanitized) {
+          url.searchParams.append('label[].tag.tag', label)
+        }
+        log.debug(
+          `Updating labels for rating key ${ratingKey}: [${sanitized.join(', ')}] with lock`,
+        )
       }
       // Lock the labels field to prevent Plex from modifying during metadata refreshes
       url.searchParams.append('label.locked', '1')
-
-      log.debug(
-        `Updating labels for rating key ${ratingKey}: [${sanitized.join(', ')}] with lock`,
-      )
     }
 
     const response = await fetch(url.toString(), {
