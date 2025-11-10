@@ -193,10 +193,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           'plexServerUrl' in safeConfigUpdate ||
           'plexTokens' in safeConfigUpdate
         ) {
-          fastify.log.info(
-            'Plex server connection settings changed, clearing caches',
-          )
-          fastify.plexServerService.clearCaches()
+          try {
+            fastify.log.info(
+              'Plex server connection settings changed, clearing caches',
+            )
+            fastify.plexServerService.clearCaches()
+          } catch (error) {
+            fastify.log.error(
+              { error },
+              'Failed to clear Plex server caches after config update',
+            )
+          }
         }
 
         // Handle Plex Label Sync config changes - compare before/after states
