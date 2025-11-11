@@ -1455,11 +1455,11 @@ export class PlexServerService {
 
           const url = new URL('/library/all', server.uri)
           url.searchParams.append('guid', plexGuid)
-          url.searchParams.append('X-Plex-Token', serverToken)
 
           const response = await fetch(url.toString(), {
             headers: {
               Accept: 'application/json',
+              'X-Plex-Token': serverToken,
               'X-Plex-Client-Identifier': 'Pulsarr',
             },
             signal: AbortSignal.any([
