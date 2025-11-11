@@ -4360,7 +4360,18 @@
                           "type": "string"
                         },
                         "plexServerUrl": {
-                          "type": "string"
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "uri"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                ""
+                              ]
+                            }
+                          ]
                         },
                         "skipIfExistsOnPlex": {
                           "type": "boolean"
@@ -4954,7 +4965,18 @@
                     "type": "string"
                   },
                   "plexServerUrl": {
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          ""
+                        ]
+                      }
+                    ]
                   },
                   "skipIfExistsOnPlex": {
                     "type": "boolean"
@@ -5487,7 +5509,18 @@
                           "type": "string"
                         },
                         "plexServerUrl": {
-                          "type": "string"
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "uri"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                ""
+                              ]
+                            }
+                          ]
                         },
                         "skipIfExistsOnPlex": {
                           "type": "boolean"

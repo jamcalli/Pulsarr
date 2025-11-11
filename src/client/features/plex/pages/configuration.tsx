@@ -410,15 +410,29 @@ export default function PlexConfigurationPage() {
                             <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="max-w-xs">
-                              When enabled, Pulsarr will check all accessible
-                              Plex servers (using your primary token) and skip
-                              downloading content that already exists, even if
-                              it's not in Sonarr/Radarr. This prevents duplicate
-                              downloads across multiple servers. For your owned
-                              server, the configured Server Connection will be
-                              used; shared servers use auto-discovery.
-                            </p>
+                            <div className="max-w-xs space-y-2">
+                              <p>
+                                When enabled, Pulsarr will check Plex servers
+                                before downloading content, skipping items that
+                                already exist even if they're not tracked in
+                                Sonarr/Radarr.
+                              </p>
+                              <p>
+                                <strong>Primary Token User:</strong> Checks ALL
+                                accessible servers including your owned server
+                                and any shared servers you have access to.
+                              </p>
+                              <p>
+                                <strong>Friend/Other Users:</strong> Only checks
+                                your owned server (no access tokens available
+                                for shared servers).
+                              </p>
+                              <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                <strong>Note:</strong> Your owned server uses
+                                the configured Server Connection below; shared
+                                servers use auto-discovery.
+                              </p>
+                            </div>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -451,14 +465,33 @@ export default function PlexConfigurationPage() {
                               <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p className="max-w-xs">
-                                Specify which connection method to use for all
-                                Plex server communication (session monitoring,
-                                label sync, content existence checks, etc.). Use
-                                "Find Server" to discover and select from
-                                available connection options, or leave empty to
-                                attempt auto-negotiation.
-                              </p>
+                              <div className="max-w-xs space-y-2">
+                                <p>
+                                  Specify which connection method to use for ALL
+                                  Plex server communication including session
+                                  monitoring, label sync, playlist protection,
+                                  and content existence checks.
+                                </p>
+                                <p>
+                                  <strong>Manual Entry:</strong> Enter a URL
+                                  like{' '}
+                                  <code className="text-xs">
+                                    https://192.168.1.100:32400
+                                  </code>
+                                </p>
+                                <p>
+                                  <strong>Auto-Discovery:</strong> Use "Find
+                                  Server" to discover available connections, or
+                                  leave empty for automatic negotiation.
+                                </p>
+                                <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
+                                  <strong>Tip:</strong> Use HTTPS if your Plex
+                                  server requires secure connections. Test the
+                                  URL by opening it in your browser with{' '}
+                                  <code>/web</code> appended - you should see
+                                  the Plex interface load.
+                                </p>
+                              </div>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>

@@ -301,9 +301,20 @@ export class PlexServerService {
       this.connectionTimestamp = Date.now()
       this.serverMachineId = server.clientIdentifier
 
-      this.log.info(
-        `Found ${connections.length} Plex server connections (${connections.filter((c) => c.local).length} local, ${connections.filter((c) => c.relay).length} relay)`,
-      )
+      // Check if manual config is being used
+      const manualConfigUsed =
+        this.config.plexServerUrl &&
+        this.config.plexServerUrl !== 'http://localhost:32400'
+
+      if (manualConfigUsed) {
+        this.log.info(
+          `Discovered ${connections.length} Plex server connections (manual config will be used)`,
+        )
+      } else {
+        this.log.info(
+          `Found ${connections.length} Plex server connections (${connections.filter((c) => c.local).length} local, ${connections.filter((c) => c.relay).length} relay)`,
+        )
+      }
 
       // Log connection details at info level for clear auto-configuration visibility
       if (connections.length > 0) {

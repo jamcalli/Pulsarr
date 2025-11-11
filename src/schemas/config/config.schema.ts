@@ -192,7 +192,9 @@ export const ConfigSchema = z.object({
       z.literal(''),
     ])
     .optional(),
-  // Plex Existence Check - skip downloading if content exists on accessible Plex servers
+  // Plex Existence Check - skip downloading if content exists on Plex servers
+  // Primary token user: checks ALL accessible servers (owned + shared)
+  // Friend/other users: checks ONLY the owned server (no access tokens for shared)
   skipIfExistsOnPlex: z.boolean().optional(),
   // Plex Label Sync Configuration - nested object following complex config pattern
   plexLabelSync: PlexLabelSyncConfigSchema.optional(),
