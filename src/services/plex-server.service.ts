@@ -1578,15 +1578,24 @@ export class PlexServerService {
       (r) => r.clientIdentifier === this.serverMachineId || r.owned === true,
     )
 
-    if (ownerResource && ownerConnections.length > 0) {
+    if (ownerConnections.length > 0) {
       // Add owner's server connections using the configured plexServerUrl setting
-      this.log.debug(
-        `Using configured connections for owner's server "${ownerResource.name}"`,
-      )
+      // Use a fallback name when plex.tv metadata is unavailable
+      const ownerName = ownerResource?.name ?? 'Owner Plex Server'
+
+      if (ownerResource) {
+        this.log.debug(
+          `Using configured connections for owner's server "${ownerResource.name}"`,
+        )
+      } else {
+        this.log.warn(
+          'No owner resource metadata returned from plex.tv; falling back to configured connections',
+        )
+      }
 
       for (const conn of ownerConnections) {
         servers.push({
-          name: ownerResource.name,
+          name: ownerName,
           uri: conn.url,
           local: conn.local,
           relay: conn.relay,
