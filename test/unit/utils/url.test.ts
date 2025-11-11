@@ -59,7 +59,8 @@ describe('url', () => {
       await delayWithBackoffAndJitter(0, 100, 2000)
       const elapsed = Date.now() - start
       // Base delay 100ms + up to 10% jitter = 100-110ms
-      expect(elapsed).toBeGreaterThanOrEqual(100)
+      // Allow 5ms tolerance for CI timer precision
+      expect(elapsed).toBeGreaterThanOrEqual(95)
       expect(elapsed).toBeLessThan(150)
     })
 
@@ -68,7 +69,8 @@ describe('url', () => {
       await delayWithBackoffAndJitter(1, 100, 2000)
       const elapsed = Date.now() - start
       // 100 * 2^1 = 200ms + up to 10% jitter = 200-220ms
-      expect(elapsed).toBeGreaterThanOrEqual(200)
+      // Allow 5ms tolerance for CI timer precision
+      expect(elapsed).toBeGreaterThanOrEqual(195)
       expect(elapsed).toBeLessThan(250)
     })
 
@@ -77,7 +79,8 @@ describe('url', () => {
       await delayWithBackoffAndJitter(10, 100, 500)
       const elapsed = Date.now() - start
       // Would be 100 * 2^10 = 102400ms, but capped at 500ms + 10% jitter
-      expect(elapsed).toBeGreaterThanOrEqual(500)
+      // Allow 5ms tolerance for CI timer precision
+      expect(elapsed).toBeGreaterThanOrEqual(495)
       expect(elapsed).toBeLessThan(600)
     })
 
@@ -86,7 +89,8 @@ describe('url', () => {
       await delayWithBackoffAndJitter(0)
       const elapsed = Date.now() - start
       // Default 500ms + up to 10% jitter
-      expect(elapsed).toBeGreaterThanOrEqual(500)
+      // Allow 5ms tolerance for CI timer precision
+      expect(elapsed).toBeGreaterThanOrEqual(495)
       expect(elapsed).toBeLessThan(600)
     })
 
@@ -95,7 +99,8 @@ describe('url', () => {
       await delayWithBackoffAndJitter(5, 500)
       const elapsed = Date.now() - start
       // 500 * 2^5 = 16000, capped at default 2000ms + 10% jitter
-      expect(elapsed).toBeGreaterThanOrEqual(2000)
+      // Allow 5ms tolerance for CI timer precision
+      expect(elapsed).toBeGreaterThanOrEqual(1995)
       expect(elapsed).toBeLessThan(2300)
     })
   })
