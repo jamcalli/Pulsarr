@@ -179,6 +179,7 @@ export interface Config {
   enablePlexPlaylistProtection: boolean
   plexProtectionPlaylistName: string
   plexServerUrl?: string // Optional: Only set this if automatic discovery fails, URL is auto-detected in most cases
+  skipIfExistsOnPlex?: boolean // Skip downloading if content exists on accessible Plex servers (primary token only, requires reconciliation)
   // Plex Label Sync Configuration - nested object following complex config pattern
   plexLabelSync?: PlexLabelSyncConfig
   // RSS Config
