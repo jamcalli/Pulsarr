@@ -113,7 +113,9 @@ skipFriendSync=false                   # Skip syncing Plex friends
 enablePlexPlaylistProtection=false     # Enable playlist protection feature
 plexProtectionPlaylistName="Do Not Delete"  # Name of protection playlist
 plexServerUrl=http://localhost:32400   # Plex server URL (optional, can be auto-detected)
-skipIfExistsOnPlex=false               # Skip downloading content if it exists on any accessible Plex server (uses primary token)
+skipIfExistsOnPlex=false               # Skip downloading if content exists on Plex servers
+                                       # Primary token user: checks ALL accessible servers (owned + shared)
+                                       # Friend/other users: checks ONLY the owned server
 selfRss=                               # Self RSS feed URL (optional)
 friendsRss=                            # Friends RSS feed URL (optional)
 
@@ -252,7 +254,7 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 - `sonarr*` variables - Sonarr instance seeding (development)
 - `radarr*` variables - Radarr instance seeding (development)
 - `plex*` variables - Plex server integration
-- `skipIfExistsOnPlex` - Skip downloading content that exists on accessible Plex servers
+- `skipIfExistsOnPlex` - Skip downloading if content exists on Plex servers (behavior varies by user type)
 
 ### Advanced Features
 - `tag*` variables - User tagging configuration

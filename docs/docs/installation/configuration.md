@@ -231,10 +231,19 @@ After changing this setting in your `.env` file, you need to restart the contain
 
 ### Skip Downloads for Existing Content
 
-Pulsarr can check all accessible Plex servers and skip downloading content that already exists, preventing duplicate downloads across servers. This is configured in **Plex → Configuration** under "Content Availability Check".
+Pulsarr can check Plex servers before downloading content, preventing duplicate downloads. This is configured in **Plex → Configuration** under "Content Availability Check".
 
-:::note
-Only checks servers accessible to your primary Plex token. Checks are optimized to only query Plex for content not already in Sonarr/Radarr.
+**Behavior by User Type:**
+
+- **Primary Token User**: Checks ALL accessible servers including your owned server and any shared servers you have access to
+- **Friend/Other Users**: Only checks your owned server (no access tokens available for shared servers)
+
+:::note Server Connection
+Your owned server uses the configured "Server Connection" URL (if set), while shared servers use auto-discovery. For best results, ensure the server URL uses HTTPS if your Plex server requires secure connections.
+:::
+
+:::info Performance
+Checks are optimized to only query Plex for content not already in Sonarr/Radarr. Multiple servers are checked in parallel for faster results.
 :::
 
 :::info Complete Variable Reference
