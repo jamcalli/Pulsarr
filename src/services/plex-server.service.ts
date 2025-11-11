@@ -1636,9 +1636,10 @@ export class PlexServerService {
       )
     }
 
-    // Sort to prefer non-local, non-relay connections
+    // Sort to prefer public URLs for shared servers
+    // Note: "local" addresses are on friend's networks (unreachable), prefer non-local/public URLs
     servers.sort((a, b) => {
-      // Prefer non-local over local
+      // Prefer non-local over local (local = friend's LAN, unreachable from outside)
       if (!a.local && b.local) return -1
       if (a.local && !b.local) return 1
       // Prefer non-relay over relay
