@@ -184,6 +184,7 @@ export async function getConfig(
     plexProtectionPlaylistName:
       config.plexProtectionPlaylistName || 'Do Not Delete',
     plexServerUrl: config.plexServerUrl || undefined,
+    skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
     // Plex Label Sync configuration - nested object following complex config pattern
     plexLabelSync: config.plexLabelSync
       ? this.safeJsonParse(
@@ -308,6 +309,7 @@ export async function createConfig(
       plexProtectionPlaylistName:
         config.plexProtectionPlaylistName || 'Do Not Delete',
       plexServerUrl: config.plexServerUrl,
+      skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,
       // RSS fields
       selfRss: config.selfRss,
       friendsRss: config.friendsRss,
@@ -480,6 +482,7 @@ const ALLOWED_COLUMNS = new Set([
   'plexTokens', // JSON column
   'skipFriendSync',
   'plexServerUrl',
+  'skipIfExistsOnPlex',
   'selfRss',
   'friendsRss',
 

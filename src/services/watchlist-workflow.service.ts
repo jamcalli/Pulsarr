@@ -44,6 +44,7 @@ import {
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
@@ -1244,6 +1245,9 @@ export class WatchlistWorkflowService {
     this.log.info('Performing watchlist item sync')
 
     try {
+      // Clear Plex resources cache to ensure fresh data for this reconciliation cycle
+      this.fastify.plexServerService.clearPlexResourcesCache()
+
       // Get all users to check their sync permissions
       const allUsers = await this.dbService.getAllUsers()
       const userSyncStatus = new Map<number, boolean>()
@@ -1254,6 +1258,9 @@ export class WatchlistWorkflowService {
         userSyncStatus.set(user.id, user.can_sync !== false)
         userById.set(user.id, user)
       }
+
+      // Fetch primary user once to avoid N+1 queries during item processing
+      const primaryUser = await this.dbService.getPrimaryUser()
 
       // DEBUG: Log user sync settings
       for (const [userId, canSync] of userSyncStatus.entries()) {
@@ -1320,112 +1327,153 @@ export class WatchlistWorkflowService {
         }
       }
 
-      // Process each watchlist item
-      for (const item of allWatchlistItems) {
-        // Normalize user ID
-        const numericUserId =
-          typeof item.user_id === 'number'
-            ? item.user_id
-            : typeof item.user_id === 'object' &&
-                item.user_id !== null &&
-                'id' in item.user_id
-              ? (item.user_id as { id: number }).id
-              : Number.parseInt(String(item.user_id), 10)
+      // Process watchlist items with rate limiting to prevent overwhelming Plex
+      // Use same concurrency pattern as label sync service
+      const concurrencyLimit =
+        this.fastify.config.plexLabelSync?.concurrencyLimit || 5
+      const limit = pLimit(concurrencyLimit)
 
-        if (Number.isNaN(numericUserId)) {
-          this.log.warn(
-            `Item "${item.title}" has invalid user_id: ${item.user_id}, skipping`,
-          )
-          continue
-        }
+      this.log.debug(
+        `Processing ${allWatchlistItems.length} watchlist items with concurrency limit of ${concurrencyLimit}`,
+      )
 
-        // Check if user has sync enabled
-        const canSync = userSyncStatus.get(numericUserId)
+      const processingResults = await Promise.allSettled(
+        allWatchlistItems.map((item) =>
+          limit(async () => {
+            const numericUserId = item.user_id
 
-        if (canSync === false) {
-          this.log.debug(
-            `Skipping item "${item.title}" during sync as user ${numericUserId} has sync disabled`,
-          )
-          skippedDueToUserSetting++
-          continue
-        }
+            if (!Number.isFinite(numericUserId) || numericUserId <= 0) {
+              this.log.warn(
+                `Item "${item.title}" has invalid user_id: ${item.user_id}, skipping`,
+              )
+              return { type: 'skipped', reason: 'invalid_user_id' }
+            }
 
-        // Convert item to temp format for processing
-        const tempItem: TemptRssWatchlistItem = {
-          title: item.title,
-          type: item.type,
-          thumb: item.thumb ?? undefined,
-          guids: parseGuids(item.guids),
-          genres: this.safeParseArray<string>(item.genres),
-          key: item.key,
-        }
+            // Check if user has sync enabled
+            const canSync = userSyncStatus.get(numericUserId)
 
-        // Process shows
-        if (item.type === 'show') {
-          // Check for TVDB ID using extractTvdbId
-          const tvdbId = extractTvdbId(tempItem.guids)
+            if (canSync === false) {
+              this.log.debug(
+                `Skipping item "${item.title}" during sync as user ${numericUserId} has sync disabled`,
+              )
+              return { type: 'skipped', reason: 'user_setting' }
+            }
 
-          if (tvdbId === 0) {
-            skippedItems.shows.push(tempItem.title)
-            skippedDueToMissingIds++
-            continue
-          }
+            // Parse GUIDs once for reuse
+            const parsedGuids = parseGuids(item.guids)
 
-          // Use helper for routing-aware existence check and routing
-          const user = userById.get(numericUserId)
-          const sonarrItem: SonarrItem = {
-            title: tempItem.title,
-            guids: parseGuids(tempItem.guids),
-            type: 'show',
-            ended: false,
-            genres: this.safeParseArray<string>(tempItem.genres),
-            status: 'pending',
-            series_status: 'continuing',
-          }
+            // Convert item to temp format for processing
+            const tempItem: TemptRssWatchlistItem = {
+              title: item.title,
+              type: item.type,
+              thumb: item.thumb ?? undefined,
+              guids: parsedGuids,
+              genres: this.safeParseArray<string>(item.genres),
+              key: item.key,
+            }
 
-          const wasAdded = await this.processShowWithRouting({
-            tempItem,
-            numericUserId,
-            userName: user?.name,
-            sonarrItem,
-            existingSeries,
-          })
+            // Process shows
+            if (item.type === 'show') {
+              // Check for TVDB ID using extractTvdbId
+              const tvdbId = extractTvdbId(parsedGuids)
 
-          if (wasAdded) {
+              if (tvdbId === 0) {
+                return {
+                  type: 'skipped',
+                  reason: 'missing_id',
+                  title: tempItem.title,
+                  contentType: 'show',
+                }
+              }
+
+              // Use helper for routing-aware existence check and routing
+              const user = userById.get(numericUserId)
+              const sonarrItem: SonarrItem = {
+                title: tempItem.title,
+                guids: parsedGuids,
+                type: 'show',
+                ended: false,
+                genres: this.safeParseArray<string>(tempItem.genres),
+                status: 'pending',
+                series_status: 'continuing',
+              }
+
+              const wasAdded = await this.processShowWithRouting({
+                tempItem,
+                numericUserId,
+                userName: user?.name,
+                sonarrItem,
+                existingSeries,
+                primaryUser,
+              })
+
+              return { type: 'show', added: wasAdded }
+            }
+            // Process movies
+            else if (item.type === 'movie') {
+              // Check for TMDB ID using extractTmdbId
+              const tmdbId = extractTmdbId(parsedGuids)
+
+              if (tmdbId === 0) {
+                return {
+                  type: 'skipped',
+                  reason: 'missing_id',
+                  title: tempItem.title,
+                  contentType: 'movie',
+                }
+              }
+
+              // Use helper for routing-aware existence check and routing
+              const user = userById.get(numericUserId)
+              const radarrItem: RadarrItem = {
+                title: tempItem.title,
+                guids: parsedGuids,
+                type: 'movie',
+                genres: this.safeParseArray<string>(tempItem.genres),
+              }
+
+              const wasAdded = await this.processMovieWithRouting({
+                tempItem,
+                numericUserId,
+                userName: user?.name,
+                radarrItem,
+                existingMovies,
+                primaryUser,
+              })
+
+              return { type: 'movie', added: wasAdded }
+            }
+
+            return { type: 'unknown' }
+          }),
+        ),
+      )
+
+      // Aggregate results
+      for (const result of processingResults) {
+        if (result.status === 'fulfilled') {
+          const value = result.value
+          if (value.type === 'show' && value.added) {
             showsAdded++
-          }
-        }
-        // Process movies
-        else if (item.type === 'movie') {
-          // Check for TMDB ID using extractTmdbId
-          const tmdbId = extractTmdbId(tempItem.guids)
-
-          if (tmdbId === 0) {
-            skippedItems.movies.push(tempItem.title)
-            skippedDueToMissingIds++
-            continue
-          }
-
-          // Use helper for routing-aware existence check and routing
-          const user = userById.get(numericUserId)
-          const radarrItem: RadarrItem = {
-            title: tempItem.title,
-            guids: parseGuids(tempItem.guids),
-            type: 'movie',
-            genres: this.safeParseArray<string>(tempItem.genres),
-          }
-
-          const wasAdded = await this.processMovieWithRouting({
-            tempItem,
-            numericUserId,
-            userName: user?.name,
-            radarrItem,
-            existingMovies,
-          })
-
-          if (wasAdded) {
+          } else if (value.type === 'movie' && value.added) {
             moviesAdded++
+          } else if (value.type === 'skipped') {
+            if (value.reason === 'user_setting') {
+              skippedDueToUserSetting++
+            } else if (value.reason === 'missing_id') {
+              skippedDueToMissingIds++
+              if (value.contentType === 'show') {
+                skippedItems.shows.push(value.title)
+              } else if (value.contentType === 'movie') {
+                skippedItems.movies.push(value.title)
+              }
+            }
           }
+        } else {
+          this.log.error(
+            { error: result.reason },
+            'Error processing watchlist item during reconciliation',
+          )
         }
       }
 
@@ -1655,10 +1703,16 @@ export class WatchlistWorkflowService {
     const hasUsersWithApprovalConfig =
       await this.dbService.hasUsersWithApprovalConfig()
 
+    // Check if Plex existence checking is enabled
+    // This requires deferring to reconciliation since we can only use the primary token
+    const plexExistenceCheckEnabled =
+      this.fastify.config.skipIfExistsOnPlex === true
+
     return (
       hasUsersWithSyncDisabled ||
       hasUserRoutingRules ||
-      hasUsersWithApprovalConfig
+      hasUsersWithApprovalConfig ||
+      plexExistenceCheckEnabled
     )
   }
 
@@ -1673,9 +1727,16 @@ export class WatchlistWorkflowService {
     userName: string | undefined
     sonarrItem: SonarrItem
     existingSeries: SonarrItem[]
+    primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
   }): Promise<boolean> {
-    const { tempItem, numericUserId, userName, sonarrItem, existingSeries } =
-      params
+    const {
+      tempItem,
+      numericUserId,
+      userName,
+      sonarrItem,
+      existingSeries,
+      primaryUser,
+    } = params
 
     // Get target instances based on routing rules for this user/content
     const context: RoutingContext = {
@@ -1718,8 +1779,32 @@ export class WatchlistWorkflowService {
 
     const existsInTargetInstance = potentialMatches.length > 0
 
-    // Add to Sonarr if not exists in target instance(s)
-    if (!existsInTargetInstance) {
+    // If already exists in target instance, skip without checking Plex
+    if (existsInTargetInstance) {
+      this.log.debug(
+        `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+      )
+      return false
+    }
+
+    // Only check Plex if item doesn't exist in Sonarr AND config is enabled
+    let existsOnPlex = false
+    if (this.fastify.config.skipIfExistsOnPlex) {
+      // Determine if the requesting user is the primary token user
+      const isPrimaryUser = primaryUser
+        ? numericUserId === primaryUser.id
+        : false
+
+      existsOnPlex =
+        await this.fastify.plexServerService.checkExistenceAcrossServers(
+          tempItem.key,
+          'show',
+          isPrimaryUser,
+        )
+    }
+
+    // Add to Sonarr if not exists on Plex
+    if (!existsOnPlex) {
       await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
         userId: numericUserId,
         syncing: false,
@@ -1727,8 +1812,9 @@ export class WatchlistWorkflowService {
       return true
     }
 
-    this.log.debug(
-      `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    // If we get here, item exists on Plex - skip addition
+    this.log.info(
+      `Show ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
     )
     return false
   }
@@ -1744,9 +1830,16 @@ export class WatchlistWorkflowService {
     userName: string | undefined
     radarrItem: RadarrItem
     existingMovies: RadarrItem[]
+    primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
   }): Promise<boolean> {
-    const { tempItem, numericUserId, userName, radarrItem, existingMovies } =
-      params
+    const {
+      tempItem,
+      numericUserId,
+      userName,
+      radarrItem,
+      existingMovies,
+      primaryUser,
+    } = params
 
     // Get target instances based on routing rules for this user/content
     const context: RoutingContext = {
@@ -1789,8 +1882,32 @@ export class WatchlistWorkflowService {
 
     const existsInTargetInstance = potentialMatches.length > 0
 
-    // Add to Radarr if not exists in target instance(s)
-    if (!existsInTargetInstance) {
+    // If already exists in target instance, skip without checking Plex
+    if (existsInTargetInstance) {
+      this.log.debug(
+        `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+      )
+      return false
+    }
+
+    // Only check Plex if item doesn't exist in Radarr AND config is enabled
+    let existsOnPlex = false
+    if (this.fastify.config.skipIfExistsOnPlex) {
+      // Determine if the requesting user is the primary token user
+      const isPrimaryUser = primaryUser
+        ? numericUserId === primaryUser.id
+        : false
+
+      existsOnPlex =
+        await this.fastify.plexServerService.checkExistenceAcrossServers(
+          tempItem.key,
+          'movie',
+          isPrimaryUser,
+        )
+    }
+
+    // Add to Radarr if not exists on Plex
+    if (!existsOnPlex) {
       await this.contentRouter.routeContent(radarrItem, tempItem.key, {
         userId: numericUserId,
         syncing: false,
@@ -1798,8 +1915,9 @@ export class WatchlistWorkflowService {
       return true
     }
 
-    this.log.debug(
-      `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+    // If we get here, item exists on Plex - skip addition
+    this.log.info(
+      `Movie ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
     )
     return false
   }

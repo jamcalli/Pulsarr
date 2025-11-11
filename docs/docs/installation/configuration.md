@@ -227,6 +227,25 @@ When `allowIframes=true`, Pulsarr will disable the X-Frame-Options security head
 After changing this setting in your `.env` file, you need to restart the container for it to take effect.
 :::
 
+## Plex Configuration
+
+### Skip Downloads for Existing Content
+
+Pulsarr can check Plex servers before downloading content, preventing duplicate downloads. This is configured in **Plex → Configuration** under "Content Availability Check".
+
+**Behavior by User Type:**
+
+- **Primary Token User**: Checks ALL accessible servers including your owned server and any shared servers you have access to
+- **Friend/Other Users**: Only checks your owned server (no access tokens available for shared servers)
+
+:::note Server Connection
+Your owned server uses the configured "Server Connection" URL (if set), while shared servers use auto-discovery. For best results, ensure the server URL uses HTTPS if your Plex server requires secure connections.
+:::
+
+:::info Performance
+Checks are optimized to only query Plex for content not already in Sonarr/Radarr. Multiple servers are checked in parallel for faster results.
+:::
+
 :::info Complete Variable Reference
 For a comprehensive list of all environment variables including development and advanced options, see the [Environment Variables Reference](../development/environment-variables).
 :::

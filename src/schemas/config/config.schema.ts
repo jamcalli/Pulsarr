@@ -186,7 +186,16 @@ export const ConfigSchema = z.object({
   // Plex Playlist Protection
   enablePlexPlaylistProtection: z.boolean().optional(),
   plexProtectionPlaylistName: z.string().optional(),
-  plexServerUrl: z.string().optional(),
+  plexServerUrl: z
+    .union([
+      z.url({ error: 'Must be a valid URL (http:// or https://)' }),
+      z.literal(''),
+    ])
+    .optional(),
+  // Plex Existence Check - skip downloading if content exists on Plex servers
+  // Primary token user: checks ALL accessible servers (owned + shared)
+  // Friend/other users: checks ONLY the owned server (no access tokens for shared)
+  skipIfExistsOnPlex: z.boolean().optional(),
   // Plex Label Sync Configuration - nested object following complex config pattern
   plexLabelSync: PlexLabelSyncConfigSchema.optional(),
   // RSS and other settings
