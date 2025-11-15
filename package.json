@@ -5,7 +5,7 @@
   "main": "build/server.js",
   "type": "module",
   "engines": {
-    "node": "24.11.0"
+    "node": "24.11.1"
   },
   "scripts": {
     "clean:client": "rm -rf dist/client",
