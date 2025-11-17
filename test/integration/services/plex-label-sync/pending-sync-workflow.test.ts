@@ -443,13 +443,13 @@ describe('Pending Sync → Workflow Integration', () => {
         })
         .returning('*')
 
-      // Create expired pending sync (old created_at)
+      // Create expired pending sync (expires_at in the past)
       await knex('pending_label_syncs').insert({
         watchlist_item_id: watchlistItem.id,
         content_title: watchlistItem.title,
         retry_count: 50, // High retry count
         webhook_tags: JSON.stringify([]),
-        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutes ago
         created_at: new Date(
           Date.now() - 30 * 24 * 60 * 60 * 1000,
         ).toISOString(), // 30 days old
@@ -459,7 +459,10 @@ describe('Pending Sync → Workflow Integration', () => {
       const mockSearchByGuid = vi.fn().mockResolvedValue([])
       app.plexServerService.searchByGuid = mockSearchByGuid
 
-      // Process pending syncs
+      // Spy on expiration to verify it's called
+      const spyExpire = vi.spyOn(app.db, 'expirePendingLabelSyncs')
+
+      // Process pending syncs (this should clean up expired records)
       await processPendingLabelSyncs({
         plexServer: app.plexServerService,
         db: app.db,
@@ -474,9 +477,15 @@ describe('Pending Sync → Workflow Integration', () => {
         removedTagPrefix: 'pulsarr:removed',
       })
 
-      // Note: expirePendingLabelSyncs is called at the end,
-      // but the actual expiration logic depends on the database method implementation
-      // We're just verifying the function is called
+      // Verify expiration was called
+      expect(spyExpire).toHaveBeenCalledTimes(1)
+
+      // Verify the expired pending sync was deleted
+      const remainingRecords = await knex('pending_label_syncs').where({
+        watchlist_item_id: watchlistItem.id,
+      })
+
+      expect(remainingRecords).toHaveLength(0)
     })
 
     it('should skip processing when sync is disabled', async (ctx) => {
