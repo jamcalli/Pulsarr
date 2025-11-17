@@ -7,7 +7,11 @@ import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { hasValidPlexTokens } from '@utils/plex/index.js'
 import { createTemporaryAdminSession } from '@utils/session.js'
 import { normalizeBasePath } from '@utils/url.js'
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
+import type {
+  FastifyError,
+  FastifyInstance,
+  FastifyPluginOptions,
+} from 'fastify'
 import fp from 'fastify-plugin'
 
 export const options = {
@@ -68,7 +72,7 @@ async function serviceApp(
   })
 
   // Error handler
-  fastify.setErrorHandler((err, request, reply) => {
+  fastify.setErrorHandler((err: FastifyError, request, reply) => {
     const statusCode = err.statusCode ?? 500
     // Avoid logging query/params to prevent leaking tokens/PII
     const logData = {
