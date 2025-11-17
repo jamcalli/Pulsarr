@@ -133,10 +133,10 @@ describe('episode-checker', () => {
         log: createMockLogger(),
       } as unknown as FastifyInstance
 
-      const now = new Date().toISOString()
+      // With threshold 0, only future episodes (negative age) are considered recent
+      const futureDate = new Date(Date.now() + 1000).toISOString()
 
-      // age <= 0 is true when age is ~0ms (execution time)
-      const result = isRecentEpisode(now, zeroThresholdFastify)
+      const result = isRecentEpisode(futureDate, zeroThresholdFastify)
 
       expect(result).toBe(true)
     })
