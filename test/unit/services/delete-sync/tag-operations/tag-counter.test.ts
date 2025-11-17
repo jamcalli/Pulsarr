@@ -14,8 +14,8 @@ import { createMockLogger } from '../../../../mocks/logger.js'
 describe('tag-counter', () => {
   let mockLogger: ReturnType<typeof createMockLogger>
   let mockTagCache: TagCache
-  let mockIsAnyGuidProtected: ReturnType<typeof vi.fn>
-  let mockIsAnyGuidTracked: ReturnType<typeof vi.fn>
+  let mockIsAnyGuidProtected: (guidList: string[]) => boolean
+  let mockIsAnyGuidTracked: (guidList: string[]) => boolean
 
   beforeEach(() => {
     mockLogger = createMockLogger()
