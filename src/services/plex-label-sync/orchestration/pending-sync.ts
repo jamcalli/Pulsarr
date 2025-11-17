@@ -56,6 +56,11 @@ export async function processPendingLabelSyncs(
     const pendingSyncs: PendingLabelSyncWithPlexKeys[] =
       await deps.db.getPendingLabelSyncsWithPlexKeys()
 
+    // Fetch all users once before processing (performance optimization)
+    // Instead of querying inside the loop, we build a map here and reuse it
+    const allUsers = await deps.db.getAllUsers()
+    const userMap = new Map(allUsers.map((user) => [user.id, user]))
+
     // Process silently - completion will be logged by the processor service if items were updated
 
     // Process pending syncs in parallel with configurable concurrency limit
@@ -164,8 +169,7 @@ export async function processPendingLabelSyncs(
               number,
               { user_id: number; username: string; watchlist_id: number }
             >()
-            const allUsers = await deps.db.getAllUsers()
-            const userMap = new Map(allUsers.map((user) => [user.id, user]))
+            // Note: userMap is now fetched once outside the loop for performance
 
             // Add users from existing tracking records
             for (const tracking of trackedLabels) {

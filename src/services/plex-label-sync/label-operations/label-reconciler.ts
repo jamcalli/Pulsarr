@@ -293,19 +293,6 @@ export async function reconcileLabelsForSingleItem(
         // User labels exist OR no labels being removed - preserve current user labels
         // This also cleans up any existing removed labels when users are present
         finalLabels = [...new Set([...nonAppLabels, ...allDesiredLabels])]
-
-        const removedLabelsFiltered =
-          currentLabels.some((l) =>
-            l.toLowerCase().startsWith(deps.removedLabelPrefix.toLowerCase()),
-          ) &&
-          !finalLabels.some((l) =>
-            l.toLowerCase().startsWith(deps.removedLabelPrefix.toLowerCase()),
-          )
-        if (removedLabelsFiltered && desiredUserLabels.length > 0) {
-          deps.logger.debug(
-            `Cleaned up removed label for "${content.title}" - active users still want this content`,
-          )
-        }
       }
     } else {
       // Default 'remove' mode - clean removal of obsolete labels
@@ -320,6 +307,9 @@ export async function reconcileLabelsForSingleItem(
       if (removedLabels.length > 0 && !specialRemovedLabel) {
         finalLabels = finalLabels.filter(
           (label) => !removedLabels.includes(label),
+        )
+        deps.logger.debug(
+          `Cleaned up removed label for "${content.title}" - active users still want this content`,
         )
       }
     }
