@@ -89,5 +89,20 @@ export const SEED_RADARR_INSTANCES = [
  */
 export async function seedInstances(knex: Knex): Promise<void> {
   await knex('sonarr_instances').insert(SEED_SONARR_INSTANCES)
+
+  // Update sqlite_sequence for sonarr_instances
+  const maxSonarrId = Math.max(...SEED_SONARR_INSTANCES.map((i) => i.id))
+  await knex.raw(
+    `INSERT OR REPLACE INTO sqlite_sequence (name, seq) VALUES ('sonarr_instances', ?)`,
+    [maxSonarrId],
+  )
+
   await knex('radarr_instances').insert(SEED_RADARR_INSTANCES)
+
+  // Update sqlite_sequence for radarr_instances
+  const maxRadarrId = Math.max(...SEED_RADARR_INSTANCES.map((i) => i.id))
+  await knex.raw(
+    `INSERT OR REPLACE INTO sqlite_sequence (name, seq) VALUES ('radarr_instances', ?)`,
+    [maxRadarrId],
+  )
 }

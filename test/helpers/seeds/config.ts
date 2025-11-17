@@ -210,4 +210,11 @@ export const SEED_CONFIGS = [
  */
 export async function seedConfig(knex: Knex): Promise<void> {
   await knex('configs').insert(SEED_CONFIGS)
+
+  // Update sqlite_sequence for configs
+  const maxId = Math.max(...SEED_CONFIGS.map((c) => c.id))
+  await knex.raw(
+    `INSERT OR REPLACE INTO sqlite_sequence (name, seq) VALUES ('configs', ?)`,
+    [maxId],
+  )
 }
