@@ -133,8 +133,6 @@ describe('Pending Sync → Workflow Integration', () => {
       expect(labels).toEqual(
         expect.arrayContaining(['pulsarr:test-user-primary', 'pulsarr:action']),
       )
-
-      await app.close()
     })
 
     it('should update retry count when content still not available', async (ctx) => {
@@ -196,8 +194,6 @@ describe('Pending Sync → Workflow Integration', () => {
 
       expect(pendingSyncs).toHaveLength(1)
       expect(pendingSyncs[0].retry_count).toBe(1)
-
-      await app.close()
     })
 
     it('should gather all users from tracking table (content-centric)', async (ctx) => {
@@ -313,8 +309,6 @@ describe('Pending Sync → Workflow Integration', () => {
       expect(tracking).toHaveLength(2)
       expect(tracking[0].user_id).toBe(SEED_USERS[0].id)
       expect(tracking[1].user_id).toBe(SEED_USERS[1].id)
-
-      await app.close()
     })
 
     it('should handle missing Plex key (no GUID part)', async (ctx) => {
@@ -373,8 +367,6 @@ describe('Pending Sync → Workflow Integration', () => {
 
       expect(pendingSyncs).toHaveLength(1)
       expect(pendingSyncs[0].retry_count).toBe(1)
-
-      await app.close()
     })
 
     it('should remove pending sync when user not found', async (ctx) => {
@@ -431,8 +423,6 @@ describe('Pending Sync → Workflow Integration', () => {
       })
 
       expect(pendingSyncs).toHaveLength(0)
-
-      await app.close()
     })
 
     it('should clean up expired pending syncs', async (ctx) => {
@@ -487,8 +477,6 @@ describe('Pending Sync → Workflow Integration', () => {
       // Note: expirePendingLabelSyncs is called at the end,
       // but the actual expiration logic depends on the database method implementation
       // We're just verifying the function is called
-
-      await app.close()
     })
 
     it('should skip processing when sync is disabled', async (ctx) => {
@@ -543,8 +531,6 @@ describe('Pending Sync → Workflow Integration', () => {
       })
 
       expect(pendingSyncs).toHaveLength(1)
-
-      await app.close()
     })
 
     it('should handle errors and update retry count', async (ctx) => {
@@ -607,8 +593,6 @@ describe('Pending Sync → Workflow Integration', () => {
 
       expect(pendingSyncs).toHaveLength(1)
       expect(pendingSyncs[0].retry_count).toBe(1)
-
-      await app.close()
     })
   })
 })

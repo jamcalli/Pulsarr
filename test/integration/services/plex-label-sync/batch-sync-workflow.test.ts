@@ -16,7 +16,11 @@ import {
   initializeTestDatabase,
   resetDatabase,
 } from '../../../helpers/database.js'
-import { SEED_USERS, seedAll } from '../../../helpers/seeds/index.js'
+import {
+  SEED_USERS,
+  SEED_WATCHLIST_ITEMS,
+  seedAll,
+} from '../../../helpers/seeds/index.js'
 
 describe('Batch Sync → Full Workflow Integration', () => {
   beforeEach(async () => {
@@ -125,11 +129,11 @@ describe('Batch Sync → Full Workflow Integration', () => {
       })
 
       // Verify result
-      // 1 test item processed, 7 seed items queued as pending (not found in Plex)
+      // 1 test item processed, seed items queued as pending (not found in Plex)
       expect(result.processed).toBe(1)
       expect(result.updated).toBe(1)
       expect(result.failed).toBe(0)
-      expect(result.pending).toBe(7)
+      expect(result.pending).toBe(SEED_WATCHLIST_ITEMS.length)
 
       // Verify Plex API calls
       expect(mockSearchByGuid).toHaveBeenCalledWith(
@@ -154,8 +158,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
       expect(JSON.parse(tracking[0].labels_applied as string)).toEqual([
         'pulsarr:test-user-primary',
       ])
-
-      await app.close()
     })
 
     it('should sync labels for multiple users on same content', async (ctx) => {
@@ -269,11 +271,11 @@ describe('Batch Sync → Full Workflow Integration', () => {
       })
 
       // Verify result - content-centric approach processes 1 unique content
-      // 1 unique content processed (2 users), 7 seed items queued as pending
+      // 1 unique content processed (2 users), seed items queued as pending
       expect(result.processed).toBe(1)
       expect(result.updated).toBe(1)
       expect(result.failed).toBe(0)
-      expect(result.pending).toBe(7)
+      expect(result.pending).toBe(SEED_WATCHLIST_ITEMS.length)
 
       // Verify both user labels applied in single API call
       expect(mockUpdateLabels).toHaveBeenCalledWith('12345', [
@@ -289,8 +291,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
       expect(tracking).toHaveLength(2)
       expect(tracking[0].user_id).toBe(SEED_USERS[0].id)
       expect(tracking[1].user_id).toBe(SEED_USERS[1].id)
-
-      await app.close()
     })
 
     it('should queue unavailable content for pending sync', async (ctx) => {
@@ -362,10 +362,10 @@ describe('Batch Sync → Full Workflow Integration', () => {
       })
 
       // Content not available, should be queued
-      // 1 test item + 7 seed items all queued as pending
+      // 1 test item + seed items all queued as pending
       expect(result.processed).toBe(0)
       expect(result.updated).toBe(0)
-      expect(result.pending).toBe(8)
+      expect(result.pending).toBe(SEED_WATCHLIST_ITEMS.length + 1)
 
       // Verify pending sync record created
       const pendingSyncs = await knex('pending_label_syncs').where({
@@ -373,8 +373,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
       })
 
       expect(pendingSyncs.length).toBeGreaterThan(0)
-
-      await app.close()
     })
   })
 
@@ -476,8 +474,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
 
       // Verify resetLabels was called
       expect(mockResetLabels).toHaveBeenCalledTimes(1)
-
-      await app.close()
     })
 
     it('should continue sync even if resetLabels fails', async (ctx) => {
@@ -576,8 +572,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
       // Verify sync continued despite reset failure
       expect(result.processed).toBe(1)
       expect(result.updated).toBe(1)
-
-      await app.close()
     })
   })
 
@@ -680,8 +674,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
       // Verify cleanup was called
       expect(mockCleanupOrphanedPlexLabels).toHaveBeenCalledTimes(1)
       expect(mockCleanupOrphanedPlexLabels).toHaveBeenCalledWith([], [])
-
-      await app.close()
     })
   })
 
@@ -740,8 +732,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
       expect(result.failed).toBe(0)
       expect(mockResetLabels).not.toHaveBeenCalled()
       expect(mockCleanupOrphanedPlexLabels).not.toHaveBeenCalled()
-
-      await app.close()
     })
 
     it('should handle empty watchlist gracefully', async (ctx) => {
@@ -808,8 +798,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
       expect(result.processed).toBe(0)
       expect(result.updated).toBe(0)
       expect(result.failed).toBe(0)
-
-      await app.close()
     })
   })
 })

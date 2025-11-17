@@ -106,8 +106,6 @@ describe('Label Applicator → Content Tracker Integration', () => {
         'imdb:tt0063350',
         'tmdb:10331',
       ])
-
-      await app.close()
     })
 
     it('should apply labels and create tracking records for multiple users', async (ctx) => {
@@ -214,8 +212,6 @@ describe('Label Applicator → Content Tracker Integration', () => {
       expect(JSON.parse(tracking[1].labels_applied as string)).toEqual([
         'pulsarr:test-user-discord-apprise',
       ])
-
-      await app.close()
     })
 
     it('should update existing tracking records when reapplying labels', async (ctx) => {
@@ -294,8 +290,6 @@ describe('Label Applicator → Content Tracker Integration', () => {
       expect(JSON.parse(tracking[0].labels_applied as string)).toEqual([
         'pulsarr:test-user-primary',
       ])
-
-      await app.close()
     })
   })
 
@@ -395,8 +389,6 @@ describe('Label Applicator → Content Tracker Integration', () => {
           'pulsarr:thriller',
         ]),
       )
-
-      await app.close()
     })
 
     it('should track tag labels separately for each user', async (ctx) => {
@@ -514,8 +506,6 @@ describe('Label Applicator → Content Tracker Integration', () => {
           'pulsarr:thriller',
         ]),
       )
-
-      await app.close()
     })
   })
 
@@ -600,8 +590,6 @@ describe('Label Applicator → Content Tracker Integration', () => {
       expect(tracking).toHaveLength(2)
       expect(tracking[0].user_id).toBe(SEED_USERS[0].id)
       expect(tracking[1].user_id).toBe(SEED_USERS[1].id)
-
-      await app.close()
     })
 
     it('should remove obsolete labels in remove mode', async (ctx) => {
@@ -673,8 +661,6 @@ describe('Label Applicator → Content Tracker Integration', () => {
 
       expect(tracking).toHaveLength(1)
       expect(tracking[0].user_id).toBe(SEED_USERS[1].id)
-
-      await app.close()
     })
 
     it('should clean up removed labels and tracking in special-label mode', async (ctx) => {
@@ -757,8 +743,6 @@ describe('Label Applicator → Content Tracker Integration', () => {
       expect(JSON.parse(userTracking[0].labels_applied as string)).toEqual([
         'pulsarr:test-user-primary',
       ])
-
-      await app.close()
     })
   })
 
@@ -820,8 +804,6 @@ describe('Label Applicator → Content Tracker Integration', () => {
 
       expect(tracking).toHaveLength(1)
       expect(JSON.parse(tracking[0].content_guids as string)).toEqual(['12345'])
-
-      await app.close()
     })
   })
 })
