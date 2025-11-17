@@ -45,7 +45,7 @@ describe('label-validator', () => {
       expect(isAppUserLabel('', 'pulsarr')).toBe(false)
     })
 
-    it('should return false for label that only has prefix', () => {
+    it('should return true for label that only has prefix', () => {
       expect(isAppUserLabel('pulsarr:', 'pulsarr')).toBe(true)
     })
 

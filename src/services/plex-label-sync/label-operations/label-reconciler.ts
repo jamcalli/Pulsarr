@@ -23,6 +23,7 @@ import {
 import { updateTrackingForContent } from '../tracking/content-tracker.js'
 import {
   filterAndFormatTagsAsLabels,
+  getRemovedLabel,
   isAppUserLabel,
   isManagedLabel,
 } from './label-validator.js'
@@ -404,14 +405,4 @@ export async function reconcileLabelsForSingleItem(
       error: error instanceof Error ? error.message : String(error),
     }
   }
-}
-
-/**
- * Gets the removed label string for marking deleted content
- *
- * @param removedLabelPrefix - The configured removed label prefix
- * @returns The removed label string
- */
-function getRemovedLabel(removedLabelPrefix: string): string {
-  return removedLabelPrefix
 }
