@@ -495,6 +495,249 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
 
       await app.close()
     })
+
+    it('should handle multiple users removing different content in same batch (bug fix verification)', async (ctx) => {
+      const app = await build(ctx)
+      await app.ready()
+
+      const knex = getTestDatabase()
+
+      // Scenario: User A removes Movie X, User B removes Movie Y, User C has both
+      // Bug: Without fix, User B's label would be incorrectly removed from Movie X
+      // and User A's label would be incorrectly removed from Movie Y
+
+      // Create watchlist items for all users and both movies
+      const watchlistItems = await knex('watchlist_items')
+        .insert([
+          // User A (SEED_USERS[0]) has both movies
+          {
+            user_id: SEED_USERS[0].id,
+            guids: JSON.stringify(['imdb:tt0133093', 'tmdb:603']),
+            type: 'movie',
+            title: 'The Matrix',
+            key: 'matrix-user-a',
+            status: 'grabbed',
+          },
+          {
+            user_id: SEED_USERS[0].id,
+            guids: JSON.stringify(['imdb:tt1375666', 'tmdb:27205']),
+            type: 'movie',
+            title: 'Inception',
+            key: 'inception-user-a',
+            status: 'grabbed',
+          },
+          // User B (SEED_USERS[1]) has both movies
+          {
+            user_id: SEED_USERS[1].id,
+            guids: JSON.stringify(['imdb:tt0133093', 'tmdb:603']),
+            type: 'movie',
+            title: 'The Matrix',
+            key: 'matrix-user-b',
+            status: 'grabbed',
+          },
+          {
+            user_id: SEED_USERS[1].id,
+            guids: JSON.stringify(['imdb:tt1375666', 'tmdb:27205']),
+            type: 'movie',
+            title: 'Inception',
+            key: 'inception-user-b',
+            status: 'grabbed',
+          },
+          // User C (SEED_USERS[2]) has both movies
+          {
+            user_id: SEED_USERS[2].id,
+            guids: JSON.stringify(['imdb:tt0133093', 'tmdb:603']),
+            type: 'movie',
+            title: 'The Matrix',
+            key: 'matrix-user-c',
+            status: 'grabbed',
+          },
+          {
+            user_id: SEED_USERS[2].id,
+            guids: JSON.stringify(['imdb:tt1375666', 'tmdb:27205']),
+            type: 'movie',
+            title: 'Inception',
+            key: 'inception-user-c',
+            status: 'grabbed',
+          },
+        ])
+        .returning('*')
+
+      // Create tracking records for both movies with all three users
+      await knex('plex_label_tracking').insert([
+        // The Matrix - all three users
+        {
+          content_guids: JSON.stringify(['imdb:tt0133093', 'tmdb:603']),
+          content_type: 'movie',
+          user_id: SEED_USERS[0].id,
+          plex_rating_key: 'matrix-123',
+          labels_applied: JSON.stringify(['pulsarr:test-user-primary']),
+        },
+        {
+          content_guids: JSON.stringify(['imdb:tt0133093', 'tmdb:603']),
+          content_type: 'movie',
+          user_id: SEED_USERS[1].id,
+          plex_rating_key: 'matrix-123',
+          labels_applied: JSON.stringify(['pulsarr:test-user-discord-apprise']),
+        },
+        {
+          content_guids: JSON.stringify(['imdb:tt0133093', 'tmdb:603']),
+          content_type: 'movie',
+          user_id: SEED_USERS[2].id,
+          plex_rating_key: 'matrix-123',
+          labels_applied: JSON.stringify(['pulsarr:test-user-discord-only']),
+        },
+        // Inception - all three users
+        {
+          content_guids: JSON.stringify(['imdb:tt1375666', 'tmdb:27205']),
+          content_type: 'movie',
+          user_id: SEED_USERS[0].id,
+          plex_rating_key: 'inception-456',
+          labels_applied: JSON.stringify(['pulsarr:test-user-primary']),
+        },
+        {
+          content_guids: JSON.stringify(['imdb:tt1375666', 'tmdb:27205']),
+          content_type: 'movie',
+          user_id: SEED_USERS[1].id,
+          plex_rating_key: 'inception-456',
+          labels_applied: JSON.stringify(['pulsarr:test-user-discord-apprise']),
+        },
+        {
+          content_guids: JSON.stringify(['imdb:tt1375666', 'tmdb:27205']),
+          content_type: 'movie',
+          user_id: SEED_USERS[2].id,
+          plex_rating_key: 'inception-456',
+          labels_applied: JSON.stringify(['pulsarr:test-user-discord-only']),
+        },
+      ])
+
+      // Mock PlexServer - track all calls
+      const getCurrentLabelsCalls: string[] = []
+      const updateLabelsCalls: Array<{ ratingKey: string; labels: string[] }> =
+        []
+
+      const mockGetCurrentLabels = vi.fn().mockImplementation((ratingKey) => {
+        getCurrentLabelsCalls.push(ratingKey)
+        if (ratingKey === 'matrix-123') {
+          return [
+            'pulsarr:test-user-primary',
+            'pulsarr:test-user-discord-apprise',
+            'pulsarr:test-user-discord-only',
+          ]
+        }
+        if (ratingKey === 'inception-456') {
+          return [
+            'pulsarr:test-user-primary',
+            'pulsarr:test-user-discord-apprise',
+            'pulsarr:test-user-discord-only',
+          ]
+        }
+        return []
+      })
+
+      const mockUpdateLabels = vi
+        .fn()
+        .mockImplementation((ratingKey, labels) => {
+          updateLabelsCalls.push({ ratingKey, labels })
+          return true
+        })
+
+      app.plexServerService.getCurrentLabels = mockGetCurrentLabels
+      app.plexServerService.updateLabels = mockUpdateLabels
+
+      // User A removes The Matrix, User B removes Inception (in same batch!)
+      // User C keeps both movies
+      await cleanupLabelsForWatchlistItems(
+        [
+          {
+            id: watchlistItems[0].id, // User A - Matrix
+            title: 'The Matrix',
+            key: 'matrix-user-a',
+            user_id: SEED_USERS[0].id,
+            guids: ['imdb:tt0133093', 'tmdb:603'],
+            contentType: 'movie' as const,
+          },
+          {
+            id: watchlistItems[3].id, // User B - Inception
+            title: 'Inception',
+            key: 'inception-user-b',
+            user_id: SEED_USERS[1].id,
+            guids: ['imdb:tt1375666', 'tmdb:27205'],
+            contentType: 'movie' as const,
+          },
+        ],
+        {
+          plexServer: app.plexServerService,
+          db: app.db,
+          logger: app.log,
+          config: {
+            ...app.config.plexLabelSync,
+            enabled: true,
+          } as PlexLabelSyncConfig,
+          radarrManager: app.radarrManager,
+          sonarrManager: app.sonarrManager,
+          fastify: app,
+          labelPrefix: 'pulsarr',
+          removedLabelPrefix: 'pulsarr:removed',
+          removedLabelMode: 'special-label',
+          tagPrefix: 'pulsarr:user',
+          removedTagPrefix: 'pulsarr:removed',
+        },
+      )
+
+      // CRITICAL ASSERTIONS: Verify the bug is fixed
+
+      // 1. The Matrix should have User A's label removed, but User B and C preserved
+      const matrixUpdate = updateLabelsCalls.find(
+        (c) => c.ratingKey === 'matrix-123',
+      )
+      expect(matrixUpdate).toBeDefined()
+      expect(matrixUpdate?.labels).toContain(
+        'pulsarr:test-user-discord-apprise',
+      ) // User B still has it
+      expect(matrixUpdate?.labels).toContain('pulsarr:test-user-discord-only') // User C still has it
+      expect(matrixUpdate?.labels).not.toContain('pulsarr:test-user-primary') // User A removed it
+      expect(matrixUpdate?.labels).not.toContain('pulsarr:removed') // Other users remain, no removal label
+
+      // 2. Inception should have User B's label removed, but User A and C preserved
+      const inceptionUpdate = updateLabelsCalls.find(
+        (c) => c.ratingKey === 'inception-456',
+      )
+      expect(inceptionUpdate).toBeDefined()
+      expect(inceptionUpdate?.labels).toContain('pulsarr:test-user-primary') // User A still has it
+      expect(inceptionUpdate?.labels).toContain(
+        'pulsarr:test-user-discord-only',
+      ) // User C still has it
+      expect(inceptionUpdate?.labels).not.toContain(
+        'pulsarr:test-user-discord-apprise',
+      ) // User B removed it
+      expect(inceptionUpdate?.labels).not.toContain('pulsarr:removed') // Other users remain, no removal label
+
+      // 3. Verify tracking records
+      const matrixTracking = await knex('plex_label_tracking')
+        .where({ plex_rating_key: 'matrix-123' })
+        .orderBy('user_id')
+
+      // Should have User B and C, not User A
+      expect(matrixTracking).toHaveLength(2)
+      expect(matrixTracking.map((t) => t.user_id)).toEqual([
+        SEED_USERS[1].id,
+        SEED_USERS[2].id,
+      ])
+
+      const inceptionTracking = await knex('plex_label_tracking')
+        .where({ plex_rating_key: 'inception-456' })
+        .orderBy('user_id')
+
+      // Should have User A and C, not User B
+      expect(inceptionTracking).toHaveLength(2)
+      expect(inceptionTracking.map((t) => t.user_id)).toEqual([
+        SEED_USERS[0].id,
+        SEED_USERS[2].id,
+      ])
+
+      await app.close()
+    })
   })
 
   describe('cleanupOrphanedPlexLabels', () => {

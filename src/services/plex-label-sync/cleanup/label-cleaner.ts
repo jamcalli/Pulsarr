@@ -22,6 +22,16 @@ import pLimit from 'p-limit'
 import { getRemovedLabel, isAppUserLabel } from '../label-operations/index.js'
 
 /**
+ * Helper function to check if two arrays contain the same elements (order-independent)
+ */
+function arraysHaveSameElements(arr1: string[], arr2: string[]): boolean {
+  if (arr1.length !== arr2.length) return false
+  const sorted1 = [...arr1].sort()
+  const sorted2 = [...arr2].sort()
+  return sorted1.every((val, idx) => val === sorted2[idx])
+}
+
+/**
  * Dependencies required for label cleanup operations
  */
 export interface LabelCleanerDeps {
@@ -433,6 +443,30 @@ async function handleSpecialLabelModeForDeletedItems(
       labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
     }
 
+    // Build map of rating key -> users removing that specific content
+    // This prevents users removing one piece of content from affecting other content in the batch
+    const usersByRatingKey = new Map<string, Set<number>>()
+
+    for (const item of watchlistItems) {
+      const itemData = itemDataMap.get(item.id)
+      if (!itemData) continue
+
+      // Find all rating keys for this item's content by matching GUIDs and content type
+      for (const tracking of trackedLabels) {
+        // Check if this tracking entry matches this item's content
+        if (
+          tracking.content_type === itemData.contentType &&
+          arraysHaveSameElements(tracking.content_guids, itemData.guids)
+        ) {
+          // This rating key belongs to this item's content
+          const usersForRatingKey =
+            usersByRatingKey.get(tracking.plex_rating_key) || new Set<number>()
+          usersForRatingKey.add(item.user_id)
+          usersByRatingKey.set(tracking.plex_rating_key, usersForRatingKey)
+        }
+      }
+    }
+
     const concurrencyLimit = deps.config.concurrencyLimit || 5
     const limit = pLimit(concurrencyLimit)
     let processedCount = 0
@@ -448,7 +482,6 @@ async function handleSpecialLabelModeForDeletedItems(
 
             // Get all users who currently have labels for this content
             const allUsersWithLabels = new Set<number>()
-            const removingUserIds = new Set<number>()
 
             // Collect all user IDs that have labels for this rating key
             for (const tracking of trackedLabels) {
@@ -460,10 +493,9 @@ async function handleSpecialLabelModeForDeletedItems(
               }
             }
 
-            // Collect user IDs that are removing content
-            for (const item of watchlistItems) {
-              removingUserIds.add(item.user_id)
-            }
+            // Get ONLY the users removing THIS specific content (not all users in batch)
+            const removingUserIds =
+              usersByRatingKey.get(ratingKey) || new Set<number>()
 
             // Calculate remaining users after removal
             const remainingUserIds = new Set<number>()
