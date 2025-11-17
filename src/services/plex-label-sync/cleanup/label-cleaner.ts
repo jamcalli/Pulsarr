@@ -118,8 +118,11 @@ export async function cleanupLabelsForWatchlistItems(
   )
 
   try {
-    // Convert raw item keys to primary GUIDs for tracking lookups
-    const itemGuidMap = new Map<number, string>() // Map item.id -> primaryGuid
+    // Store parsed data for cleanup operations
+    const itemDataMap = new Map<
+      number,
+      { guids: string[]; contentType: 'movie' | 'show' }
+    >() // Map item.id -> parsed data for cleanup
 
     // Get all tracked labels for these watchlist items
     const trackedLabels = []
@@ -155,7 +158,10 @@ export async function cleanupLabelsForWatchlistItems(
 
       const sortedGuids = [...parsedGuids].sort()
       const contentKey = `${fullItem.type}-${JSON.stringify(sortedGuids)}`
-      itemGuidMap.set(item.id, contentKey) // Store mapping for later cleanup
+      itemDataMap.set(item.id, {
+        guids: parsedGuids,
+        contentType: fullItem.type === 'show' ? 'show' : 'movie',
+      })
 
       deps.logger.debug(
         `Getting tracked labels for content key: ${contentKey} (was looking for raw key: ${item.key}), user_id: ${item.user_id}`,
@@ -214,13 +220,16 @@ export async function cleanupLabelsForWatchlistItems(
       deps.logger.debug(
         'No tracked labels found for cleanup, skipping Plex API calls',
       )
-      // Still need to cleanup tracking records using full GUID arrays
+      // Still need to cleanup tracking records using parsed GUID arrays
       for (const item of watchlistItems) {
-        await deps.db.cleanupUserContentTracking(
-          item.guids,
-          item.contentType,
-          item.user_id,
-        )
+        const itemData = itemDataMap.get(item.id)
+        if (itemData) {
+          await deps.db.cleanupUserContentTracking(
+            itemData.guids,
+            itemData.contentType,
+            item.user_id,
+          )
+        }
       }
       return
     }
@@ -229,10 +238,12 @@ export async function cleanupLabelsForWatchlistItems(
     const labelsByRatingKey = new Map<string, string[]>()
     for (const tracking of trackedLabels) {
       const existingLabels =
-        labelsByRatingKey.get(tracking.plex_rating_key) || []
-      // Add all labels from this tracking record
-      existingLabels.push(...tracking.labels_applied)
-      labelsByRatingKey.set(tracking.plex_rating_key, existingLabels)
+        labelsByRatingKey.get(tracking.plex_rating_key) ?? []
+      // Add all labels from this tracking record (dedupe to avoid redundant Plex calls)
+      labelsByRatingKey.set(
+        tracking.plex_rating_key,
+        Array.from(new Set([...existingLabels, ...tracking.labels_applied])),
+      )
     }
 
     deps.logger.debug(
@@ -301,13 +312,16 @@ export async function cleanupLabelsForWatchlistItems(
       }
     }
 
-    // Clean up tracking records from database using full GUID arrays
+    // Clean up tracking records from database using parsed GUID arrays
     for (const item of watchlistItems) {
-      await deps.db.cleanupUserContentTracking(
-        item.guids,
-        item.contentType,
-        item.user_id,
-      )
+      const itemData = itemDataMap.get(item.id)
+      if (itemData) {
+        await deps.db.cleanupUserContentTracking(
+          itemData.guids,
+          itemData.contentType,
+          item.user_id,
+        )
+      }
     }
 
     const cleanupDuration = Date.now() - cleanupStartTime
@@ -366,7 +380,6 @@ async function handleSpecialLabelModeForDeletedItems(
   )
 
   const specialLabelStartTime = Date.now()
-  const itemGuidMap = new Map<number, string>() // Map item.id -> primaryGuid
   const itemDataMap = new Map<
     number,
     { guids: string[]; contentType: 'movie' | 'show' }
@@ -404,8 +417,7 @@ async function handleSpecialLabelModeForDeletedItems(
       }
 
       const sortedGuids = [...parsedGuids].sort()
-      const contentKey = `${fullItem.type}-${JSON.stringify(sortedGuids)}`
-      itemGuidMap.set(item.id, contentKey)
+      const _contentKey = `${fullItem.type}-${JSON.stringify(sortedGuids)}`
       itemDataMap.set(item.id, {
         guids: parsedGuids,
         contentType: fullItem.type === 'show' ? 'show' : 'movie',

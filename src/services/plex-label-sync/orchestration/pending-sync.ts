@@ -115,7 +115,7 @@ export async function processPendingLabelSyncs(
               return syncResult
             }
 
-            const username = user.name || `user_${user.id}`
+            const _username = user.name || `user_${user.id}`
 
             // The plex_key contains a GUID part, need to resolve to rating key
             let fullGuid: string
@@ -256,7 +256,7 @@ export async function processPendingLabelSyncs(
                   fullGuid,
                   plexItemsFound: plexItems.length,
                   ratingKeys: plexItems.map((item) => item.ratingKey),
-                  username,
+                  usernames: allUsersForContent.map((u) => u.username),
                 },
                 'Successfully processed pending sync',
               )

@@ -287,8 +287,8 @@ export async function reconcileLabelsForSingleItem(
           `Added removed label for "${content.title}" - no active users, safe for deletion`,
         )
       } else {
-        // User labels exist OR no labels being removed - preserve current user labels
-        // This also cleans up any existing removed labels when users are present
+        // User labels exist - preserve current user labels and add desired labels
+        // (Removed labels will be cleaned up in the subsequent cleanup step below)
         finalLabels = [...new Set([...nonAppLabels, ...allDesiredLabels])]
       }
     } else {
