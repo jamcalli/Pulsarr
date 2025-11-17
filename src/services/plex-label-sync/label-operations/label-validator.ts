@@ -109,3 +109,32 @@ export function isUserTaggingSystemTag(
 export function getRemovedLabel(removedLabelPrefix: string): string {
   return removedLabelPrefix
 }
+
+/**
+ * Filters out user tagging system tags and formats remaining tags as Plex labels
+ *
+ * This utility is used across the codebase to ensure tags from Radarr/Sonarr that
+ * are managed by the user tagging system (e.g., 'pulsarr:user:username' tags) are
+ * excluded from being synced as Plex labels.
+ *
+ * @param tags - Array of tag names to filter and format
+ * @param tagPrefix - Prefix for user tagging system tags (e.g., 'pulsarr:user')
+ * @param removedTagPrefix - Prefix for removed tags (e.g., 'pulsarr:removed')
+ * @param labelPrefix - Prefix to use for formatted labels (e.g., 'pulsarr')
+ * @returns Array of formatted labels (e.g., ['pulsarr:genre', 'pulsarr:quality']) excluding system tags
+ *
+ * @example
+ * const tags = ['genre', 'pulsarr:user:john', 'quality', 'pulsarr:removed:old'];
+ * const result = filterAndFormatTagsAsLabels(tags, 'pulsarr:user', 'pulsarr:removed', 'pulsarr');
+ * // Returns: ['pulsarr:genre', 'pulsarr:quality']
+ */
+export function filterAndFormatTagsAsLabels(
+  tags: string[],
+  tagPrefix: string,
+  removedTagPrefix: string,
+  labelPrefix: string,
+): string[] {
+  return tags
+    .filter((tag) => !isUserTaggingSystemTag(tag, tagPrefix, removedTagPrefix))
+    .map((tag) => `${labelPrefix}:${tag}`)
+}

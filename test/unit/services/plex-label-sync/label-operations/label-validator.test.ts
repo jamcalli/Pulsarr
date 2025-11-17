@@ -1,4 +1,5 @@
 import {
+  filterAndFormatTagsAsLabels,
   getRemovedLabel,
   isAppTagLabel,
   isAppUserLabel,
@@ -332,6 +333,172 @@ describe('label-validator', () => {
     it('should handle multi-instance prefixes', () => {
       expect(getRemovedLabel('pulsarr1:removed')).toBe('pulsarr1:removed')
       expect(getRemovedLabel('pulsarr2:removed')).toBe('pulsarr2:removed')
+    })
+  })
+
+  describe('filterAndFormatTagsAsLabels', () => {
+    it('should filter out user tagging system tags and format remaining as labels', () => {
+      const tags = ['genre', 'pulsarr:user:john', 'quality', 'pulsarr:removed']
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'pulsarr:user',
+        'pulsarr:removed',
+        'pulsarr',
+      )
+      expect(result).toEqual(['pulsarr:genre', 'pulsarr:quality'])
+    })
+
+    it('should handle empty array', () => {
+      const result = filterAndFormatTagsAsLabels(
+        [],
+        'pulsarr:user',
+        'pulsarr:removed',
+        'pulsarr',
+      )
+      expect(result).toEqual([])
+    })
+
+    it('should return empty array when all tags are system tags', () => {
+      const tags = ['pulsarr:user:john', 'pulsarr:user:jane', 'pulsarr:removed']
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'pulsarr:user',
+        'pulsarr:removed',
+        'pulsarr',
+      )
+      expect(result).toEqual([])
+    })
+
+    it('should handle tags with no system tags', () => {
+      const tags = ['action', 'thriller', '4k']
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'pulsarr:user',
+        'pulsarr:removed',
+        'pulsarr',
+      )
+      expect(result).toEqual([
+        'pulsarr:action',
+        'pulsarr:thriller',
+        'pulsarr:4k',
+      ])
+    })
+
+    it('should handle case-insensitive matching for system tags', () => {
+      const tags = ['genre', 'PULSARR:USER:JOHN', 'quality', 'Pulsarr:Removed']
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'pulsarr:user',
+        'pulsarr:removed',
+        'pulsarr',
+      )
+      expect(result).toEqual(['pulsarr:genre', 'pulsarr:quality'])
+    })
+
+    it('should work with custom prefixes', () => {
+      const tags = ['genre', 'custom:user:alice', 'quality', 'custom:deleted']
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'custom:user',
+        'custom:deleted',
+        'myapp',
+      )
+      expect(result).toEqual(['myapp:genre', 'myapp:quality'])
+    })
+
+    it('should preserve tag names exactly as provided', () => {
+      const tags = ['Action-Movie', 'Sci_Fi', 'genre:thriller']
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'pulsarr:user',
+        'pulsarr:removed',
+        'pulsarr',
+      )
+      expect(result).toEqual([
+        'pulsarr:Action-Movie',
+        'pulsarr:Sci_Fi',
+        'pulsarr:genre:thriller',
+      ])
+    })
+
+    it('should handle multiple user tags mixed with regular tags', () => {
+      const tags = [
+        'genre',
+        'pulsarr:user:john',
+        'quality',
+        'pulsarr:user:jane',
+        'collection',
+        'pulsarr:removed:old',
+      ]
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'pulsarr:user',
+        'pulsarr:removed',
+        'pulsarr',
+      )
+      expect(result).toEqual([
+        'pulsarr:genre',
+        'pulsarr:quality',
+        'pulsarr:collection',
+      ])
+    })
+
+    it('should not filter tags that start similarly but are not system tags', () => {
+      const tags = [
+        'users',
+        'pulsarr:username',
+        'removed-items',
+        'pulsarr:user:john',
+      ]
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'pulsarr:user',
+        'pulsarr:removed',
+        'pulsarr',
+      )
+      expect(result).toEqual([
+        'pulsarr:users',
+        'pulsarr:pulsarr:username',
+        'pulsarr:removed-items',
+      ])
+    })
+
+    it('should handle multi-instance scenarios', () => {
+      const tags = [
+        'genre',
+        'pulsarr1:user:john',
+        'quality',
+        'pulsarr1:removed',
+        'pulsarr2:user:jane',
+      ]
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'pulsarr1:user',
+        'pulsarr1:removed',
+        'pulsarr1',
+      )
+      // pulsarr2:user:jane should NOT be filtered since we're using pulsarr1 prefix
+      expect(result).toEqual([
+        'pulsarr1:genre',
+        'pulsarr1:quality',
+        'pulsarr1:pulsarr2:user:jane',
+      ])
+    })
+
+    it('should handle tags with additional segments after system prefix', () => {
+      const tags = [
+        'genre',
+        'pulsarr:user:john:admin',
+        'quality',
+        'pulsarr:removed:by-system',
+      ]
+      const result = filterAndFormatTagsAsLabels(
+        tags,
+        'pulsarr:user',
+        'pulsarr:removed',
+        'pulsarr',
+      )
+      expect(result).toEqual(['pulsarr:genre', 'pulsarr:quality'])
     })
   })
 })

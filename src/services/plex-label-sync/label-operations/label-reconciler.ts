@@ -22,9 +22,9 @@ import {
 } from '../matching/index.js'
 import { updateTrackingForContent } from '../tracking/content-tracker.js'
 import {
+  filterAndFormatTagsAsLabels,
   isAppUserLabel,
   isManagedLabel,
-  isUserTaggingSystemTag,
 } from './label-validator.js'
 
 export interface LabelReconcilerDeps {
@@ -80,16 +80,13 @@ export async function reconcileLabelsForContent(
           deps.logger,
         )
         if (match) {
-          const filteredTags = match.tags.filter(
-            (tag) =>
-              !isUserTaggingSystemTag(
-                tag,
-                deps.tagPrefix,
-                deps.removedTagPrefix,
-              ),
-          )
           desiredTagLabels.push(
-            ...filteredTags.map((tag) => `${deps.config.labelPrefix}:${tag}`),
+            ...filterAndFormatTagsAsLabels(
+              match.tags,
+              deps.tagPrefix,
+              deps.removedTagPrefix,
+              deps.config.labelPrefix,
+            ),
           )
           tagInstanceName = match.instanceName
         }
@@ -101,16 +98,13 @@ export async function reconcileLabelsForContent(
           deps.logger,
         )
         if (match) {
-          const filteredTags = match.tags.filter(
-            (tag) =>
-              !isUserTaggingSystemTag(
-                tag,
-                deps.tagPrefix,
-                deps.removedTagPrefix,
-              ),
-          )
           desiredTagLabels.push(
-            ...filteredTags.map((tag) => `${deps.config.labelPrefix}:${tag}`),
+            ...filterAndFormatTagsAsLabels(
+              match.tags,
+              deps.tagPrefix,
+              deps.removedTagPrefix,
+              deps.config.labelPrefix,
+            ),
           )
           tagInstanceName = match.instanceName
         }

@@ -11,9 +11,9 @@ import type { PlexServerService } from '@services/plex-server.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
+  filterAndFormatTagsAsLabels,
   isAppTagLabel,
   isAppUserLabel,
-  isUserTaggingSystemTag,
 } from './label-validator.js'
 
 export interface LabelApplicatorDeps {
@@ -71,15 +71,12 @@ export async function applyLabelsToSingleItem(
         (!isMovie && !isShow) // Default to true if content type unclear
 
       if (shouldSyncTags) {
-        // Filter out tags managed by user tagging system
-        const filteredTags = webhookTags.filter(
-          (tag) =>
-            !isUserTaggingSystemTag(tag, deps.tagPrefix, deps.removedTagPrefix),
-        )
-
-        // Create tag labels with app prefix
-        tagLabels = filteredTags.map(
-          (tag) => `${deps.config.labelPrefix}:${tag}`,
+        // Filter out tags managed by user tagging system and format as labels
+        tagLabels = filterAndFormatTagsAsLabels(
+          webhookTags,
+          deps.tagPrefix,
+          deps.removedTagPrefix,
+          deps.config.labelPrefix,
         )
 
         deps.logger.debug(
@@ -87,7 +84,6 @@ export async function applyLabelsToSingleItem(
             ratingKey,
             contentType,
             originalTags: webhookTags,
-            filteredTags,
             tagLabels,
           },
           'Processed webhook tags for label sync',
