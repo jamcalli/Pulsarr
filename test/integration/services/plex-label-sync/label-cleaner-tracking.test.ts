@@ -102,8 +102,6 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
       })
 
       expect(tracking).toHaveLength(0)
-
-      await app.close()
     })
 
     it('should handle multiple users with separate tracking cleanup', async (ctx) => {
@@ -199,8 +197,6 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
 
       expect(tracking).toHaveLength(1)
       expect(tracking[0].user_id).toBe(SEED_USERS[1].id)
-
-      await app.close()
     })
   })
 
@@ -279,8 +275,6 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
       expect(JSON.parse(tracking[0].labels_applied as string)).toEqual([
         'pulsarr:test-user-primary',
       ])
-
-      await app.close()
     })
   })
 
@@ -372,8 +366,6 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
       expect(JSON.parse(systemTracking[0].labels_applied as string)).toEqual([
         'pulsarr:removed',
       ])
-
-      await app.close()
     })
 
     it('should remove only specific user label when other users remain', async (ctx) => {
@@ -492,8 +484,6 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
         user_id: null,
       })
       expect(systemTracking).toHaveLength(0)
-
-      await app.close()
     })
 
     it('should handle multiple users removing different content in same batch (bug fix verification)', async (ctx) => {
@@ -735,8 +725,6 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
         SEED_USERS[0].id,
         SEED_USERS[2].id,
       ])
-
-      await app.close()
     })
   })
 
@@ -832,8 +820,6 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
         user_id: SEED_USERS[0].id,
       })
       expect(validTracking).toHaveLength(1)
-
-      await app.close()
     })
 
     it('should handle tag sync when detecting orphaned labels', async (ctx) => {
@@ -934,8 +920,6 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
       // Verify Radarr was queried for tags
       expect(app.radarrManager.getAllInstances).toHaveBeenCalled()
       expect(mockGetTags).toHaveBeenCalled()
-
-      await app.close()
     })
   })
 })

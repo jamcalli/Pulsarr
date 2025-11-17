@@ -265,10 +265,7 @@ export async function reconcileLabelsForSingleItem(
       // - If user labels exist, removed label should be cleaned up (content still wanted)
       if (desiredUserLabels.length === 0) {
         // No user labels exist, safe to add removed label for deletion
-        specialRemovedLabel = getRemovedLabel(
-          content.title,
-          deps.removedLabelPrefix,
-        )
+        specialRemovedLabel = getRemovedLabel(deps.removedLabelPrefix)
         deps.logger.debug(
           {
             contentTitle: content.title,
@@ -418,13 +415,9 @@ export async function reconcileLabelsForSingleItem(
 /**
  * Gets the removed label string for marking deleted content
  *
- * @param itemName - The name of the content item
  * @param removedLabelPrefix - The configured removed label prefix
  * @returns The removed label string
  */
-function getRemovedLabel(
-  _itemName: string,
-  removedLabelPrefix: string,
-): string {
+function getRemovedLabel(removedLabelPrefix: string): string {
   return removedLabelPrefix
 }

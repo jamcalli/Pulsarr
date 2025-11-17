@@ -153,8 +153,6 @@ describe('Webhook Sync → Workflow Integration', () => {
           'pulsarr:drama',
         ]),
       )
-
-      await app.close()
     })
 
     it('should queue when content not yet in Plex', async (ctx) => {
@@ -233,8 +231,6 @@ describe('Webhook Sync → Workflow Integration', () => {
       // Content not found, should be queued
       expect(result).toBe(false)
       expect(mockQueuePendingLabelSyncByWatchlistId).toHaveBeenCalledTimes(1)
-
-      await app.close()
     })
 
     it('should handle multiple users with same content', async (ctx) => {
@@ -351,8 +347,6 @@ describe('Webhook Sync → Workflow Integration', () => {
         .orderBy('user_id')
 
       expect(tracking).toHaveLength(2)
-
-      await app.close()
     })
 
     it('should skip when sync is disabled', async (ctx) => {
@@ -413,8 +407,6 @@ describe('Webhook Sync → Workflow Integration', () => {
       // Verify no processing occurred
       expect(result).toBe(false)
       expect(mockExtractContentGuidFromWebhook).not.toHaveBeenCalled()
-
-      await app.close()
     })
   })
 
@@ -513,8 +505,6 @@ describe('Webhook Sync → Workflow Integration', () => {
         'pulsarr:action',
         'pulsarr:drama',
       ])
-
-      await app.close()
     })
 
     it('should queue when content not found and include fetched tags', async (ctx) => {
@@ -589,8 +579,6 @@ describe('Webhook Sync → Workflow Integration', () => {
         watchlistItem.title,
         ['action'], // Fetched tags should be included
       )
-
-      await app.close()
     })
   })
 
@@ -689,8 +677,6 @@ describe('Webhook Sync → Workflow Integration', () => {
         'pulsarr:action',
         'pulsarr:drama',
       ])
-
-      await app.close()
     })
 
     it('should return false when watchlist item missing Plex key', async (ctx) => {
@@ -746,8 +732,6 @@ describe('Webhook Sync → Workflow Integration', () => {
 
       // Should return false
       expect(result).toBe(false)
-
-      await app.close()
     })
   })
 })
