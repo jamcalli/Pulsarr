@@ -9,6 +9,7 @@ import {
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { TagMigrationService } from './tag-migration.service.js'
 
 /**
  * Tag structure returned from Sonarr/Radarr APIs
@@ -65,10 +66,15 @@ export class UserTagService {
     return createServiceLogger(this.baseLog, 'USER_TAG')
   }
 
+  /** Tag migration service for migrating colon-based tags to hyphen-based format */
+  private readonly migrationService: TagMigrationService
+
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.migrationService = new TagMigrationService(baseLog, fastify)
+  }
 
   /**
    * Get all users with sync enabled
@@ -1011,14 +1017,24 @@ export class UserTagService {
         })
       }
 
-      // Create user tags first
-      await this.createSonarrUserTags()
-
-      // Fetch all shows and series needed for tagging
+      // Fetch all shows and series needed for tagging (fetch BEFORE migration)
       const existingSeries =
         await this.fastify.sonarrManager.fetchAllSeries(true)
 
       const watchlistItems = await this.fastify.db.getAllShowWatchlistItems()
+
+      // Run migration if needed (BLOCKING, runs before tag creation)
+      const needsMigration =
+        !(await this.migrationService.checkAllInstancesMigrated('sonarr'))
+      if (needsMigration) {
+        await this.migrationService.migrateInstanceTags(
+          'sonarr',
+          existingSeries,
+        )
+      }
+
+      // Create user tags (now uses hyphen delimiter if migration completed)
+      await this.createSonarrUserTags()
 
       // Count total series to process for progress reporting
       const totalSeries = existingSeries.length
@@ -1054,6 +1070,9 @@ export class UserTagService {
           message: `Completed Sonarr tag sync: tagged ${results.tagged} series, skipped ${results.skipped}, failed ${results.failed}`,
         })
       }
+
+      // Clean up migration file if both radarr and sonarr are done
+      await this.migrationService.cleanupMigrationFileIfComplete()
 
       return results
     } catch (error) {
@@ -1101,14 +1120,24 @@ export class UserTagService {
         })
       }
 
-      // Create user tags first
-      await this.createRadarrUserTags()
-
-      // Fetch all movies and watchlist items needed for tagging
+      // Fetch all movies and watchlist items needed for tagging (fetch BEFORE migration)
       const existingMovies =
         await this.fastify.radarrManager.fetchAllMovies(true)
 
       const watchlistItems = await this.fastify.db.getAllMovieWatchlistItems()
+
+      // Run migration if needed (BLOCKING, runs before tag creation)
+      const needsMigration =
+        !(await this.migrationService.checkAllInstancesMigrated('radarr'))
+      if (needsMigration) {
+        await this.migrationService.migrateInstanceTags(
+          'radarr',
+          existingMovies,
+        )
+      }
+
+      // Create user tags (now uses hyphen delimiter if migration completed)
+      await this.createRadarrUserTags()
 
       // Count total movies to process for progress reporting
       const totalMovies = existingMovies.length
@@ -1144,6 +1173,9 @@ export class UserTagService {
           message: `Completed Radarr tag sync: tagged ${results.tagged} movies, skipped ${results.skipped}, failed ${results.failed}`,
         })
       }
+
+      // Clean up migration file if both radarr and sonarr are done
+      await this.migrationService.cleanupMigrationFileIfComplete()
 
       return results
     } catch (error) {
