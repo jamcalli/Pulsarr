@@ -194,6 +194,7 @@ export interface Config {
   removedTagMode: RemovedTagMode
   removedTagPrefix: string
   // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
+  // Keys are string because JSON serialization converts number keys to strings
   tagMigration?: {
     radarr: Record<
       string,

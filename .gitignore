@@ -44,6 +44,7 @@ CLAUDE.md
 # temporary files
 tmp/
 .test-db.sqlite*
+.pulsarr-tag-migration.json
 
 # test coverage
 coverage/
