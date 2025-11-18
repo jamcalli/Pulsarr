@@ -70,7 +70,7 @@ export const useApprovalsStore = create<ApprovalsState>()(
     statsLoading: false,
     error: null,
     currentQuery: {
-      limit: 1000, // Fetch all records for self-hosted app
+      limit: 50000,
       offset: 0,
     },
     total: 0,
