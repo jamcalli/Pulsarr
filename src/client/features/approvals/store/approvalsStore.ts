@@ -70,6 +70,8 @@ export const useApprovalsStore = create<ApprovalsState>()(
     statsLoading: false,
     error: null,
     currentQuery: {
+      // Fetch all records for client-side pagination (TanStack Table)
+      // Self-hosted deployment: 50k limit handles typical datasets with minimal memory impact
       limit: 50000,
       offset: 0,
     },
