@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,25 +8,6 @@ import { isPostgreSQL } from '../utils/clientDetection.js'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '../..')
-
-/**
- * Ensures that the data directory exists, creating it if necessary.
- * Follows the same pattern as ensureDbDirectory() in knexfile.ts
- *
- * @returns The absolute path to the data directory
- */
-function ensureDataDirectory(): string {
-  const dataDir = resolve(projectRoot, 'data')
-  try {
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true })
-    }
-    return dataDir
-  } catch (err) {
-    console.error('Failed to create data directory:', err)
-    throw err
-  }
-}
 
 /**
  * Migrates tag prefixes to use hyphen delimiters for Radarr v6/Sonarr compatibility.
@@ -81,9 +61,12 @@ export async function up(knex: Knex): Promise<void> {
     }
 
     try {
-      // Ensure data directory exists, then write file
-      const dataDir = ensureDataDirectory()
-      const migrationFile = resolve(dataDir, '.pulsarr-tag-migration.json')
+      // Write file to data directory (already created by logger/db initialization)
+      const migrationFile = resolve(
+        projectRoot,
+        'data',
+        '.pulsarr-tag-migration.json',
+      )
       await writeFile(migrationFile, JSON.stringify(preMigrationData, null, 2))
     } catch (error) {
       // Log error but don't fail migration - file is a helper, not critical
