@@ -102,12 +102,13 @@ export function LogViewerPage() {
   // Auto-scroll ref - MUST be before conditional return
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Convert logs to text for textarea - MUST be before conditional return to avoid hook order issues
-  const logsText = logs
-    .filter((log) => {
-      if (!displayFilter) return true
-      return log.message.toLowerCase().includes(displayFilter.toLowerCase())
-    })
+  // Filter logs first, then convert to text - MUST be before conditional return to avoid hook order issues
+  const filteredLogs = logs.filter((log) => {
+    if (!displayFilter) return true
+    return log.message.toLowerCase().includes(displayFilter.toLowerCase())
+  })
+
+  const logsText = filteredLogs
     .map(
       (log) =>
         `[${formatTimestamp(log.timestamp)}] ${log.level.toUpperCase()}${
@@ -452,8 +453,8 @@ export function LogViewerPage() {
             {getStreamingStatus()}
           </p>
           <p className="text-sm text-foreground">
-            Displaying {logs.length} log
-            {logs.length === 1 ? '' : 's'}
+            Displaying {filteredLogs.length} log
+            {filteredLogs.length === 1 ? '' : 's'}
             {displayFilter && ` (filtered by "${displayFilter}")`}
           </p>
           {error && (
@@ -484,11 +485,13 @@ export function LogViewerPage() {
             ref={textareaRef}
             value={
               logsText ||
-              (isConnected && !isPaused
-                ? 'No logs yet...'
-                : isPaused
-                  ? 'Paused - click Resume to continue streaming'
-                  : 'Connecting to log stream...')
+              (displayFilter && logs.length > 0
+                ? `No logs match filter "${displayFilter}"`
+                : isConnected && !isPaused
+                  ? 'No logs yet...'
+                  : isPaused
+                    ? 'Paused - click Resume to continue streaming'
+                    : 'Connecting to log stream...')
             }
             readOnly
             className="h-[32rem] font-mono text-sm resize-none"
