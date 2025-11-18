@@ -102,13 +102,49 @@ export function LogViewerPage() {
   // Auto-scroll ref - MUST be before conditional return
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // Convert logs to text for textarea - MUST be before conditional return to avoid hook order issues
+  const logsText = logs
+    .filter((log) => {
+      if (!displayFilter) return true
+      return log.message.toLowerCase().includes(displayFilter.toLowerCase())
+    })
+    .map(
+      (log) =>
+        `[${formatTimestamp(log.timestamp)}] ${log.level.toUpperCase()}${
+          log.module ? ` [${log.module}]` : ''
+        }: ${log.message}`,
+    )
+    .join('\n')
+
   // Auto-scroll effect - MUST be before conditional return
-  // biome-ignore lint/correctness/useExhaustiveDependencies: We need logsText to trigger auto-scroll on new logs
   useEffect(() => {
-    if (isAutoScroll && textareaRef.current) {
-      textareaRef.current.scrollTop = textareaRef.current.scrollHeight
+    if (logs.length > 0 && isAutoScroll) {
+      // Multiple attempts with increasing delays to ensure scroll happens
+      const timer1 = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.scrollTop = textareaRef.current.scrollHeight
+        }
+      }, 50)
+
+      const timer2 = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.scrollTop = textareaRef.current.scrollHeight
+        }
+      }, 200)
+
+      const timer3 = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.scrollTop = textareaRef.current.scrollHeight
+        }
+      }, 500)
+
+      return () => {
+        clearTimeout(timer1)
+        clearTimeout(timer2)
+        clearTimeout(timer3)
+      }
     }
-  }, [logs, isAutoScroll, displayFilter])
+  }, [logs.length, isAutoScroll])
 
   // Helper function for minimum loading duration
   const setLoadingWithMinDuration = async (loadingFn: () => Promise<void>) => {
@@ -132,20 +168,6 @@ export function LogViewerPage() {
   if (isInitializing || !isInitialized) {
     return <LogViewerPageSkeleton />
   }
-
-  // Convert logs to text for textarea
-  const logsText = logs
-    .filter((log) => {
-      if (!displayFilter) return true
-      return log.message.toLowerCase().includes(displayFilter.toLowerCase())
-    })
-    .map(
-      (log) =>
-        `[${formatTimestamp(log.timestamp)}] ${log.level.toUpperCase()}${
-          log.module ? ` [${log.module}]` : ''
-        }: ${log.message}`,
-    )
-    .join('\n')
 
   const handleTogglePause = async (shouldPause: boolean) => {
     await setLoadingWithMinDuration(async () => {
@@ -430,8 +452,8 @@ export function LogViewerPage() {
             {getStreamingStatus()}
           </p>
           <p className="text-sm text-foreground">
-            {logs.length} log
-            {logs.length === 1 ? '' : 's'} received
+            Displaying {logs.length} log
+            {logs.length === 1 ? '' : 's'}
             {displayFilter && ` (filtered by "${displayFilter}")`}
           </p>
           {error && (
