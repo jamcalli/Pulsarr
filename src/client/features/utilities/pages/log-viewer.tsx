@@ -145,7 +145,7 @@ export function LogViewerPage() {
         clearTimeout(timer3)
       }
     }
-  }, [logs.length, isAutoScroll])
+  }, [isAutoScroll, logs.length])
 
   // Helper function for minimum loading duration
   const setLoadingWithMinDuration = async (loadingFn: () => Promise<void>) => {
@@ -458,7 +458,7 @@ export function LogViewerPage() {
             {displayFilter && ` (filtered by "${displayFilter}")`}
           </p>
           {error && (
-            <p className="text-xs mt-1 text-red-600 dark:text-red-400 break-words">
+            <p className="text-xs mt-1 text-red-600 dark:text-red-400 wrap-break-word">
               {error}
             </p>
           )}
@@ -494,7 +494,7 @@ export function LogViewerPage() {
                     : 'Connecting to log stream...')
             }
             readOnly
-            className="h-[32rem] font-mono text-sm resize-none"
+            className="h-128 font-mono text-sm resize-none"
             placeholder="Logs will appear here when streaming..."
           />
         </div>
