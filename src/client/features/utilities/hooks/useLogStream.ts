@@ -220,18 +220,22 @@ export function useLogStream(
         return next
       })
 
-      // If follow is enabled, reconnect with new options
-      if (optionsRef.current.follow) {
+      // If follow is enabled and not paused, reconnect with new options
+      if (optionsRef.current.follow && !isPaused) {
         // Clear existing logs before reconnecting to prevent duplicates
         setLogs([])
         disconnect({ resetAttempts: false })
         // Use setTimeout to ensure disconnect completes before reconnecting
-        setTimeout(() => {
+        // Track timeout so disconnect()/unmount can cancel it
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current)
+        }
+        reconnectTimeoutRef.current = setTimeout(() => {
           connect()
         }, 50)
       }
     },
-    [disconnect, connect],
+    [disconnect, connect, isPaused],
   )
 
   // Auto-connect on mount and when resuming
