@@ -1,6 +1,6 @@
 {
   "name": "pulsarr",
-  "version": "0.6.8",
+  "version": "0.7.0",
   "description": "Plex watchlist tracker and notification center that integrates with the Arr stack",
   "main": "build/server.js",
   "type": "module",
@@ -8,8 +8,8 @@
     "node": "24.11.1"
   },
   "scripts": {
-    "clean:client": "rm -rf dist/client",
-    "clean:server": "rm -rf dist",
+    "clean:client": "rimraf dist/client",
+    "clean:server": "rimraf dist",
     "build": "npm run build:server && npm run clean:client && vite build",
     "build:server": "tsc && tsc-alias",
     "dev:server": "tsx watch src/server.ts",
@@ -166,6 +166,7 @@
     "husky": "^9.1.7",
     "msw": "^2.11.5",
     "postcss": "^8.5.2",
+    "rimraf": "^6.1.0",
     "tailwindcss": "^4.1.10",
     "tsc-alias": "^1.8.15",
     "typescript": "^5.9.0",
