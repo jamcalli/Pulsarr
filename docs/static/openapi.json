@@ -1186,7 +1186,7 @@
               "default": 20,
               "type": "number",
               "minimum": 1,
-              "maximum": 1000
+              "maximum": 50000
             },
             "in": "query",
             "name": "limit",
