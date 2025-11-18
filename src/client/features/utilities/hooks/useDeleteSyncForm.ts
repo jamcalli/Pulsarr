@@ -132,7 +132,7 @@ export function useDeleteSyncForm() {
       deleteSyncRequiredTagRegex: undefined,
       scheduleTime: undefined,
       dayOfWeek: '*',
-      removedTagPrefix: 'pulsarr:removed',
+      removedTagPrefix: 'pulsarr-removed',
       removedTagMode: 'remove',
     },
   })
@@ -173,7 +173,7 @@ export function useDeleteSyncForm() {
           deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
           scheduleTime: scheduleTime || form.getValues('scheduleTime'),
           dayOfWeek: dayOfWeek,
-          removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+          removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
           removedTagMode: config.removedTagMode || 'remove',
         },
         { keepDirty: false },
@@ -297,7 +297,7 @@ export function useDeleteSyncForm() {
           deleteSyncRequiredTagRegex: updatedConfig.deleteSyncRequiredTagRegex,
           scheduleTime: data.scheduleTime,
           dayOfWeek: data.dayOfWeek,
-          removedTagPrefix: updatedConfig.removedTagPrefix || 'pulsarr:removed',
+          removedTagPrefix: updatedConfig.removedTagPrefix || 'pulsarr-removed',
           removedTagMode: updatedConfig.removedTagMode || 'remove',
         },
         { keepDirty: false },
@@ -347,7 +347,7 @@ export function useDeleteSyncForm() {
         deleteSyncRequiredTagRegex: config.deleteSyncRequiredTagRegex,
         scheduleTime: scheduleTime,
         dayOfWeek: dayOfWeek,
-        removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+        removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
         removedTagMode: config.removedTagMode || 'remove',
       })
     }

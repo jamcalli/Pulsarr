@@ -333,7 +333,7 @@ export default function DeleteSyncPage() {
                                       <strong>Tag-based:</strong> Only delete
                                       content that has the "
                                       {form.watch('removedTagPrefix') ||
-                                        'pulsarr:removed'}
+                                        'pulsarr-removed'}
                                       " tag.
                                     </li>
                                   </ul>
@@ -367,7 +367,7 @@ export default function DeleteSyncPage() {
                                 <SelectItem value="tag-based">
                                   Tag-based (
                                   {form.watch('removedTagPrefix') ||
-                                    'pulsarr:removed'}
+                                    'pulsarr-removed'}
                                   )
                                 </SelectItem>
                               </SelectContent>
@@ -437,7 +437,7 @@ export default function DeleteSyncPage() {
                     <div className="flex items-center p-2 bg-slate-700 dark:bg-slate-700 rounded-md border border-slate-700 dark:border-slate-700">
                       <Tag className="h-4 w-4 mr-2 text-white dark:text-white" />
                       <code className="text-sm font-mono text-white dark:text-white">
-                        {form.watch('removedTagPrefix') || 'pulsarr:removed'}
+                        {form.watch('removedTagPrefix') || 'pulsarr-removed'}
                       </code>
                     </div>
 
