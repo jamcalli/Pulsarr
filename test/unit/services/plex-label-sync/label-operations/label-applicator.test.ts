@@ -71,8 +71,8 @@ describe('label-applicator', () => {
       config,
       removedLabelMode: 'remove',
       removedLabelPrefix: 'pulsarr:removed',
-      tagPrefix: 'pulsarr:user',
-      removedTagPrefix: 'pulsarr:removed',
+      tagPrefix: 'pulsarr-user',
+      removedTagPrefix: 'pulsarr-removed',
     }
   })
 
@@ -287,8 +287,8 @@ describe('label-applicator', () => {
       const users = [{ user_id: 1, username: 'alice', watchlist_id: 1 }]
       const webhookTags = [
         'action',
-        'pulsarr:user:bob', // User tagging system tag
-        'pulsarr:removed:old', // Removed tag
+        'pulsarr-user-bob', // User tagging system tag
+        'pulsarr-removed-old', // Removed tag
         'thriller',
       ]
 

@@ -193,6 +193,27 @@ export interface Config {
   // Special tag for removed content
   removedTagMode: RemovedTagMode
   removedTagPrefix: string
+  // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
+  tagMigration?: {
+    radarr: Record<
+      string,
+      {
+        completed: boolean
+        migratedAt: string
+        tagsMigrated: number
+        contentUpdated: number
+      }
+    >
+    sonarr: Record<
+      string,
+      {
+        completed: boolean
+        migratedAt: string
+        tagsMigrated: number
+        contentUpdated: number
+      }
+    >
+  }
   // Plex Session Monitoring
   plexSessionMonitoring?: {
     enabled: boolean
@@ -268,5 +289,7 @@ export type RawConfig = {
             ? string
             : K extends 'plexLabelSync'
               ? string
-              : Config[K]
+              : K extends 'tagMigration'
+                ? string
+                : Config[K]
 }

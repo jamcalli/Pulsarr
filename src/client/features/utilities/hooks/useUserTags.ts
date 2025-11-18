@@ -138,8 +138,8 @@ export function useUserTags() {
       tagUsersInRadarr: false,
       cleanupOrphanedTags: false,
       removedTagMode: 'remove',
-      removedTagPrefix: 'pulsarr:removed',
-      tagPrefix: 'pulsarr:user',
+      removedTagPrefix: 'pulsarr-removed',
+      tagPrefix: 'pulsarr-user',
     },
   })
 
@@ -151,8 +151,8 @@ export function useUserTags() {
         tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
         cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
         removedTagMode: config.removedTagMode || 'remove',
-        removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed', // Note: Despite the name, this is the complete tag label, not just a prefix (kept for API consistency)
-        tagPrefix: config.tagPrefix || 'pulsarr:user',
+        removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed', // Note: Despite the name, this is the complete tag label, not just a prefix (kept for API consistency)
+        tagPrefix: config.tagPrefix || 'pulsarr-user',
       })
     }
   }, [form, config])

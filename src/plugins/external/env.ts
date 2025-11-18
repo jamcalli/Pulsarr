@@ -403,7 +403,7 @@ const schema = {
     },
     tagPrefix: {
       type: 'string',
-      default: 'pulsarr:user',
+      default: 'pulsarr-user',
     },
     removedTagMode: {
       type: 'string',
@@ -412,12 +412,15 @@ const schema = {
     },
     removedTagPrefix: {
       type: 'string',
-      default: 'pulsarr:removed',
+      default: 'pulsarr-removed',
     },
     deletionMode: {
       type: 'string',
       enum: ['watchlist', 'tag-based'],
       default: 'watchlist',
+    },
+    tagMigration: {
+      type: 'string',
     },
     plexSessionMonitoring: {
       type: 'string',
@@ -572,6 +575,13 @@ export default fp(
             'plexLabelSync',
           )
         : DEFAULT_PLEX_LABEL_SYNC,
+      tagMigration: rawConfig.tagMigration
+        ? safeJsonParse(
+            rawConfig.tagMigration as string,
+            { radarr: {}, sonarr: {} },
+            'tagMigration',
+          )
+        : undefined,
       _isReady: false,
     }
 

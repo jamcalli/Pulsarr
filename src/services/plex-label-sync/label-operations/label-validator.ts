@@ -85,18 +85,24 @@ export function isManagedLabel(
  * Checks if a tag is managed by the user tagging system or is a special removal tag
  *
  * @param tagName - The tag to check
- * @param tagPrefix - The configured tag prefix (default: 'pulsarr:user')
- * @param removedTagPrefix - The configured removed tag prefix (default: 'pulsarr:removed')
+ * @param tagPrefix - The configured tag prefix (default: 'pulsarr-user')
+ * @param removedTagPrefix - The configured removed tag prefix (default: 'pulsarr-removed')
  * @returns True if this is a user tagging system tag or special removal tag
  */
 export function isUserTaggingSystemTag(
   tagName: string,
-  tagPrefix: string = 'pulsarr:user',
-  removedTagPrefix: string = 'pulsarr:removed',
+  tagPrefix: string = 'pulsarr-user',
+  removedTagPrefix: string = 'pulsarr-removed',
 ): boolean {
+  const lowerTag = tagName.toLowerCase()
+  const lowerPrefix = tagPrefix.toLowerCase()
+  const lowerRemovedPrefix = removedTagPrefix.toLowerCase()
+
   return (
-    tagName.toLowerCase().startsWith(`${tagPrefix.toLowerCase()}:`) ||
-    tagName.toLowerCase().startsWith(removedTagPrefix.toLowerCase())
+    // Check for user tagging system tags with hyphen delimiter
+    lowerTag.startsWith(`${lowerPrefix}-`) ||
+    // Check for removed tag prefix
+    lowerTag.startsWith(lowerRemovedPrefix)
   )
 }
 

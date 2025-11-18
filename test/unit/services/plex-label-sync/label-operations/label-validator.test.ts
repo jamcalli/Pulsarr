@@ -227,24 +227,24 @@ describe('label-validator', () => {
 
   describe('isUserTaggingSystemTag', () => {
     it('should return true for user tag with default prefix', () => {
-      expect(isUserTaggingSystemTag('pulsarr:user:john')).toBe(true)
+      expect(isUserTaggingSystemTag('pulsarr-user-john')).toBe(true)
     })
 
     it('should return true for removed tag with default prefix', () => {
-      expect(isUserTaggingSystemTag('pulsarr:removed')).toBe(true)
-      expect(isUserTaggingSystemTag('pulsarr:removed-user')).toBe(true)
+      expect(isUserTaggingSystemTag('pulsarr-removed')).toBe(true)
+      expect(isUserTaggingSystemTag('pulsarr-removed-user')).toBe(true)
     })
 
     it('should return false for non-user-tagging tag', () => {
       expect(isUserTaggingSystemTag('action')).toBe(false)
-      expect(isUserTaggingSystemTag('other:user:john')).toBe(false)
+      expect(isUserTaggingSystemTag('other-user-john')).toBe(false)
     })
 
     it('should handle custom tag prefix', () => {
-      expect(isUserTaggingSystemTag('custom:user:alice', 'custom:user')).toBe(
+      expect(isUserTaggingSystemTag('custom-user-alice', 'custom-user')).toBe(
         true,
       )
-      expect(isUserTaggingSystemTag('pulsarr:user:alice', 'custom:user')).toBe(
+      expect(isUserTaggingSystemTag('pulsarr-user-alice', 'custom-user')).toBe(
         false,
       )
     })
@@ -252,23 +252,23 @@ describe('label-validator', () => {
     it('should handle custom removed tag prefix', () => {
       expect(
         isUserTaggingSystemTag(
-          'custom:deleted',
-          'pulsarr:user',
-          'custom:deleted',
+          'custom-deleted',
+          'pulsarr-user',
+          'custom-deleted',
         ),
       ).toBe(true)
       expect(
         isUserTaggingSystemTag(
-          'pulsarr:removed',
-          'pulsarr:user',
-          'custom:deleted',
+          'pulsarr-removed',
+          'pulsarr-user',
+          'custom-deleted',
         ),
       ).toBe(false)
     })
 
     it('should handle case-insensitive matching', () => {
-      expect(isUserTaggingSystemTag('PULSARR:USER:JOHN')).toBe(true)
-      expect(isUserTaggingSystemTag('PULSARR:REMOVED')).toBe(true)
+      expect(isUserTaggingSystemTag('PULSARR-USER-JOHN')).toBe(true)
+      expect(isUserTaggingSystemTag('PULSARR-REMOVED')).toBe(true)
     })
 
     it('should return false for empty tag', () => {
@@ -276,36 +276,36 @@ describe('label-validator', () => {
     })
 
     it('should handle tags with additional segments', () => {
-      expect(isUserTaggingSystemTag('pulsarr:user:john:admin')).toBe(true)
-      expect(isUserTaggingSystemTag('pulsarr:removed:by-admin')).toBe(true)
+      expect(isUserTaggingSystemTag('pulsarr-user-john-admin')).toBe(true)
+      expect(isUserTaggingSystemTag('pulsarr-removed-by-admin')).toBe(true)
     })
 
     it('should not match partial prefixes', () => {
-      expect(isUserTaggingSystemTag('pulsarr:username:john')).toBe(false)
-      expect(isUserTaggingSystemTag('pulsarr:users:john')).toBe(false)
-      expect(isUserTaggingSystemTag('pulsarr:remove')).toBe(false)
+      expect(isUserTaggingSystemTag('pulsarr-username-john')).toBe(false)
+      expect(isUserTaggingSystemTag('pulsarr-users-john')).toBe(false)
+      expect(isUserTaggingSystemTag('pulsarr-remove')).toBe(false)
     })
 
     it('should handle multi-instance scenarios with custom prefixes', () => {
       expect(
         isUserTaggingSystemTag(
-          'pulsarr1:user:john',
-          'pulsarr1:user',
-          'pulsarr1:removed',
+          'pulsarr1-user-john',
+          'pulsarr1-user',
+          'pulsarr1-removed',
         ),
       ).toBe(true)
       expect(
         isUserTaggingSystemTag(
-          'pulsarr1:removed',
-          'pulsarr1:user',
-          'pulsarr1:removed',
+          'pulsarr1-removed',
+          'pulsarr1-user',
+          'pulsarr1-removed',
         ),
       ).toBe(true)
       expect(
         isUserTaggingSystemTag(
-          'pulsarr2:user:john',
-          'pulsarr1:user',
-          'pulsarr1:removed',
+          'pulsarr2-user-john',
+          'pulsarr1-user',
+          'pulsarr1-removed',
         ),
       ).toBe(false)
     })
@@ -338,11 +338,11 @@ describe('label-validator', () => {
 
   describe('filterAndFormatTagsAsLabels', () => {
     it('should filter out user tagging system tags and format remaining as labels', () => {
-      const tags = ['genre', 'pulsarr:user:john', 'quality', 'pulsarr:removed']
+      const tags = ['genre', 'pulsarr-user-john', 'quality', 'pulsarr-removed']
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'pulsarr:user',
-        'pulsarr:removed',
+        'pulsarr-user',
+        'pulsarr-removed',
         'pulsarr',
       )
       expect(result).toEqual(['pulsarr:genre', 'pulsarr:quality'])
@@ -351,19 +351,19 @@ describe('label-validator', () => {
     it('should handle empty array', () => {
       const result = filterAndFormatTagsAsLabels(
         [],
-        'pulsarr:user',
-        'pulsarr:removed',
+        'pulsarr-user',
+        'pulsarr-removed',
         'pulsarr',
       )
       expect(result).toEqual([])
     })
 
     it('should return empty array when all tags are system tags', () => {
-      const tags = ['pulsarr:user:john', 'pulsarr:user:jane', 'pulsarr:removed']
+      const tags = ['pulsarr-user-john', 'pulsarr-user-jane', 'pulsarr-removed']
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'pulsarr:user',
-        'pulsarr:removed',
+        'pulsarr-user',
+        'pulsarr-removed',
         'pulsarr',
       )
       expect(result).toEqual([])
@@ -373,8 +373,8 @@ describe('label-validator', () => {
       const tags = ['action', 'thriller', '4k']
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'pulsarr:user',
-        'pulsarr:removed',
+        'pulsarr-user',
+        'pulsarr-removed',
         'pulsarr',
       )
       expect(result).toEqual([
@@ -385,22 +385,22 @@ describe('label-validator', () => {
     })
 
     it('should handle case-insensitive matching for system tags', () => {
-      const tags = ['genre', 'PULSARR:USER:JOHN', 'quality', 'Pulsarr:Removed']
+      const tags = ['genre', 'PULSARR-USER-JOHN', 'quality', 'Pulsarr-Removed']
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'pulsarr:user',
-        'pulsarr:removed',
+        'pulsarr-user',
+        'pulsarr-removed',
         'pulsarr',
       )
       expect(result).toEqual(['pulsarr:genre', 'pulsarr:quality'])
     })
 
     it('should work with custom prefixes', () => {
-      const tags = ['genre', 'custom:user:alice', 'quality', 'custom:deleted']
+      const tags = ['genre', 'custom-user-alice', 'quality', 'custom-deleted']
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'custom:user',
-        'custom:deleted',
+        'custom-user',
+        'custom-deleted',
         'myapp',
       )
       expect(result).toEqual(['myapp:genre', 'myapp:quality'])
@@ -410,8 +410,8 @@ describe('label-validator', () => {
       const tags = ['Action-Movie', 'Sci_Fi', 'genre:thriller']
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'pulsarr:user',
-        'pulsarr:removed',
+        'pulsarr-user',
+        'pulsarr-removed',
         'pulsarr',
       )
       expect(result).toEqual([
@@ -424,16 +424,16 @@ describe('label-validator', () => {
     it('should handle multiple user tags mixed with regular tags', () => {
       const tags = [
         'genre',
-        'pulsarr:user:john',
+        'pulsarr-user-john',
         'quality',
-        'pulsarr:user:jane',
+        'pulsarr-user-jane',
         'collection',
-        'pulsarr:removed:old',
+        'pulsarr-removed-old',
       ]
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'pulsarr:user',
-        'pulsarr:removed',
+        'pulsarr-user',
+        'pulsarr-removed',
         'pulsarr',
       )
       expect(result).toEqual([
@@ -446,19 +446,19 @@ describe('label-validator', () => {
     it('should not filter tags that start similarly but are not system tags', () => {
       const tags = [
         'users',
-        'pulsarr:username',
+        'pulsarr-username',
         'removed-items',
-        'pulsarr:user:john',
+        'pulsarr-user-john',
       ]
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'pulsarr:user',
-        'pulsarr:removed',
+        'pulsarr-user',
+        'pulsarr-removed',
         'pulsarr',
       )
       expect(result).toEqual([
         'pulsarr:users',
-        'pulsarr:pulsarr:username',
+        'pulsarr:pulsarr-username',
         'pulsarr:removed-items',
       ])
     })
@@ -466,36 +466,36 @@ describe('label-validator', () => {
     it('should handle multi-instance scenarios', () => {
       const tags = [
         'genre',
-        'pulsarr1:user:john',
+        'pulsarr1-user-john',
         'quality',
-        'pulsarr1:removed',
-        'pulsarr2:user:jane',
+        'pulsarr1-removed',
+        'pulsarr2-user-jane',
       ]
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'pulsarr1:user',
-        'pulsarr1:removed',
+        'pulsarr1-user',
+        'pulsarr1-removed',
         'pulsarr1',
       )
-      // pulsarr2:user:jane should NOT be filtered since we're using pulsarr1 prefix
+      // pulsarr2-user-jane should NOT be filtered since we're using pulsarr1 prefix
       expect(result).toEqual([
         'pulsarr1:genre',
         'pulsarr1:quality',
-        'pulsarr1:pulsarr2:user:jane',
+        'pulsarr1:pulsarr2-user-jane',
       ])
     })
 
     it('should handle tags with additional segments after system prefix', () => {
       const tags = [
         'genre',
-        'pulsarr:user:john:admin',
+        'pulsarr-user-john-admin',
         'quality',
-        'pulsarr:removed:by-system',
+        'pulsarr-removed-by-system',
       ]
       const result = filterAndFormatTagsAsLabels(
         tags,
-        'pulsarr:user',
-        'pulsarr:removed',
+        'pulsarr-user',
+        'pulsarr-removed',
         'pulsarr',
       )
       expect(result).toEqual(['pulsarr:genre', 'pulsarr:quality'])

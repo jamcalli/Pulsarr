@@ -706,7 +706,7 @@ export function UserTagsPage() {
                           <FormControl>
                             <Input
                               {...field}
-                              placeholder="pulsarr:removed"
+                              placeholder="pulsarr-removed"
                               disabled={!canEditTagSettings}
                             />
                           </FormControl>
@@ -726,7 +726,7 @@ export function UserTagsPage() {
                             Tag format:{' '}
                             <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
                               {form.watch('removedTagPrefix') ||
-                                'pulsarr:removed'}
+                                'pulsarr-removed'}
                             </code>
                           </p>
                         </FormItem>
@@ -755,8 +755,8 @@ export function UserTagsPage() {
                                     The final tag format will be:
                                   </p>
                                   <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
-                                    {form.watch('tagPrefix') || 'pulsarr:user'}
-                                    :username
+                                    {form.watch('tagPrefix') || 'pulsarr-user'}
+                                    -username
                                   </code>
 
                                   <p className="text-xs">
@@ -765,11 +765,11 @@ export function UserTagsPage() {
                                     </span>
                                     <br />• With default prefix:{' '}
                                     <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                                      pulsarr:user:john_doe
+                                      pulsarr-user-john_doe
                                     </code>
                                     <br />• With "user" prefix:{' '}
                                     <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                                      user:john_doe
+                                      user-john_doe
                                     </code>
                                   </p>
 
@@ -787,7 +787,7 @@ export function UserTagsPage() {
                         <FormControl>
                           <Input
                             {...field}
-                            placeholder="pulsarr:user"
+                            placeholder="pulsarr-user"
                             disabled={!canEditTagSettings}
                           />
                         </FormControl>
@@ -804,8 +804,8 @@ export function UserTagsPage() {
                         <p className="text-xs text-gray-500 mt-1">
                           Final format:{' '}
                           <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
-                            {form.watch('tagPrefix') || 'pulsarr:user'}
-                            :username
+                            {form.watch('tagPrefix') || 'pulsarr-user'}
+                            -username
                           </code>
                         </p>
                         <FormMessage />
