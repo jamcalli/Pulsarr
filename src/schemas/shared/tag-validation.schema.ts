@@ -13,11 +13,11 @@ export const TAG_LABEL_REGEX = /^[a-z0-9-]+$/
 export const TagLabelSchema = z
   .string()
   .trim()
-  .min(1, { message: 'Tag label is required' })
+  .min(1, { error: 'Tag label is required' })
   .regex(TAG_LABEL_REGEX, {
-    message:
+    error:
       'Tag must contain only lowercase letters (a-z), numbers (0-9), and hyphens (-)',
   })
   .refine((val) => !val.startsWith('-') && !val.endsWith('-'), {
-    message: 'Tag cannot start or end with a hyphen',
+    error: 'Tag cannot start or end with a hyphen',
   })
