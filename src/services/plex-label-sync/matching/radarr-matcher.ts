@@ -9,11 +9,41 @@ import type { PlexServerService } from '@services/plex-server.service.js'
 import { normalizePath } from '@utils/path.js'
 import type { FastifyBaseLogger } from 'fastify'
 
+// Cache for file path-based lookups (built once per batch sync)
+let radarrFilePathMapCache: Map<string, RadarrMovieWithTags> | null = null
+
 /**
- * Matches a Plex movie to a Radarr movie based on file paths
+ * Builds optimized lookup map for Radarr movie matching.
+ * Called once at the start of batch sync to avoid O(n*m) complexity.
+ *
+ * @param radarrMovies - Array of Radarr movies with tags
+ */
+export function buildRadarrMatchingCache(
+  radarrMovies: RadarrMovieWithTags[],
+): void {
+  radarrFilePathMapCache = new Map()
+  for (const radarrData of radarrMovies) {
+    const movieFilePath = radarrData.movie.movieFile?.path
+    if (movieFilePath) {
+      const normalizedPath = normalizePath(movieFilePath)
+      radarrFilePathMapCache.set(normalizedPath, radarrData)
+    }
+  }
+}
+
+/**
+ * Clears the Radarr matching cache. Called at the end of batch sync.
+ */
+export function clearRadarrMatchingCache(): void {
+  radarrFilePathMapCache = null
+}
+
+/**
+ * Matches a Plex movie to a Radarr movie based on file paths.
+ * Uses optimized Map-based lookups for O(1) performance.
  *
  * @param plexItem - The Plex movie item with ratingKey and title
- * @param radarrMovies - Array of Radarr movies with tags
+ * @param radarrMovies - Array of Radarr movies with tags (only used if cache not built)
  * @param plexServer - Plex server service to fetch metadata
  * @param logger - Logger instance
  * @returns Matched Radarr movie data or null
@@ -42,7 +72,7 @@ export async function matchPlexMovieToRadarr(
     for (const media of metadata.Media) {
       for (const part of media.Part || []) {
         if (part.file) {
-          plexFilePaths.push(part.file)
+          plexFilePaths.push(normalizePath(part.file))
         }
       }
     }
@@ -57,29 +87,27 @@ export async function matchPlexMovieToRadarr(
       'Matching Plex movie to Radarr',
     )
 
-    // Try to match by exact file path
-    for (const radarrData of radarrMovies) {
-      const movieFilePath = radarrData.movie.movieFile?.path
-      if (!movieFilePath) {
-        continue
-      }
+    if (!plexFilePaths.length) {
+      return null
+    }
 
-      // Normalize paths for cross-platform compatibility
-
-      if (
-        plexFilePaths.map(normalizePath).includes(normalizePath(movieFilePath))
-      ) {
-        logger.debug(
-          {
-            plexTitle: plexItem.title,
-            radarrTitle: radarrData.movie.title,
-            filePath: movieFilePath,
-            instanceName: radarrData.instanceName,
-            tags: radarrData.tags,
-          },
-          'Found exact file path match',
-        )
-        return radarrData
+    // Try to match by exact file path using cache (O(1) lookup per path)
+    if (radarrFilePathMapCache) {
+      for (const plexFilePath of plexFilePaths) {
+        const match = radarrFilePathMapCache.get(plexFilePath)
+        if (match) {
+          logger.debug(
+            {
+              plexTitle: plexItem.title,
+              radarrTitle: match.movie.title,
+              filePath: plexFilePath,
+              instanceName: match.instanceName,
+              tags: match.tags,
+            },
+            'Found exact file path match',
+          )
+          return match
+        }
       }
     }
 

@@ -131,6 +131,8 @@ export async function reconcileLabelsForContent(
 
     // Process each Plex item (handles multiple versions of same content)
     const appliedRemovedLabels = new Map<string, string>() // ratingKey -> removedLabel
+    const failures: string[] = []
+
     for (const plexItem of plexItems) {
       const result = await reconcileLabelsForSingleItem(
         plexItem.ratingKey,
@@ -150,6 +152,7 @@ export async function reconcileLabelsForContent(
       }
 
       if (!result.success) {
+        failures.push(plexItem.ratingKey)
         deps.logger.warn(
           {
             ratingKey: plexItem.ratingKey,
@@ -161,16 +164,29 @@ export async function reconcileLabelsForContent(
       }
     }
 
-    // Update tracking table to match final state (user + tag labels + removed labels)
-    await updateTrackingForContent(
-      content,
-      plexItems,
-      allDesiredLabels,
-      desiredUserLabels,
-      desiredTagLabels,
-      appliedRemovedLabels,
-      deps,
-    )
+    // Only update tracking table if all items succeeded
+    // This ensures DB tracking stays in sync with actual Plex state
+    if (failures.length === 0) {
+      await updateTrackingForContent(
+        content,
+        plexItems,
+        allDesiredLabels,
+        desiredUserLabels,
+        desiredTagLabels,
+        appliedRemovedLabels,
+        deps,
+      )
+    } else {
+      deps.logger.warn(
+        {
+          primaryGuid: content.primaryGuid,
+          title: content.title,
+          failedRatingKeys: failures,
+          failureCount: failures.length,
+        },
+        'Skipping tracking update due to reconciliation failures',
+      )
+    }
 
     deps.logger.debug(
       {
@@ -178,12 +194,13 @@ export async function reconcileLabelsForContent(
         title: content.title,
         labelsAdded: totalLabelsAdded,
         labelsRemoved: totalLabelsRemoved,
+        success: failures.length === 0,
       },
       'Completed label reconciliation for content',
     )
 
     return {
-      success: true,
+      success: failures.length === 0,
       labelsAdded: totalLabelsAdded,
       labelsRemoved: totalLabelsRemoved,
     }

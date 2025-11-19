@@ -1,8 +1,12 @@
 import type { SonarrSeriesWithTags } from '@root/types/plex-label-sync.types.js'
 import type { PlexMetadata } from '@root/types/plex-server.types.js'
-import { matchPlexSeriesToSonarr } from '@services/plex-label-sync/matching/sonarr-matcher.js'
+import {
+  buildSonarrMatchingCache,
+  clearSonarrMatchingCache,
+  matchPlexSeriesToSonarr,
+} from '@services/plex-label-sync/matching/sonarr-matcher.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
 // Helper to create minimal PlexMetadata with Location for sonarr matching
@@ -32,198 +36,11 @@ describe('sonarr-matcher', () => {
     } as unknown as PlexServerService
   })
 
+  afterEach(() => {
+    clearSonarrMatchingCache()
+  })
+
   describe('matchPlexSeriesToSonarr', () => {
-    describe('root folder matching', () => {
-      it('should match Plex series to Sonarr by root folder', async () => {
-        const plexItem = {
-          ratingKey: '123',
-          title: 'Test Series',
-        }
-
-        const sonarrSeries: SonarrSeriesWithTags[] = [
-          {
-            instanceId: 1,
-            instanceName: 'sonarr-main',
-            series: {
-              id: 1,
-              title: 'Test Series',
-              path: '/tv/Test Series',
-            },
-            tags: ['drama'],
-            rootFolder: '/tv',
-          },
-        ]
-
-        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-          createMockPlexMetadataWithLocation(['/tv/Test Series/Season 1']),
-        )
-
-        const result = await matchPlexSeriesToSonarr(
-          plexItem,
-          sonarrSeries,
-          mockPlexServer,
-          mockLogger,
-        )
-
-        // Function doesn't return rootFolder
-        expect(result).toEqual({
-          instanceId: 1,
-          instanceName: 'sonarr-main',
-          series: sonarrSeries[0].series,
-          tags: ['drama'],
-        })
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.objectContaining({
-            plexTitle: 'Test Series',
-            sonarrTitle: 'Test Series',
-            plexLocation: '/tv/Test Series/Season 1',
-            sonarrRootFolder: '/tv',
-          }),
-          'Found root folder match',
-        )
-      })
-
-      it('should match with normalized paths', async () => {
-        const plexItem = {
-          ratingKey: '123',
-          title: 'Test Series',
-        }
-
-        const sonarrSeries: SonarrSeriesWithTags[] = [
-          {
-            instanceId: 1,
-            instanceName: 'sonarr-main',
-            series: {
-              id: 1,
-              title: 'Test Series',
-              path: '/tv/Test Series',
-            },
-            tags: [],
-            rootFolder: '/tv',
-          },
-        ]
-
-        // Plex returns Windows-style path
-        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-          createMockPlexMetadataWithLocation(['\\tv\\Test Series\\Season 1']),
-        )
-
-        const result = await matchPlexSeriesToSonarr(
-          plexItem,
-          sonarrSeries,
-          mockPlexServer,
-          mockLogger,
-        )
-
-        expect(result).toEqual({
-          instanceId: 1,
-          instanceName: 'sonarr-main',
-          series: sonarrSeries[0].series,
-          tags: [],
-        })
-      })
-
-      it('should return first matching series when multiple root folders match', async () => {
-        const plexItem = {
-          ratingKey: '123',
-          title: 'Test Series',
-        }
-
-        const sonarrSeries: SonarrSeriesWithTags[] = [
-          {
-            instanceId: 1,
-            instanceName: 'sonarr-1',
-            series: {
-              id: 1,
-              title: 'Test Series',
-              path: '/tv/Test Series',
-            },
-            tags: ['sonarr1'],
-            rootFolder: '/tv',
-          },
-          {
-            instanceId: 2,
-            instanceName: 'sonarr-2',
-            series: {
-              id: 2,
-              title: 'Test Series',
-              path: '/tv/Test Series',
-            },
-            tags: ['sonarr2'],
-            rootFolder: '/tv',
-          },
-        ]
-
-        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-          createMockPlexMetadataWithLocation(['/tv/Test Series/Season 1']),
-        )
-
-        const result = await matchPlexSeriesToSonarr(
-          plexItem,
-          sonarrSeries,
-          mockPlexServer,
-          mockLogger,
-        )
-
-        expect(result).toEqual({
-          instanceId: 1,
-          instanceName: 'sonarr-1',
-          series: sonarrSeries[0].series,
-          tags: ['sonarr1'],
-        })
-      })
-
-      it('should NOT match when plex path is in similarly named but different root folder', async () => {
-        const plexItem = {
-          ratingKey: '123',
-          title: 'Breaking Bad',
-        }
-
-        const sonarrSeries: SonarrSeriesWithTags[] = [
-          {
-            instanceId: 1,
-            instanceName: 'sonarr-anime',
-            series: {
-              id: 1,
-              title: 'Naruto',
-              path: '/media/anime/Naruto',
-            },
-            tags: ['anime'],
-            rootFolder: '/media/anime',
-          },
-          {
-            instanceId: 2,
-            instanceName: 'sonarr-anime2',
-            series: {
-              id: 2,
-              title: 'Breaking Bad',
-              path: '/media/anime2/Breaking Bad',
-            },
-            tags: ['drama'],
-            rootFolder: '/media/anime2',
-          },
-        ]
-
-        // Plex location is in /media/anime2, not /media/anime
-        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-          createMockPlexMetadataWithLocation([
-            '/media/anime2/Breaking Bad/Season 1',
-          ]),
-        )
-
-        const result = await matchPlexSeriesToSonarr(
-          plexItem,
-          sonarrSeries,
-          mockPlexServer,
-          mockLogger,
-        )
-
-        // Should match the correct instance (anime2), not the false positive (anime)
-        expect(result?.instanceName).toBe('sonarr-anime2')
-        expect(result?.tags).toEqual(['drama'])
-      })
-    })
-
     describe('exact folder path matching', () => {
       it('should match Plex series to Sonarr by exact folder path', async () => {
         const plexItem = {
@@ -244,6 +61,8 @@ describe('sonarr-matcher', () => {
             rootFolder: undefined,
           },
         ]
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/tv/Test Series']),
@@ -292,6 +111,8 @@ describe('sonarr-matcher', () => {
             rootFolder: undefined,
           },
         ]
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['\\tv\\Test Series']),
@@ -343,6 +164,8 @@ describe('sonarr-matcher', () => {
           },
         ]
 
+        buildSonarrMatchingCache(sonarrSeries)
+
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/tv/Test Series']),
         )
@@ -383,6 +206,8 @@ describe('sonarr-matcher', () => {
             rootFolder: undefined,
           },
         ]
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/plex-tv/Test Series']),
@@ -431,6 +256,8 @@ describe('sonarr-matcher', () => {
             rootFolder: undefined,
           },
         ]
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/plex/test series']),
@@ -481,6 +308,8 @@ describe('sonarr-matcher', () => {
             rootFolder: undefined,
           },
         ]
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/plex/Test Series']),
@@ -550,6 +379,8 @@ describe('sonarr-matcher', () => {
           },
         ]
 
+        buildSonarrMatchingCache(sonarrSeries)
+
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation([]),
         )
@@ -562,13 +393,15 @@ describe('sonarr-matcher', () => {
         )
 
         expect(result).toBeNull()
+        // When there's no location, we return early after the initial matching log
         expect(mockLogger.debug).toHaveBeenCalledWith(
           expect.objectContaining({
             ratingKey: '123',
             title: 'Test Series',
             plexLocation: undefined,
+            sonarrSeriesCount: 1,
           }),
-          'No Sonarr match found for Plex series',
+          'Matching Plex series to Sonarr',
         )
       })
 
@@ -591,6 +424,8 @@ describe('sonarr-matcher', () => {
             rootFolder: '/tv',
           },
         ]
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation([]),
@@ -626,6 +461,8 @@ describe('sonarr-matcher', () => {
           },
         ]
 
+        buildSonarrMatchingCache(sonarrSeries)
+
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/other/Test Series']),
         )
@@ -655,6 +492,8 @@ describe('sonarr-matcher', () => {
         }
 
         const sonarrSeries: SonarrSeriesWithTags[] = []
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/tv/Test Series']),
@@ -720,6 +559,8 @@ describe('sonarr-matcher', () => {
           },
         ]
 
+        buildSonarrMatchingCache(sonarrSeries)
+
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/tv/Test Series']),
         )
@@ -761,6 +602,8 @@ describe('sonarr-matcher', () => {
             rootFolder: '/tv',
           },
         ]
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/other/Test Series']),
@@ -809,6 +652,8 @@ describe('sonarr-matcher', () => {
           },
         ]
 
+        buildSonarrMatchingCache(sonarrSeries)
+
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/other/Plex Series Name']),
         )
@@ -838,7 +683,7 @@ describe('sonarr-matcher', () => {
     })
 
     describe('matching priority', () => {
-      it('should prefer root folder match over exact path match', async () => {
+      it('should match by exact path', async () => {
         const plexItem = {
           ratingKey: '123',
           title: 'Test Series',
@@ -847,60 +692,13 @@ describe('sonarr-matcher', () => {
         const sonarrSeries: SonarrSeriesWithTags[] = [
           {
             instanceId: 1,
-            instanceName: 'sonarr-root',
-            series: {
-              id: 1,
-              title: 'Test Series',
-              path: '/tv/Test Series',
-            },
-            tags: ['root-match'],
-            rootFolder: '/tv',
-          },
-          {
-            instanceId: 2,
-            instanceName: 'sonarr-exact',
-            series: {
-              id: 2,
-              title: 'Test Series',
-              path: '/tv/Test Series',
-            },
-            tags: ['exact-match'],
-            rootFolder: undefined,
-          },
-        ]
-
-        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
-          createMockPlexMetadataWithLocation(['/tv/Test Series']),
-        )
-
-        const result = await matchPlexSeriesToSonarr(
-          plexItem,
-          sonarrSeries,
-          mockPlexServer,
-          mockLogger,
-        )
-
-        // Should return the root folder match (first one)
-        expect(result?.instanceName).toBe('sonarr-root')
-        expect(result?.tags).toEqual(['root-match'])
-      })
-
-      it('should fallback to exact path when root folder does not match', async () => {
-        const plexItem = {
-          ratingKey: '123',
-          title: 'Test Series',
-        }
-
-        const sonarrSeries: SonarrSeriesWithTags[] = [
-          {
-            instanceId: 1,
-            instanceName: 'sonarr-root',
+            instanceName: 'sonarr-other',
             series: {
               id: 1,
               title: 'Test Series',
               path: '/other/Test Series',
             },
-            tags: ['root-match'],
+            tags: ['other-match'],
             rootFolder: '/other',
           },
           {
@@ -915,6 +713,8 @@ describe('sonarr-matcher', () => {
             rootFolder: undefined,
           },
         ]
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/tv/Test Series']),
@@ -962,6 +762,8 @@ describe('sonarr-matcher', () => {
             rootFolder: undefined,
           },
         ]
+
+        buildSonarrMatchingCache(sonarrSeries)
 
         vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
           createMockPlexMetadataWithLocation(['/plex/Test Series']),

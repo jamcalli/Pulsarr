@@ -187,9 +187,11 @@ export async function seedWatchlist(knex: Knex): Promise<void> {
   await knex('watchlist_items').insert(SEED_WATCHLIST_ITEMS)
 
   // Update sqlite_sequence to ensure future auto-increments start after our seed data
-  const maxId = Math.max(...SEED_WATCHLIST_ITEMS.map((item) => item.id))
-  await knex.raw(
-    `INSERT OR REPLACE INTO sqlite_sequence (name, seq) VALUES ('watchlist_items', ?)`,
-    [maxId],
-  )
+  if (SEED_WATCHLIST_ITEMS.length > 0) {
+    const maxId = Math.max(...SEED_WATCHLIST_ITEMS.map((item) => item.id))
+    await knex.raw(
+      `INSERT OR REPLACE INTO sqlite_sequence (name, seq) VALUES ('watchlist_items', ?)`,
+      [maxId],
+    )
+  }
 }

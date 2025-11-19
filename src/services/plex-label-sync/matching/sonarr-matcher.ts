@@ -9,11 +9,54 @@ import type { PlexServerService } from '@services/plex-server.service.js'
 import { getPathBasename, normalizePath } from '@utils/path.js'
 import type { FastifyBaseLogger } from 'fastify'
 
+// Cache for path-based lookups (built once per batch sync)
+let sonarrPathMapCache: Map<string, SonarrSeriesWithTags> | null = null
+let sonarrFolderNameMapCache: Map<string, SonarrSeriesWithTags> | null = null
+
 /**
- * Matches a Plex series to a Sonarr series based on folder paths
+ * Builds optimized lookup maps for Sonarr series matching.
+ * Called once at the start of batch sync to avoid O(n*m) complexity.
+ *
+ * @param sonarrSeries - Array of Sonarr series with tags
+ */
+export function buildSonarrMatchingCache(
+  sonarrSeries: SonarrSeriesWithTags[],
+): void {
+  // Build exact path map
+  sonarrPathMapCache = new Map()
+  for (const sonarrData of sonarrSeries) {
+    if (sonarrData.series.path) {
+      const normalizedPath = normalizePath(sonarrData.series.path)
+      sonarrPathMapCache.set(normalizedPath, sonarrData)
+    }
+  }
+
+  // Build folder name map
+  sonarrFolderNameMapCache = new Map()
+  for (const sonarrData of sonarrSeries) {
+    if (sonarrData.series.path) {
+      const folderName = getPathBasename(sonarrData.series.path).toLowerCase()
+      if (folderName) {
+        sonarrFolderNameMapCache.set(folderName, sonarrData)
+      }
+    }
+  }
+}
+
+/**
+ * Clears the Sonarr matching cache. Called at the end of batch sync.
+ */
+export function clearSonarrMatchingCache(): void {
+  sonarrPathMapCache = null
+  sonarrFolderNameMapCache = null
+}
+
+/**
+ * Matches a Plex series to a Sonarr series based on folder paths.
+ * Uses optimized Map-based lookups for O(1) performance.
  *
  * @param plexItem - The Plex series item with ratingKey and title
- * @param sonarrSeries - Array of Sonarr series with tags
+ * @param sonarrSeries - Array of Sonarr series with tags (only used if cache not built)
  * @param plexServer - Plex server service to fetch metadata
  * @param logger - Logger instance
  * @returns Matched Sonarr series data or null
@@ -52,95 +95,58 @@ export async function matchPlexSeriesToSonarr(
       'Matching Plex series to Sonarr',
     )
 
-    // Try to match by root folder
-    if (normalizedPlexLocation) {
-      for (const sonarrData of sonarrSeries) {
-        if (sonarrData.rootFolder) {
-          const normalizedRoot = normalizePath(sonarrData.rootFolder)
-          const rootWithSep = normalizedRoot.endsWith('/')
-            ? normalizedRoot
-            : `${normalizedRoot}/`
+    if (!normalizedPlexLocation) {
+      return null
+    }
 
-          if (
-            normalizedPlexLocation === normalizedRoot ||
-            normalizedPlexLocation.startsWith(rootWithSep)
-          ) {
-            logger.debug(
-              {
-                plexTitle: plexItem.title,
-                sonarrTitle: sonarrData.series.title,
-                plexLocation,
-                sonarrRootFolder: sonarrData.rootFolder,
-                instanceName: sonarrData.instanceName,
-                tags: sonarrData.tags,
-              },
-              'Found root folder match',
-            )
-            return {
-              instanceId: sonarrData.instanceId,
-              instanceName: sonarrData.instanceName,
-              series: sonarrData.series,
-              tags: sonarrData.tags,
-            }
-          }
+    // Try exact path match using cache (O(1) lookup)
+    if (sonarrPathMapCache) {
+      const match = sonarrPathMapCache.get(normalizedPlexLocation)
+      if (match) {
+        logger.debug(
+          {
+            plexTitle: plexItem.title,
+            sonarrTitle: match.series.title,
+            plexLocation,
+            sonarrSeriesPath: match.series.path,
+            instanceName: match.instanceName,
+            tags: match.tags,
+          },
+          'Found exact folder path match',
+        )
+        return {
+          instanceId: match.instanceId,
+          instanceName: match.instanceName,
+          series: match.series,
+          tags: match.tags,
         }
       }
     }
 
-    // Try to match by exact folder path
-    if (normalizedPlexLocation) {
-      for (const sonarrData of sonarrSeries) {
-        if (
-          normalizedPlexLocation === normalizePath(sonarrData.series.path || '')
-        ) {
+    // Try folder name match using cache (O(1) lookup)
+    if (sonarrFolderNameMapCache) {
+      const plexFolderName = getPathBasename(
+        normalizedPlexLocation,
+      ).toLowerCase()
+      if (plexFolderName) {
+        const match = sonarrFolderNameMapCache.get(plexFolderName)
+        if (match) {
           logger.debug(
             {
               plexTitle: plexItem.title,
-              sonarrTitle: sonarrData.series.title,
+              sonarrTitle: match.series.title,
               plexLocation,
-              sonarrSeriesPath: sonarrData.series.path,
-              instanceName: sonarrData.instanceName,
-              tags: sonarrData.tags,
-            },
-            'Found exact folder path match',
-          )
-          return {
-            instanceId: sonarrData.instanceId,
-            instanceName: sonarrData.instanceName,
-            series: sonarrData.series,
-            tags: sonarrData.tags,
-          }
-        }
-      }
-    }
-
-    // Try to match by folder name
-    if (normalizedPlexLocation) {
-      for (const sonarrData of sonarrSeries) {
-        const sonarrFolderName = getPathBasename(
-          sonarrData.series.path || '',
-        ).toLowerCase()
-        const plexFolderName = getPathBasename(
-          normalizedPlexLocation,
-        ).toLowerCase()
-
-        if (sonarrFolderName && plexFolderName === sonarrFolderName) {
-          logger.debug(
-            {
-              plexTitle: plexItem.title,
-              sonarrTitle: sonarrData.series.title,
-              plexLocation,
-              sonarrFolderName,
-              instanceName: sonarrData.instanceName,
-              tags: sonarrData.tags,
+              sonarrFolderName: plexFolderName,
+              instanceName: match.instanceName,
+              tags: match.tags,
             },
             'Found folder name match',
           )
           return {
-            instanceId: sonarrData.instanceId,
-            instanceName: sonarrData.instanceName,
-            series: sonarrData.series,
-            tags: sonarrData.tags,
+            instanceId: match.instanceId,
+            instanceName: match.instanceName,
+            series: match.series,
+            tags: match.tags,
           }
         }
       }

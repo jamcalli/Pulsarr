@@ -49,6 +49,38 @@ describe('label-cleaner', () => {
       removeOrphanedTrackingBulk: vi.fn(),
     } as unknown as DatabaseService
 
+    // Mock getAllUsers to return test users (needed for label-cleaner)
+    vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      {
+        id: 1,
+        name: 'alice',
+        can_sync: true,
+        discord_id: null,
+        notify_discord: false,
+        notify_apprise: false,
+        apprise: null,
+        alias: null,
+        notify_tautulli: false,
+        tautulli_notifier_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        name: 'bob',
+        can_sync: true,
+        discord_id: null,
+        notify_discord: false,
+        notify_apprise: false,
+        apprise: null,
+        alias: null,
+        notify_tautulli: false,
+        tautulli_notifier_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ])
+
     mockRadarrManager = {
       getAllInstances: vi.fn(),
       getRadarrService: vi.fn(),
@@ -299,6 +331,185 @@ describe('label-cleaner', () => {
         )
       })
 
+      it('should preserve tag labels when user removes content but other users still have it', async () => {
+        vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+          {
+            id: 1,
+            name: 'alice',
+            can_sync: true,
+            discord_id: null,
+            notify_discord: false,
+            notify_apprise: false,
+            apprise: null,
+            alias: null,
+            notify_tautulli: false,
+            tautulli_notifier_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: 2,
+            name: 'bob',
+            can_sync: true,
+            discord_id: null,
+            notify_discord: false,
+            notify_apprise: false,
+            apprise: null,
+            alias: null,
+            notify_tautulli: false,
+            tautulli_notifier_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+
+        const watchlistItems = [
+          {
+            id: 1,
+            title: 'Test Movie',
+            key: 'test-key-1',
+            user_id: 1,
+            guids: ['imdb:tt0111161'],
+            contentType: 'movie' as const,
+          },
+        ]
+
+        vi.mocked(mockDb.getWatchlistItemById).mockResolvedValue({
+          user_id: 1,
+          guids: ['imdb:tt0111161'],
+          type: 'movie',
+          title: 'Test Movie',
+          key: 'test-key-1',
+          status: 'grabbed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+
+        // Both users have the content with tag labels
+        vi.mocked(mockDb.getTrackedLabelsForContent).mockResolvedValue([
+          {
+            id: 1,
+            content_guids: ['imdb:tt0111161'],
+            content_type: 'movie',
+            user_id: 1,
+            plex_rating_key: '12345',
+            labels_applied: [
+              'pulsarr:alice',
+              'pulsarr:action',
+              'pulsarr:thriller',
+            ],
+            synced_at: new Date().toISOString(),
+          },
+          {
+            id: 2,
+            content_guids: ['imdb:tt0111161'],
+            content_type: 'movie',
+            user_id: 2,
+            plex_rating_key: '12345',
+            labels_applied: [
+              'pulsarr:bob',
+              'pulsarr:action',
+              'pulsarr:thriller',
+            ],
+            synced_at: new Date().toISOString(),
+          },
+        ])
+
+        vi.mocked(mockPlexServer.removeSpecificLabels).mockResolvedValue(true)
+        vi.mocked(mockDb.cleanupUserContentTracking).mockResolvedValue(1)
+
+        await cleanupLabelsForWatchlistItems(watchlistItems, baseDeps)
+
+        // Should remove only alice's label, NOT tag labels
+        expect(mockPlexServer.removeSpecificLabels).toHaveBeenCalledWith(
+          '12345',
+          ['pulsarr:alice'],
+        )
+        expect(mockDb.cleanupUserContentTracking).toHaveBeenCalledWith(
+          ['imdb:tt0111161'],
+          'movie',
+          1,
+        )
+      })
+
+      it('should remove tag labels when last user removes content', async () => {
+        vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+          {
+            id: 1,
+            name: 'alice',
+            can_sync: true,
+            discord_id: null,
+            notify_discord: false,
+            notify_apprise: false,
+            apprise: null,
+            alias: null,
+            notify_tautulli: false,
+            tautulli_notifier_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+
+        const watchlistItems = [
+          {
+            id: 1,
+            title: 'Test Movie',
+            key: 'test-key-1',
+            user_id: 1,
+            guids: ['imdb:tt0111161'],
+            contentType: 'movie' as const,
+          },
+        ]
+
+        vi.mocked(mockDb.getWatchlistItemById).mockResolvedValue({
+          user_id: 1,
+          guids: ['imdb:tt0111161'],
+          type: 'movie',
+          title: 'Test Movie',
+          key: 'test-key-1',
+          status: 'grabbed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+
+        // Only one user has the content
+        vi.mocked(mockDb.getTrackedLabelsForContent).mockResolvedValue([
+          {
+            id: 1,
+            content_guids: ['imdb:tt0111161'],
+            content_type: 'movie',
+            user_id: 1,
+            plex_rating_key: '12345',
+            labels_applied: [
+              'pulsarr:alice',
+              'pulsarr:action',
+              'pulsarr:thriller',
+            ],
+            synced_at: new Date().toISOString(),
+          },
+        ])
+
+        vi.mocked(mockPlexServer.removeSpecificLabels).mockResolvedValue(true)
+        vi.mocked(mockDb.cleanupUserContentTracking).mockResolvedValue(1)
+
+        await cleanupLabelsForWatchlistItems(watchlistItems, baseDeps)
+
+        // Should remove alice's label AND tag labels (last user)
+        expect(mockPlexServer.removeSpecificLabels).toHaveBeenCalledWith(
+          '12345',
+          expect.arrayContaining([
+            'pulsarr:alice',
+            'pulsarr:action',
+            'pulsarr:thriller',
+          ]),
+        )
+        expect(mockDb.cleanupUserContentTracking).toHaveBeenCalledWith(
+          ['imdb:tt0111161'],
+          'movie',
+          1,
+        )
+      })
+
       it('should handle removal failures gracefully', async () => {
         const watchlistItems = [
           {
@@ -354,12 +565,10 @@ describe('label-cleaner', () => {
             title: 'Missing Movie',
             key: 'test-key-missing',
             user_id: 1,
-            guids: ['imdb:tt0999999'],
+            guids: [], // Empty guids means no data to process
             contentType: 'movie' as const,
           },
         ]
-
-        vi.mocked(mockDb.getWatchlistItemById).mockResolvedValue(undefined)
 
         await cleanupLabelsForWatchlistItems(watchlistItems, baseDeps)
 

@@ -12,8 +12,8 @@ import { parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
   filterAndFormatTagsAsLabels,
-  isAppTagLabel,
   isAppUserLabel,
+  isManagedLabel,
 } from './label-validator.js'
 
 export interface LabelApplicatorDeps {
@@ -181,11 +181,15 @@ export async function applyLabelsToSingleItem(
         }
       }
 
-      // Find which labels are non-user, non-tag labels that should be preserved
+      // Find which labels are non-managed labels that should be preserved
+      // This excludes user labels, tag labels, AND removed labels
       const nonAppLabels = cleanedExistingLabels.filter(
         (label) =>
-          !isAppUserLabel(label, deps.config.labelPrefix) &&
-          !isAppTagLabel(label, deps.config.labelPrefix),
+          !isManagedLabel(
+            label,
+            deps.config.labelPrefix,
+            deps.removedLabelPrefix,
+          ),
       )
 
       // In special-label mode, preserve all tracked user labels and add new ones
@@ -220,23 +224,61 @@ export async function applyLabelsToSingleItem(
         'Using "special-label" mode - preserving tracked labels',
       )
     } else {
-      // Default 'remove' mode - filter out existing app labels and add current ones
+      // Default 'remove' mode - remove obsolete user labels but preserve tag labels
+      // Tag labels are content-specific and should accumulate across all users
       const nonAppLabels = cleanedExistingLabels.filter(
         (label) =>
-          !isAppUserLabel(label, deps.config.labelPrefix) &&
-          !isAppTagLabel(label, deps.config.labelPrefix),
+          !isManagedLabel(
+            label,
+            deps.config.labelPrefix,
+            deps.removedLabelPrefix,
+          ),
       )
-      finalLabels = [...new Set([...nonAppLabels, ...userLabels, ...tagLabels])]
+
+      // Identify existing tag labels: app-managed labels that are NOT user labels
+      // We need to fetch all users to differentiate tag labels from user labels
+      const allUsers = await deps.db.getAllUsers()
+      const allPossibleUserLabels = new Set(
+        allUsers.map((u) =>
+          `${deps.config.labelPrefix}:${u.name}`.toLowerCase(),
+        ),
+      )
+
+      const existingTagLabels = cleanedExistingLabels.filter((label) => {
+        // Must be an app-managed label
+        if (!isAppUserLabel(label, deps.config.labelPrefix)) {
+          return false
+        }
+        // Must NOT be a removed label
+        if (
+          label.toLowerCase().startsWith(deps.removedLabelPrefix.toLowerCase())
+        ) {
+          return false
+        }
+        // If it's NOT a user label (not in the set of all possible user labels), it's a tag label
+        return !allPossibleUserLabels.has(label.toLowerCase())
+      })
+
+      finalLabels = [
+        ...new Set([
+          ...nonAppLabels,
+          ...existingTagLabels,
+          ...userLabels,
+          ...tagLabels,
+        ]),
+      ]
 
       deps.logger.debug(
         {
           ratingKey,
           mode: 'remove',
-          preservedCount: nonAppLabels.length,
+          preservedNonAppCount: nonAppLabels.length,
+          preservedTagCount: existingTagLabels.length,
           userLabelCount: userLabels.length,
-          tagLabelCount: tagLabels.length,
+          newTagLabelCount: tagLabels.length,
+          existingTagLabels,
         },
-        'Using remove mode - filtering obsolete labels',
+        'Using remove mode - preserving tag labels, removing obsolete user labels',
       )
     }
 

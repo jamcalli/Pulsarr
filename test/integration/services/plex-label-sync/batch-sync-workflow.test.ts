@@ -299,15 +299,18 @@ describe('Batch Sync → Full Workflow Integration', () => {
 
       const knex = getTestDatabase()
 
-      // Create watchlist item
-      await knex('watchlist_items').insert({
-        user_id: SEED_USERS[0].id,
-        guids: JSON.stringify(['imdb:tt9999999', 'tmdb:9999999']),
-        type: 'movie',
-        title: 'Not In Plex Yet',
-        key: 'test-key-unavailable',
-        status: 'grabbed',
-      })
+      // Create watchlist item and get its ID
+      const [insertedRow] = await knex('watchlist_items')
+        .insert({
+          user_id: SEED_USERS[0].id,
+          guids: JSON.stringify(['imdb:tt9999999', 'tmdb:9999999']),
+          type: 'movie',
+          title: 'Not In Plex Yet',
+          key: 'test-key-unavailable',
+          status: 'grabbed',
+        })
+        .returning('id')
+      const insertedId = insertedRow.id
 
       // Mock PlexServer - content not found
       const mockSearchByGuid = vi.fn().mockResolvedValue([])
@@ -367,9 +370,9 @@ describe('Batch Sync → Full Workflow Integration', () => {
       expect(result.updated).toBe(0)
       expect(result.pending).toBe(SEED_WATCHLIST_ITEMS.length + 1)
 
-      // Verify pending sync record created
+      // Verify pending sync record created for the newly inserted item
       const pendingSyncs = await knex('pending_label_syncs').where({
-        watchlist_item_id: 1,
+        watchlist_item_id: insertedId,
       })
 
       expect(pendingSyncs.length).toBeGreaterThan(0)

@@ -26,7 +26,13 @@ import {
 } from '../data-fetching/index.js'
 import { reconcileLabelsForContent as reconcileLabelsUtil } from '../label-operations/index.js'
 import { isUserTaggingSystemTag as isUserTaggingSystemTagUtil } from '../label-operations/label-validator.js'
-import { resolveContentToPlexItems } from '../matching/index.js'
+import {
+  buildRadarrMatchingCache,
+  buildSonarrMatchingCache,
+  clearRadarrMatchingCache,
+  clearSonarrMatchingCache,
+  resolveContentToPlexItems,
+} from '../matching/index.js'
 import { queueUnavailableContent } from '../tracking/queue-manager.js'
 import { groupWatchlistItemsByContent } from '../utils/content-grouper.js'
 
@@ -228,6 +234,11 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
         },
         'Fetched tag data from *arr instances',
       )
+
+      // Build matching caches for O(1) lookups during reconciliation
+      buildRadarrMatchingCache(radarrMoviesWithTags)
+      buildSonarrMatchingCache(sonarrSeriesWithTags)
+      deps.logger.debug('Built optimized matching caches for tag sync')
     }
 
     if (emitProgress) {
@@ -509,6 +520,13 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
     }
 
     throw error
+  } finally {
+    // Always clear matching caches to free memory
+    if (deps.config.tagSync.enabled) {
+      clearRadarrMatchingCache()
+      clearSonarrMatchingCache()
+      deps.logger.debug('Cleared matching caches')
+    }
   }
 }
 
