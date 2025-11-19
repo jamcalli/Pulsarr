@@ -119,10 +119,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const currentConfig = await fastify.db.getConfig()
 
         // Store current runtime values for revert if needed
-        const originalRuntimeValues = { ...safeConfigUpdate }
-        for (const key of Object.keys(originalRuntimeValues)) {
-          // biome-ignore lint/suspicious/noExplicitAny: This is a necessary type assertion for dynamic property access
-          ;(originalRuntimeValues as any)[key] = (fastify.config as any)[key]
+        // Using Record type avoids complex type narrowing for dynamic property access
+        const originalRuntimeValues: Record<string, unknown> = {}
+        for (const key of Object.keys(safeConfigUpdate)) {
+          originalRuntimeValues[key] =
+            fastify.config[key as keyof typeof fastify.config]
         }
 
         // First update the runtime config

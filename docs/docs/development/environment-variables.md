@@ -122,10 +122,10 @@ friendsRss=                            # Friends RSS feed URL (optional)
 # User Tagging Configuration
 tagUsersInSonarr=false                 # Enable automatic user tagging in Sonarr
 tagUsersInRadarr=false                 # Enable automatic user tagging in Radarr
-tagPrefix=pulsarr:user                 # Prefix for user tags - required alphanumeric, dash, underscore, colon, period only
+tagPrefix=pulsarr-user                 # Prefix for user tags - required alphanumeric, dash, underscore, colon, period only
 cleanupOrphanedTags=true               # When true, removes tags for deleted users during sync
 removedTagMode=remove                  # How to handle tags when content is removed: 'remove', 'keep', 'special-tag' (default: remove)
-removedTagPrefix=pulsarr:removed       # Prefix for removal tags when using 'special-tag' mode
+removedTagPrefix=pulsarr-removed       # Prefix for removal tags when using 'special-tag' mode
 deletionMode=watchlist                 # Deletion workflow mode: 'watchlist', 'tag-based' (default: watchlist)
 
 # Delete Configuration

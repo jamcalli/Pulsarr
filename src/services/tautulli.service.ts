@@ -136,9 +136,6 @@ export class TautulliService {
           throw new Error('Failed to connect to Tautulli')
         }
 
-        // Save config to database
-        await this.saveConfig()
-
         this.log.info('Tautulli integration enabled successfully')
         this.isInitialized = true
 
@@ -230,20 +227,6 @@ export class TautulliService {
     } catch (error) {
       clearTimeout(timeout)
       throw error
-    }
-  }
-
-  /**
-   * Save Tautulli configuration to database
-   */
-  private async saveConfig(): Promise<void> {
-    const currentConfig = await this.db.getConfig()
-    if (currentConfig) {
-      await this.db.updateConfig({
-        tautulliEnabled: this.config.enabled,
-        tautulliUrl: this.config.url,
-        tautulliApiKey: this.config.apiKey,
-      })
     }
   }
 

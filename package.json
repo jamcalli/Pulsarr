@@ -5,11 +5,11 @@
   "main": "build/server.js",
   "type": "module",
   "engines": {
-    "node": "24.11.0"
+    "node": "24.11.1"
   },
   "scripts": {
-    "clean:client": "rm -rf dist/client",
-    "clean:server": "rm -rf dist",
+    "clean:client": "rimraf dist/client",
+    "clean:server": "rimraf dist",
     "build": "npm run build:server && npm run clean:client && vite build",
     "build:server": "tsc && tsc-alias",
     "dev:server": "tsx watch src/server.ts",
@@ -121,7 +121,7 @@
     "fastify-sse-v2": "^4.2.1",
     "fastify-type-provider-zod": "^6.0.0",
     "knex": "^3.1.0",
-    "lucide-react": "^0.552.0",
+    "lucide-react": "^0.553.0",
     "next-themes": "^0.4.6",
     "p-limit": "^7.1.0",
     "pg": "^8.16.0",
@@ -166,6 +166,7 @@
     "husky": "^9.1.7",
     "msw": "^2.11.5",
     "postcss": "^8.5.2",
+    "rimraf": "^6.1.0",
     "tailwindcss": "^4.1.10",
     "tsc-alias": "^1.8.15",
     "typescript": "^5.9.0",

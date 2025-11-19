@@ -434,8 +434,22 @@ export class PlexWatchlistService {
       selfRss: Array.from(watchlistUrls)[0] || '',
       friendsRss: Array.from(watchlistUrls)[1] || '',
     }
+
+    // Persist to database first
     await this.dbService.updateConfig(dbUrls)
-    this.log.debug(dbUrls, 'RSS feed URLs saved to database')
+
+    // Then update in-memory config
+    try {
+      await this.fastify.updateConfig(dbUrls)
+      this.log.debug(dbUrls, 'RSS feed URLs saved to database and memory')
+    } catch (memUpdateErr) {
+      this.log.error(
+        { error: memUpdateErr },
+        'DB updated but failed to sync in-memory config - restart may be needed',
+      )
+      // In-memory config is stale but DB has correct value
+      // Next server restart will load correct value from DB
+    }
 
     return {
       self: dbUrls.selfRss,

@@ -12,7 +12,7 @@ Automatically adds user tags to content in Sonarr and Radarr, making it easy to 
 
 1. Navigate to **Utilities → User Tagging**
 2. Enable tagging for Sonarr and/or Radarr
-3. Configure tag prefix (default: "pulsarr:user")
+3. Configure tag prefix (default: "pulsarr-user")
 4. Set tag removal behavior (keep, remove, or prefix)
 5. Click **Sync Tags Now** to apply tags to all content
 
@@ -23,7 +23,7 @@ Automatically adds user tags to content in Sonarr and Radarr, making it easy to 
 Navigate to **Utilities → User Tagging**:
 
 - **Enable Tagging**: Toggle for Sonarr and Radarr instances
-- **Tag Prefix**: Customize prefix for user tags (default: "pulsarr:user")
+- **Tag Prefix**: Customize prefix for user tags (default: "pulsarr-user")
 - **Tag Removal Options**:
   - **Keep**: Preserve tags for historical tracking
   - **Remove**: Delete tags when content leaves watchlists
@@ -36,7 +36,7 @@ Navigate to **Utilities → User Tagging**:
 
 - **Automatic User Tracking**: Tags content with usernames of requesting users
 - **Multi-Instance Support**: Works across all Sonarr and Radarr instances
-- **Customizable Prefix**: Configure tag prefix (default: "pulsarr:user")
+- **Customizable Prefix**: Configure tag prefix (default: "pulsarr-user")
 - **Flexible Tag Removal**: Keep, remove, or prefix tags when content leaves watchlists
 - **Tag-Based Deletion**: Integrate with Delete Sync for tag-based workflows
 - **Batch Processing**: Efficiently processes large libraries

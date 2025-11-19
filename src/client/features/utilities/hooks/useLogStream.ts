@@ -105,8 +105,8 @@ export function useLogStream(
   }, [])
 
   const connect = useCallback(() => {
-    // Don't connect if already connecting or an EventSource is still present
-    if (isConnecting || eventSourceRef.current) {
+    // Don't connect if an EventSource is still present
+    if (eventSourceRef.current) {
       return
     }
 
@@ -196,7 +196,7 @@ export function useLogStream(
       setError(errorMessage)
       toast.error(`Failed to connect to log stream: ${errorMessage}`)
     }
-  }, [isConnecting, buildStreamUrl, disconnect, connectionCount])
+  }, [buildStreamUrl, disconnect, connectionCount])
 
   const pause = useCallback(() => {
     setIsPaused(true)
@@ -220,15 +220,22 @@ export function useLogStream(
         return next
       })
 
-      // If connected and follow is enabled, reconnect with new options
-      if (isConnected && optionsRef.current.follow) {
+      // If follow is enabled and not paused, reconnect with new options
+      if (optionsRef.current.follow && !isPaused) {
         // Clear existing logs before reconnecting to prevent duplicates
         setLogs([])
         disconnect({ resetAttempts: false })
-        connect()
+        // Use setTimeout to ensure disconnect completes before reconnecting
+        // Track timeout so disconnect()/unmount can cancel it
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current)
+        }
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connect()
+        }, 50)
       }
     },
-    [isConnected, disconnect, connect],
+    [disconnect, connect, isPaused],
   )
 
   // Auto-connect on mount and when resuming
