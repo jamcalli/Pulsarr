@@ -430,6 +430,9 @@ export class TagMigrationService {
         `Creating new tag "${newLabel}" in ${instanceName} to replace "${oldTag.label}"`,
       )
       const newTag = await service.createTag(newLabel)
+      // Update allTags so subsequent iterations can find this newly created tag
+      // This prevents duplicate creation when multiple old tags normalize to the same new label
+      allTags.push(newTag)
       tagMapping.push({
         oldId: oldTag.id,
         newId: newTag.id,

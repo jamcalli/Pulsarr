@@ -19,6 +19,8 @@ const projectRoot = resolve(__dirname, '../..')
  * 1. Adds `tagMigration` JSON column to track per-instance migration status (SQLite and PostgreSQL)
  * 2. Updates existing `tagPrefix` from 'pulsarr:user' to 'pulsarr-user'
  * 3. Updates existing `removedTagPrefix` from 'pulsarr:removed' to 'pulsarr-removed'
+ * 4. Updates `deleteSyncRequiredTagRegex` to replace colon-based patterns with hyphen format
+ *    (e.g., '^pulsarr:user:john$' -> '^pulsarr-user-john$', 'pulsarr2:removed' -> 'pulsarr2-removed')
  *
  * The actual tag migration (updating tags in Radarr/Sonarr and content) will be performed
  * by the user tag service during the first tag sync after upgrade.
@@ -49,6 +51,7 @@ export async function up(knex: Knex): Promise<void> {
     'id',
     'tagPrefix',
     'removedTagPrefix',
+    'deleteSyncRequiredTagRegex',
   )
 
   // Save original prefix values to data folder (survives app restarts)
@@ -105,6 +108,51 @@ export async function up(knex: Knex): Promise<void> {
 
       if (transformed !== config.removedTagPrefix) {
         updates.removedTagPrefix = transformed
+      }
+    }
+
+    // Transform deleteSyncRequiredTagRegex if it references old colon-based prefixes
+    // This handles patterns like "^pulsarr:user:john$" or "pulsarr2:removed"
+    if (config.deleteSyncRequiredTagRegex) {
+      let transformedRegex = config.deleteSyncRequiredTagRegex
+
+      // Replace any occurrence of the old tagPrefix format
+      // e.g., "pulsarr:user:" -> "pulsarr-user-"
+      if (config.tagPrefix) {
+        const oldPrefix = config.tagPrefix
+        const newPrefix = updates.tagPrefix || config.tagPrefix
+        // Replace old prefix with new prefix in regex
+        transformedRegex = transformedRegex.replace(
+          new RegExp(oldPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+          newPrefix,
+        )
+      }
+
+      // Replace any occurrence of the old removedTagPrefix format
+      // e.g., "pulsarr:removed" -> "pulsarr-removed"
+      if (config.removedTagPrefix) {
+        const oldRemovedPrefix = config.removedTagPrefix
+        const newRemovedPrefix =
+          updates.removedTagPrefix || config.removedTagPrefix
+        // Replace old removed prefix with new removed prefix in regex
+        transformedRegex = transformedRegex.replace(
+          new RegExp(
+            oldRemovedPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+            'g',
+          ),
+          newRemovedPrefix,
+        )
+      }
+
+      // Also handle common multi-instance patterns like "pulsarr2:removed"
+      // Transform any remaining colon-based patterns to hyphen format
+      transformedRegex = transformedRegex.replace(
+        /([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)/g,
+        '$1-$2',
+      )
+
+      if (transformedRegex !== config.deleteSyncRequiredTagRegex) {
+        updates.deleteSyncRequiredTagRegex = transformedRegex
       }
     }
 

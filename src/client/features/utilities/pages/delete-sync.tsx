@@ -468,7 +468,7 @@ export default function DeleteSyncPage() {
                                           <strong>Example use case:</strong> For
                                           multi-instance coordination, match the
                                           OTHER instance's removal tag (e.g.,{' '}
-                                          <code>pulsarr2:removed</code> on
+                                          <code>pulsarr2-removed</code> on
                                           instance 1) to ensure content is only
                                           deleted when BOTH instances have
                                           marked it for removal.
@@ -488,7 +488,7 @@ export default function DeleteSyncPage() {
                                       : (field.value ?? '')
                                   }
                                   className="w-full"
-                                  placeholder="e.g., pulsarr2:removed"
+                                  placeholder="e.g., pulsarr2-removed"
                                   disabled={isSaving}
                                 />
                               </FormControl>

@@ -1312,6 +1312,10 @@ export class UserTagService {
     }
 
     try {
+      // Ensure migration is complete before cleanup to handle legacy colon-based tags
+      await this.ensureMigrationComplete('radarr')
+      await this.ensureMigrationComplete('sonarr')
+
       // Get all current users with sync enabled
       const users = await this.getSyncEnabledUsers()
       const validUserTagLabels = new Set(
@@ -1372,6 +1376,9 @@ export class UserTagService {
         instances: 0,
       }
     }
+
+    // Ensure migration is complete before removal to handle legacy colon-based tags
+    await this.ensureMigrationComplete('sonarr')
 
     const results = {
       itemsProcessed: 0,
@@ -1663,6 +1670,9 @@ export class UserTagService {
         instances: 0,
       }
     }
+
+    // Ensure migration is complete before removal to handle legacy colon-based tags
+    await this.ensureMigrationComplete('radarr')
 
     const results = {
       itemsProcessed: 0,
@@ -1998,10 +2008,10 @@ export class UserTagService {
   /**
    * Get the tag label for a user
    *
-   * @param user User object containing name
-   * @returns Formatted tag label in format "{prefix}-{name}"
+   * @param user User object containing name and id
+   * @returns Formatted tag label in format "{prefix}-{name}" or "{prefix}-id-{id}" for degenerate names
    */
-  private getUserTagLabel(user: { name: string }): string {
+  private getUserTagLabel(user: User): string {
     // Sanitize the username to match Radarr v6 validation: ^[a-z0-9-]+$
     const sanitizedName = user.name
       .trim()
@@ -2010,17 +2020,33 @@ export class UserTagService {
       .replace(/-+/g, '-') // Collapse multiple hyphens
       .replace(/^-+|-+$/g, '') // Trim leading/trailing hyphens
 
+    // Handle degenerate usernames that sanitize to empty string
+    // (e.g., usernames with only special characters like "@@@" or unicode)
+    if (sanitizedName === '') {
+      this.log.warn(
+        { userId: user.id, userName: user.name },
+        `Username "${user.name}" sanitized to empty string, using fallback tag: ${this.tagPrefix}-id-${user.id}`,
+      )
+      return `${this.tagPrefix}-id-${user.id}`
+    }
+
     return `${this.tagPrefix}-${sanitizedName}`
   }
 
   /**
    * Check if a tag belongs to our application's user tagging system
+   * Recognizes both standard tags (prefix-username) and fallback tags (prefix-id-{number})
    *
    * @param tagLabel The tag label to check
    * @returns True if this is an application user tag
    */
   private isAppUserTag(tagLabel: string): boolean {
-    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix.toLowerCase()}-`)
+    const lowerTag = tagLabel.toLowerCase()
+    const lowerPrefix = this.tagPrefix.toLowerCase()
+
+    // Match standard format: prefix-username (e.g., pulsarr-user-john)
+    // OR fallback format: prefix-id-{number} (e.g., pulsarr-user-id-123)
+    return lowerTag.startsWith(`${lowerPrefix}-`)
   }
 
   /**

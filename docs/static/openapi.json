@@ -4657,6 +4657,70 @@
                           "type": "string",
                           "minLength": 1,
                           "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                        },
+                        "tagMigration": {
+                          "type": "object",
+                          "properties": {
+                            "radarr": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "completed": {
+                                    "type": "boolean"
+                                  },
+                                  "migratedAt": {
+                                    "type": "string"
+                                  },
+                                  "tagsMigrated": {
+                                    "type": "number"
+                                  },
+                                  "contentUpdated": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "completed",
+                                  "migratedAt",
+                                  "tagsMigrated",
+                                  "contentUpdated"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "sonarr": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "completed": {
+                                    "type": "boolean"
+                                  },
+                                  "migratedAt": {
+                                    "type": "string"
+                                  },
+                                  "tagsMigrated": {
+                                    "type": "number"
+                                  },
+                                  "contentUpdated": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "completed",
+                                  "migratedAt",
+                                  "tagsMigrated",
+                                  "contentUpdated"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "radarr",
+                            "sonarr"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "additionalProperties": false
@@ -5266,6 +5330,67 @@
                     "type": "string",
                     "minLength": 1,
                     "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                  },
+                  "tagMigration": {
+                    "type": "object",
+                    "properties": {
+                      "radarr": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "completed": {
+                              "type": "boolean"
+                            },
+                            "migratedAt": {
+                              "type": "string"
+                            },
+                            "tagsMigrated": {
+                              "type": "number"
+                            },
+                            "contentUpdated": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "completed",
+                            "migratedAt",
+                            "tagsMigrated",
+                            "contentUpdated"
+                          ]
+                        }
+                      },
+                      "sonarr": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "completed": {
+                              "type": "boolean"
+                            },
+                            "migratedAt": {
+                              "type": "string"
+                            },
+                            "tagsMigrated": {
+                              "type": "number"
+                            },
+                            "contentUpdated": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "completed",
+                            "migratedAt",
+                            "tagsMigrated",
+                            "contentUpdated"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "radarr",
+                      "sonarr"
+                    ]
                   }
                 }
               }
@@ -5806,6 +5931,70 @@
                           "type": "string",
                           "minLength": 1,
                           "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                        },
+                        "tagMigration": {
+                          "type": "object",
+                          "properties": {
+                            "radarr": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "completed": {
+                                    "type": "boolean"
+                                  },
+                                  "migratedAt": {
+                                    "type": "string"
+                                  },
+                                  "tagsMigrated": {
+                                    "type": "number"
+                                  },
+                                  "contentUpdated": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "completed",
+                                  "migratedAt",
+                                  "tagsMigrated",
+                                  "contentUpdated"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "sonarr": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "completed": {
+                                    "type": "boolean"
+                                  },
+                                  "migratedAt": {
+                                    "type": "string"
+                                  },
+                                  "tagsMigrated": {
+                                    "type": "number"
+                                  },
+                                  "contentUpdated": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "completed",
+                                  "migratedAt",
+                                  "tagsMigrated",
+                                  "contentUpdated"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "radarr",
+                            "sonarr"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "additionalProperties": false
@@ -16304,7 +16493,8 @@
                   },
                   "label": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "pattern": "^[a-z0-9-]+$"
                   }
                 },
                 "required": [
@@ -19467,7 +19657,8 @@
                   },
                   "label": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "pattern": "^[a-z0-9-]+$"
                   }
                 },
                 "required": [
