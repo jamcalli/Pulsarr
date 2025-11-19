@@ -38,6 +38,9 @@ export async function matchPlexSeriesToSonarr(
     }
 
     const plexLocation = metadata.Location?.[0]?.path
+    const normalizedPlexLocation = plexLocation
+      ? normalizePath(plexLocation)
+      : ''
 
     logger.debug(
       {
@@ -50,41 +53,45 @@ export async function matchPlexSeriesToSonarr(
     )
 
     // Try to match by root folder
-    if (plexLocation) {
+    if (normalizedPlexLocation) {
       for (const sonarrData of sonarrSeries) {
-        if (
-          sonarrData.rootFolder &&
-          normalizePath(plexLocation).startsWith(
-            normalizePath(sonarrData.rootFolder),
-          )
-        ) {
-          logger.debug(
-            {
-              plexTitle: plexItem.title,
-              sonarrTitle: sonarrData.series.title,
-              plexLocation,
-              sonarrRootFolder: sonarrData.rootFolder,
+        if (sonarrData.rootFolder) {
+          const normalizedRoot = normalizePath(sonarrData.rootFolder)
+          const rootWithSep = normalizedRoot.endsWith('/')
+            ? normalizedRoot
+            : `${normalizedRoot}/`
+
+          if (
+            normalizedPlexLocation === normalizedRoot ||
+            normalizedPlexLocation.startsWith(rootWithSep)
+          ) {
+            logger.debug(
+              {
+                plexTitle: plexItem.title,
+                sonarrTitle: sonarrData.series.title,
+                plexLocation,
+                sonarrRootFolder: sonarrData.rootFolder,
+                instanceName: sonarrData.instanceName,
+                tags: sonarrData.tags,
+              },
+              'Found root folder match',
+            )
+            return {
+              instanceId: sonarrData.instanceId,
               instanceName: sonarrData.instanceName,
+              series: sonarrData.series,
               tags: sonarrData.tags,
-            },
-            'Found root folder match',
-          )
-          return {
-            instanceId: sonarrData.instanceId,
-            instanceName: sonarrData.instanceName,
-            series: sonarrData.series,
-            tags: sonarrData.tags,
+            }
           }
         }
       }
     }
 
     // Try to match by exact folder path
-    if (plexLocation) {
+    if (normalizedPlexLocation) {
       for (const sonarrData of sonarrSeries) {
         if (
-          normalizePath(plexLocation) ===
-          normalizePath(sonarrData.series.path || '')
+          normalizedPlexLocation === normalizePath(sonarrData.series.path || '')
         ) {
           logger.debug(
             {
@@ -108,13 +115,13 @@ export async function matchPlexSeriesToSonarr(
     }
 
     // Try to match by folder name
-    if (plexLocation) {
+    if (normalizedPlexLocation) {
       for (const sonarrData of sonarrSeries) {
         const sonarrFolderName = getPathBasename(
           sonarrData.series.path || '',
         ).toLowerCase()
         const plexFolderName = getPathBasename(
-          normalizePath(plexLocation),
+          normalizedPlexLocation,
         ).toLowerCase()
 
         if (sonarrFolderName && plexFolderName === sonarrFolderName) {
