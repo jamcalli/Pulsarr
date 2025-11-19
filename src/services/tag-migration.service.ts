@@ -533,7 +533,12 @@ export class TagMigrationService {
       contentUpdated,
     }
 
-    // Save to database
+    // Update in-memory config first
+    await this.fastify.updateConfig({
+      tagMigration: existingMigration,
+    })
+
+    // Then persist to database
     await this.fastify.db.updateConfig({
       tagMigration: existingMigration,
     })
@@ -566,6 +571,10 @@ export class TagMigrationService {
       }
 
       if (Object.keys(updates).length > 0) {
+        // Update in-memory config first
+        await this.fastify.updateConfig(updates)
+
+        // Then persist to database
         await this.fastify.db.updateConfig(updates)
         this.log.info(
           `Transformed prefixes: ${currentPrefix} -> ${updates.tagPrefix || currentPrefix}, ${currentRemovedPrefix} -> ${updates.removedTagPrefix || currentRemovedPrefix}`,

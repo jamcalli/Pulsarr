@@ -53,14 +53,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   _isReady: true,
                 }
 
-                // Save the updated config
+                // Update in-memory config first
+                await fastify.updateConfig(configUpdate)
+
+                // Then persist to database
                 const dbUpdated = await fastify.db.updateConfig(configUpdate)
                 if (dbUpdated) {
-                  // Update the runtime config if database update was successful
-                  await fastify.updateConfig(configUpdate)
                   fastify.log.info('Updated config _isReady to true')
                 } else {
-                  fastify.log.warn('Failed to update _isReady config value')
+                  // Rollback in-memory config if DB update fails
+                  await fastify.updateConfig({ _isReady: false })
+                  fastify.log.warn(
+                    'Failed to update _isReady config value, rolled back',
+                  )
                 }
               } else {
                 fastify.log.warn('Could not find config to update _isReady')
