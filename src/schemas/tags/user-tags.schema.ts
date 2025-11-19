@@ -14,7 +14,7 @@ export const TaggingConfigSchema = z
     removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
     // Despite the name, this is the complete tag label, not just a prefix
     removedTagPrefix:
-      RemovedTagPrefixSchema.optional().default('pulsarr:removed'),
+      RemovedTagPrefixSchema.optional().default('pulsarr-removed'),
     tagPrefix: TagPrefixSchema,
   })
   .refine((v) => v.removedTagMode !== 'special-tag' || v.removedTagPrefix, {
