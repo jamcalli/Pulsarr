@@ -35,6 +35,7 @@ function getMigrationFilePath(): string {
 }
 
 import { createServiceLogger } from '@utils/logger.js'
+import { normalizeTagLabel } from '@utils/tag-normalization.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 /**
@@ -107,18 +108,40 @@ export class TagMigrationService {
 
       return data
     } catch (error) {
-      // File doesn't exist or is unreadable - fall back to hardcoded legacy defaults
+      // File doesn't exist or is unreadable - try to derive prefixes from current config
       // This can happen if:
       // 1. User already ran tag migration and file was deleted
       // 2. Fresh install (no migration needed)
       // 3. Database migration failed to write file
       this.log.debug(
         { error },
-        'Could not read pre-migration prefix file, using hardcoded legacy defaults',
+        'Could not read pre-migration prefix file, checking current config',
       )
 
-      // Use hardcoded legacy defaults (colon format) to ensure we can find old tags
-      // DO NOT use current config values as they may have already been transformed
+      // If current config still has colon prefixes, use those (migration hasn't run yet)
+      // This protects custom prefixes when migration file write failed
+      const currentTagPrefix = this.fastify.config.tagPrefix
+      const currentRemovedPrefix = this.fastify.config.removedTagPrefix
+
+      if (
+        currentTagPrefix.includes(':') ||
+        currentRemovedPrefix.includes(':')
+      ) {
+        this.log.debug(
+          `Using colon prefixes from current config: tagPrefix="${currentTagPrefix}", removedTagPrefix="${currentRemovedPrefix}"`,
+        )
+        return {
+          tagPrefix: currentTagPrefix,
+          removedTagPrefix: currentRemovedPrefix,
+          migratedAt: new Date().toISOString(),
+        }
+      }
+
+      // Config already has hyphen format - fall back to hardcoded legacy defaults
+      // (migration already completed or fresh install with hyphen prefixes)
+      this.log.debug(
+        'Current config already hyphenated, using hardcoded legacy defaults',
+      )
       return {
         tagPrefix: 'pulsarr:user',
         removedTagPrefix: 'pulsarr:removed',
@@ -403,12 +426,8 @@ export class TagMigrationService {
 
     for (const oldTag of colonTags) {
       // Transform tag label to Radarr v6 compatible format
-      // Same transformation as database migration 064 and getUserTagLabel()
-      const newLabel = oldTag.label
-        .toLowerCase() // Convert to lowercase
-        .replace(/[^a-z0-9-]/g, '-') // Replace invalid chars (including colons, periods, underscores) with hyphen
-        .replace(/-+/g, '-') // Collapse multiple hyphens
-        .replace(/^-+|-+$/g, '') // Trim leading/trailing hyphens
+      // Uses shared normalization utility (same logic as database migration 064 and getUserTagLabel)
+      const newLabel = normalizeTagLabel(oldTag.label)
 
       // Check if new tag already exists
       const existingNew = allTags.find((t) => t.label === newLabel)
@@ -451,7 +470,7 @@ export class TagMigrationService {
   private buildContentUpdates(
     instanceType: 'radarr' | 'sonarr',
     contentMap: Map<number, { id: number; tags?: number[] }>,
-    colonTags: Tag[],
+    _colonTags: Tag[],
     tagMapping: TagMapping[],
   ): Array<{ movieId?: number; seriesId?: number; tagIds: number[] }> {
     const updates: Array<{
@@ -460,23 +479,24 @@ export class TagMigrationService {
       tagIds: number[]
     }> = []
 
+    // Build lookup structures for O(1) performance instead of nested loops
+    const oldIds = new Set(tagMapping.map((m) => m.oldId))
+    const idMap = new Map(tagMapping.map((m) => [m.oldId, m.newId] as const))
+
     // Process ALL content in Radarr/Sonarr, not just watchlist items
     // This ensures we migrate tags on content that was removed from watchlist
     for (const [contentId, contentDetails] of contentMap) {
       const currentTags = contentDetails.tags || []
 
-      // Check if content has any old tags
-      const hasOldTags = currentTags.some((tagId: number) =>
-        colonTags.some((t) => t.id === tagId),
-      )
+      // Check if content has any old tags (O(n) instead of O(n*m))
+      const hasOldTags = currentTags.some((tagId: number) => oldIds.has(tagId))
 
       if (!hasOldTags) continue
 
-      // Replace old tag IDs with new tag IDs and dedupe to avoid duplicates
-      const mappedTagIds = currentTags.map((tagId: number) => {
-        const mapping = tagMapping.find((m) => m.oldId === tagId)
-        return mapping?.newId || tagId
-      })
+      // Replace old tag IDs with new tag IDs and dedupe to avoid duplicates (O(n) instead of O(n*m))
+      const mappedTagIds = currentTags.map(
+        (tagId: number) => idMap.get(tagId) ?? tagId,
+      )
       const newTagIds = [...new Set(mappedTagIds)]
 
       if (instanceType === 'radarr') {
@@ -545,9 +565,18 @@ export class TagMigrationService {
     })
 
     // Then update in-memory config
-    await this.fastify.updateConfig({
-      tagMigration: existingMigration,
-    })
+    try {
+      await this.fastify.updateConfig({
+        tagMigration: existingMigration,
+      })
+    } catch (memUpdateErr) {
+      this.log.error(
+        { error: memUpdateErr },
+        'DB updated but failed to sync in-memory config - restart may be needed',
+      )
+      // In-memory config is stale but DB has correct value
+      // Next server restart will load correct value from DB
+    }
   }
 
   /**
@@ -581,10 +610,19 @@ export class TagMigrationService {
         await this.fastify.db.updateConfig(updates)
 
         // Then update in-memory config
-        await this.fastify.updateConfig(updates)
-        this.log.info(
-          `Transformed prefixes: ${currentPrefix} -> ${updates.tagPrefix || currentPrefix}, ${currentRemovedPrefix} -> ${updates.removedTagPrefix || currentRemovedPrefix}`,
-        )
+        try {
+          await this.fastify.updateConfig(updates)
+          this.log.info(
+            `Transformed prefixes: ${currentPrefix} -> ${updates.tagPrefix || currentPrefix}, ${currentRemovedPrefix} -> ${updates.removedTagPrefix || currentRemovedPrefix}`,
+          )
+        } catch (memUpdateErr) {
+          this.log.error(
+            { error: memUpdateErr },
+            'DB updated but failed to sync in-memory config - restart may be needed',
+          )
+          // In-memory config is stale but DB has correct value
+          // Next server restart will load correct value from DB
+        }
       }
     }
   }

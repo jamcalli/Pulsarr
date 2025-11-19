@@ -57,8 +57,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               const dbUpdated = await fastify.db.updateConfig(configUpdate)
               if (dbUpdated) {
                 // Update the runtime config if database update was successful
-                await fastify.updateConfig(configUpdate)
-                fastify.log.info('Updated config _isReady to true')
+                try {
+                  await fastify.updateConfig(configUpdate)
+                  fastify.log.info('Updated config _isReady to true')
+                } catch (memUpdateErr) {
+                  fastify.log.error(
+                    { error: memUpdateErr },
+                    'DB updated but failed to sync in-memory config - restart may be needed',
+                  )
+                  // In-memory config is stale but DB has correct value
+                  // Next server restart will load correct value from DB
+                }
               } else {
                 fastify.log.warn('Failed to update _isReady config value')
               }
