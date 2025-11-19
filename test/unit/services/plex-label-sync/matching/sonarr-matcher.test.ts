@@ -781,5 +781,96 @@ describe('sonarr-matcher', () => {
         expect(result?.tags).toEqual(['folder-match'])
       })
     })
+
+    describe('lazy cache initialization', () => {
+      it('should work without pre-building cache (lazy initialization)', async () => {
+        const plexItem = {
+          ratingKey: '123',
+          title: 'Test Series',
+        }
+
+        const sonarrSeries: SonarrSeriesWithTags[] = [
+          {
+            instanceId: 1,
+            instanceName: 'sonarr-main',
+            series: {
+              id: 1,
+              title: 'Test Series',
+              path: '/tv/Test Series',
+            },
+            tags: ['drama'],
+            rootFolder: '/tv',
+          },
+        ]
+
+        // Do NOT call buildSonarrMatchingCache - test lazy initialization
+        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
+          createMockPlexMetadataWithLocation(['/tv/Test Series']),
+        )
+
+        const result = await matchPlexSeriesToSonarr(
+          plexItem,
+          sonarrSeries,
+          mockPlexServer,
+          mockLogger,
+        )
+
+        expect(result).toEqual({
+          instanceId: sonarrSeries[0].instanceId,
+          instanceName: sonarrSeries[0].instanceName,
+          series: sonarrSeries[0].series,
+          tags: sonarrSeries[0].tags,
+        })
+        expect(mockLogger.debug).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sonarrSeriesCount: 1,
+          }),
+          'Cache not initialized, building on demand',
+        )
+      })
+
+      it('should not rebuild cache if already initialized', async () => {
+        const plexItem = {
+          ratingKey: '123',
+          title: 'Test Series',
+        }
+
+        const sonarrSeries: SonarrSeriesWithTags[] = [
+          {
+            instanceId: 1,
+            instanceName: 'sonarr-main',
+            series: {
+              id: 1,
+              title: 'Test Series',
+              path: '/tv/Test Series',
+            },
+            tags: ['drama'],
+            rootFolder: '/tv',
+          },
+        ]
+
+        // Pre-build cache
+        buildSonarrMatchingCache(sonarrSeries)
+
+        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
+          createMockPlexMetadataWithLocation(['/tv/Test Series']),
+        )
+
+        await matchPlexSeriesToSonarr(
+          plexItem,
+          sonarrSeries,
+          mockPlexServer,
+          mockLogger,
+        )
+
+        // Should NOT log cache initialization message
+        expect(mockLogger.debug).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            sonarrSeriesCount: expect.any(Number),
+          }),
+          'Cache not initialized, building on demand',
+        )
+      })
+    })
   })
 })

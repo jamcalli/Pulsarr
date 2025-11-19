@@ -55,8 +55,11 @@ export function clearSonarrMatchingCache(): void {
  * Matches a Plex series to a Sonarr series based on folder paths.
  * Uses optimized Map-based lookups for O(1) performance.
  *
+ * If matching caches have not been pre-built, they will be constructed on demand
+ * from the sonarrSeries parameter to ensure matching always works.
+ *
  * @param plexItem - The Plex series item with ratingKey and title
- * @param sonarrSeries - Array of Sonarr series with tags (only used if cache not built)
+ * @param sonarrSeries - Array of Sonarr series with tags (used to build cache if not already initialized)
  * @param plexServer - Plex server service to fetch metadata
  * @param logger - Logger instance
  * @returns Matched Sonarr series data or null
@@ -68,6 +71,20 @@ export async function matchPlexSeriesToSonarr(
   logger: FastifyBaseLogger,
 ): Promise<SonarrSeriesWithTags | null> {
   try {
+    // Build both caches on demand if either is not initialized
+    if (
+      (!sonarrPathMapCache || !sonarrFolderNameMapCache) &&
+      sonarrSeries.length > 0
+    ) {
+      logger.debug(
+        {
+          sonarrSeriesCount: sonarrSeries.length,
+        },
+        'Cache not initialized, building on demand',
+      )
+      buildSonarrMatchingCache(sonarrSeries)
+    }
+
     const metadata = await plexServer.getMetadata(plexItem.ratingKey)
     if (!metadata) {
       logger.debug(

@@ -42,8 +42,11 @@ export function clearRadarrMatchingCache(): void {
  * Matches a Plex movie to a Radarr movie based on file paths.
  * Uses optimized Map-based lookups for O(1) performance.
  *
+ * If the matching cache has not been pre-built, it will be constructed on demand
+ * from the radarrMovies parameter to ensure matching always works.
+ *
  * @param plexItem - The Plex movie item with ratingKey and title
- * @param radarrMovies - Array of Radarr movies with tags (only used if cache not built)
+ * @param radarrMovies - Array of Radarr movies with tags (used to build cache if not already initialized)
  * @param plexServer - Plex server service to fetch metadata
  * @param logger - Logger instance
  * @returns Matched Radarr movie data or null
@@ -55,6 +58,17 @@ export async function matchPlexMovieToRadarr(
   logger: FastifyBaseLogger,
 ): Promise<RadarrMovieWithTags | null> {
   try {
+    // Build cache on demand if not already initialized
+    if (!radarrFilePathMapCache && radarrMovies.length > 0) {
+      logger.debug(
+        {
+          radarrMovieCount: radarrMovies.length,
+        },
+        'Cache not initialized, building on demand',
+      )
+      buildRadarrMatchingCache(radarrMovies)
+    }
+
     const metadata = await plexServer.getMetadata(plexItem.ratingKey)
     if (!metadata?.Media) {
       logger.debug(
