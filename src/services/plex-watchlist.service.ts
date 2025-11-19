@@ -434,8 +434,13 @@ export class PlexWatchlistService {
       selfRss: Array.from(watchlistUrls)[0] || '',
       friendsRss: Array.from(watchlistUrls)[1] || '',
     }
+
+    // Update in-memory config first
+    await this.fastify.updateConfig(dbUrls)
+
+    // Then persist to database
     await this.dbService.updateConfig(dbUrls)
-    this.log.debug(dbUrls, 'RSS feed URLs saved to database')
+    this.log.debug(dbUrls, 'RSS feed URLs saved to database and memory')
 
     return {
       self: dbUrls.selfRss,
