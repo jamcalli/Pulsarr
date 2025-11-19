@@ -331,12 +331,7 @@ export class TagMigrationService {
       const allMovies = await radarrService.getFromRadarr('movie')
       const contentMap = new Map(allMovies.map((c) => [c.id, c]))
 
-      updates = this.buildContentUpdates(
-        instanceType,
-        contentMap,
-        colonTags,
-        tagMapping,
-      )
+      updates = this.buildContentUpdates(instanceType, contentMap, tagMapping)
 
       this.log.info(
         `Updating ${updates.length} movies with new tag format in ${instanceName}`,
@@ -364,12 +359,7 @@ export class TagMigrationService {
       const allSeries = await sonarrService.getFromSonarr('series')
       const contentMap = new Map(allSeries.map((c) => [c.id, c]))
 
-      updates = this.buildContentUpdates(
-        instanceType,
-        contentMap,
-        colonTags,
-        tagMapping,
-      )
+      updates = this.buildContentUpdates(instanceType, contentMap, tagMapping)
 
       this.log.info(
         `Updating ${updates.length} series with new tag format in ${instanceName}`,
@@ -470,7 +460,6 @@ export class TagMigrationService {
   private buildContentUpdates(
     instanceType: 'radarr' | 'sonarr',
     contentMap: Map<number, { id: number; tags?: number[] }>,
-    _colonTags: Tag[],
     tagMapping: TagMapping[],
   ): Array<{ movieId?: number; seriesId?: number; tagIds: number[] }> {
     const updates: Array<{
