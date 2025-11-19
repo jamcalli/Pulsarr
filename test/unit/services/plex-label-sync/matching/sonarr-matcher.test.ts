@@ -172,6 +172,56 @@ describe('sonarr-matcher', () => {
           tags: ['sonarr1'],
         })
       })
+
+      it('should NOT match when plex path is in similarly named but different root folder', async () => {
+        const plexItem = {
+          ratingKey: '123',
+          title: 'Breaking Bad',
+        }
+
+        const sonarrSeries: SonarrSeriesWithTags[] = [
+          {
+            instanceId: 1,
+            instanceName: 'sonarr-anime',
+            series: {
+              id: 1,
+              title: 'Naruto',
+              path: '/media/anime/Naruto',
+            },
+            tags: ['anime'],
+            rootFolder: '/media/anime',
+          },
+          {
+            instanceId: 2,
+            instanceName: 'sonarr-anime2',
+            series: {
+              id: 2,
+              title: 'Breaking Bad',
+              path: '/media/anime2/Breaking Bad',
+            },
+            tags: ['drama'],
+            rootFolder: '/media/anime2',
+          },
+        ]
+
+        // Plex location is in /media/anime2, not /media/anime
+        vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
+          createMockPlexMetadataWithLocation([
+            '/media/anime2/Breaking Bad/Season 1',
+          ]),
+        )
+
+        const result = await matchPlexSeriesToSonarr(
+          plexItem,
+          sonarrSeries,
+          mockPlexServer,
+          mockLogger,
+        )
+
+        // Should match the correct instance (anime2), not the false positive (anime)
+        expect(result?.instanceName).toBe('sonarr-anime2')
+        expect(result?.tags).toEqual(['drama'])
+      })
     })
 
     describe('exact folder path matching', () => {
@@ -206,7 +256,12 @@ describe('sonarr-matcher', () => {
           mockLogger,
         )
 
-        expect(result).toEqual(sonarrSeries[0])
+        expect(result).toEqual({
+          instanceId: 1,
+          instanceName: 'sonarr-main',
+          series: sonarrSeries[0].series,
+          tags: ['drama'],
+        })
         expect(mockLogger.debug).toHaveBeenCalledWith(
           expect.objectContaining({
             plexTitle: 'Test Series',
@@ -249,7 +304,12 @@ describe('sonarr-matcher', () => {
           mockLogger,
         )
 
-        expect(result).toEqual(sonarrSeries[0])
+        expect(result).toEqual({
+          instanceId: 1,
+          instanceName: 'sonarr-main',
+          series: sonarrSeries[0].series,
+          tags: [],
+        })
       })
 
       it('should skip series with null or empty path when exact matching', async () => {
@@ -294,7 +354,12 @@ describe('sonarr-matcher', () => {
           mockLogger,
         )
 
-        expect(result).toEqual(sonarrSeries[1])
+        expect(result).toEqual({
+          instanceId: 2,
+          instanceName: 'sonarr-2',
+          series: sonarrSeries[1].series,
+          tags: [],
+        })
       })
     })
 
@@ -330,7 +395,12 @@ describe('sonarr-matcher', () => {
           mockLogger,
         )
 
-        expect(result).toEqual(sonarrSeries[0])
+        expect(result).toEqual({
+          instanceId: 1,
+          instanceName: 'sonarr-main',
+          series: sonarrSeries[0].series,
+          tags: ['drama'],
+        })
         expect(mockLogger.debug).toHaveBeenCalledWith(
           expect.objectContaining({
             plexTitle: 'Test Series',
@@ -373,7 +443,12 @@ describe('sonarr-matcher', () => {
           mockLogger,
         )
 
-        expect(result).toEqual(sonarrSeries[0])
+        expect(result).toEqual({
+          instanceId: 1,
+          instanceName: 'sonarr-main',
+          series: sonarrSeries[0].series,
+          tags: [],
+        })
       })
 
       it('should skip series with empty folder name', async () => {
@@ -418,7 +493,12 @@ describe('sonarr-matcher', () => {
           mockLogger,
         )
 
-        expect(result).toEqual(sonarrSeries[1])
+        expect(result).toEqual({
+          instanceId: 2,
+          instanceName: 'sonarr-2',
+          series: sonarrSeries[1].series,
+          tags: [],
+        })
       })
     })
 

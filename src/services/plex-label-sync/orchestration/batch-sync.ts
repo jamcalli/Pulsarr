@@ -405,7 +405,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
       ),
     )
 
-    // Step 6: Aggregate results
+    // Step 7: Aggregate results
     let totalLabelsAdded = 0
     let totalLabelsRemoved = 0
 
@@ -439,7 +439,7 @@ export async function syncAllLabels(deps: BatchSyncDeps): Promise<SyncResult> {
       `Processed ${result.processed} content items: ${result.updated} updated, ${result.failed} failed, ${result.pending} pending`,
     )
 
-    // Step 7: Handle orphaned label cleanup if enabled
+    // Step 8: Handle orphaned label cleanup if enabled
     let cleanupMessage = ''
     if (deps.config.cleanupOrphanedLabels) {
       try {
