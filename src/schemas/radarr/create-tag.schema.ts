@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { TagLabelSchema } from '@root/schemas/shared/tag-validation.schema.js'
 import { z } from 'zod'
 
 export const CreateTagBodySchema = z
@@ -7,7 +8,7 @@ export const CreateTagBodySchema = z
       .number()
       .int({ error: 'Instance ID must be an integer' })
       .positive({ error: 'Instance ID must be positive' }),
-    label: z.string().trim().min(1, { error: 'Tag label is required' }),
+    label: TagLabelSchema,
   })
   .strict()
 

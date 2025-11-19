@@ -85,6 +85,31 @@ export class UserTagService {
   }
 
   /**
+   * Ensure tag migration is complete for the given instance type
+   * Runs migration if needed and logs progress
+   *
+   * @param instanceType - Type of instance ('radarr' or 'sonarr')
+   */
+  private async ensureMigrationComplete(
+    instanceType: 'radarr' | 'sonarr',
+  ): Promise<void> {
+    const needsMigration =
+      !(await this.migrationService.checkAllInstancesMigrated(instanceType))
+    const serviceName =
+      instanceType.charAt(0).toUpperCase() + instanceType.slice(1)
+
+    this.log.debug(
+      `${serviceName} migration check: needsMigration=${needsMigration}`,
+    )
+
+    if (needsMigration) {
+      this.log.info(`Starting ${serviceName} tag migration (colon -> hyphen)`)
+      await this.migrationService.migrateInstanceTags(instanceType)
+      this.log.info(`Completed ${serviceName} tag migration`)
+    }
+  }
+
+  /**
    * Get config value for tagging users in Sonarr
    */
   private get tagUsersInSonarr(): boolean {
@@ -109,7 +134,7 @@ export class UserTagService {
    * Get config value for tag prefix
    */
   private get tagPrefix(): string {
-    return this.fastify.config.tagPrefix || 'pulsarr:user'
+    return this.fastify.config.tagPrefix || 'pulsarr-user'
   }
 
   /**
@@ -123,7 +148,7 @@ export class UserTagService {
    * Get config value for removed tag prefix
    */
   private get removedTagPrefix(): string {
-    return this.fastify.config.removedTagPrefix || 'pulsarr:removed'
+    return this.fastify.config.removedTagPrefix || 'pulsarr-removed'
   }
 
   /**
@@ -262,6 +287,9 @@ export class UserTagService {
     const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
+      // Run migration if needed (BLOCKING, runs before tag creation)
+      await this.ensureMigrationComplete('sonarr')
+
       // Get all users with sync enabled
       const users = await this.getSyncEnabledUsers()
 
@@ -313,6 +341,9 @@ export class UserTagService {
         }
       }
 
+      // Clean up migration file if both radarr AND sonarr migrations are complete
+      await this.migrationService.cleanupMigrationFileIfComplete()
+
       return results
     } catch (error) {
       this.log.error({ error }, 'Error creating Sonarr user tags:')
@@ -339,6 +370,9 @@ export class UserTagService {
     const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
+      // Run migration if needed (BLOCKING, runs before tag creation)
+      await this.ensureMigrationComplete('radarr')
+
       // Get all users with sync enabled
       const users = await this.getSyncEnabledUsers()
 
@@ -389,6 +423,9 @@ export class UserTagService {
           )
         }
       }
+
+      // Clean up migration file if both radarr AND sonarr migrations are complete
+      await this.migrationService.cleanupMigrationFileIfComplete()
 
       return results
     } catch (error) {
@@ -1024,14 +1061,7 @@ export class UserTagService {
       const watchlistItems = await this.fastify.db.getAllShowWatchlistItems()
 
       // Run migration if needed (BLOCKING, runs before tag creation)
-      const needsMigration =
-        !(await this.migrationService.checkAllInstancesMigrated('sonarr'))
-      if (needsMigration) {
-        await this.migrationService.migrateInstanceTags(
-          'sonarr',
-          existingSeries,
-        )
-      }
+      await this.ensureMigrationComplete('sonarr')
 
       // Create user tags (now uses hyphen delimiter if migration completed)
       await this.createSonarrUserTags()
@@ -1127,14 +1157,7 @@ export class UserTagService {
       const watchlistItems = await this.fastify.db.getAllMovieWatchlistItems()
 
       // Run migration if needed (BLOCKING, runs before tag creation)
-      const needsMigration =
-        !(await this.migrationService.checkAllInstancesMigrated('radarr'))
-      if (needsMigration) {
-        await this.migrationService.migrateInstanceTags(
-          'radarr',
-          existingMovies,
-        )
-      }
+      await this.ensureMigrationComplete('radarr')
 
       // Create user tags (now uses hyphen delimiter if migration completed)
       await this.createRadarrUserTags()
@@ -1976,16 +1999,18 @@ export class UserTagService {
    * Get the tag label for a user
    *
    * @param user User object containing name
-   * @returns Formatted tag label in format "{prefix}:{name}"
+   * @returns Formatted tag label in format "{prefix}-{name}"
    */
   private getUserTagLabel(user: { name: string }): string {
-    // Sanitize the username first
+    // Sanitize the username to match Radarr v6 validation: ^[a-z0-9-]+$
     const sanitizedName = user.name
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9_\-:.]/g, '_') // keep safe charset
+      .replace(/[^a-z0-9-]/g, '-') // Only keep lowercase, numbers, hyphens
+      .replace(/-+/g, '-') // Collapse multiple hyphens
+      .replace(/^-+|-+$/g, '') // Trim leading/trailing hyphens
 
-    return `${this.tagPrefix}:${sanitizedName}`
+    return `${this.tagPrefix}-${sanitizedName}`
   }
 
   /**
@@ -1995,7 +2020,7 @@ export class UserTagService {
    * @returns True if this is an application user tag
    */
   private isAppUserTag(tagLabel: string): boolean {
-    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix.toLowerCase()}:`)
+    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix.toLowerCase()}-`)
   }
 
   /**
