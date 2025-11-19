@@ -2035,7 +2035,7 @@ export class UserTagService {
 
   /**
    * Check if a tag belongs to our application's user tagging system
-   * Recognizes both standard tags (prefix-username) and fallback tags (prefix-id-{number})
+   * Recognizes standard tags, fallback tags, and degenerate migrated tags
    *
    * @param tagLabel The tag label to check
    * @returns True if this is an application user tag
@@ -2044,9 +2044,13 @@ export class UserTagService {
     const lowerTag = tagLabel.toLowerCase()
     const lowerPrefix = this.tagPrefix.toLowerCase()
 
-    // Match standard format: prefix-username (e.g., pulsarr-user-john)
-    // OR fallback format: prefix-id-{number} (e.g., pulsarr-user-id-123)
-    return lowerTag.startsWith(`${lowerPrefix}-`)
+    return (
+      // Standard format: prefix-username (e.g., pulsarr-user-john)
+      lowerTag.startsWith(`${lowerPrefix}-`) ||
+      // Degenerate migrated tag: when old tag had only special chars (e.g., "pulsarr:user:___")
+      // Migration normalizes to just the prefix (e.g., "pulsarr-user")
+      lowerTag === lowerPrefix
+    )
   }
 
   /**
