@@ -34,9 +34,6 @@ function getMigrationFilePath(): string {
   return resolve(projectRoot, 'data', '.pulsarr-tag-migration.json')
 }
 
-import type { RadarrItem } from '@root/types/radarr.types.js'
-import type { SonarrItem } from '@root/types/sonarr.types.js'
-import { extractRadarrId, extractSonarrId } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -132,18 +129,21 @@ export class TagMigrationService {
 
   /**
    * Delete the pre-migration prefix file after successful migration
+   * @returns true if file was deleted, false if it didn't exist
    */
-  private async deletePreMigrationFile(): Promise<void> {
+  private async deletePreMigrationFile(): Promise<boolean> {
     try {
       const migrationFile = getMigrationFilePath()
       await unlink(migrationFile)
       this.log.info('Deleted pre-migration prefix file')
+      return true
     } catch (error) {
       // File might already be deleted or not exist - this is fine
       this.log.debug(
         { error },
         'Could not delete pre-migration prefix file (may already be deleted)',
       )
+      return false
     }
   }
 
@@ -151,12 +151,10 @@ export class TagMigrationService {
    * Migrate tags for all instances of a given type (Radarr or Sonarr)
    *
    * @param instanceType - Type of instance to migrate ('radarr' or 'sonarr')
-   * @param existingContent - Already-fetched content items from the instance
    * @returns Array of migration results for each instance
    */
   async migrateInstanceTags(
     instanceType: 'radarr' | 'sonarr',
-    existingContent: RadarrItem[] | SonarrItem[],
   ): Promise<InstanceMigrationResult[]> {
     this.log.info(
       `Starting tag migration for ${instanceType} instances (colon -> hyphen format)`,
@@ -176,7 +174,6 @@ export class TagMigrationService {
           instanceType,
           instance.id,
           instance.name,
-          existingContent,
         )
         results.push(result)
       } catch (error) {
@@ -208,7 +205,6 @@ export class TagMigrationService {
     instanceType: 'radarr' | 'sonarr',
     instanceId: number,
     instanceName: string,
-    existingContent: RadarrItem[] | SonarrItem[],
   ): Promise<InstanceMigrationResult> {
     // Check if this instance already migrated
     // Convert instanceId to string since JSON keys are always strings
@@ -314,7 +310,6 @@ export class TagMigrationService {
 
       updates = this.buildContentUpdates(
         instanceType,
-        existingContent,
         contentMap,
         colonTags,
         tagMapping,
@@ -348,7 +343,6 @@ export class TagMigrationService {
 
       updates = this.buildContentUpdates(
         instanceType,
-        existingContent,
         contentMap,
         colonTags,
         tagMapping,
@@ -408,7 +402,13 @@ export class TagMigrationService {
     const tagMapping: TagMapping[] = []
 
     for (const oldTag of colonTags) {
-      const newLabel = oldTag.label.replace(/:/g, '-')
+      // Transform tag label to Radarr v6 compatible format
+      // Same transformation as database migration 064 and getUserTagLabel()
+      const newLabel = oldTag.label
+        .toLowerCase() // Convert to lowercase
+        .replace(/[^a-z0-9-]/g, '-') // Replace invalid chars (including colons, periods, underscores) with hyphen
+        .replace(/-+/g, '-') // Collapse multiple hyphens
+        .replace(/^-+|-+$/g, '') // Trim leading/trailing hyphens
 
       // Check if new tag already exists
       const existingNew = allTags.find((t) => t.label === newLabel)
@@ -443,10 +443,10 @@ export class TagMigrationService {
 
   /**
    * Build bulk update operations for all content with old tags
+   * Processes ALL content in Radarr/Sonarr, not just watchlist items
    */
   private buildContentUpdates(
     instanceType: 'radarr' | 'sonarr',
-    existingContent: RadarrItem[] | SonarrItem[],
     contentMap: Map<number, { id: number; tags?: number[] }>,
     colonTags: Tag[],
     tagMapping: TagMapping[],
@@ -457,18 +457,9 @@ export class TagMigrationService {
       tagIds: number[]
     }> = []
 
-    for (const item of existingContent) {
-      // Extract the service-specific ID from guids
-      const itemId =
-        instanceType === 'radarr'
-          ? extractRadarrId((item as RadarrItem).guids)
-          : extractSonarrId((item as SonarrItem).guids)
-
-      if (itemId === 0) continue
-
-      const contentDetails = contentMap.get(itemId)
-      if (!contentDetails) continue
-
+    // Process ALL content in Radarr/Sonarr, not just watchlist items
+    // This ensures we migrate tags on content that was removed from watchlist
+    for (const [contentId, contentDetails] of contentMap) {
       const currentTags = contentDetails.tags || []
 
       // Check if content has any old tags
@@ -485,9 +476,9 @@ export class TagMigrationService {
       })
 
       if (instanceType === 'radarr') {
-        updates.push({ movieId: itemId, tagIds: newTagIds })
+        updates.push({ movieId: contentId, tagIds: newTagIds })
       } else {
-        updates.push({ seriesId: itemId, tagIds: newTagIds })
+        updates.push({ seriesId: contentId, tagIds: newTagIds })
       }
     }
 
@@ -593,17 +584,29 @@ export class TagMigrationService {
 
     const instances = await manager.getAllInstances()
 
+    this.log.debug(
+      `Checking ${instanceType} migration status: ${instances.length} instances found`,
+    )
+
     if (instances.length === 0) {
       // No instances configured, consider it "migrated"
+      this.log.debug(`No ${instanceType} instances configured, returning true`)
       return true
     }
 
-    return instances.every((instance) => {
+    const allMigrated = instances.every((instance) => {
       // Convert instance.id to string since JSON keys are strings
       const migrationData =
         this.fastify.config.tagMigration?.[instanceType]?.[String(instance.id)]
-      return migrationData?.completed === true
+      const isComplete = migrationData?.completed === true
+      this.log.debug(
+        `Instance ${instance.id} (${instance.name}): completed=${isComplete}`,
+      )
+      return isComplete
     })
+
+    this.log.debug(`All ${instanceType} instances migrated: ${allMigrated}`)
+    return allMigrated
   }
 
   /**
@@ -615,10 +618,15 @@ export class TagMigrationService {
     const sonarrComplete = await this.checkAllInstancesMigrated('sonarr')
 
     if (radarrComplete && sonarrComplete) {
-      this.log.info(
-        'Both Radarr and Sonarr migrations complete, cleaning up migration file',
+      this.log.debug(
+        'Both Radarr and Sonarr migrations complete, attempting cleanup',
       )
-      await this.deletePreMigrationFile()
+      const wasDeleted = await this.deletePreMigrationFile()
+      if (wasDeleted) {
+        this.log.info(
+          'Both Radarr and Sonarr migrations complete, cleaned up migration file',
+        )
+      }
     } else {
       this.log.debug(
         `Migration file cleanup skipped - Radarr: ${radarrComplete ? 'complete' : 'pending'}, Sonarr: ${sonarrComplete ? 'complete' : 'pending'}`,
