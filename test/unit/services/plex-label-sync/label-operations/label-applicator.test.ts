@@ -45,7 +45,82 @@ describe('label-applicator', () => {
       getTrackedLabelsForRatingKey: vi.fn(),
       getWatchlistItemById: vi.fn(),
       trackPlexLabels: vi.fn(),
+      getAllUsers: vi.fn(),
     } as unknown as DatabaseService
+
+    // Mock getAllUsers to return test users
+    vi.mocked(mockDb.getAllUsers).mockResolvedValue([
+      {
+        id: 1,
+        name: 'alice',
+        can_sync: true,
+        discord_id: null,
+        notify_discord: false,
+        notify_apprise: false,
+        apprise: null,
+        alias: null,
+        notify_tautulli: false,
+        tautulli_notifier_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        name: 'bob',
+        can_sync: true,
+        discord_id: null,
+        notify_discord: false,
+        notify_apprise: false,
+        apprise: null,
+        alias: null,
+        notify_tautulli: false,
+        tautulli_notifier_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: 3,
+        name: 'charlie',
+        can_sync: true,
+        discord_id: null,
+        notify_discord: false,
+        notify_apprise: false,
+        apprise: null,
+        alias: null,
+        notify_tautulli: false,
+        tautulli_notifier_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: 4,
+        name: 'userA',
+        can_sync: true,
+        discord_id: null,
+        notify_discord: false,
+        notify_apprise: false,
+        apprise: null,
+        alias: null,
+        notify_tautulli: false,
+        tautulli_notifier_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: 5,
+        name: 'userB',
+        can_sync: true,
+        discord_id: null,
+        notify_discord: false,
+        notify_apprise: false,
+        apprise: null,
+        alias: null,
+        notify_tautulli: false,
+        tautulli_notifier_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ])
 
     const config: PlexLabelSyncConfig = {
       enabled: true,
@@ -485,7 +560,7 @@ describe('label-applicator', () => {
       ])
     })
 
-    it('should remove obsolete tag labels in remove mode', async () => {
+    it('should preserve existing tag labels in remove mode', async () => {
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadata(['pulsarr:oldtag', 'other-label']),
       )
@@ -525,12 +600,78 @@ describe('label-applicator', () => {
       )
 
       expect(result).toBe(true)
-      // Should remove oldtag, add newtag
-      expect(mockPlexServer.updateLabels).toHaveBeenCalledWith('123', [
-        'other-label',
-        'pulsarr:alice',
-        'pulsarr:newtag',
-      ])
+      // Should preserve oldtag and add newtag (tag labels are content-specific)
+      expect(mockPlexServer.updateLabels).toHaveBeenCalledWith(
+        '123',
+        expect.arrayContaining([
+          'other-label',
+          'pulsarr:alice',
+          'pulsarr:oldtag',
+          'pulsarr:newtag',
+        ]),
+      )
+    })
+
+    it('should preserve tag labels when new user adds content in remove mode', async () => {
+      // User A already has content with tag labels, User B adds same content
+      // This simulates BOTH users being synced together (content-centric approach)
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
+        createMockPlexMetadata([
+          'pulsarr:userA',
+          'pulsarr:action',
+          'pulsarr:thriller',
+        ]),
+      )
+      vi.mocked(mockPlexServer.updateLabels).mockResolvedValue(true)
+      vi.mocked(mockDb.getWatchlistItemById).mockResolvedValue({
+        user_id: 2,
+        guids: ['imdb:tt0111161'],
+        type: 'movie',
+        title: 'Test Movie',
+        key: 'test-key-1',
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+
+      const depsWithTagSync = {
+        ...baseDeps,
+        config: {
+          ...baseDeps.config,
+          tagSync: {
+            enabled: true,
+            syncRadarrTags: true,
+            syncSonarrTags: false,
+          },
+        },
+      }
+
+      // In a content-centric sync, BOTH users would be in the batch
+      const users = [
+        { user_id: 4, username: 'userA', watchlist_id: 1 },
+        { user_id: 5, username: 'userB', watchlist_id: 2 },
+      ]
+      const webhookTags = ['action', 'thriller']
+
+      const result = await applyLabelsToSingleItem(
+        '123',
+        users,
+        depsWithTagSync,
+        webhookTags,
+        'movie',
+      )
+
+      expect(result).toBe(true)
+      // Should preserve both user labels and tag labels
+      expect(mockPlexServer.updateLabels).toHaveBeenCalledWith(
+        '123',
+        expect.arrayContaining([
+          'pulsarr:userA',
+          'pulsarr:userB',
+          'pulsarr:action',
+          'pulsarr:thriller',
+        ]),
+      )
     })
   })
 

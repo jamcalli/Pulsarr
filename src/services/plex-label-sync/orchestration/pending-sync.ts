@@ -95,12 +95,8 @@ export async function processPendingLabelSyncs(
               return syncResult
             }
 
-            // Get user information
-            const user = await deps.db
-              .knex('users')
-              .where('id', pendingSync.user_id)
-              .select('id', 'name')
-              .first()
+            // Get user information from pre-fetched map
+            const user = userMap.get(pendingSync.user_id)
 
             if (!user) {
               // Remove from pending queue if user doesn't exist

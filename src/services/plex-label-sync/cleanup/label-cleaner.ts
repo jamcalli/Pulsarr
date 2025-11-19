@@ -118,38 +118,43 @@ export async function cleanupLabelsForWatchlistItems(
   )
 
   try {
+    // Get all users to map labels to usernames
+    const allUsers = await deps.db.getAllUsers()
+    const userNameMap = new Map(allUsers.map((user) => [user.id, user.name]))
+
     // Store parsed data for cleanup operations
     const itemDataMap = new Map<
       number,
       { guids: string[]; contentType: 'movie' | 'show' }
     >() // Map item.id -> parsed data for cleanup
 
+    // Store ALL tracking records by content to check for other users
+    const allTrackingByContent = new Map<string, PlexLabelTracking[]>()
+
     // Get all tracked labels for these watchlist items
     const trackedLabels = []
     for (const item of watchlistItems) {
-      // Get the full watchlist item to access the guids
-      const fullItem = await deps.db.getWatchlistItemById(item.id)
-      if (!fullItem || !fullItem.guids) {
+      // Use data already in item (guids and contentType are provided in parameter)
+      if (!item.guids || item.guids.length === 0) {
         deps.logger.debug(
           {
             itemId: item.id,
             title: item.title,
-            hasFullItem: !!fullItem,
-            hasGuids: !!fullItem?.guids,
+            hasGuids: !!item.guids,
           },
-          'Skipping item - no full item or guids found',
+          'Skipping item - no guids found',
         )
         continue
       }
 
       // Parse GUIDs to get the primary GUID (same logic as label application)
-      const parsedGuids = parseGuids(fullItem.guids)
+      const parsedGuids = parseGuids(item.guids)
       if (parsedGuids.length === 0) {
         deps.logger.debug(
           {
             itemId: item.id,
             title: item.title,
-            rawGuids: fullItem.guids,
+            rawGuids: item.guids,
           },
           'Skipping item - no parsed GUIDs available',
         )
@@ -157,10 +162,10 @@ export async function cleanupLabelsForWatchlistItems(
       }
 
       const sortedGuids = [...parsedGuids].sort()
-      const contentKey = `${fullItem.type}-${JSON.stringify(sortedGuids)}`
+      const contentKey = `${item.contentType}-${JSON.stringify(sortedGuids)}`
       itemDataMap.set(item.id, {
         guids: parsedGuids,
-        contentType: fullItem.type === 'show' ? 'show' : 'movie',
+        contentType: item.contentType,
       })
 
       deps.logger.debug(
@@ -169,8 +174,12 @@ export async function cleanupLabelsForWatchlistItems(
 
       const labels = await deps.db.getTrackedLabelsForContent(
         parsedGuids,
-        fullItem.type as 'movie' | 'show',
+        item.contentType,
       )
+
+      // Store ALL tracking records for this content (we need to check if other users have it)
+      allTrackingByContent.set(contentKey, labels)
+
       deps.logger.debug(
         {
           allTrackingRecords: labels.map((l) => ({
@@ -234,22 +243,103 @@ export async function cleanupLabelsForWatchlistItems(
       return
     }
 
-    // Group by rating key to batch operations
-    const labelsByRatingKey = new Map<string, string[]>()
+    // Group labels by rating key and determine which labels to remove
+    // Strategy: Only remove user-specific labels, preserve tag labels if other users still have the content
+    const labelsToRemoveByRatingKey = new Map<string, string[]>()
+
     for (const tracking of trackedLabels) {
-      const existingLabels =
-        labelsByRatingKey.get(tracking.plex_rating_key) ?? []
-      // Add all labels from this tracking record (dedupe to avoid redundant Plex calls)
-      labelsByRatingKey.set(
-        tracking.plex_rating_key,
-        Array.from(new Set([...existingLabels, ...tracking.labels_applied])),
+      const ratingKey = tracking.plex_rating_key
+      const userId = tracking.user_id
+
+      if (userId === null) {
+        deps.logger.warn(
+          {
+            ratingKey,
+          },
+          'Tracking record has null user_id, skipping label removal',
+        )
+        continue
+      }
+
+      const userName = userNameMap.get(userId)
+
+      if (!userName) {
+        deps.logger.warn(
+          {
+            userId,
+            ratingKey,
+          },
+          'Could not find username for user ID, skipping label removal',
+        )
+        continue
+      }
+
+      // Build the user label for this user
+      const userLabel = `${deps.config.labelPrefix}:${userName}`
+
+      // Find the content key for this tracking record to check other users
+      const itemForThisTracking = watchlistItems.find(
+        (item) => item.user_id === userId,
+      )
+      if (!itemForThisTracking) continue
+
+      const itemData = itemDataMap.get(itemForThisTracking.id)
+      if (!itemData) continue
+
+      const sortedGuids = [...itemData.guids].sort()
+      const contentKey = `${itemData.contentType}-${JSON.stringify(sortedGuids)}`
+
+      // Get all tracking records for this content
+      const allTrackingForContent = allTrackingByContent.get(contentKey) || []
+
+      // Find other users who still have this content
+      const otherUsersWithContent = allTrackingForContent.filter(
+        (t) => t.user_id !== null && t.user_id !== userId,
+      )
+
+      // Determine which labels to remove
+      const labelsToRemove: string[] = []
+
+      for (const label of tracking.labels_applied) {
+        // Check if this is the user's label
+        if (label.toLowerCase() === userLabel.toLowerCase()) {
+          // Always remove the user's own label
+          labelsToRemove.push(label)
+        } else if (
+          isAppUserLabel(label, deps.config.labelPrefix) &&
+          otherUsersWithContent.length === 0
+        ) {
+          // This is a tag label and no other users have this content
+          // Remove tag labels only if this was the last user
+          labelsToRemove.push(label)
+        }
+        // Otherwise preserve the label (it's a tag label and other users still have the content)
+      }
+
+      // Add to removal map
+      const existing = labelsToRemoveByRatingKey.get(ratingKey) || []
+      labelsToRemoveByRatingKey.set(
+        ratingKey,
+        Array.from(new Set([...existing, ...labelsToRemove])),
+      )
+
+      deps.logger.debug(
+        {
+          ratingKey,
+          userLabel,
+          allLabelsInTracking: tracking.labels_applied,
+          labelsToRemove,
+          otherUsersCount: otherUsersWithContent.length,
+          contentKey,
+        },
+        'Determined labels to remove for user',
       )
     }
 
     deps.logger.debug(
       {
-        ratingKeys: Array.from(labelsByRatingKey.keys()),
-        labelsByRatingKey: Array.from(labelsByRatingKey.entries()).map(
+        ratingKeys: Array.from(labelsToRemoveByRatingKey.keys()),
+        labelsByRatingKey: Array.from(labelsToRemoveByRatingKey.entries()).map(
           ([ratingKey, labels]) => ({
             ratingKey,
             labelCount: labels.length,
@@ -257,7 +347,7 @@ export async function cleanupLabelsForWatchlistItems(
           }),
         ),
       },
-      'Grouped labels by rating key for batch removal',
+      'Grouped labels by rating key for removal',
     )
 
     // Remove labels from Plex content
@@ -266,49 +356,57 @@ export async function cleanupLabelsForWatchlistItems(
     let removedCount = 0
 
     const labelRemovalResults = await Promise.allSettled(
-      Array.from(labelsByRatingKey.entries()).map(([ratingKey, labels]) =>
-        limit(async () => {
-          try {
-            const success = await deps.plexServer.removeSpecificLabels(
-              ratingKey,
-              labels,
-            )
-            if (success) {
-              deps.logger.debug(
+      Array.from(labelsToRemoveByRatingKey.entries()).map(
+        ([ratingKey, labels]) =>
+          limit(async () => {
+            try {
+              const success = await deps.plexServer.removeSpecificLabels(
+                ratingKey,
+                labels,
+              )
+              if (success) {
+                deps.logger.debug(
+                  {
+                    ratingKey,
+                    labels,
+                  },
+                  `Removed ${labels.length} labels from Plex content`,
+                )
+                return labels.length
+              }
+              deps.logger.warn(
                 {
                   ratingKey,
                   labels,
                 },
-                `Removed ${labels.length} labels from Plex content`,
+                `Failed to remove labels from Plex content ${ratingKey}`,
               )
-              return labels.length
+              return 0
+            } catch (error) {
+              deps.logger.warn(
+                {
+                  error,
+                  ratingKey,
+                },
+                `Failed to remove labels from Plex content ${ratingKey}`,
+              )
+              return 0
             }
-            deps.logger.warn(
-              {
-                ratingKey,
-                labels,
-              },
-              `Failed to remove labels from Plex content ${ratingKey}`,
-            )
-            return 0
-          } catch (error) {
-            deps.logger.warn(
-              {
-                error,
-                ratingKey,
-              },
-              `Failed to remove labels from Plex content ${ratingKey}`,
-            )
-            return 0
-          }
-        }),
+          }),
       ),
     )
 
     // Aggregate successful removals
+    let successfulRatingKeys = 0
+    let failedRatingKeys = 0
     for (const result of labelRemovalResults) {
-      if (result.status === 'fulfilled') {
+      if (result.status === 'fulfilled' && result.value > 0) {
         removedCount += result.value
+        successfulRatingKeys++
+      } else if (result.status === 'fulfilled') {
+        failedRatingKeys++
+      } else {
+        failedRatingKeys++
       }
     }
 
@@ -325,17 +423,15 @@ export async function cleanupLabelsForWatchlistItems(
     }
 
     const cleanupDuration = Date.now() - cleanupStartTime
-    const successRate =
-      trackedLabels.length > 0
-        ? (removedCount / trackedLabels.length) * 100
-        : 100
 
     deps.logger.info(
       {
-        trackedLabelsRemoved: trackedLabels.length,
-        plexLabelsRemoved: removedCount,
+        trackingRecords: trackedLabels.length,
+        labelsRemoved: removedCount,
+        ratingKeysProcessed: successfulRatingKeys + failedRatingKeys,
+        successful: successfulRatingKeys,
+        failed: failedRatingKeys,
         duration: `${cleanupDuration}ms`,
-        successRate: `${successRate.toFixed(1)}%`,
         averageTimePerItem: `${(cleanupDuration / watchlistItems.length).toFixed(1)}ms`,
       },
       `Completed label cleanup for ${watchlistItems.length} deleted watchlist items`,

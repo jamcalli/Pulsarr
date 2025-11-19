@@ -1,9 +1,13 @@
 import type { RadarrMovieWithTags } from '@root/types/plex-label-sync.types.js'
 import type { PlexMetadata } from '@root/types/plex-server.types.js'
 import type { RadarrMovie } from '@root/types/radarr.types.js'
-import { matchPlexMovieToRadarr } from '@services/plex-label-sync/matching/radarr-matcher.js'
+import {
+  buildRadarrMatchingCache,
+  clearRadarrMatchingCache,
+  matchPlexMovieToRadarr,
+} from '@services/plex-label-sync/matching/radarr-matcher.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
 // Helper to create minimal PlexMetadata with Media for radarr matching
@@ -68,6 +72,10 @@ describe('radarr-matcher', () => {
     } as unknown as PlexServerService
   })
 
+  afterEach(() => {
+    clearRadarrMatchingCache()
+  })
+
   describe('matchPlexMovieToRadarr', () => {
     it('should match Plex movie to Radarr movie by exact file path', async () => {
       const plexItem = {
@@ -87,6 +95,8 @@ describe('radarr-matcher', () => {
           instanceName: 'radarr-main',
         },
       ]
+
+      buildRadarrMatchingCache(radarrMovies)
 
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia([
@@ -132,6 +142,8 @@ describe('radarr-matcher', () => {
         },
       ]
 
+      buildRadarrMatchingCache(radarrMovies)
+
       // Plex returns Windows-style path
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia(['\\movies\\Test Movie\\file.mkv']),
@@ -165,6 +177,8 @@ describe('radarr-matcher', () => {
           instanceName: 'radarr-main',
         },
       ]
+
+      buildRadarrMatchingCache(radarrMovies)
 
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue({
         ratingKey: '123',
@@ -231,6 +245,8 @@ describe('radarr-matcher', () => {
         },
       ]
 
+      buildRadarrMatchingCache(radarrMovies)
+
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
       )
@@ -278,6 +294,8 @@ describe('radarr-matcher', () => {
         },
       ]
 
+      buildRadarrMatchingCache(radarrMovies)
+
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
       )
@@ -317,6 +335,8 @@ describe('radarr-matcher', () => {
         },
       ]
 
+      buildRadarrMatchingCache(radarrMovies)
+
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
       )
@@ -349,6 +369,8 @@ describe('radarr-matcher', () => {
           instanceName: 'radarr-main',
         },
       ]
+
+      buildRadarrMatchingCache(radarrMovies)
 
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia([
@@ -386,6 +408,8 @@ describe('radarr-matcher', () => {
         },
       ]
 
+      buildRadarrMatchingCache(radarrMovies)
+
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia([
           '/movies/Test Movie-HD.mkv',
@@ -422,6 +446,8 @@ describe('radarr-matcher', () => {
         },
       ]
 
+      buildRadarrMatchingCache(radarrMovies)
+
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia([undefined, '/movies/Test Movie.mkv']),
       )
@@ -436,7 +462,7 @@ describe('radarr-matcher', () => {
       expect(result).toEqual(radarrMovies[0])
     })
 
-    it('should return first matching Radarr movie when multiple match', async () => {
+    it('should return last matching Radarr movie when multiple have same path', async () => {
       const plexItem = {
         ratingKey: '123',
         title: 'Test Movie',
@@ -465,6 +491,8 @@ describe('radarr-matcher', () => {
         },
       ]
 
+      buildRadarrMatchingCache(radarrMovies)
+
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
       )
@@ -476,7 +504,8 @@ describe('radarr-matcher', () => {
         mockLogger,
       )
 
-      expect(result).toEqual(radarrMovies[0])
+      // With Map-based caching, the last entry with the same path wins
+      expect(result).toEqual(radarrMovies[1])
     })
 
     it('should handle error when getting metadata', async () => {
@@ -513,6 +542,8 @@ describe('radarr-matcher', () => {
 
       const radarrMovies: RadarrMovieWithTags[] = []
 
+      buildRadarrMatchingCache(radarrMovies)
+
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
       )
@@ -545,6 +576,8 @@ describe('radarr-matcher', () => {
           instanceName: 'radarr-main',
         },
       ]
+
+      buildRadarrMatchingCache(radarrMovies)
 
       vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
         createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
