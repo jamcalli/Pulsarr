@@ -319,16 +319,18 @@ export class TagMigrationService {
     }> = []
 
     if (instanceType === 'radarr') {
-      const radarrService = service as {
-        getFromRadarr(
-          endpoint: string,
-        ): Promise<Array<{ id: number; tags?: number[] }>>
-        bulkUpdateMovieTags(
-          updates: Array<{ movieId: number; tagIds: number[] }>,
-        ): Promise<void>
+      const radarrService =
+        this.fastify.radarrManager.getRadarrService(instanceId)
+      if (!radarrService) {
+        throw new Error(
+          `Could not get Radarr service for instance ${instanceId}`,
+        )
       }
 
-      const allMovies = await radarrService.getFromRadarr('movie')
+      const allMovies =
+        await radarrService.getFromRadarr<
+          Array<{ id: number; tags?: number[] }>
+        >('movie')
       const contentMap = new Map(allMovies.map((c) => [c.id, c]))
 
       updates = this.buildContentUpdates(instanceType, contentMap, tagMapping)
@@ -347,16 +349,18 @@ export class TagMigrationService {
         await radarrService.bulkUpdateMovieTags(movieUpdates)
       }
     } else {
-      const sonarrService = service as {
-        getFromSonarr(
-          endpoint: string,
-        ): Promise<Array<{ id: number; tags?: number[] }>>
-        bulkUpdateSeriesTags(
-          updates: Array<{ seriesId: number; tagIds: number[] }>,
-        ): Promise<void>
+      const sonarrService =
+        this.fastify.sonarrManager.getSonarrService(instanceId)
+      if (!sonarrService) {
+        throw new Error(
+          `Could not get Sonarr service for instance ${instanceId}`,
+        )
       }
 
-      const allSeries = await sonarrService.getFromSonarr('series')
+      const allSeries =
+        await sonarrService.getFromSonarr<
+          Array<{ id: number; tags?: number[] }>
+        >('series')
       const contentMap = new Map(allSeries.map((c) => [c.id, c]))
 
       updates = this.buildContentUpdates(instanceType, contentMap, tagMapping)
