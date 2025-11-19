@@ -44,31 +44,23 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           // Check if autoStart parameter is provided and is true
           if (request.body?.autoStart === true) {
             try {
-              // Get current config
-              const currentConfig = await fastify.db.getConfig()
-              if (currentConfig) {
-                // Update the _isReady flag
-                const configUpdate = {
-                  ...currentConfig,
-                  _isReady: true,
-                }
+              // Get current config from in-memory source of truth
+              const currentConfig = fastify.config
 
-                // Update in-memory config first
+              // Update the _isReady flag
+              const configUpdate = {
+                ...currentConfig,
+                _isReady: true,
+              }
+
+              // Save the updated config to database first
+              const dbUpdated = await fastify.db.updateConfig(configUpdate)
+              if (dbUpdated) {
+                // Update the runtime config if database update was successful
                 await fastify.updateConfig(configUpdate)
-
-                // Then persist to database
-                const dbUpdated = await fastify.db.updateConfig(configUpdate)
-                if (dbUpdated) {
-                  fastify.log.info('Updated config _isReady to true')
-                } else {
-                  // Rollback in-memory config if DB update fails
-                  await fastify.updateConfig({ _isReady: false })
-                  fastify.log.warn(
-                    'Failed to update _isReady config value, rolled back',
-                  )
-                }
+                fastify.log.info('Updated config _isReady to true')
               } else {
-                fastify.log.warn('Could not find config to update _isReady')
+                fastify.log.warn('Failed to update _isReady config value')
               }
             } catch (configErr) {
               // Log config update error but don't fail the workflow start

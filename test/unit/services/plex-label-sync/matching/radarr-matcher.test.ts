@@ -611,5 +611,87 @@ describe('radarr-matcher', () => {
         'Found exact file path match',
       )
     })
+
+    it('should work without pre-building cache (lazy initialization)', async () => {
+      const plexItem = {
+        ratingKey: '123',
+        title: 'Test Movie',
+      }
+
+      const radarrMovies: RadarrMovieWithTags[] = [
+        {
+          instanceId: 1,
+          movie: createMockRadarrMovie(
+            1,
+            'Test Movie',
+            '/movies/Test Movie.mkv',
+          ),
+          tags: ['action'],
+          instanceName: 'radarr-main',
+        },
+      ]
+
+      // Do NOT call buildRadarrMatchingCache - test lazy initialization
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
+        createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
+      )
+
+      const result = await matchPlexMovieToRadarr(
+        plexItem,
+        radarrMovies,
+        mockPlexServer,
+        mockLogger,
+      )
+
+      expect(result).toEqual(radarrMovies[0])
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        expect.objectContaining({
+          radarrMovieCount: 1,
+        }),
+        'Cache not initialized, building on demand',
+      )
+    })
+
+    it('should not rebuild cache if already initialized', async () => {
+      const plexItem = {
+        ratingKey: '123',
+        title: 'Test Movie',
+      }
+
+      const radarrMovies: RadarrMovieWithTags[] = [
+        {
+          instanceId: 1,
+          movie: createMockRadarrMovie(
+            1,
+            'Test Movie',
+            '/movies/Test Movie.mkv',
+          ),
+          tags: ['action'],
+          instanceName: 'radarr-main',
+        },
+      ]
+
+      // Pre-build cache
+      buildRadarrMatchingCache(radarrMovies)
+
+      vi.mocked(mockPlexServer.getMetadata).mockResolvedValue(
+        createMockPlexMetadataWithMedia(['/movies/Test Movie.mkv']),
+      )
+
+      await matchPlexMovieToRadarr(
+        plexItem,
+        radarrMovies,
+        mockPlexServer,
+        mockLogger,
+      )
+
+      // Should NOT log cache initialization message
+      expect(mockLogger.debug).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          radarrMovieCount: expect.any(Number),
+        }),
+        'Cache not initialized, building on demand',
+      )
+    })
   })
 })

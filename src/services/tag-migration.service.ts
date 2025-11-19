@@ -472,11 +472,12 @@ export class TagMigrationService {
 
       if (!hasOldTags) continue
 
-      // Replace old tag IDs with new tag IDs
-      const newTagIds = currentTags.map((tagId: number) => {
+      // Replace old tag IDs with new tag IDs and dedupe to avoid duplicates
+      const mappedTagIds = currentTags.map((tagId: number) => {
         const mapping = tagMapping.find((m) => m.oldId === tagId)
         return mapping?.newId || tagId
       })
+      const newTagIds = [...new Set(mappedTagIds)]
 
       if (instanceType === 'radarr') {
         updates.push({ movieId: contentId, tagIds: newTagIds })
@@ -525,6 +526,11 @@ export class TagMigrationService {
       sonarr: {},
     }
 
+    // Ensure per-type map exists to avoid runtime errors if config is partially initialized
+    if (!existingMigration[instanceType]) {
+      existingMigration[instanceType] = {}
+    }
+
     // Update for this instance (convert instanceId to string since JSON keys are strings)
     existingMigration[instanceType][String(instanceId)] = {
       completed: true,
@@ -533,13 +539,13 @@ export class TagMigrationService {
       contentUpdated,
     }
 
-    // Update in-memory config first
-    await this.fastify.updateConfig({
+    // Persist to database first
+    await this.fastify.db.updateConfig({
       tagMigration: existingMigration,
     })
 
-    // Then persist to database
-    await this.fastify.db.updateConfig({
+    // Then update in-memory config
+    await this.fastify.updateConfig({
       tagMigration: existingMigration,
     })
   }
@@ -571,11 +577,11 @@ export class TagMigrationService {
       }
 
       if (Object.keys(updates).length > 0) {
-        // Update in-memory config first
-        await this.fastify.updateConfig(updates)
-
-        // Then persist to database
+        // Persist to database first
         await this.fastify.db.updateConfig(updates)
+
+        // Then update in-memory config
+        await this.fastify.updateConfig(updates)
         this.log.info(
           `Transformed prefixes: ${currentPrefix} -> ${updates.tagPrefix || currentPrefix}, ${currentRemovedPrefix} -> ${updates.removedTagPrefix || currentRemovedPrefix}`,
         )
