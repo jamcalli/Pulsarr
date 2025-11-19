@@ -110,6 +110,18 @@ export const SEED_ADMIN_USERS = [
  * Seeds the users and admin_users tables
  */
 export async function seedUsers(knex: Knex): Promise<void> {
+  // Insert users - SQLite will respect explicit IDs
   await knex('users').insert(SEED_USERS)
   await knex('admin_users').insert(SEED_ADMIN_USERS)
+
+  // Update sqlite_sequence to ensure future auto-increments start after our seed data
+  // This is necessary because SQLite's autoincrement doesn't automatically update
+  // when you insert with explicit IDs
+  const maxUserId = Math.max(...SEED_USERS.map((u) => u.id))
+  const maxAdminId = Math.max(...SEED_ADMIN_USERS.map((u) => u.id))
+
+  await knex.raw(
+    `INSERT OR REPLACE INTO sqlite_sequence (name, seq) VALUES ('users', ?), ('admin_users', ?)`,
+    [maxUserId, maxAdminId],
+  )
 }

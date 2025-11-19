@@ -44,26 +44,32 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           // Check if autoStart parameter is provided and is true
           if (request.body?.autoStart === true) {
             try {
-              // Get current config
-              const currentConfig = await fastify.db.getConfig()
-              if (currentConfig) {
-                // Update the _isReady flag
-                const configUpdate = {
-                  ...currentConfig,
-                  _isReady: true,
-                }
+              // Get current config from in-memory source of truth
+              const currentConfig = fastify.config
 
-                // Save the updated config
-                const dbUpdated = await fastify.db.updateConfig(configUpdate)
-                if (dbUpdated) {
-                  // Update the runtime config if database update was successful
+              // Update the _isReady flag
+              const configUpdate = {
+                ...currentConfig,
+                _isReady: true,
+              }
+
+              // Save the updated config to database first
+              const dbUpdated = await fastify.db.updateConfig(configUpdate)
+              if (dbUpdated) {
+                // Update the runtime config if database update was successful
+                try {
                   await fastify.updateConfig(configUpdate)
                   fastify.log.info('Updated config _isReady to true')
-                } else {
-                  fastify.log.warn('Failed to update _isReady config value')
+                } catch (memUpdateErr) {
+                  fastify.log.error(
+                    { error: memUpdateErr },
+                    'DB updated but failed to sync in-memory config - restart may be needed',
+                  )
+                  // In-memory config is stale but DB has correct value
+                  // Next server restart will load correct value from DB
                 }
               } else {
-                fastify.log.warn('Could not find config to update _isReady')
+                fastify.log.warn('Failed to update _isReady config value')
               }
             } catch (configErr) {
               // Log config update error but don't fail the workflow start

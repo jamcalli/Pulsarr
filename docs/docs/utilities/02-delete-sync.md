@@ -82,14 +82,14 @@ The **Required Tag Regex** option provides an additional layer of control for ta
 **Multi-instance deletion sync:**
 ```
 Scenario: Two Pulsarr instances sharing Sonarr/Radarr
-Instance 1: Removal prefix = pulsarr1:removed, Regex = pulsarr2:removed
-Instance 2: Removal prefix = pulsarr2:removed, Regex = pulsarr1:removed
+Instance 1: Removal prefix = pulsarr1-removed, Regex = pulsarr2-removed
+Instance 2: Removal prefix = pulsarr2-removed, Regex = pulsarr1-removed
 Result: Content is only deleted when BOTH instances mark it for removal
 ```
 
 **User-specific deletion:**
 ```
-Pattern: ^pulsarr:user:john$
+Pattern: ^pulsarr-user-john$
 Result: Only delete content tagged with removal tag AND specific user tag
 ```
 

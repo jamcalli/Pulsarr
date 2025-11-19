@@ -8,7 +8,9 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { normalizeTagLabel } from '@utils/tag-normalization.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { TagMigrationService } from './tag-migration.service.js'
 
 /**
  * Tag structure returned from Sonarr/Radarr APIs
@@ -65,10 +67,15 @@ export class UserTagService {
     return createServiceLogger(this.baseLog, 'USER_TAG')
   }
 
+  /** Tag migration service for migrating colon-based tags to hyphen-based format */
+  private readonly migrationService: TagMigrationService
+
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.migrationService = new TagMigrationService(baseLog, fastify)
+  }
 
   /**
    * Get all users with sync enabled
@@ -76,6 +83,31 @@ export class UserTagService {
   private async getSyncEnabledUsers(): Promise<User[]> {
     const allUsers = await this.fastify.db.getAllUsers()
     return allUsers.filter((user) => user.can_sync)
+  }
+
+  /**
+   * Ensure tag migration is complete for the given instance type
+   * Runs migration if needed and logs progress
+   *
+   * @param instanceType - Type of instance ('radarr' or 'sonarr')
+   */
+  private async ensureMigrationComplete(
+    instanceType: 'radarr' | 'sonarr',
+  ): Promise<void> {
+    const needsMigration =
+      !(await this.migrationService.checkAllInstancesMigrated(instanceType))
+    const serviceName =
+      instanceType.charAt(0).toUpperCase() + instanceType.slice(1)
+
+    this.log.debug(
+      `${serviceName} migration check: needsMigration=${needsMigration}`,
+    )
+
+    if (needsMigration) {
+      this.log.info(`Starting ${serviceName} tag migration (colon -> hyphen)`)
+      await this.migrationService.migrateInstanceTags(instanceType)
+      this.log.info(`Completed ${serviceName} tag migration`)
+    }
   }
 
   /**
@@ -103,7 +135,7 @@ export class UserTagService {
    * Get config value for tag prefix
    */
   private get tagPrefix(): string {
-    return this.fastify.config.tagPrefix || 'pulsarr:user'
+    return this.fastify.config.tagPrefix || 'pulsarr-user'
   }
 
   /**
@@ -117,7 +149,7 @@ export class UserTagService {
    * Get config value for removed tag prefix
    */
   private get removedTagPrefix(): string {
-    return this.fastify.config.removedTagPrefix || 'pulsarr:removed'
+    return this.fastify.config.removedTagPrefix || 'pulsarr-removed'
   }
 
   /**
@@ -256,6 +288,9 @@ export class UserTagService {
     const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
+      // Run migration if needed (BLOCKING, runs before tag creation)
+      await this.ensureMigrationComplete('sonarr')
+
       // Get all users with sync enabled
       const users = await this.getSyncEnabledUsers()
 
@@ -307,6 +342,9 @@ export class UserTagService {
         }
       }
 
+      // Clean up migration file if both radarr AND sonarr migrations are complete
+      await this.migrationService.cleanupMigrationFileIfComplete()
+
       return results
     } catch (error) {
       this.log.error({ error }, 'Error creating Sonarr user tags:')
@@ -333,6 +371,9 @@ export class UserTagService {
     const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
+      // Run migration if needed (BLOCKING, runs before tag creation)
+      await this.ensureMigrationComplete('radarr')
+
       // Get all users with sync enabled
       const users = await this.getSyncEnabledUsers()
 
@@ -383,6 +424,9 @@ export class UserTagService {
           )
         }
       }
+
+      // Clean up migration file if both radarr AND sonarr migrations are complete
+      await this.migrationService.cleanupMigrationFileIfComplete()
 
       return results
     } catch (error) {
@@ -1011,14 +1055,17 @@ export class UserTagService {
         })
       }
 
-      // Create user tags first
-      await this.createSonarrUserTags()
-
-      // Fetch all shows and series needed for tagging
+      // Fetch all shows and series needed for tagging (fetch BEFORE migration)
       const existingSeries =
         await this.fastify.sonarrManager.fetchAllSeries(true)
 
       const watchlistItems = await this.fastify.db.getAllShowWatchlistItems()
+
+      // Run migration if needed (BLOCKING, runs before tag creation)
+      await this.ensureMigrationComplete('sonarr')
+
+      // Create user tags (now uses hyphen delimiter if migration completed)
+      await this.createSonarrUserTags()
 
       // Count total series to process for progress reporting
       const totalSeries = existingSeries.length
@@ -1054,6 +1101,9 @@ export class UserTagService {
           message: `Completed Sonarr tag sync: tagged ${results.tagged} series, skipped ${results.skipped}, failed ${results.failed}`,
         })
       }
+
+      // Clean up migration file if both radarr and sonarr are done
+      await this.migrationService.cleanupMigrationFileIfComplete()
 
       return results
     } catch (error) {
@@ -1101,14 +1151,17 @@ export class UserTagService {
         })
       }
 
-      // Create user tags first
-      await this.createRadarrUserTags()
-
-      // Fetch all movies and watchlist items needed for tagging
+      // Fetch all movies and watchlist items needed for tagging (fetch BEFORE migration)
       const existingMovies =
         await this.fastify.radarrManager.fetchAllMovies(true)
 
       const watchlistItems = await this.fastify.db.getAllMovieWatchlistItems()
+
+      // Run migration if needed (BLOCKING, runs before tag creation)
+      await this.ensureMigrationComplete('radarr')
+
+      // Create user tags (now uses hyphen delimiter if migration completed)
+      await this.createRadarrUserTags()
 
       // Count total movies to process for progress reporting
       const totalMovies = existingMovies.length
@@ -1144,6 +1197,9 @@ export class UserTagService {
           message: `Completed Radarr tag sync: tagged ${results.tagged} movies, skipped ${results.skipped}, failed ${results.failed}`,
         })
       }
+
+      // Clean up migration file if both radarr and sonarr are done
+      await this.migrationService.cleanupMigrationFileIfComplete()
 
       return results
     } catch (error) {
@@ -1257,6 +1313,10 @@ export class UserTagService {
     }
 
     try {
+      // Ensure migration is complete before cleanup to handle legacy colon-based tags
+      await this.ensureMigrationComplete('radarr')
+      await this.ensureMigrationComplete('sonarr')
+
       // Get all current users with sync enabled
       const users = await this.getSyncEnabledUsers()
       const validUserTagLabels = new Set(
@@ -1317,6 +1377,9 @@ export class UserTagService {
         instances: 0,
       }
     }
+
+    // Ensure migration is complete before removal to handle legacy colon-based tags
+    await this.ensureMigrationComplete('sonarr')
 
     const results = {
       itemsProcessed: 0,
@@ -1608,6 +1671,9 @@ export class UserTagService {
         instances: 0,
       }
     }
+
+    // Ensure migration is complete before removal to handle legacy colon-based tags
+    await this.ensureMigrationComplete('radarr')
 
     const results = {
       itemsProcessed: 0,
@@ -1943,27 +2009,45 @@ export class UserTagService {
   /**
    * Get the tag label for a user
    *
-   * @param user User object containing name
-   * @returns Formatted tag label in format "{prefix}:{name}"
+   * @param user User object containing name and id
+   * @returns Formatted tag label in format "{prefix}-{name}" or "{prefix}-id-{id}" for degenerate names
    */
-  private getUserTagLabel(user: { name: string }): string {
-    // Sanitize the username first
-    const sanitizedName = user.name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9_\-:.]/g, '_') // keep safe charset
+  private getUserTagLabel(user: User): string {
+    // Sanitize the username to match Radarr v6 validation: ^[a-z0-9-]+$
+    // Uses shared normalization utility (same logic as tag migration and database migration 064)
+    const sanitizedName = normalizeTagLabel(user.name.trim())
 
-    return `${this.tagPrefix}:${sanitizedName}`
+    // Handle degenerate usernames that sanitize to empty string
+    // (e.g., usernames with only special characters like "@@@" or unicode)
+    if (sanitizedName === '') {
+      this.log.warn(
+        { userId: user.id, userName: user.name },
+        `Username "${user.name}" sanitized to empty string, using fallback tag: ${this.tagPrefix}-id-${user.id}`,
+      )
+      return `${this.tagPrefix}-id-${user.id}`
+    }
+
+    return `${this.tagPrefix}-${sanitizedName}`
   }
 
   /**
    * Check if a tag belongs to our application's user tagging system
+   * Recognizes standard tags, fallback tags, and degenerate migrated tags
    *
    * @param tagLabel The tag label to check
    * @returns True if this is an application user tag
    */
   private isAppUserTag(tagLabel: string): boolean {
-    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix.toLowerCase()}:`)
+    const lowerTag = tagLabel.toLowerCase()
+    const lowerPrefix = this.tagPrefix.toLowerCase()
+
+    return (
+      // Standard format: prefix-username (e.g., pulsarr-user-john)
+      lowerTag.startsWith(`${lowerPrefix}-`) ||
+      // Degenerate migrated tag: when old tag had only special chars (e.g., "pulsarr:user:___")
+      // Migration normalizes to just the prefix (e.g., "pulsarr-user")
+      lowerTag === lowerPrefix
+    )
   }
 
   /**
