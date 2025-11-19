@@ -296,6 +296,29 @@ export const ConfigSchema = z.object({
   cleanupOrphanedTags: z.boolean().optional(),
   tagPrefix: TagPrefixSchema.optional(),
   // Note: removedTagMode and removedTagPrefix already exist above for delete sync compatibility
+  // Tag Migration Configuration - tracks Radarr v6/Sonarr tag format migration (colon -> hyphen)
+  tagMigration: z
+    .object({
+      radarr: z.record(
+        z.string(),
+        z.object({
+          completed: z.boolean(),
+          migratedAt: z.string(),
+          tagsMigrated: z.number(),
+          contentUpdated: z.number(),
+        }),
+      ),
+      sonarr: z.record(
+        z.string(),
+        z.object({
+          completed: z.boolean(),
+          migratedAt: z.string(),
+          tagsMigrated: z.number(),
+          contentUpdated: z.number(),
+        }),
+      ),
+    })
+    .optional(),
 })
 
 export const ConfigResponseSchema = z.object({

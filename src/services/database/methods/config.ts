@@ -227,10 +227,21 @@ export async function getConfig(
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
     tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
     cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
-    tagPrefix: config.tagPrefix || 'pulsarr:user',
+    tagPrefix: config.tagPrefix || 'pulsarr-user',
     removedTagMode: config.removedTagMode || 'remove',
-    removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+    removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
     deletionMode: config.deletionMode || 'watchlist',
+    // Tag Migration Configuration
+    tagMigration: config.tagMigration
+      ? this.safeJsonParse(
+          config.tagMigration,
+          {
+            radarr: {},
+            sonarr: {},
+          },
+          'config.tagMigration',
+        )
+      : undefined,
     // TMDB configuration
     tmdbRegion: config.tmdbRegion || 'US',
     _isReady: Boolean(config._isReady),
@@ -322,10 +333,14 @@ export async function createConfig(
       tagUsersInSonarr: config.tagUsersInSonarr ?? false,
       tagUsersInRadarr: config.tagUsersInRadarr ?? false,
       cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
-      tagPrefix: config.tagPrefix || 'pulsarr:user',
+      tagPrefix: config.tagPrefix || 'pulsarr-user',
       removedTagMode: config.removedTagMode || 'remove',
-      removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+      removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
       deletionMode: config.deletionMode || 'watchlist',
+      // Tag Migration Configuration
+      tagMigration: config.tagMigration
+        ? JSON.stringify(config.tagMigration)
+        : null,
       // Plex Label Sync Configuration - only include actual schema fields
       plexLabelSync: config.plexLabelSync
         ? JSON.stringify({
@@ -510,6 +525,7 @@ const ALLOWED_COLUMNS = new Set([
   'tagPrefix',
   'removedTagMode',
   'removedTagPrefix',
+  'tagMigration',
 
   // Plex label sync configuration (JSON column)
   'plexLabelSync',
@@ -547,6 +563,7 @@ const JSON_COLUMNS = new Set([
   'quotaSettings',
   'approvalExpiration',
   'plexLabelSync',
+  'tagMigration',
 ])
 
 /**
