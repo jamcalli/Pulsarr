@@ -207,6 +207,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        // Handle TMDB region changes - clear provider cache
+        if ('tmdbRegion' in safeConfigUpdate) {
+          try {
+            fastify.log.info('TMDB region changed, clearing provider cache')
+            fastify.tmdb.clearProviderCache()
+          } catch (error) {
+            fastify.log.error(
+              { error },
+              'Failed to clear TMDB provider cache after config update',
+            )
+          }
+        }
+
         // Handle Plex Label Sync config changes - compare before/after states
         if ('plexLabelSync' in safeConfigUpdate) {
           const wasEnabled = currentConfig?.plexLabelSync?.enabled === true
