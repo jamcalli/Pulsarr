@@ -91,77 +91,32 @@ export default function createConditionalEvaluator(
     name: 'Conditional Router',
     description: 'Routes content based on complex conditional rules',
     priority: 100, // Highest priority - evaluate conditional rules first
+    ruleType: 'conditional',
     supportedFields,
     supportedOperators,
 
     async canEvaluate(
       _item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
     ): Promise<boolean> {
-      const isMovie = context.contentType === 'movie'
-
-      let rules: RouterRule[] = []
-      try {
-        rules = await fastify.db.getRouterRulesByType('conditional')
-      } catch (err) {
-        fastify.log.error(
-          {
-            error: err,
-            scope: 'conditional-evaluator',
-            phase: 'canEvaluate',
-            op: 'getRouterRulesByType',
-            contentType: context.contentType,
-          },
-          'DB query failed',
-        )
-        return false
-      }
-
-      const contentTypeRules = rules.filter(
-        (rule) =>
-          rule.enabled !== false &&
-          rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
-      )
-
-      return contentTypeRules.length > 0
+      // Always return true - let evaluate() handle rule checking with passed-in rules
+      // Content-router will filter rules by type before calling evaluate()
+      return true
     },
 
     async evaluate(
       item: ContentItem,
       context: RoutingContext,
+      rules: RouterRule[],
     ): Promise<RoutingDecision[] | null> {
-      const isMovie = context.contentType === 'movie'
-
-      let rules: RouterRule[] = []
-      try {
-        rules = await fastify.db.getRouterRulesByType('conditional')
-      } catch (err) {
-        fastify.log.error(
-          {
-            error: err,
-            scope: 'conditional-evaluator',
-            phase: 'evaluate',
-            op: 'getRouterRulesByType',
-            contentType: context.contentType,
-          },
-          'DB query failed',
-        )
-        return null
-      }
-
-      const contentTypeRules = rules.filter(
-        (rule) =>
-          rule.target_type === (isMovie ? 'radarr' : 'sonarr') &&
-          rule.enabled !== false,
-      )
-
-      if (contentTypeRules.length === 0) {
+      // Rules are already filtered by content-router (by type, target_type, and enabled status)
+      if (rules.length === 0) {
         return null
       }
 
       const matchingRules: RouterRule[] = []
 
-      for (const rule of contentTypeRules) {
+      for (const rule of rules) {
         if (!rule.criteria || typeof rule.criteria.condition === 'undefined') {
           continue
         }

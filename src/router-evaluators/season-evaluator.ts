@@ -80,7 +80,7 @@ function isValidSeasonValue(
  * @remark Only content of type "show" with valid Sonarr season metadata is processed. Negation logic is handled externally by the routing service.
  */
 export default function createSeasonEvaluator(
-  fastify: FastifyInstance,
+  _fastify: FastifyInstance,
 ): RoutingEvaluator {
   // Define metadata about supported fields
   const supportedFields: FieldInfo[] = [
@@ -244,6 +244,7 @@ export default function createSeasonEvaluator(
     description: 'Routes TV shows based on season numbers',
     // Priority chosen to sit between language (65) and year (70)
     priority: 68,
+    ruleType: 'season',
     supportedFields,
     supportedOperators,
     contentType: 'sonarr', // Specify that this evaluator is only for Sonarr/TV shows
@@ -259,6 +260,7 @@ export default function createSeasonEvaluator(
     async evaluate(
       item: ContentItem,
       context: RoutingContext,
+      rules: RouterRule[],
     ): Promise<RoutingDecision[] | null> {
       // Skip if not a TV show or no season data
       if (context.contentType !== 'show' || !hasSeasonData(item)) {
@@ -270,30 +272,13 @@ export default function createSeasonEvaluator(
         return null
       }
 
-      // Get all season-based router rules
-      let rules: RouterRule[] = []
-      try {
-        rules = await fastify.db.getRouterRulesByType('season')
-      } catch (err) {
-        fastify.log.error(
-          {
-            error: err instanceof Error ? err : new Error(String(err)),
-            evaluator: 'season',
-            op: 'getRouterRulesByType',
-            targetType: 'season',
-          },
-          'Season evaluator - DB query failed',
-        )
+      // Rules are already filtered by content-router (by type, target_type, and enabled status)
+      if (rules.length === 0) {
         return null
       }
 
-      // Filter rules to only include those for Sonarr and that are enabled
-      const sonarrRules = rules.filter(
-        (rule) => rule.target_type === 'sonarr' && rule.enabled !== false,
-      )
-
       // Find matching rules based on season criteria
-      const matchingRules = sonarrRules.filter((rule) => {
+      const matchingRules = rules.filter((rule) => {
         if (!rule.criteria || !('season' in rule.criteria)) {
           return false
         }
