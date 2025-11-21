@@ -24,22 +24,21 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
  * This optimization avoids unnecessary API calls by only fetching data that
  * active evaluators actually require.
  *
- * @param fastify - Fastify instance for accessing database
+ * @param allRules - All router rules (should be cached by caller)
  * @param contentType - Type of content ('movie' or 'show')
  * @returns Object indicating which enrichment types are needed
  */
-export async function determineEnrichmentNeeds(
-  fastify: FastifyInstance,
-  contentType: 'movie' | 'show',
-): Promise<{
+export function determineEnrichmentNeeds(
+  allRules: Awaited<ReturnType<FastifyInstance['db']['getAllRouterRules']>>,
+  _contentType: 'movie' | 'show',
+): {
   needsMetadata: boolean
   needsImdb: boolean
   needsProviders: boolean
   needsAnimeCheck: boolean
-}> {
+} {
   try {
-    // Get all enabled router rules
-    const allRules = await fastify.db.getAllRouterRules()
+    // Filter to enabled rules only
     const enabledRules = allRules.filter((rule) => rule.enabled !== false)
 
     if (enabledRules.length === 0) {
@@ -82,29 +81,13 @@ export async function determineEnrichmentNeeds(
       }
     }
 
-    fastify.log.debug(
-      {
-        contentType,
-        needsMetadata,
-        needsImdb,
-        needsProviders,
-        needsAnimeCheck,
-        ruleTypes: Array.from(ruleTypes),
-      },
-      'Determined enrichment needs',
-    )
-
     return {
       needsMetadata,
       needsImdb,
       needsProviders,
       needsAnimeCheck,
     }
-  } catch (error) {
-    fastify.log.error(
-      { error },
-      'Error determining enrichment needs, defaulting to all enrichment',
-    )
+  } catch (_error) {
     // On error, be conservative and fetch everything
     return {
       needsMetadata: true,
@@ -122,6 +105,7 @@ export async function determineEnrichmentNeeds(
  *
  * @param fastify - Fastify instance for accessing services
  * @param log - Logger instance
+ * @param allRules - All router rules (should be cached by caller)
  * @param item - The content item to enrich
  * @param context - Routing context with content type and other info
  * @returns Promise with the enriched content item
@@ -129,6 +113,7 @@ export async function determineEnrichmentNeeds(
 export async function enrichItemMetadata(
   fastify: FastifyInstance,
   log: FastifyBaseLogger,
+  allRules: Awaited<ReturnType<FastifyInstance['db']['getAllRouterRules']>>,
   item: ContentItem,
   context: RoutingContext,
 ): Promise<ContentItem> {
@@ -140,8 +125,8 @@ export async function enrichItemMetadata(
   }
 
   // Determine which enrichment types are actually needed
-  const enrichmentNeeds = await determineEnrichmentNeeds(
-    fastify,
+  const enrichmentNeeds = determineEnrichmentNeeds(
+    allRules,
     context.contentType,
   )
 
