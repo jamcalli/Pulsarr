@@ -37,6 +37,15 @@ export class ContentRouterService {
    * Collection of loaded routing evaluators that will be applied to content
    */
   private evaluators: RoutingEvaluator[] = []
+
+  /**
+   * Cache for router rules to avoid repeated database queries
+   * Cleared explicitly when rules are modified via API endpoints
+   */
+  private rulesCache: Awaited<
+    ReturnType<typeof this.fastify.db.getAllRouterRules>
+  > | null = null
+
   /** Creates a fresh service logger that inherits current log level */
 
   private get log(): FastifyBaseLogger {
@@ -105,6 +114,33 @@ export class ContentRouterService {
       this.log.error({ error }, 'Error initializing content router')
       throw error
     }
+  }
+
+  /**
+   * Get all router rules with caching to avoid repeated database queries.
+   * Cache is cleared explicitly when rules are modified via API endpoints.
+   *
+   * @returns Promise resolving to array of router rules
+   */
+  async getAllRouterRules() {
+    if (this.rulesCache) {
+      this.log.debug('Using cached router rules')
+      return this.rulesCache
+    }
+
+    this.log.debug('Fetching router rules from database')
+    const rules = await this.fastify.db.getAllRouterRules()
+    this.rulesCache = rules
+    return rules
+  }
+
+  /**
+   * Clear the router rules cache.
+   * Should be called whenever rules are created, updated, or deleted via API.
+   */
+  clearRouterRulesCache(): void {
+    this.rulesCache = null
+    this.log.debug('Router rules cache cleared')
   }
 
   /**
@@ -236,10 +272,15 @@ export class ContentRouterService {
       `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,
     )
 
-    // OPTIMIZATION: Check if any router rules exist at all
+    // OPTIMIZATION: Check if any router rules exist at all and cache them
     let hasAnyRules = false
+    let allRouterRules: Awaited<ReturnType<typeof this.getAllRouterRules>> = []
     try {
       hasAnyRules = await this.fastify.db.hasAnyRouterRules()
+      // If rules exist, fetch and cache them for use throughout routing
+      if (hasAnyRules) {
+        allRouterRules = await this.getAllRouterRules()
+      }
     } catch (error) {
       this.log.error(
         { error },
@@ -483,6 +524,7 @@ export class ContentRouterService {
         enrichedItem = await enrichItemMetadata(
           this.fastify,
           this.log,
+          allRouterRules,
           item,
           context,
         )
@@ -1467,7 +1509,7 @@ export class ContentRouterService {
       }
 
       // PRIORITY 1: Router Rules (absolute content policy - always checked first)
-      const allRouterRules = await this.fastify.db.getAllRouterRules()
+      const allRouterRules = await this.getAllRouterRules()
       let quotasBypassedByRule = false
 
       for (const rule of allRouterRules) {
@@ -2202,7 +2244,7 @@ export class ContentRouterService {
 
     try {
       // Get all router rules and evaluate them for this content
-      const allRouterRules = await this.fastify.db.getAllRouterRules()
+      const allRouterRules = await this.getAllRouterRules()
       const targetInstanceIds = new Set<number>()
 
       // Check if we have any conditional rules (to determine if enrichment is needed)
@@ -2219,6 +2261,7 @@ export class ContentRouterService {
           itemForEvaluation = await enrichItemMetadata(
             this.fastify,
             this.log,
+            allRouterRules,
             item,
             context,
           )
