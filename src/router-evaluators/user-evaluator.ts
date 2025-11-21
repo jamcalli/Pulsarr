@@ -255,6 +255,7 @@ export default function createUserEvaluator(
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
+        ruleName: rule.name,
       }))
     },
 
