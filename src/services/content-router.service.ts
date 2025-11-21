@@ -898,8 +898,13 @@ export class ContentRouterService {
       // Mark this instance as processed to prevent lower priority rules for same instance
       processedInstanceIds.add(decision.instanceId)
 
+      // Build log message with optional rule name
+      const ruleInfo = decision.ruleName
+        ? ` via rule "${decision.ruleName}"`
+        : ''
+
       this.log.info(
-        `Routing "${item.title}" to instance ID ${decision.instanceId} with priority ${decision.priority || 50}${decision.tags?.length ? ` and tags: ${decision.tags.join(', ')}` : ''}`,
+        `Routing "${item.title}" to instance ID ${decision.instanceId}${ruleInfo} with priority ${decision.priority || 50}${decision.tags?.length ? ` and tags: ${decision.tags.join(', ')}` : ''}`,
       )
 
       try {

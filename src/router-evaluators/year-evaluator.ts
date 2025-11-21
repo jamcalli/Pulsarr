@@ -256,6 +256,7 @@ export default function createYearEvaluator(
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
+        ruleName: rule.name,
       }))
     },
 
