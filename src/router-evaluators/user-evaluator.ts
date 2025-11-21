@@ -159,6 +159,7 @@ export default function createUserEvaluator(
     name: 'User Router',
     description: 'Routes content based on requesting users',
     priority: 75,
+    ruleType: 'user',
     supportedFields,
     supportedOperators,
 
@@ -172,31 +173,20 @@ export default function createUserEvaluator(
     async evaluate(
       _item: ContentItem,
       context: RoutingContext,
+      rules: RouterRule[],
     ): Promise<RoutingDecision[] | null> {
       // Skip if no user information available
       if (!context.userId && !context.userName) {
         return null
       }
 
-      const isMovie = context.contentType === 'movie'
-
-      let rules: RouterRule[] = []
-      try {
-        rules = await fastify.db.getRouterRulesByType('user')
-      } catch (err) {
-        fastify.log.error({ error: err }, 'User evaluator - DB query failed')
+      // Rules are already filtered by content-router (by type, target_type, and enabled status)
+      if (rules.length === 0) {
         return null
       }
 
-      // Filter to only rules for the current content type and enabled
-      const contentTypeRules = rules.filter(
-        (rule) =>
-          rule.target_type === (isMovie ? 'radarr' : 'sonarr') &&
-          rule.enabled !== false,
-      )
-
       // Find matching rules based on user criteria - only check 'user' field
-      const matchingRules = contentTypeRules.filter((rule) => {
+      const matchingRules = rules.filter((rule) => {
         if (!rule.criteria || !rule.criteria.user) {
           return false
         }

@@ -1,0 +1,252 @@
+import type {
+  Condition,
+  ContentItem,
+  FieldInfo,
+  OperatorInfo,
+  RouterRule,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+} from '@root/types/router.types.js'
+import type { FastifyInstance } from 'fastify'
+
+/**
+ * Type guard to check if a value is an array of numbers
+ */
+function isNumberArray(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => typeof item === 'number' && Number.isFinite(item))
+  )
+}
+
+/**
+ * Validates that the streaming services value is a non-empty array of provider IDs
+ */
+function isValidStreamingServicesValue(value: unknown): value is number[] {
+  return isNumberArray(value) && value.length > 0
+}
+
+/**
+ * Constructs a routing evaluator that matches content items to routing rules based on streaming service availability.
+ *
+ * The evaluator uses TMDB watch provider data to determine if content is available on specified streaming services.
+ * This prevents redundant downloads when content is already accessible through user's subscribed services.
+ *
+ * Supported operators:
+ * - `in`: Content is available for streaming (flatrate/subscription) on at least one of the specified services
+ * - `notIn`: Content is not available for streaming on any of the specified services
+ *
+ * @returns A {@link RoutingEvaluator} specialized for streaming availability routing.
+ *
+ * @remark
+ * This evaluator requires watch provider data to be pre-fetched during content enrichment.
+ * If watchProviders data is missing, the evaluator returns null and logs a debug message.
+ * Only subscription streaming (flatrate) is checked - rental and purchase options are not evaluated.
+ */
+export default function createStreamingEvaluator(
+  fastify: FastifyInstance,
+): RoutingEvaluator {
+  // Define metadata for supported fields
+  const supportedFields: FieldInfo[] = [
+    {
+      name: 'streamingServices',
+      description:
+        'TMDB provider IDs for streaming services (e.g., [8, 337] for Netflix, Disney+)',
+      valueTypes: ['number[]'],
+    },
+  ]
+
+  // Define supported operators
+  const supportedOperators: Record<string, OperatorInfo[]> = {
+    streamingServices: [
+      {
+        name: 'in',
+        description:
+          'Content is available on at least one of these streaming services',
+        valueTypes: ['number[]'],
+        valueFormat:
+          'Array of TMDB provider IDs, e.g., [8, 337] for Netflix, Disney+',
+      },
+      {
+        name: 'notIn',
+        description:
+          'Content is not available on any of these streaming services',
+        valueTypes: ['number[]'],
+        valueFormat:
+          'Array of TMDB provider IDs, e.g., [8, 15, 384] for Netflix, Hulu, HBO Max',
+      },
+    ],
+  }
+
+  /**
+   * Check if content is available on any of the specified streaming services
+   *
+   * @param item - Content item with watchProviders data
+   * @param providerIds - Array of TMDB provider IDs to check against
+   * @returns true if content is available on at least one provider, false otherwise
+   */
+  function isAvailableOnServices(
+    item: ContentItem,
+    providerIds: number[],
+  ): boolean {
+    if (!item.watchProviders) {
+      return false
+    }
+
+    // Get flatrate (subscription streaming) providers only
+    const providers = item.watchProviders.flatrate || []
+
+    // Check if any of the specified provider IDs match
+    return providers.some((provider) =>
+      providerIds.includes(provider.provider_id),
+    )
+  }
+
+  return {
+    name: 'Streaming Availability Router',
+    description:
+      'Routes content based on streaming service availability to prevent redundant downloads',
+    priority: 85, // Higher than genre/imdb (80) but lower than conditional (100)
+    ruleType: 'streaming',
+    supportedFields,
+    supportedOperators,
+
+    async canEvaluate(
+      item: ContentItem,
+      _context: RoutingContext,
+    ): Promise<boolean> {
+      // Can only evaluate if we have watch provider data
+      return !!item.watchProviders
+    },
+
+    async evaluate(
+      item: ContentItem,
+      _context: RoutingContext,
+      rules: RouterRule[],
+    ): Promise<RoutingDecision[] | null> {
+      // Skip if no watch provider data available
+      if (!item.watchProviders) {
+        fastify.log.debug(
+          `No watch provider data for "${item.title}", skipping streaming evaluation`,
+        )
+        return null
+      }
+
+      // Rules are already filtered by content-router (by type, target_type, and enabled status)
+      if (rules.length === 0) {
+        return null
+      }
+
+      // Find matching streaming rules
+      const matchingRules = rules.filter((rule) => {
+        if (!rule.criteria || !rule.criteria.streamingServices) {
+          return false
+        }
+
+        const providerIds = rule.criteria.streamingServices
+        const operator = rule.criteria.operator || 'in'
+
+        // Validate provider IDs
+        if (!isValidStreamingServicesValue(providerIds)) {
+          fastify.log.warn(
+            `Invalid streamingServices value in rule "${rule.name}": expected non-empty number array`,
+          )
+          return false
+        }
+
+        // Apply operator logic
+        switch (operator) {
+          case 'in': {
+            // Content IS available on at least one service
+            return isAvailableOnServices(item, providerIds)
+          }
+
+          case 'notIn': {
+            // Content is NOT available on any service
+            return !isAvailableOnServices(item, providerIds)
+          }
+
+          default:
+            fastify.log.warn(
+              `Unsupported operator "${operator}" for streamingServices in rule "${rule.name}"`,
+            )
+            return false
+        }
+      })
+
+      if (matchingRules.length === 0) {
+        return null
+      }
+
+      // Convert to routing decisions
+      return matchingRules.map((rule) => ({
+        instanceId: rule.target_instance_id,
+        qualityProfile: rule.quality_profile,
+        rootFolder: rule.root_folder,
+        tags: rule.tags || [],
+        priority: rule.order ?? 50, // Default to 50 if undefined or null
+        searchOnAdd: rule.search_on_add,
+        seasonMonitoring: rule.season_monitoring,
+        seriesType: rule.series_type,
+        ruleName: rule.name,
+      }))
+    },
+
+    // For conditional evaluator support
+    evaluateCondition(
+      condition: Condition,
+      item: ContentItem,
+      _context: RoutingContext,
+    ): boolean {
+      // Only support the 'streamingServices' field
+      if (!('field' in condition) || condition.field !== 'streamingServices') {
+        return false
+      }
+
+      // Skip if no watch provider data
+      if (!item.watchProviders) {
+        return false
+      }
+
+      const { operator, value, negate: _ = false } = condition
+
+      // Validate provider IDs
+      if (!isValidStreamingServicesValue(value)) {
+        fastify.log.warn(
+          `Invalid streamingServices value in condition: expected non-empty number array, got ${typeof value}`,
+        )
+        return false
+      }
+
+      const providerIds = value
+      let result = false
+
+      // Apply operator logic
+      switch (operator) {
+        case 'in':
+          result = isAvailableOnServices(item, providerIds)
+          break
+
+        case 'notIn':
+          result = !isAvailableOnServices(item, providerIds)
+          break
+
+        default:
+          fastify.log.warn(
+            `Unsupported operator for streamingServices: ${operator}`,
+          )
+          return false
+      }
+
+      // Do not apply negation here - the content router service handles negation at a higher level.
+      // This prevents double-negation issues when condition.negate is true.
+      return result
+    },
+
+    canEvaluateConditionField(field: string): boolean {
+      // Only support the 'streamingServices' field
+      return field === 'streamingServices'
+    },
+  }
+}

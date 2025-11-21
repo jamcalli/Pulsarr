@@ -139,6 +139,7 @@ export default function createImdbEvaluator(
     name: 'IMDB Router',
     description: 'Routes content based on IMDB ratings and vote counts',
     priority: 80,
+    ruleType: 'imdb',
     supportedFields,
     supportedOperators,
 
@@ -158,7 +159,8 @@ export default function createImdbEvaluator(
 
     async evaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
+      rules: RouterRule[],
     ): Promise<RoutingDecision[] | null> {
       // Get IMDB rating data
       let imdbData: { rating: number | null; votes: number | null } | null =
@@ -174,25 +176,13 @@ export default function createImdbEvaluator(
         return null
       }
 
-      const isMovie = context.contentType === 'movie'
-
-      let rules: RouterRule[] = []
-      try {
-        rules = await fastify.db.getRouterRulesByType('imdb')
-      } catch (err) {
-        fastify.log.error({ error: err }, 'IMDB evaluator - DB query failed')
+      // Rules are already filtered by content-router (by type, target_type, and enabled status)
+      if (rules.length === 0) {
         return null
       }
 
-      // Filter rules by target type and enabled status
-      const contentTypeRules = rules.filter(
-        (rule) =>
-          rule.enabled !== false &&
-          rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
-      )
-
       // Find matching IMDB rules
-      const matchingRules = contentTypeRules.filter((rule) => {
+      const matchingRules = rules.filter((rule) => {
         if (!rule.criteria) return false
 
         const ratingCriteria = rule.criteria.imdbRating

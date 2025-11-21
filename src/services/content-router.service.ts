@@ -550,8 +550,21 @@ export class ContentRouterService {
           const canEvaluate = await evaluator.canEvaluate(enrichedItem, context)
           if (!canEvaluate) continue
 
-          // Get decisions from this evaluator
-          const decisions = await evaluator.evaluate(enrichedItem, context)
+          // Filter rules for this evaluator by type, content type, and enabled status
+          const relevantRules = allRouterRules.filter(
+            (rule) =>
+              rule.type === evaluator.ruleType &&
+              rule.enabled !== false &&
+              rule.target_type ===
+                (contentType === 'movie' ? 'radarr' : 'sonarr'),
+          )
+
+          // Get decisions from this evaluator (pass pre-filtered rules)
+          const decisions = await evaluator.evaluate(
+            enrichedItem,
+            context,
+            relevantRules,
+          )
           if (decisions && decisions.length > 0) {
             this.log.debug(
               `Evaluator "${evaluator.name}" returned ${decisions.length} routing decisions for "${enrichedItem.title}"`,
