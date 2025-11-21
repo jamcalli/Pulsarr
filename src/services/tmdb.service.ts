@@ -705,6 +705,74 @@ export class TmdbService {
     }
   }
 
+  /**
+   * Get watch provider availability for a specific movie or TV show
+   *
+   * @param tmdbId - TMDB ID for the movie or show
+   * @param type - Content type ('movie' or 'tv')
+   * @param region - Optional region code (defaults to configured region)
+   * @returns Watch provider data for the content or null if not found
+   */
+  async getWatchProviders(
+    tmdbId: number,
+    type: 'movie' | 'tv',
+    region?: string,
+  ): Promise<TmdbWatchProviderData | null> {
+    if (!this.isConfigured()) {
+      this.log.warn('TMDB service not configured, cannot fetch watch providers')
+      return null
+    }
+
+    const targetRegion = region || this.defaultRegion
+
+    const url = `${TmdbService.BASE_URL}/${type}/${tmdbId}/watch/providers`
+
+    const response = await this.rateLimitedFetch(url, {
+      headers: {
+        'User-Agent': TmdbService.USER_AGENT,
+        Accept: 'application/json',
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        this.log.debug(
+          `No watch providers found for ${type} ${tmdbId} in region ${targetRegion}`,
+        )
+        return null
+      }
+      throw new Error(
+        `TMDB API error: ${response.status} ${response.statusText}`,
+      )
+    }
+
+    const data = await response.json()
+
+    if (typeof data === 'object' && data !== null && isTmdbError(data)) {
+      this.log.warn(
+        { status_message: data.status_message },
+        `TMDB API returned error for ${type} ${tmdbId} watch providers:`,
+      )
+      return null
+    }
+
+    // TMDB returns: { results: { [region]: { ... } } }
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'results' in data &&
+      typeof data.results === 'object' &&
+      data.results !== null
+    ) {
+      const results = data.results as Record<string, unknown>
+      // Return the providers for the target region
+      return results[targetRegion] || null
+    }
+
+    return null
+  }
+
   //
   // ============================================================
   // RATE LIMITING METHODS

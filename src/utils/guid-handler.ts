@@ -87,13 +87,15 @@ export function parseGenres(genres: unknown): string[] {
   }
 
   if (typeof genres === 'string') {
+    // Try to parse as JSON first (for stringified arrays)
     try {
       const parsed = JSON.parse(genres)
       return Array.isArray(parsed)
         ? parsed.filter((g: unknown): g is string => typeof g === 'string')
         : []
     } catch {
-      return []
+      // Not JSON - treat as a single genre string (Plex RSS feeds can send this)
+      return [genres]
     }
   }
 

@@ -7,14 +7,7 @@ import type {
   ApprovalTrigger,
   RouterDecision,
 } from '@root/types/approval.types.js'
-import type {
-  RadarrMovieLookupResponse,
-  SonarrSeriesLookupResponse,
-} from '@root/types/content-lookup.types.js'
-import type {
-  RadarrInstance,
-  Item as RadarrItem,
-} from '@root/types/radarr.types.js'
+import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type {
   Condition,
   ConditionGroup,
@@ -25,15 +18,11 @@ import type {
   RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
-import type { SonarrInstance, SonarrItem } from '@root/types/sonarr.types.js'
-import {
-  extractImdbId,
-  extractTmdbId,
-  extractTvdbId,
-} from '@utils/guid-handler.js'
+import type { SonarrItem } from '@root/types/sonarr.types.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { enrichItemMetadata } from './content-router/enrichment.js'
 
 /**
  * ContentRouterService is responsible for routing content items to Radarr or Sonarr instances
@@ -491,7 +480,12 @@ export class ContentRouterService {
     let enrichedItem = item
     if (hasAnyRules) {
       try {
-        enrichedItem = await this.enrichItemMetadata(item, context)
+        enrichedItem = await enrichItemMetadata(
+          this.fastify,
+          this.log,
+          item,
+          context,
+        )
       } catch (error) {
         this.log.error(
           { error },
@@ -1097,288 +1091,6 @@ export class ContentRouterService {
         )
         return { routedInstances: [] }
     }
-  }
-
-  /**
-   * Enriches a content item with additional metadata by making API calls to Radarr/Sonarr.
-   * This is used to provide evaluators with more information for making routing decisions.
-   * The enrichment happens once per routing operation to avoid duplicate API calls.
-   *
-   * @param item - The content item to enrich
-   * @param context - Routing context with content type and other info
-   * @returns Promise with the enriched content item
-   */
-  private async enrichItemMetadata(
-    item: ContentItem,
-    context: RoutingContext,
-  ): Promise<ContentItem> {
-    const isMovie = context.contentType === 'movie'
-
-    // Skip if we can't extract an ID from the item
-    if (!Array.isArray(item.guids) || item.guids.length === 0) {
-      return item
-    }
-
-    // Extract appropriate ID based on content type (tmdb for movies, tvdb for shows)
-    let itemId: number | undefined
-
-    if (isMovie) {
-      itemId = extractTmdbId(item.guids)
-    } else {
-      itemId = extractTvdbId(item.guids)
-    }
-
-    // Skip enrichment if we couldn't extract a valid ID
-    if (!itemId || Number.isNaN(itemId)) {
-      this.log.debug(
-        `Couldn't extract ID from item "${item.title}", skipping metadata enrichment`,
-      )
-      return item
-    }
-
-    try {
-      // Fetch metadata from appropriate API based on content type
-      if (isMovie) {
-        // Get Radarr service for movie lookups using default instance
-        let defaultInstance: RadarrInstance | null = null
-        try {
-          defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
-          if (!defaultInstance) {
-            this.log.warn(
-              'No default Radarr instance available for metadata lookup',
-            )
-            return item
-          }
-          this.log.debug(
-            `Default Radarr instance found for "${item.title}": ${defaultInstance.id}`,
-          )
-        } catch (error) {
-          this.log.error(
-            { error },
-            `Database error fetching default Radarr instance for metadata lookup of "${item.title}"`,
-          )
-          return item
-        }
-
-        const lookupService = this.fastify.radarrManager.getRadarrService(
-          defaultInstance.id,
-        )
-
-        if (!lookupService) {
-          this.log.warn(
-            `Radarr service for instance ${defaultInstance.id} not available for metadata lookup`,
-          )
-          return item
-        }
-
-        this.log.debug(
-          `Calling Radarr API for "${item.title}" with TMDB ID: ${itemId}`,
-        )
-        // Call Radarr API to get movie details
-        const apiResponse = await lookupService.getFromRadarr<
-          RadarrMovieLookupResponse | RadarrMovieLookupResponse[]
-        >(`movie/lookup/tmdb?tmdbId=${itemId}`)
-        this.log.debug(`Radarr API response received for "${item.title}"`)
-
-        let movieMetadata: RadarrMovieLookupResponse | undefined
-
-        // Handle both array and single object responses
-        if (Array.isArray(apiResponse) && apiResponse.length > 0) {
-          movieMetadata = apiResponse[0]
-        } else if (!Array.isArray(apiResponse)) {
-          movieMetadata = apiResponse
-        }
-
-        // Add metadata to the item if found
-        if (movieMetadata) {
-          this.log.debug(
-            `Movie metadata found for "${item.title}", checking anime status`,
-          )
-
-          // Fetch IMDB rating data first (outside try block for scope)
-          let imdbData:
-            | { rating?: number | null; votes?: number | null }
-            | undefined
-
-          // Try to get IMDb ID from guids first, then fallback to metadata
-          let imdbId = extractImdbId(item.guids)?.toString()
-          if ((!imdbId || imdbId === '0') && movieMetadata?.imdbId) {
-            imdbId = movieMetadata.imdbId.replace(/^tt/, '')
-          }
-
-          if (imdbId && imdbId !== '0' && this.fastify.imdb) {
-            try {
-              const imdbRating = await this.fastify.imdb.getRating(item.guids)
-              if (imdbRating) {
-                imdbData = {
-                  rating: imdbRating.rating,
-                  votes: imdbRating.votes,
-                }
-              } else {
-                // Lookup succeeded but no rating found - mark as known missing
-                imdbData = {
-                  rating: null,
-                  votes: null,
-                }
-              }
-            } catch (error) {
-              this.log.debug(
-                { error, scope: 'enrichItemMetadata' },
-                `Failed to fetch IMDb rating for "${item.title}"`,
-              )
-            }
-          }
-
-          // Check anime status before returning
-          try {
-            const tvdbId = extractTvdbId(item.guids)?.toString()
-            const tmdbId = extractTmdbId(item.guids)?.toString()
-
-            this.log.debug(
-              `Anime check for "${item.title}": tvdbId=${tvdbId || 'none'}, tmdbId=${tmdbId || 'none'}, imdbId=${imdbId || 'none'}`,
-            )
-
-            // Check if this content is anime
-            if (tvdbId || tmdbId || imdbId) {
-              let isAnimeContent = false
-              if (this.fastify.anime) {
-                isAnimeContent = await this.fastify.anime.isAnime(
-                  tvdbId,
-                  tmdbId,
-                  imdbId,
-                )
-              }
-              this.log.debug(
-                `Anime result for "${item.title}": ${isAnimeContent}`,
-              )
-
-              if (isAnimeContent) {
-                // Add "anime" to the genres for evaluation
-                const existingGenres = Array.isArray(item.genres)
-                  ? item.genres
-                  : []
-                const genresLowercase = existingGenres.map((g) =>
-                  g.toLowerCase(),
-                )
-                this.log.debug(
-                  `Adding anime genre to "${item.title}", existing genres: [${existingGenres.join(', ')}]`,
-                )
-                if (!genresLowercase.includes('anime')) {
-                  const enrichedGenres = [...existingGenres, 'anime']
-                  this.log.debug(
-                    `Enriched "${item.title}" with new genres: [${enrichedGenres.join(', ')}]`,
-                  )
-                  return {
-                    ...item,
-                    metadata: movieMetadata,
-                    genres: enrichedGenres,
-                    ...(imdbData && { imdb: imdbData }),
-                  }
-                }
-              }
-            }
-          } catch (error) {
-            this.log.debug(
-              { error },
-              'Failed to check anime status during enrichment',
-            )
-          }
-
-          return {
-            ...item,
-            metadata: movieMetadata,
-            ...(imdbData && { imdb: imdbData }),
-          }
-        }
-      } else {
-        // Get Sonarr service for TV show lookups using default instance
-        let defaultInstance: SonarrInstance | null = null
-        try {
-          defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
-          if (!defaultInstance) {
-            this.log.warn(
-              'No default Sonarr instance available for metadata lookup',
-            )
-            return item
-          }
-        } catch (error) {
-          this.log.error(
-            { error },
-            `Database error fetching default Sonarr instance for metadata lookup of "${item.title}"`,
-          )
-          return item
-        }
-
-        const lookupService = this.fastify.sonarrManager.getSonarrService(
-          defaultInstance.id,
-        )
-
-        if (!lookupService) {
-          this.log.warn(
-            `Sonarr service for instance ${defaultInstance.id} not available for metadata lookup`,
-          )
-          return item
-        }
-
-        // Call Sonarr API to get show details
-        const apiResponse = await lookupService.getFromSonarr<
-          SonarrSeriesLookupResponse | SonarrSeriesLookupResponse[]
-        >(`series/lookup?term=tvdb:${itemId}`)
-
-        let seriesMetadata: SonarrSeriesLookupResponse | undefined
-
-        // Handle both array and single object responses
-        if (Array.isArray(apiResponse) && apiResponse.length > 0) {
-          seriesMetadata = apiResponse[0]
-        } else if (!Array.isArray(apiResponse)) {
-          seriesMetadata = apiResponse
-        }
-
-        // Add metadata to the item if found
-        if (seriesMetadata) {
-          // Fetch IMDB rating data for TV shows too
-          let imdbData:
-            | { rating?: number | null; votes?: number | null }
-            | undefined
-          if (this.fastify.imdb) {
-            try {
-              const imdbRating = await this.fastify.imdb.getRating(item.guids)
-              if (imdbRating) {
-                imdbData = {
-                  rating: imdbRating.rating,
-                  votes: imdbRating.votes,
-                }
-                this.log.debug(
-                  `IMDB data for TV show "${item.title}": rating=${imdbRating.rating}, votes=${imdbRating.votes}`,
-                )
-              } else {
-                // Lookup succeeded but no rating found - mark as known missing
-                imdbData = {
-                  rating: null,
-                  votes: null,
-                }
-              }
-            } catch (error) {
-              this.log.debug(
-                { error },
-                `Failed to fetch IMDB rating for TV show "${item.title}"`,
-              )
-            }
-          }
-
-          return {
-            ...item,
-            metadata: seriesMetadata,
-            ...(imdbData && { imdb: imdbData }),
-          }
-        }
-      }
-    } catch (error) {
-      this.log.error({ error }, `Error enriching metadata for "${item.title}"`)
-    }
-
-    // Return original item if enrichment failed
-    return item
   }
 
   /**
@@ -2504,7 +2216,12 @@ export class ContentRouterService {
       let itemForEvaluation = item
       if (hasConditionalRules) {
         try {
-          itemForEvaluation = await this.enrichItemMetadata(item, context)
+          itemForEvaluation = await enrichItemMetadata(
+            this.fastify,
+            this.log,
+            item,
+            context,
+          )
           this.log.debug(
             `Item "${item.title}" enriched for routing target evaluation`,
           )
