@@ -65,6 +65,10 @@ export interface RoutingDecision {
   seasonMonitoring?: string | null // For Sonarr: which seasons to monitor
   seriesType?: 'standard' | 'anime' | 'daily' | null // For Sonarr: series type
   minimumAvailability?: 'announced' | 'inCinemas' | 'released' // For Radarr: minimum availability setting
+  /**
+   * Name of the router rule that produced this decision (for logging)
+   */
+  ruleName?: string
 }
 
 // Condition system types
