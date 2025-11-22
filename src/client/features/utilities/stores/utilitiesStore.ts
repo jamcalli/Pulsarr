@@ -355,7 +355,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
               isLoadingRef: false,
               loading: { ...state.loading, saveSettings: false },
             })
-          }, 500)
+          }, MIN_LOADING_DELAY)
         }
       },
 
