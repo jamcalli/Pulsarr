@@ -53,17 +53,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         reply.status(200)
         return response
       } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          // Use proper error format to match the schema
-          reply.status(err.statusCode as number)
-          return { error: err.message || 'Error fetching configuration' }
-        }
-
         logRouteError(fastify.log, request, err, {
           message: 'Failed to fetch configuration',
         })
-        reply.status(500)
-        return { error: 'Unable to fetch configuration' }
+        return reply.internalServerError('Unable to fetch configuration')
       }
     },
   )
@@ -98,20 +91,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // If someone tries to update the protected fields, log a warning
         if (enableApprise !== undefined || appriseUrl !== undefined) {
-          reply.status(400)
-          return {
-            error: 'enableApprise and appriseUrl are read-only via API',
-          }
+          return reply.badRequest(
+            'enableApprise and appriseUrl are read-only via API',
+          )
         }
 
         // Validate Plex Pass requirement for Tautulli
         if (safeConfigUpdate.tautulliEnabled === true) {
           if (!fastify.config.selfRss || !fastify.config.friendsRss) {
-            reply.status(400)
-            return {
-              error:
-                'Plex Pass is required for Tautulli integration. Please generate RSS feeds first to verify Plex Pass subscription.',
-            }
+            return reply.badRequest(
+              'Plex Pass is required for Tautulli integration. Please generate RSS feeds first to verify Plex Pass subscription.',
+            )
           }
         }
 
@@ -133,8 +123,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           logRouteError(fastify.log, request, configUpdateError, {
             message: 'Failed to update runtime configuration',
           })
-          reply.status(400)
-          return { error: 'Failed to update runtime configuration' }
+          return reply.badRequest('Failed to update runtime configuration')
         }
 
         // Now update the database
@@ -148,14 +137,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               message: 'Failed to revert runtime configuration',
             })
           }
-          reply.status(400)
-          return { error: 'Failed to update configuration in database' }
+          return reply.badRequest('Failed to update configuration in database')
         }
 
         const savedConfig = await fastify.db.getConfig()
         if (!savedConfig) {
-          reply.status(404)
-          return { error: 'No configuration found after update' }
+          return reply.notFound('No configuration found after update')
         }
 
         // Apply runtime log level now that DB is authoritative
@@ -250,16 +237,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         reply.status(200)
         return response
       } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          // Use proper error format to match the schema
-          reply.status(err.statusCode as number)
-          return { error: err.message || 'Error updating configuration' }
-        }
         logRouteError(fastify.log, request, err, {
           message: 'Failed to update configuration',
         })
-        reply.status(500)
-        return { error: 'Unable to update configuration' }
+        return reply.internalServerError('Unable to update configuration')
       }
     },
   )
