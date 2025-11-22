@@ -22,15 +22,13 @@ import { z } from 'zod'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { api } from '@/lib/api'
+import { MIN_LOADING_DELAY } from '@/lib/constants'
 
 // Use the existing schema type for the return type
 export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>
 export type PlexLabelRemovalResult = z.infer<
   typeof RemovePlexLabelsResponseSchema
 >
-
-// Minimum loading delay for consistent UX
-const MIN_LOADING_DELAY = 500
 
 export interface UtilitiesState {
   schedules: JobStatus[] | null

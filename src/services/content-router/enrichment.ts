@@ -50,33 +50,49 @@ export function determineEnrichmentNeeds(
       }
     }
 
-    // Extract rule types from enabled rules
-    const ruleTypes = new Set(enabledRules.map((rule) => rule.type))
-
-    // Metadata needed by: certification, language, season, year
-    const needsMetadata =
-      ruleTypes.has('certification') ||
-      ruleTypes.has('language') ||
-      ruleTypes.has('season') ||
-      ruleTypes.has('year')
-
-    // IMDB needed by: imdb
-    const needsImdb = ruleTypes.has('imdb')
-
-    // Providers needed by: streaming (new evaluator we'll create)
-    const needsProviders = ruleTypes.has('streaming')
-
-    // Anime check needed by: conditional rules that might check anime genre
+    // All rules are stored as 'conditional' type, so we need to check the criteria
+    // to determine what enrichment data is needed
+    let needsMetadata = false
+    let needsImdb = false
+    let needsProviders = false
     let needsAnimeCheck = false
-    if (ruleTypes.has('conditional')) {
-      // Check if any conditional rule mentions 'anime' in its criteria
-      for (const rule of enabledRules) {
-        if (rule.type === 'conditional' && rule.criteria) {
-          const criteriaString = JSON.stringify(rule.criteria).toLowerCase()
-          if (criteriaString.includes('anime')) {
-            needsAnimeCheck = true
-            break
-          }
+
+    for (const rule of enabledRules) {
+      if (rule.type === 'conditional' && rule.criteria) {
+        const criteriaString = JSON.stringify(rule.criteria)
+        const criteriaLower = criteriaString.toLowerCase()
+
+        // Check for fields that require metadata enrichment
+        if (
+          criteriaString.includes('certification') ||
+          criteriaString.includes('language') ||
+          criteriaString.includes('season') ||
+          criteriaString.includes('year')
+        ) {
+          needsMetadata = true
+        }
+
+        // Check for IMDB fields (rating or votes)
+        if (
+          criteriaString.includes('imdbRating') ||
+          criteriaString.includes('imdbVotes')
+        ) {
+          needsImdb = true
+        }
+
+        // Check for streaming services field
+        if (criteriaString.includes('streamingServices')) {
+          needsProviders = true
+        }
+
+        // Check for anime genre
+        if (criteriaLower.includes('anime')) {
+          needsAnimeCheck = true
+        }
+
+        // Short-circuit if we've found all needs
+        if (needsMetadata && needsImdb && needsProviders && needsAnimeCheck) {
+          break
         }
       }
     }

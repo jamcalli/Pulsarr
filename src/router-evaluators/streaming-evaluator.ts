@@ -21,10 +21,20 @@ function isNumberArray(value: unknown): value is number[] {
 }
 
 /**
- * Validates that the streaming services value is a non-empty array of provider IDs
+ * Type guard to check if a value is a number
  */
-function isValidStreamingServicesValue(value: unknown): value is number[] {
-  return isNumberArray(value) && value.length > 0
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+/**
+ * Validates that a value is suitable for streaming services evaluation
+ * @returns true if value is a number or array of numbers, false otherwise
+ */
+function isValidStreamingServicesValue(
+  value: unknown,
+): value is number | number[] {
+  return isNumber(value) || isNumberArray(value)
 }
 
 /**
@@ -53,7 +63,7 @@ export default function createStreamingEvaluator(
       name: 'streamingServices',
       description:
         'TMDB provider IDs for streaming services (e.g., [8, 337] for Netflix, Disney+)',
-      valueTypes: ['number[]'],
+      valueTypes: ['number', 'number[]'],
     },
   ]
 
@@ -64,17 +74,17 @@ export default function createStreamingEvaluator(
         name: 'in',
         description:
           'Content is available on at least one of these streaming services',
-        valueTypes: ['number[]'],
+        valueTypes: ['number', 'number[]'],
         valueFormat:
-          'Array of TMDB provider IDs, e.g., [8, 337] for Netflix, Disney+',
+          'Single provider ID or array of TMDB provider IDs, e.g., 8 or [8, 337] for Netflix, Disney+',
       },
       {
         name: 'notIn',
         description:
           'Content is not available on any of these streaming services',
-        valueTypes: ['number[]'],
+        valueTypes: ['number', 'number[]'],
         valueFormat:
-          'Array of TMDB provider IDs, e.g., [8, 15, 384] for Netflix, Hulu, HBO Max',
+          'Single provider ID or array of TMDB provider IDs, e.g., 8 or [8, 15, 384] for Netflix, Hulu, HBO Max',
       },
     ],
   }
@@ -144,13 +154,26 @@ export default function createStreamingEvaluator(
           return false
         }
 
-        const providerIds = rule.criteria.streamingServices
+        const rawProviderIds = rule.criteria.streamingServices
         const operator = rule.criteria.operator || 'in'
 
-        // Validate provider IDs
-        if (!isValidStreamingServicesValue(providerIds)) {
+        // Validate the value is a valid type (number or number array)
+        if (!isValidStreamingServicesValue(rawProviderIds)) {
           fastify.log.warn(
-            `Invalid streamingServices value in rule "${rule.name}": expected non-empty number array`,
+            `Invalid streamingServices value in rule "${rule.name}": expected number or number array`,
+          )
+          return false
+        }
+
+        // Normalize to array - handle both single number and number array
+        const providerIds = Array.isArray(rawProviderIds)
+          ? rawProviderIds
+          : [rawProviderIds]
+
+        // Check for empty array
+        if (providerIds.length === 0) {
+          fastify.log.warn(
+            `Invalid streamingServices value in rule "${rule.name}": array cannot be empty`,
           )
           return false
         }
@@ -211,15 +234,25 @@ export default function createStreamingEvaluator(
 
       const { operator, value, negate: _ = false } = condition
 
-      // Validate provider IDs
+      // Validate the value is a valid type (number or number array)
       if (!isValidStreamingServicesValue(value)) {
         fastify.log.warn(
-          `Invalid streamingServices value in condition: expected non-empty number array, got ${typeof value}`,
+          `Invalid streamingServices value in condition: expected number or number array, got ${typeof value}`,
         )
         return false
       }
 
-      const providerIds = value
+      // Normalize to array - handle both single number and number array
+      const providerIds = Array.isArray(value) ? value : [value]
+
+      // Check for empty array
+      if (providerIds.length === 0) {
+        fastify.log.warn(
+          'Invalid streamingServices value in condition: array cannot be empty',
+        )
+        return false
+      }
+
       let result = false
 
       // Apply operator logic
