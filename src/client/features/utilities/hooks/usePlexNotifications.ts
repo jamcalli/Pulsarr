@@ -9,10 +9,8 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 import { api } from '@/lib/api'
+import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { useConfigStore } from '@/stores/configStore'
-
-// Minimum loading delay
-const MIN_LOADING_DELAY = 500
 
 // Extended status response type with config
 interface ExtendedPlexNotificationStatusResponse

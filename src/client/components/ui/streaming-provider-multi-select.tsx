@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { api } from '@/lib/api'
+import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { useConfigStore } from '@/stores/configStore'
 
 interface StreamingProviderMultiSelectProps {
@@ -23,11 +24,23 @@ const StreamingProviderMultiSelect = ({
     const fetchProviders = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch(api('/v1/tmdb/providers'))
-        const data: ProvidersResponse = await response.json()
-        if (data.success && data.providers) {
-          setProviders(data.providers)
+
+        // Create minimum loading time promise for better UX
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Fetch providers operation
+        const fetchOperation = async () => {
+          const response = await fetch(api('/v1/tmdb/providers'))
+          const data: ProvidersResponse = await response.json()
+          if (data.success && data.providers) {
+            setProviders(data.providers)
+          }
         }
+
+        // Run fetch and minimum loading time in parallel
+        await Promise.all([fetchOperation(), minimumLoadingTime])
       } catch (error) {
         console.error('Failed to fetch streaming providers:', error)
       } finally {
