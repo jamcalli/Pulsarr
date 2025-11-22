@@ -117,7 +117,7 @@ export const GetApprovalRequestsQuerySchema = z.object({
 })
 
 export const ApprovalRequestsListResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   approvalRequests: z.array(ApprovalRequestResponseSchema),
   total: z.number(),
@@ -126,19 +126,19 @@ export const ApprovalRequestsListResponseSchema = z.object({
 })
 
 export const ApprovalRequestCreateResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   approvalRequest: ApprovalRequestResponseSchema,
 })
 
 export const ApprovalRequestUpdateResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   approvalRequest: ApprovalRequestResponseSchema,
 })
 
 export const ApprovalStatsResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   stats: z.object({
     pending: z.number(),
@@ -151,7 +151,7 @@ export const ApprovalStatsResponseSchema = z.object({
 })
 
 export const ApprovalSuccessResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
 })
 
@@ -181,7 +181,7 @@ export const BulkDeleteRequestSchema = z.object({
 })
 
 export const BulkOperationResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   result: z.object({
     successful: z.number(),

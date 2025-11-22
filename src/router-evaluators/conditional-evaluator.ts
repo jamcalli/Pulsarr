@@ -51,13 +51,13 @@ function isValidCondition(value: unknown): value is Condition | ConditionGroup {
 }
 
 /**
- * Creates a routing evaluator that determines routing decisions for content items based on conditional rules stored in the database.
+ * Creates a routing evaluator that determines routing decisions for content items based on conditional rules.
  *
- * The evaluator fetches enabled conditional routing rules for the relevant content type, validates their condition structures, and evaluates each rule against the provided content item and routing context. For each rule whose condition matches, a routing decision is generated, including the target instance, quality profile, root folder, tags, priority, search-on-add, season monitoring, and series type.
+ * The evaluator receives pre-filtered conditional routing rules from the ContentRouterService, validates their condition structures, and evaluates each rule against the provided content item and routing context by delegating field-specific evaluations to specialized evaluators. For each rule whose condition matches, a routing decision is generated, including the target instance, quality profile, root folder, tags, priority, search-on-add, season monitoring, and series type.
  *
  * @returns A {@link RoutingEvaluator} that processes conditional routing rules with the highest priority.
  *
- * @remark If the database query fails, the evaluator logs an error and returns `false` from `canEvaluate` or `null` from `evaluate`.
+ * @remark The evaluator operates on pre-filtered rules supplied by the content router and delegates condition evaluation to field-specific evaluators via fastify.contentRouter.evaluateCondition.
  */
 export default function createConditionalEvaluator(
   fastify: FastifyInstance,

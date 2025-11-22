@@ -100,7 +100,7 @@ export function TmdbRegionSelector({ onRegionChange }: TmdbRegionSelectorProps) 
       <Select
         value={config?.tmdbRegion || 'US'}
         onValueChange={handleRegionChange}
-        disabled={loadingRegions}
+        disabled={loadingRegions || !config}
       >
         <SelectTrigger className="w-36 h-8 text-xs">
           <SelectValue

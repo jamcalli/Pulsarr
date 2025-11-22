@@ -7,8 +7,12 @@ import { api } from '@/lib/api'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { useConfigStore } from '@/stores/configStore'
 
+interface StreamingServicesFormValues {
+  streamingServices: number | number[]
+}
+
 interface StreamingProviderMultiSelectProps {
-  field: ControllerRenderProps<any, 'streamingServices'>
+  field: ControllerRenderProps<StreamingServicesFormValues, 'streamingServices'>
   onDropdownOpen?: () => Promise<void>
 }
 

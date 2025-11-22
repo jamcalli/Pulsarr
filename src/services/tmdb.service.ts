@@ -765,9 +765,12 @@ export class TmdbService {
       typeof data.results === 'object' &&
       data.results !== null
     ) {
-      const results = data.results as Record<string, unknown>
-      // Return the providers for the target region
-      return results[targetRegion] || null
+      const results = data.results as Record<
+        string,
+        TmdbWatchProviderData | undefined
+      >
+      const regionData = results[targetRegion]
+      return regionData ?? null
     }
 
     return null

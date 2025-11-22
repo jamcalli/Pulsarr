@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const PingSuccessSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
 })
 
 export const PingErrorSchema = z.object({
