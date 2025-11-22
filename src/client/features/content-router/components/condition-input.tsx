@@ -11,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import StreamingProviderMultiSelect from '@/components/ui/streaming-provider-multi-select'
+import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import UserMultiSelect from '@/components/ui/user-multi-select'
 import ImdbRatingInput from '@/features/content-router/components/imdb-rating-input'
 import { ContentCertifications } from '@/features/content-router/types/route-types'
@@ -239,7 +241,6 @@ function ConditionInput({
     fieldName: string,
     isNumeric = false,
   ): ControllerRenderProps<FieldState, FieldPath<FieldState>> => {
-    type AllowedValue = string | string[]
     const isEmpty =
       (Array.isArray(value) && value.length === 0) ||
       value === '' ||
@@ -255,18 +256,20 @@ function ConditionInput({
             : String(value || ''),
         ]
 
+    // Convert to string array for field value
+    const stringArrayValue: string[] = isEmpty
+      ? []
+      : formattedValue.map((v) => String(v))
+
     return {
-      name: fieldName as FieldPath<FieldState>,
-      value: isEmpty
-        ? []
-        : (formattedValue.map((v) => String(v)) as AllowedValue),
+      name: fieldName,
+      value: stringArrayValue,
       onChange: (newValue: unknown) => {
         if (Array.isArray(newValue)) {
-          onChangeRef.current(
-            newValue.map((item) =>
-              isNumeric ? Number(item) : String(item),
-            ) as ConditionValue,
+          const converted = newValue.map((item) =>
+            isNumeric ? Number(item) : String(item),
           )
+          onChangeRef.current(converted)
         } else {
           onChangeRef.current(
             isNumeric && (newValue === '' || newValue === undefined)
@@ -356,6 +359,30 @@ function ConditionInput({
     }
   }
 
+  const createStreamingServicesFormField = (): ControllerRenderProps<
+    Record<string, unknown>,
+    'streamingServices'
+  > => {
+    return {
+      name: 'streamingServices',
+      value: value,
+      onChange: (newValue: unknown) => {
+        // Handle conversion for onChange callback - convert to numbers
+        if (Array.isArray(newValue)) {
+          onChangeRef.current(newValue.map((item) => Number(item)))
+        } else {
+          onChangeRef.current(Number(newValue))
+        }
+      },
+      onBlur: () => {},
+      ref: (instance: HTMLInputElement | null) => {
+        if (inputRef.current !== instance) {
+          inputRef.current = instance
+        }
+      },
+    }
+  }
+
   // For the genre field
   if (field === 'genre' || field === 'genres') {
     // Single value operators
@@ -419,6 +446,25 @@ function ConditionInput({
           genres={genres}
           onDropdownOpen={onGenreDropdownOpen}
         />
+      </div>
+    )
+  }
+
+  // Special handling for streaming services field
+  if (field === 'streamingServices') {
+    const streamingField = createStreamingServicesFormField()
+
+    return (
+      <div className="space-y-3 flex-1">
+        {/* Provider multi-select */}
+        <div>
+          <StreamingProviderMultiSelect field={streamingField} />
+        </div>
+
+        {/* Region selector */}
+        <div>
+          <TmdbRegionSelector />
+        </div>
       </div>
     )
   }
