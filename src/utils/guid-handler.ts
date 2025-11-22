@@ -95,7 +95,8 @@ export function parseGenres(genres: unknown): string[] {
         : []
     } catch {
       // Not JSON - treat as a single genre string (Plex RSS feeds can send this)
-      return [genres]
+      const trimmed = genres.trim()
+      return trimmed ? [trimmed] : []
     }
   }
 

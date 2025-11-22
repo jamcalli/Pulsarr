@@ -43,7 +43,7 @@ export class ContentRouterService {
    * Cleared explicitly when rules are modified via API endpoints
    */
   private rulesCache: Awaited<
-    ReturnType<typeof this.fastify.db.getAllRouterRules>
+    ReturnType<FastifyInstance['db']['getAllRouterRules']>
   > | null = null
 
   /** Creates a fresh service logger that inherits current log level */
