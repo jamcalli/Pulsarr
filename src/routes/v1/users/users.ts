@@ -33,11 +33,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const existingUser = await fastify.db.getUser(request.body.name)
         if (existingUser) {
-          reply.status(409)
-          return {
-            success: false,
-            message: 'User with this name already exists',
-          }
+          return reply.conflict('User with this name already exists')
         }
 
         const user = await fastify.db.createUser(request.body)
@@ -46,7 +42,21 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message: 'User created successfully',
-          user,
+          user: {
+            id: user.id,
+            name: user.name,
+            apprise: user.apprise,
+            alias: user.alias,
+            discord_id: user.discord_id,
+            notify_apprise: user.notify_apprise ?? false,
+            notify_discord: user.notify_discord ?? false,
+            notify_tautulli: user.notify_tautulli ?? false,
+            tautulli_notifier_id: user.tautulli_notifier_id,
+            can_sync: user.can_sync ?? true,
+            requires_approval: user.requires_approval ?? false,
+            created_at: user.created_at ?? new Date().toISOString(),
+            updated_at: user.updated_at ?? new Date().toISOString(),
+          },
         }
       } catch (_error) {
         return reply.internalServerError('Failed to create user')
@@ -85,21 +95,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const existingUser = await fastify.db.getUser(userId)
         if (!existingUser) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'User not found',
-          }
+          return reply.notFound('User not found')
         }
 
         if (request.body.name && request.body.name !== existingUser.name) {
           const nameExists = await fastify.db.getUser(request.body.name)
           if (nameExists) {
-            reply.status(409)
-            return {
-              success: false,
-              message: 'User with this name already exists',
-            }
+            return reply.conflict('User with this name already exists')
           }
         }
 
@@ -116,7 +118,21 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message: 'User updated successfully',
-          user: updatedUser,
+          user: {
+            id: updatedUser.id,
+            name: updatedUser.name,
+            apprise: updatedUser.apprise,
+            alias: updatedUser.alias,
+            discord_id: updatedUser.discord_id,
+            notify_apprise: updatedUser.notify_apprise ?? false,
+            notify_discord: updatedUser.notify_discord ?? false,
+            notify_tautulli: updatedUser.notify_tautulli ?? false,
+            tautulli_notifier_id: updatedUser.tautulli_notifier_id,
+            can_sync: updatedUser.can_sync ?? true,
+            requires_approval: updatedUser.requires_approval ?? false,
+            created_at: updatedUser.created_at ?? new Date().toISOString(),
+            updated_at: updatedUser.updated_at ?? new Date().toISOString(),
+          },
         }
       } catch (_error) {
         return reply.internalServerError('Failed to update user')
@@ -152,17 +168,27 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           Number.parseInt(request.params.id, 10),
         )
         if (!user) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'User not found',
-          }
+          return reply.notFound('User not found')
         }
 
         return {
           success: true,
           message: 'User retrieved successfully',
-          user,
+          user: {
+            id: user.id,
+            name: user.name,
+            apprise: user.apprise,
+            alias: user.alias,
+            discord_id: user.discord_id,
+            notify_apprise: user.notify_apprise ?? false,
+            notify_discord: user.notify_discord ?? false,
+            notify_tautulli: user.notify_tautulli ?? false,
+            tautulli_notifier_id: user.tautulli_notifier_id,
+            can_sync: user.can_sync ?? true,
+            requires_approval: user.requires_approval ?? false,
+            created_at: user.created_at ?? new Date().toISOString(),
+            updated_at: user.updated_at ?? new Date().toISOString(),
+          },
         }
       } catch (_error) {
         return reply.internalServerError('Failed to retrieve user')

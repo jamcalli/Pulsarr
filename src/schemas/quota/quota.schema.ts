@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 import { z } from 'zod'
 
@@ -102,37 +103,37 @@ export const DailyStatsResponseSchema = z.object({
 })
 
 export const GetUsersWithQuotasResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   userQuotas: z.array(UserQuotaResponseSchema),
 })
 
 export const UserQuotaCreateResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   userQuotas: UserQuotasResponseSchema,
 })
 
 export const UserQuotaGetResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   userQuotas: UserQuotasResponseSchema,
 })
 
 export const UserQuotaUpdateResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   userQuotas: UserQuotasResponseSchema,
 })
 
 export const QuotaStatusGetResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   quotaStatus: QuotaStatusResponseSchema.nullable(),
 })
 
 export const BulkQuotaStatusResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   quotaStatuses: z.array(
     z.object({
@@ -143,7 +144,7 @@ export const BulkQuotaStatusResponseSchema = z.object({
 })
 
 export const QuotaUsageListResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   quotaUsage: z.array(QuotaUsageResponseSchema),
   total: z.number(),
@@ -152,13 +153,13 @@ export const QuotaUsageListResponseSchema = z.object({
 })
 
 export const DailyStatsListResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   dailyStats: z.array(DailyStatsResponseSchema),
 })
 
-export const QuotaErrorSchema = z.object({
-  success: z.boolean(),
+export const QuotaSuccessResponseSchema = z.object({
+  success: z.literal(true),
   message: z.string(),
 })
 
@@ -185,7 +186,7 @@ export const BulkQuotaOperationSchema = z.object({
 })
 
 export const BulkQuotaOperationResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   processedCount: z.number(),
   failedIds: z.array(z.number()).optional(),
@@ -224,8 +225,12 @@ export type DailyStatsListResponse = z.infer<
   typeof DailyStatsListResponseSchema
 >
 export type UserQuotasResponse = z.infer<typeof UserQuotasResponseSchema>
-export type QuotaError = z.infer<typeof QuotaErrorSchema>
+export type QuotaError = z.infer<typeof ErrorSchema>
+export type QuotaSuccessResponse = z.infer<typeof QuotaSuccessResponseSchema>
 export type BulkQuotaOperation = z.infer<typeof BulkQuotaOperationSchema>
 export type BulkQuotaOperationResponse = z.infer<
   typeof BulkQuotaOperationResponseSchema
 >
+
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as QuotaErrorSchema }

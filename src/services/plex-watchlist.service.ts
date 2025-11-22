@@ -11,6 +11,7 @@ import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.j
 import {
   getGuidMatchScore,
   hasMatchingParsedGuids,
+  parseGenres,
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
@@ -1598,30 +1599,10 @@ export class PlexWatchlistService {
       plexKey: item.key,
       type: item.type,
       thumb: item.thumb || '',
-      guids: parseGuids(item.guids), // Use parseGuids directly
-      genres: this.safeParseArray<string>(item.genres), // Keep safeParseArray for genres
+      guids: parseGuids(item.guids),
+      genres: parseGenres(item.genres),
       status: 'pending' as const,
     }
-  }
-
-  // Keep this method for parsing non-GUID arrays
-  private safeParseArray<T>(value: unknown): T[] {
-    if (Array.isArray(value)) {
-      return value as T[]
-    }
-
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value)
-        return (
-          Array.isArray(parsed) ? parsed : [parsed].filter(Boolean)
-        ) as T[]
-      } catch (_e) {
-        return (value ? [value] : []) as T[]
-      }
-    }
-
-    return (value ? [value] : []) as T[]
   }
 
   async processRssWatchlists(): Promise<RssWatchlistResults> {
@@ -1711,11 +1692,7 @@ export class PlexWatchlistService {
       type: item.type,
       thumb: item.thumb || undefined,
       guids: parseGuids(item.guids),
-      genres: Array.isArray(item.genres)
-        ? item.genres
-        : item.genres
-          ? [item.genres]
-          : undefined,
+      genres: parseGenres(item.genres),
       source: source,
     }))
 
@@ -1785,7 +1762,7 @@ export class PlexWatchlistService {
       type: item.type,
       thumb: item.thumb || '',
       guids: parseGuids(item.guids),
-      genres: this.safeParseArray<string>(item.genres),
+      genres: parseGenres(item.genres),
       status: 'pending' as const,
     }))
   }

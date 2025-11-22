@@ -115,6 +115,7 @@ export default function createCertificationEvaluator(
     name: 'Certification Router',
     description: 'Routes content based on certification/rating',
     priority: 60, // Lower than language (65) but higher than others
+    ruleType: 'certification',
     supportedFields,
     supportedOperators,
 
@@ -131,7 +132,8 @@ export default function createCertificationEvaluator(
 
     async evaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
+      rules: RouterRule[],
     ): Promise<RoutingDecision[] | null> {
       if (!hasCertificationData(item)) {
         return null
@@ -142,28 +144,13 @@ export default function createCertificationEvaluator(
         return null
       }
 
-      const isMovie = context.contentType === 'movie'
-
-      let rules: RouterRule[] = []
-      try {
-        rules = await fastify.db.getRouterRulesByType('certification')
-      } catch (err) {
-        fastify.log.error(
-          { error: err },
-          'Certification evaluator - DB query failed',
-        )
+      // Rules are already filtered by content-router (by type, target_type, and enabled status)
+      if (rules.length === 0) {
         return null
       }
 
-      // Filter rules by target type and ensure they're enabled
-      const contentTypeRules = rules.filter(
-        (rule) =>
-          rule.target_type === (isMovie ? 'radarr' : 'sonarr') &&
-          rule.enabled !== false,
-      )
-
       // Find matching certification rules - only check 'certification' field
-      const matchingRules = contentTypeRules.filter((rule) => {
+      const matchingRules = rules.filter((rule) => {
         if (!rule.criteria || !rule.criteria.certification) {
           return false
         }
@@ -247,6 +234,7 @@ export default function createCertificationEvaluator(
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
+        ruleName: rule.name,
       }))
     },
 

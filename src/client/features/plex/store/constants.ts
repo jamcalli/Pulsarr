@@ -5,5 +5,5 @@ export const PLEX_STATUS = {
   NOT_FOUND: 404,
 }
 
-// Minimum loading delay for UI feedback (ms)
-export const MIN_LOADING_DELAY = 500
+// Re-export global UI constant for backwards compatibility
+export { MIN_LOADING_DELAY } from '@/lib/constants'

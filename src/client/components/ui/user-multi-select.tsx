@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { MultiSelect } from '@/components/ui/multi-select'
+import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { useConfigStore } from '@/stores/configStore'
 
 interface UserMultiSelectProps {
@@ -21,20 +22,36 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const isInitialized = useConfigStore((state) => state.isInitialized)
   const initialize = useConfigStore((state) => state.initialize)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     const initializeStore = async () => {
-      if (!isInitialized) {
-        await initialize()
+      try {
+        setIsLoading(true)
+
+        // Create minimum loading time promise for better UX
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Run initialization and fetch in parallel with minimum loading time
+        const operations = []
+        if (!isInitialized) {
+          operations.push(initialize())
+        }
+        operations.push(fetchUserData())
+
+        await Promise.all([...operations, minimumLoadingTime])
+      } finally {
+        setIsLoading(false)
       }
-      await fetchUserData()
     }
-    
+
     initializeStore()
   }, [initialize, isInitialized, fetchUserData])
 
   const options = users?.map((user) => ({
-    label: user.alias 
+    label: user.alias
       ? `${user.name} (${user.alias})`
       : user.name,
     value: user.id.toString(),
@@ -47,10 +64,10 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
         field.onChange(values.length === 1 ? values[0] : values)
       }}
       defaultValue={Array.isArray(field.value) ? field.value : field.value ? [field.value] : []}
-      placeholder="Select user(s)"
+      placeholder={isLoading ? 'Loading users...' : 'Select user(s)'}
       modalPopover={true}
       maxCount={2}
-      disabled={disabled}
+      disabled={disabled || isLoading}
     />
   )
 }

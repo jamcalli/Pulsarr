@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { SERIES_TYPES } from '@root/schemas/content-router/constants.js'
 import { z } from 'zod'
 export { SERIES_TYPES }
@@ -331,11 +332,7 @@ export const ContentRouterRuleListResponseSchema = z.object({
 })
 
 export const ContentRouterRuleSuccessSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-})
-
-export const ContentRouterRuleErrorSchema = z.object({
+  success: z.literal(true),
   message: z.string(),
 })
 
@@ -397,6 +394,7 @@ export type ContentRouterRuleListResponse = z.infer<
 export type ContentRouterRuleSuccess = z.infer<
   typeof ContentRouterRuleSuccessSchema
 >
-export type ContentRouterRuleError = z.infer<
-  typeof ContentRouterRuleErrorSchema
->
+
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as ContentRouterRuleErrorSchema }
+export type ContentRouterRuleError = z.infer<typeof ErrorSchema>

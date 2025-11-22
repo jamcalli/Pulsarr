@@ -357,6 +357,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const createdRule = await fastify.db.createRouterRule(formattedRuleData)
 
+        // Clear router rules cache after creating a new rule
+        fastify.contentRouter.clearRouterRulesCache()
+
         // Format the response using the utility function
         const formattedRule = formatRule(createdRule, fastify.log)
 
@@ -496,6 +499,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
+        // Clear router rules cache after successful update
+        fastify.contentRouter.clearRouterRulesCache()
+
         // Format the response using the utility function
         const formattedRule = formatRule(updatedRule, fastify.log)
 
@@ -558,6 +564,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
+        // Clear router rules cache after successful deletion
+        fastify.contentRouter.clearRouterRulesCache()
+
         return {
           success: true,
           message: 'Router rule deleted successfully',
@@ -618,6 +627,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             `Failed to toggle router rule with ID ${id}`,
           )
         }
+
+        // Clear router rules cache after successful toggle
+        fastify.contentRouter.clearRouterRulesCache()
 
         return {
           success: true,

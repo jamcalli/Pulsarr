@@ -111,6 +111,7 @@ export default function createGenreEvaluator(
     name: 'Genre Router',
     description: 'Routes content based on genre matching rules',
     priority: 80,
+    ruleType: 'genre',
     supportedFields,
     supportedOperators,
     async canEvaluate(
@@ -125,7 +126,8 @@ export default function createGenreEvaluator(
     },
     async evaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
+      rules: RouterRule[],
     ): Promise<RoutingDecision[] | null> {
       if (
         !item.genres ||
@@ -134,28 +136,17 @@ export default function createGenreEvaluator(
       ) {
         return null
       }
-      const isMovie = context.contentType === 'movie'
 
-      let rules: RouterRule[] = []
-      try {
-        rules = await fastify.db.getRouterRulesByType('genre')
-      } catch (err) {
-        fastify.log.error({ error: err }, 'Genre evaluator - DB query failed')
+      // Rules are already filtered by content-router (by type, target_type, and enabled status)
+      if (rules.length === 0) {
         return null
       }
-
-      // Filter rules by target type (radarr/sonarr) and enabled status
-      const contentTypeRules = rules.filter(
-        (rule) =>
-          rule.target_type === (isMovie ? 'radarr' : 'sonarr') &&
-          rule.enabled !== false,
-      )
 
       // Create a set of normalized genres (converted to lowercase and trimmed)
       const itemGenres = new Set(item.genres.map(normalizeString))
 
       // Find matching genre routes - check both 'genres' field (new) and 'genre' field (legacy)
-      const matchingRules = contentTypeRules.filter((rule) => {
+      const matchingRules = rules.filter((rule) => {
         if (!rule.criteria) {
           return false
         }
@@ -237,6 +228,7 @@ export default function createGenreEvaluator(
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
+        ruleName: rule.name,
       }))
     },
 

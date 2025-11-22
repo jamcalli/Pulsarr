@@ -71,11 +71,11 @@ function isValidImdbValue(
 /**
  * Creates a routing evaluator that determines routing decisions and evaluates conditions for content items based on their IMDB ratings and vote counts.
  *
- * The evaluator supports a range of operators on the "imdb.rating" and "imdb.votes" fields, including exact match, inequality, range, and array membership. It retrieves IMDB-based routing rules from the database, filters them by content type and enabled status, and matches them against the content item's IMDB data to generate routing decisions. It also provides condition evaluation for IMDB-based rules and exposes metadata describing supported fields and operators.
+ * The evaluator supports a range of operators on the "imdbRating" and "imdbVotes" fields, including exact match, inequality, range, and array membership. It receives pre-filtered IMDB routing rules from the ContentRouterService and matches them against the content item's IMDB data (fetched via getRating(item.guids)) to generate routing decisions. It also provides condition evaluation for IMDB-based rules and exposes metadata describing supported fields and operators.
  *
  * @returns A {@link RoutingEvaluator} for evaluating routing rules and conditions based on IMDB ratings and vote counts.
  *
- * @remark If the database query for routing rules fails, the evaluator logs the error and returns {@code null} from the {@code evaluate} method.
+ * @remark The evaluator operates on pre-filtered rules supplied by the content router. IMDB data is fetched only when needsImdb enrichment is enabled.
  */
 export default function createImdbEvaluator(
   fastify: FastifyInstance,
@@ -139,6 +139,7 @@ export default function createImdbEvaluator(
     name: 'IMDB Router',
     description: 'Routes content based on IMDB ratings and vote counts',
     priority: 80,
+    ruleType: 'imdb',
     supportedFields,
     supportedOperators,
 
@@ -158,7 +159,8 @@ export default function createImdbEvaluator(
 
     async evaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
+      rules: RouterRule[],
     ): Promise<RoutingDecision[] | null> {
       // Get IMDB rating data
       let imdbData: { rating: number | null; votes: number | null } | null =
@@ -174,25 +176,13 @@ export default function createImdbEvaluator(
         return null
       }
 
-      const isMovie = context.contentType === 'movie'
-
-      let rules: RouterRule[] = []
-      try {
-        rules = await fastify.db.getRouterRulesByType('imdb')
-      } catch (err) {
-        fastify.log.error({ error: err }, 'IMDB evaluator - DB query failed')
+      // Rules are already filtered by content-router (by type, target_type, and enabled status)
+      if (rules.length === 0) {
         return null
       }
 
-      // Filter rules by target type and enabled status
-      const contentTypeRules = rules.filter(
-        (rule) =>
-          rule.enabled !== false &&
-          rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
-      )
-
       // Find matching IMDB rules
-      const matchingRules = contentTypeRules.filter((rule) => {
+      const matchingRules = rules.filter((rule) => {
         if (!rule.criteria) return false
 
         const ratingCriteria = rule.criteria.imdbRating
@@ -268,6 +258,7 @@ export default function createImdbEvaluator(
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
+        ruleName: rule.name,
       }))
     },
 
