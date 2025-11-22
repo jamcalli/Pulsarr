@@ -79,7 +79,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -134,15 +137,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -157,15 +169,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -191,7 +212,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -249,15 +273,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -302,15 +335,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -325,15 +367,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -657,7 +708,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -1212,7 +1266,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -1691,7 +1748,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -2441,7 +2501,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -2999,7 +3062,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3155,7 +3221,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3318,7 +3387,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3443,7 +3515,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3631,7 +3706,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3818,7 +3896,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -4002,7 +4083,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -4132,7 +4216,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "config": {
                       "type": "object",
@@ -4742,12 +4829,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -4761,12 +4861,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -4780,12 +4893,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -5406,7 +5532,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "config": {
                       "type": "object",
@@ -6016,12 +6145,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -6035,12 +6177,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -6054,12 +6209,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -6672,11 +6840,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -7815,11 +7996,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -7834,11 +8028,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -8471,11 +8678,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -9111,11 +9331,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -9736,11 +9969,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -9755,11 +10001,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -10902,11 +11161,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -10921,11 +11193,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -10961,7 +11246,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -10983,11 +11271,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11002,11 +11303,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11634,11 +11948,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11653,11 +11980,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11713,7 +12053,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -11735,11 +12078,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11754,11 +12110,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11826,11 +12195,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -13531,7 +13913,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     }
                   },
                   "required": [
@@ -13549,18 +13934,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -13888,7 +14279,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "genres": {
                       "type": "array",
@@ -13913,12 +14307,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -14438,7 +14845,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -14497,15 +14907,20 @@
                     "statusCode": {
                       "type": "number"
                     },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
                     "statusCode",
+                    "code",
                     "error",
                     "message"
                   ],
@@ -14524,15 +14939,20 @@
                     "statusCode": {
                       "type": "number"
                     },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
                     "statusCode",
+                    "code",
                     "error",
                     "message"
                   ],
@@ -14551,15 +14971,20 @@
                     "statusCode": {
                       "type": "number"
                     },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
                     "statusCode",
+                    "code",
                     "error",
                     "message"
                   ],
@@ -14578,15 +15003,20 @@
                     "statusCode": {
                       "type": "number"
                     },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
                     "statusCode",
+                    "code",
                     "error",
                     "message"
                   ],
@@ -14605,15 +15035,20 @@
                     "statusCode": {
                       "type": "number"
                     },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
                     "statusCode",
+                    "code",
                     "error",
                     "message"
                   ],
@@ -14710,7 +15145,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -14819,15 +15257,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -14842,15 +15289,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -14876,7 +15332,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -14939,15 +15398,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -14985,7 +15453,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15094,15 +15565,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15164,7 +15644,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15273,15 +15756,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15317,7 +15809,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15339,15 +15834,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15448,7 +15952,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15557,15 +16064,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15615,7 +16131,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15679,15 +16198,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15743,7 +16271,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15823,15 +16354,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15846,15 +16386,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15919,7 +16468,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15941,15 +16493,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16038,7 +16599,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -16100,15 +16664,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16157,7 +16730,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -16207,15 +16783,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16328,7 +16913,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -16360,15 +16948,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16383,15 +16980,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16431,7 +17037,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -16453,15 +17062,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -23596,6 +24214,141 @@
         }
       }
     },
+    "/v1/tmdb/providers": {
+      "get": {
+        "operationId": "getTmdbProviders",
+        "summary": "Get streaming providers",
+        "tags": [
+          "TMDB"
+        ],
+        "description": "Fetch list of streaming service providers available for the configured region. Results are cached for 24 hours.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "region": {
+                      "type": "string"
+                    },
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "display_priority": {
+                            "type": "number"
+                          },
+                          "logo_path": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "provider_id": {
+                            "type": "number"
+                          },
+                          "provider_name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "display_priority",
+                          "logo_path",
+                          "provider_id",
+                          "provider_name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "region",
+                    "providers"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/tmdb/metadata/{id}": {
       "get": {
         "operationId": "getTmdbMetadataByGuid",
@@ -24717,18 +25470,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -24743,18 +25502,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -25886,18 +26651,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -25912,18 +26683,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27055,18 +27832,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27081,18 +27864,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27165,18 +27954,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27276,7 +28071,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -27308,15 +28106,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27331,15 +28138,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27784,7 +28600,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -27840,15 +28659,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27863,15 +28691,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27899,7 +28736,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -27984,15 +28824,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28020,7 +28869,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28109,15 +28961,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28207,7 +29068,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28294,15 +29158,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28395,7 +29268,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28482,15 +29358,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28505,15 +29390,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28549,7 +29443,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28636,15 +29533,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28682,7 +29588,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28792,15 +29701,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28815,15 +29733,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false

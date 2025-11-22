@@ -1,0 +1,63 @@
+---
+id: get-tmdb-providers
+title: "Get streaming providers"
+description: "Fetch list of streaming service providers available for the configured region. Results are cached for 24 hours."
+sidebar_label: "Get streaming providers"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVk2P2zYQ/SvEnBpAXu1m24tubrYNFk0BI7stChjGgqbGErMSqZBDbwxB/z0YyrJlW4s0PbSXniRohm++nt6wBdugk6Stuc8hgwLpsc7XC2e3OkfnIQGShYdsCY+/3/0MqwRy9Mrpho9ABr8iqVJU2pOwG+HJoay1KYRHt9UKRTMgCbmVupLrCsXGOkElCmXNRhfBYS4cFtqaK/ERfajIC+lQKKlKzKP32x9FaYPzV5CAQ99Y49FD1sLb62t+nOZ0hxsZKmKw6AkJKGsIDbGvbJpKq1hy+snzgRa8KrGW/Ea7BiEDu/6EiiCBxnGDSPfhfFAKvR85rq2tUBpIAE2oIVuSC7jqEqjRe1ngyNWT06aAjksodB/4wnTo18gqnZM7SEAT1v7bSebaN5XcPTVOW6dpNzphQr1Gx3EqW9inRlLJVhOqOBnIOPvk9ayedD6JdrAbWU+VHGv+HLTDnKl0keE4n9No59irBGSea56erBajujey8tidRxoGdpzHofvjXn8TtUvgp3+ZaiQp+Hc2x8mOq1PDcVTonHWTllcZmUCtzQc0BbPh5qKFx0T2YYcgR8i/17/b//v3j/sX41Np9yLN5cafF9LtTUp1vk6bkWaz+kYNWbYQXAUZtI2zZJWtuixN29J66rK2sY46OJf0d8GTrcVDxIAEttJpVofY1gGG3/eKByVRA0l8+H5DxKFCNlhO8R/LuBYijAgec0FWKFvXwfCwUbxoKuOC6Mvg3nPCPXsG6MoqWcXPU/hsYL0Q1on7hZB57tB7XlGMuwiVl86N8LkTp/i319e306lbR8Ia8VJqVR6gtBcuGNOrXZcMbY89ydJ0Z4ObNb3vTBtP0ii8Ura+CLFwupZuN7T/O6CyyZTvtENFezgxj3Iofogt5krenEXI0vTQ2WnAD4N5EmzF5FOh3ztL/oX1b7ibB+bqcsWxPHqvrTl8Gp144H+759n43HERxo+8CTmREmUeCdovHfhrNl/cz3qH05Tni3vxjDshA5VoaC8pIni+qRyOiT1gl5zm+Ep4Ze2zxmP4/Ugugj/0WLO1ZKpPptBD+bgntdnYGFMTL2QYCDZf3E/WlVsVajTU4/FlaTgxE1IsKvwiXiSpMl7RtCEs3NH1wRr2lCYXH2XeZ8/C0cP/edP/Gp5qGbV3X+l7pNFNb6w7J+m1Ryn/D66J+5kRfqG0qaQ2XEvkebuXziVsb9ixztfnl4FebpbQtjy1P1zVdfz5c0DHtF4dRbFn9cBFZvwz7ng0SmFDUT2r0JPnbJcx8Q+S/v6XR+i6r6BTC00=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get streaming providers"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/tmdb/providers"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Fetch list of streaming service providers available for the configured region. Results are cached for 24 hours.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean","enum":[true]},"message":{"type":"string"},"region":{"type":"string"},"providers":{"type":"array","items":{"type":"object","properties":{"display_priority":{"type":"number"},"logo_path":{"nullable":true,"type":"string"},"provider_id":{"type":"number"},"provider_name":{"type":"string"}},"required":["display_priority","logo_path","provider_id","provider_name"],"additionalProperties":false}}},"required":["success","message","region","providers"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"503":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
