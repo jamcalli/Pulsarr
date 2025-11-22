@@ -44,21 +44,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           // Check if autoStart parameter is provided and is true
           if (request.body?.autoStart === true) {
             try {
-              // Get current config from in-memory source of truth
-              const currentConfig = fastify.config
-
-              // Update the _isReady flag
-              const configUpdate = {
-                ...currentConfig,
+              // Update only the _isReady flag - no need to spread entire config
+              // db.updateConfig accepts Partial<Config> and only updates provided fields
+              const dbUpdated = await fastify.db.updateConfig({
                 _isReady: true,
-              }
-
-              // Save the updated config to database first
-              const dbUpdated = await fastify.db.updateConfig(configUpdate)
+              })
               if (dbUpdated) {
                 // Update the runtime config if database update was successful
                 try {
-                  await fastify.updateConfig(configUpdate)
+                  await fastify.updateConfig({ _isReady: true })
                   fastify.log.info('Updated config _isReady to true')
                 } catch (memUpdateErr) {
                   fastify.log.error(
