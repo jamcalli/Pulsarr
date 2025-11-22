@@ -1,7 +1,8 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 export const MeResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   user: z.object({
     id: z.number(),
@@ -13,10 +14,8 @@ export const MeResponseSchema = z.object({
   }),
 })
 
-export const MeErrorSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-})
-
 export type MeResponse = z.infer<typeof MeResponseSchema>
-export type MeError = z.infer<typeof MeErrorSchema>
+
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as MeErrorSchema }
+export type MeError = z.infer<typeof ErrorSchema>

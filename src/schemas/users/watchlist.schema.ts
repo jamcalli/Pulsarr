@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 // Watchlist item schema for the response
@@ -25,19 +26,13 @@ export const GetUserWatchlistParamsSchema = z.object({
 
 // Success response schema
 export const GetUserWatchlistResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   data: z.object({
     user: UserInfoSchema,
     watchlistItems: z.array(WatchlistItemSchema),
     total: z.number(),
   }),
-})
-
-// Error response schema
-export const GetUserWatchlistErrorSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
 })
 
 // Export types
@@ -47,5 +42,8 @@ export type GetUserWatchlistParams = z.infer<
 export type GetUserWatchlistResponse = z.infer<
   typeof GetUserWatchlistResponseSchema
 >
-export type GetUserWatchlistError = z.infer<typeof GetUserWatchlistErrorSchema>
 export type WatchlistItem = z.infer<typeof WatchlistItemSchema>
+
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as GetUserWatchlistErrorSchema }
+export type GetUserWatchlistError = z.infer<typeof ErrorSchema>

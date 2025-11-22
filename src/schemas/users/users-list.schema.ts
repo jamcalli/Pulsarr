@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 const UserBaseSchema = z.object({
@@ -20,20 +21,15 @@ const UserWithCountSchema = UserBaseSchema.extend({
 })
 
 export const UserListResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   users: z.array(UserBaseSchema),
 })
 
 export const UserListWithCountsResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   users: z.array(UserWithCountSchema),
-})
-
-export const UserErrorSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
 })
 
 export type UserBase = z.infer<typeof UserBaseSchema>
@@ -42,4 +38,7 @@ export type UserListResponse = z.infer<typeof UserListResponseSchema>
 export type UserListWithCountsResponse = z.infer<
   typeof UserListWithCountsResponseSchema
 >
-export type UserError = z.infer<typeof UserErrorSchema>
+
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as UserErrorSchema }
+export type UserError = z.infer<typeof ErrorSchema>

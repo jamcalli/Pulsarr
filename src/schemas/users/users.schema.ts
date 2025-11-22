@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 export const CreateUserSchema = z.object({
@@ -14,7 +15,7 @@ export const CreateUserSchema = z.object({
 })
 
 export const CreateUserResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   user: z.object({
     id: z.number(),
@@ -36,7 +37,7 @@ export const CreateUserResponseSchema = z.object({
 export const UpdateUserSchema = CreateUserSchema.partial()
 
 export const UpdateUserResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   user: z.object({
     id: z.number(),
@@ -55,18 +56,13 @@ export const UpdateUserResponseSchema = z.object({
   }),
 })
 
-export const UserErrorSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-})
-
 export const BulkUpdateRequestSchema = z.object({
   userIds: z.array(z.number()).min(1),
   updates: UpdateUserSchema,
 })
 
 export const BulkUpdateResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   message: z.string(),
   updatedCount: z.number(),
   failedIds: z.array(z.number()).optional(),
@@ -76,6 +72,9 @@ export type CreateUser = z.infer<typeof CreateUserSchema>
 export type CreateUserResponse = z.infer<typeof CreateUserResponseSchema>
 export type UpdateUser = z.infer<typeof UpdateUserSchema>
 export type UpdateUserResponse = z.infer<typeof UpdateUserResponseSchema>
-export type UserError = z.infer<typeof UserErrorSchema>
 export type BulkUpdateRequest = z.infer<typeof BulkUpdateRequestSchema>
 export type BulkUpdateResponse = z.infer<typeof BulkUpdateResponseSchema>
+
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as UserErrorSchema }
+export type UserError = z.infer<typeof ErrorSchema>

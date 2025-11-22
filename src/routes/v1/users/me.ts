@@ -31,11 +31,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         // Check if user is authenticated
         if (!request.session?.user) {
-          reply.status(401)
-          return {
-            success: false,
-            message: 'Authentication required',
-          }
+          return reply.unauthorized('Authentication required')
         }
 
         const sessionUser = request.session.user
@@ -80,11 +76,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve current user information',
         })
-        reply.status(500)
-        return {
-          success: false,
-          message: 'Failed to retrieve user information',
-        }
+        return reply.internalServerError('Failed to retrieve user information')
       }
     },
   )

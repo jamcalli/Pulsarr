@@ -37,11 +37,7 @@ const watchlistRoute: FastifyPluginAsync = async (fastify) => {
         // Check if user exists
         const user = await fastify.db.getUser(userId)
         if (!user) {
-          const errorResponse: GetUserWatchlistError = {
-            success: false,
-            message: 'User not found',
-          }
-          return reply.notFound(errorResponse.message)
+          return reply.notFound('User not found')
         }
 
         // Get watchlist items using the database service method
@@ -78,11 +74,7 @@ const watchlistRoute: FastifyPluginAsync = async (fastify) => {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to fetch user watchlist',
         })
-        const errorResponse: GetUserWatchlistError = {
-          success: false,
-          message: 'Failed to fetch user watchlist',
-        }
-        return reply.internalServerError(errorResponse.message)
+        return reply.internalServerError('Failed to fetch user watchlist')
       }
     },
   )

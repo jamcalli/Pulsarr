@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
 import {
   RemovedTagPrefixSchema,
@@ -322,14 +323,13 @@ export const ConfigSchema = z.object({
 })
 
 export const ConfigResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   config: ConfigSchema,
-})
-
-export const ConfigErrorSchema = z.object({
-  error: z.string(),
 })
 
 export type Config = z.infer<typeof ConfigSchema>
 export type ConfigResponse = z.infer<typeof ConfigResponseSchema>
-export type ConfigError = z.infer<typeof ConfigErrorSchema>
+
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as ConfigErrorSchema }
+export type ConfigError = z.infer<typeof ErrorSchema>
