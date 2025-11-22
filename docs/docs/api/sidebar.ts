@@ -918,6 +918,12 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
+          id: "api/get-tmdb-providers",
+          label: "Get streaming providers",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "api/get-tmdb-metadata-by-guid",
           label: "Get TMDB metadata by GUID",
           className: "api-method get",
