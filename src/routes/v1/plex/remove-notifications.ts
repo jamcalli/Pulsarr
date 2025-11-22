@@ -18,9 +18,7 @@ export const removeNotificationsRoute: FastifyPluginAsyncZod = async (
         const sonarrInstances = await fastify.sonarrManager.getAllInstances()
 
         if (radarrInstances.length === 0 && sonarrInstances.length === 0) {
-          return reply
-            .code(400)
-            .send({ error: 'No Radarr or Sonarr instances configured' })
+          return reply.badRequest('No Radarr or Sonarr instances configured')
         }
 
         const results = {
@@ -139,9 +137,7 @@ export const removeNotificationsRoute: FastifyPluginAsyncZod = async (
         logRouteError(fastify.log, request, err, {
           message: 'Failed to remove Plex notifications',
         })
-        return reply
-          .code(500)
-          .send({ error: 'Unable to remove Plex notifications' })
+        return reply.internalServerError('Unable to remove Plex notifications')
       }
     },
   })
