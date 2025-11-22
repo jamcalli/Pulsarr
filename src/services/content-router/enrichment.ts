@@ -284,9 +284,16 @@ export async function enrichItemMetadata(
       // 4. Check anime status if needed (for conditional genre checks)
       if (enrichmentNeeds.needsAnimeCheck && fastify.anime) {
         try {
-          const tvdbId = extractTvdbId(item.guids)?.toString()
-          const tmdbId = extractTmdbId(item.guids)?.toString()
-          const imdbId = extractImdbId(item.guids)?.toString()
+          const tvdbIdNum = extractTvdbId(item.guids)
+          const tmdbIdNum = extractTmdbId(item.guids)
+          const imdbIdNum = extractImdbId(item.guids)
+
+          const tvdbId =
+            tvdbIdNum && tvdbIdNum > 0 ? tvdbIdNum.toString() : undefined
+          const tmdbId =
+            tmdbIdNum && tmdbIdNum > 0 ? tmdbIdNum.toString() : undefined
+          const imdbId =
+            imdbIdNum && imdbIdNum > 0 ? imdbIdNum.toString() : undefined
 
           if (tvdbId || tmdbId || imdbId) {
             const isAnimeContent = await fastify.anime.isAnime(
@@ -419,9 +426,16 @@ export async function enrichItemMetadata(
       // 4. Check anime status if needed (for conditional genre checks)
       if (enrichmentNeeds.needsAnimeCheck && fastify.anime) {
         try {
-          const tvdbId = extractTvdbId(item.guids)?.toString()
-          const tmdbId = extractTmdbId(item.guids)?.toString()
-          const imdbId = extractImdbId(item.guids)?.toString()
+          const tvdbIdNum = extractTvdbId(item.guids)
+          const tmdbIdNum = extractTmdbId(item.guids)
+          const imdbIdNum = extractImdbId(item.guids)
+
+          const tvdbId =
+            tvdbIdNum && tvdbIdNum > 0 ? tvdbIdNum.toString() : undefined
+          const tmdbId =
+            tmdbIdNum && tmdbIdNum > 0 ? tmdbIdNum.toString() : undefined
+          const imdbId =
+            imdbIdNum && imdbIdNum > 0 ? imdbIdNum.toString() : undefined
 
           if (tvdbId || tmdbId || imdbId) {
             const isAnimeContent = await fastify.anime.isAnime(
