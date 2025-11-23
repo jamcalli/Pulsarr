@@ -46,6 +46,13 @@ export class ContentRouterService {
     ReturnType<FastifyInstance['db']['getAllRouterRules']>
   > | null = null
 
+  /**
+   * In-flight promise for router rules fetch to prevent concurrent duplicate queries
+   */
+  private rulesCachePromise: Promise<
+    Awaited<ReturnType<FastifyInstance['db']['getAllRouterRules']>>
+  > | null = null
+
   /** Creates a fresh service logger that inherits current log level */
 
   private get log(): FastifyBaseLogger {
@@ -128,10 +135,16 @@ export class ContentRouterService {
       return this.rulesCache
     }
 
+    if (this.rulesCachePromise) {
+      this.log.debug('Waiting for in-flight router rules fetch')
+      return this.rulesCachePromise
+    }
+
     this.log.debug('Fetching router rules from database')
-    const rules = await this.fastify.db.getAllRouterRules()
-    this.rulesCache = rules
-    return rules
+    this.rulesCachePromise = this.fastify.db.getAllRouterRules()
+    this.rulesCache = await this.rulesCachePromise
+    this.rulesCachePromise = null
+    return this.rulesCache
   }
 
   /**
@@ -140,6 +153,7 @@ export class ContentRouterService {
    */
   clearRouterRulesCache(): void {
     this.rulesCache = null
+    this.rulesCachePromise = null
     this.log.debug('Router rules cache cleared')
   }
 
