@@ -611,6 +611,31 @@ export class TmdbService {
         this.fetchProviderList('tv', providerRegion),
       ])
 
+      // Log rejected requests
+      if (movieResponse.status === 'rejected') {
+        this.log.warn(
+          `Failed to fetch movie providers for region ${providerRegion}:`,
+          movieResponse.reason,
+        )
+      }
+      if (tvResponse.status === 'rejected') {
+        this.log.warn(
+          `Failed to fetch TV providers for region ${providerRegion}:`,
+          tvResponse.reason,
+        )
+      }
+
+      // If both requests failed, return null (don't cache empty result)
+      if (
+        movieResponse.status === 'rejected' &&
+        tvResponse.status === 'rejected'
+      ) {
+        this.log.error(
+          `Both movie and TV provider fetches failed for region ${providerRegion}`,
+        )
+        return null
+      }
+
       // Collect providers from both responses
       const allProviders = new Map<number, TmdbWatchProvider>()
 
