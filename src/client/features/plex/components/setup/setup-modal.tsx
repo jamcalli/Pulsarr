@@ -109,6 +109,10 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         verifyMinLoadingTime,
       ])
 
+      if (!plexPingResponse.ok) {
+        throw new Error('Failed to verify Plex token')
+      }
+
       await plexPingResponse.json()
 
       setCurrentStep('syncing')
