@@ -44,9 +44,6 @@ export function useQuotaManagement() {
       }
 
       const result: UserQuotaUpdateResponse = await response.json()
-      if (!result.success) {
-        throw new Error(result.message)
-      }
 
       return result.userQuotas
     },
@@ -62,10 +59,7 @@ export function useQuotaManagement() {
       throw new Error(`Failed to delete quota: ${response.status}`)
     }
 
-    const result = await response.json()
-    if (!result.success) {
-      throw new Error(result.message)
-    }
+    await response.json()
 
     return true
   }, [])
@@ -78,9 +72,6 @@ export function useQuotaManagement() {
     }
 
     const result: QuotaStatusGetResponse = await response.json()
-    if (!result.success) {
-      throw new Error(result.message)
-    }
 
     return result.quotaStatus
   }, [])

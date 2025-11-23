@@ -111,17 +111,13 @@ export const useConfigStore = create<ConfigState>()(
           try {
             const response = await fetch(api('/v1/config/config'))
             const data: ConfigResponse = await response.json()
-            if (data.success) {
-              set((state) => ({
-                ...state,
-                config: {
-                  ...data.config,
-                },
-                error: null,
-              }))
-            } else {
-              throw new Error('Failed to fetch config')
-            }
+            set((state) => ({
+              ...state,
+              config: {
+                ...data.config,
+              },
+              error: null,
+            }))
           } catch (err) {
             set({ error: 'Failed to load configuration' })
             console.error('Config fetch error:', err)
@@ -154,16 +150,12 @@ export const useConfigStore = create<ConfigState>()(
               body: JSON.stringify(updates),
             })
             const data: ConfigResponse = await response.json()
-            if (data.success) {
-              set((state) => ({
-                config: {
-                  ...state.config,
-                  ...data.config,
-                },
-              }))
-            } else {
-              throw new Error('Failed to update config')
-            }
+            set((state) => ({
+              config: {
+                ...state.config,
+                ...data.config,
+              },
+            }))
           } catch (err) {
             set({ error: 'Failed to update configuration' })
             console.error('Config update error:', err)
@@ -515,15 +507,11 @@ export const useConfigStore = create<ConfigState>()(
 
             const data: CurrentUserResponse = await response.json()
 
-            if (data.success) {
-              set({
-                currentUser: data.user,
-                currentUserLoading: false,
-                currentUserError: null,
-              })
-            } else {
-              throw new Error(data.message || 'Failed to fetch current user')
-            }
+            set({
+              currentUser: data.user,
+              currentUserLoading: false,
+              currentUserError: null,
+            })
           } catch (err) {
             const errorMessage =
               err instanceof Error
