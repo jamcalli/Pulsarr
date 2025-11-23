@@ -5,6 +5,10 @@ import type {
 import type { MeResponse } from '@root/schemas/users/me.schema'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
 import type { Config } from '@root/types/config.types'
+import type {
+  ConfigError,
+  ConfigResponse,
+} from '@root/schemas/config/config.schema'
 import type { z } from 'zod'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
@@ -43,11 +47,6 @@ interface UserListResponse {
   success: boolean
   message: string
   users: UserWatchlistInfo[]
-}
-
-interface ConfigResponse {
-  success: boolean
-  config: Config
 }
 
 type CurrentUserResponse = MeResponse
@@ -110,17 +109,31 @@ export const useConfigStore = create<ConfigState>()(
         fetchConfig: async () => {
           try {
             const response = await fetch(api('/v1/config/config'))
+
+            if (!response.ok) {
+              const errorData: ConfigError = await response.json()
+              const message = errorData.error || 'Failed to load configuration'
+              set({ error: message })
+              throw new Error(message)
+            }
+
             const data: ConfigResponse = await response.json()
+
+            // Backend ConfigSchema incorrectly has all optional fields (used for PUT updates)
+            // but GET always returns complete config from DB
             set((state) => ({
               ...state,
-              config: {
-                ...data.config,
-              },
+              config: data.config as Config,
               error: null,
             }))
           } catch (err) {
-            set({ error: 'Failed to load configuration' })
+            if (!(err instanceof Error)) {
+              console.error('Config fetch error:', err)
+              set({ error: 'Failed to load configuration' })
+              return
+            }
             console.error('Config fetch error:', err)
+            set({ error: err.message })
           }
         },
 
@@ -149,16 +162,31 @@ export const useConfigStore = create<ConfigState>()(
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updates),
             })
+
+            if (!response.ok) {
+              const errorData: ConfigError = await response.json()
+              const message = errorData.error || 'Failed to update configuration'
+              set({ error: message })
+              throw new Error(message)
+            }
+
             const data: ConfigResponse = await response.json()
+
+            // Backend ConfigSchema incorrectly has all optional fields (used for PUT updates)
+            // but GET/PUT always returns complete config from DB
             set((state) => ({
-              config: {
-                ...state.config,
-                ...data.config,
-              },
+              config: state.config
+                ? { ...state.config, ...data.config }
+                : (data.config as Config),
             }))
           } catch (err) {
-            set({ error: 'Failed to update configuration' })
+            if (!(err instanceof Error)) {
+              console.error('Config update error:', err)
+              set({ error: 'Failed to update configuration' })
+              throw new Error('Failed to update configuration')
+            }
             console.error('Config update error:', err)
+            set({ error: err.message })
             throw err
           } finally {
             set({ loading: false })
