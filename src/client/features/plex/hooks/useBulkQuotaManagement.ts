@@ -69,9 +69,6 @@ export function useBulkQuotaManagement() {
     }
 
     const result = await response.json()
-    if (!result.success) {
-      throw new Error(result.message)
-    }
 
     return {
       successful: userIds.filter((id) => !result.failedIds?.includes(id)),
@@ -135,9 +132,6 @@ export function useBulkQuotaManagement() {
       }
 
       const result = await response.json()
-      if (!result.success) {
-        throw new Error(result.message)
-      }
 
       return {
         successful: userIds.filter((id) => !result.failedIds?.includes(id)),

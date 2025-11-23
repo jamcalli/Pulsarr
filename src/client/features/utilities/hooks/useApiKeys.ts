@@ -40,13 +40,9 @@ export function useApiKeys() {
 
   const handleCreateApiKey = async (data: ApiKeyFormData) => {
     try {
-      const result = await createApiKey(data)
-      if (result.success) {
-        form.reset()
-        toast.success('API key created successfully')
-      } else {
-        toast.error(result.message)
-      }
+      await createApiKey(data)
+      form.reset()
+      toast.success('API key created successfully')
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to create API key'
