@@ -76,9 +76,9 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
 /**
  * Parses genre input from various formats into an array of genre strings.
  *
- * Accepts an array of strings, a JSON-encoded string array, or undefined. Filters out non-string values for safety. Returns an empty array if the input is undefined or invalid.
+ * Accepts an array of strings, a JSON-encoded string array, a plain string (treated as a single genre), or undefined. Filters out non-string values for safety. Returns an empty array if the input is undefined or invalid.
  *
- * @param genres - Input containing genres in various formats (array, JSON string, or undefined)
+ * @param genres - Input containing genres in various formats (array, JSON string, plain string, or undefined)
  * @returns An array of genre strings extracted from the input
  */
 export function parseGenres(genres: unknown): string[] {
