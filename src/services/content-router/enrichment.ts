@@ -168,12 +168,15 @@ export async function enrichItemMetadata(
     itemId = extractTvdbId(item.guids)
   }
 
-  // Skip enrichment if we couldn't extract a valid ID (only if metadata is needed)
-  if (enrichmentNeeds.needsMetadata && (!itemId || Number.isNaN(itemId))) {
+  // Determine if we can fetch metadata - only skip metadata enrichment if we can't get the ID
+  // Other enrichment types (IMDB, providers, anime) can still run as they extract IDs independently
+  const canFetchMetadata =
+    enrichmentNeeds.needsMetadata && itemId && !Number.isNaN(itemId)
+
+  if (enrichmentNeeds.needsMetadata && !canFetchMetadata) {
     log.debug(
-      `Couldn't extract ID from item "${item.title}", skipping metadata enrichment`,
+      `Couldn't extract ${isMovie ? 'TMDB' : 'TVDB'} ID from item "${item.title}", skipping metadata enrichment only`,
     )
-    return item
   }
 
   try {
@@ -188,7 +191,7 @@ export async function enrichItemMetadata(
       let enrichedGenres: string[] | undefined
 
       // 1. Fetch Radarr metadata if needed (for certification, language, year rules)
-      if (enrichmentNeeds.needsMetadata && itemId) {
+      if (canFetchMetadata) {
         try {
           const defaultInstance = await fastify.db.getDefaultRadarrInstance()
           if (!defaultInstance) {
@@ -338,7 +341,7 @@ export async function enrichItemMetadata(
       let enrichedGenres: string[] | undefined
 
       // 1. Fetch Sonarr metadata if needed (for certification, language, season, year rules)
-      if (enrichmentNeeds.needsMetadata && itemId) {
+      if (canFetchMetadata) {
         try {
           const defaultInstance = await fastify.db.getDefaultSonarrInstance()
           if (!defaultInstance) {
