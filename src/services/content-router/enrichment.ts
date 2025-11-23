@@ -30,7 +30,7 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
  */
 export function determineEnrichmentNeeds(
   allRules: Awaited<ReturnType<FastifyInstance['db']['getAllRouterRules']>>,
-  _contentType: 'movie' | 'show',
+  contentType: 'movie' | 'show',
 ): {
   needsMetadata: boolean
   needsImdb: boolean
@@ -38,8 +38,14 @@ export function determineEnrichmentNeeds(
   needsAnimeCheck: boolean
 } {
   try {
-    // Filter to enabled rules only
-    const enabledRules = allRules.filter((rule) => rule.enabled)
+    // Filter to enabled rules matching the current content type
+    const enabledRules = allRules.filter((rule) => {
+      if (!rule.enabled) return false
+      // Only consider rules that apply to this content type
+      if (contentType === 'movie') return rule.target_type === 'radarr'
+      if (contentType === 'show') return rule.target_type === 'sonarr'
+      return true
+    })
 
     if (enabledRules.length === 0) {
       return {

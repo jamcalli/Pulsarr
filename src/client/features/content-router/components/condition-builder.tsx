@@ -51,7 +51,8 @@ const ConditionBuilder = ({
   const isMobile = useMediaQuery('(max-width: 768px)')
   const fieldSelectId = useId()
   const operatorSelectId = useId()
-  const inputId = `condition-input-${value._cid}`
+  const fallbackId = useId()
+  const inputId = `condition-input-${value._cid || fallbackId}`
 
   const routerContext = useContext(ContentRouterContext)
   const contentType = routerContext?.contentType || 'both'
