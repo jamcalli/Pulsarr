@@ -39,7 +39,7 @@ export function determineEnrichmentNeeds(
 } {
   try {
     // Filter to enabled rules only
-    const enabledRules = allRules.filter((rule) => rule.enabled !== false)
+    const enabledRules = allRules.filter((rule) => rule.enabled)
 
     if (enabledRules.length === 0) {
       return {

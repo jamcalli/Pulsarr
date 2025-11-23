@@ -554,7 +554,7 @@ export class ContentRouterService {
           const relevantRules = allRouterRules.filter(
             (rule) =>
               rule.type === evaluator.ruleType &&
-              rule.enabled !== false &&
+              rule.enabled &&
               rule.target_type ===
                 (contentType === 'movie' ? 'radarr' : 'sonarr'),
           )
