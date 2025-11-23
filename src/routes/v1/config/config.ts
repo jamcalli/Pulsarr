@@ -123,7 +123,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           logRouteError(fastify.log, request, configUpdateError, {
             message: 'Failed to update runtime configuration',
           })
-          return reply.badRequest('Failed to update runtime configuration')
+          return reply.internalServerError('Failed to update runtime configuration')
         }
 
         // Now update the database
@@ -137,12 +137,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               message: 'Failed to revert runtime configuration',
             })
           }
-          return reply.badRequest('Failed to update configuration in database')
+          return reply.internalServerError('Failed to update configuration in database')
         }
 
         const savedConfig = await fastify.db.getConfig()
         if (!savedConfig) {
-          return reply.notFound('No configuration found after update')
+          return reply.internalServerError('Configuration unexpectedly missing after update')
         }
 
         // Apply runtime log level now that DB is authoritative
