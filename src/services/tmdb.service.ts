@@ -396,6 +396,11 @@ export class TmdbService {
    * Returns regions that have streaming/OTT data available
    */
   async getAvailableRegions(): Promise<TmdbRegion[] | null> {
+    if (!this.isConfigured()) {
+      this.log.warn('TMDB is not configured, skipping region fetch')
+      return null
+    }
+
     try {
       const url = `${TmdbService.BASE_URL}/watch/providers/regions`
       const response = await this.rateLimitedFetch(url, {
@@ -454,6 +459,11 @@ export class TmdbService {
   async findByTvdbId(
     tvdbId: number,
   ): Promise<{ tmdbId: number; type: 'movie' | 'tv' } | null> {
+    if (!this.isConfigured()) {
+      this.log.warn('TMDB is not configured, skipping TVDB ID lookup')
+      return null
+    }
+
     const url = `${TmdbService.BASE_URL}/find/${tvdbId}?external_source=tvdb_id`
 
     try {
@@ -575,6 +585,11 @@ export class TmdbService {
   async getAvailableProviders(
     region?: string,
   ): Promise<TmdbWatchProvider[] | null> {
+    if (!this.isConfigured()) {
+      this.log.warn('TMDB is not configured, skipping provider fetch')
+      return null
+    }
+
     const providerRegion = region || this.defaultRegion
 
     // Check cache first
