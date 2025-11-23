@@ -1,14 +1,14 @@
 import type {
+  ConfigError,
+  ConfigResponse,
+} from '@root/schemas/config/config.schema'
+import type {
   QuotaStatusResponse,
   UserQuotaResponse,
 } from '@root/schemas/quota/quota.schema'
 import type { MeResponse } from '@root/schemas/users/me.schema'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
 import type { Config } from '@root/types/config.types'
-import type {
-  ConfigError,
-  ConfigResponse,
-} from '@root/schemas/config/config.schema'
 import type { z } from 'zod'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
@@ -165,7 +165,8 @@ export const useConfigStore = create<ConfigState>()(
 
             if (!response.ok) {
               const errorData: ConfigError = await response.json()
-              const message = errorData.error || 'Failed to update configuration'
+              const message =
+                errorData.error || 'Failed to update configuration'
               set({ error: message })
               throw new Error(message)
             }
