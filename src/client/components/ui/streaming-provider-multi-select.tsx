@@ -8,7 +8,7 @@ import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { useConfigStore } from '@/stores/configStore'
 
 interface StreamingServicesFormValues {
-  streamingServices: number | number[]
+  streamingServices: number[]
 }
 
 interface StreamingProviderMultiSelectProps {

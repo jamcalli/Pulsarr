@@ -360,15 +360,15 @@ function ConditionInput({
   }
 
   const createStreamingServicesFormField = (): ControllerRenderProps<
-    { streamingServices: number | number[] },
+    { streamingServices: number[] },
     'streamingServices'
   > => {
     // Ensure value is in the correct format for the multi-select
-    const normalizedValue: number | number[] = Array.isArray(value)
+    const normalizedValue: number[] = Array.isArray(value)
       ? value.map(Number)
       : typeof value === 'number'
-        ? value
-        : 0
+        ? [value]
+        : []
 
     return {
       name: 'streamingServices',
@@ -377,8 +377,10 @@ function ConditionInput({
         // Handle conversion for onChange callback - convert to numbers
         if (Array.isArray(newValue)) {
           onChangeRef.current(newValue.map((item) => Number(item)))
+        } else if (newValue === '' || newValue == null) {
+          onChangeRef.current([])
         } else {
-          onChangeRef.current(Number(newValue))
+          onChangeRef.current([Number(newValue)])
         }
       },
       onBlur: () => {},
