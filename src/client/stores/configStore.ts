@@ -1,5 +1,6 @@
 import type {
   ConfigError,
+  ConfigFull,
   ConfigGetResponse,
   ConfigUpdateResponse,
 } from '@root/schemas/config/config.schema'
@@ -53,7 +54,7 @@ interface UserListResponse {
 type CurrentUserResponse = MeResponse
 
 interface ConfigState {
-  config: Config | null
+  config: ConfigFull | null
   loading: boolean
   error: string | null
   isInitialized: boolean
@@ -109,7 +110,7 @@ export const useConfigStore = create<ConfigState>()(
 
         fetchConfig: async () => {
           try {
-            const response = await fetch(api('/v1/config/config'))
+            const response = await fetch(api('/v1/config'))
 
             if (!response.ok) {
               const errorData: ConfigError = await response.json()
@@ -157,7 +158,7 @@ export const useConfigStore = create<ConfigState>()(
         updateConfig: async (updates: Partial<Config>) => {
           set({ loading: true })
           try {
-            const response = await fetch(api('/v1/config/config'), {
+            const response = await fetch(api('/v1/config'), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updates),

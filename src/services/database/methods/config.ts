@@ -1,3 +1,4 @@
+import type { ConfigFull } from '@root/schemas/config/config.schema.js'
 import type { Config } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 
@@ -10,7 +11,7 @@ import type { DatabaseService } from '@services/database.service.js'
  */
 export async function getConfig(
   this: DatabaseService,
-): Promise<Config | undefined> {
+): Promise<ConfigFull | undefined> {
   const config = await this.knex('configs').where({ id: 1 }).first()
   if (!config) return undefined
 
@@ -99,7 +100,6 @@ export async function getConfig(
             enabled: false,
             defaultExpirationHours: 72,
             expirationAction: 'expire' as const,
-            maintenanceCronExpression: '0 */4 * * *',
             cleanupExpiredDays: 30,
           },
           'config.approvalExpiration',
@@ -108,7 +108,6 @@ export async function getConfig(
           enabled: false,
           defaultExpirationHours: 72,
           expirationAction: 'expire' as const,
-          maintenanceCronExpression: '0 */4 * * *',
           cleanupExpiredDays: 30,
         },
     newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
