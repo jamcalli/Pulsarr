@@ -141,10 +141,18 @@ export class ContentRouterService {
     }
 
     this.log.debug('Fetching router rules from database')
-    this.rulesCachePromise = this.fastify.db.getAllRouterRules()
-    this.rulesCache = await this.rulesCachePromise
-    this.rulesCachePromise = null
-    return this.rulesCache
+    const fetchPromise = this.fastify.db.getAllRouterRules()
+    this.rulesCachePromise = fetchPromise
+
+    try {
+      const rules = await fetchPromise
+      this.rulesCache = rules
+      return rules
+    } finally {
+      if (this.rulesCachePromise === fetchPromise) {
+        this.rulesCachePromise = null
+      }
+    }
   }
 
   /**
