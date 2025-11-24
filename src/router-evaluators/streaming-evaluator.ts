@@ -63,7 +63,7 @@ export default function createStreamingEvaluator(
       name: 'streamingServices',
       description:
         'TMDB provider IDs for streaming services (e.g., [8, 337] for Netflix, Disney+)',
-      valueTypes: ['number', 'number[]'],
+      valueTypes: ['number[]', 'number'],
     },
   ]
 
@@ -74,7 +74,7 @@ export default function createStreamingEvaluator(
         name: 'in',
         description:
           'Content is available on at least one of these streaming services',
-        valueTypes: ['number', 'number[]'],
+        valueTypes: ['number[]', 'number'],
         valueFormat:
           'Single provider ID or array of TMDB provider IDs, e.g., 8 or [8, 337] for Netflix, Disney+',
       },
@@ -82,7 +82,7 @@ export default function createStreamingEvaluator(
         name: 'notIn',
         description:
           'Content is not available on any of these streaming services',
-        valueTypes: ['number', 'number[]'],
+        valueTypes: ['number[]', 'number'],
         valueFormat:
           'Single provider ID or array of TMDB provider IDs, e.g., 8 or [8, 15, 384] for Netflix, Hulu, HBO Max',
       },
