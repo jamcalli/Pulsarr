@@ -2,6 +2,7 @@ import type {
   ConfigError,
   ConfigFull,
   ConfigGetResponse,
+  ConfigUpdate,
   ConfigUpdateResponse,
 } from '@root/schemas/config/config.schema'
 import type {
@@ -10,7 +11,6 @@ import type {
 } from '@root/schemas/quota/quota.schema'
 import type { MeResponse } from '@root/schemas/users/me.schema'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
-import type { Config } from '@root/types/config.types'
 import type { z } from 'zod'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
@@ -71,7 +71,7 @@ interface ConfigState {
   currentUserError: string | null
 
   initialize: (force?: boolean) => Promise<void>
-  updateConfig: (updates: Partial<Config>) => Promise<void>
+  updateConfig: (updates: ConfigUpdate) => Promise<void>
   fetchConfig: () => Promise<void>
   refreshRssFeeds: () => Promise<void>
 
@@ -155,7 +155,7 @@ export const useConfigStore = create<ConfigState>()(
           }
         },
 
-        updateConfig: async (updates: Partial<Config>) => {
+        updateConfig: async (updates: ConfigUpdate) => {
           set({ loading: true })
           try {
             const response = await fetch(api('/v1/config'), {

@@ -4780,6 +4780,18 @@
                                 "auto_approve"
                               ]
                             },
+                            "quotaExceededExpirationHours": {
+                              "type": "number"
+                            },
+                            "routerRuleExpirationHours": {
+                              "type": "number"
+                            },
+                            "manualFlagExpirationHours": {
+                              "type": "number"
+                            },
+                            "contentCriteriaExpirationHours": {
+                              "type": "number"
+                            },
                             "cleanupExpiredDays": {
                               "type": "number"
                             }
@@ -6140,6 +6152,18 @@
                                 "expire",
                                 "auto_approve"
                               ]
+                            },
+                            "quotaExceededExpirationHours": {
+                              "type": "number"
+                            },
+                            "routerRuleExpirationHours": {
+                              "type": "number"
+                            },
+                            "manualFlagExpirationHours": {
+                              "type": "number"
+                            },
+                            "contentCriteriaExpirationHours": {
+                              "type": "number"
                             },
                             "cleanupExpiredDays": {
                               "type": "number"

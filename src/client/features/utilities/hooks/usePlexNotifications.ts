@@ -273,10 +273,26 @@ export function usePlexNotifications() {
     [form],
   )
 
-  // Handle form cancellation
+  // Handle form cancellation - reset to last saved values from server
   const handleCancel = useCallback(() => {
-    form.reset()
-  }, [form])
+    if (lastResults && 'config' in lastResults && lastResults.config) {
+      form.reset({
+        plexToken:
+          lastResults.config.plexToken || config?.plexTokens?.[0] || '',
+        plexHost: lastResults.config.plexHost || '',
+        plexPort: lastResults.config.plexPort || 32400,
+        useSsl: lastResults.config.useSsl || false,
+      })
+    } else {
+      // No saved config, reset to defaults with current token
+      form.reset({
+        plexToken: config?.plexTokens?.[0] || '',
+        plexHost: '',
+        plexPort: 32400,
+        useSsl: false,
+      })
+    }
+  }, [form, lastResults, config?.plexTokens])
 
   // Handle deletion of Plex notifications
   const handleDelete = useCallback(async () => {
