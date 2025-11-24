@@ -1,5 +1,6 @@
 import {
   ConfigErrorSchema,
+  type ConfigFullSchema,
   ConfigGetResponseSchema,
   ConfigUpdateResponseSchema,
   ConfigUpdateSchema,
@@ -14,7 +15,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       | z.infer<typeof ConfigGetResponseSchema>
       | z.infer<typeof ConfigErrorSchema>
   }>(
-    '/config',
+    '/',
     {
       schema: {
         summary: 'Get configuration',
@@ -38,7 +39,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Override the apprise settings with values from runtime config
         // These are ephemeral and controlled by the apprise-notifications plugin
-        const mergedConfig = {
+        const mergedConfig: z.infer<typeof ConfigFullSchema> = {
           ...config,
           // Read the protected apprise values directly from fastify.config
           // systemAppriseUrl comes from the database as it can be configured by the user
@@ -62,14 +63,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
-  // Updated PUT handler for /config route to avoid race conditions
+  // Updated PUT handler for config route to avoid race conditions
   fastify.put<{
     Body: z.infer<typeof ConfigUpdateSchema>
     Reply:
       | z.infer<typeof ConfigUpdateResponseSchema>
       | z.infer<typeof ConfigErrorSchema>
   }>(
-    '/config',
+    '/',
     {
       schema: {
         summary: 'Update configuration',
@@ -230,7 +231,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Merge saved DB config with runtime Apprise settings
-        const mergedConfig = {
+        const mergedConfig: z.infer<typeof ConfigFullSchema> = {
           ...savedConfig,
           enableApprise: fastify.config.enableApprise,
           appriseUrl: fastify.config.appriseUrl,

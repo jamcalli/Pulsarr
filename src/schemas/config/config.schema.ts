@@ -87,60 +87,50 @@ const DeleteSyncTagRegexSchema = z
     },
   )
 
-// Schema for complete config (GET responses) - includes all fields with required/optional as defined
+// Schema for complete config (GET responses) - matches exactly what getConfig() returns
 export const ConfigFullSchema = z.object({
-  // System identifiers (read-only)
+  // System identifiers and timestamps
   id: z.number(),
-  // System Config (read-only)
-  basePath: z.string(),
-  baseUrl: z.string(),
-  port: z.number(),
-  // Database Config (read-only)
-  dbType: z.enum(['sqlite', 'postgres']),
-  dbPath: z.string(),
-  dbHost: z.string(),
-  dbPort: z.number(),
-  dbName: z.string(),
-  dbUser: z.string(),
-  dbPassword: z.string(),
-  dbConnectionString: z.string(),
-  // Security & Authentication (read-only)
-  cookieSecret: z.string(),
-  cookieName: z.string(),
+  created_at: z.string(), // ISO timestamp from database
+  updated_at: z.string(), // ISO timestamp from database
+  // System Config (from database)
+  baseUrl: z.string().optional(),
+  port: z.number().optional(),
+  dbPath: z.string().optional(),
+  cookieSecret: z.string().optional(),
+  cookieName: z.string().optional(),
   cookieSecured: z.boolean(),
-  authenticationMethod: z.enum(['required', 'requiredExceptLocal', 'disabled']),
-  allowIframes: z.boolean(),
   // Logging & Performance
-  logLevel: LogLevelEnum,
-  closeGraceDelay: z.number(),
-  rateLimitMax: z.number(),
+  logLevel: LogLevelEnum.optional(),
+  closeGraceDelay: z.number().optional(),
+  rateLimitMax: z.number().optional(),
   syncIntervalSeconds: z.number(),
   queueProcessDelaySeconds: z.number(),
   // Discord Config
-  discordWebhookUrl: z.string(),
-  discordBotToken: z.string(),
-  discordClientId: z.string(),
-  discordGuildId: z.string(),
-  // Apprise Config
+  discordWebhookUrl: z.string().optional(),
+  discordBotToken: z.string().optional(),
+  discordClientId: z.string().optional(),
+  discordGuildId: z.string().optional(),
+  // Apprise Config (merged from runtime in route handler)
   enableApprise: z.boolean(),
   appriseUrl: z.string(),
-  systemAppriseUrl: z.string(),
-  // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
-  publicContentNotifications: z
-    .object({
-      enabled: z.boolean(),
-      discordWebhookUrls: z.string().optional(),
-      discordWebhookUrlsMovies: z.string().optional(),
-      discordWebhookUrlsShows: z.string().optional(),
-      appriseUrls: z.string().optional(),
-      appriseUrlsMovies: z.string().optional(),
-      appriseUrlsShows: z.string().optional(),
-    })
-    .optional(),
+  systemAppriseUrl: z.string().optional(),
+  // Public Content Notifications - getConfig() always returns this with defaults
+  publicContentNotifications: z.object({
+    enabled: z.boolean(),
+    discordWebhookUrls: z.string(),
+    discordWebhookUrlsMovies: z.string(),
+    discordWebhookUrlsShows: z.string(),
+    appriseUrls: z.string(),
+    appriseUrlsMovies: z.string(),
+    appriseUrlsShows: z.string(),
+  }),
   // Tautulli Config
   tautulliEnabled: z.boolean(),
   tautulliUrl: z.string(),
   tautulliApiKey: z.string(),
+  // Delete Config
+  deletionMode: DeletionModeEnum,
   // General Notifications (stored in milliseconds)
   queueWaitTime: z.number(),
   newEpisodeThreshold: z.number(),
@@ -149,33 +139,13 @@ export const ConfigFullSchema = z.object({
   pendingWebhookRetryInterval: z.number(),
   pendingWebhookMaxAge: z.number(),
   pendingWebhookCleanupInterval: z.number(),
-  // Sonarr Config (read-only - configured via instances)
-  sonarrBaseUrl: z.string(),
-  sonarrApiKey: z.string(),
-  sonarrQualityProfile: z.string(),
-  sonarrRootFolder: z.string(),
-  sonarrBypassIgnored: z.boolean(),
-  sonarrSeasonMonitoring: z.string(),
-  sonarrMonitorNewItems: z.enum(['all', 'none']),
-  sonarrTags: z.array(z.string()),
-  sonarrCreateSeasonFolders: z.boolean(),
-  // Radarr Config (read-only - configured via instances)
-  radarrBaseUrl: z.string(),
-  radarrApiKey: z.string(),
-  radarrQualityProfile: z.string(),
-  radarrRootFolder: z.string(),
-  radarrBypassIgnored: z.boolean(),
-  radarrTags: z.array(z.string()),
-  // TMDB Config (API key from env, region from DB)
-  tmdbApiKey: z.string(),
+  // TMDB Config (region from DB, API key NOT returned for security)
   tmdbRegion: z.string(),
   // Plex Config
   plexTokens: z.array(z.string()),
   skipFriendSync: z.boolean(),
   plexServerUrl: z.string().optional(),
-  skipIfExistsOnPlex: z.boolean().optional(),
-  // Delete Config
-  deletionMode: DeletionModeEnum,
+  skipIfExistsOnPlex: z.boolean(),
   deleteMovie: z.boolean(),
   deleteEndedShow: z.boolean(),
   deleteContinuingShow: z.boolean(),
@@ -184,14 +154,14 @@ export const ConfigFullSchema = z.object({
   deleteSyncNotify: DeleteSyncNotifyOptionEnum,
   approvalNotify: NotifyOptionEnum,
   deleteSyncNotifyOnlyOnDeletion: z.boolean(),
-  maxDeletionPrevention: z.number(),
+  maxDeletionPrevention: z.number().optional(),
   deleteSyncTrackedOnly: z.boolean(),
   deleteSyncCleanupApprovals: z.boolean(),
-  deleteSyncRequiredTagRegex: z.string().optional(),
+  deleteSyncRequiredTagRegex: z.string(),
   enablePlexPlaylistProtection: z.boolean(),
   plexProtectionPlaylistName: z.string(),
-  // Plex Label Sync Configuration
-  plexLabelSync: PlexLabelSyncConfigSchema.optional(),
+  // Plex Label Sync Configuration - getConfig() always returns this with defaults
+  plexLabelSync: PlexLabelSyncConfigSchema,
   // RSS Config
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
@@ -199,6 +169,7 @@ export const ConfigFullSchema = z.object({
   tagUsersInSonarr: z.boolean(),
   tagUsersInRadarr: z.boolean(),
   cleanupOrphanedTags: z.boolean(),
+  persistHistoricalTags: z.boolean(), // From database spread
   tagPrefix: z.string(),
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
   removedTagPrefix: z.string(),
@@ -238,58 +209,38 @@ export const ConfigFullSchema = z.object({
       enableProgressiveCleanup: z.boolean().optional(),
     })
     .optional(),
-  // New User Defaults
-  newUserDefaultCanSync: z.boolean().optional(),
-  newUserDefaultRequiresApproval: z.boolean().optional(),
-  newUserDefaultMovieQuotaEnabled: z.boolean().optional(),
-  newUserDefaultMovieQuotaType: z
-    .enum(['daily', 'weekly_rolling', 'monthly'])
-    .optional(),
-  newUserDefaultMovieQuotaLimit: z.number().optional(),
-  newUserDefaultMovieBypassApproval: z.boolean().optional(),
-  newUserDefaultShowQuotaEnabled: z.boolean().optional(),
-  newUserDefaultShowQuotaType: z
-    .enum(['daily', 'weekly_rolling', 'monthly'])
-    .optional(),
-  newUserDefaultShowQuotaLimit: z.number().optional(),
-  newUserDefaultShowBypassApproval: z.boolean().optional(),
-  // Quota System Configuration
-  quotaSettings: z
-    .object({
-      cleanup: z
-        .object({
-          enabled: z.boolean().optional(),
-          retentionDays: z.number().optional(),
-        })
-        .optional(),
-      weeklyRolling: z
-        .object({
-          resetDays: z.number().optional(),
-        })
-        .optional(),
-      monthly: z
-        .object({
-          resetDay: z.number().optional(),
-          handleMonthEnd: z
-            .enum(['last-day', 'skip-month', 'next-month'])
-            .optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-  // Approval System Configuration
-  approvalExpiration: z
-    .object({
-      enabled: z.boolean().optional(),
-      defaultExpirationHours: z.number().optional(),
-      expirationAction: z.enum(['expire', 'auto_approve']).optional(),
-      quotaExceededExpirationHours: z.number().optional(),
-      routerRuleExpirationHours: z.number().optional(),
-      manualFlagExpirationHours: z.number().optional(),
-      contentCriteriaExpirationHours: z.number().optional(),
-      cleanupExpiredDays: z.number().optional(),
-    })
-    .optional(),
+  // New User Defaults - getConfig() applies defaults with Boolean() and || operators
+  newUserDefaultCanSync: z.boolean(),
+  newUserDefaultRequiresApproval: z.boolean(),
+  newUserDefaultMovieQuotaEnabled: z.boolean(),
+  newUserDefaultMovieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
+  newUserDefaultMovieQuotaLimit: z.number(),
+  newUserDefaultMovieBypassApproval: z.boolean(),
+  newUserDefaultShowQuotaEnabled: z.boolean(),
+  newUserDefaultShowQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
+  newUserDefaultShowQuotaLimit: z.number(),
+  newUserDefaultShowBypassApproval: z.boolean(),
+  // Quota System Configuration - getConfig() always returns this with defaults
+  quotaSettings: z.object({
+    cleanup: z.object({
+      enabled: z.boolean(),
+      retentionDays: z.number(),
+    }),
+    weeklyRolling: z.object({
+      resetDays: z.number(),
+    }),
+    monthly: z.object({
+      resetDay: z.number(),
+      handleMonthEnd: z.enum(['last-day', 'skip-month', 'next-month']),
+    }),
+  }),
+  // Approval System Configuration - getConfig() always returns this with defaults
+  approvalExpiration: z.object({
+    enabled: z.boolean(),
+    defaultExpirationHours: z.number(),
+    expirationAction: z.enum(['expire', 'auto_approve']),
+    cleanupExpiredDays: z.number(),
+  }),
   // Ready state
   _isReady: z.boolean(),
 })

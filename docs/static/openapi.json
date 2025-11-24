@@ -4199,7 +4199,7 @@
         }
       }
     },
-    "/v1/config/config": {
+    "/v1/config/": {
       "get": {
         "operationId": "getConfig",
         "summary": "Get configuration",
@@ -4227,7 +4227,10 @@
                         "id": {
                           "type": "number"
                         },
-                        "basePath": {
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "updated_at": {
                           "type": "string"
                         },
                         "baseUrl": {
@@ -4236,32 +4239,7 @@
                         "port": {
                           "type": "number"
                         },
-                        "dbType": {
-                          "type": "string",
-                          "enum": [
-                            "sqlite",
-                            "postgres"
-                          ]
-                        },
                         "dbPath": {
-                          "type": "string"
-                        },
-                        "dbHost": {
-                          "type": "string"
-                        },
-                        "dbPort": {
-                          "type": "number"
-                        },
-                        "dbName": {
-                          "type": "string"
-                        },
-                        "dbUser": {
-                          "type": "string"
-                        },
-                        "dbPassword": {
-                          "type": "string"
-                        },
-                        "dbConnectionString": {
                           "type": "string"
                         },
                         "cookieSecret": {
@@ -4271,17 +4249,6 @@
                           "type": "string"
                         },
                         "cookieSecured": {
-                          "type": "boolean"
-                        },
-                        "authenticationMethod": {
-                          "type": "string",
-                          "enum": [
-                            "required",
-                            "requiredExceptLocal",
-                            "disabled"
-                          ]
-                        },
-                        "allowIframes": {
                           "type": "boolean"
                         },
                         "logLevel": {
@@ -4355,7 +4322,13 @@
                             }
                           },
                           "required": [
-                            "enabled"
+                            "enabled",
+                            "discordWebhookUrls",
+                            "discordWebhookUrlsMovies",
+                            "discordWebhookUrlsShows",
+                            "appriseUrls",
+                            "appriseUrlsMovies",
+                            "appriseUrlsShows"
                           ],
                           "additionalProperties": false
                         },
@@ -4367,6 +4340,13 @@
                         },
                         "tautulliApiKey": {
                           "type": "string"
+                        },
+                        "deletionMode": {
+                          "type": "string",
+                          "enum": [
+                            "watchlist",
+                            "tag-based"
+                          ]
                         },
                         "queueWaitTime": {
                           "type": "number"
@@ -4386,64 +4366,6 @@
                         "pendingWebhookCleanupInterval": {
                           "type": "number"
                         },
-                        "sonarrBaseUrl": {
-                          "type": "string"
-                        },
-                        "sonarrApiKey": {
-                          "type": "string"
-                        },
-                        "sonarrQualityProfile": {
-                          "type": "string"
-                        },
-                        "sonarrRootFolder": {
-                          "type": "string"
-                        },
-                        "sonarrBypassIgnored": {
-                          "type": "boolean"
-                        },
-                        "sonarrSeasonMonitoring": {
-                          "type": "string"
-                        },
-                        "sonarrMonitorNewItems": {
-                          "type": "string",
-                          "enum": [
-                            "all",
-                            "none"
-                          ]
-                        },
-                        "sonarrTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "sonarrCreateSeasonFolders": {
-                          "type": "boolean"
-                        },
-                        "radarrBaseUrl": {
-                          "type": "string"
-                        },
-                        "radarrApiKey": {
-                          "type": "string"
-                        },
-                        "radarrQualityProfile": {
-                          "type": "string"
-                        },
-                        "radarrRootFolder": {
-                          "type": "string"
-                        },
-                        "radarrBypassIgnored": {
-                          "type": "boolean"
-                        },
-                        "radarrTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "tmdbApiKey": {
-                          "type": "string"
-                        },
                         "tmdbRegion": {
                           "type": "string"
                         },
@@ -4461,13 +4383,6 @@
                         },
                         "skipIfExistsOnPlex": {
                           "type": "boolean"
-                        },
-                        "deletionMode": {
-                          "type": "string",
-                          "enum": [
-                            "watchlist",
-                            "tag-based"
-                          ]
                         },
                         "deleteMovie": {
                           "type": "boolean"
@@ -4628,6 +4543,9 @@
                           "type": "boolean"
                         },
                         "cleanupOrphanedTags": {
+                          "type": "boolean"
+                        },
+                        "persistHistoricalTags": {
                           "type": "boolean"
                         },
                         "tagPrefix": {
@@ -4799,6 +4717,10 @@
                                   "type": "number"
                                 }
                               },
+                              "required": [
+                                "enabled",
+                                "retentionDays"
+                              ],
                               "additionalProperties": false
                             },
                             "weeklyRolling": {
@@ -4808,6 +4730,9 @@
                                   "type": "number"
                                 }
                               },
+                              "required": [
+                                "resetDays"
+                              ],
                               "additionalProperties": false
                             },
                             "monthly": {
@@ -4825,9 +4750,18 @@
                                   ]
                                 }
                               },
+                              "required": [
+                                "resetDay",
+                                "handleMonthEnd"
+                              ],
                               "additionalProperties": false
                             }
                           },
+                          "required": [
+                            "cleanup",
+                            "weeklyRolling",
+                            "monthly"
+                          ],
                           "additionalProperties": false
                         },
                         "approvalExpiration": {
@@ -4846,22 +4780,16 @@
                                 "auto_approve"
                               ]
                             },
-                            "quotaExceededExpirationHours": {
-                              "type": "number"
-                            },
-                            "routerRuleExpirationHours": {
-                              "type": "number"
-                            },
-                            "manualFlagExpirationHours": {
-                              "type": "number"
-                            },
-                            "contentCriteriaExpirationHours": {
-                              "type": "number"
-                            },
                             "cleanupExpiredDays": {
                               "type": "number"
                             }
                           },
+                          "required": [
+                            "enabled",
+                            "defaultExpirationHours",
+                            "expirationAction",
+                            "cleanupExpiredDays"
+                          ],
                           "additionalProperties": false
                         },
                         "_isReady": {
@@ -4870,63 +4798,28 @@
                       },
                       "required": [
                         "id",
-                        "basePath",
-                        "baseUrl",
-                        "port",
-                        "dbType",
-                        "dbPath",
-                        "dbHost",
-                        "dbPort",
-                        "dbName",
-                        "dbUser",
-                        "dbPassword",
-                        "dbConnectionString",
-                        "cookieSecret",
-                        "cookieName",
+                        "created_at",
+                        "updated_at",
                         "cookieSecured",
-                        "authenticationMethod",
-                        "allowIframes",
-                        "logLevel",
-                        "closeGraceDelay",
-                        "rateLimitMax",
                         "syncIntervalSeconds",
                         "queueProcessDelaySeconds",
-                        "discordWebhookUrl",
-                        "discordBotToken",
-                        "discordClientId",
-                        "discordGuildId",
                         "enableApprise",
                         "appriseUrl",
-                        "systemAppriseUrl",
+                        "publicContentNotifications",
                         "tautulliEnabled",
                         "tautulliUrl",
                         "tautulliApiKey",
+                        "deletionMode",
                         "queueWaitTime",
                         "newEpisodeThreshold",
                         "upgradeBufferTime",
                         "pendingWebhookRetryInterval",
                         "pendingWebhookMaxAge",
                         "pendingWebhookCleanupInterval",
-                        "sonarrBaseUrl",
-                        "sonarrApiKey",
-                        "sonarrQualityProfile",
-                        "sonarrRootFolder",
-                        "sonarrBypassIgnored",
-                        "sonarrSeasonMonitoring",
-                        "sonarrMonitorNewItems",
-                        "sonarrTags",
-                        "sonarrCreateSeasonFolders",
-                        "radarrBaseUrl",
-                        "radarrApiKey",
-                        "radarrQualityProfile",
-                        "radarrRootFolder",
-                        "radarrBypassIgnored",
-                        "radarrTags",
-                        "tmdbApiKey",
                         "tmdbRegion",
                         "plexTokens",
                         "skipFriendSync",
-                        "deletionMode",
+                        "skipIfExistsOnPlex",
                         "deleteMovie",
                         "deleteEndedShow",
                         "deleteContinuingShow",
@@ -4935,17 +4828,31 @@
                         "deleteSyncNotify",
                         "approvalNotify",
                         "deleteSyncNotifyOnlyOnDeletion",
-                        "maxDeletionPrevention",
                         "deleteSyncTrackedOnly",
                         "deleteSyncCleanupApprovals",
+                        "deleteSyncRequiredTagRegex",
                         "enablePlexPlaylistProtection",
                         "plexProtectionPlaylistName",
+                        "plexLabelSync",
                         "tagUsersInSonarr",
                         "tagUsersInRadarr",
                         "cleanupOrphanedTags",
+                        "persistHistoricalTags",
                         "tagPrefix",
                         "removedTagMode",
                         "removedTagPrefix",
+                        "newUserDefaultCanSync",
+                        "newUserDefaultRequiresApproval",
+                        "newUserDefaultMovieQuotaEnabled",
+                        "newUserDefaultMovieQuotaType",
+                        "newUserDefaultMovieQuotaLimit",
+                        "newUserDefaultMovieBypassApproval",
+                        "newUserDefaultShowQuotaEnabled",
+                        "newUserDefaultShowQuotaType",
+                        "newUserDefaultShowQuotaLimit",
+                        "newUserDefaultShowBypassApproval",
+                        "quotaSettings",
+                        "approvalExpiration",
                         "_isReady"
                       ],
                       "additionalProperties": false
@@ -5681,7 +5588,10 @@
                         "id": {
                           "type": "number"
                         },
-                        "basePath": {
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "updated_at": {
                           "type": "string"
                         },
                         "baseUrl": {
@@ -5690,32 +5600,7 @@
                         "port": {
                           "type": "number"
                         },
-                        "dbType": {
-                          "type": "string",
-                          "enum": [
-                            "sqlite",
-                            "postgres"
-                          ]
-                        },
                         "dbPath": {
-                          "type": "string"
-                        },
-                        "dbHost": {
-                          "type": "string"
-                        },
-                        "dbPort": {
-                          "type": "number"
-                        },
-                        "dbName": {
-                          "type": "string"
-                        },
-                        "dbUser": {
-                          "type": "string"
-                        },
-                        "dbPassword": {
-                          "type": "string"
-                        },
-                        "dbConnectionString": {
                           "type": "string"
                         },
                         "cookieSecret": {
@@ -5725,17 +5610,6 @@
                           "type": "string"
                         },
                         "cookieSecured": {
-                          "type": "boolean"
-                        },
-                        "authenticationMethod": {
-                          "type": "string",
-                          "enum": [
-                            "required",
-                            "requiredExceptLocal",
-                            "disabled"
-                          ]
-                        },
-                        "allowIframes": {
                           "type": "boolean"
                         },
                         "logLevel": {
@@ -5809,7 +5683,13 @@
                             }
                           },
                           "required": [
-                            "enabled"
+                            "enabled",
+                            "discordWebhookUrls",
+                            "discordWebhookUrlsMovies",
+                            "discordWebhookUrlsShows",
+                            "appriseUrls",
+                            "appriseUrlsMovies",
+                            "appriseUrlsShows"
                           ],
                           "additionalProperties": false
                         },
@@ -5821,6 +5701,13 @@
                         },
                         "tautulliApiKey": {
                           "type": "string"
+                        },
+                        "deletionMode": {
+                          "type": "string",
+                          "enum": [
+                            "watchlist",
+                            "tag-based"
+                          ]
                         },
                         "queueWaitTime": {
                           "type": "number"
@@ -5840,64 +5727,6 @@
                         "pendingWebhookCleanupInterval": {
                           "type": "number"
                         },
-                        "sonarrBaseUrl": {
-                          "type": "string"
-                        },
-                        "sonarrApiKey": {
-                          "type": "string"
-                        },
-                        "sonarrQualityProfile": {
-                          "type": "string"
-                        },
-                        "sonarrRootFolder": {
-                          "type": "string"
-                        },
-                        "sonarrBypassIgnored": {
-                          "type": "boolean"
-                        },
-                        "sonarrSeasonMonitoring": {
-                          "type": "string"
-                        },
-                        "sonarrMonitorNewItems": {
-                          "type": "string",
-                          "enum": [
-                            "all",
-                            "none"
-                          ]
-                        },
-                        "sonarrTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "sonarrCreateSeasonFolders": {
-                          "type": "boolean"
-                        },
-                        "radarrBaseUrl": {
-                          "type": "string"
-                        },
-                        "radarrApiKey": {
-                          "type": "string"
-                        },
-                        "radarrQualityProfile": {
-                          "type": "string"
-                        },
-                        "radarrRootFolder": {
-                          "type": "string"
-                        },
-                        "radarrBypassIgnored": {
-                          "type": "boolean"
-                        },
-                        "radarrTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "tmdbApiKey": {
-                          "type": "string"
-                        },
                         "tmdbRegion": {
                           "type": "string"
                         },
@@ -5915,13 +5744,6 @@
                         },
                         "skipIfExistsOnPlex": {
                           "type": "boolean"
-                        },
-                        "deletionMode": {
-                          "type": "string",
-                          "enum": [
-                            "watchlist",
-                            "tag-based"
-                          ]
                         },
                         "deleteMovie": {
                           "type": "boolean"
@@ -6082,6 +5904,9 @@
                           "type": "boolean"
                         },
                         "cleanupOrphanedTags": {
+                          "type": "boolean"
+                        },
+                        "persistHistoricalTags": {
                           "type": "boolean"
                         },
                         "tagPrefix": {
@@ -6253,6 +6078,10 @@
                                   "type": "number"
                                 }
                               },
+                              "required": [
+                                "enabled",
+                                "retentionDays"
+                              ],
                               "additionalProperties": false
                             },
                             "weeklyRolling": {
@@ -6262,6 +6091,9 @@
                                   "type": "number"
                                 }
                               },
+                              "required": [
+                                "resetDays"
+                              ],
                               "additionalProperties": false
                             },
                             "monthly": {
@@ -6279,9 +6111,18 @@
                                   ]
                                 }
                               },
+                              "required": [
+                                "resetDay",
+                                "handleMonthEnd"
+                              ],
                               "additionalProperties": false
                             }
                           },
+                          "required": [
+                            "cleanup",
+                            "weeklyRolling",
+                            "monthly"
+                          ],
                           "additionalProperties": false
                         },
                         "approvalExpiration": {
@@ -6300,22 +6141,16 @@
                                 "auto_approve"
                               ]
                             },
-                            "quotaExceededExpirationHours": {
-                              "type": "number"
-                            },
-                            "routerRuleExpirationHours": {
-                              "type": "number"
-                            },
-                            "manualFlagExpirationHours": {
-                              "type": "number"
-                            },
-                            "contentCriteriaExpirationHours": {
-                              "type": "number"
-                            },
                             "cleanupExpiredDays": {
                               "type": "number"
                             }
                           },
+                          "required": [
+                            "enabled",
+                            "defaultExpirationHours",
+                            "expirationAction",
+                            "cleanupExpiredDays"
+                          ],
                           "additionalProperties": false
                         },
                         "_isReady": {
@@ -6324,63 +6159,28 @@
                       },
                       "required": [
                         "id",
-                        "basePath",
-                        "baseUrl",
-                        "port",
-                        "dbType",
-                        "dbPath",
-                        "dbHost",
-                        "dbPort",
-                        "dbName",
-                        "dbUser",
-                        "dbPassword",
-                        "dbConnectionString",
-                        "cookieSecret",
-                        "cookieName",
+                        "created_at",
+                        "updated_at",
                         "cookieSecured",
-                        "authenticationMethod",
-                        "allowIframes",
-                        "logLevel",
-                        "closeGraceDelay",
-                        "rateLimitMax",
                         "syncIntervalSeconds",
                         "queueProcessDelaySeconds",
-                        "discordWebhookUrl",
-                        "discordBotToken",
-                        "discordClientId",
-                        "discordGuildId",
                         "enableApprise",
                         "appriseUrl",
-                        "systemAppriseUrl",
+                        "publicContentNotifications",
                         "tautulliEnabled",
                         "tautulliUrl",
                         "tautulliApiKey",
+                        "deletionMode",
                         "queueWaitTime",
                         "newEpisodeThreshold",
                         "upgradeBufferTime",
                         "pendingWebhookRetryInterval",
                         "pendingWebhookMaxAge",
                         "pendingWebhookCleanupInterval",
-                        "sonarrBaseUrl",
-                        "sonarrApiKey",
-                        "sonarrQualityProfile",
-                        "sonarrRootFolder",
-                        "sonarrBypassIgnored",
-                        "sonarrSeasonMonitoring",
-                        "sonarrMonitorNewItems",
-                        "sonarrTags",
-                        "sonarrCreateSeasonFolders",
-                        "radarrBaseUrl",
-                        "radarrApiKey",
-                        "radarrQualityProfile",
-                        "radarrRootFolder",
-                        "radarrBypassIgnored",
-                        "radarrTags",
-                        "tmdbApiKey",
                         "tmdbRegion",
                         "plexTokens",
                         "skipFriendSync",
-                        "deletionMode",
+                        "skipIfExistsOnPlex",
                         "deleteMovie",
                         "deleteEndedShow",
                         "deleteContinuingShow",
@@ -6389,17 +6189,31 @@
                         "deleteSyncNotify",
                         "approvalNotify",
                         "deleteSyncNotifyOnlyOnDeletion",
-                        "maxDeletionPrevention",
                         "deleteSyncTrackedOnly",
                         "deleteSyncCleanupApprovals",
+                        "deleteSyncRequiredTagRegex",
                         "enablePlexPlaylistProtection",
                         "plexProtectionPlaylistName",
+                        "plexLabelSync",
                         "tagUsersInSonarr",
                         "tagUsersInRadarr",
                         "cleanupOrphanedTags",
+                        "persistHistoricalTags",
                         "tagPrefix",
                         "removedTagMode",
                         "removedTagPrefix",
+                        "newUserDefaultCanSync",
+                        "newUserDefaultRequiresApproval",
+                        "newUserDefaultMovieQuotaEnabled",
+                        "newUserDefaultMovieQuotaType",
+                        "newUserDefaultMovieQuotaLimit",
+                        "newUserDefaultMovieBypassApproval",
+                        "newUserDefaultShowQuotaEnabled",
+                        "newUserDefaultShowQuotaType",
+                        "newUserDefaultShowQuotaLimit",
+                        "newUserDefaultShowBypassApproval",
+                        "quotaSettings",
+                        "approvalExpiration",
                         "_isReady"
                       ],
                       "additionalProperties": false
@@ -13940,14 +13754,463 @@
         }
       }
     },
-    "/v1/plex/self-watchlist-token": {
-      "get": {
-        "operationId": "getSelfWatchlistItems",
-        "summary": "Get self watchlist items",
+    "/v1/plex/configure-notifications": {
+      "post": {
+        "operationId": "configurePlexNotifications",
+        "summary": "Configure Plex notifications",
         "tags": [
           "Plex"
         ],
-        "description": "Retrieve the current user watchlist items from Plex",
+        "description": "Configure Plex webhook notifications for Radarr and Sonarr instances",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plexToken": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "plexHost": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "plexPort": {
+                    "default": 32400,
+                    "type": "integer",
+                    "exclusiveMinimum": true,
+                    "maximum": 9007199254740991
+                  },
+                  "useSsl": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "plexToken",
+                  "plexHost"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "results": {
+                      "type": "object",
+                      "properties": {
+                        "radarr": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "success": {
+                                "type": "boolean"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "success",
+                              "message"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "sonarr": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "success": {
+                                "type": "boolean"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "success",
+                              "message"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "radarr",
+                        "sonarr"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "results"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/discover-servers": {
+      "post": {
+        "operationId": "discoverPlexServers",
+        "summary": "Discover Plex servers",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Discover available Plex servers using a user token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plexToken": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "plexToken"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "servers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "host": {
+                            "type": "string"
+                          },
+                          "port": {
+                            "type": "number"
+                          },
+                          "useSsl": {
+                            "type": "boolean"
+                          },
+                          "local": {
+                            "type": "boolean"
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "host",
+                          "port",
+                          "useSsl",
+                          "local"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "servers"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/generate-rss-feeds": {
+      "get": {
+        "operationId": "generateRssFeeds",
+        "summary": "Generate RSS feeds",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Generate RSS feed URLs for Plex watchlists",
         "responses": {
           "200": {
             "description": "Default Response",
@@ -13958,81 +14221,16 @@
                     {
                       "type": "object",
                       "properties": {
-                        "total": {
-                          "type": "number"
+                        "self": {
+                          "type": "string"
                         },
-                        "users": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "user": {
-                                "type": "object",
-                                "properties": {
-                                  "watchlistId": {
-                                    "type": "string"
-                                  },
-                                  "username": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "watchlistId",
-                                  "username"
-                                ],
-                                "additionalProperties": false
-                              },
-                              "watchlist": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "title": {
-                                      "type": "string"
-                                    },
-                                    "plexKey": {
-                                      "type": "string"
-                                    },
-                                    "type": {
-                                      "type": "string"
-                                    },
-                                    "thumb": {
-                                      "type": "string"
-                                    },
-                                    "guids": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "genres": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    }
-                                  },
-                                  "required": [
-                                    "title",
-                                    "type",
-                                    "guids",
-                                    "genres"
-                                  ],
-                                  "additionalProperties": false
-                                }
-                              }
-                            },
-                            "required": [
-                              "user",
-                              "watchlist"
-                            ],
-                            "additionalProperties": false
-                          }
+                        "friends": {
+                          "type": "string"
                         }
                       },
                       "required": [
-                        "total",
-                        "users"
+                        "self",
+                        "friends"
                       ],
                       "additionalProperties": false
                     },
@@ -14049,6 +14247,217 @@
                       "additionalProperties": false
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/genres": {
+      "get": {
+        "operationId": "getWatchlistGenres",
+        "summary": "Get watchlist genres",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Retrieve all genres from watchlist items",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "genres": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "genres"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/notification-status": {
+      "get": {
+        "operationId": "getPlexNotificationStatus",
+        "summary": "Get Plex notification status",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Check if Plex notifications are configured for Radarr and Sonarr instances",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "results": {
+                      "type": "object",
+                      "properties": {
+                        "radarr": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "success": {
+                                "type": "boolean"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "success",
+                              "message"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "sonarr": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "success": {
+                                "type": "boolean"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "success",
+                              "message"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "radarr",
+                        "sonarr"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "results"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -14149,123 +14558,6 @@
                       "required": [
                         "total",
                         "users"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "error"
-                      ],
-                      "additionalProperties": false
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/plex/ping": {
-      "get": {
-        "operationId": "pingPlex",
-        "summary": "Test Plex server connection",
-        "tags": [
-          "Plex"
-        ],
-        "description": "Verifies connectivity to the configured Plex server",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/plex/generate-rss-feeds": {
-      "get": {
-        "operationId": "generateRssFeeds",
-        "summary": "Generate RSS feeds",
-        "tags": [
-          "Plex"
-        ],
-        "description": "Generate RSS feed URLs for Plex watchlists",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "self": {
-                          "type": "string"
-                        },
-                        "friends": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "self",
-                        "friends"
                       ],
                       "additionalProperties": false
                     },
@@ -14538,14 +14830,14 @@
         }
       }
     },
-    "/v1/plex/genres": {
+    "/v1/plex/ping": {
       "get": {
-        "operationId": "getWatchlistGenres",
-        "summary": "Get watchlist genres",
+        "operationId": "pingPlex",
+        "summary": "Test Plex server connection",
         "tags": [
           "Plex"
         ],
-        "description": "Retrieve all genres from watchlist items",
+        "description": "Verifies connectivity to the configured Plex server",
         "responses": {
           "200": {
             "description": "Default Response",
@@ -14559,215 +14851,10 @@
                       "enum": [
                         true
                       ]
-                    },
-                    "genres": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
                     }
                   },
                   "required": [
-                    "success",
-                    "genres"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/plex/configure-notifications": {
-      "post": {
-        "operationId": "configurePlexNotifications",
-        "summary": "Configure Plex notifications",
-        "tags": [
-          "Plex"
-        ],
-        "description": "Configure Plex webhook notifications for Radarr and Sonarr instances",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "plexToken": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "plexHost": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "plexPort": {
-                    "default": 32400,
-                    "type": "integer",
-                    "exclusiveMinimum": true,
-                    "maximum": 9007199254740991
-                  },
-                  "useSsl": {
-                    "default": false,
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "plexToken",
-                  "plexHost"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "results": {
-                      "type": "object",
-                      "properties": {
-                        "radarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        },
-                        "sonarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                      },
-                      "required": [
-                        "radarr",
-                        "sonarr"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "results"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
+                    "success"
                   ],
                   "additionalProperties": false
                 }
@@ -14947,388 +15034,115 @@
         }
       }
     },
-    "/v1/plex/notification-status": {
+    "/v1/plex/self-watchlist-token": {
       "get": {
-        "operationId": "getPlexNotificationStatus",
-        "summary": "Get Plex notification status",
+        "operationId": "getSelfWatchlistItems",
+        "summary": "Get self watchlist items",
         "tags": [
           "Plex"
         ],
-        "description": "Check if Plex notifications are configured for Radarr and Sonarr instances",
+        "description": "Retrieve the current user watchlist items from Plex",
         "responses": {
           "200": {
             "description": "Default Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "results": {
+                  "anyOf": [
+                    {
                       "type": "object",
                       "properties": {
-                        "radarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
+                        "total": {
+                          "type": "number"
                         },
-                        "sonarr": {
+                        "users": {
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
-                              "id": {
-                                "type": "number"
+                              "user": {
+                                "type": "object",
+                                "properties": {
+                                  "watchlistId": {
+                                    "type": "string"
+                                  },
+                                  "username": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "watchlistId",
+                                  "username"
+                                ],
+                                "additionalProperties": false
                               },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
+                              "watchlist": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "title": {
+                                      "type": "string"
+                                    },
+                                    "plexKey": {
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "type": "string"
+                                    },
+                                    "thumb": {
+                                      "type": "string"
+                                    },
+                                    "guids": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "genres": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "title",
+                                    "type",
+                                    "guids",
+                                    "genres"
+                                  ],
+                                  "additionalProperties": false
+                                }
                               }
                             },
                             "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
+                              "user",
+                              "watchlist"
                             ],
                             "additionalProperties": false
                           }
                         }
                       },
                       "required": [
-                        "radarr",
-                        "sonarr"
+                        "total",
+                        "users"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "error"
                       ],
                       "additionalProperties": false
                     }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "results"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/plex/discover-servers": {
-      "post": {
-        "operationId": "discoverPlexServers",
-        "summary": "Discover Plex servers",
-        "tags": [
-          "Plex"
-        ],
-        "description": "Discover available Plex servers using a user token",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "plexToken": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "plexToken"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "servers": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "host": {
-                            "type": "string"
-                          },
-                          "port": {
-                            "type": "number"
-                          },
-                          "useSsl": {
-                            "type": "boolean"
-                          },
-                          "local": {
-                            "type": "boolean"
-                          },
-                          "description": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "host",
-                          "port",
-                          "useSsl",
-                          "local"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "servers"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  ]
                 }
               }
             }

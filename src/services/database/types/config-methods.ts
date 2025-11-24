@@ -1,13 +1,14 @@
+import type { ConfigFull } from '@root/schemas/config/config.schema.js'
 import type { Config } from '@root/types/config.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
     // CONFIGURATION MANAGEMENT
     /**
-     * Retrieves application configuration
-     * @returns Promise resolving to the configuration if found, undefined otherwise
+     * Retrieves application configuration from database with defaults applied
+     * @returns Promise resolving to the database configuration if found, undefined otherwise
      */
-    getConfig(): Promise<Config | undefined>
+    getConfig(): Promise<ConfigFull | undefined>
 
     /**
      * Creates a new configuration entry in the database
