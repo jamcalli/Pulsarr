@@ -69,12 +69,18 @@ const ConditionBuilder = ({
       )
   }, [evaluatorMetadata, contentType])
 
-  // Get all available fields sorted alphabetically
+  // Get all available fields sorted alphabetically, deduped by name
   const fields = useMemo(() => {
     if (!compatibleEvaluators.length) return []
-    return compatibleEvaluators
-      .flatMap((e) => e.supportedFields)
-      .sort((a, b) => a.name.localeCompare(b.name))
+    const uniqueFields = new Map()
+    for (const field of compatibleEvaluators.flatMap(
+      (e) => e.supportedFields,
+    )) {
+      uniqueFields.set(field.name, field)
+    }
+    return Array.from(uniqueFields.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    )
   }, [compatibleEvaluators])
 
   // Find evaluator and field metadata for selected field
@@ -110,6 +116,47 @@ const ConditionBuilder = ({
   const fieldDescription = currentFieldData.fieldInfo?.description || ''
   const operatorDescription = currentOperatorInfo?.description || ''
   const valueTypes = currentOperatorInfo?.valueTypes || []
+
+  // Determine if the current field/operator combo renders a composite input
+  // (multiple controls without a single focusable element with inputId)
+  const isCompositeInput = useMemo(() => {
+    if (!value.field || !value.operator) return false
+
+    // Always composite fields
+    if (value.field === 'streamingServices') return true
+    if (value.field === 'imdbRating') return true
+
+    // Range inputs (two inputs)
+    if (value.operator === 'between') return true
+
+    // Multi-select inputs
+    if (value.operator === 'in' || value.operator === 'notIn') {
+      if (value.field === 'certification') return true
+      if (value.field === 'genre' || value.field === 'genres') return true
+      if (
+        value.field === 'user' ||
+        value.field === 'userId' ||
+        value.field === 'userName'
+      )
+        return true
+    }
+
+    // Genre/user equals with array value uses multi-select
+    if (value.operator === 'equals') {
+      const isArrayValue = Array.isArray(value.value)
+      if (isArrayValue && (value.field === 'genre' || value.field === 'genres'))
+        return true
+      if (
+        isArrayValue &&
+        (value.field === 'user' ||
+          value.field === 'userId' ||
+          value.field === 'userName')
+      )
+        return true
+    }
+
+    return false
+  }, [value.field, value.operator, value.value])
 
   const handleFieldChange = useCallback(
     (fieldName: string) => {
@@ -316,7 +363,10 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <label htmlFor={inputId} className="text-sm font-medium">
+              <label
+                htmlFor={isCompositeInput ? undefined : inputId}
+                className="text-sm font-medium"
+              >
                 Value
               </label>
               {value.field === 'certification' &&
