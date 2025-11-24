@@ -2,10 +2,7 @@ import { plexRemoveNotificationSchema } from '@schemas/plex/remove-notifications
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-export const removeNotificationsRoute: FastifyPluginAsyncZod = async (
-  fastify,
-  _opts,
-) => {
+const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
   fastify.route({
     method: 'DELETE',
     url: '/remove-notifications',
@@ -142,3 +139,5 @@ export const removeNotificationsRoute: FastifyPluginAsyncZod = async (
     },
   })
 }
+
+export default plugin

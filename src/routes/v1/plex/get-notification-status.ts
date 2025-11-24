@@ -4,10 +4,7 @@ import { plexGetNotificationStatusSchema } from '@schemas/plex/get-notification-
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
-  fastify,
-  _opts,
-) => {
+const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
   fastify.route({
     method: 'GET',
     url: '/notification-status',
@@ -162,3 +159,5 @@ export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
     },
   })
 }
+
+export default plugin
