@@ -239,6 +239,11 @@ export const ConfigFullSchema = z.object({
     enabled: z.boolean(),
     defaultExpirationHours: z.number(),
     expirationAction: z.enum(['expire', 'auto_approve']),
+    // Per-trigger expiration overrides (optional - only present if explicitly set)
+    quotaExceededExpirationHours: z.number().optional(),
+    routerRuleExpirationHours: z.number().optional(),
+    manualFlagExpirationHours: z.number().optional(),
+    contentCriteriaExpirationHours: z.number().optional(),
     cleanupExpiredDays: z.number(),
   }),
   // Ready state

@@ -72,7 +72,13 @@ export function usePlexExistenceCheck() {
   }
 
   const handleCancel = () => {
-    form.reset()
+    // Reset form to last saved values from config store
+    if (config) {
+      form.reset({
+        skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,
+        plexServerUrl: config.plexServerUrl ?? '',
+      })
+    }
   }
 
   return {

@@ -98,9 +98,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
-        // Validate Plex Pass requirement for Tautulli
+        // Create next config state for validation (current + incoming changes)
+        const nextConfig = { ...fastify.config, ...safeConfigUpdate }
+
+        // Validate Plex Pass requirement for Tautulli against final state
         if (safeConfigUpdate.tautulliEnabled === true) {
-          if (!fastify.config.selfRss || !fastify.config.friendsRss) {
+          if (!nextConfig.selfRss || !nextConfig.friendsRss) {
             return reply.badRequest(
               'Plex Pass is required for Tautulli integration. Please generate RSS feeds first to verify Plex Pass subscription.',
             )
