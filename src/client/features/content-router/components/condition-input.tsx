@@ -39,11 +39,13 @@ const StableTextInput = ({
   onChange,
   placeholder,
   type = 'text',
+  id,
 }: {
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   placeholder?: string
   type?: string
+  id?: string
 }) => {
   // Keep an internal state to maintain focus
   const [internalValue, setInternalValue] = useState(value)
@@ -61,6 +63,7 @@ const StableTextInput = ({
   return (
     <Input
       type={type}
+      id={id}
       value={internalValue}
       onChange={handleChange}
       placeholder={placeholder}
@@ -578,6 +581,7 @@ function ConditionInput({
     if (operator === 'in' || operator === 'notIn') {
       return (
         <StableTextInput
+          id={inputId}
           value={Array.isArray(value) ? value.join(', ') : String(value || '')}
           onChange={(e) => handlers.current.handleArrayChange(e, true)}
           placeholder="Enter years separated by commas (e.g. 1999, 2000, 2001)"
@@ -588,6 +592,7 @@ function ConditionInput({
     // For year with other operators
     return (
       <StableNumberInput
+        id={inputId}
         value={typeof value === 'number' ? value.toString() : ''}
         onChange={handlers.current.handleNumberChange}
         placeholder="Enter year (e.g. 2023)"
@@ -692,6 +697,7 @@ function ConditionInput({
     // For contains/notContains - text input
     return (
       <StableTextInput
+        id={inputId}
         value={typeof value === 'string' ? value : String(value || '')}
         onChange={handlers.current.handleTextChange}
         placeholder="Enter certification or part of certification"
@@ -704,6 +710,7 @@ function ConditionInput({
     if (operator === 'in' || operator === 'notIn') {
       return (
         <StableTextInput
+          id={inputId}
           value={Array.isArray(value) ? value.join(', ') : String(value || '')}
           onChange={(e) => handlers.current.handleArrayChange(e, false)}
           placeholder="Enter languages separated by commas (e.g. English, French, Spanish)"
@@ -712,6 +719,7 @@ function ConditionInput({
     }
     return (
       <StableTextInput
+        id={inputId}
         value={typeof value === 'string' ? value : String(value || '')}
         onChange={handlers.current.handleTextChange}
         placeholder="Enter language (e.g. English)"
@@ -728,6 +736,7 @@ function ConditionInput({
 
     return (
       <StableTextInput
+        id={inputId}
         value={Array.isArray(value) ? value.join(', ') : String(value || '')}
         onChange={(e) => handlers.current.handleArrayChange(e, isNumeric)}
         placeholder="Enter values separated by commas"
@@ -751,6 +760,7 @@ function ConditionInput({
   if (valueTypes.includes('string')) {
     return (
       <StableTextInput
+        id={inputId}
         value={typeof value === 'string' ? value : String(value || '')}
         onChange={handlers.current.handleTextChange}
         placeholder="Enter a value"
@@ -761,6 +771,7 @@ function ConditionInput({
   // Fallback text input for any other type
   return (
     <StableTextInput
+      id={inputId}
       value={typeof value === 'string' ? value : String(value || '')}
       onChange={handlers.current.handleTextChange}
       placeholder="Enter a value"
