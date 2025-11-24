@@ -129,8 +129,8 @@ export const radarrLookupHandler = http.get(
 
 /**
  * Export all external API handlers as a collection
- * These are NOT registered by default - add them to msw-setup.ts if needed globally,
- * or use server.use() in individual tests
+ * These are registered globally in msw-setup.ts to prevent unhandled request warnings.
+ * Individual tests can override these defaults using server.use()
  */
 export const externalApiHandlers = [
   tmdbMovieDetailsHandler,
