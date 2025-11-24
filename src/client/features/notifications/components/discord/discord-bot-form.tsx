@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ConfigSchema } from '@root/schemas/config/config.schema'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import { InfoIcon, Loader2, Save, Trash2, X } from 'lucide-react'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
@@ -26,7 +26,7 @@ import { DiscordClearAlert } from '@/features/notifications/components/discord/d
 import { useConfigStore } from '@/stores/configStore'
 
 // Extract Discord bot fields from backend API schema and add validation
-const ApiDiscordBotSchema = ConfigSchema.pick({
+const ApiDiscordBotSchema = ConfigUpdateSchema.pick({
   discordBotToken: true,
   discordClientId: true,
   discordGuildId: true,
