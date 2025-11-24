@@ -179,6 +179,7 @@ export const useConfigStore = create<ConfigState>()(
               config: state.config
                 ? { ...state.config, ...data.config }
                 : data.config,
+              error: null,
             }))
           } catch (err) {
             if (!(err instanceof Error)) {
