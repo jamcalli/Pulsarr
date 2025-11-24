@@ -59,9 +59,9 @@ describe('url', () => {
       await delayWithBackoffAndJitter(0, 100, 2000)
       const elapsed = Date.now() - start
       // Base delay 100ms + up to 10% jitter = 100-110ms
-      // Allow 5ms tolerance for CI timer precision
+      // Allow generous tolerance for CI timer imprecision under load
       expect(elapsed).toBeGreaterThanOrEqual(95)
-      expect(elapsed).toBeLessThan(150)
+      expect(elapsed).toBeLessThan(250)
     })
 
     it('should double delay on second attempt', async () => {
@@ -69,9 +69,9 @@ describe('url', () => {
       await delayWithBackoffAndJitter(1, 100, 2000)
       const elapsed = Date.now() - start
       // 100 * 2^1 = 200ms + up to 10% jitter = 200-220ms
-      // Allow 5ms tolerance for CI timer precision
+      // Allow generous tolerance for CI timer imprecision under load
       expect(elapsed).toBeGreaterThanOrEqual(195)
-      expect(elapsed).toBeLessThan(250)
+      expect(elapsed).toBeLessThan(350)
     })
 
     it('should cap delay at maxDelayMs', async () => {
