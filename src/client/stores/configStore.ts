@@ -1,6 +1,7 @@
 import type {
   ConfigError,
-  ConfigResponse,
+  ConfigGetResponse,
+  ConfigUpdateResponse,
 } from '@root/schemas/config/config.schema'
 import type {
   QuotaStatusResponse,
@@ -117,13 +118,12 @@ export const useConfigStore = create<ConfigState>()(
               throw new Error(message)
             }
 
-            const data: ConfigResponse = await response.json()
+            const data: ConfigGetResponse = await response.json()
 
-            // Backend ConfigSchema incorrectly has all optional fields (used for PUT updates)
-            // but GET always returns complete config from DB
+            // GET response now uses ConfigFullSchema with proper typing
             set((state) => ({
               ...state,
-              config: data.config as Config,
+              config: data.config,
               error: null,
             }))
           } catch (err) {
@@ -171,14 +171,13 @@ export const useConfigStore = create<ConfigState>()(
               throw new Error(message)
             }
 
-            const data: ConfigResponse = await response.json()
+            const data: ConfigUpdateResponse = await response.json()
 
-            // Backend ConfigSchema incorrectly has all optional fields (used for PUT updates)
-            // but GET/PUT always returns complete config from DB
+            // PUT response now uses ConfigFullSchema with proper typing
             set((state) => ({
               config: state.config
                 ? { ...state.config, ...data.config }
-                : (data.config as Config),
+                : data.config,
             }))
           } catch (err) {
             if (!(err instanceof Error)) {

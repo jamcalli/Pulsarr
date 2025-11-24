@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ConfigSchema } from '@root/schemas/config/config.schema'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import type { Config } from '@root/types/config.types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -9,7 +9,7 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 
 // Extract delete sync fields from backend API schema
-const ApiDeleteSyncSchema = ConfigSchema.pick({
+const ApiDeleteSyncSchema = ConfigUpdateSchema.pick({
   deletionMode: true,
   deleteMovie: true,
   deleteEndedShow: true,

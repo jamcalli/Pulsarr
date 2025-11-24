@@ -1,7 +1,8 @@
 import {
   ConfigErrorSchema,
-  ConfigResponseSchema,
-  ConfigSchema,
+  ConfigGetResponseSchema,
+  ConfigUpdateResponseSchema,
+  ConfigUpdateSchema,
 } from '@root/schemas/config/config.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
@@ -10,7 +11,7 @@ import type { z } from 'zod'
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Reply:
-      | z.infer<typeof ConfigResponseSchema>
+      | z.infer<typeof ConfigGetResponseSchema>
       | z.infer<typeof ConfigErrorSchema>
   }>(
     '/config',
@@ -20,7 +21,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'getConfig',
         description: 'Retrieve the current application configuration settings',
         response: {
-          200: ConfigResponseSchema,
+          200: ConfigGetResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
           500: ConfigErrorSchema,
@@ -45,7 +46,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           appriseUrl: fastify.config.appriseUrl,
         }
 
-        const response: z.infer<typeof ConfigResponseSchema> = {
+        const response: z.infer<typeof ConfigGetResponseSchema> = {
           success: true,
           config: mergedConfig,
         }
@@ -63,9 +64,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
   // Updated PUT handler for /config route to avoid race conditions
   fastify.put<{
-    Body: z.infer<typeof ConfigSchema>
+    Body: z.infer<typeof ConfigUpdateSchema>
     Reply:
-      | z.infer<typeof ConfigResponseSchema>
+      | z.infer<typeof ConfigUpdateResponseSchema>
       | z.infer<typeof ConfigErrorSchema>
   }>(
     '/config',
@@ -74,9 +75,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         summary: 'Update configuration',
         operationId: 'updateConfig',
         description: 'Update the application configuration settings',
-        body: ConfigSchema,
+        body: ConfigUpdateSchema,
         response: {
-          200: ConfigResponseSchema,
+          200: ConfigUpdateResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
           500: ConfigErrorSchema,
@@ -235,7 +236,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           appriseUrl: fastify.config.appriseUrl,
         }
 
-        const response: z.infer<typeof ConfigResponseSchema> = {
+        const response: z.infer<typeof ConfigUpdateResponseSchema> = {
           success: true,
           config: mergedConfig,
         }

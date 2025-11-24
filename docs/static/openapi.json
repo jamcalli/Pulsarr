@@ -4224,10 +4224,44 @@
                     "config": {
                       "type": "object",
                       "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "basePath": {
+                          "type": "string"
+                        },
+                        "baseUrl": {
+                          "type": "string"
+                        },
                         "port": {
                           "type": "number"
                         },
+                        "dbType": {
+                          "type": "string",
+                          "enum": [
+                            "sqlite",
+                            "postgres"
+                          ]
+                        },
                         "dbPath": {
+                          "type": "string"
+                        },
+                        "dbHost": {
+                          "type": "string"
+                        },
+                        "dbPort": {
+                          "type": "number"
+                        },
+                        "dbName": {
+                          "type": "string"
+                        },
+                        "dbUser": {
+                          "type": "string"
+                        },
+                        "dbPassword": {
+                          "type": "string"
+                        },
+                        "dbConnectionString": {
                           "type": "string"
                         },
                         "cookieSecret": {
@@ -4237,6 +4271,17 @@
                           "type": "string"
                         },
                         "cookieSecured": {
+                          "type": "boolean"
+                        },
+                        "authenticationMethod": {
+                          "type": "string",
+                          "enum": [
+                            "required",
+                            "requiredExceptLocal",
+                            "disabled"
+                          ]
+                        },
+                        "allowIframes": {
                           "type": "boolean"
                         },
                         "logLevel": {
@@ -4324,19 +4369,13 @@
                           "type": "string"
                         },
                         "queueWaitTime": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 1800000
+                          "type": "number"
                         },
                         "newEpisodeThreshold": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 2592000000
+                          "type": "number"
                         },
                         "upgradeBufferTime": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 10000
+                          "type": "number"
                         },
                         "pendingWebhookRetryInterval": {
                           "type": "number"
@@ -4347,6 +4386,67 @@
                         "pendingWebhookCleanupInterval": {
                           "type": "number"
                         },
+                        "sonarrBaseUrl": {
+                          "type": "string"
+                        },
+                        "sonarrApiKey": {
+                          "type": "string"
+                        },
+                        "sonarrQualityProfile": {
+                          "type": "string"
+                        },
+                        "sonarrRootFolder": {
+                          "type": "string"
+                        },
+                        "sonarrBypassIgnored": {
+                          "type": "boolean"
+                        },
+                        "sonarrSeasonMonitoring": {
+                          "type": "string"
+                        },
+                        "sonarrMonitorNewItems": {
+                          "type": "string",
+                          "enum": [
+                            "all",
+                            "none"
+                          ]
+                        },
+                        "sonarrTags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "sonarrCreateSeasonFolders": {
+                          "type": "boolean"
+                        },
+                        "radarrBaseUrl": {
+                          "type": "string"
+                        },
+                        "radarrApiKey": {
+                          "type": "string"
+                        },
+                        "radarrQualityProfile": {
+                          "type": "string"
+                        },
+                        "radarrRootFolder": {
+                          "type": "string"
+                        },
+                        "radarrBypassIgnored": {
+                          "type": "boolean"
+                        },
+                        "radarrTags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "tmdbApiKey": {
+                          "type": "string"
+                        },
+                        "tmdbRegion": {
+                          "type": "string"
+                        },
                         "plexTokens": {
                           "type": "array",
                           "items": {
@@ -4355,6 +4455,19 @@
                         },
                         "skipFriendSync": {
                           "type": "boolean"
+                        },
+                        "plexServerUrl": {
+                          "type": "string"
+                        },
+                        "skipIfExistsOnPlex": {
+                          "type": "boolean"
+                        },
+                        "deletionMode": {
+                          "type": "string",
+                          "enum": [
+                            "watchlist",
+                            "tag-based"
+                          ]
                         },
                         "deleteMovie": {
                           "type": "boolean"
@@ -4406,25 +4519,7 @@
                           "type": "boolean"
                         },
                         "maxDeletionPrevention": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 100
-                        },
-                        "deletionMode": {
-                          "type": "string",
-                          "enum": [
-                            "watchlist",
-                            "tag-based"
-                          ]
-                        },
-                        "removedTagPrefix": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-                        },
-                        "deleteSyncRequiredTagRegex": {
-                          "type": "string",
-                          "maxLength": 1024
+                          "type": "number"
                         },
                         "deleteSyncTrackedOnly": {
                           "type": "boolean"
@@ -4432,36 +4527,14 @@
                         "deleteSyncCleanupApprovals": {
                           "type": "boolean"
                         },
-                        "removedTagMode": {
-                          "type": "string",
-                          "enum": [
-                            "remove",
-                            "keep",
-                            "special-tag"
-                          ]
+                        "deleteSyncRequiredTagRegex": {
+                          "type": "string"
                         },
                         "enablePlexPlaylistProtection": {
                           "type": "boolean"
                         },
                         "plexProtectionPlaylistName": {
                           "type": "string"
-                        },
-                        "plexServerUrl": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "format": "uri"
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                ""
-                              ]
-                            }
-                          ]
-                        },
-                        "skipIfExistsOnPlex": {
-                          "type": "boolean"
                         },
                         "plexLabelSync": {
                           "type": "object",
@@ -4548,189 +4621,6 @@
                         "friendsRss": {
                           "type": "string"
                         },
-                        "_isReady": {
-                          "type": "boolean"
-                        },
-                        "plexSessionMonitoring": {
-                          "type": "object",
-                          "properties": {
-                            "enabled": {
-                              "type": "boolean"
-                            },
-                            "pollingIntervalMinutes": {
-                              "type": "number",
-                              "minimum": 1
-                            },
-                            "remainingEpisodes": {
-                              "type": "number",
-                              "minimum": 1
-                            },
-                            "filterUsers": {},
-                            "enableAutoReset": {
-                              "type": "boolean"
-                            },
-                            "inactivityResetDays": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 365
-                            },
-                            "autoResetIntervalHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 168
-                            },
-                            "enableProgressiveCleanup": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "enabled",
-                            "pollingIntervalMinutes",
-                            "remainingEpisodes"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "newUserDefaultCanSync": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultRequiresApproval": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultMovieQuotaEnabled": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultMovieQuotaType": {
-                          "type": "string",
-                          "enum": [
-                            "daily",
-                            "weekly_rolling",
-                            "monthly"
-                          ]
-                        },
-                        "newUserDefaultMovieQuotaLimit": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 1000
-                        },
-                        "newUserDefaultMovieBypassApproval": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultShowQuotaEnabled": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultShowQuotaType": {
-                          "type": "string",
-                          "enum": [
-                            "daily",
-                            "weekly_rolling",
-                            "monthly"
-                          ]
-                        },
-                        "newUserDefaultShowQuotaLimit": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 1000
-                        },
-                        "newUserDefaultShowBypassApproval": {
-                          "type": "boolean"
-                        },
-                        "quotaSettings": {
-                          "type": "object",
-                          "properties": {
-                            "cleanup": {
-                              "type": "object",
-                              "properties": {
-                                "enabled": {
-                                  "type": "boolean"
-                                },
-                                "retentionDays": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 365
-                                }
-                              },
-                              "additionalProperties": false
-                            },
-                            "weeklyRolling": {
-                              "type": "object",
-                              "properties": {
-                                "resetDays": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 365
-                                }
-                              },
-                              "additionalProperties": false
-                            },
-                            "monthly": {
-                              "type": "object",
-                              "properties": {
-                                "resetDay": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 31
-                                },
-                                "handleMonthEnd": {
-                                  "type": "string",
-                                  "enum": [
-                                    "last-day",
-                                    "skip-month",
-                                    "next-month"
-                                  ]
-                                }
-                              },
-                              "additionalProperties": false
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "approvalExpiration": {
-                          "type": "object",
-                          "properties": {
-                            "enabled": {
-                              "type": "boolean"
-                            },
-                            "defaultExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "expirationAction": {
-                              "type": "string",
-                              "enum": [
-                                "expire",
-                                "auto_approve"
-                              ]
-                            },
-                            "quotaExceededExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "routerRuleExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "manualFlagExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "contentCriteriaExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "cleanupExpiredDays": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 365
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "tmdbRegion": {},
                         "tagUsersInSonarr": {
                           "type": "boolean"
                         },
@@ -4741,9 +4631,18 @@
                           "type": "boolean"
                         },
                         "tagPrefix": {
+                          "type": "string"
+                        },
+                        "removedTagMode": {
                           "type": "string",
-                          "minLength": 1,
-                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                          "enum": [
+                            "remove",
+                            "keep",
+                            "special-tag"
+                          ]
+                        },
+                        "removedTagPrefix": {
+                          "type": "string"
                         },
                         "tagMigration": {
                           "type": "object",
@@ -4808,8 +4707,247 @@
                             "sonarr"
                           ],
                           "additionalProperties": false
+                        },
+                        "plexSessionMonitoring": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "pollingIntervalMinutes": {
+                              "type": "number"
+                            },
+                            "remainingEpisodes": {
+                              "type": "number"
+                            },
+                            "filterUsers": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enableAutoReset": {
+                              "type": "boolean"
+                            },
+                            "inactivityResetDays": {
+                              "type": "number"
+                            },
+                            "autoResetIntervalHours": {
+                              "type": "number"
+                            },
+                            "enableProgressiveCleanup": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "pollingIntervalMinutes",
+                            "remainingEpisodes"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "newUserDefaultCanSync": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultRequiresApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaType": {
+                          "type": "string",
+                          "enum": [
+                            "daily",
+                            "weekly_rolling",
+                            "monthly"
+                          ]
+                        },
+                        "newUserDefaultMovieQuotaLimit": {
+                          "type": "number"
+                        },
+                        "newUserDefaultMovieBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaType": {
+                          "type": "string",
+                          "enum": [
+                            "daily",
+                            "weekly_rolling",
+                            "monthly"
+                          ]
+                        },
+                        "newUserDefaultShowQuotaLimit": {
+                          "type": "number"
+                        },
+                        "newUserDefaultShowBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "quotaSettings": {
+                          "type": "object",
+                          "properties": {
+                            "cleanup": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "retentionDays": {
+                                  "type": "number"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "weeklyRolling": {
+                              "type": "object",
+                              "properties": {
+                                "resetDays": {
+                                  "type": "number"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "monthly": {
+                              "type": "object",
+                              "properties": {
+                                "resetDay": {
+                                  "type": "number"
+                                },
+                                "handleMonthEnd": {
+                                  "type": "string",
+                                  "enum": [
+                                    "last-day",
+                                    "skip-month",
+                                    "next-month"
+                                  ]
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "approvalExpiration": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "defaultExpirationHours": {
+                              "type": "number"
+                            },
+                            "expirationAction": {
+                              "type": "string",
+                              "enum": [
+                                "expire",
+                                "auto_approve"
+                              ]
+                            },
+                            "quotaExceededExpirationHours": {
+                              "type": "number"
+                            },
+                            "routerRuleExpirationHours": {
+                              "type": "number"
+                            },
+                            "manualFlagExpirationHours": {
+                              "type": "number"
+                            },
+                            "contentCriteriaExpirationHours": {
+                              "type": "number"
+                            },
+                            "cleanupExpiredDays": {
+                              "type": "number"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "_isReady": {
+                          "type": "boolean"
                         }
                       },
+                      "required": [
+                        "id",
+                        "basePath",
+                        "baseUrl",
+                        "port",
+                        "dbType",
+                        "dbPath",
+                        "dbHost",
+                        "dbPort",
+                        "dbName",
+                        "dbUser",
+                        "dbPassword",
+                        "dbConnectionString",
+                        "cookieSecret",
+                        "cookieName",
+                        "cookieSecured",
+                        "authenticationMethod",
+                        "allowIframes",
+                        "logLevel",
+                        "closeGraceDelay",
+                        "rateLimitMax",
+                        "syncIntervalSeconds",
+                        "queueProcessDelaySeconds",
+                        "discordWebhookUrl",
+                        "discordBotToken",
+                        "discordClientId",
+                        "discordGuildId",
+                        "enableApprise",
+                        "appriseUrl",
+                        "systemAppriseUrl",
+                        "tautulliEnabled",
+                        "tautulliUrl",
+                        "tautulliApiKey",
+                        "queueWaitTime",
+                        "newEpisodeThreshold",
+                        "upgradeBufferTime",
+                        "pendingWebhookRetryInterval",
+                        "pendingWebhookMaxAge",
+                        "pendingWebhookCleanupInterval",
+                        "sonarrBaseUrl",
+                        "sonarrApiKey",
+                        "sonarrQualityProfile",
+                        "sonarrRootFolder",
+                        "sonarrBypassIgnored",
+                        "sonarrSeasonMonitoring",
+                        "sonarrMonitorNewItems",
+                        "sonarrTags",
+                        "sonarrCreateSeasonFolders",
+                        "radarrBaseUrl",
+                        "radarrApiKey",
+                        "radarrQualityProfile",
+                        "radarrRootFolder",
+                        "radarrBypassIgnored",
+                        "radarrTags",
+                        "tmdbApiKey",
+                        "tmdbRegion",
+                        "plexTokens",
+                        "skipFriendSync",
+                        "deletionMode",
+                        "deleteMovie",
+                        "deleteEndedShow",
+                        "deleteContinuingShow",
+                        "deleteFiles",
+                        "respectUserSyncSetting",
+                        "deleteSyncNotify",
+                        "approvalNotify",
+                        "deleteSyncNotifyOnlyOnDeletion",
+                        "maxDeletionPrevention",
+                        "deleteSyncTrackedOnly",
+                        "deleteSyncCleanupApprovals",
+                        "enablePlexPlaylistProtection",
+                        "plexProtectionPlaylistName",
+                        "tagUsersInSonarr",
+                        "tagUsersInRadarr",
+                        "cleanupOrphanedTags",
+                        "tagPrefix",
+                        "removedTagMode",
+                        "removedTagPrefix",
+                        "_isReady"
+                      ],
                       "additionalProperties": false
                     }
                   },
@@ -5540,10 +5678,44 @@
                     "config": {
                       "type": "object",
                       "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "basePath": {
+                          "type": "string"
+                        },
+                        "baseUrl": {
+                          "type": "string"
+                        },
                         "port": {
                           "type": "number"
                         },
+                        "dbType": {
+                          "type": "string",
+                          "enum": [
+                            "sqlite",
+                            "postgres"
+                          ]
+                        },
                         "dbPath": {
+                          "type": "string"
+                        },
+                        "dbHost": {
+                          "type": "string"
+                        },
+                        "dbPort": {
+                          "type": "number"
+                        },
+                        "dbName": {
+                          "type": "string"
+                        },
+                        "dbUser": {
+                          "type": "string"
+                        },
+                        "dbPassword": {
+                          "type": "string"
+                        },
+                        "dbConnectionString": {
                           "type": "string"
                         },
                         "cookieSecret": {
@@ -5553,6 +5725,17 @@
                           "type": "string"
                         },
                         "cookieSecured": {
+                          "type": "boolean"
+                        },
+                        "authenticationMethod": {
+                          "type": "string",
+                          "enum": [
+                            "required",
+                            "requiredExceptLocal",
+                            "disabled"
+                          ]
+                        },
+                        "allowIframes": {
                           "type": "boolean"
                         },
                         "logLevel": {
@@ -5640,19 +5823,13 @@
                           "type": "string"
                         },
                         "queueWaitTime": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 1800000
+                          "type": "number"
                         },
                         "newEpisodeThreshold": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 2592000000
+                          "type": "number"
                         },
                         "upgradeBufferTime": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 10000
+                          "type": "number"
                         },
                         "pendingWebhookRetryInterval": {
                           "type": "number"
@@ -5663,6 +5840,67 @@
                         "pendingWebhookCleanupInterval": {
                           "type": "number"
                         },
+                        "sonarrBaseUrl": {
+                          "type": "string"
+                        },
+                        "sonarrApiKey": {
+                          "type": "string"
+                        },
+                        "sonarrQualityProfile": {
+                          "type": "string"
+                        },
+                        "sonarrRootFolder": {
+                          "type": "string"
+                        },
+                        "sonarrBypassIgnored": {
+                          "type": "boolean"
+                        },
+                        "sonarrSeasonMonitoring": {
+                          "type": "string"
+                        },
+                        "sonarrMonitorNewItems": {
+                          "type": "string",
+                          "enum": [
+                            "all",
+                            "none"
+                          ]
+                        },
+                        "sonarrTags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "sonarrCreateSeasonFolders": {
+                          "type": "boolean"
+                        },
+                        "radarrBaseUrl": {
+                          "type": "string"
+                        },
+                        "radarrApiKey": {
+                          "type": "string"
+                        },
+                        "radarrQualityProfile": {
+                          "type": "string"
+                        },
+                        "radarrRootFolder": {
+                          "type": "string"
+                        },
+                        "radarrBypassIgnored": {
+                          "type": "boolean"
+                        },
+                        "radarrTags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "tmdbApiKey": {
+                          "type": "string"
+                        },
+                        "tmdbRegion": {
+                          "type": "string"
+                        },
                         "plexTokens": {
                           "type": "array",
                           "items": {
@@ -5671,6 +5909,19 @@
                         },
                         "skipFriendSync": {
                           "type": "boolean"
+                        },
+                        "plexServerUrl": {
+                          "type": "string"
+                        },
+                        "skipIfExistsOnPlex": {
+                          "type": "boolean"
+                        },
+                        "deletionMode": {
+                          "type": "string",
+                          "enum": [
+                            "watchlist",
+                            "tag-based"
+                          ]
                         },
                         "deleteMovie": {
                           "type": "boolean"
@@ -5722,25 +5973,7 @@
                           "type": "boolean"
                         },
                         "maxDeletionPrevention": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 100
-                        },
-                        "deletionMode": {
-                          "type": "string",
-                          "enum": [
-                            "watchlist",
-                            "tag-based"
-                          ]
-                        },
-                        "removedTagPrefix": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-                        },
-                        "deleteSyncRequiredTagRegex": {
-                          "type": "string",
-                          "maxLength": 1024
+                          "type": "number"
                         },
                         "deleteSyncTrackedOnly": {
                           "type": "boolean"
@@ -5748,36 +5981,14 @@
                         "deleteSyncCleanupApprovals": {
                           "type": "boolean"
                         },
-                        "removedTagMode": {
-                          "type": "string",
-                          "enum": [
-                            "remove",
-                            "keep",
-                            "special-tag"
-                          ]
+                        "deleteSyncRequiredTagRegex": {
+                          "type": "string"
                         },
                         "enablePlexPlaylistProtection": {
                           "type": "boolean"
                         },
                         "plexProtectionPlaylistName": {
                           "type": "string"
-                        },
-                        "plexServerUrl": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "format": "uri"
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                ""
-                              ]
-                            }
-                          ]
-                        },
-                        "skipIfExistsOnPlex": {
-                          "type": "boolean"
                         },
                         "plexLabelSync": {
                           "type": "object",
@@ -5864,189 +6075,6 @@
                         "friendsRss": {
                           "type": "string"
                         },
-                        "_isReady": {
-                          "type": "boolean"
-                        },
-                        "plexSessionMonitoring": {
-                          "type": "object",
-                          "properties": {
-                            "enabled": {
-                              "type": "boolean"
-                            },
-                            "pollingIntervalMinutes": {
-                              "type": "number",
-                              "minimum": 1
-                            },
-                            "remainingEpisodes": {
-                              "type": "number",
-                              "minimum": 1
-                            },
-                            "filterUsers": {},
-                            "enableAutoReset": {
-                              "type": "boolean"
-                            },
-                            "inactivityResetDays": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 365
-                            },
-                            "autoResetIntervalHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 168
-                            },
-                            "enableProgressiveCleanup": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "enabled",
-                            "pollingIntervalMinutes",
-                            "remainingEpisodes"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "newUserDefaultCanSync": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultRequiresApproval": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultMovieQuotaEnabled": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultMovieQuotaType": {
-                          "type": "string",
-                          "enum": [
-                            "daily",
-                            "weekly_rolling",
-                            "monthly"
-                          ]
-                        },
-                        "newUserDefaultMovieQuotaLimit": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 1000
-                        },
-                        "newUserDefaultMovieBypassApproval": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultShowQuotaEnabled": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultShowQuotaType": {
-                          "type": "string",
-                          "enum": [
-                            "daily",
-                            "weekly_rolling",
-                            "monthly"
-                          ]
-                        },
-                        "newUserDefaultShowQuotaLimit": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 1000
-                        },
-                        "newUserDefaultShowBypassApproval": {
-                          "type": "boolean"
-                        },
-                        "quotaSettings": {
-                          "type": "object",
-                          "properties": {
-                            "cleanup": {
-                              "type": "object",
-                              "properties": {
-                                "enabled": {
-                                  "type": "boolean"
-                                },
-                                "retentionDays": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 365
-                                }
-                              },
-                              "additionalProperties": false
-                            },
-                            "weeklyRolling": {
-                              "type": "object",
-                              "properties": {
-                                "resetDays": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 365
-                                }
-                              },
-                              "additionalProperties": false
-                            },
-                            "monthly": {
-                              "type": "object",
-                              "properties": {
-                                "resetDay": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 31
-                                },
-                                "handleMonthEnd": {
-                                  "type": "string",
-                                  "enum": [
-                                    "last-day",
-                                    "skip-month",
-                                    "next-month"
-                                  ]
-                                }
-                              },
-                              "additionalProperties": false
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "approvalExpiration": {
-                          "type": "object",
-                          "properties": {
-                            "enabled": {
-                              "type": "boolean"
-                            },
-                            "defaultExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "expirationAction": {
-                              "type": "string",
-                              "enum": [
-                                "expire",
-                                "auto_approve"
-                              ]
-                            },
-                            "quotaExceededExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "routerRuleExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "manualFlagExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "contentCriteriaExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "cleanupExpiredDays": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 365
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "tmdbRegion": {},
                         "tagUsersInSonarr": {
                           "type": "boolean"
                         },
@@ -6057,9 +6085,18 @@
                           "type": "boolean"
                         },
                         "tagPrefix": {
+                          "type": "string"
+                        },
+                        "removedTagMode": {
                           "type": "string",
-                          "minLength": 1,
-                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                          "enum": [
+                            "remove",
+                            "keep",
+                            "special-tag"
+                          ]
+                        },
+                        "removedTagPrefix": {
+                          "type": "string"
                         },
                         "tagMigration": {
                           "type": "object",
@@ -6124,8 +6161,247 @@
                             "sonarr"
                           ],
                           "additionalProperties": false
+                        },
+                        "plexSessionMonitoring": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "pollingIntervalMinutes": {
+                              "type": "number"
+                            },
+                            "remainingEpisodes": {
+                              "type": "number"
+                            },
+                            "filterUsers": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enableAutoReset": {
+                              "type": "boolean"
+                            },
+                            "inactivityResetDays": {
+                              "type": "number"
+                            },
+                            "autoResetIntervalHours": {
+                              "type": "number"
+                            },
+                            "enableProgressiveCleanup": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "pollingIntervalMinutes",
+                            "remainingEpisodes"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "newUserDefaultCanSync": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultRequiresApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaType": {
+                          "type": "string",
+                          "enum": [
+                            "daily",
+                            "weekly_rolling",
+                            "monthly"
+                          ]
+                        },
+                        "newUserDefaultMovieQuotaLimit": {
+                          "type": "number"
+                        },
+                        "newUserDefaultMovieBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaType": {
+                          "type": "string",
+                          "enum": [
+                            "daily",
+                            "weekly_rolling",
+                            "monthly"
+                          ]
+                        },
+                        "newUserDefaultShowQuotaLimit": {
+                          "type": "number"
+                        },
+                        "newUserDefaultShowBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "quotaSettings": {
+                          "type": "object",
+                          "properties": {
+                            "cleanup": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "retentionDays": {
+                                  "type": "number"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "weeklyRolling": {
+                              "type": "object",
+                              "properties": {
+                                "resetDays": {
+                                  "type": "number"
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "monthly": {
+                              "type": "object",
+                              "properties": {
+                                "resetDay": {
+                                  "type": "number"
+                                },
+                                "handleMonthEnd": {
+                                  "type": "string",
+                                  "enum": [
+                                    "last-day",
+                                    "skip-month",
+                                    "next-month"
+                                  ]
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "approvalExpiration": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "defaultExpirationHours": {
+                              "type": "number"
+                            },
+                            "expirationAction": {
+                              "type": "string",
+                              "enum": [
+                                "expire",
+                                "auto_approve"
+                              ]
+                            },
+                            "quotaExceededExpirationHours": {
+                              "type": "number"
+                            },
+                            "routerRuleExpirationHours": {
+                              "type": "number"
+                            },
+                            "manualFlagExpirationHours": {
+                              "type": "number"
+                            },
+                            "contentCriteriaExpirationHours": {
+                              "type": "number"
+                            },
+                            "cleanupExpiredDays": {
+                              "type": "number"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "_isReady": {
+                          "type": "boolean"
                         }
                       },
+                      "required": [
+                        "id",
+                        "basePath",
+                        "baseUrl",
+                        "port",
+                        "dbType",
+                        "dbPath",
+                        "dbHost",
+                        "dbPort",
+                        "dbName",
+                        "dbUser",
+                        "dbPassword",
+                        "dbConnectionString",
+                        "cookieSecret",
+                        "cookieName",
+                        "cookieSecured",
+                        "authenticationMethod",
+                        "allowIframes",
+                        "logLevel",
+                        "closeGraceDelay",
+                        "rateLimitMax",
+                        "syncIntervalSeconds",
+                        "queueProcessDelaySeconds",
+                        "discordWebhookUrl",
+                        "discordBotToken",
+                        "discordClientId",
+                        "discordGuildId",
+                        "enableApprise",
+                        "appriseUrl",
+                        "systemAppriseUrl",
+                        "tautulliEnabled",
+                        "tautulliUrl",
+                        "tautulliApiKey",
+                        "queueWaitTime",
+                        "newEpisodeThreshold",
+                        "upgradeBufferTime",
+                        "pendingWebhookRetryInterval",
+                        "pendingWebhookMaxAge",
+                        "pendingWebhookCleanupInterval",
+                        "sonarrBaseUrl",
+                        "sonarrApiKey",
+                        "sonarrQualityProfile",
+                        "sonarrRootFolder",
+                        "sonarrBypassIgnored",
+                        "sonarrSeasonMonitoring",
+                        "sonarrMonitorNewItems",
+                        "sonarrTags",
+                        "sonarrCreateSeasonFolders",
+                        "radarrBaseUrl",
+                        "radarrApiKey",
+                        "radarrQualityProfile",
+                        "radarrRootFolder",
+                        "radarrBypassIgnored",
+                        "radarrTags",
+                        "tmdbApiKey",
+                        "tmdbRegion",
+                        "plexTokens",
+                        "skipFriendSync",
+                        "deletionMode",
+                        "deleteMovie",
+                        "deleteEndedShow",
+                        "deleteContinuingShow",
+                        "deleteFiles",
+                        "respectUserSyncSetting",
+                        "deleteSyncNotify",
+                        "approvalNotify",
+                        "deleteSyncNotifyOnlyOnDeletion",
+                        "maxDeletionPrevention",
+                        "deleteSyncTrackedOnly",
+                        "deleteSyncCleanupApprovals",
+                        "enablePlexPlaylistProtection",
+                        "plexProtectionPlaylistName",
+                        "tagUsersInSonarr",
+                        "tagUsersInRadarr",
+                        "cleanupOrphanedTags",
+                        "tagPrefix",
+                        "removedTagMode",
+                        "removedTagPrefix",
+                        "_isReady"
+                      ],
                       "additionalProperties": false
                     }
                   },
