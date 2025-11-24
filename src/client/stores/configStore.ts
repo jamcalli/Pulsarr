@@ -573,11 +573,12 @@ export const useConfigStore = create<ConfigState>()(
               ) {
                 await state.fetchUserData()
               }
-
-              set({ isInitialized: true })
             } catch (error) {
               set({ error: 'Failed to initialize config' })
               console.error('Config initialization error:', error)
+            } finally {
+              // Only mark as initialized if config was successfully fetched
+              set({ isInitialized: get().config !== null })
             }
           }
         },
