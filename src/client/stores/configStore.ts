@@ -131,10 +131,11 @@ export const useConfigStore = create<ConfigState>()(
             if (!(err instanceof Error)) {
               console.error('Config fetch error:', err)
               set({ error: 'Failed to load configuration' })
-              return
+              throw new Error('Failed to load configuration')
             }
             console.error('Config fetch error:', err)
             set({ error: err.message })
+            throw err
           }
         },
 
@@ -237,6 +238,7 @@ export const useConfigStore = create<ConfigState>()(
           } catch (err) {
             set({ error: 'Failed to fetch user data' })
             console.error('User data fetch error:', err)
+            throw err
           }
         },
 
@@ -553,6 +555,7 @@ export const useConfigStore = create<ConfigState>()(
               currentUserError: errorMessage,
             })
             console.error('Current user fetch error:', err)
+            throw err
           }
         },
 
