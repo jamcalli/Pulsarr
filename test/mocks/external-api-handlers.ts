@@ -132,13 +132,4 @@ export const radarrLookupHandler = http.get(
  * These are registered globally in msw-setup.ts to prevent unhandled request warnings.
  * Individual tests can override these defaults using server.use()
  */
-export const externalApiHandlers = [
-  tmdbMovieDetailsHandler,
-  tmdbTvDetailsHandler,
-  tmdbMovieWatchProvidersHandler,
-  tmdbTvWatchProvidersHandler,
-  tmdbRegionsHandler,
-  tmdbFindHandler,
-  radarrRatingsHandler,
-  radarrLookupHandler,
-]
+export const externalApiHandlers = [radarrLookupHandler]
