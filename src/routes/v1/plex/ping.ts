@@ -10,7 +10,7 @@ const PING_SUCCESS_RESPONSE: z.infer<typeof PingSuccessSchema> = {
   success: true,
 }
 
-export const pingRoute: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Reply: z.infer<typeof PingSuccessSchema>
   }>(
@@ -40,3 +40,5 @@ export const pingRoute: FastifyPluginAsync = async (fastify) => {
     },
   )
 }
+
+export default plugin

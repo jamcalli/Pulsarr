@@ -2,10 +2,7 @@ import { plexConfigNotificationSchema } from '@schemas/plex/configure-notificati
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
-  fastify,
-  _opts,
-) => {
+const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
   fastify.route({
     method: 'POST',
     url: '/configure-notifications',
@@ -196,3 +193,5 @@ export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
     },
   })
 }
+
+export default plugin
