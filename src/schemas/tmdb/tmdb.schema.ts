@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 // Shared homepage schema: allow valid URL strings, null, or empty string from TMDB
@@ -241,21 +242,11 @@ export const TmdbMetadataSuccessResponseSchema = z.object({
   metadata: TmdbContentMetadataSchema,
 })
 
-export const TmdbMetadataErrorResponseSchema = z.object({
-  success: z.literal(false),
-  message: z.string(),
-})
-
 // TMDB Regions Response Schemas
 export const TmdbRegionsSuccessResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
   regions: z.array(TmdbRegionSchema),
-})
-
-export const TmdbRegionsErrorResponseSchema = z.object({
-  success: z.literal(false),
-  message: z.string(),
 })
 
 // Type exports
@@ -285,13 +276,13 @@ export type GetTmdbMetadataQuery = z.infer<typeof GetTmdbMetadataQuerySchema>
 export type TmdbMetadataSuccessResponse = z.infer<
   typeof TmdbMetadataSuccessResponseSchema
 >
-export type TmdbMetadataErrorResponse = z.infer<
-  typeof TmdbMetadataErrorResponseSchema
->
 export type TmdbRegion = z.infer<typeof TmdbRegionSchema>
 export type TmdbRegionsSuccessResponse = z.infer<
   typeof TmdbRegionsSuccessResponseSchema
 >
-export type TmdbRegionsErrorResponse = z.infer<
-  typeof TmdbRegionsErrorResponseSchema
->
+
+// Re-export shared error schema with domain-specific aliases
+export { ErrorSchema as TmdbMetadataErrorResponseSchema }
+export type TmdbMetadataErrorResponse = z.infer<typeof ErrorSchema>
+export { ErrorSchema as TmdbRegionsErrorResponseSchema }
+export type TmdbRegionsErrorResponse = z.infer<typeof ErrorSchema>

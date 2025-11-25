@@ -3,13 +3,9 @@ import type {
   Condition,
   ConditionValue,
 } from '@root/schemas/content-router/content-router.schema'
-import type {
-  EvaluatorMetadata,
-  FieldInfo,
-  OperatorInfo,
-} from '@root/schemas/content-router/evaluator-metadata.schema'
+import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
 import { HelpCircle, Trash2 } from 'lucide-react'
-import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useId, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -53,275 +49,197 @@ const ConditionBuilder = ({
   isLoading = false,
 }: ConditionBuilderProps) => {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const inputId = `condition-input-${value._cid}`
   const fieldSelectId = useId()
   const operatorSelectId = useId()
-  const [fields, setFields] = useState<FieldInfo[]>([])
-  const [operators, setOperators] = useState<OperatorInfo[]>([])
-  const [valueTypes, setValueTypes] = useState<string[]>([])
-  const [fieldDescription, setFieldDescription] = useState('')
-  const [operatorDescription, setOperatorDescription] = useState('')
+  const fallbackId = useId()
+  const inputId = `condition-input-${value._cid || fallbackId}`
 
-  // Stable reference to current value to avoid stale closures
-  const valueRef = useRef(value)
-  valueRef.current = value
-
-  // Keep a ref to the latest evaluatorMetadata
-  const evaluatorMetadataRef = useRef(evaluatorMetadata)
-  evaluatorMetadataRef.current = evaluatorMetadata
-
-  // Initialize handlers ref with empty implementations
-  const handlers = useRef<{
-    handleFieldChange: (fieldName: string) => void
-    handleOperatorChange: (operatorName: string) => void
-    handleValueChange: (newValue: ConditionValue) => void
-    handleToggleNegate: () => void
-  }>({
-    handleFieldChange: () => {},
-    handleOperatorChange: () => {},
-    handleValueChange: () => {},
-    handleToggleNegate: () => {},
-  })
-
-  // State to track the selected evaluator (without exposing it directly in the UI)
-  const [selectedEvaluator, setSelectedEvaluator] =
-    useState<EvaluatorMetadata | null>(null)
-
-  // Keep a ref to the selected evaluator to avoid stale closures
-  const selectedEvaluatorRef = useRef<EvaluatorMetadata | null>(null)
-  selectedEvaluatorRef.current = selectedEvaluator
-
-  // Get the content type from context
   const routerContext = useContext(ContentRouterContext)
   const contentType = routerContext?.contentType || 'both'
 
-  // Filter out the Conditional Router from options - we only want to show actual condition types
-  const filteredEvaluators = useMemo(
-    () => evaluatorMetadata.filter((e) => e.name !== 'Conditional Router'),
-    [evaluatorMetadata],
+  // Filter evaluators by content type compatibility
+  const compatibleEvaluators = useMemo(() => {
+    return evaluatorMetadata
+      .filter((e) => e.name !== 'Conditional Router')
+      .filter(
+        (e) =>
+          !e.contentType ||
+          e.contentType === 'both' ||
+          e.contentType === contentType,
+      )
+  }, [evaluatorMetadata, contentType])
+
+  // Get all available fields sorted alphabetically, deduped by name
+  const fields = useMemo(() => {
+    if (!compatibleEvaluators.length) return []
+    const uniqueFields = new Map()
+    for (const field of compatibleEvaluators.flatMap(
+      (e) => e.supportedFields,
+    )) {
+      uniqueFields.set(field.name, field)
+    }
+    return Array.from(uniqueFields.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    )
+  }, [compatibleEvaluators])
+
+  // Find evaluator and field metadata for selected field
+  const currentFieldData = useMemo(() => {
+    if (!value.field || !compatibleEvaluators.length) {
+      return { evaluator: null, fieldInfo: null }
+    }
+
+    for (const evaluator of compatibleEvaluators) {
+      const fieldInfo = evaluator.supportedFields.find(
+        (f) => f.name === value.field,
+      )
+      if (fieldInfo) {
+        return { evaluator, fieldInfo }
+      }
+    }
+
+    return { evaluator: null, fieldInfo: null }
+  }, [value.field, compatibleEvaluators])
+
+  // Get supported operators for selected field
+  const operators = useMemo(() => {
+    if (!currentFieldData.evaluator || !value.field) return []
+    return currentFieldData.evaluator.supportedOperators?.[value.field] || []
+  }, [currentFieldData.evaluator, value.field])
+
+  // Get metadata for selected operator
+  const currentOperatorInfo = useMemo(() => {
+    if (!value.operator) return null
+    return operators.find((op) => op.name === value.operator) || null
+  }, [value.operator, operators])
+
+  const fieldDescription = currentFieldData.fieldInfo?.description || ''
+  const operatorDescription = currentOperatorInfo?.description || ''
+  const valueTypes = currentOperatorInfo?.valueTypes || []
+
+  // Determine if the current field/operator combo renders a composite input
+  // (multiple controls without a single focusable element with inputId)
+  const isCompositeInput = useMemo(() => {
+    if (!value.field || !value.operator) return false
+
+    // Always composite fields
+    if (value.field === 'streamingServices') return true
+    if (value.field === 'imdbRating') return true
+
+    // Range inputs (two inputs)
+    if (value.operator === 'between') return true
+
+    // Multi-select inputs
+    if (value.operator === 'in' || value.operator === 'notIn') {
+      if (value.field === 'certification') return true
+      if (value.field === 'genre' || value.field === 'genres') return true
+      if (
+        value.field === 'user' ||
+        value.field === 'userId' ||
+        value.field === 'userName'
+      )
+        return true
+    }
+
+    // Genre/user equals with array value uses multi-select
+    if (value.operator === 'equals') {
+      const isArrayValue = Array.isArray(value.value)
+      if (isArrayValue && (value.field === 'genre' || value.field === 'genres'))
+        return true
+      if (
+        isArrayValue &&
+        (value.field === 'user' ||
+          value.field === 'userId' ||
+          value.field === 'userName')
+      )
+        return true
+    }
+
+    return false
+  }, [value.field, value.operator, value.value])
+
+  const handleFieldChange = useCallback(
+    (fieldName: string) => {
+      if (!fieldName) {
+        onChange({
+          ...value,
+          field: '',
+          operator: 'equals',
+          value: null,
+        })
+        return
+      }
+
+      // Find evaluator for this field
+      const evaluator = compatibleEvaluators.find((e) =>
+        e.supportedFields.some((f) => f.name === fieldName),
+      )
+
+      if (!evaluator) return
+
+      // Get first operator for this field
+      const firstOperator =
+        evaluator.supportedOperators?.[fieldName]?.[0]?.name || 'equals'
+
+      onChange({
+        ...value,
+        field: fieldName,
+        operator: firstOperator as ComparisonOperator,
+        value: null,
+      })
+    },
+    [onChange, value, compatibleEvaluators],
   )
 
-  // Update handlers whenever dependencies change to avoid stale closures
-  useEffect(() => {
-    handlers.current = {
-      handleFieldChange: (fieldName: string) => {
-        // Reset to empty state if no field name
-        if (!fieldName) {
-          onChange({
-            field: '',
-            operator: 'equals' as ComparisonOperator, // Use a valid operator as default
-            value: null,
-            negate: valueRef.current.negate || false,
-          })
-          return
-        }
-
-        // Filter evaluators to those compatible with the current content type
-        const compatibleEvaluators = evaluatorMetadataRef.current.filter(
-          (e) =>
-            !e.contentType ||
-            e.contentType === 'both' ||
-            e.contentType === contentType,
-        )
-
-        // Find which evaluator supports this field
-        // Using compatible evaluators from the filtered list
-        let fieldEvaluator = null
-        let fieldInfo = null
-
-        for (const evaluator of compatibleEvaluators) {
-          const foundField = evaluator.supportedFields.find(
-            (f) => f.name === fieldName,
-          )
-          if (foundField) {
-            fieldEvaluator = evaluator
-            fieldInfo = foundField
-            break
-          }
-        }
-
-        if (fieldEvaluator && fieldInfo) {
-          setSelectedEvaluator(fieldEvaluator)
-          setFieldDescription(fieldInfo.description || '')
-
-          // Get the first supported operator for this field, or fallback to 'equals'
-          const firstSupported =
-            fieldEvaluator.supportedOperators?.[fieldName]?.[0]?.name ??
-            'equals'
-
-          // Get the default operator info to update related states
-          const defaultOperatorInfo = fieldEvaluator.supportedOperators?.[
-            fieldName
-          ]?.find((op) => op.name === firstSupported)
-
-          // Update all operator-related states
-          setOperatorDescription(defaultOperatorInfo?.description || '')
-          setValueTypes(defaultOperatorInfo?.valueTypes || [])
-
-          // Reset operator and value when field changes
-          onChange({
-            field: fieldName,
-            operator: firstSupported as ComparisonOperator,
-            value: null,
-            negate: valueRef.current.negate || false,
-          })
-
-          // Update operators for this field
-          if (fieldEvaluator.supportedOperators?.[fieldName]) {
-            setOperators(fieldEvaluator.supportedOperators[fieldName])
-          } else {
-            setOperators([])
-          }
-        }
-      },
-
-      handleOperatorChange: (operatorName: string) => {
-        // Reset to empty operator if no operator name, using a valid default
-        if (!operatorName) {
-          onChange({
-            ...valueRef.current,
-            operator: 'equals' as ComparisonOperator,
-            value: null,
-          })
-          return
-        }
-
-        // Use the ref to get the latest evaluator
-        const evaluator = selectedEvaluatorRef.current
-        if (!evaluator) return
-
-        // Validate that the operatorName is one of the supported operators
-        const supported =
-          evaluator.supportedOperators?.[valueRef.current.field]?.some(
-            (op) => op.name === operatorName,
-          ) ?? false
-
-        // Find the operator info
-        const operatorInfo = evaluator.supportedOperators?.[
-          valueRef.current.field
-        ]?.find((op) => op.name === operatorName)
-
-        setOperatorDescription(operatorInfo?.description || '')
-
-        // Initialize an appropriate default value based on operator type
-        let defaultValue: ConditionValue = null
-
-        if (operatorInfo) {
-          const valueType = operatorInfo.valueTypes?.[0]
-
-          if (valueType === 'number') {
-            defaultValue = 0
-          } else if (valueType === 'number[]') {
-            defaultValue = []
-          } else if (valueType === 'string[]') {
-            defaultValue = []
-          } else if (valueType === 'object') {
-            defaultValue = { min: undefined, max: undefined }
-          }
-
-          // Set value types
-          setValueTypes(operatorInfo.valueTypes || [])
-        }
-
-        // Update with the validated operator and clear previous value
+  const handleOperatorChange = useCallback(
+    (operatorName: string) => {
+      if (!operatorName) {
         onChange({
-          ...valueRef.current,
-          operator: (supported
-            ? operatorName
-            : (evaluator.supportedOperators?.[valueRef.current.field]?.[0]
-                ?.name ?? 'equals')) as ComparisonOperator,
-          value: defaultValue,
+          ...value,
+          operator: 'equals',
+          value: null,
         })
-      },
-
-      handleValueChange: (newValue: ConditionValue) => {
-        onChange({
-          ...valueRef.current,
-          value: newValue,
-        })
-      },
-
-      handleToggleNegate: () => {
-        onChange({
-          ...valueRef.current,
-          negate: !valueRef.current.negate,
-        })
-      },
-    }
-  }, [onChange, contentType]) // Remove evaluatorMetadata dependency since we use the ref
-
-  // Update available fields when metadata changes - with optimized dependencies
-  useEffect(() => {
-    if (!evaluatorMetadata || evaluatorMetadata.length === 0) return
-
-    // Filter evaluators based on content type compatibility
-    const compatibleEvaluators = filteredEvaluators.filter(
-      (e) =>
-        !e.contentType ||
-        e.contentType === 'both' ||
-        e.contentType === contentType,
-    )
-
-    // Create fields list and sort alphabetically
-    const allFields = compatibleEvaluators
-      .flatMap((e) => e.supportedFields)
-      .sort((a, b) => a.name.localeCompare(b.name))
-
-    setFields(allFields)
-
-    // Only proceed with field/operator setup if we have an explicitly selected field
-    if (value.field) {
-      let foundEvaluator: EvaluatorMetadata | null = null
-      let fieldInfo: FieldInfo | null = null
-
-      // Find which compatible evaluator supports this field
-      for (const evaluator of compatibleEvaluators) {
-        const foundField = evaluator.supportedFields.find(
-          (f) => f.name === value.field,
-        )
-        if (foundField) {
-          foundEvaluator = evaluator
-          fieldInfo = foundField
-          break
-        }
+        return
       }
 
-      if (foundEvaluator && fieldInfo) {
-        setSelectedEvaluator(foundEvaluator)
-        setFieldDescription(fieldInfo.description || '')
+      // Initialize appropriate default value based on operator type
+      const operatorInfo = operators.find((op) => op.name === operatorName)
+      let defaultValue: ConditionValue = null
 
-        // Set operators for this field
-        if (foundEvaluator.supportedOperators?.[value.field]) {
-          const fieldOperators = foundEvaluator.supportedOperators[value.field]
-          setOperators(fieldOperators)
-
-          // Only set value types and operator description if we have an explicitly selected operator
-          if (value.operator) {
-            const operatorInfo = fieldOperators.find(
-              (op) => op.name === value.operator,
-            )
-            if (operatorInfo) {
-              setValueTypes(operatorInfo.valueTypes || [])
-              setOperatorDescription(operatorInfo.description || '')
-            }
-          }
-        }
+      if (operatorInfo) {
+        const valueType = operatorInfo.valueTypes?.[0]
+        if (valueType === 'number') defaultValue = 0
+        else if (valueType === 'number[]') defaultValue = []
+        else if (valueType === 'string[]') defaultValue = []
+        else if (valueType === 'object')
+          defaultValue = { min: undefined, max: undefined }
       }
-    } else {
-      // Reset states when no field is selected
-      setSelectedEvaluator(null)
-      setFieldDescription('')
-      setOperators([])
-      setValueTypes([])
-      setOperatorDescription('')
-    }
-  }, [
-    evaluatorMetadata,
-    value.field,
-    value.operator,
-    filteredEvaluators,
-    contentType,
-  ])
+
+      onChange({
+        ...value,
+        operator: operatorName as ComparisonOperator,
+        value: defaultValue,
+      })
+    },
+    [onChange, value, operators],
+  )
+
+  const handleValueChange = useCallback(
+    (newValue: ConditionValue) => {
+      onChange({
+        ...value,
+        value: newValue,
+      })
+    },
+    [onChange, value],
+  )
+
+  const handleToggleNegate = useCallback(() => {
+    onChange({
+      ...value,
+      negate: !value.negate,
+    })
+  }, [onChange, value])
 
   if (isLoading) {
     return (
@@ -345,7 +263,7 @@ const ConditionBuilder = ({
                 <Label className="flex items-center space-x-2 cursor-pointer">
                   <Switch
                     checked={value.negate || false}
-                    onCheckedChange={handlers.current.handleToggleNegate}
+                    onCheckedChange={handleToggleNegate}
                     variant="danger"
                   />
                   <span>NOT</span>
@@ -366,7 +284,7 @@ const ConditionBuilder = ({
       <div
         className={cn('grid gap-4', isMobile ? 'grid-cols-1' : 'grid-cols-12')}
       >
-        {/* Field selector - now shows all fields from all evaluators */}
+        {/* Field selector */}
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
@@ -386,10 +304,7 @@ const ConditionBuilder = ({
                 </TooltipProvider>
               )}
             </div>
-            <Select
-              value={value.field || ''}
-              onValueChange={handlers.current.handleFieldChange}
-            >
+            <Select value={value.field || ''} onValueChange={handleFieldChange}>
               <SelectTrigger id={fieldSelectId} className="w-full">
                 <SelectValue placeholder="Select field" />
               </SelectTrigger>
@@ -425,8 +340,9 @@ const ConditionBuilder = ({
               )}
             </div>
             <Select
+              key={value.field}
               value={value.operator || ''}
-              onValueChange={handlers.current.handleOperatorChange}
+              onValueChange={handleOperatorChange}
               disabled={!value.field}
             >
               <SelectTrigger id={operatorSelectId} className="w-full">
@@ -447,7 +363,10 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <label htmlFor={inputId} className="text-sm font-medium">
+              <label
+                htmlFor={isCompositeInput ? undefined : inputId}
+                className="text-sm font-medium"
+              >
                 Value
               </label>
               {value.field === 'certification' &&
@@ -475,7 +394,7 @@ const ConditionBuilder = ({
                   operator={value.operator}
                   valueTypes={valueTypes}
                   value={value.value as ConditionValue}
-                  onChange={handlers.current.handleValueChange}
+                  onChange={handleValueChange}
                   genres={genres}
                   onGenreDropdownOpen={onGenreDropdownOpen}
                   inputId={inputId}

@@ -2,10 +2,7 @@ import { othersWatchlistSchema } from '@schemas/plex/others-watchlist-token.sche
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-export const othersWatchlistTokenRoute: FastifyPluginAsyncZod = async (
-  fastify,
-  _opts,
-) => {
+const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
   fastify.route({
     method: 'GET',
     url: '/others-watchlist-token',
@@ -25,3 +22,5 @@ export const othersWatchlistTokenRoute: FastifyPluginAsyncZod = async (
     },
   })
 }
+
+export default plugin

@@ -1,4 +1,3 @@
-import type { Config } from '@root/types/config.types.js'
 import { DatabaseService } from '@services/database.service.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -39,33 +38,25 @@ export default fp(
     const initializeConfig = async () => {
       try {
         const dbConfig = await dbService.getConfig()
-        const envConfig = { ...fastify.config } as Config
+        const envConfig = fastify.config
 
         if (dbConfig) {
-          const parsedDbConfig = {
-            ...dbConfig,
-            plexTokens: Array.isArray(dbConfig.plexTokens)
-              ? dbConfig.plexTokens
-              : JSON.parse(dbConfig.plexTokens || '[]'),
-            radarrTags: Array.isArray(dbConfig.radarrTags)
-              ? dbConfig.radarrTags
-              : JSON.parse(dbConfig.radarrTags || '[]'),
-            sonarrTags: Array.isArray(dbConfig.sonarrTags)
-              ? dbConfig.sonarrTags
-              : JSON.parse(dbConfig.sonarrTags || '[]'),
-          }
+          // Merge env config with database config
+          // Environment variables take precedence over database values
+          // Filter dbConfig entries to exclude fields set via environment
+          const dbOverrides = Object.fromEntries(
+            Object.entries(dbConfig).filter(([key]) => {
+              const isEnvSet = isSetInEnvironment(key)
+              if (isEnvSet) {
+                fastify.log.debug(`Using environment value for ${key}`)
+              }
+              return !isEnvSet
+            }),
+          )
 
-          const mergedConfig = { ...parsedDbConfig } as Config
-
-          for (const key of Object.keys(envConfig)) {
-            if (isSetInEnvironment(key)) {
-              const typedKey = key as keyof Config
-              // biome-ignore lint/suspicious/noExplicitAny: This is a necessary type assertion for dynamic property access
-              ;(mergedConfig as any)[key] = envConfig[typedKey]
-              fastify.log.debug(`Using environment value for ${key}`)
-            } else {
-              fastify.log.debug(`Keeping database value for ${key}`)
-            }
+          const mergedConfig = {
+            ...envConfig,
+            ...dbOverrides,
           }
 
           await fastify.updateConfig(mergedConfig)

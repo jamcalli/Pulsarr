@@ -178,7 +178,7 @@ quotaSettings='{"cleanup":{"enabled":true,"retentionDays":90},"weeklyRolling":{"
 # - monthly.handleMonthEnd: How to handle months without resetDay: 'last-day', 'skip-month', 'next-month' (default: last-day)
 
 # Approval System Configuration
-approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationAction":"expire","maintenanceCronExpression":"0 */4 * * *","cleanupExpiredDays":30}'  # JSON config for approval expiration
+approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationAction":"expire","cleanupExpiredDays":30}'  # JSON config for approval expiration
 # Approval expiration configuration (JSON format):
 # - enabled: Enable automatic approval expiration (default: false)
 # - defaultExpirationHours: Default hours before approval expires (range: 1-8760)
@@ -187,7 +187,6 @@ approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationActi
 # - routerRuleExpirationHours: Override expiration for router rule triggers (optional, range: 1-8760)
 # - manualFlagExpirationHours: Override expiration for manual flag triggers (optional, range: 1-8760)
 # - contentCriteriaExpirationHours: Override expiration for content criteria triggers (optional, range: 1-8760)
-# - maintenanceCronExpression: Cron expression for maintenance frequency (default: "0 */4 * * *" - every 4 hours)
 # - cleanupExpiredDays: Days to keep expired approval records (default: 30, range: 1-365)
 
 # Plex Label Sync Configuration

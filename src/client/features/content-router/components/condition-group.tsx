@@ -82,13 +82,22 @@ const ConditionGroupComponent = ({
       }
     }
 
-    // Find first field with valid operators
+    // Create a sorted list of all fields (alphabetically) to match the dropdown behavior
+    const allFields = filteredEvaluators
+      .flatMap((e) => e.supportedFields)
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    // Find first field with valid operators from the sorted list
     let firstField = ''
     let firstOperator: ComparisonOperator = 'equals'
     let foundValid = false
 
-    for (const evaluator of filteredEvaluators) {
-      for (const field of evaluator.supportedFields) {
+    for (const field of allFields) {
+      // Find the evaluator that supports this field
+      const evaluator = filteredEvaluators.find((e) =>
+        e.supportedFields.some((f) => f.name === field.name),
+      )
+      if (evaluator) {
         const operators = evaluator.supportedOperators?.[field.name] ?? []
         if (operators.length > 0) {
           firstField = field.name
@@ -97,7 +106,6 @@ const ConditionGroupComponent = ({
           break
         }
       }
-      if (foundValid) break
     }
 
     if (!foundValid) {

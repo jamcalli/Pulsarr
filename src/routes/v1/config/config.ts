@@ -1,7 +1,9 @@
 import {
   ConfigErrorSchema,
-  ConfigResponseSchema,
-  ConfigSchema,
+  type ConfigFullSchema,
+  ConfigGetResponseSchema,
+  ConfigUpdateResponseSchema,
+  ConfigUpdateSchema,
 } from '@root/schemas/config/config.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
@@ -10,17 +12,17 @@ import type { z } from 'zod'
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Reply:
-      | z.infer<typeof ConfigResponseSchema>
+      | z.infer<typeof ConfigGetResponseSchema>
       | z.infer<typeof ConfigErrorSchema>
   }>(
-    '/config',
+    '/',
     {
       schema: {
         summary: 'Get configuration',
         operationId: 'getConfig',
         description: 'Retrieve the current application configuration settings',
         response: {
-          200: ConfigResponseSchema,
+          200: ConfigGetResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
           500: ConfigErrorSchema,
@@ -37,7 +39,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Override the apprise settings with values from runtime config
         // These are ephemeral and controlled by the apprise-notifications plugin
-        const mergedConfig = {
+        const mergedConfig: z.infer<typeof ConfigFullSchema> = {
           ...config,
           // Read the protected apprise values directly from fastify.config
           // systemAppriseUrl comes from the database as it can be configured by the user
@@ -45,7 +47,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           appriseUrl: fastify.config.appriseUrl,
         }
 
-        const response: z.infer<typeof ConfigResponseSchema> = {
+        const response: z.infer<typeof ConfigGetResponseSchema> = {
           success: true,
           config: mergedConfig,
         }
@@ -53,37 +55,30 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         reply.status(200)
         return response
       } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          // Use proper error format to match the schema
-          reply.status(err.statusCode as number)
-          return { error: err.message || 'Error fetching configuration' }
-        }
-
         logRouteError(fastify.log, request, err, {
           message: 'Failed to fetch configuration',
         })
-        reply.status(500)
-        return { error: 'Unable to fetch configuration' }
+        return reply.internalServerError('Unable to fetch configuration')
       }
     },
   )
 
-  // Updated PUT handler for /config route to avoid race conditions
+  // Updated PUT handler for config route to avoid race conditions
   fastify.put<{
-    Body: z.infer<typeof ConfigSchema>
+    Body: z.infer<typeof ConfigUpdateSchema>
     Reply:
-      | z.infer<typeof ConfigResponseSchema>
+      | z.infer<typeof ConfigUpdateResponseSchema>
       | z.infer<typeof ConfigErrorSchema>
   }>(
-    '/config',
+    '/',
     {
       schema: {
         summary: 'Update configuration',
         operationId: 'updateConfig',
         description: 'Update the application configuration settings',
-        body: ConfigSchema,
+        body: ConfigUpdateSchema,
         response: {
-          200: ConfigResponseSchema,
+          200: ConfigUpdateResponseSchema,
           400: ConfigErrorSchema,
           404: ConfigErrorSchema,
           500: ConfigErrorSchema,
@@ -98,20 +93,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // If someone tries to update the protected fields, log a warning
         if (enableApprise !== undefined || appriseUrl !== undefined) {
-          reply.status(400)
-          return {
-            error: 'enableApprise and appriseUrl are read-only via API',
-          }
+          return reply.badRequest(
+            'enableApprise and appriseUrl are read-only via API',
+          )
         }
 
-        // Validate Plex Pass requirement for Tautulli
+        // Create next config state for validation (current + incoming changes)
+        const nextConfig = { ...fastify.config, ...safeConfigUpdate }
+
+        // Validate Plex Pass requirement for Tautulli against final state
         if (safeConfigUpdate.tautulliEnabled === true) {
-          if (!fastify.config.selfRss || !fastify.config.friendsRss) {
-            reply.status(400)
-            return {
-              error:
-                'Plex Pass is required for Tautulli integration. Please generate RSS feeds first to verify Plex Pass subscription.',
-            }
+          if (!nextConfig.selfRss || !nextConfig.friendsRss) {
+            return reply.badRequest(
+              'Plex Pass is required for Tautulli integration. Please generate RSS feeds first to verify Plex Pass subscription.',
+            )
           }
         }
 
@@ -133,8 +128,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           logRouteError(fastify.log, request, configUpdateError, {
             message: 'Failed to update runtime configuration',
           })
-          reply.status(400)
-          return { error: 'Failed to update runtime configuration' }
+          return reply.internalServerError(
+            'Failed to update runtime configuration',
+          )
         }
 
         // Now update the database
@@ -148,14 +144,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               message: 'Failed to revert runtime configuration',
             })
           }
-          reply.status(400)
-          return { error: 'Failed to update configuration in database' }
+          return reply.internalServerError(
+            'Failed to update configuration in database',
+          )
         }
 
         const savedConfig = await fastify.db.getConfig()
         if (!savedConfig) {
-          reply.status(404)
-          return { error: 'No configuration found after update' }
+          return reply.internalServerError(
+            'Configuration unexpectedly missing after update',
+          )
         }
 
         // Apply runtime log level now that DB is authoritative
@@ -207,6 +205,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        // Handle TMDB region changes - clear provider cache
+        if ('tmdbRegion' in safeConfigUpdate) {
+          try {
+            fastify.log.info('TMDB region changed, clearing provider cache')
+            fastify.tmdb.clearProviderCache()
+          } catch (error) {
+            fastify.log.error(
+              { error },
+              'Failed to clear TMDB provider cache after config update',
+            )
+          }
+        }
+
         // Handle Plex Label Sync config changes - compare before/after states
         if ('plexLabelSync' in safeConfigUpdate) {
           const wasEnabled = currentConfig?.plexLabelSync?.enabled === true
@@ -223,13 +234,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Merge saved DB config with runtime Apprise settings
-        const mergedConfig = {
+        const mergedConfig: z.infer<typeof ConfigFullSchema> = {
           ...savedConfig,
           enableApprise: fastify.config.enableApprise,
           appriseUrl: fastify.config.appriseUrl,
         }
 
-        const response: z.infer<typeof ConfigResponseSchema> = {
+        const response: z.infer<typeof ConfigUpdateResponseSchema> = {
           success: true,
           config: mergedConfig,
         }
@@ -237,16 +248,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         reply.status(200)
         return response
       } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          // Use proper error format to match the schema
-          reply.status(err.statusCode as number)
-          return { error: err.message || 'Error updating configuration' }
-        }
         logRouteError(fastify.log, request, err, {
           message: 'Failed to update configuration',
         })
-        reply.status(500)
-        return { error: 'Unable to update configuration' }
+        return reply.internalServerError('Unable to update configuration')
       }
     },
   )

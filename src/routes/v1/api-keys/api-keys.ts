@@ -53,11 +53,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to create API key',
         })
-        reply.status(500)
-        return {
-          success: false,
-          message: 'Failed to create API key',
-        }
+        return reply.internalServerError('Failed to create API key')
       }
     },
   )
@@ -101,11 +97,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to retrieve API keys',
         })
-        reply.status(500)
-        return {
-          success: false,
-          message: 'Failed to retrieve API keys',
-        }
+        return reply.internalServerError('Failed to retrieve API keys')
       }
     },
   )
@@ -134,11 +126,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const result = await fastify.apiKeys.revokeApiKey(request.params.id)
 
         if (!result) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'API key not found',
-          }
+          return reply.notFound('API key not found')
         }
 
         reply.status(204)
@@ -146,11 +134,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to revoke API key',
         })
-        reply.status(500)
-        return {
-          success: false,
-          message: 'Failed to revoke API key',
-        }
+        return reply.internalServerError('Failed to revoke API key')
       }
     },
   )

@@ -135,7 +135,21 @@ export default function NewUserDefaultsPage() {
   }
 
   const handleCancel = () => {
-    form.reset()
+    // Reset form to last saved values from config store
+    if (config) {
+      form.reset({
+        canSync: config.newUserDefaultCanSync ?? true,
+        requiresApproval: config.newUserDefaultRequiresApproval ?? false,
+        movieQuotaEnabled: config.newUserDefaultMovieQuotaEnabled ?? false,
+        movieQuotaType: config.newUserDefaultMovieQuotaType ?? 'monthly',
+        movieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+        movieBypassApproval: config.newUserDefaultMovieBypassApproval ?? false,
+        showQuotaEnabled: config.newUserDefaultShowQuotaEnabled ?? false,
+        showQuotaType: config.newUserDefaultShowQuotaType ?? 'monthly',
+        showQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+        showBypassApproval: config.newUserDefaultShowBypassApproval ?? false,
+      })
+    }
   }
 
   // No status needed for header - we'll show detailed status in the body

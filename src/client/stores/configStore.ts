@@ -1,10 +1,16 @@
 import type {
+  ConfigError,
+  ConfigFull,
+  ConfigGetResponse,
+  ConfigUpdate,
+  ConfigUpdateResponse,
+} from '@root/schemas/config/config.schema'
+import type {
   QuotaStatusResponse,
   UserQuotaResponse,
 } from '@root/schemas/quota/quota.schema'
 import type { MeResponse } from '@root/schemas/users/me.schema'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
-import type { Config } from '@root/types/config.types'
 import type { z } from 'zod'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
@@ -45,15 +51,10 @@ interface UserListResponse {
   users: UserWatchlistInfo[]
 }
 
-interface ConfigResponse {
-  success: boolean
-  config: Config
-}
-
 type CurrentUserResponse = MeResponse
 
 interface ConfigState {
-  config: Config | null
+  config: ConfigFull | null
   loading: boolean
   error: string | null
   isInitialized: boolean
@@ -70,7 +71,7 @@ interface ConfigState {
   currentUserError: string | null
 
   initialize: (force?: boolean) => Promise<void>
-  updateConfig: (updates: Partial<Config>) => Promise<void>
+  updateConfig: (updates: ConfigUpdate) => Promise<void>
   fetchConfig: () => Promise<void>
   refreshRssFeeds: () => Promise<void>
 
@@ -109,22 +110,31 @@ export const useConfigStore = create<ConfigState>()(
 
         fetchConfig: async () => {
           try {
-            const response = await fetch(api('/v1/config/config'))
-            const data: ConfigResponse = await response.json()
-            if (data.success) {
-              set((state) => ({
-                ...state,
-                config: {
-                  ...data.config,
-                },
-                error: null,
-              }))
-            } else {
-              throw new Error('Failed to fetch config')
+            const response = await fetch(api('/v1/config'))
+
+            if (!response.ok) {
+              const errorData: ConfigError = await response.json()
+              const message = errorData.error || 'Failed to load configuration'
+              throw new Error(message)
             }
+
+            const data: ConfigGetResponse = await response.json()
+
+            // GET response now uses ConfigFullSchema with proper typing
+            set((state) => ({
+              ...state,
+              config: data.config,
+              error: null,
+            }))
           } catch (err) {
-            set({ error: 'Failed to load configuration' })
+            if (!(err instanceof Error)) {
+              console.error('Config fetch error:', err)
+              set({ error: 'Failed to load configuration' })
+              throw new Error('Failed to load configuration')
+            }
             console.error('Config fetch error:', err)
+            set({ error: err.message })
+            throw err
           }
         },
 
@@ -145,28 +155,39 @@ export const useConfigStore = create<ConfigState>()(
           }
         },
 
-        updateConfig: async (updates: Partial<Config>) => {
+        updateConfig: async (updates: ConfigUpdate) => {
           set({ loading: true })
           try {
-            const response = await fetch(api('/v1/config/config'), {
+            const response = await fetch(api('/v1/config'), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updates),
             })
-            const data: ConfigResponse = await response.json()
-            if (data.success) {
-              set((state) => ({
-                config: {
-                  ...state.config,
-                  ...data.config,
-                },
-              }))
-            } else {
-              throw new Error('Failed to update config')
+
+            if (!response.ok) {
+              const errorData: ConfigError = await response.json()
+              const message =
+                errorData.error || 'Failed to update configuration'
+              throw new Error(message)
             }
+
+            const data: ConfigUpdateResponse = await response.json()
+
+            // PUT response now uses ConfigFullSchema with proper typing
+            set((state) => ({
+              config: state.config
+                ? { ...state.config, ...data.config }
+                : data.config,
+              error: null,
+            }))
           } catch (err) {
-            set({ error: 'Failed to update configuration' })
+            if (!(err instanceof Error)) {
+              console.error('Config update error:', err)
+              set({ error: 'Failed to update configuration' })
+              throw new Error('Failed to update configuration')
+            }
             console.error('Config update error:', err)
+            set({ error: err.message })
             throw err
           } finally {
             set({ loading: false })
@@ -215,6 +236,7 @@ export const useConfigStore = create<ConfigState>()(
           } catch (err) {
             set({ error: 'Failed to fetch user data' })
             console.error('User data fetch error:', err)
+            throw err
           }
         },
 
@@ -515,15 +537,11 @@ export const useConfigStore = create<ConfigState>()(
 
             const data: CurrentUserResponse = await response.json()
 
-            if (data.success) {
-              set({
-                currentUser: data.user,
-                currentUserLoading: false,
-                currentUserError: null,
-              })
-            } else {
-              throw new Error(data.message || 'Failed to fetch current user')
-            }
+            set({
+              currentUser: data.user,
+              currentUserLoading: false,
+              currentUserError: null,
+            })
           } catch (err) {
             const errorMessage =
               err instanceof Error
@@ -535,6 +553,7 @@ export const useConfigStore = create<ConfigState>()(
               currentUserError: errorMessage,
             })
             console.error('Current user fetch error:', err)
+            throw err
           }
         },
 
@@ -556,11 +575,12 @@ export const useConfigStore = create<ConfigState>()(
               ) {
                 await state.fetchUserData()
               }
-
-              set({ isInitialized: true })
             } catch (error) {
               set({ error: 'Failed to initialize config' })
               console.error('Config initialization error:', error)
+            } finally {
+              // Only mark as initialized if config was successfully fetched
+              set({ isInitialized: get().config !== null })
             }
           }
         },

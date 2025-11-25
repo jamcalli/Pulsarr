@@ -5,9 +5,7 @@ import type {
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
-
-// Minimum loading time for better UX across all actions
-const MIN_LOADING_TIME = 500
+import { MIN_LOADING_DELAY } from '@/lib/constants'
 
 // API response type with date strings
 export interface RollingMonitoredShow
@@ -92,7 +90,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
       // Ensure minimum loading time for better UX
       const elapsed = Date.now() - startTime
-      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
+      const remaining = Math.max(0, MIN_LOADING_DELAY - elapsed)
       await new Promise((resolve) => setTimeout(resolve, remaining))
 
       setRollingShows(data.shows || [])
@@ -120,7 +118,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
       // Ensure minimum loading time for better UX
       const elapsed = Date.now() - startTime
-      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
+      const remaining = Math.max(0, MIN_LOADING_DELAY - elapsed)
       await new Promise((resolve) => setTimeout(resolve, remaining))
 
       setInactiveShows(data.shows || [])
@@ -150,7 +148,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
         // Ensure minimum loading time for better UX
         const elapsed = Date.now() - (actionStartTime.current || 0)
-        const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
+        const remaining = Math.max(0, MIN_LOADING_DELAY - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
         toast.success(data.message)
@@ -187,7 +185,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
         // Ensure minimum loading time for better UX
         const elapsed = Date.now() - (actionStartTime.current || 0)
-        const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
+        const remaining = Math.max(0, MIN_LOADING_DELAY - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
         toast.success(data.message)
@@ -231,7 +229,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
         // Ensure minimum loading time for better UX
         const elapsed = Date.now() - (actionStartTime.current || 0)
-        const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
+        const remaining = Math.max(0, MIN_LOADING_DELAY - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
         toast.success(data.message)
@@ -267,7 +265,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
         // Ensure minimum loading time for better UX
         const elapsed = Date.now() - (actionStartTime.current || 0)
-        const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
+        const remaining = Math.max(0, MIN_LOADING_DELAY - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
         toast.success(
