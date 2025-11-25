@@ -10,8 +10,7 @@ import type {
   TautulliNotificationRequest,
   TautulliNotifier,
 } from '@root/types/tautulli.types.js'
-import { normalizeGuid } from '@root/utils/guid-handler.js'
-import { extractPlexKey } from '@utils/guid-handler.js'
+import { extractPlexKey, normalizeGuid } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { DatabaseService } from './database.service.js'
