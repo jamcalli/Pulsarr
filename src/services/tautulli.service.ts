@@ -10,7 +10,7 @@ import type {
   TautulliNotificationRequest,
   TautulliNotifier,
 } from '@root/types/tautulli.types.js'
-import { normalizeGuid } from '@root/utils/guid-handler.js'
+import { extractPlexKey, normalizeGuid } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { DatabaseService } from './database.service.js'
@@ -1073,7 +1073,7 @@ export class TautulliService {
       // For movies, match by Plex GUID since guids array is empty
       if (notification.mediaType === 'movie' && item.guid) {
         // Extract the Plex key from the item's guid (e.g., "plex://movie/5d7768b907c4a5001e67bb61")
-        const plexKey = item.guid.split('/').pop()
+        const plexKey = extractPlexKey(item.guid)
 
         // Check if this matches the watchlist item key
         if (plexKey && notification.watchlistItemKey === plexKey) {
@@ -1089,7 +1089,7 @@ export class TautulliService {
         notification.watchlistItemKey
       ) {
         // Extract the Plex key from the item's guid (e.g., "plex://show/5d7768b907c4a5001e67bb61")
-        const plexKey = item.guid.split('/').pop()
+        const plexKey = extractPlexKey(item.guid)
 
         // Check if this matches the watchlist item key
         if (plexKey && notification.watchlistItemKey === plexKey) {
@@ -1147,7 +1147,7 @@ export class TautulliService {
 
           // First try to match by Plex key (more reliable)
           if (parentMetadata?.guid && notification.watchlistItemKey) {
-            const parentPlexKey = parentMetadata.guid.split('/').pop()
+            const parentPlexKey = extractPlexKey(parentMetadata.guid)
             if (
               parentPlexKey &&
               notification.watchlistItemKey === parentPlexKey
@@ -1206,7 +1206,7 @@ export class TautulliService {
 
           // First try to match by Plex key (more reliable)
           if (parentMetadata?.guid && notification.watchlistItemKey) {
-            const parentPlexKey = parentMetadata.guid.split('/').pop()
+            const parentPlexKey = extractPlexKey(parentMetadata.guid)
             if (
               parentPlexKey &&
               notification.watchlistItemKey === parentPlexKey
@@ -1267,7 +1267,7 @@ export class TautulliService {
 
           // First try to match by Plex key (more reliable)
           if (grandparentMetadata?.guid && notification.watchlistItemKey) {
-            const grandparentPlexKey = grandparentMetadata.guid.split('/').pop()
+            const grandparentPlexKey = extractPlexKey(grandparentMetadata.guid)
             if (
               grandparentPlexKey &&
               notification.watchlistItemKey === grandparentPlexKey

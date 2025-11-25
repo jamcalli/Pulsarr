@@ -1,6 +1,7 @@
 import {
   createGuidSet,
   extractImdbId,
+  extractPlexKey,
   extractRadarrId,
   extractSonarrId,
   extractTmdbId,
@@ -304,6 +305,64 @@ describe('guid-handler', () => {
     it('should return first valid Sonarr ID', () => {
       const guids = ['sonarr://111', 'sonarr://222']
       expect(extractSonarrId(guids)).toBe(111)
+    })
+  })
+
+  describe('extractPlexKey', () => {
+    it('should extract key from plex movie URI', () => {
+      expect(extractPlexKey('plex://movie/5d776a42c2c2d8001f8d65f0')).toBe(
+        '5d776a42c2c2d8001f8d65f0',
+      )
+    })
+
+    it('should extract key from plex show URI', () => {
+      expect(extractPlexKey('plex://show/5d9c086fe9d34a001f8e64e4')).toBe(
+        '5d9c086fe9d34a001f8e64e4',
+      )
+    })
+
+    it('should extract key from library metadata path', () => {
+      expect(extractPlexKey('/library/metadata/12345')).toBe('12345')
+    })
+
+    it('should extract key from grandparent path', () => {
+      expect(extractPlexKey('/library/metadata/67890')).toBe('67890')
+    })
+
+    it('should return undefined for empty string', () => {
+      expect(extractPlexKey('')).toBeUndefined()
+    })
+
+    it('should return undefined for undefined', () => {
+      expect(extractPlexKey(undefined)).toBeUndefined()
+    })
+
+    it('should handle URI with no slashes', () => {
+      expect(extractPlexKey('abc123')).toBe('abc123')
+    })
+
+    it('should handle URI ending with slash', () => {
+      expect(extractPlexKey('plex://movie/abc123/')).toBeUndefined()
+    })
+
+    it('should handle URI with multiple trailing slashes', () => {
+      expect(extractPlexKey('plex://movie/abc123///')).toBeUndefined()
+    })
+
+    it('should extract last segment from complex path', () => {
+      expect(extractPlexKey('/library/sections/1/all/12345')).toBe('12345')
+    })
+
+    it('should return undefined for root path', () => {
+      expect(extractPlexKey('/')).toBeUndefined()
+    })
+
+    it('should return undefined for multiple slashes only', () => {
+      expect(extractPlexKey('///')).toBeUndefined()
+    })
+
+    it('should return whitespace as-is (not trimmed)', () => {
+      expect(extractPlexKey('plex://movie/  ')).toBe('  ')
     })
   })
 
