@@ -30,7 +30,7 @@ function isPlexSearchResponse(data: unknown): data is PlexSearchResponse {
   if (!('Metadata' in container)) {
     return true // Metadata is optional
   }
-  return container.Metadata === null || Array.isArray(container.Metadata)
+  return Array.isArray(container.Metadata) || container.Metadata === undefined
 }
 
 /** Cached content availability entry */
@@ -58,6 +58,9 @@ export function buildContentCacheKey(
   plexGuid: string,
 ): string {
   const plexKey = plexGuid.split('/').pop() || plexGuid
+  if (!plexKey) {
+    throw new Error(`Invalid plexGuid: ${plexGuid}`)
+  }
   return `${serverClientId}:${contentType}:${plexKey}`
 }
 
@@ -156,7 +159,7 @@ export async function checkContentOnServer(
 
     if (!response.ok) {
       // Server error - might be connection issue, invalidate cached connection
-      if (response.status >= 500 || response.status === 0) {
+      if (response.status >= 500) {
         invalidateServerConnection(serverClientId, connectionCache, logger)
       }
       return false

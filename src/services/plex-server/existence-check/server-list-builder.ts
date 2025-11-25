@@ -82,6 +82,7 @@ export function buildUniqueServerList(
         r.connections.length > 0,
     )
 
+    let addedCount = 0
     for (const server of sharedServers) {
       if (!server.accessToken) {
         logger.debug(
@@ -102,9 +103,10 @@ export function buildUniqueServerList(
           })),
         accessToken: server.accessToken,
       })
+      addedCount++
     }
 
-    logger.debug(`Added ${sharedServers.length} shared server(s)`)
+    logger.debug(`Added ${addedCount} shared server(s)`)
   } else {
     logger.debug(
       'Skipping shared servers check - user is not primary token user',
