@@ -10,6 +10,7 @@ import type { PlexSearchResponse } from '@root/types/plex-server.types.js'
 import type { FastifyBaseLogger } from 'fastify'
 import type { CachedConnection } from './connection-cache.js'
 import { invalidateServerConnection } from './connection-cache.js'
+import { extractPlexKey } from '@utils/guid-handler.js'
 
 /**
  * Type guard for PlexSearchResponse
@@ -57,7 +58,7 @@ export function buildContentCacheKey(
   contentType: 'movie' | 'show',
   plexGuid: string,
 ): string {
-  const plexKey = plexGuid.split('/').pop() || plexGuid
+  const plexKey = extractPlexKey(plexGuid)
   if (!plexKey) {
     throw new Error(`Invalid plexGuid: ${plexGuid}`)
   }
@@ -171,6 +172,11 @@ export async function checkContentOnServer(
         { server: serverName },
         'Invalid response format from Plex server',
       )
+      // Cache negative result to avoid repeated requests to misconfigured server
+      contentCache.set(cacheKey, {
+        exists: false,
+        serverName,
+      })
       return false
     }
     const exists = (data.MediaContainer?.Metadata?.length ?? 0) > 0

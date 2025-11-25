@@ -282,3 +282,22 @@ export function extractSonarrId(guids: string[] | string | undefined): number {
 
   return 0
 }
+
+/**
+ * Extracts the Plex rating key from a Plex GUID or path.
+ *
+ * Examples:
+ * - "plex://movie/abc123" → "abc123"
+ * - "plex://show/xyz789" → "xyz789"
+ * - "/library/metadata/12345" → "12345"
+ *
+ * @param plexUri - The Plex URI or path containing the key
+ * @returns The extracted key, or undefined if the URI is empty or invalid
+ */
+export function extractPlexKey(
+  plexUri: string | undefined,
+): string | undefined {
+  if (!plexUri) return undefined
+  const key = plexUri.split('/').pop()
+  return key || undefined
+}
