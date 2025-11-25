@@ -352,6 +352,18 @@ describe('guid-handler', () => {
     it('should extract last segment from complex path', () => {
       expect(extractPlexKey('/library/sections/1/all/12345')).toBe('12345')
     })
+
+    it('should return undefined for root path', () => {
+      expect(extractPlexKey('/')).toBeUndefined()
+    })
+
+    it('should return undefined for multiple slashes only', () => {
+      expect(extractPlexKey('///')).toBeUndefined()
+    })
+
+    it('should return whitespace as-is (not trimmed)', () => {
+      expect(extractPlexKey('plex://movie/  ')).toBe('  ')
+    })
   })
 
   describe('parseGenres', () => {
