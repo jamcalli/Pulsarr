@@ -10,7 +10,6 @@ import type {
   PlexMetadata,
   PlexPlaylistItem,
   PlexResource,
-  PlexSearchResponse,
   PlexServerConnectionInfo,
   PlexSharedServerInfo,
   PlexUser,
@@ -25,6 +24,14 @@ import { createServiceLogger } from '@utils/logger.js'
 import { toItemsSingle } from '@utils/plex/index.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import {
+  buildUniqueServerList,
+  type CachedConnection,
+  type CachedContentAvailability,
+  checkContentOnServer,
+  clearContentCacheForReconciliation,
+  getBestServerConnection,
+} from './plex-server/existence-check/index.js'
 import {
   getCurrentLabels,
   getMetadata,
@@ -74,6 +81,23 @@ export class PlexServerService {
   // These are intended to be used within a single workflow execution
   private protectedPlaylistsMap: Map<string, string> | null = null
   private protectedItemsCache: Set<string> | null = null
+
+  // Connection selection cache - TTL-based (survives across reconciliations)
+  // Caches the best working connection for each server
+  private serverConnectionCache: Map<string, CachedConnection> = new Map()
+
+  // Content availability cache - reconciliation-scoped (no TTL, cleared at cycle start)
+  // Caches which content exists on which servers within a single reconciliation
+  private contentAvailabilityCache: Map<string, CachedContentAvailability> =
+    new Map()
+
+  // Dead server tracking for backoff - prevents hammering unavailable servers
+  private deadServerCache: Map<string, number> = new Map()
+
+  // Cache TTL constants
+  private readonly CONNECTION_CACHE_TTL = 30 * 60 * 1000 // 30 minutes
+  private readonly DEAD_SERVER_BACKOFF = 5 * 60 * 1000 // 5 minutes
+  // Note: No CONTENT_CACHE_TTL - content cache is reconciliation-scoped
 
   /**
    * Creates a new PlexServerService instance
@@ -1280,6 +1304,11 @@ export class PlexServerService {
     this.sharedServerInfoTimestamp = 0
     this.plexResourcesCache = null
 
+    // Clear connection and content caches
+    this.serverConnectionCache.clear()
+    this.contentAvailabilityCache.clear()
+    this.deadServerCache.clear()
+
     // Only reset the initialized state if explicitly requested
     if (resetInitialized) {
       this.log.warn('Resetting Plex server initialization state')
@@ -1364,9 +1393,18 @@ export class PlexServerService {
   }
 
   /**
+   * Clears the content cache at the start of each reconciliation.
+   * Content cache is reconciliation-scoped, not TTL-based.
+   * Called from watchlist-workflow.service.ts at the start of syncWatchlistItems().
+   */
+  clearContentCacheForReconciliation(): void {
+    clearContentCacheForReconciliation(this.contentAvailabilityCache, this.log)
+  }
+
+  /**
    * Checks if content exists across accessible Plex servers using the primary token.
-   * For the owner's server, uses the plexServerUrl setting to determine connection method.
-   * For shared servers, uses auto-discovered connections from plex.tv API.
+   * Uses cached connections (one per server) and reconciliation-scoped content cache
+   * for efficient checking across multiple items.
    *
    * @param plexKey - The Plex GUID part (e.g., "5d7768376f4521001ea9c9ad")
    * @param contentType - The content type ("movie" or "show")
@@ -1395,10 +1433,6 @@ export class PlexServerService {
         return false
       }
 
-      // Get owner's server connections (respects plexServerUrl setting)
-      // This method already has its own caching via serverConnections property
-      const ownerConnections = await this.getPlexServerConnectionInfo()
-
       // Fetch all accessible servers from plex.tv API (with caching)
       let allResources = this.plexResourcesCache
       if (!allResources) {
@@ -1409,23 +1443,24 @@ export class PlexServerService {
         this.log.debug('Using cached server resources')
       }
 
-      // Build combined server list
-      // For owner's server: use connections from getPlexServerConnectionInfo()
-      // For shared servers: use connections from API resources (only if primary user)
-      const servers = await this.buildServerListForExistenceCheck(
+      // Get owner's server connections (respects plexServerUrl setting)
+      const ownerConnections = await this.getPlexServerConnectionInfo()
+
+      // Build list of unique servers (not connections) to check
+      const serversToCheck = buildUniqueServerList(
         ownerConnections,
         allResources,
         adminToken,
         isPrimaryUser,
+        { logger: this.log, serverMachineId: this.serverMachineId },
       )
 
-      if (servers.length === 0) {
-        this.log.debug('No Plex server connections found for existence check')
+      if (serversToCheck.length === 0) {
+        this.log.debug('No Plex servers found for existence check')
         return false
       }
 
       // Construct the plex:// format GUID
-      // This is the ONLY format that works with Plex's /library/all?guid= search
       const plexGuid = `plex://${contentType}/${plexKey}`
 
       this.log.debug(
@@ -1433,81 +1468,67 @@ export class PlexServerService {
           plexKey,
           contentType,
           plexGuid,
-          serverCount: servers.length,
+          serverCount: serversToCheck.length,
         },
         'Checking content existence across Plex servers',
       )
 
-      // Check all servers in parallel for faster results
-      // Use AbortController to cancel remaining requests when content is found
+      // Prepare dependencies for module functions
+      const connectionCacheDeps = {
+        logger: this.log,
+        connectionCacheTtl: this.CONNECTION_CACHE_TTL,
+        deadServerBackoff: this.DEAD_SERVER_BACKOFF,
+      }
+      const contentCacheDeps = { logger: this.log }
+
+      // Check all servers in parallel with AbortController for early termination
       const abortController = new AbortController()
 
-      const serverChecks = servers.map(async (server) => {
-        try {
-          // Use server-specific access token for shared servers, fall back to admin token
-          const serverToken = server.accessToken || adminToken
-          if (!serverToken) {
-            this.log.debug(
-              `No access token available for server "${server.name}", skipping`,
-            )
-            return { server: server.name, found: false }
-          }
+      const serverChecks = serversToCheck.map(async (server) => {
+        // Get the best cached connection for this server
+        const connection = await getBestServerConnection(
+          server.clientIdentifier,
+          server.name,
+          server.connections,
+          server.accessToken,
+          this.serverConnectionCache,
+          this.deadServerCache,
+          connectionCacheDeps,
+        )
 
-          const url = new URL('/library/all', server.uri)
-          url.searchParams.append('guid', plexGuid)
-
-          const response = await fetch(url.toString(), {
-            headers: {
-              Accept: 'application/json',
-              'X-Plex-Token': serverToken,
-              'X-Plex-Client-Identifier': 'Pulsarr',
-            },
-            signal: AbortSignal.any([
-              AbortSignal.timeout(5000), // 5 second timeout per server
-              abortController.signal, // Cancel if found on another server
-            ]),
-          })
-
-          if (!response.ok) {
-            return { server: server.name, found: false }
-          }
-
-          const data = (await response.json()) as PlexSearchResponse
-
-          const found =
-            data.MediaContainer?.Metadata?.length &&
-            data.MediaContainer.Metadata.length > 0
-
-          if (found) {
-            this.log.info(
-              `Content found on Plex server "${server.name}" - skipping download`,
-            )
-            // Cancel other pending requests
-            abortController.abort()
-          }
-
-          return { server: server.name, found: !!found }
-        } catch (serverError) {
-          // Server unavailable, timeout, or aborted - not an error
-          if (
-            serverError instanceof Error &&
-            serverError.name === 'AbortError'
-          ) {
-            this.log.debug(
-              { server: server.name },
-              'Server check aborted (content found on another server)',
-            )
-          } else {
-            this.log.debug(
-              { error: serverError, server: server.name },
-              'Unable to check Plex server for content',
-            )
-          }
+        if (!connection) {
+          this.log.debug(
+            `No working connection for server "${server.name}", skipping`,
+          )
           return { server: server.name, found: false }
         }
+
+        // Check content on this server (uses content cache)
+        const found = await checkContentOnServer(
+          server.clientIdentifier,
+          server.name,
+          connection.uri,
+          connection.accessToken,
+          plexGuid,
+          contentType,
+          this.contentAvailabilityCache,
+          this.serverConnectionCache,
+          contentCacheDeps,
+          abortController.signal,
+        )
+
+        if (found) {
+          this.log.info(
+            `Content found on Plex server "${server.name}" - skipping download`,
+          )
+          // Cancel other pending requests
+          abortController.abort()
+        }
+
+        return { server: server.name, found }
       })
 
-      // Wait for all checks to complete or first found
+      // Wait for all checks to complete (or abort early)
       const results = await Promise.allSettled(serverChecks)
 
       // Check if any server found the content
@@ -1538,121 +1559,6 @@ export class PlexServerService {
    */
   private async getAllPlexResources(token: string): Promise<PlexResource[]> {
     return getAllPlexResources(token, this.log)
-  }
-
-  /**
-   * Builds a combined server list for existence checking by:
-   * - Using owner's configured connections (respects plexServerUrl)
-   * - Adding shared servers from plex.tv API (only if isPrimaryUser is true)
-   *
-   * @param ownerConnections - The owner's server connections from getPlexServerConnectionInfo()
-   * @param allResources - All Plex resources from plex.tv API
-   * @param adminToken - The admin token for authentication
-   * @param isPrimaryUser - Whether the requesting user is the primary token user
-   * @returns Combined server list for existence checking
-   */
-  private async buildServerListForExistenceCheck(
-    ownerConnections: PlexServerConnectionInfo[],
-    allResources: PlexResource[],
-    adminToken: string,
-    isPrimaryUser: boolean,
-  ): Promise<
-    Array<{
-      name: string
-      uri: string
-      local: boolean
-      relay: boolean
-      accessToken: string | null
-    }>
-  > {
-    const servers: Array<{
-      name: string
-      uri: string
-      local: boolean
-      relay: boolean
-      accessToken: string | null
-    }> = []
-
-    // Find the owner's server resource to get its name
-    const ownerResource = allResources.find(
-      (r) => r.clientIdentifier === this.serverMachineId || r.owned === true,
-    )
-
-    if (ownerConnections.length > 0) {
-      // Add owner's server connections using the configured plexServerUrl setting
-      // Use a fallback name when plex.tv metadata is unavailable
-      const ownerName = ownerResource?.name ?? 'Owner Plex Server'
-
-      if (ownerResource) {
-        this.log.debug(
-          `Using configured connections for owner's server "${ownerResource.name}"`,
-        )
-      } else {
-        this.log.warn(
-          'No owner resource metadata returned from plex.tv; falling back to configured connections',
-        )
-      }
-
-      for (const conn of ownerConnections) {
-        servers.push({
-          name: ownerName,
-          uri: conn.url,
-          local: conn.local,
-          relay: conn.relay,
-          accessToken: adminToken, // Owner uses admin token
-        })
-      }
-    }
-
-    // Add shared servers only if the user is the primary token user
-    // Friend users can only check the owner's server
-    if (isPrimaryUser) {
-      const sharedServers = allResources.filter(
-        (r) =>
-          r.owned === false &&
-          r.clientIdentifier !== this.serverMachineId &&
-          r.connections &&
-          r.connections.length > 0,
-      )
-
-      this.log.debug(`Found ${sharedServers.length} shared server(s)`)
-
-      for (const server of sharedServers) {
-        for (const connection of server.connections) {
-          if (!connection.uri) continue
-
-          servers.push({
-            name: server.name,
-            uri: connection.uri,
-            local: connection.local ?? false,
-            relay: connection.relay ?? false,
-            accessToken: server.accessToken ?? null,
-          })
-        }
-      }
-    } else {
-      this.log.debug(
-        'Skipping shared servers check - user is not primary token user',
-      )
-    }
-
-    // Sort to prefer public URLs for shared servers
-    // Note: "local" addresses are on friend's networks (unreachable), prefer non-local/public URLs
-    servers.sort((a, b) => {
-      // Prefer non-local over local (local = friend's LAN, unreachable from outside)
-      if (!a.local && b.local) return -1
-      if (a.local && !b.local) return 1
-      // Prefer non-relay over relay
-      if (!a.relay && b.relay) return -1
-      if (a.relay && !b.relay) return 1
-      return 0
-    })
-
-    this.log.debug(
-      `Built combined server list with ${servers.length} total connection(s)`,
-    )
-
-    return servers
   }
 
   /**
