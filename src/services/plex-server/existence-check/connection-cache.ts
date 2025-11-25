@@ -85,7 +85,7 @@ export function getCachedConnection(
 async function testConnections(
   connections: ConnectionCandidate[],
   accessToken: string,
-  _logger: FastifyBaseLogger,
+  logger: FastifyBaseLogger,
 ): Promise<ConnectionCandidate[]> {
   const connectionTests = connections.map(async (conn) => {
     try {
@@ -100,8 +100,12 @@ async function testConnections(
       if (response.ok) {
         return conn
       }
+      logger.debug(
+        `Connection test failed for ${conn.uri}: HTTP ${response.status}`,
+      )
       return null
-    } catch {
+    } catch (error) {
+      logger.debug({ error, uri: conn.uri }, 'Connection test failed')
       return null
     }
   })
