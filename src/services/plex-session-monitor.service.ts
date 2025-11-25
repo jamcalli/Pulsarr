@@ -12,6 +12,7 @@ import type {
 } from '@root/types/plex-session.types.js'
 import type { SonarrSeries } from '@root/types/sonarr.types.js'
 import {
+  extractPlexKey,
   extractTvdbId,
   normalizeGuid,
   parseGuids,
@@ -261,7 +262,7 @@ export class PlexSessionMonitorService {
     session: PlexSession,
   ): Promise<{ tvdbId?: string; imdbId?: string } | null> {
     try {
-      const ratingKey = session.grandparentKey.split('/').pop()
+      const ratingKey = extractPlexKey(session.grandparentKey)
       if (!ratingKey) {
         this.log.debug(
           `No rating key found for ${session.grandparentTitle}, will fallback to title matching`,
