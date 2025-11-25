@@ -7,10 +7,10 @@
  */
 
 import type { PlexSearchResponse } from '@root/types/plex-server.types.js'
+import { extractPlexKey } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import type { CachedConnection } from './connection-cache.js'
 import { invalidateServerConnection } from './connection-cache.js'
-import { extractPlexKey } from '@utils/guid-handler.js'
 
 /**
  * Type guard for PlexSearchResponse
