@@ -6,7 +6,7 @@ import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 
-export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Reply: z.infer<typeof WatchlistGenresResponseSchema>
   }>(
@@ -44,3 +44,5 @@ export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
     },
   )
 }
+
+export default plugin

@@ -34,7 +34,7 @@ class PlexApiError extends Error {
   }
 }
 
-export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Body: z.infer<typeof PlexTokenSchema>
     Reply: z.infer<typeof PlexServerResponseSchema>
@@ -210,3 +210,5 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
     },
   )
 }
+
+export default plugin

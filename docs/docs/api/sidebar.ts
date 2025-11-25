@@ -346,32 +346,20 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "api/get-self-watchlist-items",
-          label: "Get self watchlist items",
-          className: "api-method get",
+          id: "api/configure-plex-notifications",
+          label: "Configure Plex notifications",
+          className: "api-method post",
         },
         {
           type: "doc",
-          id: "api/get-others-watchlist-tokens",
-          label: "Get others watchlist tokens",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/ping-plex",
-          label: "Test Plex server connection",
-          className: "api-method get",
+          id: "api/discover-plex-servers",
+          label: "Discover Plex servers",
+          className: "api-method post",
         },
         {
           type: "doc",
           id: "api/generate-rss-feeds",
           label: "Generate RSS feeds",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/parse-rss-watchlists",
-          label: "Parse RSS watchlists",
           className: "api-method get",
         },
         {
@@ -382,9 +370,27 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/configure-plex-notifications",
-          label: "Configure Plex notifications",
-          className: "api-method post",
+          id: "api/get-plex-notification-status",
+          label: "Get Plex notification status",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/get-others-watchlist-tokens",
+          label: "Get others watchlist tokens",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/parse-rss-watchlists",
+          label: "Parse RSS watchlists",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/ping-plex",
+          label: "Test Plex server connection",
+          className: "api-method get",
         },
         {
           type: "doc",
@@ -394,15 +400,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "api/get-plex-notification-status",
-          label: "Get Plex notification status",
+          id: "api/get-self-watchlist-items",
+          label: "Get self watchlist items",
           className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "api/discover-plex-servers",
-          label: "Discover Plex servers",
-          className: "api-method post",
         },
       ],
     },
@@ -916,6 +916,12 @@ const sidebar: SidebarsConfig = {
         id: "api/tmdb",
       },
       items: [
+        {
+          type: "doc",
+          id: "api/get-tmdb-providers",
+          label: "Get streaming providers",
+          className: "api-method get",
+        },
         {
           type: "doc",
           id: "api/get-tmdb-metadata-by-guid",

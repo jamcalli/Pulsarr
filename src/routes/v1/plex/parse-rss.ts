@@ -2,10 +2,7 @@ import { rssWatchlistSchema } from '@schemas/plex/parse-rss-feeds.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-export const rssWatchlistRoute: FastifyPluginAsyncZod = async (
-  fastify,
-  _opts,
-) => {
+const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
   fastify.route({
     method: 'GET',
     url: '/rss-watchlist',
@@ -24,3 +21,5 @@ export const rssWatchlistRoute: FastifyPluginAsyncZod = async (
     },
   })
 }
+
+export default plugin

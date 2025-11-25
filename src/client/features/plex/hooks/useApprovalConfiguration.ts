@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ConfigSchema } from '@root/schemas/config/config.schema'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -8,9 +8,9 @@ import { useConfigStore } from '@/stores/configStore'
 
 // Define the form data type that includes both config and schedule fields
 const approvalConfigurationSchema = z.object({
-  approvalExpiration: ConfigSchema.shape.approvalExpiration,
-  quotaSettings: ConfigSchema.shape.quotaSettings,
-  approvalNotify: ConfigSchema.shape.approvalNotify,
+  approvalExpiration: ConfigUpdateSchema.shape.approvalExpiration,
+  quotaSettings: ConfigUpdateSchema.shape.quotaSettings,
+  approvalNotify: ConfigUpdateSchema.shape.approvalNotify,
   scheduleInterval: z.number().min(1).max(12).optional(),
   scheduleTime: z.date().optional(),
   dayOfWeek: z.string().optional(),
@@ -75,7 +75,7 @@ export function useApprovalConfiguration() {
 
   const createFormResetData = useCallback(
     (
-      config: z.infer<typeof ConfigSchema>,
+      config: z.infer<typeof ConfigUpdateSchema>,
       currentScheduleInterval?: number,
       currentScheduleTime?: Date,
       currentDayOfWeek?: string,

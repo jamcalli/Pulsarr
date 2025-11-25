@@ -9,6 +9,7 @@ import {
   GetUsersWithQuotasResponseSchema,
   QuotaErrorSchema,
   QuotaStatusGetResponseSchema,
+  QuotaSuccessResponseSchema,
   QuotaUsageListResponseSchema,
   UpdateSeparateQuotasSchema,
   UpdateUserQuotaSchema,
@@ -19,6 +20,13 @@ import {
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+
+// Helper to create quota success responses
+function createQuotaSuccess(
+  message: string,
+): z.infer<typeof QuotaSuccessResponseSchema> {
+  return { success: true, message }
+}
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Create user quota
@@ -48,11 +56,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if user exists
         const user = await fastify.db.getUser(request.body.userId)
         if (!user) {
-          reply.status(400)
-          return {
-            success: false,
-            message: 'User not found',
-          }
+          return reply.badRequest('User not found')
         }
 
         // Check if quotas already exist
@@ -60,11 +64,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           request.body.userId,
         )
         if (existingQuotas.movieQuota || existingQuotas.showQuota) {
-          reply.status(409)
-          return {
-            success: false,
-            message: 'User already has quota configurations',
-          }
+          return reply.conflict('User already has quota configurations')
         }
 
         // Create both movie and show quotas with the same settings
@@ -120,11 +120,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const userQuotas = await fastify.db.getUserQuotas(userId)
 
         if (!userQuotas.movieQuota && !userQuotas.showQuota) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'User quotas not found',
-          }
+          return reply.notFound('User quotas not found')
         }
 
         return {
@@ -173,11 +169,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const existingQuotas = await fastify.db.getUserQuotas(userId)
         if (!existingQuotas.movieQuota && !existingQuotas.showQuota) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'User quotas not found',
-          }
+          return reply.notFound('User quotas not found')
         }
 
         // Update both movie and show quotas with the same settings
@@ -190,25 +182,26 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const [movieQuota, showQuota] = await Promise.all([
           existingQuotas.movieQuota
             ? fastify.db.updateUserQuota(userId, 'movie', updateData)
-            : null,
+            : undefined,
           existingQuotas.showQuota
             ? fastify.db.updateUserQuota(userId, 'show', updateData)
-            : null,
+            : undefined,
         ])
 
         if (!movieQuota && !showQuota) {
           throw new Error('Failed to update user quotas')
         }
 
-        return {
+        const response: z.infer<typeof UserQuotaUpdateResponseSchema> = {
           success: true,
           message: 'User quotas updated successfully',
           userQuotas: {
             userId,
-            movieQuota,
-            showQuota,
+            ...(movieQuota && { movieQuota }),
+            ...(showQuota && { showQuota }),
           },
         }
+        return response
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to update user quota',
@@ -346,7 +339,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Delete user quota
   fastify.delete<{
     Params: { userId: string }
-    Reply: z.infer<typeof QuotaErrorSchema>
+    Reply:
+      | z.infer<typeof QuotaSuccessResponseSchema>
+      | z.infer<typeof QuotaErrorSchema>
   }>(
     '/users/:userId',
     {
@@ -358,7 +353,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           userId: z.string(),
         }),
         response: {
-          200: QuotaErrorSchema,
+          200: QuotaSuccessResponseSchema,
           404: QuotaErrorSchema,
         },
         tags: ['Quota'],
@@ -370,17 +365,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const deleted = await fastify.db.deleteAllUserQuotas(userId)
 
         if (!deleted) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'User quotas not found',
-          }
+          return reply.notFound('User quotas not found')
         }
 
-        return {
-          success: true,
-          message: 'User quotas deleted successfully',
-        }
+        return createQuotaSuccess('User quotas deleted successfully')
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to delete user quota',
@@ -510,11 +498,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const { userIds, contentType } = request.body
 
         if (!userIds || userIds.length === 0) {
-          reply.status(400)
-          return {
-            success: false,
-            message: 'User IDs array cannot be empty',
-          }
+          return reply.badRequest('User IDs array cannot be empty')
         }
 
         // Use bulk method to fetch quota status for all users efficiently
@@ -542,7 +526,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: { userId: string }
     Body: { contentType: 'movie' | 'show'; requestDate?: string }
-    Reply: z.infer<typeof QuotaErrorSchema>
+    Reply:
+      | z.infer<typeof QuotaSuccessResponseSchema>
+      | z.infer<typeof QuotaErrorSchema>
   }>(
     '/users/:userId/usage',
     {
@@ -558,7 +544,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           requestDate: z.iso.datetime().optional(),
         }),
         response: {
-          200: QuotaErrorSchema,
+          200: QuotaSuccessResponseSchema,
           400: QuotaErrorSchema,
         },
         tags: ['Quota'],
@@ -575,10 +561,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           requestDate ? new Date(requestDate) : undefined,
         )
 
-        return {
-          success: true,
-          message: 'Quota usage recorded successfully',
-        }
+        return createQuotaSuccess('Quota usage recorded successfully')
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to record quota usage',
@@ -727,11 +710,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const { userIds, operation, movieQuota, showQuota } = request.body
 
         if (userIds.length === 0) {
-          reply.status(400)
-          return {
-            success: false,
-            message: 'User IDs array cannot be empty',
-          }
+          return reply.badRequest('User IDs array cannot be empty')
         }
 
         let result: { processedCount: number; failedIds: number[] }
@@ -742,12 +721,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         } else {
           // Update/create quotas for the specified users
           if (!movieQuota && !showQuota) {
-            reply.status(400)
-            return {
-              success: false,
-              message:
-                'At least one quota configuration (movie or show) must be provided for update operation',
-            }
+            return reply.badRequest(
+              'At least one quota configuration (movie or show) must be provided for update operation',
+            )
           }
 
           result = await fastify.db.bulkUpdateQuotas(
@@ -758,7 +734,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         return {
-          success: result.processedCount > 0,
+          success: true,
           message: `${operation === 'delete' ? 'Deleted' : 'Updated'} quotas for ${result.processedCount} of ${userIds.length} users`,
           processedCount: result.processedCount,
           ...(result.failedIds.length > 0
@@ -783,7 +759,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Cleanup old quota usage records
   fastify.delete<{
     Querystring: { olderThanDays?: number }
-    Reply: z.infer<typeof QuotaErrorSchema>
+    Reply:
+      | z.infer<typeof QuotaSuccessResponseSchema>
+      | z.infer<typeof QuotaErrorSchema>
   }>(
     '/usage/cleanup',
     {
@@ -795,7 +773,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           olderThanDays: z.coerce.number().min(1).default(90),
         }),
         response: {
-          200: QuotaErrorSchema,
+          200: QuotaSuccessResponseSchema,
           500: QuotaErrorSchema,
         },
         tags: ['Quota'],
@@ -808,10 +786,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const deletedCount =
           await fastify.db.cleanupOldQuotaUsage(olderThanDays)
 
-        return {
-          success: true,
-          message: `Cleaned up ${deletedCount} old quota usage records`,
-        }
+        return createQuotaSuccess(
+          `Cleaned up ${deletedCount} old quota usage records`,
+        )
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to cleanup quota usage',

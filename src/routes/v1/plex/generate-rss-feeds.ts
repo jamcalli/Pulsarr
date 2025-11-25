@@ -2,10 +2,7 @@ import { rssFeedsSchema } from '@schemas/plex/generate-rss-feeds.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-export const generateRssFeedsRoute: FastifyPluginAsyncZod = async (
-  fastify,
-  _opts,
-) => {
+const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
   fastify.route({
     method: 'GET',
     url: '/generate-rss-feeds',
@@ -23,3 +20,5 @@ export const generateRssFeedsRoute: FastifyPluginAsyncZod = async (
     },
   })
 }
+
+export default plugin

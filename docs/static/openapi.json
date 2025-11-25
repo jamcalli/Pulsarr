@@ -79,7 +79,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -134,15 +137,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -157,15 +169,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -191,7 +212,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -249,15 +273,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -302,15 +335,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -325,15 +367,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -657,7 +708,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -1212,7 +1266,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -1691,7 +1748,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -2441,7 +2501,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -2999,7 +3062,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3155,7 +3221,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3318,7 +3387,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3443,7 +3515,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3631,7 +3706,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -3818,7 +3896,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -4002,7 +4083,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -4115,7 +4199,7 @@
         }
       }
     },
-    "/v1/config/config": {
+    "/v1/config/": {
       "get": {
         "operationId": "getConfig",
         "summary": "Get configuration",
@@ -4132,11 +4216,26 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "config": {
                       "type": "object",
                       "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        },
+                        "baseUrl": {
+                          "type": "string"
+                        },
                         "port": {
                           "type": "number"
                         },
@@ -4223,7 +4322,13 @@
                             }
                           },
                           "required": [
-                            "enabled"
+                            "enabled",
+                            "discordWebhookUrls",
+                            "discordWebhookUrlsMovies",
+                            "discordWebhookUrlsShows",
+                            "appriseUrls",
+                            "appriseUrlsMovies",
+                            "appriseUrlsShows"
                           ],
                           "additionalProperties": false
                         },
@@ -4236,20 +4341,21 @@
                         "tautulliApiKey": {
                           "type": "string"
                         },
+                        "deletionMode": {
+                          "type": "string",
+                          "enum": [
+                            "watchlist",
+                            "tag-based"
+                          ]
+                        },
                         "queueWaitTime": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 1800000
+                          "type": "number"
                         },
                         "newEpisodeThreshold": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 2592000000
+                          "type": "number"
                         },
                         "upgradeBufferTime": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 10000
+                          "type": "number"
                         },
                         "pendingWebhookRetryInterval": {
                           "type": "number"
@@ -4260,6 +4366,9 @@
                         "pendingWebhookCleanupInterval": {
                           "type": "number"
                         },
+                        "tmdbRegion": {
+                          "type": "string"
+                        },
                         "plexTokens": {
                           "type": "array",
                           "items": {
@@ -4267,6 +4376,12 @@
                           }
                         },
                         "skipFriendSync": {
+                          "type": "boolean"
+                        },
+                        "plexServerUrl": {
+                          "type": "string"
+                        },
+                        "skipIfExistsOnPlex": {
                           "type": "boolean"
                         },
                         "deleteMovie": {
@@ -4319,25 +4434,7 @@
                           "type": "boolean"
                         },
                         "maxDeletionPrevention": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 100
-                        },
-                        "deletionMode": {
-                          "type": "string",
-                          "enum": [
-                            "watchlist",
-                            "tag-based"
-                          ]
-                        },
-                        "removedTagPrefix": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-                        },
-                        "deleteSyncRequiredTagRegex": {
-                          "type": "string",
-                          "maxLength": 1024
+                          "type": "number"
                         },
                         "deleteSyncTrackedOnly": {
                           "type": "boolean"
@@ -4345,36 +4442,14 @@
                         "deleteSyncCleanupApprovals": {
                           "type": "boolean"
                         },
-                        "removedTagMode": {
-                          "type": "string",
-                          "enum": [
-                            "remove",
-                            "keep",
-                            "special-tag"
-                          ]
+                        "deleteSyncRequiredTagRegex": {
+                          "type": "string"
                         },
                         "enablePlexPlaylistProtection": {
                           "type": "boolean"
                         },
                         "plexProtectionPlaylistName": {
                           "type": "string"
-                        },
-                        "plexServerUrl": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "format": "uri"
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                ""
-                              ]
-                            }
-                          ]
-                        },
-                        "skipIfExistsOnPlex": {
-                          "type": "boolean"
                         },
                         "plexLabelSync": {
                           "type": "object",
@@ -4461,189 +4536,6 @@
                         "friendsRss": {
                           "type": "string"
                         },
-                        "_isReady": {
-                          "type": "boolean"
-                        },
-                        "plexSessionMonitoring": {
-                          "type": "object",
-                          "properties": {
-                            "enabled": {
-                              "type": "boolean"
-                            },
-                            "pollingIntervalMinutes": {
-                              "type": "number",
-                              "minimum": 1
-                            },
-                            "remainingEpisodes": {
-                              "type": "number",
-                              "minimum": 1
-                            },
-                            "filterUsers": {},
-                            "enableAutoReset": {
-                              "type": "boolean"
-                            },
-                            "inactivityResetDays": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 365
-                            },
-                            "autoResetIntervalHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 168
-                            },
-                            "enableProgressiveCleanup": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "enabled",
-                            "pollingIntervalMinutes",
-                            "remainingEpisodes"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "newUserDefaultCanSync": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultRequiresApproval": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultMovieQuotaEnabled": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultMovieQuotaType": {
-                          "type": "string",
-                          "enum": [
-                            "daily",
-                            "weekly_rolling",
-                            "monthly"
-                          ]
-                        },
-                        "newUserDefaultMovieQuotaLimit": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 1000
-                        },
-                        "newUserDefaultMovieBypassApproval": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultShowQuotaEnabled": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultShowQuotaType": {
-                          "type": "string",
-                          "enum": [
-                            "daily",
-                            "weekly_rolling",
-                            "monthly"
-                          ]
-                        },
-                        "newUserDefaultShowQuotaLimit": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 1000
-                        },
-                        "newUserDefaultShowBypassApproval": {
-                          "type": "boolean"
-                        },
-                        "quotaSettings": {
-                          "type": "object",
-                          "properties": {
-                            "cleanup": {
-                              "type": "object",
-                              "properties": {
-                                "enabled": {
-                                  "type": "boolean"
-                                },
-                                "retentionDays": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 365
-                                }
-                              },
-                              "additionalProperties": false
-                            },
-                            "weeklyRolling": {
-                              "type": "object",
-                              "properties": {
-                                "resetDays": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 365
-                                }
-                              },
-                              "additionalProperties": false
-                            },
-                            "monthly": {
-                              "type": "object",
-                              "properties": {
-                                "resetDay": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 31
-                                },
-                                "handleMonthEnd": {
-                                  "type": "string",
-                                  "enum": [
-                                    "last-day",
-                                    "skip-month",
-                                    "next-month"
-                                  ]
-                                }
-                              },
-                              "additionalProperties": false
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "approvalExpiration": {
-                          "type": "object",
-                          "properties": {
-                            "enabled": {
-                              "type": "boolean"
-                            },
-                            "defaultExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "expirationAction": {
-                              "type": "string",
-                              "enum": [
-                                "expire",
-                                "auto_approve"
-                              ]
-                            },
-                            "quotaExceededExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "routerRuleExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "manualFlagExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "contentCriteriaExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "cleanupExpiredDays": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 365
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "tmdbRegion": {},
                         "tagUsersInSonarr": {
                           "type": "boolean"
                         },
@@ -4653,10 +4545,22 @@
                         "cleanupOrphanedTags": {
                           "type": "boolean"
                         },
+                        "persistHistoricalTags": {
+                          "type": "boolean"
+                        },
                         "tagPrefix": {
+                          "type": "string"
+                        },
+                        "removedTagMode": {
                           "type": "string",
-                          "minLength": 1,
-                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                          "enum": [
+                            "remove",
+                            "keep",
+                            "special-tag"
+                          ]
+                        },
+                        "removedTagPrefix": {
+                          "type": "string"
                         },
                         "tagMigration": {
                           "type": "object",
@@ -4721,8 +4625,248 @@
                             "sonarr"
                           ],
                           "additionalProperties": false
+                        },
+                        "plexSessionMonitoring": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "pollingIntervalMinutes": {
+                              "type": "number"
+                            },
+                            "remainingEpisodes": {
+                              "type": "number"
+                            },
+                            "filterUsers": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enableAutoReset": {
+                              "type": "boolean"
+                            },
+                            "inactivityResetDays": {
+                              "type": "number"
+                            },
+                            "autoResetIntervalHours": {
+                              "type": "number"
+                            },
+                            "enableProgressiveCleanup": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "pollingIntervalMinutes",
+                            "remainingEpisodes"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "newUserDefaultCanSync": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultRequiresApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaType": {
+                          "type": "string",
+                          "enum": [
+                            "daily",
+                            "weekly_rolling",
+                            "monthly"
+                          ]
+                        },
+                        "newUserDefaultMovieQuotaLimit": {
+                          "type": "number"
+                        },
+                        "newUserDefaultMovieBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaType": {
+                          "type": "string",
+                          "enum": [
+                            "daily",
+                            "weekly_rolling",
+                            "monthly"
+                          ]
+                        },
+                        "newUserDefaultShowQuotaLimit": {
+                          "type": "number"
+                        },
+                        "newUserDefaultShowBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "quotaSettings": {
+                          "type": "object",
+                          "properties": {
+                            "cleanup": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "retentionDays": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "enabled",
+                                "retentionDays"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "weeklyRolling": {
+                              "type": "object",
+                              "properties": {
+                                "resetDays": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "resetDays"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "monthly": {
+                              "type": "object",
+                              "properties": {
+                                "resetDay": {
+                                  "type": "number"
+                                },
+                                "handleMonthEnd": {
+                                  "type": "string",
+                                  "enum": [
+                                    "last-day",
+                                    "skip-month",
+                                    "next-month"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "resetDay",
+                                "handleMonthEnd"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "cleanup",
+                            "weeklyRolling",
+                            "monthly"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "approvalExpiration": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "defaultExpirationHours": {
+                              "type": "number"
+                            },
+                            "expirationAction": {
+                              "type": "string",
+                              "enum": [
+                                "expire",
+                                "auto_approve"
+                              ]
+                            },
+                            "quotaExceededExpirationHours": {
+                              "type": "number"
+                            },
+                            "routerRuleExpirationHours": {
+                              "type": "number"
+                            },
+                            "manualFlagExpirationHours": {
+                              "type": "number"
+                            },
+                            "contentCriteriaExpirationHours": {
+                              "type": "number"
+                            },
+                            "cleanupExpiredDays": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "defaultExpirationHours",
+                            "expirationAction",
+                            "cleanupExpiredDays"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "_isReady": {
+                          "type": "boolean"
                         }
                       },
+                      "required": [
+                        "id",
+                        "created_at",
+                        "updated_at",
+                        "cookieSecured",
+                        "syncIntervalSeconds",
+                        "queueProcessDelaySeconds",
+                        "enableApprise",
+                        "appriseUrl",
+                        "publicContentNotifications",
+                        "tautulliEnabled",
+                        "tautulliUrl",
+                        "tautulliApiKey",
+                        "deletionMode",
+                        "queueWaitTime",
+                        "newEpisodeThreshold",
+                        "upgradeBufferTime",
+                        "pendingWebhookRetryInterval",
+                        "pendingWebhookMaxAge",
+                        "pendingWebhookCleanupInterval",
+                        "tmdbRegion",
+                        "plexTokens",
+                        "skipFriendSync",
+                        "skipIfExistsOnPlex",
+                        "deleteMovie",
+                        "deleteEndedShow",
+                        "deleteContinuingShow",
+                        "deleteFiles",
+                        "respectUserSyncSetting",
+                        "deleteSyncNotify",
+                        "approvalNotify",
+                        "deleteSyncNotifyOnlyOnDeletion",
+                        "deleteSyncTrackedOnly",
+                        "deleteSyncCleanupApprovals",
+                        "deleteSyncRequiredTagRegex",
+                        "enablePlexPlaylistProtection",
+                        "plexProtectionPlaylistName",
+                        "plexLabelSync",
+                        "tagUsersInSonarr",
+                        "tagUsersInRadarr",
+                        "cleanupOrphanedTags",
+                        "persistHistoricalTags",
+                        "tagPrefix",
+                        "removedTagMode",
+                        "removedTagPrefix",
+                        "newUserDefaultCanSync",
+                        "newUserDefaultRequiresApproval",
+                        "newUserDefaultMovieQuotaEnabled",
+                        "newUserDefaultMovieQuotaType",
+                        "newUserDefaultMovieQuotaLimit",
+                        "newUserDefaultMovieBypassApproval",
+                        "newUserDefaultShowQuotaEnabled",
+                        "newUserDefaultShowQuotaType",
+                        "newUserDefaultShowQuotaLimit",
+                        "newUserDefaultShowBypassApproval",
+                        "quotaSettings",
+                        "approvalExpiration",
+                        "_isReady"
+                      ],
                       "additionalProperties": false
                     }
                   },
@@ -4742,12 +4886,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -4761,12 +4918,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -4780,12 +4950,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -5406,11 +5589,26 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "config": {
                       "type": "object",
                       "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        },
+                        "baseUrl": {
+                          "type": "string"
+                        },
                         "port": {
                           "type": "number"
                         },
@@ -5497,7 +5695,13 @@
                             }
                           },
                           "required": [
-                            "enabled"
+                            "enabled",
+                            "discordWebhookUrls",
+                            "discordWebhookUrlsMovies",
+                            "discordWebhookUrlsShows",
+                            "appriseUrls",
+                            "appriseUrlsMovies",
+                            "appriseUrlsShows"
                           ],
                           "additionalProperties": false
                         },
@@ -5510,20 +5714,21 @@
                         "tautulliApiKey": {
                           "type": "string"
                         },
+                        "deletionMode": {
+                          "type": "string",
+                          "enum": [
+                            "watchlist",
+                            "tag-based"
+                          ]
+                        },
                         "queueWaitTime": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 1800000
+                          "type": "number"
                         },
                         "newEpisodeThreshold": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 2592000000
+                          "type": "number"
                         },
                         "upgradeBufferTime": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 10000
+                          "type": "number"
                         },
                         "pendingWebhookRetryInterval": {
                           "type": "number"
@@ -5534,6 +5739,9 @@
                         "pendingWebhookCleanupInterval": {
                           "type": "number"
                         },
+                        "tmdbRegion": {
+                          "type": "string"
+                        },
                         "plexTokens": {
                           "type": "array",
                           "items": {
@@ -5541,6 +5749,12 @@
                           }
                         },
                         "skipFriendSync": {
+                          "type": "boolean"
+                        },
+                        "plexServerUrl": {
+                          "type": "string"
+                        },
+                        "skipIfExistsOnPlex": {
                           "type": "boolean"
                         },
                         "deleteMovie": {
@@ -5593,25 +5807,7 @@
                           "type": "boolean"
                         },
                         "maxDeletionPrevention": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 100
-                        },
-                        "deletionMode": {
-                          "type": "string",
-                          "enum": [
-                            "watchlist",
-                            "tag-based"
-                          ]
-                        },
-                        "removedTagPrefix": {
-                          "type": "string",
-                          "minLength": 1,
-                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
-                        },
-                        "deleteSyncRequiredTagRegex": {
-                          "type": "string",
-                          "maxLength": 1024
+                          "type": "number"
                         },
                         "deleteSyncTrackedOnly": {
                           "type": "boolean"
@@ -5619,36 +5815,14 @@
                         "deleteSyncCleanupApprovals": {
                           "type": "boolean"
                         },
-                        "removedTagMode": {
-                          "type": "string",
-                          "enum": [
-                            "remove",
-                            "keep",
-                            "special-tag"
-                          ]
+                        "deleteSyncRequiredTagRegex": {
+                          "type": "string"
                         },
                         "enablePlexPlaylistProtection": {
                           "type": "boolean"
                         },
                         "plexProtectionPlaylistName": {
                           "type": "string"
-                        },
-                        "plexServerUrl": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "format": "uri"
-                            },
-                            {
-                              "type": "string",
-                              "enum": [
-                                ""
-                              ]
-                            }
-                          ]
-                        },
-                        "skipIfExistsOnPlex": {
-                          "type": "boolean"
                         },
                         "plexLabelSync": {
                           "type": "object",
@@ -5735,189 +5909,6 @@
                         "friendsRss": {
                           "type": "string"
                         },
-                        "_isReady": {
-                          "type": "boolean"
-                        },
-                        "plexSessionMonitoring": {
-                          "type": "object",
-                          "properties": {
-                            "enabled": {
-                              "type": "boolean"
-                            },
-                            "pollingIntervalMinutes": {
-                              "type": "number",
-                              "minimum": 1
-                            },
-                            "remainingEpisodes": {
-                              "type": "number",
-                              "minimum": 1
-                            },
-                            "filterUsers": {},
-                            "enableAutoReset": {
-                              "type": "boolean"
-                            },
-                            "inactivityResetDays": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 365
-                            },
-                            "autoResetIntervalHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 168
-                            },
-                            "enableProgressiveCleanup": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "enabled",
-                            "pollingIntervalMinutes",
-                            "remainingEpisodes"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "newUserDefaultCanSync": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultRequiresApproval": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultMovieQuotaEnabled": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultMovieQuotaType": {
-                          "type": "string",
-                          "enum": [
-                            "daily",
-                            "weekly_rolling",
-                            "monthly"
-                          ]
-                        },
-                        "newUserDefaultMovieQuotaLimit": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 1000
-                        },
-                        "newUserDefaultMovieBypassApproval": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultShowQuotaEnabled": {
-                          "type": "boolean"
-                        },
-                        "newUserDefaultShowQuotaType": {
-                          "type": "string",
-                          "enum": [
-                            "daily",
-                            "weekly_rolling",
-                            "monthly"
-                          ]
-                        },
-                        "newUserDefaultShowQuotaLimit": {
-                          "type": "number",
-                          "minimum": 1,
-                          "maximum": 1000
-                        },
-                        "newUserDefaultShowBypassApproval": {
-                          "type": "boolean"
-                        },
-                        "quotaSettings": {
-                          "type": "object",
-                          "properties": {
-                            "cleanup": {
-                              "type": "object",
-                              "properties": {
-                                "enabled": {
-                                  "type": "boolean"
-                                },
-                                "retentionDays": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 365
-                                }
-                              },
-                              "additionalProperties": false
-                            },
-                            "weeklyRolling": {
-                              "type": "object",
-                              "properties": {
-                                "resetDays": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 365
-                                }
-                              },
-                              "additionalProperties": false
-                            },
-                            "monthly": {
-                              "type": "object",
-                              "properties": {
-                                "resetDay": {
-                                  "type": "number",
-                                  "minimum": 1,
-                                  "maximum": 31
-                                },
-                                "handleMonthEnd": {
-                                  "type": "string",
-                                  "enum": [
-                                    "last-day",
-                                    "skip-month",
-                                    "next-month"
-                                  ]
-                                }
-                              },
-                              "additionalProperties": false
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "approvalExpiration": {
-                          "type": "object",
-                          "properties": {
-                            "enabled": {
-                              "type": "boolean"
-                            },
-                            "defaultExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "expirationAction": {
-                              "type": "string",
-                              "enum": [
-                                "expire",
-                                "auto_approve"
-                              ]
-                            },
-                            "quotaExceededExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "routerRuleExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "manualFlagExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "contentCriteriaExpirationHours": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 8760
-                            },
-                            "cleanupExpiredDays": {
-                              "type": "number",
-                              "minimum": 1,
-                              "maximum": 365
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "tmdbRegion": {},
                         "tagUsersInSonarr": {
                           "type": "boolean"
                         },
@@ -5927,10 +5918,22 @@
                         "cleanupOrphanedTags": {
                           "type": "boolean"
                         },
+                        "persistHistoricalTags": {
+                          "type": "boolean"
+                        },
                         "tagPrefix": {
+                          "type": "string"
+                        },
+                        "removedTagMode": {
                           "type": "string",
-                          "minLength": 1,
-                          "pattern": "^[a-zA-Z0-9_\\-:.]+$"
+                          "enum": [
+                            "remove",
+                            "keep",
+                            "special-tag"
+                          ]
+                        },
+                        "removedTagPrefix": {
+                          "type": "string"
                         },
                         "tagMigration": {
                           "type": "object",
@@ -5995,8 +5998,248 @@
                             "sonarr"
                           ],
                           "additionalProperties": false
+                        },
+                        "plexSessionMonitoring": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "pollingIntervalMinutes": {
+                              "type": "number"
+                            },
+                            "remainingEpisodes": {
+                              "type": "number"
+                            },
+                            "filterUsers": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enableAutoReset": {
+                              "type": "boolean"
+                            },
+                            "inactivityResetDays": {
+                              "type": "number"
+                            },
+                            "autoResetIntervalHours": {
+                              "type": "number"
+                            },
+                            "enableProgressiveCleanup": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "pollingIntervalMinutes",
+                            "remainingEpisodes"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "newUserDefaultCanSync": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultRequiresApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultMovieQuotaType": {
+                          "type": "string",
+                          "enum": [
+                            "daily",
+                            "weekly_rolling",
+                            "monthly"
+                          ]
+                        },
+                        "newUserDefaultMovieQuotaLimit": {
+                          "type": "number"
+                        },
+                        "newUserDefaultMovieBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaEnabled": {
+                          "type": "boolean"
+                        },
+                        "newUserDefaultShowQuotaType": {
+                          "type": "string",
+                          "enum": [
+                            "daily",
+                            "weekly_rolling",
+                            "monthly"
+                          ]
+                        },
+                        "newUserDefaultShowQuotaLimit": {
+                          "type": "number"
+                        },
+                        "newUserDefaultShowBypassApproval": {
+                          "type": "boolean"
+                        },
+                        "quotaSettings": {
+                          "type": "object",
+                          "properties": {
+                            "cleanup": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "retentionDays": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "enabled",
+                                "retentionDays"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "weeklyRolling": {
+                              "type": "object",
+                              "properties": {
+                                "resetDays": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "resetDays"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "monthly": {
+                              "type": "object",
+                              "properties": {
+                                "resetDay": {
+                                  "type": "number"
+                                },
+                                "handleMonthEnd": {
+                                  "type": "string",
+                                  "enum": [
+                                    "last-day",
+                                    "skip-month",
+                                    "next-month"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "resetDay",
+                                "handleMonthEnd"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "cleanup",
+                            "weeklyRolling",
+                            "monthly"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "approvalExpiration": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "defaultExpirationHours": {
+                              "type": "number"
+                            },
+                            "expirationAction": {
+                              "type": "string",
+                              "enum": [
+                                "expire",
+                                "auto_approve"
+                              ]
+                            },
+                            "quotaExceededExpirationHours": {
+                              "type": "number"
+                            },
+                            "routerRuleExpirationHours": {
+                              "type": "number"
+                            },
+                            "manualFlagExpirationHours": {
+                              "type": "number"
+                            },
+                            "contentCriteriaExpirationHours": {
+                              "type": "number"
+                            },
+                            "cleanupExpiredDays": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "defaultExpirationHours",
+                            "expirationAction",
+                            "cleanupExpiredDays"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "_isReady": {
+                          "type": "boolean"
                         }
                       },
+                      "required": [
+                        "id",
+                        "created_at",
+                        "updated_at",
+                        "cookieSecured",
+                        "syncIntervalSeconds",
+                        "queueProcessDelaySeconds",
+                        "enableApprise",
+                        "appriseUrl",
+                        "publicContentNotifications",
+                        "tautulliEnabled",
+                        "tautulliUrl",
+                        "tautulliApiKey",
+                        "deletionMode",
+                        "queueWaitTime",
+                        "newEpisodeThreshold",
+                        "upgradeBufferTime",
+                        "pendingWebhookRetryInterval",
+                        "pendingWebhookMaxAge",
+                        "pendingWebhookCleanupInterval",
+                        "tmdbRegion",
+                        "plexTokens",
+                        "skipFriendSync",
+                        "skipIfExistsOnPlex",
+                        "deleteMovie",
+                        "deleteEndedShow",
+                        "deleteContinuingShow",
+                        "deleteFiles",
+                        "respectUserSyncSetting",
+                        "deleteSyncNotify",
+                        "approvalNotify",
+                        "deleteSyncNotifyOnlyOnDeletion",
+                        "deleteSyncTrackedOnly",
+                        "deleteSyncCleanupApprovals",
+                        "deleteSyncRequiredTagRegex",
+                        "enablePlexPlaylistProtection",
+                        "plexProtectionPlaylistName",
+                        "plexLabelSync",
+                        "tagUsersInSonarr",
+                        "tagUsersInRadarr",
+                        "cleanupOrphanedTags",
+                        "persistHistoricalTags",
+                        "tagPrefix",
+                        "removedTagMode",
+                        "removedTagPrefix",
+                        "newUserDefaultCanSync",
+                        "newUserDefaultRequiresApproval",
+                        "newUserDefaultMovieQuotaEnabled",
+                        "newUserDefaultMovieQuotaType",
+                        "newUserDefaultMovieQuotaLimit",
+                        "newUserDefaultMovieBypassApproval",
+                        "newUserDefaultShowQuotaEnabled",
+                        "newUserDefaultShowQuotaType",
+                        "newUserDefaultShowQuotaLimit",
+                        "newUserDefaultShowBypassApproval",
+                        "quotaSettings",
+                        "approvalExpiration",
+                        "_isReady"
+                      ],
                       "additionalProperties": false
                     }
                   },
@@ -6016,12 +6259,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -6035,12 +6291,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -6054,12 +6323,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -6672,11 +6954,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -7815,11 +8110,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -7834,11 +8142,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -8471,11 +8792,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -9111,11 +9445,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -9736,11 +10083,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -9755,11 +10115,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -10902,11 +11275,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -10921,11 +11307,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -10961,7 +11360,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -10983,11 +11385,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11002,11 +11417,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11634,11 +12062,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11653,11 +12094,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11713,7 +12167,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -11735,11 +12192,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11754,11 +12224,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -11826,11 +12309,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
                       "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -13282,14 +13778,463 @@
         }
       }
     },
-    "/v1/plex/self-watchlist-token": {
-      "get": {
-        "operationId": "getSelfWatchlistItems",
-        "summary": "Get self watchlist items",
+    "/v1/plex/configure-notifications": {
+      "post": {
+        "operationId": "configurePlexNotifications",
+        "summary": "Configure Plex notifications",
         "tags": [
           "Plex"
         ],
-        "description": "Retrieve the current user watchlist items from Plex",
+        "description": "Configure Plex webhook notifications for Radarr and Sonarr instances",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plexToken": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "plexHost": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "plexPort": {
+                    "default": 32400,
+                    "type": "integer",
+                    "exclusiveMinimum": true,
+                    "maximum": 9007199254740991
+                  },
+                  "useSsl": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "plexToken",
+                  "plexHost"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "results": {
+                      "type": "object",
+                      "properties": {
+                        "radarr": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "success": {
+                                "type": "boolean"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "success",
+                              "message"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "sonarr": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "success": {
+                                "type": "boolean"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "success",
+                              "message"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "radarr",
+                        "sonarr"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "results"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/discover-servers": {
+      "post": {
+        "operationId": "discoverPlexServers",
+        "summary": "Discover Plex servers",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Discover available Plex servers using a user token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plexToken": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "plexToken"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "servers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "host": {
+                            "type": "string"
+                          },
+                          "port": {
+                            "type": "number"
+                          },
+                          "useSsl": {
+                            "type": "boolean"
+                          },
+                          "local": {
+                            "type": "boolean"
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "host",
+                          "port",
+                          "useSsl",
+                          "local"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "servers"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/generate-rss-feeds": {
+      "get": {
+        "operationId": "generateRssFeeds",
+        "summary": "Generate RSS feeds",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Generate RSS feed URLs for Plex watchlists",
         "responses": {
           "200": {
             "description": "Default Response",
@@ -13300,81 +14245,16 @@
                     {
                       "type": "object",
                       "properties": {
-                        "total": {
-                          "type": "number"
+                        "self": {
+                          "type": "string"
                         },
-                        "users": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "user": {
-                                "type": "object",
-                                "properties": {
-                                  "watchlistId": {
-                                    "type": "string"
-                                  },
-                                  "username": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "watchlistId",
-                                  "username"
-                                ],
-                                "additionalProperties": false
-                              },
-                              "watchlist": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "title": {
-                                      "type": "string"
-                                    },
-                                    "plexKey": {
-                                      "type": "string"
-                                    },
-                                    "type": {
-                                      "type": "string"
-                                    },
-                                    "thumb": {
-                                      "type": "string"
-                                    },
-                                    "guids": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    },
-                                    "genres": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string"
-                                      }
-                                    }
-                                  },
-                                  "required": [
-                                    "title",
-                                    "type",
-                                    "guids",
-                                    "genres"
-                                  ],
-                                  "additionalProperties": false
-                                }
-                              }
-                            },
-                            "required": [
-                              "user",
-                              "watchlist"
-                            ],
-                            "additionalProperties": false
-                          }
+                        "friends": {
+                          "type": "string"
                         }
                       },
                       "required": [
-                        "total",
-                        "users"
+                        "self",
+                        "friends"
                       ],
                       "additionalProperties": false
                     },
@@ -13391,6 +14271,217 @@
                       "additionalProperties": false
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/genres": {
+      "get": {
+        "operationId": "getWatchlistGenres",
+        "summary": "Get watchlist genres",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Retrieve all genres from watchlist items",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "genres": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "genres"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plex/notification-status": {
+      "get": {
+        "operationId": "getPlexNotificationStatus",
+        "summary": "Get Plex notification status",
+        "tags": [
+          "Plex"
+        ],
+        "description": "Check if Plex notifications are configured for Radarr and Sonarr instances",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "results": {
+                      "type": "object",
+                      "properties": {
+                        "radarr": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "success": {
+                                "type": "boolean"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "success",
+                              "message"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "sonarr": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "success": {
+                                "type": "boolean"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "success",
+                              "message"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "radarr",
+                        "sonarr"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "results"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -13491,114 +14582,6 @@
                       "required": [
                         "total",
                         "users"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "error"
-                      ],
-                      "additionalProperties": false
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/plex/ping": {
-      "get": {
-        "operationId": "pingPlex",
-        "summary": "Test Plex server connection",
-        "tags": [
-          "Plex"
-        ],
-        "description": "Verifies connectivity to the configured Plex server",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/plex/generate-rss-feeds": {
-      "get": {
-        "operationId": "generateRssFeeds",
-        "summary": "Generate RSS feeds",
-        "tags": [
-          "Plex"
-        ],
-        "description": "Generate RSS feed URLs for Plex watchlists",
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "self": {
-                          "type": "string"
-                        },
-                        "friends": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "self",
-                        "friends"
                       ],
                       "additionalProperties": false
                     },
@@ -13871,14 +14854,14 @@
         }
       }
     },
-    "/v1/plex/genres": {
+    "/v1/plex/ping": {
       "get": {
-        "operationId": "getWatchlistGenres",
-        "summary": "Get watchlist genres",
+        "operationId": "pingPlex",
+        "summary": "Test Plex server connection",
         "tags": [
           "Plex"
         ],
-        "description": "Retrieve all genres from watchlist items",
+        "description": "Verifies connectivity to the configured Plex server",
         "responses": {
           "200": {
             "description": "Default Response",
@@ -13888,203 +14871,14 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
-                    },
-                    "genres": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     }
                   },
                   "required": [
-                    "success",
-                    "genres"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/plex/configure-notifications": {
-      "post": {
-        "operationId": "configurePlexNotifications",
-        "summary": "Configure Plex notifications",
-        "tags": [
-          "Plex"
-        ],
-        "description": "Configure Plex webhook notifications for Radarr and Sonarr instances",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "plexToken": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "plexHost": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "plexPort": {
-                    "default": 32400,
-                    "type": "integer",
-                    "exclusiveMinimum": true,
-                    "maximum": 9007199254740991
-                  },
-                  "useSsl": {
-                    "default": false,
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "plexToken",
-                  "plexHost"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "results": {
-                      "type": "object",
-                      "properties": {
-                        "radarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        },
-                        "sonarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                      },
-                      "required": [
-                        "radarr",
-                        "sonarr"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "results"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "code",
-                    "error",
-                    "message"
+                    "success"
                   ],
                   "additionalProperties": false
                 }
@@ -14264,360 +15058,115 @@
         }
       }
     },
-    "/v1/plex/notification-status": {
+    "/v1/plex/self-watchlist-token": {
       "get": {
-        "operationId": "getPlexNotificationStatus",
-        "summary": "Get Plex notification status",
+        "operationId": "getSelfWatchlistItems",
+        "summary": "Get self watchlist items",
         "tags": [
           "Plex"
         ],
-        "description": "Check if Plex notifications are configured for Radarr and Sonarr instances",
+        "description": "Retrieve the current user watchlist items from Plex",
         "responses": {
           "200": {
             "description": "Default Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "results": {
+                  "anyOf": [
+                    {
                       "type": "object",
                       "properties": {
-                        "radarr": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "number"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
-                            ],
-                            "additionalProperties": false
-                          }
+                        "total": {
+                          "type": "number"
                         },
-                        "sonarr": {
+                        "users": {
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
-                              "id": {
-                                "type": "number"
+                              "user": {
+                                "type": "object",
+                                "properties": {
+                                  "watchlistId": {
+                                    "type": "string"
+                                  },
+                                  "username": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "watchlistId",
+                                  "username"
+                                ],
+                                "additionalProperties": false
                               },
-                              "name": {
-                                "type": "string"
-                              },
-                              "success": {
-                                "type": "boolean"
-                              },
-                              "message": {
-                                "type": "string"
+                              "watchlist": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "title": {
+                                      "type": "string"
+                                    },
+                                    "plexKey": {
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "type": "string"
+                                    },
+                                    "thumb": {
+                                      "type": "string"
+                                    },
+                                    "guids": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "genres": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "title",
+                                    "type",
+                                    "guids",
+                                    "genres"
+                                  ],
+                                  "additionalProperties": false
+                                }
                               }
                             },
                             "required": [
-                              "id",
-                              "name",
-                              "success",
-                              "message"
+                              "user",
+                              "watchlist"
                             ],
                             "additionalProperties": false
                           }
                         }
                       },
                       "required": [
-                        "radarr",
-                        "sonarr"
+                        "total",
+                        "users"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "error"
                       ],
                       "additionalProperties": false
                     }
-                  },
-                  "required": [
-                    "success",
-                    "message",
-                    "results"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/plex/discover-servers": {
-      "post": {
-        "operationId": "discoverPlexServers",
-        "summary": "Discover Plex servers",
-        "tags": [
-          "Plex"
-        ],
-        "description": "Discover available Plex servers using a user token",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "plexToken": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "plexToken"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "servers": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "host": {
-                            "type": "string"
-                          },
-                          "port": {
-                            "type": "number"
-                          },
-                          "useSsl": {
-                            "type": "boolean"
-                          },
-                          "local": {
-                            "type": "boolean"
-                          },
-                          "description": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "host",
-                          "port",
-                          "useSsl",
-                          "local"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "servers"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "statusCode": {
-                      "type": "number"
-                    },
-                    "error": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "statusCode",
-                    "error",
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  ]
                 }
               }
             }
@@ -14710,7 +15259,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -14819,15 +15371,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -14842,15 +15403,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -14876,7 +15446,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -14939,15 +15512,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -14985,7 +15567,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15094,15 +15679,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15164,7 +15758,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15273,15 +15870,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15317,7 +15923,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15339,15 +15948,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15448,7 +16066,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15557,15 +16178,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15615,7 +16245,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15679,15 +16312,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15743,7 +16385,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15823,15 +16468,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15846,15 +16500,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -15919,7 +16582,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -15941,15 +16607,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16038,7 +16713,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -16100,15 +16778,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16157,7 +16844,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -16207,15 +16897,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16328,7 +17027,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -16360,15 +17062,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16383,15 +17094,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -16431,7 +17151,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -16453,15 +17176,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -23596,6 +24328,141 @@
         }
       }
     },
+    "/v1/tmdb/providers": {
+      "get": {
+        "operationId": "getTmdbProviders",
+        "summary": "Get streaming providers",
+        "tags": [
+          "TMDB"
+        ],
+        "description": "Fetch list of streaming service providers available for the configured region. Results are cached for 24 hours.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "region": {
+                      "type": "string"
+                    },
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "display_priority": {
+                            "type": "number"
+                          },
+                          "logo_path": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "provider_id": {
+                            "type": "number"
+                          },
+                          "provider_name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "display_priority",
+                          "logo_path",
+                          "provider_id",
+                          "provider_name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "region",
+                    "providers"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/tmdb/metadata/{id}": {
       "get": {
         "operationId": "getTmdbMetadataByGuid",
@@ -24717,18 +25584,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -24743,18 +25616,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -25886,18 +26765,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -25912,18 +26797,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27055,18 +27946,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27081,18 +27978,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27165,18 +28068,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        false
-                      ]
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27276,7 +28185,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -27308,15 +28220,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27331,15 +28252,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27784,7 +28714,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -27840,15 +28773,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27863,15 +28805,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -27899,7 +28850,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -27984,15 +28938,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28020,7 +28983,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28109,15 +29075,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28207,7 +29182,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28294,15 +29272,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28395,7 +29382,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28482,15 +29472,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28505,15 +29504,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28549,7 +29557,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28636,15 +29647,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28682,7 +29702,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "message": {
                       "type": "string"
@@ -28792,15 +29815,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false
@@ -28815,15 +29847,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "success",
+                    "statusCode",
+                    "code",
+                    "error",
                     "message"
                   ],
                   "additionalProperties": false

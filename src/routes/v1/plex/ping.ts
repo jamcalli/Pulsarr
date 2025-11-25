@@ -6,7 +6,11 @@ import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 
-export const pingRoute: FastifyPluginAsync = async (fastify) => {
+const PING_SUCCESS_RESPONSE: z.infer<typeof PingSuccessSchema> = {
+  success: true,
+}
+
+const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Reply: z.infer<typeof PingSuccessSchema>
   }>(
@@ -25,8 +29,8 @@ export const pingRoute: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const success = await fastify.plexWatchlist.pingPlex()
-        return { success }
+        await fastify.plexWatchlist.pingPlex()
+        return PING_SUCCESS_RESPONSE
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to ping Plex server',
@@ -36,3 +40,5 @@ export const pingRoute: FastifyPluginAsync = async (fastify) => {
     },
   )
 }
+
+export default plugin

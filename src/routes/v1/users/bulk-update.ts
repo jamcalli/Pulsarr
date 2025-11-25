@@ -89,7 +89,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
 
           return {
-            success: updatedCount > 0,
+            success: true,
             message: `Updated ${updatedCount} of ${userIds.length} users`,
             updatedCount,
             ...(failedIds.length > 0 ? { failedIds } : {}),
@@ -100,7 +100,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const result = await fastify.db.bulkUpdateUsers(userIds, updates)
 
         return {
-          success: result.updatedCount > 0,
+          success: true,
           message: `Updated ${result.updatedCount} of ${userIds.length} users`,
           updatedCount: result.updatedCount,
           ...(result.failedIds.length > 0

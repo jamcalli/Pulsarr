@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ConfigSchema } from '@root/schemas/config/config.schema'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import type { WebhookValidationResponse } from '@root/schemas/notifications/discord-control.schema'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -11,7 +11,7 @@ import { discordWebhookStringSchema } from '@/utils/discord-webhook-validation'
 
 // Extract API schema and extend with testing fields
 const ApiPublicContentNotificationsSchema =
-  ConfigSchema.shape.publicContentNotifications.unwrap()
+  ConfigUpdateSchema.shape.publicContentNotifications.unwrap()
 
 const publicContentNotificationsSchema =
   ApiPublicContentNotificationsSchema.extend({

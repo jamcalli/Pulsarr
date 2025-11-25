@@ -1,9 +1,9 @@
-import { ConfigSchema } from '@root/schemas/config/config.schema'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import { z } from 'zod'
 import { discordWebhookStringSchema } from '@/utils/discord-webhook-validation'
 
 // Extract Discord webhook field from backend API schema and extend with validation
-const ApiWebhookSchema = ConfigSchema.pick({
+const ApiWebhookSchema = ConfigUpdateSchema.pick({
   discordWebhookUrl: true,
 })
 
