@@ -1394,6 +1394,7 @@ export async function getTempRssItems(
     genres: string[]
     source: 'self' | 'friends'
     created_at: string
+    routed: boolean
   }>
 > {
   const query = this.knex('temp_rss_items')
@@ -1421,6 +1422,19 @@ export async function deleteTempRssItems(
   ids: number[],
 ): Promise<void> {
   await this.knex('temp_rss_items').whereIn('id', ids).delete()
+}
+
+/**
+ * Marks temporary RSS items as successfully routed to Radarr/Sonarr.
+ *
+ * @param ids - The IDs of the temporary RSS items to mark as routed.
+ */
+export async function markTempRssItemsAsRouted(
+  this: DatabaseService,
+  ids: number[],
+): Promise<void> {
+  if (ids.length === 0) return
+  await this.knex('temp_rss_items').whereIn('id', ids).update({ routed: true })
 }
 
 /**

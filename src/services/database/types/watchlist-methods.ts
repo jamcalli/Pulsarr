@@ -247,6 +247,7 @@ declare module '@services/database.service.js' {
         genres: string[]
         source: 'self' | 'friends'
         created_at: string
+        routed: boolean
       }>
     >
 
@@ -256,6 +257,16 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to void when complete
      */
     deleteTempRssItems(this: DatabaseService, ids: number[]): Promise<void>
+
+    /**
+     * Marks temporary RSS items as successfully routed to Radarr/Sonarr
+     * @param ids - Array of item IDs to mark as routed
+     * @returns Promise resolving to void when complete
+     */
+    markTempRssItemsAsRouted(
+      this: DatabaseService,
+      ids: number[],
+    ): Promise<void>
 
     /**
      * Deletes all temporary RSS items

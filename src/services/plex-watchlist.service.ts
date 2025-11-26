@@ -176,7 +176,7 @@ export class PlexWatchlistService {
    * @param item - Watchlist item details
    * @returns Promise resolving to boolean indicating if any notifications were sent
    */
-  private async sendWatchlistNotifications(
+  async sendWatchlistNotifications(
     user: Friend & { userId: number },
     item: {
       id?: number | string
@@ -907,7 +907,7 @@ export class PlexWatchlistService {
   private async processAndSaveNewItems(
     brandNewItems: Map<Friend, Set<TokenWatchlistItem>>,
     isSelfWatchlist = false,
-    existingGuidsSnapshot?: Set<string>,
+    _existingGuidsSnapshot?: Set<string>,
     isMetadataRefresh = false,
   ): Promise<Map<Friend, Set<WatchlistItem>>> {
     if (brandNewItems.size === 0) {
@@ -1029,15 +1029,11 @@ export class PlexWatchlistService {
 
         this.log.debug(`Processed ${itemsToInsert.length} new items`)
 
-        // Send notifications directly if we have a GUID snapshot
-        // This handles the interval-based sync case (not RSS)
-        // Skip notifications during metadata refresh since these aren't actually new items
-        if (existingGuidsSnapshot && !isMetadataRefresh) {
-          await this.sendNotificationsForNewItems(
-            processedItems,
-            existingGuidsSnapshot,
-          )
-        }
+        // REMOVED: Old notification behavior that sent "Added by X" notifications
+        //          regardless of whether content was actually routed.
+        // New behavior: Notifications only sent after successful routing:
+        //   - RSS immediate: Checked via pendingItem.routed flag in processRssPendingItems()
+        //   - Reconciliation: Sent directly from processShowWithRouting()/processMovieWithRouting()
 
         if (emitProgress) {
           this.fastify.progress.emit({
@@ -1058,201 +1054,13 @@ export class PlexWatchlistService {
     )
   }
 
-  /**
-   * Checks if the RSS workflow is fully initialized and actively running
-   *
-   * @returns boolean indicating if RSS workflow is active and fully initialized
-   */
-  private isRssWorkflowActive(): boolean {
-    try {
-      // Check if the workflow service exists
-      if (!this.fastify.watchlistWorkflow) {
-        this.log.debug('Watchlist workflow service not found')
-        return false
-      }
-
-      // Check if the workflow is fully initialized and in RSS mode
-      const isInitialized =
-        this.fastify.watchlistWorkflow.isInitialized() === true
-      const isRssMode = this.fastify.watchlistWorkflow.isRssMode() === true
-      const isActive = isInitialized && isRssMode
-
-      if (isActive) {
-        this.log.debug('RSS workflow is active and fully initialized')
-      } else {
-        this.log.debug(
-          `RSS workflow is not yet active or fully initialized (initialized: ${isInitialized}, rssMode: ${isRssMode})`,
-        )
-      }
-
-      return isActive
-    } catch (error) {
-      this.log.error({ error }, 'Error checking RSS workflow status:')
-      return false
-    }
-  }
-
-  /**
-   * Sends notifications for newly added items during full sync
-   *
-   * Note: This method will send notifications during application startup or initial sync
-   * even when in RSS mode. Once the RSS workflow is fully initialized and active,
-   * notifications for new items will be handled by that process instead.
-   *
-   * @param processedItems - Map of users to their newly processed watchlist items
-   * @param existingGuidsSnapshot - Snapshot of GUIDs that existed before sync
-   */
-  private async sendNotificationsForNewItems(
-    processedItems: Map<Friend, Set<WatchlistItem>>,
-    existingGuidsSnapshot: Set<string>,
-  ): Promise<void> {
-    // Clear user sync cache for fresh permissions per operation
-    this.userCanSyncCache.clear()
-
-    // Skip notification only if RSS workflow is fully initialized and active
-    // During startup/initial sync, we still send notifications even in RSS mode
-    if (this.isRssWorkflowActive()) {
-      this.log.debug(
-        'Skipping direct notifications because RSS workflow is fully initialized and active',
-      )
-      return
-    }
-
-    // Prefetch can_sync for users and filter out disabled users early
-    const enabledUserIds = new Set<number>()
-    await Promise.all(
-      Array.from(processedItems.keys()).map(async (user) => {
-        if (!user?.userId) return
-        const canSync = await this.getUserCanSync(user.userId)
-        if (canSync) enabledUserIds.add(user.userId)
-      }),
-    )
-    if (enabledUserIds.size === 0) {
-      this.log.debug(
-        'All users in this batch have sync disabled; skipping notifications',
-      )
-      return
-    }
-
-    const guidCache = new Map<string, string[]>()
-    let notificationsSent = 0
-
-    // Get notification cache for each user-title combination
-    const notificationChecks = new Map<number, Map<string, boolean>>()
-
-    this.log.debug(
-      `Checking ${processedItems.size} users for potential notifications of new items`,
-    )
-
-    // Pre-process titles for each user to check existing notifications
-    const userItemTitles = new Map<number, string[]>()
-    for (const [user, items] of processedItems.entries()) {
-      if (!user.userId || !enabledUserIds.has(user.userId)) continue
-
-      const titles: string[] = []
-      for (const item of items) {
-        if (item.title) titles.push(item.title)
-      }
-
-      if (titles.length > 0) {
-        userItemTitles.set(user.userId, titles)
-      }
-    }
-
-    // Fetch all notification checks in one batch per user
-    await Promise.all(
-      Array.from(userItemTitles.entries()).map(async ([userId, titles]) => {
-        try {
-          const checks = await this.dbService.checkExistingWebhooks(
-            userId,
-            titles,
-          )
-          notificationChecks.set(userId, checks)
-        } catch (error) {
-          this.log.error(
-            { error, userId },
-            'Error checking existing notifications for user',
-          )
-          // Create an empty map for this user to avoid crashes
-          notificationChecks.set(userId, new Map())
-        }
-      }),
-    )
-
-    // Now process all items with the cached notification checks
-    for (const [user, items] of processedItems.entries()) {
-      if (!user.userId || !enabledUserIds.has(user.userId)) continue
-
-      const userNotifications =
-        notificationChecks.get(user.userId) || new Map<string, boolean>()
-
-      for (const item of items) {
-        // Skip items without titles or types
-        if (!item.title || !item.type) continue
-
-        // Get and normalize GUIDs for this item
-        const itemGuids = this.getParsedGuids(guidCache, item.guids || [])
-
-        // Check if this item already has a notification
-        const hasExistingNotification =
-          userNotifications.get(item.title) === true
-
-        if (hasExistingNotification) {
-          this.log.debug(
-            `Skipping notification for "${item.title}" - already sent previously to user ID ${user.userId}`,
-          )
-          continue
-        }
-
-        // Check if any GUIDs existed before sync
-        let existedBeforeSync = false
-        for (const guid of itemGuids) {
-          const normalizedGuid = guid.toLowerCase()
-          if (existingGuidsSnapshot.has(normalizedGuid)) {
-            this.log.debug(
-              { title: item.title, guid },
-              `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync`,
-            )
-            existedBeforeSync = true
-            break
-          }
-        }
-
-        if (!existedBeforeSync) {
-          // Send notification for this item
-          // Note: The processedItems contains WatchlistItem objects from the API
-          // which use 'plexKey' instead of 'key'
-          // Convert plexKey to string or number if present, otherwise undefined
-          const itemId =
-            'plexKey' in item
-              ? typeof item.plexKey === 'string' ||
-                typeof item.plexKey === 'number'
-                ? item.plexKey
-                : String(item.plexKey)
-              : undefined
-
-          const notificationSent = await this.sendWatchlistNotifications(user, {
-            id: itemId,
-            title: item.title,
-            type: item.type,
-            thumb: item.thumb,
-          })
-
-          if (notificationSent) {
-            notificationsSent++
-          }
-        }
-      }
-    }
-
-    if (notificationsSent > 0) {
-      this.log.info(
-        `Sent ${notificationsSent} notifications for newly added items during full sync`,
-      )
-    } else {
-      this.log.debug('No new notifications needed for full sync items')
-    }
-  }
+  // Old behavior: Sent "Added by X" notifications as soon as items were detected,
+  //               regardless of routing outcome or existing content status.
+  // New behavior: Notifications only sent when content is actually routed:
+  //   - RSS immediate path: Checked via pendingItem.routed flag in processRssPendingItems()
+  //   - Reconciliation path: Sent directly from processShowWithRouting()/processMovieWithRouting()
+  //     when routedInstances.length > 0
+  // This function was removed as part of the route-only notifications refactor.
 
   private async linkExistingItems(
     existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
@@ -2192,13 +2000,26 @@ export class PlexWatchlistService {
         // Check if notification should be sent
         let shouldSendNotification = true
 
-        // Check if already notified (using prefetched data)
-        const userNotifications = notificationChecks.get(bestMatch.user.userId)
-        if (userNotifications?.get(bestMatch.item.title)) {
+        // Check if item was actually routed (route-only notifications)
+        if (!pendingItem.routed) {
           this.log.debug(
-            `Skipping notification for "${bestMatch.item.title}" - already sent previously to user ID ${bestMatch.user.userId}`,
+            { itemTitle: bestMatch.item.title, userId: bestMatch.user.userId },
+            `Skipping notification for "${bestMatch.item.title}" - content was not routed to Radarr/Sonarr`,
           )
           shouldSendNotification = false
+        }
+
+        // Check if already notified (using prefetched data)
+        if (shouldSendNotification) {
+          const userNotifications = notificationChecks.get(
+            bestMatch.user.userId,
+          )
+          if (userNotifications?.get(bestMatch.item.title)) {
+            this.log.debug(
+              `Skipping notification for "${bestMatch.item.title}" - already sent previously to user ID ${bestMatch.user.userId}`,
+            )
+            shouldSendNotification = false
+          }
         }
 
         // Check if existed before sync
