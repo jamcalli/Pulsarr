@@ -1994,6 +1994,14 @@ export class PlexWatchlistService {
             type: bestMatch.item.type || 'unknown',
             thumb: bestMatch.item.thumb,
           })
+
+          // Update in-memory cache to prevent duplicate notifications in same batch
+          let userNotifications = notificationChecks.get(bestMatch.user.userId)
+          if (!userNotifications) {
+            userNotifications = new Map()
+            notificationChecks.set(bestMatch.user.userId, userNotifications)
+          }
+          userNotifications.set(bestMatch.item.title, true)
         } else if (
           shouldSendNotification &&
           !enabledUserIds.has(bestMatch.user.userId)
