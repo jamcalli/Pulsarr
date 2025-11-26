@@ -920,7 +920,7 @@ export class TmdbService {
         const retryAfter = response.headers.get('retry-after')
         const baseWaitTime = retryAfter
           ? Number.parseInt(retryAfter, 10) * 1000
-          : 2 ** retryCount429 * 1000 // Exponential backoff: 1s, 2s, 4s
+          : 2 ** (retryCount429 + 1) * 1000 // Exponential backoff: 2s, 4s, 8s
 
         // Add ±10% jitter to prevent synchronized retries
         const jitter = baseWaitTime * 0.1
