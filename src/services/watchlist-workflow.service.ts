@@ -811,6 +811,7 @@ export class WatchlistWorkflowService {
     source: 'self' | 'friends',
   ): Promise<void> {
     let hasNewItems = false
+    const routedGuids = new Set<string>() // Track which items were successfully routed
 
     // Check if processing should be deferred (includes both sync disabled and user routing rules)
     const shouldDefer = await this.shouldDeferProcessing()
@@ -829,20 +830,30 @@ export class WatchlistWorkflowService {
 
         // Only process immediately if we don't need to defer
         if (!shouldDefer) {
+          let wasRouted = false
+
           if (item.type.toLowerCase() === 'show') {
             this.log.info(`Processing show ${item.title} immediately`)
             const normalizedItem = {
               ...item,
               type: 'show',
             }
-            await this.processSonarrItem(normalizedItem)
+            wasRouted = await this.processSonarrItem(normalizedItem)
           } else if (item.type.toLowerCase() === 'movie') {
             this.log.info(`Processing movie ${item.title} immediately`)
             const normalizedItem = {
               ...item,
               type: 'movie',
             }
-            await this.processRadarrItem(normalizedItem)
+            wasRouted = await this.processRadarrItem(normalizedItem)
+          }
+
+          // Track routed GUIDs for storage
+          if (wasRouted && item.guids) {
+            const guids = Array.isArray(item.guids) ? item.guids : [item.guids]
+            for (const guid of guids) {
+              routedGuids.add(guid.toLowerCase())
+            }
           }
         } else {
           this.log.debug(
@@ -865,7 +876,11 @@ export class WatchlistWorkflowService {
       await this.unschedulePendingReconciliation()
 
       try {
-        await this.plexService.storeRssWatchlistItems(items, source)
+        await this.plexService.storeRssWatchlistItems(
+          items,
+          source,
+          routedGuids,
+        )
         this.log.debug(`Stored ${items.size} changed ${source} RSS items`)
       } catch (error) {
         this.log.error({ error }, `Error storing ${source} RSS items:`)
@@ -1115,7 +1130,7 @@ export class WatchlistWorkflowService {
    * and routes it using the content router.
    *
    * @param item - Movie watchlist item to process
-   * @returns Promise resolving to true if processed successfully
+   * @returns Promise resolving to true if content was actually routed to Radarr
    */
   private async processRadarrItem(
     item: TemptRssWatchlistItem,
@@ -1136,7 +1151,7 @@ export class WatchlistWorkflowService {
       // Verify item isn't already in Radarr
       const shouldAdd = await this.verifyRadarrItem(item)
       if (!shouldAdd) {
-        return true // Item exists, considered successfully processed
+        return false // Item exists, not routed
       }
 
       // Prepare item for Radarr
@@ -1156,16 +1171,15 @@ export class WatchlistWorkflowService {
         },
       )
 
-      // If content was routed, mark the temp RSS item as routed
-      if (routedInstances.length > 0) {
-        await this.markRssItemAsRouted(item.guids)
+      const wasRouted = routedInstances.length > 0
+
+      if (wasRouted) {
+        this.log.info(
+          `Successfully routed movie ${item.title} via content router`,
+        )
       }
 
-      this.log.info(
-        `Successfully routed movie ${item.title} via content router`,
-      )
-
-      return true
+      return wasRouted
     } catch (error) {
       this.log.error(
         {
@@ -1187,7 +1201,7 @@ export class WatchlistWorkflowService {
    * and routes it using the content router.
    *
    * @param item - Show watchlist item to process
-   * @returns Promise resolving to true if processed successfully
+   * @returns Promise resolving to true if content was actually routed to Sonarr
    */
   private async processSonarrItem(
     item: TemptRssWatchlistItem,
@@ -1208,7 +1222,7 @@ export class WatchlistWorkflowService {
       // Verify item isn't already in Sonarr
       const shouldAdd = await this.verifySonarrItem(item)
       if (!shouldAdd) {
-        return true // Item exists, considered successfully processed
+        return false // Item exists, not routed
       }
 
       // Prepare item for Sonarr
@@ -1231,14 +1245,15 @@ export class WatchlistWorkflowService {
         },
       )
 
-      // If content was routed, mark the temp RSS item as routed
-      if (routedInstances.length > 0) {
-        await this.markRssItemAsRouted(item.guids)
+      const wasRouted = routedInstances.length > 0
+
+      if (wasRouted) {
+        this.log.info(
+          `Successfully routed show ${item.title} via content router`,
+        )
       }
 
-      this.log.info(`Successfully routed show ${item.title} via content router`)
-
-      return true
+      return wasRouted
     } catch (error) {
       this.log.error(
         {
@@ -1250,49 +1265,6 @@ export class WatchlistWorkflowService {
         'Error processing show in Sonarr',
       )
       throw error
-    }
-  }
-
-  /**
-   * Mark temp RSS items as routed by matching GUIDs
-   *
-   * Queries the temp_rss_items table to find items with matching GUIDs
-   * and marks them as successfully routed.
-   *
-   * @param guids - Array of GUIDs to match against temp_rss_items
-   */
-  private async markRssItemAsRouted(
-    guids: string | string[] | undefined,
-  ): Promise<void> {
-    // Normalize guids to string[]
-    const guidArray = Array.isArray(guids)
-      ? guids
-      : typeof guids === 'string'
-        ? [guids]
-        : []
-    if (guidArray.length === 0) return
-
-    try {
-      // Get all temp RSS items to find matches
-      const allTempItems = await this.dbService.getTempRssItems()
-
-      // Find items that match any of the provided GUIDs
-      const matchingIds = allTempItems
-        .filter((tempItem) =>
-          tempItem.guids.some((guid) => guidArray.includes(guid)),
-        )
-        .map((item) => item.id)
-
-      if (matchingIds.length > 0) {
-        await this.dbService.markTempRssItemsAsRouted(matchingIds)
-        this.log.debug(
-          { count: matchingIds.length },
-          'Marked temp RSS items as routed',
-        )
-      }
-    } catch (error) {
-      this.log.error({ error, guids }, 'Error marking temp RSS item as routed')
-      // Don't throw - routing succeeded, this is just tracking
     }
   }
 
@@ -1879,20 +1851,32 @@ export class WatchlistWorkflowService {
         },
       )
 
-      // Send notification only if content was actually routed
+      // Send notification only if content was actually routed and not already notified
       if (routedInstances.length > 0 && userName) {
-        await this.plexService.sendWatchlistNotifications(
-          {
-            userId: numericUserId,
-            username: userName,
-            watchlistId: String(numericUserId),
-          },
-          {
-            title: tempItem.title,
-            type: 'show',
-            thumb: tempItem.thumb,
-          },
-        )
+        // Check if notification was already sent for this user/title
+        const existingNotifications =
+          await this.dbService.checkExistingWebhooks(numericUserId, [
+            tempItem.title,
+          ])
+
+        if (!existingNotifications.get(tempItem.title)) {
+          await this.plexService.sendWatchlistNotifications(
+            {
+              userId: numericUserId,
+              username: userName,
+              watchlistId: String(numericUserId),
+            },
+            {
+              title: tempItem.title,
+              type: 'show',
+              thumb: tempItem.thumb,
+            },
+          )
+        } else {
+          this.log.debug(
+            `Skipping notification for "${tempItem.title}" - already sent previously to user ${userName}`,
+          )
+        }
       }
 
       return true
@@ -2003,20 +1987,32 @@ export class WatchlistWorkflowService {
         },
       )
 
-      // Send notification only if content was actually routed
+      // Send notification only if content was actually routed and not already notified
       if (routedInstances.length > 0 && userName) {
-        await this.plexService.sendWatchlistNotifications(
-          {
-            userId: numericUserId,
-            username: userName,
-            watchlistId: String(numericUserId),
-          },
-          {
-            title: tempItem.title,
-            type: 'movie',
-            thumb: tempItem.thumb,
-          },
-        )
+        // Check if notification was already sent for this user/title
+        const existingNotifications =
+          await this.dbService.checkExistingWebhooks(numericUserId, [
+            tempItem.title,
+          ])
+
+        if (!existingNotifications.get(tempItem.title)) {
+          await this.plexService.sendWatchlistNotifications(
+            {
+              userId: numericUserId,
+              username: userName,
+              watchlistId: String(numericUserId),
+            },
+            {
+              title: tempItem.title,
+              type: 'movie',
+              thumb: tempItem.thumb,
+            },
+          )
+        } else {
+          this.log.debug(
+            `Skipping notification for "${tempItem.title}" - already sent previously to user ${userName}`,
+          )
+        }
       }
 
       return true

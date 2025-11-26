@@ -110,32 +110,6 @@ export class PlexWatchlistService {
   }
 
   /**
-   * Creates a snapshot of existing GUIDs for a specific operation
-   *
-   * @returns Promise resolving to a Set of lowercase GUIDs
-   */
-  private async createGuidsSnapshot(): Promise<Set<string>> {
-    try {
-      // Use the optimized database method
-      const guids = await this.dbService.getAllGuidsMapped()
-
-      // Convert array to Set for O(1) lookups
-      const snapshot = new Set<string>()
-      for (const guid of guids) {
-        snapshot.add(guid.toLowerCase())
-      }
-
-      this.log.debug(
-        `Created GUIDs snapshot with ${snapshot.size} unique GUIDs`,
-      )
-      return snapshot
-    } catch (error) {
-      this.log.error({ error }, 'Error creating GUIDs snapshot:')
-      return new Set()
-    }
-  }
-
-  /**
    * Gets parsed GUIDs with caching to avoid repeated parsing
    *
    * @param guidCache - Cache Map to store parsed results
@@ -309,9 +283,6 @@ export class PlexWatchlistService {
       throw new Error('No Plex token configured')
     }
 
-    // Create a snapshot for this specific operation
-    const existingGuidsSnapshot = await this.createGuidsSnapshot()
-
     // Ensure users exist for tokens (this populates the database)
     await this.ensureTokenUsers()
 
@@ -368,7 +339,6 @@ export class PlexWatchlistService {
     const processedItems = await this.processAndSaveNewItems(
       brandNewItems,
       true,
-      existingGuidsSnapshot,
       forceRefresh,
     )
     await this.linkExistingItems(existingItemsToLink)
@@ -399,7 +369,6 @@ export class PlexWatchlistService {
 
     await this.matchRssPendingItemsSelf(
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
-      existingGuidsSnapshot,
     )
 
     await this.checkForRemovedItems(userWatchlistMap)
@@ -462,9 +431,6 @@ export class PlexWatchlistService {
     if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
     }
-
-    // Create a snapshot for this specific operation
-    const existingGuidsSnapshot = await this.createGuidsSnapshot()
 
     const friendsResult = await getFriends(this.config, this.log)
 
@@ -553,7 +519,6 @@ export class PlexWatchlistService {
     const processedItems = await this.processAndSaveNewItems(
       brandNewItems,
       false,
-      existingGuidsSnapshot,
       forceRefresh,
     )
     await this.linkExistingItems(existingItemsToLink)
@@ -577,7 +542,6 @@ export class PlexWatchlistService {
 
     await this.matchRssPendingItemsFriends(
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
-      existingGuidsSnapshot,
     )
 
     await this.checkForRemovedItems(userWatchlistMap)
@@ -907,7 +871,6 @@ export class PlexWatchlistService {
   private async processAndSaveNewItems(
     brandNewItems: Map<Friend, Set<TokenWatchlistItem>>,
     isSelfWatchlist = false,
-    _existingGuidsSnapshot?: Set<string>,
     isMetadataRefresh = false,
   ): Promise<Map<Friend, Set<WatchlistItem>>> {
     if (brandNewItems.size === 0) {
@@ -1494,15 +1457,25 @@ export class PlexWatchlistService {
   async storeRssWatchlistItems(
     items: Set<TemptRssWatchlistItem>,
     source: 'self' | 'friends',
+    routedGuids?: Set<string>,
   ): Promise<void> {
-    const formattedItems = Array.from(items).map((item) => ({
-      title: item.title,
-      type: item.type,
-      thumb: item.thumb || undefined,
-      guids: parseGuids(item.guids),
-      genres: parseGenres(item.genres),
-      source: source,
-    }))
+    const formattedItems = Array.from(items).map((item) => {
+      const itemGuids = parseGuids(item.guids)
+      // Check if any of this item's GUIDs were routed
+      const isRouted = routedGuids
+        ? itemGuids.some((g) => routedGuids.has(g.toLowerCase()))
+        : false
+
+      return {
+        title: item.title,
+        type: item.type,
+        thumb: item.thumb || undefined,
+        guids: itemGuids,
+        genres: parseGenres(item.genres),
+        source: source,
+        routed: isRouted,
+      }
+    })
 
     if (formattedItems.length > 0) {
       await this.dbService.createTempRssItems(formattedItems)
@@ -1577,24 +1550,14 @@ export class PlexWatchlistService {
 
   async matchRssPendingItemsSelf(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
-    existingGuidsSnapshot: Set<string>,
   ): Promise<void> {
-    return this.processRssPendingItems(
-      userWatchlistMap,
-      existingGuidsSnapshot,
-      'self',
-    )
+    return this.processRssPendingItems(userWatchlistMap, 'self')
   }
 
   async matchRssPendingItemsFriends(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
-    existingGuidsSnapshot: Set<string>,
   ): Promise<void> {
-    return this.processRssPendingItems(
-      userWatchlistMap,
-      existingGuidsSnapshot,
-      'friends',
-    )
+    return this.processRssPendingItems(userWatchlistMap, 'friends')
   }
 
   private async handleRemovedItems(
@@ -1906,13 +1869,11 @@ export class PlexWatchlistService {
    * Process pending RSS items for matching and notification
    *
    * @param userWatchlistMap - Map of users to their watchlist items
-   * @param existingGuidsSnapshot - Snapshot of existing GUIDs before sync
    * @param source - Source of RSS items ('self' or 'friends')
    * @returns Promise resolving when processing is complete
    */
   private async processRssPendingItems(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
-    existingGuidsSnapshot: Set<string>,
     source: 'self' | 'friends',
   ): Promise<void> {
     // Clear user sync cache for fresh permissions per operation
@@ -2019,25 +1980,6 @@ export class PlexWatchlistService {
               `Skipping notification for "${bestMatch.item.title}" - already sent previously to user ID ${bestMatch.user.userId}`,
             )
             shouldSendNotification = false
-          }
-        }
-
-        // Check if existed before sync
-        if (shouldSendNotification) {
-          for (const guid of pendingGuids) {
-            const normalizedGuid = guid.toLowerCase()
-            if (existingGuidsSnapshot.has(normalizedGuid)) {
-              this.log.debug(
-                {
-                  itemTitle: bestMatch.item.title,
-                  guid,
-                  userId: bestMatch.user.userId,
-                },
-                `Skipping notification for "${bestMatch.item.title}" - item with GUID ${guid} already existed before sync for user ID ${bestMatch.user.userId}`,
-              )
-              shouldSendNotification = false
-              break
-            }
           }
         }
 
