@@ -307,7 +307,8 @@ export class ContentRouterService {
       // Continue with default routing path on error
     }
 
-    const hasAnyRules = allRouterRules.length > 0
+    // Check if any enabled rules exist to avoid unnecessary enrichment
+    const hasAnyRules = allRouterRules.some((rule) => rule.enabled)
 
     // If no rules exist and we're not in a special routing scenario,
     // skip directly to default routing
