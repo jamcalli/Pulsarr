@@ -295,14 +295,10 @@ export class ContentRouterService {
     )
 
     // OPTIMIZATION: Check if any router rules exist at all and cache them
-    let hasAnyRules = false
     let allRouterRules: Awaited<ReturnType<typeof this.getAllRouterRules>> = []
     try {
-      hasAnyRules = await this.fastify.db.hasAnyRouterRules()
-      // If rules exist, fetch and cache them for use throughout routing
-      if (hasAnyRules) {
-        allRouterRules = await this.getAllRouterRules()
-      }
+      // Fetch all router rules (uses cache if available)
+      allRouterRules = await this.getAllRouterRules()
     } catch (error) {
       this.log.error(
         { error },
@@ -310,6 +306,8 @@ export class ContentRouterService {
       )
       // Continue with default routing path on error
     }
+
+    const hasAnyRules = allRouterRules.length > 0
 
     // If no rules exist and we're not in a special routing scenario,
     // skip directly to default routing
