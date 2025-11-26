@@ -9,10 +9,8 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 import { api } from '@/lib/api'
+import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { useConfigStore } from '@/stores/configStore'
-
-// Minimum loading delay
-const MIN_LOADING_DELAY = 500
 
 // Extended status response type with config
 interface ExtendedPlexNotificationStatusResponse
@@ -275,10 +273,26 @@ export function usePlexNotifications() {
     [form],
   )
 
-  // Handle form cancellation
+  // Handle form cancellation - reset to last saved values from server
   const handleCancel = useCallback(() => {
-    form.reset()
-  }, [form])
+    if (lastResults && 'config' in lastResults && lastResults.config) {
+      form.reset({
+        plexToken:
+          lastResults.config.plexToken || config?.plexTokens?.[0] || '',
+        plexHost: lastResults.config.plexHost || '',
+        plexPort: lastResults.config.plexPort || 32400,
+        useSsl: lastResults.config.useSsl || false,
+      })
+    } else {
+      // No saved config, reset to defaults with current token
+      form.reset({
+        plexToken: config?.plexTokens?.[0] || '',
+        plexHost: '',
+        plexPort: 32400,
+        useSsl: false,
+      })
+    }
+  }, [form, lastResults, config?.plexTokens])
 
   // Handle deletion of Plex notifications
   const handleDelete = useCallback(async () => {

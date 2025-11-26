@@ -1248,6 +1248,10 @@ export class WatchlistWorkflowService {
       // Clear Plex resources cache to ensure fresh data for this reconciliation cycle
       this.fastify.plexServerService.clearPlexResourcesCache()
 
+      // Clear content availability cache for this reconciliation cycle
+      // This is reconciliation-scoped - cache is rebuilt fresh each cycle
+      this.fastify.plexServerService.clearContentCacheForReconciliation()
+
       // Get all users to check their sync permissions
       const allUsers = await this.dbService.getAllUsers()
       const userSyncStatus = new Map<number, boolean>()

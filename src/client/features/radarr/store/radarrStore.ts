@@ -210,11 +210,7 @@ export const useRadarrStore = create<RadarrState>()(
         const response = await fetch(api('/v1/plex/genres'))
         const data: { success: boolean; genres: string[] } =
           await response.json()
-        if (data.success) {
-          set({ genres: data.genres })
-        } else {
-          throw new Error('Failed to fetch genres')
-        }
+        set({ genres: data.genres })
       } catch (error) {
         console.error('Failed to fetch genres:', error)
         throw error

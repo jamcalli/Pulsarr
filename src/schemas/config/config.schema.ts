@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
 import {
   RemovedTagPrefixSchema,
@@ -86,7 +87,172 @@ const DeleteSyncTagRegexSchema = z
     },
   )
 
-export const ConfigSchema = z.object({
+// Schema for complete config (GET responses) - matches exactly what getConfig() returns
+export const ConfigFullSchema = z.object({
+  // System identifiers and timestamps
+  id: z.number(),
+  created_at: z.string(), // ISO timestamp from database
+  updated_at: z.string(), // ISO timestamp from database
+  // System Config (from database)
+  baseUrl: z.string().optional(),
+  port: z.number().optional(),
+  dbPath: z.string().optional(),
+  cookieSecret: z.string().optional(),
+  cookieName: z.string().optional(),
+  cookieSecured: z.boolean(),
+  // Logging & Performance
+  logLevel: LogLevelEnum.optional(),
+  closeGraceDelay: z.number().optional(),
+  rateLimitMax: z.number().optional(),
+  syncIntervalSeconds: z.number(),
+  queueProcessDelaySeconds: z.number(),
+  // Discord Config
+  discordWebhookUrl: z.string().optional(),
+  discordBotToken: z.string().optional(),
+  discordClientId: z.string().optional(),
+  discordGuildId: z.string().optional(),
+  // Apprise Config (merged from runtime in route handler)
+  enableApprise: z.boolean(),
+  appriseUrl: z.string(),
+  systemAppriseUrl: z.string().optional(),
+  // Public Content Notifications - getConfig() always returns this with defaults
+  publicContentNotifications: z.object({
+    enabled: z.boolean(),
+    discordWebhookUrls: z.string(),
+    discordWebhookUrlsMovies: z.string(),
+    discordWebhookUrlsShows: z.string(),
+    appriseUrls: z.string(),
+    appriseUrlsMovies: z.string(),
+    appriseUrlsShows: z.string(),
+  }),
+  // Tautulli Config
+  tautulliEnabled: z.boolean(),
+  tautulliUrl: z.string(),
+  tautulliApiKey: z.string(),
+  // Delete Config
+  deletionMode: DeletionModeEnum,
+  // General Notifications (stored in milliseconds)
+  queueWaitTime: z.number(),
+  newEpisodeThreshold: z.number(),
+  upgradeBufferTime: z.number(),
+  // Pending Webhooks Config
+  pendingWebhookRetryInterval: z.number(),
+  pendingWebhookMaxAge: z.number(),
+  pendingWebhookCleanupInterval: z.number(),
+  // TMDB Config (region from DB, API key NOT returned for security)
+  tmdbRegion: z.string(),
+  // Plex Config
+  plexTokens: z.array(z.string()),
+  skipFriendSync: z.boolean(),
+  plexServerUrl: z.string().optional(),
+  skipIfExistsOnPlex: z.boolean(),
+  deleteMovie: z.boolean(),
+  deleteEndedShow: z.boolean(),
+  deleteContinuingShow: z.boolean(),
+  deleteFiles: z.boolean(),
+  respectUserSyncSetting: z.boolean(),
+  deleteSyncNotify: DeleteSyncNotifyOptionEnum,
+  approvalNotify: NotifyOptionEnum,
+  deleteSyncNotifyOnlyOnDeletion: z.boolean(),
+  maxDeletionPrevention: z.number().optional(),
+  deleteSyncTrackedOnly: z.boolean(),
+  deleteSyncCleanupApprovals: z.boolean(),
+  deleteSyncRequiredTagRegex: z.string(),
+  enablePlexPlaylistProtection: z.boolean(),
+  plexProtectionPlaylistName: z.string(),
+  // Plex Label Sync Configuration - getConfig() always returns this with defaults
+  plexLabelSync: PlexLabelSyncConfigSchema,
+  // RSS Config
+  selfRss: z.string().optional(),
+  friendsRss: z.string().optional(),
+  // Tagging Config
+  tagUsersInSonarr: z.boolean(),
+  tagUsersInRadarr: z.boolean(),
+  cleanupOrphanedTags: z.boolean(),
+  // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
+  // persistHistoricalTags: z.boolean(),
+  tagPrefix: z.string(),
+  removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
+  removedTagPrefix: z.string(),
+  // Tag Migration Configuration
+  tagMigration: z
+    .object({
+      radarr: z.record(
+        z.string(),
+        z.object({
+          completed: z.boolean(),
+          migratedAt: z.string(),
+          tagsMigrated: z.number(),
+          contentUpdated: z.number(),
+        }),
+      ),
+      sonarr: z.record(
+        z.string(),
+        z.object({
+          completed: z.boolean(),
+          migratedAt: z.string(),
+          tagsMigrated: z.number(),
+          contentUpdated: z.number(),
+        }),
+      ),
+    })
+    .optional(),
+  // Plex Session Monitoring
+  plexSessionMonitoring: z
+    .object({
+      enabled: z.boolean(),
+      pollingIntervalMinutes: z.number(),
+      remainingEpisodes: z.number(),
+      filterUsers: z.array(z.string()).optional(),
+      enableAutoReset: z.boolean().optional(),
+      inactivityResetDays: z.number().optional(),
+      autoResetIntervalHours: z.number().optional(),
+      enableProgressiveCleanup: z.boolean().optional(),
+    })
+    .optional(),
+  // New User Defaults - getConfig() applies defaults with Boolean() and || operators
+  newUserDefaultCanSync: z.boolean(),
+  newUserDefaultRequiresApproval: z.boolean(),
+  newUserDefaultMovieQuotaEnabled: z.boolean(),
+  newUserDefaultMovieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
+  newUserDefaultMovieQuotaLimit: z.number(),
+  newUserDefaultMovieBypassApproval: z.boolean(),
+  newUserDefaultShowQuotaEnabled: z.boolean(),
+  newUserDefaultShowQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']),
+  newUserDefaultShowQuotaLimit: z.number(),
+  newUserDefaultShowBypassApproval: z.boolean(),
+  // Quota System Configuration - getConfig() always returns this with defaults
+  quotaSettings: z.object({
+    cleanup: z.object({
+      enabled: z.boolean(),
+      retentionDays: z.number(),
+    }),
+    weeklyRolling: z.object({
+      resetDays: z.number(),
+    }),
+    monthly: z.object({
+      resetDay: z.number(),
+      handleMonthEnd: z.enum(['last-day', 'skip-month', 'next-month']),
+    }),
+  }),
+  // Approval System Configuration - getConfig() always returns this with defaults
+  approvalExpiration: z.object({
+    enabled: z.boolean(),
+    defaultExpirationHours: z.number(),
+    expirationAction: z.enum(['expire', 'auto_approve']),
+    // Per-trigger expiration overrides (optional - only present if explicitly set)
+    quotaExceededExpirationHours: z.number().optional(),
+    routerRuleExpirationHours: z.number().optional(),
+    manualFlagExpirationHours: z.number().optional(),
+    contentCriteriaExpirationHours: z.number().optional(),
+    cleanupExpiredDays: z.number(),
+  }),
+  // Ready state
+  _isReady: z.boolean(),
+})
+
+// Schema for config updates (PUT) - all fields optional for partial updates
+export const ConfigUpdateSchema = z.object({
   port: z.number().optional(),
   dbPath: z.string().optional(),
   cookieSecret: z.string().optional(),
@@ -321,15 +487,27 @@ export const ConfigSchema = z.object({
     .optional(),
 })
 
-export const ConfigResponseSchema = z.object({
-  success: z.boolean(),
-  config: ConfigSchema,
+// Response schemas
+export const ConfigGetResponseSchema = z.object({
+  success: z.literal(true),
+  config: ConfigFullSchema,
 })
 
-export const ConfigErrorSchema = z.object({
-  error: z.string(),
+export const ConfigUpdateResponseSchema = z.object({
+  success: z.literal(true),
+  config: ConfigFullSchema,
 })
 
-export type Config = z.infer<typeof ConfigSchema>
-export type ConfigResponse = z.infer<typeof ConfigResponseSchema>
-export type ConfigError = z.infer<typeof ConfigErrorSchema>
+// Type exports
+export type ConfigFull = z.infer<typeof ConfigFullSchema>
+export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>
+export type ConfigGetResponse = z.infer<typeof ConfigGetResponseSchema>
+export type ConfigUpdateResponse = z.infer<typeof ConfigUpdateResponseSchema>
+
+// Legacy export for backward compatibility - prefer ConfigUpdate for new code
+export type Config = ConfigUpdate
+export type ConfigResponse = ConfigGetResponse
+
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as ConfigErrorSchema }
+export type ConfigError = z.infer<typeof ErrorSchema>

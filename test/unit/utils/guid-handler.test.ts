@@ -1,6 +1,7 @@
 import {
   createGuidSet,
   extractImdbId,
+  extractPlexKey,
   extractRadarrId,
   extractSonarrId,
   extractTmdbId,
@@ -10,6 +11,7 @@ import {
   hasMatchingGuids,
   hasMatchingParsedGuids,
   normalizeGuid,
+  parseGenres,
   parseGuids,
 } from '@utils/guid-handler.js'
 import { describe, expect, it } from 'vitest'
@@ -303,6 +305,181 @@ describe('guid-handler', () => {
     it('should return first valid Sonarr ID', () => {
       const guids = ['sonarr://111', 'sonarr://222']
       expect(extractSonarrId(guids)).toBe(111)
+    })
+  })
+
+  describe('extractPlexKey', () => {
+    it('should extract key from plex movie URI', () => {
+      expect(extractPlexKey('plex://movie/5d776a42c2c2d8001f8d65f0')).toBe(
+        '5d776a42c2c2d8001f8d65f0',
+      )
+    })
+
+    it('should extract key from plex show URI', () => {
+      expect(extractPlexKey('plex://show/5d9c086fe9d34a001f8e64e4')).toBe(
+        '5d9c086fe9d34a001f8e64e4',
+      )
+    })
+
+    it('should extract key from library metadata path', () => {
+      expect(extractPlexKey('/library/metadata/12345')).toBe('12345')
+    })
+
+    it('should return undefined for empty string', () => {
+      expect(extractPlexKey('')).toBeUndefined()
+    })
+
+    it('should return undefined for undefined', () => {
+      expect(extractPlexKey(undefined)).toBeUndefined()
+    })
+
+    it('should handle URI with no slashes', () => {
+      expect(extractPlexKey('abc123')).toBe('abc123')
+    })
+
+    it('should handle URI ending with slash', () => {
+      expect(extractPlexKey('plex://movie/abc123/')).toBe('abc123')
+    })
+
+    it('should handle URI with multiple trailing slashes', () => {
+      expect(extractPlexKey('plex://movie/abc123///')).toBe('abc123')
+    })
+
+    it('should extract last segment from complex path', () => {
+      expect(extractPlexKey('/library/sections/1/all/12345')).toBe('12345')
+    })
+
+    it('should return undefined for root path', () => {
+      expect(extractPlexKey('/')).toBeUndefined()
+    })
+
+    it('should return undefined for multiple slashes only', () => {
+      expect(extractPlexKey('///')).toBeUndefined()
+    })
+
+    it('should trim whitespace and return undefined if empty', () => {
+      expect(extractPlexKey('  ')).toBeUndefined()
+      expect(extractPlexKey('   plex://movie/abc123   ')).toBe('abc123')
+    })
+
+    it('should handle URI with query string', () => {
+      expect(extractPlexKey('plex://movie/abc123?X-Plex-Token=xyz')).toBe(
+        'abc123',
+      )
+      expect(extractPlexKey('/library/metadata/12345?includeChildren=1')).toBe(
+        '12345',
+      )
+    })
+
+    it('should handle URI with query string and trailing slash', () => {
+      expect(extractPlexKey('plex://movie/abc123/?token=xyz')).toBe('abc123')
+    })
+
+    it('should handle complex query strings', () => {
+      expect(
+        extractPlexKey(
+          'plex://show/xyz789?X-Plex-Token=abc&includeGuids=1&includeRelated=1',
+        ),
+      ).toBe('xyz789')
+    })
+
+    it('should return undefined for malformed plex URI without key', () => {
+      expect(extractPlexKey('plex://movie')).toBeUndefined()
+      expect(extractPlexKey('plex://show')).toBeUndefined()
+      expect(extractPlexKey('plex://movie/')).toBeUndefined()
+      expect(extractPlexKey('plex://show///')).toBeUndefined()
+    })
+  })
+
+  describe('parseGenres', () => {
+    it('should handle array input', () => {
+      const genres = ['Action', 'Drama', 'Sci-Fi']
+      expect(parseGenres(genres)).toEqual(['Action', 'Drama', 'Sci-Fi'])
+    })
+
+    it('should filter out non-string values from arrays', () => {
+      const genres = [
+        'Action',
+        123,
+        null,
+        undefined,
+        'Drama',
+        false,
+        'Thriller',
+      ]
+      expect(parseGenres(genres)).toEqual(['Action', 'Drama', 'Thriller'])
+    })
+
+    it('should return empty array for empty array', () => {
+      expect(parseGenres([])).toEqual([])
+    })
+
+    it('should handle JSON string array', () => {
+      const genresJson = '["Action", "Drama", "Sci-Fi"]'
+      expect(parseGenres(genresJson)).toEqual(['Action', 'Drama', 'Sci-Fi'])
+    })
+
+    it('should filter non-string values from JSON arrays', () => {
+      const genresJson = '["Action", 123, null, "Drama"]'
+      expect(parseGenres(genresJson)).toEqual(['Action', 'Drama'])
+    })
+
+    it('should return empty array for non-array JSON', () => {
+      const genresJson = '{"genre": "Action"}'
+      expect(parseGenres(genresJson)).toEqual([])
+    })
+
+    it('should handle single string (Plex RSS feeds)', () => {
+      expect(parseGenres('Action')).toEqual(['Action'])
+      expect(parseGenres('Science Fiction')).toEqual(['Science Fiction'])
+    })
+
+    it('should trim whitespace from single string', () => {
+      expect(parseGenres('  Action  ')).toEqual(['Action'])
+      expect(parseGenres('  Science Fiction  ')).toEqual(['Science Fiction'])
+    })
+
+    it('should return empty array for empty string', () => {
+      expect(parseGenres('')).toEqual([])
+    })
+
+    it('should return empty array for whitespace-only string', () => {
+      expect(parseGenres('   ')).toEqual([])
+      expect(parseGenres('\t\n  ')).toEqual([])
+    })
+
+    it('should return empty array for null', () => {
+      expect(parseGenres(null)).toEqual([])
+    })
+
+    it('should return empty array for undefined', () => {
+      expect(parseGenres(undefined)).toEqual([])
+    })
+
+    it('should return empty array for number', () => {
+      expect(parseGenres(123)).toEqual([])
+    })
+
+    it('should return empty array for boolean', () => {
+      expect(parseGenres(true)).toEqual([])
+      expect(parseGenres(false)).toEqual([])
+    })
+
+    it('should return empty array for object', () => {
+      expect(parseGenres({ genre: 'Action' })).toEqual([])
+    })
+
+    it('should handle malformed JSON gracefully', () => {
+      expect(parseGenres('["Action"')).toEqual(['["Action"'])
+      expect(parseGenres('{invalid json}')).toEqual(['{invalid json}'])
+    })
+
+    it('should handle mixed case and special characters', () => {
+      expect(parseGenres(['Action', 'Sci-Fi & Fantasy', 'Rom-Com'])).toEqual([
+        'Action',
+        'Sci-Fi & Fantasy',
+        'Rom-Com',
+      ])
     })
   })
 })

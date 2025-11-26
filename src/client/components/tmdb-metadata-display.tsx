@@ -1,10 +1,5 @@
-import type {
-  TmdbMetadataSuccessResponse,
-  TmdbRegion,
-  TmdbRegionsSuccessResponse,
-} from '@root/schemas/tmdb/tmdb.schema'
-import { Calendar, Clock, ExternalLink, Film, Globe, Tv } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import type { TmdbMetadataSuccessResponse } from '@root/schemas/tmdb/tmdb.schema'
+import { Calendar, Clock, ExternalLink, Film, Tv } from 'lucide-react'
 // Import local rating service icons
 import imdbIcon from '@/assets/images/rating-icons/imdb.svg'
 import metacriticIcon from '@/assets/images/rating-icons/metacritic.svg'
@@ -13,15 +8,8 @@ import tmdbIcon from '@/assets/images/rating-icons/tmdb.svg'
 import traktIcon from '@/assets/images/rating-icons/trakt.svg'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { api } from '@/lib/api'
+import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import { useConfigStore } from '@/stores/configStore'
 
 interface TmdbMetadataDisplayProps {
@@ -45,56 +33,7 @@ export function TmdbMetadataDisplay({
   const { details, watchProviders } = metadata
   const radarrRatings =
     'radarrRatings' in metadata ? metadata.radarrRatings : undefined
-  const { config, updateConfig } = useConfigStore()
-  const [availableRegions, setAvailableRegions] = useState<TmdbRegion[]>([])
-  const [loadingRegions, setLoadingRegions] = useState(false)
-
-  // Fetch available regions on component mount
-  useEffect(() => {
-    const fetchRegions = async () => {
-      if (availableRegions.length > 0) return // Already loaded
-
-      setLoadingRegions(true)
-      try {
-        const response = await fetch(api('/v1/tmdb/regions'))
-        const data: TmdbRegionsSuccessResponse = await response.json()
-
-        if (data.success && data.regions) {
-          const sortedRegions = data.regions.sort((a, b) =>
-            a.name.localeCompare(b.name),
-          )
-          setAvailableRegions(sortedRegions)
-        }
-      } catch (error) {
-        console.error('Failed to fetch TMDB regions:', error)
-      } finally {
-        setLoadingRegions(false)
-      }
-    }
-
-    fetchRegions()
-  }, [availableRegions.length])
-
-  // Handle region change
-  const handleRegionChange = async (newRegion: string) => {
-    if (!config) return
-
-    try {
-      await updateConfig({ tmdbRegion: newRegion })
-      // Refetch metadata with new region if callback provided
-      if (onRegionChange) {
-        await onRegionChange()
-      }
-    } catch (error) {
-      console.error('Failed to update TMDB region:', error)
-    }
-  }
-
-  // Get current region info for display
-  const currentRegion = availableRegions.find(
-    (region) => region.code === (config?.tmdbRegion || 'US'),
-  )
-  const currentRegionName = currentRegion?.name || 'United States'
+  const config = useConfigStore((state) => state.config)
 
   // Check if it's movie or TV show based on the presence of 'title' vs 'name'
   const isMovie = 'title' in details
@@ -434,31 +373,7 @@ export function TmdbMetadataDisplay({
           <div className="flex items-center justify-between mb-2">
             <h5 className="font-medium text-foreground">Where to Watch</h5>
             {/* Region Selector */}
-            {availableRegions.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-muted-foreground" />
-                <Select
-                  value={config?.tmdbRegion || 'US'}
-                  onValueChange={handleRegionChange}
-                  disabled={loadingRegions}
-                >
-                  <SelectTrigger className="w-36 h-8 text-xs">
-                    <SelectValue
-                      placeholder={
-                        loadingRegions ? 'Loading...' : currentRegionName
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent align="end">
-                    {availableRegions.map((region) => (
-                      <SelectItem key={region.code} value={region.code}>
-                        {region.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <TmdbRegionSelector onRegionChange={onRegionChange} />
           </div>
 
           {watchProviders &&
@@ -564,7 +479,7 @@ export function TmdbMetadataDisplay({
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
-              No streaming services available in {currentRegionName}
+              No streaming services available in {config?.tmdbRegion || 'US'}
             </div>
           )}
         </div>
