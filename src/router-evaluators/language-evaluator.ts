@@ -12,6 +12,7 @@ import type {
   RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
+import { evaluateRegexSafely } from '@utils/regex-safety.js'
 import type { FastifyInstance } from 'fastify'
 
 /**
@@ -217,13 +218,12 @@ export default function createLanguageEvaluator(
           case 'notContains':
             return !normalizedLanguage.includes(normalizedRuleLanguage)
           case 'regex':
-            try {
-              const regex = new RegExp(ruleLanguage)
-              return regex.test(language)
-            } catch (error) {
-              fastify.log.error(`Invalid regex in language rule: ${error}`)
-              return false
-            }
+            return evaluateRegexSafely(
+              ruleLanguage,
+              language,
+              fastify.log,
+              'language rule',
+            )
           default:
             // Default to equals for backward compatibility
             return normalizedLanguage === normalizedRuleLanguage
@@ -315,12 +315,12 @@ export default function createLanguageEvaluator(
           break
         case 'regex':
           if (typeof value === 'string') {
-            try {
-              const regex = new RegExp(value)
-              result = regex.test(language)
-            } catch (error) {
-              fastify.log.error(`Invalid regex in language condition: ${error}`)
-            }
+            result = evaluateRegexSafely(
+              value,
+              language,
+              fastify.log,
+              'language condition',
+            )
           }
           break
       }
