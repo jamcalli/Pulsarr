@@ -290,6 +290,8 @@ export function extractSonarrId(guids: string[] | string | undefined): number {
  * - "plex://movie/abc123" → "abc123"
  * - "plex://show/xyz789" → "xyz789"
  * - "/library/metadata/12345" → "12345"
+ * - "plex://movie/12345?X-Plex-Token=abc" → "12345"
+ * - "plex://movie/12345/" → "12345"
  *
  * @param plexUri - The Plex URI or path containing the key
  * @returns The extracted key, or undefined if the URI is empty or invalid
@@ -298,6 +300,16 @@ export function extractPlexKey(
   plexUri: string | undefined,
 ): string | undefined {
   if (!plexUri) return undefined
-  const key = plexUri.split('/').pop()
+
+  const trimmed = plexUri.trim()
+  if (!trimmed) return undefined
+
+  // Remove query string if present
+  const [pathWithoutQuery] = trimmed.split('?')
+
+  // Split on / and filter out empty segments (handles trailing slashes)
+  const segments = pathWithoutQuery.split('/').filter(Boolean)
+  const key = segments[segments.length - 1]
+
   return key || undefined
 }
