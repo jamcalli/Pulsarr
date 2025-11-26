@@ -169,7 +169,8 @@ export const ConfigFullSchema = z.object({
   tagUsersInSonarr: z.boolean(),
   tagUsersInRadarr: z.boolean(),
   cleanupOrphanedTags: z.boolean(),
-  persistHistoricalTags: z.boolean(), // From database spread
+  // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
+  // persistHistoricalTags: z.boolean(),
   tagPrefix: z.string(),
   removedTagMode: z.enum(['remove', 'keep', 'special-tag']),
   removedTagPrefix: z.string(),
