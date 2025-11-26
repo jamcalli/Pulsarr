@@ -325,10 +325,6 @@ describe('guid-handler', () => {
       expect(extractPlexKey('/library/metadata/12345')).toBe('12345')
     })
 
-    it('should extract key from grandparent path', () => {
-      expect(extractPlexKey('/library/metadata/67890')).toBe('67890')
-    })
-
     it('should return undefined for empty string', () => {
       expect(extractPlexKey('')).toBeUndefined()
     })
