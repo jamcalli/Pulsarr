@@ -342,11 +342,11 @@ describe('guid-handler', () => {
     })
 
     it('should handle URI ending with slash', () => {
-      expect(extractPlexKey('plex://movie/abc123/')).toBeUndefined()
+      expect(extractPlexKey('plex://movie/abc123/')).toBe('abc123')
     })
 
     it('should handle URI with multiple trailing slashes', () => {
-      expect(extractPlexKey('plex://movie/abc123///')).toBeUndefined()
+      expect(extractPlexKey('plex://movie/abc123///')).toBe('abc123')
     })
 
     it('should extract last segment from complex path', () => {
@@ -361,8 +361,30 @@ describe('guid-handler', () => {
       expect(extractPlexKey('///')).toBeUndefined()
     })
 
-    it('should return whitespace as-is (not trimmed)', () => {
-      expect(extractPlexKey('plex://movie/  ')).toBe('  ')
+    it('should trim whitespace and return undefined if empty', () => {
+      expect(extractPlexKey('  ')).toBeUndefined()
+      expect(extractPlexKey('   plex://movie/abc123   ')).toBe('abc123')
+    })
+
+    it('should handle URI with query string', () => {
+      expect(extractPlexKey('plex://movie/abc123?X-Plex-Token=xyz')).toBe(
+        'abc123',
+      )
+      expect(extractPlexKey('/library/metadata/12345?includeChildren=1')).toBe(
+        '12345',
+      )
+    })
+
+    it('should handle URI with query string and trailing slash', () => {
+      expect(extractPlexKey('plex://movie/abc123/?token=xyz')).toBe('abc123')
+    })
+
+    it('should handle complex query strings', () => {
+      expect(
+        extractPlexKey(
+          'plex://show/xyz789?X-Plex-Token=abc&includeGuids=1&includeRelated=1',
+        ),
+      ).toBe('xyz789')
     })
   })
 
