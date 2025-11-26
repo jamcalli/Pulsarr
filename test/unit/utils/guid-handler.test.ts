@@ -386,6 +386,13 @@ describe('guid-handler', () => {
         ),
       ).toBe('xyz789')
     })
+
+    it('should return undefined for malformed plex URI without key', () => {
+      expect(extractPlexKey('plex://movie')).toBeUndefined()
+      expect(extractPlexKey('plex://show')).toBeUndefined()
+      expect(extractPlexKey('plex://movie/')).toBeUndefined()
+      expect(extractPlexKey('plex://show///')).toBeUndefined()
+    })
   })
 
   describe('parseGenres', () => {

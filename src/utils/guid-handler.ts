@@ -309,6 +309,13 @@ export function extractPlexKey(
 
   // Split on / and filter out empty segments (handles trailing slashes)
   const segments = pathWithoutQuery.split('/').filter(Boolean)
+
+  // For plex:// GUIDs, require at least three segments (plex:, type, key)
+  // to avoid returning the type as the key for malformed URIs like "plex://movie"
+  if (pathWithoutQuery.startsWith('plex://') && segments.length < 3) {
+    return undefined
+  }
+
   const key = segments[segments.length - 1]
 
   return key || undefined
