@@ -4545,9 +4545,6 @@
                         "cleanupOrphanedTags": {
                           "type": "boolean"
                         },
-                        "persistHistoricalTags": {
-                          "type": "boolean"
-                        },
                         "tagPrefix": {
                           "type": "string"
                         },
@@ -4849,7 +4846,6 @@
                         "tagUsersInSonarr",
                         "tagUsersInRadarr",
                         "cleanupOrphanedTags",
-                        "persistHistoricalTags",
                         "tagPrefix",
                         "removedTagMode",
                         "removedTagPrefix",
@@ -5918,9 +5914,6 @@
                         "cleanupOrphanedTags": {
                           "type": "boolean"
                         },
-                        "persistHistoricalTags": {
-                          "type": "boolean"
-                        },
                         "tagPrefix": {
                           "type": "string"
                         },
@@ -6222,7 +6215,6 @@
                         "tagUsersInSonarr",
                         "tagUsersInRadarr",
                         "cleanupOrphanedTags",
-                        "persistHistoricalTags",
                         "tagPrefix",
                         "removedTagMode",
                         "removedTagPrefix",
