@@ -1407,6 +1407,7 @@ export async function getTempRssItems(
   const results = await query
   return results.map((row) => ({
     ...row,
+    routed: Boolean(row.routed),
     guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
     genres: row.genres
       ? this.safeJsonParse(row.genres, [], 'watchlist_item.genres')
