@@ -1148,9 +1148,18 @@ export class WatchlistWorkflowService {
       }
 
       // Use content router to route the item
-      await this.contentRouter.routeContent(radarrItem, item.key, {
-        syncing: false,
-      })
+      const { routedInstances } = await this.contentRouter.routeContent(
+        radarrItem,
+        item.key,
+        {
+          syncing: false,
+        },
+      )
+
+      // If content was routed, mark the temp RSS item as routed
+      if (routedInstances.length > 0) {
+        await this.markRssItemAsRouted(item.guids)
+      }
 
       this.log.info(
         `Successfully routed movie ${item.title} via content router`,
@@ -1214,9 +1223,18 @@ export class WatchlistWorkflowService {
       }
 
       // Use content router to route the item
-      await this.contentRouter.routeContent(sonarrItem, item.key, {
-        syncing: false,
-      })
+      const { routedInstances } = await this.contentRouter.routeContent(
+        sonarrItem,
+        item.key,
+        {
+          syncing: false,
+        },
+      )
+
+      // If content was routed, mark the temp RSS item as routed
+      if (routedInstances.length > 0) {
+        await this.markRssItemAsRouted(item.guids)
+      }
 
       this.log.info(`Successfully routed show ${item.title} via content router`)
 
@@ -1232,6 +1250,49 @@ export class WatchlistWorkflowService {
         'Error processing show in Sonarr',
       )
       throw error
+    }
+  }
+
+  /**
+   * Mark temp RSS items as routed by matching GUIDs
+   *
+   * Queries the temp_rss_items table to find items with matching GUIDs
+   * and marks them as successfully routed.
+   *
+   * @param guids - Array of GUIDs to match against temp_rss_items
+   */
+  private async markRssItemAsRouted(
+    guids: string | string[] | undefined,
+  ): Promise<void> {
+    // Normalize guids to string[]
+    const guidArray = Array.isArray(guids)
+      ? guids
+      : typeof guids === 'string'
+        ? [guids]
+        : []
+    if (guidArray.length === 0) return
+
+    try {
+      // Get all temp RSS items to find matches
+      const allTempItems = await this.dbService.getTempRssItems()
+
+      // Find items that match any of the provided GUIDs
+      const matchingIds = allTempItems
+        .filter((tempItem) =>
+          tempItem.guids.some((guid) => guidArray.includes(guid)),
+        )
+        .map((item) => item.id)
+
+      if (matchingIds.length > 0) {
+        await this.dbService.markTempRssItemsAsRouted(matchingIds)
+        this.log.debug(
+          { count: matchingIds.length },
+          'Marked temp RSS items as routed',
+        )
+      }
+    } catch (error) {
+      this.log.error({ error, guids }, 'Error marking temp RSS item as routed')
+      // Don't throw - routing succeeded, this is just tracking
     }
   }
 
@@ -1809,10 +1870,31 @@ export class WatchlistWorkflowService {
 
     // Add to Sonarr if not exists on Plex
     if (!existsOnPlex) {
-      await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
-        userId: numericUserId,
-        syncing: false,
-      })
+      const { routedInstances } = await this.contentRouter.routeContent(
+        sonarrItem,
+        tempItem.key,
+        {
+          userId: numericUserId,
+          syncing: false,
+        },
+      )
+
+      // Send notification only if content was actually routed
+      if (routedInstances.length > 0 && userName) {
+        await this.plexService.sendWatchlistNotifications(
+          {
+            userId: numericUserId,
+            username: userName,
+            watchlistId: String(numericUserId),
+          },
+          {
+            title: tempItem.title,
+            type: 'show',
+            thumb: tempItem.thumb,
+          },
+        )
+      }
+
       return true
     }
 
@@ -1912,10 +1994,31 @@ export class WatchlistWorkflowService {
 
     // Add to Radarr if not exists on Plex
     if (!existsOnPlex) {
-      await this.contentRouter.routeContent(radarrItem, tempItem.key, {
-        userId: numericUserId,
-        syncing: false,
-      })
+      const { routedInstances } = await this.contentRouter.routeContent(
+        radarrItem,
+        tempItem.key,
+        {
+          userId: numericUserId,
+          syncing: false,
+        },
+      )
+
+      // Send notification only if content was actually routed
+      if (routedInstances.length > 0 && userName) {
+        await this.plexService.sendWatchlistNotifications(
+          {
+            userId: numericUserId,
+            username: userName,
+            watchlistId: String(numericUserId),
+          },
+          {
+            title: tempItem.title,
+            type: 'movie',
+            thumb: tempItem.thumb,
+          },
+        )
+      }
+
       return true
     }
 
