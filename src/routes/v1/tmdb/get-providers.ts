@@ -3,12 +3,13 @@ import {
   type ProvidersResponse,
   ProvidersResponseSchema,
 } from '@schemas/tmdb/get-providers.schema.js'
+import type { ErrorResponse } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
-    Reply: ProvidersResponse
+    Reply: ProvidersResponse | ErrorResponse
   }>(
     '/providers',
     {
