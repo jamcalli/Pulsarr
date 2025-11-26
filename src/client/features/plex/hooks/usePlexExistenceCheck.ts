@@ -1,5 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { type Config, ConfigSchema } from '@root/schemas/config/config.schema'
+import {
+  type Config,
+  ConfigUpdateSchema,
+} from '@root/schemas/config/config.schema'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -7,8 +10,8 @@ import type { z } from 'zod'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { useConfigStore } from '@/stores/configStore'
 
-// Pick Plex existence check fields from the backend ConfigSchema
-const plexExistenceCheckFormSchema = ConfigSchema.pick({
+// Pick Plex existence check fields from the backend ConfigUpdateSchema
+const plexExistenceCheckFormSchema = ConfigUpdateSchema.pick({
   skipIfExistsOnPlex: true,
   plexServerUrl: true,
 })
@@ -69,7 +72,13 @@ export function usePlexExistenceCheck() {
   }
 
   const handleCancel = () => {
-    form.reset()
+    // Reset form to last saved values from config store
+    if (config) {
+      form.reset({
+        skipIfExistsOnPlex: config.skipIfExistsOnPlex ?? false,
+        plexServerUrl: config.plexServerUrl ?? '',
+      })
+    }
   }
 
   return {

@@ -11,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import StreamingProviderMultiSelect from '@/components/ui/streaming-provider-multi-select'
+import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import UserMultiSelect from '@/components/ui/user-multi-select'
 import ImdbRatingInput from '@/features/content-router/components/imdb-rating-input'
 import { ContentCertifications } from '@/features/content-router/types/route-types'
@@ -37,11 +39,13 @@ const StableTextInput = ({
   onChange,
   placeholder,
   type = 'text',
+  id,
 }: {
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   placeholder?: string
   type?: string
+  id?: string
 }) => {
   // Keep an internal state to maintain focus
   const [internalValue, setInternalValue] = useState(value)
@@ -59,6 +63,7 @@ const StableTextInput = ({
   return (
     <Input
       type={type}
+      id={id}
       value={internalValue}
       onChange={handleChange}
       placeholder={placeholder}
@@ -239,7 +244,6 @@ function ConditionInput({
     fieldName: string,
     isNumeric = false,
   ): ControllerRenderProps<FieldState, FieldPath<FieldState>> => {
-    type AllowedValue = string | string[]
     const isEmpty =
       (Array.isArray(value) && value.length === 0) ||
       value === '' ||
@@ -255,18 +259,20 @@ function ConditionInput({
             : String(value || ''),
         ]
 
+    // Convert to string array for field value
+    const stringArrayValue: string[] = isEmpty
+      ? []
+      : formattedValue.map((v) => String(v))
+
     return {
-      name: fieldName as FieldPath<FieldState>,
-      value: isEmpty
-        ? []
-        : (formattedValue.map((v) => String(v)) as AllowedValue),
+      name: fieldName,
+      value: stringArrayValue,
       onChange: (newValue: unknown) => {
         if (Array.isArray(newValue)) {
-          onChangeRef.current(
-            newValue.map((item) =>
-              isNumeric ? Number(item) : String(item),
-            ) as ConditionValue,
+          const converted = newValue.map((item) =>
+            isNumeric ? Number(item) : String(item),
           )
+          onChangeRef.current(converted)
         } else {
           onChangeRef.current(
             isNumeric && (newValue === '' || newValue === undefined)
@@ -356,6 +362,44 @@ function ConditionInput({
     }
   }
 
+  const createStreamingServicesFormField = (): ControllerRenderProps<
+    { streamingServices: number[] },
+    'streamingServices'
+  > => {
+    // Ensure value is in the correct format for the multi-select
+    const normalizedValue: number[] = Array.isArray(value)
+      ? value.map(Number).filter((n) => !Number.isNaN(n))
+      : typeof value === 'number'
+        ? [value]
+        : []
+
+    return {
+      name: 'streamingServices',
+      value: normalizedValue,
+      onChange: (newValue: unknown) => {
+        // Handle conversion for onChange callback - convert to numbers
+        if (Array.isArray(newValue)) {
+          onChangeRef.current(
+            newValue
+              .map((item) => Number(item))
+              .filter((n) => !Number.isNaN(n)),
+          )
+        } else if (newValue === '' || newValue == null) {
+          onChangeRef.current([])
+        } else {
+          const num = Number(newValue)
+          onChangeRef.current(Number.isNaN(num) ? [] : [num])
+        }
+      },
+      onBlur: () => {},
+      ref: (instance: HTMLInputElement | null) => {
+        if (inputRef.current !== instance) {
+          inputRef.current = instance
+        }
+      },
+    }
+  }
+
   // For the genre field
   if (field === 'genre' || field === 'genres') {
     // Single value operators
@@ -419,6 +463,25 @@ function ConditionInput({
           genres={genres}
           onDropdownOpen={onGenreDropdownOpen}
         />
+      </div>
+    )
+  }
+
+  // Special handling for streaming services field
+  if (field === 'streamingServices') {
+    const streamingField = createStreamingServicesFormField()
+
+    return (
+      <div className="space-y-3 flex-1">
+        {/* Provider multi-select */}
+        <div>
+          <StreamingProviderMultiSelect field={streamingField} />
+        </div>
+
+        {/* Region selector */}
+        <div>
+          <TmdbRegionSelector />
+        </div>
       </div>
     )
   }
@@ -518,6 +581,7 @@ function ConditionInput({
     if (operator === 'in' || operator === 'notIn') {
       return (
         <StableTextInput
+          id={inputId}
           value={Array.isArray(value) ? value.join(', ') : String(value || '')}
           onChange={(e) => handlers.current.handleArrayChange(e, true)}
           placeholder="Enter years separated by commas (e.g. 1999, 2000, 2001)"
@@ -528,6 +592,7 @@ function ConditionInput({
     // For year with other operators
     return (
       <StableNumberInput
+        id={inputId}
         value={typeof value === 'number' ? value.toString() : ''}
         onChange={handlers.current.handleNumberChange}
         placeholder="Enter year (e.g. 2023)"
@@ -632,6 +697,7 @@ function ConditionInput({
     // For contains/notContains - text input
     return (
       <StableTextInput
+        id={inputId}
         value={typeof value === 'string' ? value : String(value || '')}
         onChange={handlers.current.handleTextChange}
         placeholder="Enter certification or part of certification"
@@ -644,6 +710,7 @@ function ConditionInput({
     if (operator === 'in' || operator === 'notIn') {
       return (
         <StableTextInput
+          id={inputId}
           value={Array.isArray(value) ? value.join(', ') : String(value || '')}
           onChange={(e) => handlers.current.handleArrayChange(e, false)}
           placeholder="Enter languages separated by commas (e.g. English, French, Spanish)"
@@ -652,6 +719,7 @@ function ConditionInput({
     }
     return (
       <StableTextInput
+        id={inputId}
         value={typeof value === 'string' ? value : String(value || '')}
         onChange={handlers.current.handleTextChange}
         placeholder="Enter language (e.g. English)"
@@ -668,6 +736,7 @@ function ConditionInput({
 
     return (
       <StableTextInput
+        id={inputId}
         value={Array.isArray(value) ? value.join(', ') : String(value || '')}
         onChange={(e) => handlers.current.handleArrayChange(e, isNumeric)}
         placeholder="Enter values separated by commas"
@@ -691,6 +760,7 @@ function ConditionInput({
   if (valueTypes.includes('string')) {
     return (
       <StableTextInput
+        id={inputId}
         value={typeof value === 'string' ? value : String(value || '')}
         onChange={handlers.current.handleTextChange}
         placeholder="Enter a value"
@@ -701,6 +771,7 @@ function ConditionInput({
   // Fallback text input for any other type
   return (
     <StableTextInput
+      id={inputId}
       value={typeof value === 'string' ? value : String(value || '')}
       onChange={handlers.current.handleTextChange}
       placeholder="Enter a value"

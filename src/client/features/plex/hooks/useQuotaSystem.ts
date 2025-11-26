@@ -1,4 +1,4 @@
-import { ConfigSchema } from '@root/schemas/config/config.schema'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -9,8 +9,8 @@ import { api } from '@/lib/api'
 
 // Define the form data type that includes both config and schedule fields
 const approvalConfigurationSchema = z.object({
-  approvalExpiration: ConfigSchema.shape.approvalExpiration,
-  quotaSettings: ConfigSchema.shape.quotaSettings,
+  approvalExpiration: ConfigUpdateSchema.shape.approvalExpiration,
+  quotaSettings: ConfigUpdateSchema.shape.quotaSettings,
   scheduleInterval: z.number().min(1).max(12).optional(),
   scheduleTime: z.date().optional(),
   dayOfWeek: z.string().optional(),

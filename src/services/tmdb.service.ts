@@ -9,6 +9,7 @@
 import type { RadarrMovieLookupResponse } from '@root/types/content-lookup.types.js'
 import type {
   TmdbFindResponse,
+  TmdbWatchProvider,
   TmdbWatchProviderData,
   TmdbWatchProvidersResponse,
 } from '@root/types/tmdb.types.js'
@@ -28,8 +29,57 @@ export class TmdbService {
   private static readonly BASE_URL = 'https://api.themoviedb.org/3'
   private static readonly USER_AGENT =
     'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
-  /** Creates a fresh service logger that inherits current log level */
 
+  //
+  // ============================================================
+  // RATE LIMITING CONFIGURATION
+  // ============================================================
+  //
+
+  /** Rate limit: 40 requests per second (TMDB official guidance) */
+  private static readonly RATE_LIMIT_PER_SECOND = 40
+
+  /** Rate limit time window in milliseconds */
+  private static readonly RATE_LIMIT_WINDOW_MS = 1000
+
+  /** Queue of pending requests waiting for rate limit slots */
+  private requestQueue: Array<{
+    execute: () => Promise<Response>
+    resolve: (value: Response) => void
+    reject: (reason: Error) => void
+  }> = []
+
+  /** Timestamps of recent requests (for token bucket algorithm) */
+  private requestTimestamps: number[] = []
+
+  /** Whether the queue processor is currently running */
+  private isProcessingQueue = false
+
+  //
+  // ============================================================
+  // PROVIDER CACHE CONFIGURATION
+  // ============================================================
+  //
+
+  /** Provider cache: region → providers list with timestamp */
+  private providerCache = new Map<
+    string,
+    {
+      providers: TmdbWatchProvider[]
+      fetchedAt: number
+    }
+  >()
+
+  /** Provider cache TTL: 24 hours */
+  private static readonly PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+
+  //
+  // ============================================================
+  // SERVICE INITIALIZATION
+  // ============================================================
+  //
+
+  /** Creates a fresh service logger that inherits current log level */
   private get log(): FastifyBaseLogger {
     return createServiceLogger(this.baseLog, 'TMDB')
   }
@@ -193,14 +243,12 @@ export class TmdbService {
   ): Promise<TmdbMovieDetails | null> {
     const url = `${TmdbService.BASE_URL}/movie/${tmdbId}`
 
-    const signal = AbortSignal.timeout(10_000)
-    const response = await fetch(url, {
+    const response = await this.rateLimitedFetch(url, {
       headers: {
         'User-Agent': TmdbService.USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },
-      signal,
     })
 
     if (!response.ok) {
@@ -232,14 +280,12 @@ export class TmdbService {
   private async fetchTvDetails(tmdbId: number): Promise<TmdbTvDetails | null> {
     const url = `${TmdbService.BASE_URL}/tv/${tmdbId}`
 
-    const signal = AbortSignal.timeout(10_000)
-    const response = await fetch(url, {
+    const response = await this.rateLimitedFetch(url, {
       headers: {
         'User-Agent': TmdbService.USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },
-      signal,
     })
 
     if (!response.ok) {
@@ -274,14 +320,12 @@ export class TmdbService {
   ): Promise<TmdbWatchProvidersResponse | null> {
     const url = `${TmdbService.BASE_URL}/movie/${tmdbId}/watch/providers?watch_region=${region}`
 
-    const signal = AbortSignal.timeout(10_000)
-    const response = await fetch(url, {
+    const response = await this.rateLimitedFetch(url, {
       headers: {
         'User-Agent': TmdbService.USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },
-      signal,
     })
 
     if (!response.ok) {
@@ -316,14 +360,12 @@ export class TmdbService {
   ): Promise<TmdbWatchProvidersResponse | null> {
     const url = `${TmdbService.BASE_URL}/tv/${tmdbId}/watch/providers?watch_region=${region}`
 
-    const signal = AbortSignal.timeout(10_000)
-    const response = await fetch(url, {
+    const response = await this.rateLimitedFetch(url, {
       headers: {
         'User-Agent': TmdbService.USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },
-      signal,
     })
 
     if (!response.ok) {
@@ -354,9 +396,14 @@ export class TmdbService {
    * Returns regions that have streaming/OTT data available
    */
   async getAvailableRegions(): Promise<TmdbRegion[] | null> {
+    if (!this.isConfigured()) {
+      this.log.warn('TMDB is not configured, skipping region fetch')
+      return null
+    }
+
     try {
       const url = `${TmdbService.BASE_URL}/watch/providers/regions`
-      const response = await fetch(url, {
+      const response = await this.rateLimitedFetch(url, {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
           'Content-Type': 'application/json',
@@ -412,18 +459,20 @@ export class TmdbService {
   async findByTvdbId(
     tvdbId: number,
   ): Promise<{ tmdbId: number; type: 'movie' | 'tv' } | null> {
+    if (!this.isConfigured()) {
+      this.log.warn('TMDB is not configured, skipping TVDB ID lookup')
+      return null
+    }
+
     const url = `${TmdbService.BASE_URL}/find/${tvdbId}?external_source=tvdb_id`
 
-    const signal = AbortSignal.timeout(10_000)
-
     try {
-      const response = await fetch(url, {
+      const response = await this.rateLimitedFetch(url, {
         headers: {
           'User-Agent': TmdbService.USER_AGENT,
           Accept: 'application/json',
           Authorization: `Bearer ${this.accessToken}`,
         },
-        signal,
       })
 
       if (!response.ok) {
@@ -519,6 +568,406 @@ export class TmdbService {
       return null
     }
   }
+
+  //
+  // ============================================================
+  // PROVIDER LIST METHODS
+  // ============================================================
+  //
+
+  /**
+   * Get list of all streaming providers available for a region
+   * Results are cached for 24 hours to minimize API calls
+   *
+   * @param region - 2-letter region code (e.g., "US", "GB")
+   * @returns Array of watch providers with IDs, names, and logos
+   */
+  async getAvailableProviders(
+    region?: string,
+  ): Promise<TmdbWatchProvider[] | null> {
+    if (!this.isConfigured()) {
+      this.log.warn('TMDB is not configured, skipping provider fetch')
+      return null
+    }
+
+    const providerRegion = region || this.defaultRegion
+
+    // Check cache first
+    const cached = this.providerCache.get(providerRegion)
+    if (
+      cached &&
+      Date.now() - cached.fetchedAt < TmdbService.PROVIDER_CACHE_TTL_MS
+    ) {
+      this.log.debug(`Using cached providers for region ${providerRegion}`)
+      return cached.providers
+    }
+
+    this.log.debug(`Fetching providers for region ${providerRegion} from TMDB`)
+
+    try {
+      // Fetch providers for both movies and TV in parallel
+      const [movieResponse, tvResponse] = await Promise.allSettled([
+        this.fetchProviderList('movie', providerRegion),
+        this.fetchProviderList('tv', providerRegion),
+      ])
+
+      // Log rejected requests
+      if (movieResponse.status === 'rejected') {
+        this.log.warn(
+          `Failed to fetch movie providers for region ${providerRegion}:`,
+          movieResponse.reason,
+        )
+      }
+      if (tvResponse.status === 'rejected') {
+        this.log.warn(
+          `Failed to fetch TV providers for region ${providerRegion}:`,
+          tvResponse.reason,
+        )
+      }
+
+      // If both requests failed, return null (don't cache empty result)
+      if (
+        movieResponse.status === 'rejected' &&
+        tvResponse.status === 'rejected'
+      ) {
+        this.log.error(
+          `Both movie and TV provider fetches failed for region ${providerRegion}`,
+        )
+        return null
+      }
+
+      // Collect providers from both responses
+      const allProviders = new Map<number, TmdbWatchProvider>()
+
+      // Add movie providers
+      if (movieResponse.status === 'fulfilled' && movieResponse.value) {
+        for (const provider of movieResponse.value) {
+          allProviders.set(provider.provider_id, provider)
+        }
+      }
+
+      // Add TV providers (merge with movies, deduplicate by ID)
+      if (tvResponse.status === 'fulfilled' && tvResponse.value) {
+        for (const provider of tvResponse.value) {
+          if (!allProviders.has(provider.provider_id)) {
+            allProviders.set(provider.provider_id, provider)
+          }
+        }
+      }
+
+      // Convert to sorted array
+      const providers = Array.from(allProviders.values()).sort(
+        (a, b) => a.display_priority - b.display_priority,
+      )
+
+      // Cache the result
+      this.providerCache.set(providerRegion, {
+        providers,
+        fetchedAt: Date.now(),
+      })
+
+      return providers
+    } catch (error) {
+      this.log.error(
+        { error, region: providerRegion },
+        'Error fetching provider list',
+      )
+      return null
+    }
+  }
+
+  /**
+   * Fetch provider list from TMDB for a specific content type and region
+   *
+   * @param type - Content type (movie or tv)
+   * @param region - 2-letter region code
+   * @returns Array of providers or null
+   */
+  private async fetchProviderList(
+    type: 'movie' | 'tv',
+    region: string,
+  ): Promise<TmdbWatchProvider[] | null> {
+    const url = `${TmdbService.BASE_URL}/watch/providers/${type}?watch_region=${region}`
+
+    const response = await this.rateLimitedFetch(url, {
+      headers: {
+        'User-Agent': TmdbService.USER_AGENT,
+        Accept: 'application/json',
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        this.log.debug(`No ${type} providers found for region ${region}`)
+        return null
+      }
+      throw new Error(
+        `TMDB API error: ${response.status} ${response.statusText}`,
+      )
+    }
+
+    const data = await response.json()
+
+    if (typeof data === 'object' && data !== null && isTmdbError(data)) {
+      this.log.warn(
+        { status_message: data.status_message },
+        `TMDB API returned error for ${type} providers in ${region}:`,
+      )
+      return null
+    }
+
+    // TMDB returns: { results: TmdbWatchProvider[] }
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'results' in data &&
+      Array.isArray(data.results)
+    ) {
+      return data.results as TmdbWatchProvider[]
+    }
+
+    return []
+  }
+
+  /**
+   * Clear provider cache (useful for testing or manual refresh)
+   *
+   * @param region - Optional specific region to clear, otherwise clears all
+   */
+  clearProviderCache(region?: string): void {
+    if (region) {
+      this.providerCache.delete(region)
+      this.log.debug(`Cleared provider cache for region ${region}`)
+    } else {
+      this.providerCache.clear()
+      this.log.debug('Cleared all provider cache')
+    }
+  }
+
+  /**
+   * Get watch provider availability for a specific movie or TV show
+   *
+   * @param tmdbId - TMDB ID for the movie or show
+   * @param type - Content type ('movie' or 'tv')
+   * @param region - Optional region code (defaults to configured region)
+   * @returns Watch provider data for the content or null if not found
+   */
+  async getWatchProviders(
+    tmdbId: number,
+    type: 'movie' | 'tv',
+    region?: string,
+  ): Promise<TmdbWatchProviderData | null> {
+    if (!this.isConfigured()) {
+      this.log.warn('TMDB service not configured, cannot fetch watch providers')
+      return null
+    }
+
+    const targetRegion = region || this.defaultRegion
+
+    const url = `${TmdbService.BASE_URL}/${type}/${tmdbId}/watch/providers`
+
+    const response = await this.rateLimitedFetch(url, {
+      headers: {
+        'User-Agent': TmdbService.USER_AGENT,
+        Accept: 'application/json',
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        this.log.debug(
+          `No watch providers found for ${type} ${tmdbId} in region ${targetRegion}`,
+        )
+        return null
+      }
+      throw new Error(
+        `TMDB API error: ${response.status} ${response.statusText}`,
+      )
+    }
+
+    const data = await response.json()
+
+    if (typeof data === 'object' && data !== null && isTmdbError(data)) {
+      this.log.warn(
+        { status_message: data.status_message },
+        `TMDB API returned error for ${type} ${tmdbId} watch providers:`,
+      )
+      return null
+    }
+
+    // TMDB returns: { results: { [region]: { ... } } }
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'results' in data &&
+      typeof data.results === 'object' &&
+      data.results !== null
+    ) {
+      const results = data.results as Record<
+        string,
+        TmdbWatchProviderData | undefined
+      >
+      const regionData = results[targetRegion]
+      return regionData ?? null
+    }
+
+    return null
+  }
+
+  //
+  // ============================================================
+  // RATE LIMITING METHODS
+  // ============================================================
+  //
+
+  /**
+   * Rate-limited fetch wrapper for TMDB API calls
+   *
+   * Implements token bucket algorithm to respect TMDB's ~40 req/s rate limit.
+   * Handles 429 responses with exponential backoff retry logic.
+   *
+   * @param url - Full URL to fetch
+   * @param options - Fetch options
+   * @returns Promise resolving to Response
+   */
+  private async rateLimitedFetch(
+    url: string,
+    options: RequestInit,
+  ): Promise<Response> {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push({
+        execute: () => fetch(url, options),
+        resolve,
+        reject,
+      })
+
+      // Start processing queue if not already running
+      if (!this.isProcessingQueue) {
+        void this.processRequestQueue()
+      }
+    })
+  }
+
+  /**
+   * Process queued requests respecting rate limits (token bucket algorithm)
+   */
+  private async processRequestQueue(): Promise<void> {
+    this.isProcessingQueue = true
+
+    while (this.requestQueue.length > 0) {
+      const now = Date.now()
+
+      // Remove timestamps outside the current window
+      this.requestTimestamps = this.requestTimestamps.filter(
+        (timestamp) => now - timestamp < TmdbService.RATE_LIMIT_WINDOW_MS,
+      )
+
+      // Check if we can make a request
+      if (this.requestTimestamps.length >= TmdbService.RATE_LIMIT_PER_SECOND) {
+        // Wait until we can make another request
+        const oldestTimestamp = this.requestTimestamps[0]
+        const waitTime =
+          TmdbService.RATE_LIMIT_WINDOW_MS - (now - oldestTimestamp)
+
+        this.log.debug(`Rate limit reached, waiting ${waitTime}ms`)
+        await new Promise((resolve) => setTimeout(resolve, waitTime))
+        continue
+      }
+
+      // Dequeue and execute request
+      const request = this.requestQueue.shift()
+      if (!request) continue
+
+      try {
+        const response = await this.executeWithRetry(request.execute)
+        this.requestTimestamps.push(Date.now())
+        request.resolve(response)
+      } catch (error) {
+        request.reject(error as Error)
+      }
+    }
+
+    this.isProcessingQueue = false
+  }
+
+  /**
+   * Execute request with separate retry logic for rate limits vs network errors
+   *
+   * @param executeRequest - Function that executes the fetch request
+   * @param retryCount429 - Current retry attempt for 429 rate limits
+   * @param retryCountNetwork - Current retry attempt for network/generic errors
+   * @param maxRetries - Maximum number of retries for each error type
+   * @returns Promise resolving to Response
+   */
+  private async executeWithRetry(
+    executeRequest: () => Promise<Response>,
+    retryCount429 = 0,
+    retryCountNetwork = 0,
+    maxRetries = 3,
+  ): Promise<Response> {
+    try {
+      const response = await executeRequest()
+
+      // Handle 429 Too Many Requests
+      if (response.status === 429) {
+        if (retryCount429 >= maxRetries) {
+          throw new Error('TMDB rate limit exceeded, max retries reached')
+        }
+
+        // Get retry-after header or use exponential backoff
+        const retryAfter = response.headers.get('retry-after')
+        const baseWaitTime = retryAfter
+          ? Number.parseInt(retryAfter, 10) * 1000
+          : 2 ** (retryCount429 + 1) * 1000 // Exponential backoff: 2s, 4s, 8s
+
+        // Add ±10% jitter to prevent synchronized retries
+        const jitter = baseWaitTime * 0.1
+        const waitTime = baseWaitTime + (Math.random() * 2 - 1) * jitter
+
+        this.log.warn(
+          `TMDB rate limit hit (429), retrying after ${Math.round(waitTime)}ms (attempt ${retryCount429 + 1}/${maxRetries})`,
+        )
+
+        await new Promise((resolve) => setTimeout(resolve, waitTime))
+        return this.executeWithRetry(
+          executeRequest,
+          retryCount429 + 1,
+          retryCountNetwork,
+          maxRetries,
+        )
+      }
+
+      return response
+    } catch (error) {
+      if (retryCountNetwork < maxRetries) {
+        const baseWaitTime = 2 ** retryCountNetwork * 1000
+
+        // Add ±10% jitter to prevent synchronized retries
+        const jitter = baseWaitTime * 0.1
+        const waitTime = baseWaitTime + (Math.random() * 2 - 1) * jitter
+
+        this.log.warn(
+          `TMDB request failed, retrying after ${Math.round(waitTime)}ms (attempt ${retryCountNetwork + 1}/${maxRetries})`,
+        )
+        await new Promise((resolve) => setTimeout(resolve, waitTime))
+        return this.executeWithRetry(
+          executeRequest,
+          retryCount429,
+          retryCountNetwork + 1,
+          maxRetries,
+        )
+      }
+      throw error
+    }
+  }
+
+  //
+  // ============================================================
+  // UTILITY METHODS
+  // ============================================================
+  //
 
   /**
    * Check if the service is properly configured

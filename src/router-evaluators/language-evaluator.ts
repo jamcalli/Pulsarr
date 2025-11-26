@@ -12,6 +12,7 @@ import type {
   RoutingDecision,
   RoutingEvaluator,
 } from '@root/types/router.types.js'
+import { evaluateRegexSafely } from '@utils/regex-safety.js'
 import type { FastifyInstance } from 'fastify'
 
 /**
@@ -117,6 +118,7 @@ export default function createLanguageEvaluator(
     name: 'Language Router',
     description: 'Routes content based on original language',
     priority: 65,
+    ruleType: 'language',
     supportedFields,
     supportedOperators,
 
@@ -133,7 +135,8 @@ export default function createLanguageEvaluator(
 
     async evaluate(
       item: ContentItem,
-      context: RoutingContext,
+      _context: RoutingContext,
+      rules: RouterRule[],
     ): Promise<RoutingDecision[] | null> {
       if (!hasLanguageData(item)) {
         return null
@@ -144,28 +147,13 @@ export default function createLanguageEvaluator(
         return null
       }
 
-      const isMovie = context.contentType === 'movie'
-
-      let rules: RouterRule[] = []
-      try {
-        rules = await fastify.db.getRouterRulesByType('language')
-      } catch (err) {
-        fastify.log.error(
-          { error: err },
-          'Language evaluator - DB query failed',
-        )
+      // Rules are already filtered by content-router (by type, target_type, and enabled status)
+      if (rules.length === 0) {
         return null
       }
 
-      // Filter rules by target type and enabled status
-      const contentTypeRules = rules.filter(
-        (rule) =>
-          rule.target_type === (isMovie ? 'radarr' : 'sonarr') &&
-          rule.enabled !== false,
-      )
-
       // Find matching language rules - check 'language' field with various operators
-      const matchingRules = contentTypeRules.filter((rule) => {
+      const matchingRules = rules.filter((rule) => {
         if (!rule.criteria || !rule.criteria.language) {
           return false
         }
@@ -230,13 +218,12 @@ export default function createLanguageEvaluator(
           case 'notContains':
             return !normalizedLanguage.includes(normalizedRuleLanguage)
           case 'regex':
-            try {
-              const regex = new RegExp(ruleLanguage)
-              return regex.test(language)
-            } catch (error) {
-              fastify.log.error(`Invalid regex in language rule: ${error}`)
-              return false
-            }
+            return evaluateRegexSafely(
+              ruleLanguage,
+              language,
+              fastify.log,
+              'language rule',
+            )
           default:
             // Default to equals for backward compatibility
             return normalizedLanguage === normalizedRuleLanguage
@@ -257,6 +244,7 @@ export default function createLanguageEvaluator(
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
+        ruleName: rule.name,
       }))
     },
 
@@ -327,12 +315,12 @@ export default function createLanguageEvaluator(
           break
         case 'regex':
           if (typeof value === 'string') {
-            try {
-              const regex = new RegExp(value)
-              result = regex.test(language)
-            } catch (error) {
-              fastify.log.error(`Invalid regex in language condition: ${error}`)
-            }
+            result = evaluateRegexSafely(
+              value,
+              language,
+              fastify.log,
+              'language condition',
+            )
           }
           break
       }

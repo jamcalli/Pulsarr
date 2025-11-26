@@ -4,10 +4,7 @@ import { plexGetNotificationStatusSchema } from '@schemas/plex/get-notification-
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
-  fastify,
-  _opts,
-) => {
+const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
   fastify.route({
     method: 'GET',
     url: '/notification-status',
@@ -20,9 +17,7 @@ export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
         const sonarrInstances = await fastify.sonarrManager.getAllInstances()
 
         if (radarrInstances.length === 0 && sonarrInstances.length === 0) {
-          return reply
-            .code(400)
-            .send({ error: 'No Radarr or Sonarr instances configured' })
+          return reply.badRequest('No Radarr or Sonarr instances configured')
         }
 
         const results = {
@@ -157,10 +152,12 @@ export const getNotificationStatusRoute: FastifyPluginAsyncZod = async (
         logRouteError(fastify.log, request, err, {
           message: 'Failed to check Plex notification status',
         })
-        return reply
-          .code(500)
-          .send({ error: 'Unable to check Plex notification status' })
+        return reply.internalServerError(
+          'Unable to check Plex notification status',
+        )
       }
     },
   })
 }
+
+export default plugin

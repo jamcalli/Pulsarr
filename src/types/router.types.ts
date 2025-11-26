@@ -2,6 +2,7 @@ import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
+import type { TmdbWatchProviderData } from '@root/types/tmdb.types.js'
 
 export interface ContentItem {
   title: string
@@ -14,6 +15,8 @@ export interface ContentItem {
     rating?: number | null
     votes?: number | null
   }
+  // TMDB watch providers for streaming availability routing
+  watchProviders?: TmdbWatchProviderData
 }
 
 export interface RouterRule {
@@ -65,6 +68,10 @@ export interface RoutingDecision {
   seasonMonitoring?: string | null // For Sonarr: which seasons to monitor
   seriesType?: 'standard' | 'anime' | 'daily' | null // For Sonarr: series type
   minimumAvailability?: 'announced' | 'inCinemas' | 'released' // For Radarr: minimum availability setting
+  /**
+   * Name of the router rule that produced this decision (for logging)
+   */
+  ruleName?: string
 }
 
 // Condition system types
@@ -124,13 +131,18 @@ export interface RoutingEvaluator {
   description: string
   priority: number
 
+  // Rule type this evaluator handles (e.g., 'genre', 'imdb', 'streaming')
+  // Used by content-router to filter rules before passing to evaluator
+  ruleType: string
+
   // Whether this evaluator can handle this content
   canEvaluate(item: ContentItem, context: RoutingContext): Promise<boolean>
 
-  // Main evaluation method
+  // Main evaluation method - rules are pre-filtered by content-router
   evaluate(
     item: ContentItem,
     context: RoutingContext,
+    rules: RouterRule[], // Pre-filtered rules for this evaluator
   ): Promise<RoutingDecision[] | null>
 
   // For conditional evaluator support
