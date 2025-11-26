@@ -226,7 +226,8 @@ export async function getConfig(
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
     tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
     cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
-    persistHistoricalTags: Boolean(config.persistHistoricalTags),
+    // TODO: Remove dormant field in future migration (replaced by removedTagMode enum)
+    // persistHistoricalTags: Boolean(config.persistHistoricalTags),
     tagPrefix: config.tagPrefix || 'pulsarr-user',
     removedTagMode: config.removedTagMode || 'remove',
     removedTagPrefix: config.removedTagPrefix || 'pulsarr-removed',
