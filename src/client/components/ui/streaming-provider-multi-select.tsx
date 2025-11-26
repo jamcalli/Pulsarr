@@ -71,17 +71,17 @@ const StreamingProviderMultiSelect = ({
       ? [field.value]
       : []
 
-  return (
-    <MultiSelect
-      options={options}
-      onValueChange={(values) => {
-        // Convert string values back to numbers for storage
-        const numericValues = values.map((v) => Number(v))
-        field.onChange(numericValues.length === 1 ? numericValues[0] : numericValues)
-      }}
-      defaultValue={normalizedValue.map((v) => String(v))}
-      placeholder={isLoading ? 'Loading providers...' : 'Select streaming provider(s)'}
-      modalPopover={true}
+ return (
+   <MultiSelect
+     options={options}
+     onValueChange={(values) => {
+       // Convert string values back to numbers for storage
+       const numericValues = values.map((v) => Number(v))
+       field.onChange(numericValues)
+     }}
+     value={normalizedValue.map((v) => String(v))}
+     placeholder={isLoading ? 'Loading providers...' : 'Select streaming provider(s)'}
+     modalPopover={true}
       maxCount={2}
       onDropdownOpen={onDropdownOpen}
       disabled={isLoading}
