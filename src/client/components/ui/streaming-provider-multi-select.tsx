@@ -37,6 +37,9 @@ const StreamingProviderMultiSelect = ({
         // Fetch providers operation
         const fetchOperation = async () => {
           const response = await fetch(api('/v1/tmdb/providers'))
+          if (!response.ok) {
+            throw new Error(`Failed to fetch providers: ${response.status}`)
+          }
           const data: ProvidersResponse = await response.json()
           if (data.success && data.providers) {
             setProviders(data.providers)
