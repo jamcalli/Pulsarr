@@ -21,13 +21,20 @@ export function parseWebhookUrls(value?: string): string[] {
 
 /**
  * Checks if a URL is a valid Discord webhook URL.
- * Uses the shared DISCORD_WEBHOOK_HOSTS constant to ensure consistency
- * with server-side validation.
+ * Uses the shared DISCORD_WEBHOOK_HOSTS constant and URL parsing to ensure
+ * consistency with server-side validation in discord-notifications.service.ts.
  */
 function isValidDiscordWebhookUrl(url: string): boolean {
-  return DISCORD_WEBHOOK_HOSTS.some((host) =>
-    url.includes(`${host}/api/webhooks`),
-  )
+  try {
+    const parsed = new URL(url)
+    return (
+      parsed.protocol === 'https:' &&
+      DISCORD_WEBHOOK_HOSTS.some((host) => host === parsed.hostname) &&
+      parsed.pathname.startsWith('/api/webhooks/')
+    )
+  } catch {
+    return false
+  }
 }
 
 /**
