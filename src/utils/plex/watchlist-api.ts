@@ -200,23 +200,25 @@ export const getWatchlistForUser = async (
   }
 
   const query: GraphQLQuery = {
-    query: `query GetWatchlistHub ($uuid: ID!, $first: PaginationInt!, $after: String) {
-      user(id: $uuid) {
-        watchlist(first: $first, after: $after) {
-          nodes {
-            id
-            title
-            type
-          }
-          pageInfo {
-            hasNextPage
-            endCursor
+    query: `query GetWatchlistHub ($user: UserInput!, $first: PaginationInt!, $after: String) {
+      userV2(user: $user) {
+        ... on User {
+          watchlist(first: $first, after: $after) {
+            nodes {
+              id
+              title
+              type
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
           }
         }
       }
     }`,
     variables: {
-      uuid: user.watchlistId,
+      user: { id: user.watchlistId },
       first: 100,
       after: page,
     },
@@ -342,8 +344,8 @@ export const getWatchlistForUser = async (
       throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`)
     }
 
-    if (json.data?.user?.watchlist) {
-      const watchlist = json.data.user.watchlist
+    if (json.data?.userV2?.watchlist) {
+      const watchlist = json.data.userV2.watchlist
       const currentTime = new Date().toISOString()
 
       for (const node of watchlist.nodes) {
