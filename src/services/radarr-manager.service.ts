@@ -4,7 +4,10 @@ import type {
   RadarrInstance,
   Item as RadarrItem,
 } from '@root/types/radarr.types.js'
-import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
+import type {
+  ExistenceCheckResult,
+  InstanceHealthResult,
+} from '@root/types/service-result.types.js'
 import { RadarrService } from '@services/radarr.service.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { parseQualityProfileId } from '@utils/quality-profile.js'
@@ -323,6 +326,34 @@ export class RadarrManagerService {
     const result = await radarrService.movieExistsByTmdbId(tmdbId)
     // Add instance ID to the result
     return { ...result, instanceId }
+  }
+
+  /**
+   * Check health status of all configured Radarr instances
+   * @returns Promise resolving to InstanceHealthResult
+   */
+  async checkInstancesHealth(): Promise<InstanceHealthResult> {
+    const available: number[] = []
+    const unavailable: number[] = []
+
+    const healthChecks = Array.from(this.radarrServices.entries()).map(
+      async ([instanceId, service]) => {
+        const result = await service.isHealthy()
+        if (result.healthy) {
+          available.push(instanceId)
+        } else {
+          unavailable.push(instanceId)
+          this.log.warn(
+            { instanceId, error: result.error },
+            'Radarr instance unhealthy',
+          )
+        }
+      },
+    )
+
+    await Promise.all(healthChecks)
+
+    return { available, unavailable }
   }
 
   async addInstance(instance: Omit<RadarrInstance, 'id'>): Promise<number> {

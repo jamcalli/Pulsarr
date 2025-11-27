@@ -1285,6 +1285,44 @@ export class WatchlistWorkflowService {
       // This is reconciliation-scoped - cache is rebuilt fresh each cycle
       this.fastify.plexServerService.clearContentCacheForReconciliation()
 
+      // Check health of all Sonarr/Radarr instances before proceeding
+      // If all instances are unavailable, abort to prevent false approval creation
+      const [sonarrHealth, radarrHealth] = await Promise.all([
+        this.sonarrManager.checkInstancesHealth(),
+        this.radarrManager.checkInstancesHealth(),
+      ])
+
+      const totalAvailable =
+        sonarrHealth.available.length + radarrHealth.available.length
+      const totalConfigured =
+        sonarrHealth.available.length +
+        sonarrHealth.unavailable.length +
+        radarrHealth.available.length +
+        radarrHealth.unavailable.length
+
+      if (totalConfigured > 0 && totalAvailable === 0) {
+        this.log.error(
+          'All Radarr/Sonarr instances are unavailable, aborting reconciliation to prevent false approval creation',
+        )
+        return
+      }
+
+      // Warn if some instances are unavailable (partial data)
+      if (
+        sonarrHealth.unavailable.length > 0 ||
+        radarrHealth.unavailable.length > 0
+      ) {
+        this.log.warn(
+          {
+            sonarrAvailable: sonarrHealth.available.length,
+            sonarrUnavailable: sonarrHealth.unavailable.length,
+            radarrAvailable: radarrHealth.available.length,
+            radarrUnavailable: radarrHealth.unavailable.length,
+          },
+          'Some instances unavailable during reconciliation - proceeding with available instances only',
+        )
+      }
+
       // Get all users to check their sync permissions
       const allUsers = await this.dbService.getAllUsers()
       const userSyncStatus = new Map<number, boolean>()
