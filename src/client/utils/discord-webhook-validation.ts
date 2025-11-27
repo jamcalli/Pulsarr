@@ -1,3 +1,4 @@
+import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types'
 import { z } from 'zod'
 
 /**
@@ -16,6 +17,24 @@ export function parseWebhookUrls(value?: string): string[] {
     .split(',')
     .map((url) => url.trim())
     .filter(Boolean)
+}
+
+/**
+ * Checks if a URL is a valid Discord webhook URL.
+ * Uses the shared DISCORD_WEBHOOK_HOSTS constant and URL parsing to ensure
+ * consistency with server-side validation in discord-notifications.service.ts.
+ */
+function isValidDiscordWebhookUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return (
+      parsed.protocol === 'https:' &&
+      DISCORD_WEBHOOK_HOSTS.some((host) => host === parsed.hostname) &&
+      parsed.pathname.startsWith('/api/webhooks/')
+    )
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -40,9 +59,7 @@ export const discordWebhookStringSchema = z
       return
     }
 
-    const invalidUrls = urls.filter(
-      (url) => !url.includes('discord.com/api/webhooks'),
-    )
+    const invalidUrls = urls.filter((url) => !isValidDiscordWebhookUrl(url))
 
     if (invalidUrls.length > 0) {
       ctx.addIssue({
