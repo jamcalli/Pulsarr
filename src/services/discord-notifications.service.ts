@@ -734,9 +734,7 @@ export class DiscordNotificationService {
       // Ensure it's a proper Discord webhook URL
       if (
         parsedUrl.protocol !== 'https:' ||
-        !DISCORD_WEBHOOK_HOSTS.includes(
-          parsedUrl.hostname as (typeof DISCORD_WEBHOOK_HOSTS)[number],
-        ) ||
+        !DISCORD_WEBHOOK_HOSTS.some((host) => host === parsedUrl.hostname) ||
         !parsedUrl.pathname.startsWith('/api/webhooks/')
       ) {
         return { valid: false, error: 'Invalid Discord webhook URL format' }
