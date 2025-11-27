@@ -15,7 +15,7 @@
 
 ---
 
-<h2 align="center">⭐ Love Pulsarr? Give Us a Star! ⭐</h2>
+<h2 align="center">Love Pulsarr? Give Us a Star! ⭐</h2>
 
 If Pulsarr has simplified your media management, please star this repository! It takes just a second, helps others find us, and motivates continued development. Thank you for being part of our community!
 
@@ -27,11 +27,9 @@ If Pulsarr has simplified your media management, please star this repository! It
 
 ---
 
-Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.
+Pulsarr bridges Plex watchlists with Sonarr and Radarr for real-time media monitoring and automated content acquisition—**all from within the Plex app, no extra logins required.**
 
-Enjoy all the benefits of other content discovery systems without requiring users to use additional services. All the magic happens from the primary user's Plex Token.
-
-It provides user-based watchlist synchronization for yourself and for friends, intelligent content routing based on multiple criteria, approval workflows with quota management, and notification capabilities (Discord and Apprise).
+Features include multi-user watchlist sync, intelligent content routing, approval workflows with quotas, and notifications via Discord and Apprise.
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Dashboard1.png" alt="Dashboard" width="80%"/>
@@ -47,34 +45,30 @@ Full documentation is available at: **[https://jamcalli.github.io/Pulsarr/](http
 - [Features & Guides](https://jamcalli.github.io/Pulsarr/docs/intro)
 - [API Documentation](https://jamcalli.github.io/Pulsarr/docs/api-documentation)
 
+### API Documentation
+
+Our REST API is fully documented and accessible in two ways:
+
+- **Public Documentation**: [https://jamcalli.github.io/Pulsarr/docs/api-documentation](https://jamcalli.github.io/Pulsarr/docs/api-documentation)
+- **Interactive Docs**: Every Pulsarr instance includes built-in Scalar API documentation at `http://localhost:3003/api/docs`
+
 ## 🚀 Quick Start
 
 ### Docker Installation (Recommended)
 
 1. Create a `.env` file:
 ```env
-# ⚠️  CRITICAL: baseUrl + port = webhook address for Sonarr/Radarr to reach Pulsarr
-# Must be resolvable from your *arr containers (varies by deployment):
-# • Docker Compose same network: http://pulsarr (service name)
-# • Docker host networking: http://localhost (containers share host network)
-# • Docker Desktop (Mac/Windows): http://host.docker.internal  
-# • Separate machines: http://server-ip (actual IP address)
-# • HTTPS: https://domain.com (external port 443, container still uses 3003 internally)
-baseUrl=http://your-server-ip   # Address where Sonarr/Radarr can reach Pulsarr
-port=3003                       # Port (omit for external HTTPS on port 443)
-TZ=America/Los_Angeles          # Set to your local timezone
+# ⚠️ CRITICAL: Pulsarr's address as seen from Sonarr/Radarr containers (for webhooks)
+# This MUST be reachable from your *arr containers or webhooks will fail!
+# Examples:
+#   http://pulsarr         - Docker Compose (same network, use service name)
+#   http://localhost       - Host networking
+#   http://192.168.1.x     - Separate machines (use Pulsarr host's IP)
+baseUrl=http://your-server-ip
+port=3003                       # Default: 3003
 
-# Logging Configuration
-logLevel=info                   # Log level (default: info)
-                                # Accepts: fatal | error | warn | info | debug | trace | silent
-
-enableConsoleOutput=true        # Console logging (default: true)
-                                # Any value other than "false" enables terminal output
-                                # Logs are always written to ./data/logs/ regardless of this setting
-
-enableRequestLogging=false      # HTTP request logging (default: false)
-                                # Logs HTTP method, URL, host, remote IP/port, response codes, response times
-                                # Sensitive query parameters (token, apiKey, password) are automatically redacted
+# Your timezone
+TZ=America/Los_Angeles
 ```
 
 2. Create `docker-compose.yml`:
@@ -99,26 +93,19 @@ docker compose pull && docker compose up -d
 ```
 
 4. Access the web UI at `http://your-server:3003` to complete setup.
-5. View interactive API documentation at `http://your-server:3003/api/docs`
 
 
 For detailed installation options, including Unraid, manual installation, and PostgreSQL setup, see the [documentation](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start).
 
 ### Database Options
 
-Pulsarr uses SQLite by default but can also be configured to use PostgreSQL for users requiring external database access or high-scale deployments.
+Pulsarr uses SQLite by default but can also be configured to use PostgreSQL.
 
 See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/installation/configuration) for PostgreSQL setup details.
 
 ## Hosted Deployment Options
 
-### ElfHosted
-
-[ElfHosted](https://store.elfhosted.com/elf/jamcalli/) is a Platform-as-a-Service (PaaS) provider that offers managed hosting for self-hosted applications, including Pulsarr. The platform handles infrastructure management, security updates, and system maintenance, allowing users to focus on configuring and using their applications.
-
-They provide pre-configured streaming media bundles that integrate Pulsarr with popular media server applications (Plex, Jellyfin, Emby) and automation tools (Radarr, Sonarr). The platform includes community support through their [Discord server](https://discord.elfhosted.com) and maintains [documentation](https://docs.elfhosted.com) for their services.
-
-For users who prefer managed hosting over self-deployment, ElfHosted offers an alternative to manual installation and maintenance.
+[ElfHosted](https://store.elfhosted.com/elf/jamcalli/) offers managed Pulsarr hosting with pre-configured media server bundles.
 
 ## ✨ Key Features
 
@@ -138,7 +125,12 @@ For users who prefer managed hosting over self-deployment, ElfHosted offers an a
 - **Automatic Plex Updates**: Configures webhooks for instant library refreshes
 - **Developer-Friendly API**: Full REST API with interactive documentation
 
-## 🤝 Contributing
+## Community Integrations
+
+- [Home Assistant Integration](https://github.com/SpaceFrags/pulsarr_enhanced_requests) - Community-maintained integration to manage Pulsarr requests from Home Assistant
+- [Pulsarr Card](https://github.com/SpaceFrags/pulsarr-requests-card) - Community-maintained companion card for the HA integration
+
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](https://jamcalli.github.io/Pulsarr/docs/contributing) for details on:
 - Fork and branch naming conventions
@@ -147,14 +139,10 @@ We welcome contributions! Please see our [Contributing Guidelines](https://jamca
 
 ## 💬 Support
 
-- 💬 Join our [Discord community](https://discord.gg/9csTEJn5cR) for help, discussions, and updates
-- Need help? [Open an issue](https://github.com/jamcalli/pulsarr/issues) on GitHub
-- 🐛 Report bugs or request features
-- 📖 Contribute to documentation
+- [Discord](https://discord.gg/9csTEJn5cR) - Help, discussions, and updates
+- [GitHub Issues](https://github.com/jamcalli/pulsarr/issues) - Bug reports and feature requests
 
-Your support helps keep this project active and growing!
-
-## ❤️ Thank You
+## Thank You
 
 A big thank you to these amazing contributors who've helped build and maintain this project:
 
@@ -162,11 +150,11 @@ A big thank you to these amazing contributors who've helped build and maintain t
   <img src="https://contrib.rocks/image?repo=jamcalli/pulsarr" alt="Contributors" />
 </a>
 
-## 📜 License
+## License
 
 Pulsarr is licensed under the GPL. See the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - [Plex](https://www.plex.tv/) • [Sonarr](https://sonarr.tv/) • [Radarr](https://radarr.video/) • [Fastify](https://www.fastify.io/) • [Discord.js](https://discord.js.org/) • [Watchlistarr](https://github.com/nylonee/watchlistarr/)
 

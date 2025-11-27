@@ -1,4 +1,7 @@
-import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
+import type {
+  ExistenceCheckResult,
+  InstanceHealthResult,
+} from '@root/types/service-result.types.js'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type {
   ConnectionTestResult,
@@ -408,6 +411,34 @@ export class SonarrManagerService {
     const result = await sonarrService.seriesExistsByTvdbId(tvdbId)
     // Add instance ID to the result
     return { ...result, instanceId }
+  }
+
+  /**
+   * Check health status of all configured Sonarr instances
+   * @returns Promise resolving to InstanceHealthResult
+   */
+  async checkInstancesHealth(): Promise<InstanceHealthResult> {
+    const available: number[] = []
+    const unavailable: number[] = []
+
+    const healthChecks = Array.from(this.sonarrServices.entries()).map(
+      async ([instanceId, service]) => {
+        const result = await service.isHealthy()
+        if (result.healthy) {
+          available.push(instanceId)
+        } else {
+          unavailable.push(instanceId)
+          this.log.warn(
+            { instanceId, error: result.error },
+            'Sonarr instance unhealthy',
+          )
+        }
+      },
+    )
+
+    await Promise.all(healthChecks)
+
+    return { available, unavailable }
   }
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {

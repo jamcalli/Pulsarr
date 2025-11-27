@@ -1,4 +1,7 @@
-import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
+import type {
+  ExistenceCheckResult,
+  HealthCheckResult,
+} from '@root/types/service-result.types.js'
 import type {
   ConnectionTestResult,
   SonarrItem as Item,
@@ -569,6 +572,54 @@ export class SonarrService {
         success: false,
         message:
           'Connection test failed. Please check your settings and try again.',
+      }
+    }
+  }
+
+  /**
+   * Check if this Sonarr instance is healthy and responding
+   * @returns Promise resolving to HealthCheckResult
+   */
+  async isHealthy(): Promise<HealthCheckResult> {
+    if (
+      !this.config ||
+      !this.config.sonarrApiKey ||
+      !this.config.sonarrBaseUrl
+    ) {
+      return {
+        healthy: false,
+        error: 'Sonarr service not initialized',
+      }
+    }
+
+    try {
+      const statusUrl = new URL(
+        `${this.config.sonarrBaseUrl}/api/v3/system/status`,
+      )
+      const response = await fetch(statusUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'X-Api-Key': this.config.sonarrApiKey,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(SONARR_CONNECTION_TEST_TIMEOUT),
+      })
+
+      if (!response.ok) {
+        return {
+          healthy: false,
+          error: `Sonarr responded with status ${response.status}`,
+        }
+      }
+
+      return { healthy: true }
+    } catch (error) {
+      return {
+        healthy: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error checking Sonarr health',
       }
     }
   }

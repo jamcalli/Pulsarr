@@ -67,6 +67,7 @@ const sidebars: SidebarsConfig = {
     },
     'architecture',
     'contributing',
+    'api-documentation',
     {
       type: 'category',
       label: 'API Reference',
