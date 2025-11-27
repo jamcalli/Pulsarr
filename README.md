@@ -45,6 +45,17 @@ Full documentation is available at: **[https://jamcalli.github.io/Pulsarr/](http
 - [Features & Guides](https://jamcalli.github.io/Pulsarr/docs/intro)
 - [API Documentation](https://jamcalli.github.io/Pulsarr/docs/api-documentation)
 
+## 🔌 API Documentation
+
+Our REST API is fully documented and accessible in two ways:
+
+**📖 Public Documentation**: [https://jamcalli.github.io/Pulsarr/docs/api-documentation](https://jamcalli.github.io/Pulsarr/docs/api-documentation)
+
+**⚡ Interactive Docs**: Every Pulsarr instance includes built-in Scalar API documentation at:
+```
+http://localhost:3003/api/docs
+```
+
 ## 🚀 Quick Start
 
 ### Docker Installation (Recommended)
@@ -86,14 +97,13 @@ docker compose pull && docker compose up -d
 ```
 
 4. Access the web UI at `http://your-server:3003` to complete setup.
-5. View interactive API documentation at `http://your-server:3003/api/docs`
 
 
 For detailed installation options, including Unraid, manual installation, and PostgreSQL setup, see the [documentation](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start).
 
 ### Database Options
 
-Pulsarr uses SQLite by default but can also be configured to use PostgreSQL for users requiring external database access or high-scale deployments.
+Pulsarr uses SQLite by default but can also be configured to use PostgreSQL.
 
 See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/installation/configuration) for PostgreSQL setup details.
 

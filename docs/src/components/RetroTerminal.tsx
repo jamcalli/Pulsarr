@@ -508,18 +508,18 @@ const RetroTerminal = () => {
             return () => window.removeEventListener('resize', handleResize)
           }, [])
 
-          return (
-            <div
-              className={`outline-border dark:outline-darkBorder w-full h-full
-                rounded-base shadow-[10px_10px_0_0_#000] outline outline-4`}
-              style={{
-                minWidth: windowWidth >= 768 ? '523px' : 'auto', // 475px content + 48px padding
-              }}
-            >
-              {/* Main content area - no header, just the body */}
-              <main className="flex flex-col font-semibold p-6 rounded-base bg-background">
-                <div className="flex-1">
-                  <RetroTerminalContent />
+         return (
+           <div
+             className={`outline-border dark:outline-darkBorder w-full h-full
+               rounded-base shadow-[10px_10px_0_0_#000] outline outline-4`}
+             style={{
+               minWidth: windowWidth >= 768 ? '523px' : 'auto', // 475px content + 48px padding
+             }}
+           >
+             {/* Main content area - no header, just the body */}
+             <main className="flex flex-col justify-center font-semibold p-6 rounded-base bg-background h-full">
+               <div>
+                 <RetroTerminalContent />
                 </div>
               </main>
             </div>
