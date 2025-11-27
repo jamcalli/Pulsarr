@@ -276,7 +276,7 @@ describe('plex/watchlist-api', () => {
         http.post('https://community.plex.tv/api', () => {
           return HttpResponse.json({
             data: {
-              user: {
+              userV2: {
                 watchlist: {
                   nodes: [
                     {
@@ -319,7 +319,7 @@ describe('plex/watchlist-api', () => {
           if (callCount === 1) {
             return HttpResponse.json({
               data: {
-                user: {
+                userV2: {
                   watchlist: {
                     nodes: [{ id: 'item-1', title: 'Movie 1', type: 'movie' }],
                     pageInfo: {
@@ -333,7 +333,7 @@ describe('plex/watchlist-api', () => {
           }
           return HttpResponse.json({
             data: {
-              user: {
+              userV2: {
                 watchlist: {
                   nodes: [{ id: 'item-2', title: 'Movie 2', type: 'movie' }],
                   pageInfo: {
@@ -375,7 +375,7 @@ describe('plex/watchlist-api', () => {
           capturedBody = await request.json()
           return HttpResponse.json({
             data: {
-              user: {
+              userV2: {
                 watchlist: {
                   nodes: [],
                   pageInfo: { hasNextPage: false, endCursor: null },
@@ -394,7 +394,8 @@ describe('plex/watchlist-api', () => {
       )
       expect(capturedBody).toHaveProperty('variables')
       expect(
-        (capturedBody as { variables: { uuid: string } }).variables.uuid,
+        (capturedBody as { variables: { user: { id: string } } }).variables.user
+          .id,
       ).toBe('user-123')
     })
 
@@ -482,7 +483,7 @@ describe('plex/watchlist-api', () => {
           }
           return HttpResponse.json({
             data: {
-              user: {
+              userV2: {
                 watchlist: {
                   nodes: [],
                   pageInfo: { hasNextPage: false, endCursor: null },
