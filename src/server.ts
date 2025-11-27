@@ -9,12 +9,12 @@ import serviceApp from './app.js'
 /**
  * Create, configure, and start the Fastify HTTP server for the application.
  *
- * Initializes Fastify with schema validation, logger configuration, plugin registration, and application-configured log level; sets up graceful shutdown (forcibly closing persistent connections) and begins listening on the configured port. Request logging is enabled by default but can be disabled via the environment variable `enableRequestLogging` (case-insensitive falsy values: "false", "0", "no", "off"). If the server fails to start, the error is logged and the process exits with code 1.
+ * Initializes Fastify with schema validation, logger configuration, plugin registration, and application-configured log level; sets up graceful shutdown (forcibly closing persistent connections) and begins listening on the configured port. Request logging is disabled by default but can be enabled via the environment variable `enableRequestLogging` (case-insensitive truthy values: "true", "1", "yes", "on"). If the server fails to start, the error is logged and the process exits with code 1.
  */
 async function init() {
-  // Read request logging setting from env var (default: true)
-  // Accept common falsy variants: false, 0, no, off (case-insensitive)
-  const enableRequestLogging = !/^(\s*(false|0|no|off)\s*)$/i.test(
+  // Read request logging setting from env var (default: false)
+  // Accept common truthy variants: true, 1, yes, on (case-insensitive)
+  const enableRequestLogging = /^(\s*(true|1|yes|on)\s*)$/i.test(
     process.env.enableRequestLogging ?? '',
   )
 

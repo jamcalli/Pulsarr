@@ -12,7 +12,10 @@ import type {
   RootFolder,
   WebhookNotification,
 } from '@root/types/radarr.types.js'
-import type { ExistenceCheckResult } from '@root/types/service-result.types.js'
+import type {
+  ExistenceCheckResult,
+  HealthCheckResult,
+} from '@root/types/service-result.types.js'
 import {
   isRadarrStatus,
   isSystemStatus,
@@ -1127,6 +1130,54 @@ export class RadarrService {
         success: false,
         message:
           'Connection test failed. Please check your settings and try again.',
+      }
+    }
+  }
+
+  /**
+   * Check if this Radarr instance is healthy and responding
+   * @returns Promise resolving to HealthCheckResult
+   */
+  async isHealthy(): Promise<HealthCheckResult> {
+    if (
+      !this.config ||
+      !this.config.radarrApiKey ||
+      !this.config.radarrBaseUrl
+    ) {
+      return {
+        healthy: false,
+        error: 'Radarr service not initialized',
+      }
+    }
+
+    try {
+      const statusUrl = new URL(
+        `${this.config.radarrBaseUrl}/api/v3/system/status`,
+      )
+      const response = await fetch(statusUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'X-Api-Key': this.config.radarrApiKey,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(RADARR_CONNECTION_TEST_TIMEOUT),
+      })
+
+      if (!response.ok) {
+        return {
+          healthy: false,
+          error: `Radarr responded with status ${response.status}`,
+        }
+      }
+
+      return { healthy: true }
+    } catch (error) {
+      return {
+        healthy: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error checking Radarr health',
       }
     }
   }

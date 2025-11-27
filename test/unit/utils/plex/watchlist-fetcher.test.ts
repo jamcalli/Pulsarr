@@ -416,7 +416,7 @@ describe('plex/watchlist-fetcher', () => {
           const token = request.headers.get('X-Plex-Token')
           return HttpResponse.json({
             data: {
-              user: {
+              userV2: {
                 watchlist: {
                   nodes: [
                     {
@@ -478,7 +478,7 @@ describe('plex/watchlist-fetcher', () => {
         http.post('https://community.plex.tv/api', () => {
           return HttpResponse.json({
             data: {
-              user: {
+              userV2: {
                 watchlist: {
                   nodes: [],
                   pageInfo: { hasNextPage: false, endCursor: null },
@@ -516,12 +516,12 @@ describe('plex/watchlist-fetcher', () => {
       server.use(
         http.post('https://community.plex.tv/api', async ({ request }) => {
           const body = (await request.json()) as {
-            variables: { uuid: string }
+            variables: { user: { id: string } }
           }
-          processedFriends.push(body.variables.uuid)
+          processedFriends.push(body.variables.user.id)
           return HttpResponse.json({
             data: {
-              user: {
+              userV2: {
                 watchlist: {
                   nodes: [],
                   pageInfo: { hasNextPage: false, endCursor: null },
@@ -578,7 +578,11 @@ describe('plex/watchlist-fetcher', () => {
         [friend, 'token'],
       ])
 
-      const result = await getOthersWatchlist(config, mockLogger, friends)
+      vi.useFakeTimers()
+      const promise = getOthersWatchlist(config, mockLogger, friends)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(0)
       expect(mockLogger.warn).toHaveBeenCalledWith(
@@ -623,7 +627,7 @@ describe('plex/watchlist-fetcher', () => {
           if (token === 'token1') {
             return HttpResponse.json({
               data: {
-                user: {
+                userV2: {
                   watchlist: {
                     nodes: [
                       { id: 'item-1', title: 'Movie 1', type: 'movie' },
@@ -637,7 +641,7 @@ describe('plex/watchlist-fetcher', () => {
           }
           return HttpResponse.json({
             data: {
-              user: {
+              userV2: {
                 watchlist: {
                   nodes: [],
                   pageInfo: { hasNextPage: false, endCursor: null },

@@ -1357,6 +1357,7 @@ export async function createTempRssItems(
     guids: string[]
     genres?: string[]
     source: 'self' | 'friends'
+    routed?: boolean
   }>,
 ): Promise<void> {
   await this.knex.transaction(async (trx) => {
@@ -1368,6 +1369,7 @@ export async function createTempRssItems(
           ...item,
           guids: JSON.stringify(item.guids),
           genres: item.genres ? JSON.stringify(item.genres) : null,
+          routed: item.routed ?? false,
           created_at: this.timestamp,
         })),
       )
@@ -1394,6 +1396,7 @@ export async function getTempRssItems(
     genres: string[]
     source: 'self' | 'friends'
     created_at: string
+    routed: boolean
   }>
 > {
   const query = this.knex('temp_rss_items')
@@ -1404,6 +1407,7 @@ export async function getTempRssItems(
   const results = await query
   return results.map((row) => ({
     ...row,
+    routed: Boolean(row.routed),
     guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
     genres: row.genres
       ? this.safeJsonParse(row.genres, [], 'watchlist_item.genres')

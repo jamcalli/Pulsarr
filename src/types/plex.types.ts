@@ -114,7 +114,7 @@ export interface PlexApiResponse {
   errors?: PlexGraphQLError[]
   data?: {
     allFriendsV2?: Array<{ user: { id: string; username: string } }>
-    user?: {
+    userV2?: {
       watchlist?: {
         nodes: Array<TokenWatchlistItem>
         pageInfo: {

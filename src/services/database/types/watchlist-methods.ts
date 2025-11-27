@@ -226,6 +226,7 @@ declare module '@services/database.service.js' {
         guids: string[]
         genres?: string[]
         source: 'self' | 'friends'
+        routed?: boolean
       }>,
     ): Promise<void>
 
@@ -247,6 +248,7 @@ declare module '@services/database.service.js' {
         genres: string[]
         source: 'self' | 'friends'
         created_at: string
+        routed: boolean
       }>
     >
 

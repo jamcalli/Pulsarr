@@ -811,6 +811,7 @@ export class WatchlistWorkflowService {
     source: 'self' | 'friends',
   ): Promise<void> {
     let hasNewItems = false
+    const routedGuids = new Set<string>() // Track which items were successfully routed
 
     // Check if processing should be deferred (includes both sync disabled and user routing rules)
     const shouldDefer = await this.shouldDeferProcessing()
@@ -829,20 +830,30 @@ export class WatchlistWorkflowService {
 
         // Only process immediately if we don't need to defer
         if (!shouldDefer) {
+          let wasRouted = false
+
           if (item.type.toLowerCase() === 'show') {
             this.log.info(`Processing show ${item.title} immediately`)
             const normalizedItem = {
               ...item,
               type: 'show',
             }
-            await this.processSonarrItem(normalizedItem)
+            wasRouted = await this.processSonarrItem(normalizedItem)
           } else if (item.type.toLowerCase() === 'movie') {
             this.log.info(`Processing movie ${item.title} immediately`)
             const normalizedItem = {
               ...item,
               type: 'movie',
             }
-            await this.processRadarrItem(normalizedItem)
+            wasRouted = await this.processRadarrItem(normalizedItem)
+          }
+
+          // Track routed GUIDs for storage
+          if (wasRouted && item.guids) {
+            const guids = Array.isArray(item.guids) ? item.guids : [item.guids]
+            for (const guid of guids) {
+              routedGuids.add(guid.toLowerCase())
+            }
           }
         } else {
           this.log.debug(
@@ -865,7 +876,11 @@ export class WatchlistWorkflowService {
       await this.unschedulePendingReconciliation()
 
       try {
-        await this.plexService.storeRssWatchlistItems(items, source)
+        await this.plexService.storeRssWatchlistItems(
+          items,
+          source,
+          routedGuids,
+        )
         this.log.debug(`Stored ${items.size} changed ${source} RSS items`)
       } catch (error) {
         this.log.error({ error }, `Error storing ${source} RSS items:`)
@@ -1115,7 +1130,7 @@ export class WatchlistWorkflowService {
    * and routes it using the content router.
    *
    * @param item - Movie watchlist item to process
-   * @returns Promise resolving to true if processed successfully
+   * @returns Promise resolving to true if content was actually routed to Radarr
    */
   private async processRadarrItem(
     item: TemptRssWatchlistItem,
@@ -1136,7 +1151,7 @@ export class WatchlistWorkflowService {
       // Verify item isn't already in Radarr
       const shouldAdd = await this.verifyRadarrItem(item)
       if (!shouldAdd) {
-        return true // Item exists, considered successfully processed
+        return false // Item exists, not routed
       }
 
       // Prepare item for Radarr
@@ -1148,15 +1163,23 @@ export class WatchlistWorkflowService {
       }
 
       // Use content router to route the item
-      await this.contentRouter.routeContent(radarrItem, item.key, {
-        syncing: false,
-      })
-
-      this.log.info(
-        `Successfully routed movie ${item.title} via content router`,
+      const { routedInstances } = await this.contentRouter.routeContent(
+        radarrItem,
+        item.key,
+        {
+          syncing: false,
+        },
       )
 
-      return true
+      const wasRouted = routedInstances.length > 0
+
+      if (wasRouted) {
+        this.log.info(
+          `Successfully routed movie ${item.title} via content router`,
+        )
+      }
+
+      return wasRouted
     } catch (error) {
       this.log.error(
         {
@@ -1178,7 +1201,7 @@ export class WatchlistWorkflowService {
    * and routes it using the content router.
    *
    * @param item - Show watchlist item to process
-   * @returns Promise resolving to true if processed successfully
+   * @returns Promise resolving to true if content was actually routed to Sonarr
    */
   private async processSonarrItem(
     item: TemptRssWatchlistItem,
@@ -1199,7 +1222,7 @@ export class WatchlistWorkflowService {
       // Verify item isn't already in Sonarr
       const shouldAdd = await this.verifySonarrItem(item)
       if (!shouldAdd) {
-        return true // Item exists, considered successfully processed
+        return false // Item exists, not routed
       }
 
       // Prepare item for Sonarr
@@ -1214,13 +1237,23 @@ export class WatchlistWorkflowService {
       }
 
       // Use content router to route the item
-      await this.contentRouter.routeContent(sonarrItem, item.key, {
-        syncing: false,
-      })
+      const { routedInstances } = await this.contentRouter.routeContent(
+        sonarrItem,
+        item.key,
+        {
+          syncing: false,
+        },
+      )
 
-      this.log.info(`Successfully routed show ${item.title} via content router`)
+      const wasRouted = routedInstances.length > 0
 
-      return true
+      if (wasRouted) {
+        this.log.info(
+          `Successfully routed show ${item.title} via content router`,
+        )
+      }
+
+      return wasRouted
     } catch (error) {
       this.log.error(
         {
@@ -1251,6 +1284,51 @@ export class WatchlistWorkflowService {
       // Clear content availability cache for this reconciliation cycle
       // This is reconciliation-scoped - cache is rebuilt fresh each cycle
       this.fastify.plexServerService.clearContentCacheForReconciliation()
+
+      // Check health of all Sonarr/Radarr instances before proceeding
+      // If all instances are unavailable, abort to prevent false approval creation
+      const [sonarrHealth, radarrHealth] = await Promise.all([
+        this.sonarrManager.checkInstancesHealth(),
+        this.radarrManager.checkInstancesHealth(),
+      ])
+
+      const totalAvailable =
+        sonarrHealth.available.length + radarrHealth.available.length
+      const totalConfigured =
+        sonarrHealth.available.length +
+        sonarrHealth.unavailable.length +
+        radarrHealth.available.length +
+        radarrHealth.unavailable.length
+
+      if (totalConfigured === 0) {
+        this.log.debug(
+          'No Radarr/Sonarr instances configured, skipping reconciliation',
+        )
+        return
+      }
+
+      if (totalConfigured > 0 && totalAvailable === 0) {
+        this.log.error(
+          'All Radarr/Sonarr instances are unavailable, aborting reconciliation to prevent false approval creation',
+        )
+        return
+      }
+
+      // Warn if some instances are unavailable (partial data)
+      if (
+        sonarrHealth.unavailable.length > 0 ||
+        radarrHealth.unavailable.length > 0
+      ) {
+        this.log.warn(
+          {
+            sonarrAvailable: sonarrHealth.available.length,
+            sonarrUnavailable: sonarrHealth.unavailable.length,
+            radarrAvailable: radarrHealth.available.length,
+            radarrUnavailable: radarrHealth.unavailable.length,
+          },
+          'Some instances unavailable during reconciliation - proceeding with available instances only',
+        )
+      }
 
       // Get all users to check their sync permissions
       const allUsers = await this.dbService.getAllUsers()
@@ -1809,10 +1887,43 @@ export class WatchlistWorkflowService {
 
     // Add to Sonarr if not exists on Plex
     if (!existsOnPlex) {
-      await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
-        userId: numericUserId,
-        syncing: false,
-      })
+      const { routedInstances } = await this.contentRouter.routeContent(
+        sonarrItem,
+        tempItem.key,
+        {
+          userId: numericUserId,
+          syncing: false,
+        },
+      )
+
+      // Send notification only if content was actually routed and not already notified
+      if (routedInstances.length > 0 && userName) {
+        // Check if notification was already sent for this user/title
+        const existingNotifications =
+          await this.dbService.checkExistingWebhooks(numericUserId, [
+            tempItem.title,
+          ])
+
+        if (!existingNotifications.get(tempItem.title)) {
+          await this.plexService.sendWatchlistNotifications(
+            {
+              userId: numericUserId,
+              username: userName,
+              watchlistId: String(numericUserId),
+            },
+            {
+              title: tempItem.title,
+              type: 'show',
+              thumb: tempItem.thumb,
+            },
+          )
+        } else {
+          this.log.debug(
+            `Skipping notification for "${tempItem.title}" - already sent previously to user ${userName}`,
+          )
+        }
+      }
+
       return true
     }
 
@@ -1912,10 +2023,43 @@ export class WatchlistWorkflowService {
 
     // Add to Radarr if not exists on Plex
     if (!existsOnPlex) {
-      await this.contentRouter.routeContent(radarrItem, tempItem.key, {
-        userId: numericUserId,
-        syncing: false,
-      })
+      const { routedInstances } = await this.contentRouter.routeContent(
+        radarrItem,
+        tempItem.key,
+        {
+          userId: numericUserId,
+          syncing: false,
+        },
+      )
+
+      // Send notification only if content was actually routed and not already notified
+      if (routedInstances.length > 0 && userName) {
+        // Check if notification was already sent for this user/title
+        const existingNotifications =
+          await this.dbService.checkExistingWebhooks(numericUserId, [
+            tempItem.title,
+          ])
+
+        if (!existingNotifications.get(tempItem.title)) {
+          await this.plexService.sendWatchlistNotifications(
+            {
+              userId: numericUserId,
+              username: userName,
+              watchlistId: String(numericUserId),
+            },
+            {
+              title: tempItem.title,
+              type: 'movie',
+              thumb: tempItem.thumb,
+            },
+          )
+        } else {
+          this.log.debug(
+            `Skipping notification for "${tempItem.title}" - already sent previously to user ${userName}`,
+          )
+        }
+      }
+
       return true
     }
 

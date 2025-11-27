@@ -18,6 +18,45 @@ import {
 import { PlexRateLimiter } from './rate-limiter.js'
 
 /**
+ * Converts database Item objects to TokenWatchlistItem format.
+ * Normalizes guids and genres, and deduplicates by key.
+ *
+ * @param existingItems - Array of database Item objects
+ * @param userId - The user ID to assign to converted items
+ * @param seenKeys - Set of already-seen keys for deduplication
+ * @param allItems - Set to add converted items to
+ */
+const convertDbItemsToTokenWatchlistItems = (
+  existingItems: Item[],
+  userId: number,
+  seenKeys: Set<string>,
+  allItems: Set<TokenWatchlistItem>,
+): void => {
+  for (const item of existingItems) {
+    const guids = parseGuids(item.guids)
+    const genres = parseGenres(item.genres)
+
+    const tokenItem: TokenWatchlistItem = {
+      id: item.key,
+      key: item.key,
+      title: item.title,
+      type: item.type,
+      user_id: userId,
+      status: item.status || 'pending',
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      guids,
+      genres,
+    }
+    const key = String(tokenItem.key)
+    if (!seenKeys.has(key)) {
+      allItems.add(tokenItem)
+      seenKeys.add(key)
+    }
+  }
+}
+
+/**
  * Fetches a paginated watchlist from the Plex API.
  *
  * @param token - The Plex authentication token
@@ -200,23 +239,25 @@ export const getWatchlistForUser = async (
   }
 
   const query: GraphQLQuery = {
-    query: `query GetWatchlistHub ($uuid: ID!, $first: PaginationInt!, $after: String) {
-      user(id: $uuid) {
-        watchlist(first: $first, after: $after) {
-          nodes {
-            id
-            title
-            type
-          }
-          pageInfo {
-            hasNextPage
-            endCursor
+    query: `query GetWatchlistHub ($user: UserInput!, $first: PaginationInt!, $after: String) {
+      userV2(user: $user) {
+        ... on User {
+          watchlist(first: $first, after: $after) {
+            nodes {
+              id
+              title
+              type
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
           }
         }
       }
     }`,
     variables: {
-      uuid: user.watchlistId,
+      user: { id: user.watchlistId },
       first: 100,
       after: page,
     },
@@ -283,34 +324,12 @@ export const getWatchlistForUser = async (
           )
           try {
             const existingItems = await getAllWatchlistItemsForUser(userId)
-
-            // Convert database items to TokenWatchlistItems
-            for (const item of existingItems) {
-              // Normalize guids using the parseGuids utility to handle JSON strings, arrays, and null values
-              const guids = parseGuids(item.guids)
-
-              // Normalize genres using the parseGenres utility to handle JSON strings, arrays, and null values
-              const genres = parseGenres(item.genres)
-
-              const tokenItem: TokenWatchlistItem = {
-                id: item.key,
-                key: item.key,
-                title: item.title,
-                type: item.type,
-                user_id: userId,
-                status: item.status || 'pending',
-                created_at: item.created_at,
-                updated_at: item.updated_at,
-                guids,
-                genres,
-              }
-              const key = String(tokenItem.key)
-              if (!seenKeys.has(key)) {
-                allItems.add(tokenItem)
-                seenKeys.add(key)
-              }
-            }
-
+            convertDbItemsToTokenWatchlistItems(
+              existingItems,
+              userId,
+              seenKeys,
+              allItems,
+            )
             log.info(
               `Retrieved ${existingItems.length} existing items from database for user ${userId}`,
             )
@@ -342,8 +361,8 @@ export const getWatchlistForUser = async (
       throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`)
     }
 
-    if (json.data?.user?.watchlist) {
-      const watchlist = json.data.user.watchlist
+    if (json.data?.userV2?.watchlist) {
+      const watchlist = json.data.userV2.watchlist
       const currentTime = new Date().toISOString()
 
       for (const node of watchlist.nodes) {
@@ -427,34 +446,12 @@ export const getWatchlistForUser = async (
       try {
         log.info(`Falling back to existing database items for user ${userId}`)
         const existingItems = await getAllWatchlistItemsForUser(userId)
-
-        // Convert database items to TokenWatchlistItems
-        for (const item of existingItems) {
-          // Normalize guids using the parseGuids utility to handle JSON strings, arrays, and null values
-          const guids = parseGuids(item.guids)
-
-          // Normalize genres using the parseGenres utility to handle JSON strings, arrays, and null values
-          const genres = parseGenres(item.genres)
-
-          const tokenItem: TokenWatchlistItem = {
-            id: item.key,
-            key: item.key,
-            title: item.title,
-            type: item.type,
-            user_id: userId,
-            status: item.status || 'pending',
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            guids,
-            genres,
-          }
-          const key = String(tokenItem.key)
-          if (!seenKeys.has(key)) {
-            allItems.add(tokenItem)
-            seenKeys.add(key)
-          }
-        }
-
+        convertDbItemsToTokenWatchlistItems(
+          existingItems,
+          userId,
+          seenKeys,
+          allItems,
+        )
         log.info(
           `Retrieved ${existingItems.length} existing items from database for user ${userId}`,
         )
