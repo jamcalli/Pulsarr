@@ -121,8 +121,8 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 ## 🔌 Community Integrations
 
-- [Home Assistant Integration](https://github.com/SpaceFrags/ha-pulsarr) - Manage Pulsarr requests from Home Assistant
-- [Pulsarr Card](https://github.com/SpaceFrags/pulsarr-card) - Companion card for the HA integration
+- [Home Assistant Integration](https://github.com/SpaceFrags/ha-pulsarr) - Community-maintained integration to manage Pulsarr requests from Home Assistant
+- [Pulsarr Card](https://github.com/SpaceFrags/pulsarr-card) - Community-maintained companion card for the HA integration
 
 ## 🤝 Contributing
 
