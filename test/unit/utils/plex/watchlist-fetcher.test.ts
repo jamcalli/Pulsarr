@@ -578,7 +578,11 @@ describe('plex/watchlist-fetcher', () => {
         [friend, 'token'],
       ])
 
-      const result = await getOthersWatchlist(config, mockLogger, friends)
+      vi.useFakeTimers()
+      const promise = getOthersWatchlist(config, mockLogger, friends)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(0)
       expect(mockLogger.warn).toHaveBeenCalledWith(

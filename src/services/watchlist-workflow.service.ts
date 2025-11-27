@@ -1300,6 +1300,13 @@ export class WatchlistWorkflowService {
         radarrHealth.available.length +
         radarrHealth.unavailable.length
 
+      if (totalConfigured === 0) {
+        this.log.debug(
+          'No Radarr/Sonarr instances configured, skipping reconciliation',
+        )
+        return
+      }
+
       if (totalConfigured > 0 && totalAvailable === 0) {
         this.log.error(
           'All Radarr/Sonarr instances are unavailable, aborting reconciliation to prevent false approval creation',
