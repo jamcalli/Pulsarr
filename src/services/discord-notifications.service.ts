@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type {
-  DiscordEmbed,
-  DiscordWebhookPayload,
-  MediaNotification,
-  SystemNotification,
+import {
+  DISCORD_WEBHOOK_HOSTS,
+  type DiscordEmbed,
+  type DiscordWebhookPayload,
+  type MediaNotification,
+  type SystemNotification,
 } from '@root/types/discord.types.js'
 import {
   approvalCommand,
@@ -731,10 +732,11 @@ export class DiscordNotificationService {
       }
 
       // Ensure it's a proper Discord webhook URL
-      const allowedHosts = ['discord.com', 'discordapp.com']
       if (
         parsedUrl.protocol !== 'https:' ||
-        !allowedHosts.includes(parsedUrl.hostname) ||
+        !DISCORD_WEBHOOK_HOSTS.includes(
+          parsedUrl.hostname as (typeof DISCORD_WEBHOOK_HOSTS)[number],
+        ) ||
         !parsedUrl.pathname.startsWith('/api/webhooks/')
       ) {
         return { valid: false, error: 'Invalid Discord webhook URL format' }

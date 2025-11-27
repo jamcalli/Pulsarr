@@ -1,3 +1,9 @@
+/**
+ * Valid hostnames for Discord webhook URLs.
+ * Discord uses both discord.com and the legacy discordapp.com domain.
+ */
+export const DISCORD_WEBHOOK_HOSTS = ['discord.com', 'discordapp.com'] as const
+
 export interface MediaNotification {
   type: 'movie' | 'show'
   title: string
