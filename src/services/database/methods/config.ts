@@ -62,7 +62,7 @@ export async function getConfig(
             weeklyRolling?: { resetDays?: number }
             monthly?: {
               resetDay?: number
-              handleMonthEnd?: 'last-day' | 'closest'
+              handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
             }
           }>(config.quotaSettings, {}, 'config.quotaSettings')
         : {}
@@ -178,7 +178,7 @@ export async function getConfig(
             labelPrefix?: string
             concurrencyLimit?: number
             cleanupOrphanedLabels?: boolean
-            removedLabelMode?: 'remove' | 'rename'
+            removedLabelMode?: 'remove' | 'keep' | 'special-label'
             removedLabelPrefix?: string
             autoResetOnScheduledSync?: boolean
             scheduleTime?: string
