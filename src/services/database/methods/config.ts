@@ -39,77 +39,51 @@ export async function getConfig(
           'config.plexSessionMonitoring',
         )
       : undefined,
-    publicContentNotifications: config.publicContentNotifications
-      ? this.safeJsonParse(
-          config.publicContentNotifications,
-          {
-            enabled: false,
-            discordWebhookUrls: '',
-            discordWebhookUrlsMovies: '',
-            discordWebhookUrlsShows: '',
-            appriseUrls: '',
-            appriseUrlsMovies: '',
-            appriseUrlsShows: '',
-          },
-          'config.publicContentNotifications',
-        )
-      : {
-          enabled: false,
-          discordWebhookUrls: '',
-          discordWebhookUrlsMovies: '',
-          discordWebhookUrlsShows: '',
-          appriseUrls: '',
-          appriseUrlsMovies: '',
-          appriseUrlsShows: '',
-        },
-    quotaSettings: config.quotaSettings
-      ? this.safeJsonParse(
-          config.quotaSettings,
-          {
-            cleanup: {
-              enabled: true,
-              retentionDays: 90,
-            },
-            weeklyRolling: {
-              resetDays: 7,
-            },
-            monthly: {
-              resetDay: 1,
-              handleMonthEnd: 'last-day' as const,
-            },
-          },
-          'config.quotaSettings',
-        )
-      : {
-          cleanup: {
-            enabled: true,
-            retentionDays: 90,
-          },
-          weeklyRolling: {
-            resetDays: 7,
-          },
-          monthly: {
-            resetDay: 1,
-            handleMonthEnd: 'last-day' as const,
-          },
-        },
-    approvalExpiration: config.approvalExpiration
-      ? this.safeJsonParse(
-          config.approvalExpiration,
-          {
-            enabled: false,
-            defaultExpirationHours: 72,
-            expirationAction: 'expire' as const,
-            cleanupExpiredDays: 30,
-          },
-          'config.approvalExpiration',
-        )
-      : {
-          enabled: false,
-          defaultExpirationHours: 72,
-          expirationAction: 'expire' as const,
-          cleanupExpiredDays: 30,
-        },
+    publicContentNotifications: {
+      enabled: false,
+      discordWebhookUrls: '',
+      discordWebhookUrlsMovies: '',
+      discordWebhookUrlsShows: '',
+      appriseUrls: '',
+      appriseUrlsMovies: '',
+      appriseUrlsShows: '',
+      ...(config.publicContentNotifications
+        ? this.safeJsonParse(
+            config.publicContentNotifications,
+            {},
+            'config.publicContentNotifications',
+          )
+        : {}),
+    },
+    quotaSettings: {
+      cleanup: {
+        enabled: true,
+        retentionDays: 90,
+      },
+      weeklyRolling: {
+        resetDays: 7,
+      },
+      monthly: {
+        resetDay: 1,
+        handleMonthEnd: 'last-day' as const,
+      },
+      ...(config.quotaSettings
+        ? this.safeJsonParse(config.quotaSettings, {}, 'config.quotaSettings')
+        : {}),
+    },
+    approvalExpiration: {
+      enabled: false,
+      defaultExpirationHours: 72,
+      expirationAction: 'expire' as const,
+      cleanupExpiredDays: 30,
+      ...(config.approvalExpiration
+        ? this.safeJsonParse(
+            config.approvalExpiration,
+            {},
+            'config.approvalExpiration',
+          )
+        : {}),
+    },
     newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
     newUserDefaultRequiresApproval: Boolean(
       config.newUserDefaultRequiresApproval ?? false,
@@ -185,43 +159,25 @@ export async function getConfig(
     plexServerUrl: config.plexServerUrl || undefined,
     skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
     // Plex Label Sync configuration - nested object following complex config pattern
-    plexLabelSync: config.plexLabelSync
-      ? this.safeJsonParse(
-          config.plexLabelSync,
-          {
-            enabled: false,
-            labelPrefix: 'pulsarr',
-            concurrencyLimit: 5,
-            cleanupOrphanedLabels: false,
-            removedLabelMode: 'remove' as const,
-            removedLabelPrefix: 'pulsarr:removed',
-            autoResetOnScheduledSync: false,
-            scheduleTime: undefined,
-            dayOfWeek: '*',
-            tagSync: {
-              enabled: false,
-              syncRadarrTags: true,
-              syncSonarrTags: true,
-            },
-          },
-          'config.plexLabelSync',
-        )
-      : {
-          enabled: false,
-          labelPrefix: 'pulsarr',
-          concurrencyLimit: 5,
-          cleanupOrphanedLabels: false,
-          removedLabelMode: 'remove' as const,
-          removedLabelPrefix: 'pulsarr:removed',
-          autoResetOnScheduledSync: false,
-          scheduleTime: undefined,
-          dayOfWeek: '*',
-          tagSync: {
-            enabled: false,
-            syncRadarrTags: true,
-            syncSonarrTags: true,
-          },
-        },
+    plexLabelSync: {
+      enabled: false,
+      labelPrefix: 'pulsarr',
+      concurrencyLimit: 5,
+      cleanupOrphanedLabels: false,
+      removedLabelMode: 'remove' as const,
+      removedLabelPrefix: 'pulsarr:removed',
+      autoResetOnScheduledSync: false,
+      scheduleTime: undefined,
+      dayOfWeek: '*',
+      tagSync: {
+        enabled: false,
+        syncRadarrTags: true,
+        syncSonarrTags: true,
+      },
+      ...(config.plexLabelSync
+        ? this.safeJsonParse(config.plexLabelSync, {}, 'config.plexLabelSync')
+        : {}),
+    },
     // Tag configuration
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
     tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
