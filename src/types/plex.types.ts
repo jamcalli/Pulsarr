@@ -162,3 +162,58 @@ export interface RssResponse {
   description: string
   items: RssWatchlistItem[]
 }
+
+// ============================================================================
+// ETag Polling Types
+// ============================================================================
+
+/** Discover API response for primary user watchlist polling */
+export interface DiscoverWatchlistResponse {
+  MediaContainer?: {
+    Metadata?: Array<{
+      key?: string
+      title?: string
+      type?: string
+      ratingKey?: string
+      thumb?: string
+    }>
+    totalSize?: number
+  }
+}
+
+/** GraphQL watchlist response for ETag polling (simplified subset of PlexApiResponse) */
+export interface GraphQLWatchlistPollResponse {
+  data?: {
+    userV2?: {
+      watchlist?: {
+        nodes: EtagPollItem[]
+      }
+    }
+  }
+  errors?: Array<{ message: string }>
+}
+
+/** Cached ETag data for a user's watchlist */
+export interface WatchlistEtagCache {
+  etag: string
+  lastCheck: number
+}
+
+/** Result of an ETag poll operation */
+export interface EtagPollResult {
+  /** Whether the watchlist has changed since last poll */
+  changed: boolean
+  /** User ID associated with this watchlist */
+  userId: number
+  /** Watchlist items (only present if changed=true) */
+  items?: EtagPollItem[]
+  /** Error message if poll failed */
+  error?: string
+}
+
+/** Minimal watchlist item from ETag poll response */
+export interface EtagPollItem {
+  id: string
+  title: string
+  type: string
+}

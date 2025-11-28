@@ -29,3 +29,5 @@ export {
 export { getWatchlist, getWatchlistForUser } from './watchlist-api.js'
 // High-level watchlist fetching
 export { fetchSelfWatchlist, getOthersWatchlist } from './watchlist-fetcher.js'
+// ETag-based change detection
+export { EtagPoller, type EtagUserInfo } from './etag-poller.js'
