@@ -5,6 +5,10 @@
  * Used by the hybrid RSS + ETag approach to identify which specific user's
  * watchlist changed, enabling targeted sync instead of full reconciliation.
  *
+ * Two-Phase Caching Strategy:
+ * - Phase 1 (Baseline): Fetch 20 items (for diffing), then 2-item query (for ETag)
+ * - Phase 2 (Check): 2-item query to compare ETag, if changed fetch 20 items and diff
+ *
  * Uses two different APIs:
  * - Direct API (discover.provider.plex.tv) for primary token user - supports true 304 responses
  * - GraphQL API (community.plex.tv/api) for friends - requires client-side ETag comparison
@@ -17,6 +21,7 @@ import type {
   DiscoverWatchlistResponse,
   EtagPollItem,
   EtagPollResult,
+  EtagUserInfo,
   Friend,
   GraphQLWatchlistPollResponse,
   WatchlistEtagCache,
@@ -24,19 +29,15 @@ import type {
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from './helpers.js'
 
-/** User info needed for ETag polling */
-export interface EtagUserInfo {
-  userId: number
-  username: string
-  watchlistId?: string // Only for friends, not primary user
-  isPrimary: boolean
-}
+// Re-export EtagUserInfo for convenience
+export type { EtagUserInfo }
 
 /**
  * ETag-based watchlist change detector.
  *
- * Maintains a cache of ETags for each user's watchlist and provides methods
- * to check for changes and establish baselines after full syncs.
+ * Maintains a cache of ETags AND items for each user's watchlist.
+ * - ETag (from 2-item query): Used for change detection
+ * - Items (20 items): Used for diffing to identify NEW items
  */
 export class EtagPoller {
   /** ETag cache keyed by 'primary:{userId}' or 'friend:{watchlistId}' */
@@ -55,6 +56,10 @@ export class EtagPoller {
    * Establish ETag baseline for a single user.
    * Called after a new friend is added and synced.
    *
+   * Two-phase process:
+   * 1. Fetch 20 items → cache for diffing
+   * 2. Fetch 2 items → cache ETag for change detection
+   *
    * @param user - User info for establishing baseline
    */
   async establishBaseline(user: EtagUserInfo): Promise<void> {
@@ -65,14 +70,14 @@ export class EtagPoller {
     }
 
     if (user.isPrimary) {
-      await this.pollPrimary(token, user.userId, 20)
+      await this.establishPrimaryBaseline(token, user.userId)
     } else if (user.watchlistId) {
       const friend: Friend = {
         watchlistId: user.watchlistId,
         username: user.username,
         userId: user.userId,
       }
-      await this.pollFriend(token, friend, user.userId, 2)
+      await this.establishFriendBaseline(token, friend, user.userId)
     }
 
     this.log.debug(
@@ -98,11 +103,11 @@ export class EtagPoller {
       return
     }
 
-    // Primary user: 20 items for baseline
-    await this.pollPrimary(token, primaryUserId, 20)
+    // Primary user baseline
+    await this.establishPrimaryBaseline(token, primaryUserId)
     this.log.debug({ userId: primaryUserId }, 'Primary user ETag baseline established')
 
-    // Friends: 2 items each for baseline (minimal query)
+    // Friends baselines
     for (const user of friends) {
       if (user.watchlistId) {
         const friend: Friend = {
@@ -110,7 +115,7 @@ export class EtagPoller {
           username: user.username,
           userId: user.userId,
         }
-        await this.pollFriend(token, friend, user.userId, 2)
+        await this.establishFriendBaseline(token, friend, user.userId)
       }
     }
 
@@ -122,28 +127,28 @@ export class EtagPoller {
 
   /**
    * Check all users' ETags against cached baselines.
-   * Returns array of userIds whose watchlists have changed.
+   * Returns array of results with newItems for each changed user.
    *
    * @param primaryUserId - The primary user's ID
    * @param friends - Array of friend info with watchlistIds
-   * @returns Array of userIds with changed watchlists
+   * @returns Array of poll results (only includes users with changes or errors)
    */
   async checkAllEtags(
     primaryUserId: number,
     friends: EtagUserInfo[],
-  ): Promise<number[]> {
+  ): Promise<EtagPollResult[]> {
     const token = this.config.plexTokens?.[0]
     if (!token) {
       this.log.warn('Cannot check ETags: no Plex token configured')
       return []
     }
 
-    const changedUserIds: number[] = []
+    const results: EtagPollResult[] = []
 
     // Check primary user
-    const primaryResult = await this.pollPrimary(token, primaryUserId, 20)
-    if (primaryResult.changed) {
-      changedUserIds.push(primaryUserId)
+    const primaryResult = await this.checkPrimary(token, primaryUserId)
+    if (primaryResult.changed || primaryResult.error) {
+      results.push(primaryResult)
     }
 
     // Check friends
@@ -154,23 +159,38 @@ export class EtagPoller {
           username: user.username,
           userId: user.userId,
         }
-        const result = await this.pollFriend(token, friend, user.userId, 20)
-        if (result.changed) {
-          changedUserIds.push(user.userId)
+        const result = await this.checkFriend(token, friend, user.userId)
+        if (result.changed || result.error) {
+          results.push(result)
         }
       }
     }
 
-    if (changedUserIds.length > 0) {
+    if (results.length > 0) {
+      const changedCount = results.filter((r) => r.changed).length
+      const errorCount = results.filter((r) => r.error).length
       this.log.info(
-        { changedUserIds, count: changedUserIds.length },
-        'ETag check detected changes',
+        { changedCount, errorCount, totalChecked: 1 + friends.length },
+        'ETag check completed',
       )
     } else {
       this.log.debug('ETag check: no changes detected')
     }
 
-    return changedUserIds
+    return results
+  }
+
+  /**
+   * Get cached items for a user (used for new friend initial routing).
+   *
+   * @param user - User info
+   * @returns Cached items or empty array
+   */
+  getCachedItems(user: EtagUserInfo): EtagPollItem[] {
+    const cacheKey = user.isPrimary
+      ? `primary:${user.userId}`
+      : `friend:${user.watchlistId}`
+    return this.cache.get(cacheKey)?.items ?? []
   }
 
   /**
@@ -181,7 +201,6 @@ export class EtagPoller {
    * @param watchlistId - Optional watchlist ID for friend cache key
    */
   invalidateUser(userId: number, watchlistId?: string): void {
-    // Try both key formats
     const primaryKey = `primary:${userId}`
     const friendKey = watchlistId ? `friend:${watchlistId}` : null
 
@@ -198,7 +217,6 @@ export class EtagPoller {
 
   /**
    * Clear the entire ETag cache.
-   * Useful for debugging or forcing fresh baselines.
    */
   clearCache(): void {
     this.cache.clear()
@@ -213,130 +231,254 @@ export class EtagPoller {
   }
 
   // ============================================================================
-  // Private Polling Methods
+  // Private: Baseline Establishment (Two-Phase)
   // ============================================================================
 
   /**
-   * Poll the primary token user's watchlist using the direct API.
-   * Supports true HTTP 304 responses for efficient bandwidth usage.
+   * Establish baseline for primary user.
+   * Phase 1: Fetch 20 items for diffing cache
+   * Phase 2: Primary API supports 304, so we use the 20-item ETag directly
    */
-  private async pollPrimary(
+  private async establishPrimaryBaseline(
     token: string,
     userId: number,
-    itemCount: number,
+  ): Promise<void> {
+    const cacheKey = `primary:${userId}`
+
+    // Fetch 20 items - the ETag from this response is what we'll use
+    const url = new URL(
+      'https://discover.provider.plex.tv/library/sections/watchlist/all',
+    )
+    url.searchParams.append('X-Plex-Container-Start', '0')
+    url.searchParams.append('X-Plex-Container-Size', '20')
+
+    try {
+      const response = await fetch(url.toString(), {
+        headers: {
+          Accept: 'application/json',
+          'X-Plex-Token': token,
+        },
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
+      })
+
+      if (!response.ok) {
+        this.log.warn(
+          { userId, status: response.status },
+          'Failed to establish primary baseline',
+        )
+        return
+      }
+
+      const etag = response.headers.get('etag')
+      const data = (await response.json()) as DiscoverWatchlistResponse
+      const items = this.parseDiscoverItems(data)
+
+      if (etag) {
+        this.cache.set(cacheKey, {
+          etag,
+          lastCheck: Date.now(),
+          items,
+        })
+      }
+    } catch (error) {
+      this.log.error({ error, userId }, 'Error establishing primary baseline')
+    }
+  }
+
+  /**
+   * Establish baseline for a friend.
+   * Phase 1: Fetch 20 items for diffing cache
+   * Phase 2: Fetch 2 items to get the ETag we'll use for comparison
+   *
+   * GraphQL ETags depend on query params, so we must use consistent query size
+   */
+  private async establishFriendBaseline(
+    token: string,
+    friend: Friend,
+    userId: number,
+  ): Promise<void> {
+    const cacheKey = `friend:${friend.watchlistId}`
+
+    try {
+      // Phase 1: Fetch 20 items for diffing cache
+      const itemsResponse = await fetch('https://community.plex.tv/api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Plex-Token': token,
+        },
+        body: JSON.stringify({
+          query: `query {
+            userV2(user: {id: "${friend.watchlistId}"}) {
+              ... on User {
+                watchlist(first: 20) {
+                  nodes { id title type }
+                }
+              }
+            }
+          }`,
+        }),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
+      })
+
+      if (!itemsResponse.ok) {
+        this.log.warn(
+          { userId, username: friend.username, status: itemsResponse.status },
+          'Failed to fetch items for friend baseline',
+        )
+        return
+      }
+
+      const itemsData = (await itemsResponse.json()) as GraphQLWatchlistPollResponse
+      const items = this.parseGraphQLItems(itemsData)
+
+      // Phase 2: Fetch 2 items to get the ETag for change detection
+      const etagResponse = await fetch('https://community.plex.tv/api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Plex-Token': token,
+        },
+        body: JSON.stringify({
+          query: `query {
+            userV2(user: {id: "${friend.watchlistId}"}) {
+              ... on User {
+                watchlist(first: 2) {
+                  nodes { id }
+                }
+              }
+            }
+          }`,
+        }),
+        signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
+      })
+
+      if (!etagResponse.ok) {
+        this.log.warn(
+          { userId, username: friend.username, status: etagResponse.status },
+          'Failed to get ETag for friend baseline',
+        )
+        return
+      }
+
+      const etag = etagResponse.headers.get('etag')
+
+      if (etag) {
+        this.cache.set(cacheKey, {
+          etag,
+          lastCheck: Date.now(),
+          items,
+        })
+      }
+    } catch (error) {
+      this.log.error(
+        { error, userId, username: friend.username },
+        'Error establishing friend baseline',
+      )
+    }
+  }
+
+  // ============================================================================
+  // Private: Change Detection with Item Diffing
+  // ============================================================================
+
+  /**
+   * Check primary user for changes.
+   * Uses If-None-Match for efficient 304 responses.
+   * If changed, diffs items to find new ones.
+   */
+  private async checkPrimary(
+    token: string,
+    userId: number,
   ): Promise<EtagPollResult> {
     const cacheKey = `primary:${userId}`
     const cached = this.cache.get(cacheKey)
-    const isFirstPoll = !cached?.etag
+
+    if (!cached) {
+      // No baseline - need to establish first
+      await this.establishPrimaryBaseline(token, userId)
+      return { changed: false, userId, newItems: [] }
+    }
 
     const url = new URL(
       'https://discover.provider.plex.tv/library/sections/watchlist/all',
     )
     url.searchParams.append('X-Plex-Container-Start', '0')
-    url.searchParams.append('X-Plex-Container-Size', itemCount.toString())
+    url.searchParams.append('X-Plex-Container-Size', '20')
 
     try {
-      const headers: Record<string, string> = {
-        Accept: 'application/json',
-        'X-Plex-Token': token,
-      }
-      if (cached?.etag) {
-        headers['If-None-Match'] = cached.etag
-      }
-
       const response = await fetch(url.toString(), {
-        headers,
+        headers: {
+          Accept: 'application/json',
+          'X-Plex-Token': token,
+          'If-None-Match': cached.etag,
+        },
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })
 
-      // Direct API supports true 304 responses
+      // 304 = no change
       if (response.status === 304) {
-        return { changed: false, userId }
+        return { changed: false, userId, newItems: [] }
       }
 
       if (!response.ok) {
-        const errorMsg = `Direct API error: ${response.status} ${response.statusText}`
+        const errorMsg = `Primary API error: ${response.status}`
         this.log.warn({ userId, status: response.status }, errorMsg)
-        return { changed: false, userId, error: errorMsg }
+        return { changed: false, userId, newItems: [], error: errorMsg }
       }
 
-      // Get and compare ETag
       const newEtag = response.headers.get('etag')
-      const previousEtag = cached?.etag
-
-      // On first poll, just establish baseline - don't report as changed
-      // The full sync has already processed all items
-      if (isFirstPoll) {
-        if (newEtag) {
-          this.cache.set(cacheKey, { etag: newEtag, lastCheck: Date.now() })
-        }
-        return { changed: false, userId }
-      }
-
-      // If ETag hasn't changed, treat as no change (client-side comparison fallback)
-      // This handles cases where Plex doesn't properly return 304
-      if (newEtag && previousEtag && newEtag === previousEtag) {
-        return { changed: false, userId }
-      }
-
-      // Update cached ETag
-      if (newEtag) {
-        this.cache.set(cacheKey, { etag: newEtag, lastCheck: Date.now() })
-      }
-
       const data = (await response.json()) as DiscoverWatchlistResponse
-      const metadata = data.MediaContainer?.Metadata ?? []
+      const freshItems = this.parseDiscoverItems(data)
 
-      const items: EtagPollItem[] = metadata
-        .filter((m) => m.key || m.ratingKey)
-        .map((m) => {
-          const key = m.key
-            ?.replace('/library/metadata/', '')
-            .replace('/children', '')
-          return {
-            id: key ?? m.ratingKey ?? '',
-            title: m.title ?? 'Unknown',
-            type: m.type ?? 'unknown',
-          }
+      // Diff to find new items
+      const newItems = this.diffItems(freshItems, cached.items)
+
+      // Update cache
+      if (newEtag) {
+        this.cache.set(cacheKey, {
+          etag: newEtag,
+          lastCheck: Date.now(),
+          items: freshItems,
         })
+      }
 
-      this.log.debug(
-        { userId, itemCount: items.length, etag: newEtag },
-        'Primary watchlist changed',
-      )
+      if (newItems.length > 0) {
+        this.log.debug(
+          { userId, newItemCount: newItems.length },
+          'Primary watchlist has new items',
+        )
+      }
 
-      return { changed: true, items, userId }
+      return { changed: newItems.length > 0, userId, newItems }
     } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'Unknown error polling primary'
-      this.log.error({ error, userId }, 'Error polling primary watchlist')
-      return { changed: false, userId, error: errorMsg }
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      this.log.error({ error, userId }, 'Error checking primary watchlist')
+      return { changed: false, userId, newItems: [], error: errorMsg }
     }
   }
 
   /**
-   * Poll a friend's watchlist for changes using the GraphQL API.
-   * GraphQL does not support 304 responses, so ETags are compared client-side.
-   *
-   * Uses a two-step process when ETag is cached:
-   * 1. Tiny query (first: 2) to get current ETag
-   * 2. If ETag changed, fetch full data (first: itemCount)
-   *
-   * On first poll (no cached ETag), just establishes baseline.
+   * Check friend for changes.
+   * Phase 1: 2-item query to compare ETag
+   * Phase 2: If ETag changed, fetch 20 items and diff
    */
-  private async pollFriend(
+  private async checkFriend(
     token: string,
     friend: Friend,
     userId: number,
-    itemCount: number,
   ): Promise<EtagPollResult> {
     const cacheKey = `friend:${friend.watchlistId}`
     const cached = this.cache.get(cacheKey)
-    const isFirstPoll = !cached?.etag
+
+    if (!cached) {
+      // No baseline - need to establish first
+      await this.establishFriendBaseline(token, friend, userId)
+      return { changed: false, userId, newItems: [] }
+    }
 
     try {
-      // Always do the tiny query first to get/compare ETag
-      // (GraphQL ETags differ based on query params, so we must be consistent)
+      // Phase 1: 2-item query to check ETag
       const checkResponse = await fetch('https://community.plex.tv/api', {
         method: 'POST',
         headers: {
@@ -358,35 +500,19 @@ export class EtagPoller {
       })
 
       if (!checkResponse.ok) {
-        const errorMsg = `GraphQL check error: ${checkResponse.status} ${checkResponse.statusText}`
-        this.log.warn(
-          { userId, username: friend.username, status: checkResponse.status },
-          errorMsg,
-        )
-        return { changed: false, userId, error: errorMsg }
+        const errorMsg = `GraphQL check error: ${checkResponse.status}`
+        this.log.warn({ userId, username: friend.username, status: checkResponse.status }, errorMsg)
+        return { changed: false, userId, newItems: [], error: errorMsg }
       }
 
       const newEtag = checkResponse.headers.get('etag')
 
-      // On first poll, just establish baseline - don't report as changed
-      if (isFirstPoll) {
-        if (newEtag) {
-          this.cache.set(cacheKey, { etag: newEtag, lastCheck: Date.now() })
-        }
-        return { changed: false, userId }
+      // Compare ETags - if same, no change
+      if (newEtag && newEtag === cached.etag) {
+        return { changed: false, userId, newItems: [] }
       }
 
-      // Compare ETags client-side
-      if (newEtag && cached?.etag && newEtag === cached.etag) {
-        return { changed: false, userId }
-      }
-
-      // ETag changed - update cache and fetch full data
-      if (newEtag) {
-        this.cache.set(cacheKey, { etag: newEtag, lastCheck: Date.now() })
-      }
-
-      // Fetch full data
+      // Phase 2: ETag changed - fetch 20 items for diffing
       const fullResponse = await fetch('https://community.plex.tv/api', {
         method: 'POST',
         headers: {
@@ -397,7 +523,7 @@ export class EtagPoller {
           query: `query {
             userV2(user: {id: "${friend.watchlistId}"}) {
               ... on User {
-                watchlist(first: ${itemCount}) {
+                watchlist(first: 20) {
                   nodes { id title type }
                 }
               }
@@ -408,51 +534,92 @@ export class EtagPoller {
       })
 
       if (!fullResponse.ok) {
-        const errorMsg = `GraphQL fetch error: ${fullResponse.status} ${fullResponse.statusText}`
-        this.log.warn(
-          { userId, username: friend.username, status: fullResponse.status },
-          errorMsg,
-        )
-        return { changed: false, userId, error: errorMsg }
+        const errorMsg = `GraphQL fetch error: ${fullResponse.status}`
+        this.log.warn({ userId, username: friend.username, status: fullResponse.status }, errorMsg)
+        return { changed: false, userId, newItems: [], error: errorMsg }
       }
 
       const data = (await fullResponse.json()) as GraphQLWatchlistPollResponse
 
       if (data.errors?.length) {
         const errorMsg = `GraphQL errors: ${data.errors.map((e) => e.message).join(', ')}`
-        this.log.warn(
-          { userId, username: friend.username, errors: data.errors },
-          errorMsg,
-        )
-        return { changed: false, userId, error: errorMsg }
+        this.log.warn({ userId, username: friend.username, errors: data.errors }, errorMsg)
+        return { changed: false, userId, newItems: [], error: errorMsg }
       }
 
-      const nodes = data.data?.userV2?.watchlist?.nodes ?? []
-      const items: EtagPollItem[] = nodes.map((node) => ({
-        id: node.id,
-        title: node.title,
-        type: node.type,
-      }))
+      const freshItems = this.parseGraphQLItems(data)
 
-      this.log.debug(
-        {
-          userId,
-          username: friend.username,
-          itemCount: items.length,
+      // Diff to find new items
+      const newItems = this.diffItems(freshItems, cached.items)
+
+      // Update cache with fresh items and new ETag
+      if (newEtag) {
+        this.cache.set(cacheKey, {
           etag: newEtag,
-        },
-        'Friend watchlist changed',
-      )
+          lastCheck: Date.now(),
+          items: freshItems,
+        })
+      }
 
-      return { changed: true, items, userId }
+      if (newItems.length > 0) {
+        this.log.debug(
+          { userId, username: friend.username, newItemCount: newItems.length },
+          'Friend watchlist has new items',
+        )
+      }
+
+      return { changed: newItems.length > 0, userId, newItems }
     } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'Unknown error polling friend'
-      this.log.error(
-        { error, userId, username: friend.username },
-        'Error polling friend watchlist',
-      )
-      return { changed: false, userId, error: errorMsg }
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      this.log.error({ error, userId, username: friend.username }, 'Error checking friend watchlist')
+      return { changed: false, userId, newItems: [], error: errorMsg }
     }
+  }
+
+  // ============================================================================
+  // Private: Utility Methods
+  // ============================================================================
+
+  /**
+   * Parse items from Discover API response
+   */
+  private parseDiscoverItems(data: DiscoverWatchlistResponse): EtagPollItem[] {
+    const metadata = data.MediaContainer?.Metadata ?? []
+    return metadata
+      .filter((m) => m.key || m.ratingKey)
+      .map((m) => {
+        const key = m.key
+          ?.replace('/library/metadata/', '')
+          .replace('/children', '')
+        return {
+          id: key ?? m.ratingKey ?? '',
+          title: m.title ?? 'Unknown',
+          type: m.type ?? 'unknown',
+        }
+      })
+  }
+
+  /**
+   * Parse items from GraphQL response
+   */
+  private parseGraphQLItems(data: GraphQLWatchlistPollResponse): EtagPollItem[] {
+    const nodes = data.data?.userV2?.watchlist?.nodes ?? []
+    return nodes.map((node) => ({
+      id: node.id,
+      title: node.title,
+      type: node.type,
+    }))
+  }
+
+  /**
+   * Diff fresh items against cached items to find NEW items.
+   * Returns items that are in fresh but not in cached.
+   */
+  private diffItems(
+    freshItems: EtagPollItem[],
+    cachedItems: EtagPollItem[],
+  ): EtagPollItem[] {
+    const cachedIds = new Set(cachedItems.map((item) => item.id))
+    return freshItems.filter((item) => !cachedIds.has(item.id))
   }
 }
