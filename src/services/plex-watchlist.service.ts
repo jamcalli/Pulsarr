@@ -1,6 +1,8 @@
 import type { User } from '@root/types/config.types.js'
 import type {
+  EtagUserInfo,
   Friend,
+  FriendChangesResult,
   RssWatchlistResults,
   TemptRssWatchlistItem,
   TokenWatchlistItem,
@@ -427,6 +429,44 @@ export class PlexWatchlistService {
     }
   }
 
+  /**
+   * Check for friend changes only (lightweight operation for ETag-based sync).
+   * Returns added/removed users without fetching full watchlists.
+   */
+  async checkFriendChanges(): Promise<FriendChangesResult> {
+    if (this.config.plexTokens.length === 0) {
+      throw new Error('No Plex token configured')
+    }
+
+    const friendsResult = await getFriends(this.config, this.log)
+
+    // Guard against API failures to prevent data loss
+    if (!friendsResult.success) {
+      this.log.warn(
+        'Friend API completely failed - skipping cleanup to prevent data loss',
+      )
+      return { added: [], removed: [], userMap: new Map() }
+    }
+
+    // Ensure token users are up-to-date before cleanup (handles username changes)
+    await this.ensureTokenUsers()
+
+    // Check for and remove users who are no longer friends
+    const removed = await this.checkForRemovedFriends(friendsResult.friends)
+
+    // Ensure friend users exist and track newly added
+    const { userMap, added } = await this.ensureFriendUsers(friendsResult.friends)
+
+    if (added.length > 0) {
+      this.log.info(
+        { count: added.length, usernames: added.map((u) => u.username) },
+        'New friends detected',
+      )
+    }
+
+    return { added, removed, userMap }
+  }
+
   async getOthersWatchlists(forceRefresh = false) {
     if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
@@ -467,7 +507,7 @@ export class PlexWatchlistService {
       }
     }
 
-    const userMap = await this.ensureFriendUsers(friendsResult.friends)
+    const { userMap } = await this.ensureFriendUsers(friendsResult.friends)
 
     const friendsWithIds = new Set(
       Array.from(friendsResult.friends)
@@ -712,12 +752,14 @@ export class PlexWatchlistService {
 
   private async ensureFriendUsers(
     friends: Set<[Friend, string]>,
-  ): Promise<Map<string, number>> {
+  ): Promise<{ userMap: Map<string, number>; added: EtagUserInfo[] }> {
     const userMap = new Map<string, number>()
+    const added: EtagUserInfo[] = []
 
     await Promise.all(
       Array.from(friends).map(async ([friend]) => {
         let user = await this.dbService.getUser(friend.username)
+        const isNewUser = !user
 
         if (!user) {
           user = await this.dbService.createUser({
@@ -741,10 +783,20 @@ export class PlexWatchlistService {
 
         if (!user.id) throw new Error(`No ID for user ${friend.username}`)
         userMap.set(friend.watchlistId, user.id)
+
+        // Track newly added users for ETag baseline establishment
+        if (isNewUser) {
+          added.push({
+            userId: user.id,
+            username: friend.username,
+            watchlistId: friend.watchlistId,
+            isPrimary: false,
+          })
+        }
       }),
     )
 
-    return userMap
+    return { userMap, added }
   }
 
   private extractKeysAndRelationships(
@@ -1749,7 +1801,9 @@ export class PlexWatchlistService {
    */
   private async checkForRemovedFriends(
     currentFriends: Set<[Friend, string]>,
-  ): Promise<void> {
+  ): Promise<EtagUserInfo[]> {
+    const removed: EtagUserInfo[] = []
+
     try {
       // Get all users from database
       const allUsers = await this.dbService.getAllUsers()
@@ -1795,6 +1849,12 @@ export class PlexWatchlistService {
 
         for (const user of successfullyDeleted) {
           this.log.debug(`Removed former friend: ${user.name} (ID: ${user.id})`)
+          // Track removed users for ETag cache invalidation
+          removed.push({
+            userId: user.id,
+            username: user.name,
+            isPrimary: false,
+          })
         }
 
         // Log any failures
@@ -1816,6 +1876,8 @@ export class PlexWatchlistService {
       )
       // Don't throw - this is cleanup logic and shouldn't break the main flow
     }
+
+    return removed
   }
 
   /**
