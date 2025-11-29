@@ -151,7 +151,7 @@ describe('plex/friends-api', () => {
       expect(result.success).toBe(true)
       expect(result.hasApiErrors).toBe(true)
       expect(result.friends.size).toBe(1)
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         expect.stringContaining('(with some API errors)'),
       )
     })
@@ -404,7 +404,7 @@ describe('plex/friends-api', () => {
 
       await getFriends(config, mockLogger)
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         'Friends fetched successfully. Got 2 unique friends',
       )
     })
