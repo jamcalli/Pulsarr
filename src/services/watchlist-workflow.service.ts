@@ -25,9 +25,9 @@
  */
 
 import type {
+  Item as DbWatchlistItem,
   EtagPollResult,
   EtagUserInfo,
-  Item as DbWatchlistItem,
   RssWatchlistResults,
   TemptRssWatchlistItem,
   TokenWatchlistItem,
@@ -85,12 +85,6 @@ export class WatchlistWorkflowService {
     friends: false,
   }
 
-  /** Flag to prevent concurrent refresh operations */
-  private isRefreshing = false
-
-  /** Flag to prevent concurrent execution between queue processing and periodic reconciliation */
-  private isProcessingWorkflow = false
-
   /** Flag to indicate if using RSS fallback */
   private isUsingRssFallback = false
 
@@ -105,6 +99,12 @@ export class WatchlistWorkflowService {
 
   /** ETag check interval in ms (3 minutes) */
   private readonly ETAG_CHECK_INTERVAL_MS = 3 * 60 * 1000
+
+  /** Debounce timer for syncAllStatuses after ETag routing */
+  private statusSyncDebounceTimer: NodeJS.Timeout | null = null
+
+  /** Debounce delay for status sync in ms (1 minute) */
+  private readonly STATUS_SYNC_DEBOUNCE_MS = 60 * 1000
 
   /**
    * Creates a new WatchlistWorkflowService instance
@@ -418,6 +418,12 @@ export class WatchlistWorkflowService {
       this.etagCheckInterval = null
     }
 
+    // Clear status sync debounce timer
+    if (this.statusSyncDebounceTimer) {
+      clearTimeout(this.statusSyncDebounceTimer)
+      this.statusSyncDebounceTimer = null
+    }
+
     // Clear ETag cache
     if (this.etagPoller) {
       this.etagPoller.clearCache()
@@ -481,7 +487,10 @@ export class WatchlistWorkflowService {
         { userId: removedFriend.userId, username: removedFriend.username },
         'Friend removed, invalidating ETag cache',
       )
-      this.etagPoller.invalidateUser(removedFriend.userId, removedFriend.watchlistId)
+      this.etagPoller.invalidateUser(
+        removedFriend.userId,
+        removedFriend.watchlistId,
+      )
     }
 
     // Build EtagUserInfo array for current friends
@@ -502,7 +511,10 @@ export class WatchlistWorkflowService {
       // ETag mode - lightweight check with instant routing
       this.log.debug('Starting ETag-based reconciliation')
 
-      const changes = await this.etagPoller.checkAllEtags(primaryUser.id, friends)
+      const changes = await this.etagPoller.checkAllEtags(
+        primaryUser.id,
+        friends,
+      )
 
       if (changes.length === 0) {
         this.log.debug('ETag check: no changes detected, exiting early')
@@ -531,21 +543,13 @@ export class WatchlistWorkflowService {
         }
 
         // Post-routing tasks - call with no args to process System user attributions
+        // Note: This may be removable for ETag path since we have user context,
+        // but keeping as a safety net for edge cases
         await this.updateAutoApprovalUserAttribution()
 
-        // Sync statuses after routing new content
-        try {
-          const { shows: showUpdates, movies: movieUpdates } =
-            await this.showStatusService.syncAllStatuses()
-          this.log.debug(
-            `Updated ${showUpdates} show statuses and ${movieUpdates} movie statuses after ETag routing`,
-          )
-        } catch (statusError) {
-          this.log.warn(
-            { error: statusError },
-            'Error syncing statuses after ETag routing (non-fatal)',
-          )
-        }
+        // Schedule debounced status sync after routing new content
+        // This batches multiple rapid routing operations (e.g., user adds several items quickly)
+        this.scheduleDebouncedStatusSync()
       }
 
       this.lastSuccessfulSyncTime = Date.now()
@@ -593,15 +597,12 @@ export class WatchlistWorkflowService {
       'Routing new items for user',
     )
 
-    // Pre-fetch existing series and movies for existence checking
-    // This is more efficient than checking each item individually
-    const [existingSeries, existingMovies, primaryUser] = await Promise.all([
-      this.sonarrManager.fetchAllSeries(),
-      this.radarrManager.fetchAllMovies(),
-      this.dbService.getPrimaryUser(),
-    ])
+    // Fetch primary user for Plex existence checks
+    const primaryUser = await this.dbService.getPrimaryUser()
 
     // Process each new item: enrich then route
+    // Note: Existence checks use single-item API lookup (routing-aware) instead of
+    // bulk fetching all content - more efficient for the small batches typical of ETag routing
     for (const etagItem of newItems) {
       try {
         // Convert EtagPollItem to TokenWatchlistItem for enrichment
@@ -734,7 +735,6 @@ export class WatchlistWorkflowService {
             numericUserId: userId,
             userName: user.name,
             sonarrItem,
-            existingSeries,
             primaryUser,
           })
         } else if (normalizedType === 'movie') {
@@ -760,7 +760,6 @@ export class WatchlistWorkflowService {
             numericUserId: userId,
             userName: user.name,
             radarrItem,
-            existingMovies,
             primaryUser,
           })
         }
@@ -809,7 +808,7 @@ export class WatchlistWorkflowService {
     }
 
     this.log.info(
-      { intervalMs: this.ETAG_CHECK_INTERVAL_MS },
+      { intervalMinutes: this.ETAG_CHECK_INTERVAL_MS / 60000 },
       'Starting ETag check interval',
     )
 
@@ -838,6 +837,45 @@ export class WatchlistWorkflowService {
       }, this.ETAG_CHECK_INTERVAL_MS)
       this.log.debug('Reset ETag check interval after RSS-triggered check')
     }
+  }
+
+  /**
+   * Schedule a debounced syncAllStatuses call after ETag routing.
+   *
+   * This batches multiple rapid routing operations (e.g., user adds several items
+   * within seconds) into a single status sync call. The timer resets each time
+   * new items are routed, and syncAllStatuses is called 1 minute after the last
+   * routing operation.
+   *
+   * This prevents concurrent syncAllStatuses calls when RSS triggers multiple
+   * ETag reconciliations in quick succession.
+   */
+  private scheduleDebouncedStatusSync(): void {
+    // Clear any existing timer
+    if (this.statusSyncDebounceTimer) {
+      clearTimeout(this.statusSyncDebounceTimer)
+      this.log.debug('Reset status sync debounce timer')
+    }
+
+    // Schedule new timer
+    this.statusSyncDebounceTimer = setTimeout(async () => {
+      this.statusSyncDebounceTimer = null
+      try {
+        this.log.debug('Debounced status sync triggered')
+        const { shows: showUpdates, movies: movieUpdates } =
+          await this.showStatusService.syncAllStatuses()
+        this.log.info(
+          `Status sync completed: ${showUpdates} show updates, ${movieUpdates} movie updates`,
+        )
+      } catch (error) {
+        this.log.warn({ error }, 'Error in debounced status sync (non-fatal)')
+      }
+    }, this.STATUS_SYNC_DEBOUNCE_MS)
+
+    this.log.debug(
+      { delayMs: this.STATUS_SYNC_DEBOUNCE_MS },
+      'Scheduled debounced status sync',
+    )
   }
 
   /**
@@ -1540,7 +1578,15 @@ export class WatchlistWorkflowService {
         skippedDueToMissingIds,
       }
 
-      this.log.info(`Watchlist sync completed: ${JSON.stringify(summary)}`)
+      this.log.info(
+        {
+          added: summary.added,
+          unmatched: summary.unmatched,
+          skippedDueToUserSetting: summary.skippedDueToUserSetting,
+          skippedDueToMissingIds: summary.skippedDueToMissingIds,
+        },
+        'Watchlist sync completed',
+      )
 
       // Update auto-approval records to attribute them to actual users
       await this.updateAutoApprovalUserAttribution(shows, movies, userById)
@@ -1579,23 +1625,23 @@ export class WatchlistWorkflowService {
       }
 
       if (skippedDueToMissingIds > 0) {
-        const showsList =
-          skippedItems.shows.length > 0
-            ? `${skippedItems.shows.length} shows (${skippedItems.shows
-                .slice(0, 3)
-                .map((title) => `"${title}"`)
-                .join(', ')}${skippedItems.shows.length > 3 ? '...' : ''})`
-            : ''
-        const moviesList =
-          skippedItems.movies.length > 0
-            ? `${skippedItems.movies.length} movies (${skippedItems.movies
-                .slice(0, 3)
-                .map((title) => `"${title}"`)
-                .join(', ')}${skippedItems.movies.length > 3 ? '...' : ''})`
-            : ''
-        const parts = [showsList, moviesList].filter(Boolean)
+        const showsRemaining = Math.max(0, skippedItems.shows.length - 3)
+        const moviesRemaining = Math.max(0, skippedItems.movies.length - 3)
         this.log.warn(
-          `Skipped ${skippedDueToMissingIds} items due to missing required IDs - ${parts.join(', ')}`,
+          {
+            total: skippedDueToMissingIds,
+            shows: {
+              count: skippedItems.shows.length,
+              examples: skippedItems.shows.slice(0, 3),
+              ...(showsRemaining > 0 && { andMore: showsRemaining }),
+            },
+            movies: {
+              count: skippedItems.movies.length,
+              examples: skippedItems.movies.slice(0, 3),
+              ...(moviesRemaining > 0 && { andMore: moviesRemaining }),
+            },
+          },
+          'Skipped items due to missing required IDs',
         )
       }
     } catch (error) {
@@ -1614,6 +1660,10 @@ export class WatchlistWorkflowService {
   /**
    * Helper to check if shows exist in target instances and route if needed.
    *
+   * When existingSeries is provided (full reconciliation path), uses pre-fetched bulk
+   * data for efficient batch processing. When not provided (ETag routing path), uses
+   * single-item API lookup for efficiency with small batches.
+   *
    * @returns true if content was added, false if it already exists
    */
   private async processShowWithRouting(params: {
@@ -1621,7 +1671,7 @@ export class WatchlistWorkflowService {
     numericUserId: number
     userName: string | undefined
     sonarrItem: SonarrItem
-    existingSeries: SonarrItem[]
+    existingSeries?: SonarrItem[]
     primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
   }): Promise<boolean> {
     const {
@@ -1653,26 +1703,46 @@ export class WatchlistWorkflowService {
       return false
     }
 
-    // Check if show exists ONLY in the target instances (routing-aware existence check)
-    const targetInstanceSeries = existingSeries.filter((series) => {
-      return (
-        series.sonarr_instance_id !== undefined &&
-        targetInstanceIds.includes(series.sonarr_instance_id)
-      )
-    })
+    // Check if show exists in target instances (routing-aware existence check)
+    let existsInTargetInstance = false
 
-    const potentialMatches = targetInstanceSeries
-      .map((series) => ({
-        series,
-        score: getGuidMatchScore(
-          parseGuids(series.guids),
-          parseGuids(tempItem.guids),
-        ),
-      }))
-      .filter((match) => match.score > 0)
-      .sort((a, b) => b.score - a.score)
+    if (existingSeries) {
+      // Full reconciliation path: use pre-fetched bulk data for efficiency
+      const targetInstanceSeries = existingSeries.filter((series) => {
+        return (
+          series.sonarr_instance_id !== undefined &&
+          targetInstanceIds.includes(series.sonarr_instance_id)
+        )
+      })
 
-    const existsInTargetInstance = potentialMatches.length > 0
+      const potentialMatches = targetInstanceSeries
+        .map((series) => ({
+          series,
+          score: getGuidMatchScore(
+            parseGuids(series.guids),
+            parseGuids(tempItem.guids),
+          ),
+        }))
+        .filter((match) => match.score > 0)
+        .sort((a, b) => b.score - a.score)
+
+      existsInTargetInstance = potentialMatches.length > 0
+    } else {
+      // ETag routing path: use single-item API lookup on target instances only
+      const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
+      if (tvdbId > 0) {
+        for (const instanceId of targetInstanceIds) {
+          const result = await this.sonarrManager.seriesExistsByTvdbId(
+            instanceId,
+            tvdbId,
+          )
+          if (result.found) {
+            existsInTargetInstance = true
+            break
+          }
+        }
+      }
+    }
 
     // If already exists in target instance, skip without checking Plex
     if (existsInTargetInstance) {
@@ -1750,6 +1820,10 @@ export class WatchlistWorkflowService {
   /**
    * Helper to check if movies exist in target instances and route if needed.
    *
+   * When existingMovies is provided (full reconciliation path), uses pre-fetched bulk
+   * data for efficient batch processing. When not provided (ETag routing path), uses
+   * single-item API lookup for efficiency with small batches.
+   *
    * @returns true if content was added, false if it already exists
    */
   private async processMovieWithRouting(params: {
@@ -1757,7 +1831,7 @@ export class WatchlistWorkflowService {
     numericUserId: number
     userName: string | undefined
     radarrItem: RadarrItem
-    existingMovies: RadarrItem[]
+    existingMovies?: RadarrItem[]
     primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
   }): Promise<boolean> {
     const {
@@ -1789,26 +1863,46 @@ export class WatchlistWorkflowService {
       return false
     }
 
-    // Check if movie exists ONLY in the target instances (routing-aware existence check)
-    const targetInstanceMovies = existingMovies.filter((movie) => {
-      return (
-        movie.radarr_instance_id !== undefined &&
-        targetInstanceIds.includes(movie.radarr_instance_id)
-      )
-    })
+    // Check if movie exists in target instances (routing-aware existence check)
+    let existsInTargetInstance = false
 
-    const potentialMatches = targetInstanceMovies
-      .map((movie) => ({
-        movie,
-        score: getGuidMatchScore(
-          parseGuids(movie.guids),
-          parseGuids(tempItem.guids),
-        ),
-      }))
-      .filter((match) => match.score > 0)
-      .sort((a, b) => b.score - a.score)
+    if (existingMovies) {
+      // Full reconciliation path: use pre-fetched bulk data for efficiency
+      const targetInstanceMovies = existingMovies.filter((movie) => {
+        return (
+          movie.radarr_instance_id !== undefined &&
+          targetInstanceIds.includes(movie.radarr_instance_id)
+        )
+      })
 
-    const existsInTargetInstance = potentialMatches.length > 0
+      const potentialMatches = targetInstanceMovies
+        .map((movie) => ({
+          movie,
+          score: getGuidMatchScore(
+            parseGuids(movie.guids),
+            parseGuids(tempItem.guids),
+          ),
+        }))
+        .filter((match) => match.score > 0)
+        .sort((a, b) => b.score - a.score)
+
+      existsInTargetInstance = potentialMatches.length > 0
+    } else {
+      // ETag routing path: use single-item API lookup on target instances only
+      const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
+      if (tmdbId > 0) {
+        for (const instanceId of targetInstanceIds) {
+          const result = await this.radarrManager.movieExistsByTmdbId(
+            instanceId,
+            tmdbId,
+          )
+          if (result.found) {
+            existsInTargetInstance = true
+            break
+          }
+        }
+      }
+    }
 
     // If already exists in target instance, skip without checking Plex
     if (existsInTargetInstance) {
@@ -1932,29 +2026,36 @@ export class WatchlistWorkflowService {
               return
             }
 
-            this.log.info('Periodic reconciliation triggered - performing sync')
+            this.log.info(
+              'Periodic reconciliation triggered - performing full sync',
+            )
 
             // Unschedule this job to prevent concurrent execution
             await this.unschedulePendingReconciliation()
 
-            // Set flags to prevent concurrent operations
-            this.isRefreshing = true
-            this.isProcessingWorkflow = true
+            // Stop ETag polling during full reconciliation to prevent conflicts
+            if (this.etagCheckInterval) {
+              clearInterval(this.etagCheckInterval)
+              this.etagCheckInterval = null
+              this.log.debug('Stopped ETag polling for periodic reconciliation')
+            }
 
             try {
-              // Perform the sync
-              await this.fetchWatchlists()
-              await this.syncWatchlistItems()
+              // Perform full reconciliation (this also re-establishes ETag baselines)
+              await this.reconcile({ mode: 'full' })
 
               // Update timing trackers
               this.lastSuccessfulSyncTime = Date.now()
 
               this.log.info('Periodic reconciliation completed successfully')
             } finally {
-              this.isRefreshing = false
-              this.isProcessingWorkflow = false
+              // Restart ETag polling with fresh interval
+              this.startEtagCheckInterval()
+              this.log.debug(
+                'Restarted ETag polling after periodic reconciliation',
+              )
 
-              // Always reschedule for +20 minutes after sync completion
+              // Schedule next periodic reconciliation for +40 minutes
               await this.schedulePendingReconciliation()
             }
           } catch (error) {
@@ -2251,11 +2352,11 @@ export class WatchlistWorkflowService {
   }
 
   /**
-   * Schedule the next periodic reconciliation to run in 20 minutes
+   * Schedule the next periodic reconciliation to run in 40 minutes
    */
   private async schedulePendingReconciliation(): Promise<void> {
     try {
-      const scheduleTime = new Date(Date.now() + 20 * 60 * 1000) // +20 minutes
+      const scheduleTime = new Date(Date.now() + 40 * 60 * 1000) // +40 minutes
 
       await this.fastify.scheduler.updateJobSchedule(
         this.MANUAL_SYNC_JOB_NAME,
@@ -2266,8 +2367,11 @@ export class WatchlistWorkflowService {
         true,
       )
 
+      const delayMinutes = Math.round(
+        (scheduleTime.getTime() - Date.now()) / 60000,
+      )
       this.log.info(
-        `Scheduled next periodic reconciliation for ${scheduleTime.toISOString()}`,
+        `Scheduled next periodic reconciliation in ${delayMinutes} minutes`,
       )
     } catch (error) {
       this.log.error(

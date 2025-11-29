@@ -455,7 +455,9 @@ export class PlexWatchlistService {
     const removed = await this.checkForRemovedFriends(friendsResult.friends)
 
     // Ensure friend users exist and track newly added
-    const { userMap, added } = await this.ensureFriendUsers(friendsResult.friends)
+    const { userMap, added } = await this.ensureFriendUsers(
+      friendsResult.friends,
+    )
 
     if (added.length > 0) {
       this.log.info(
