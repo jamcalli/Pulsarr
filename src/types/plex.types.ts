@@ -195,8 +195,12 @@ export interface GraphQLWatchlistPollResponse {
 
 /** Cached ETag data for a user's watchlist */
 export interface WatchlistEtagCache {
+  /** ETag from 2-item query (for change detection) */
   etag: string
+  /** Timestamp of last check */
   lastCheck: number
+  /** First 20 items cached (for diffing to find new items) */
+  items: EtagPollItem[]
 }
 
 /** Result of an ETag poll operation */
@@ -205,8 +209,8 @@ export interface EtagPollResult {
   changed: boolean
   /** User ID associated with this watchlist */
   userId: number
-  /** Watchlist items (only present if changed=true) */
-  items?: EtagPollItem[]
+  /** NEW items found by diffing fresh vs cached (for instant routing) */
+  newItems: EtagPollItem[]
   /** Error message if poll failed */
   error?: string
 }
@@ -216,4 +220,22 @@ export interface EtagPollItem {
   id: string
   title: string
   type: string
+}
+
+/** User info for ETag polling and friend change tracking */
+export interface EtagUserInfo {
+  userId: number
+  username: string
+  watchlistId?: string // Only for friends (GraphQL ID), undefined for primary
+  isPrimary: boolean
+}
+
+/** Result of friend change detection */
+export interface FriendChangesResult {
+  /** Newly added friends with their info */
+  added: EtagUserInfo[]
+  /** Removed friends with their info */
+  removed: EtagUserInfo[]
+  /** Map of watchlistId to userId for all current friends */
+  userMap: Map<string, number>
 }

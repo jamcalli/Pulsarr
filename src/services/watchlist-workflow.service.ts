@@ -1,21 +1,22 @@
 /**
  * Watchlist Workflow Service
  *
- * Handles the synchronization between Plex watchlists and Sonarr/Radarr via RSS feeds.
- * This service is responsible for monitoring Plex watchlists for changes, processing
- * those changes, and routing items to the appropriate Sonarr/Radarr instances.
+ * Handles the synchronization between Plex watchlists and Sonarr/Radarr using a
+ * hybrid RSS + ETag approach for efficient change detection and instant routing.
+ *
+ * Architecture:
+ * - RSS feeds detect "something changed" (subject to 24h Cloudflare cache)
+ * - ETag polling identifies WHO changed and WHAT was added
+ * - New items are routed instantly with full user context (no deferral needed)
+ * - 3-minute ETag interval serves as fallback for cached RSS
  *
  * Responsible for:
- * - Monitoring Plex watchlists via RSS feeds
- * - Detecting changes to watchlist items (additions, modifications, removals)
- * - Processing new items and routing them to Sonarr or Radarr as appropriate
- * - Managing a queue of pending changes to handle in batches
+ * - Monitoring Plex watchlists via RSS feeds for change detection
+ * - Using ETag-based polling to identify specific user changes
+ * - Routing new items instantly to Sonarr/Radarr via content router
  * - Coordinating with other services (PlexWatchlist, SonarrManager, RadarrManager)
- * - Supporting differential sync for users with disabled synchronization
- * - Maintaining state between RSS checks to detect actual changes
- *
- * The service operates using interval-based polling to check RSS feeds periodically
- * and processes items in batches for efficiency.
+ * - Supporting user sync settings and approval workflows
+ * - Periodic full reconciliation as a failsafe
  *
  * @example
  * // Starting the workflow in a Fastify plugin:
@@ -24,6 +25,9 @@
  */
 
 import type {
+  EtagPollResult,
+  EtagUserInfo,
+  Item as DbWatchlistItem,
   RssWatchlistResults,
   TemptRssWatchlistItem,
   TokenWatchlistItem,
@@ -40,9 +44,11 @@ import {
   extractTmdbId,
   extractTvdbId,
   getGuidMatchScore,
+  parseGenres,
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { EtagPoller, toItemsSingle } from '@utils/plex/index.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
@@ -66,15 +72,6 @@ export class WatchlistWorkflowService {
 
   /** Interval timer for checking RSS feeds */
   private rssCheckInterval: NodeJS.Timeout | null = null
-
-  /** Interval timer for processing the change queue */
-  private queueCheckInterval: NodeJS.Timeout | null = null
-
-  /** Timestamp of when the last item was added to the queue */
-  private lastQueueItemTime: number = Date.now()
-
-  /** Queue of watchlist items that have changed and need processing */
-  private changeQueue: Set<TemptRssWatchlistItem> = new Set()
 
   /** Previous snapshot of self-watchlist items for change detection */
   private previousSelfItems: Map<string, WatchlistItem> = new Map()
@@ -100,21 +97,29 @@ export class WatchlistWorkflowService {
   /** Timestamp of the last successful watchlist sync */
   private lastSuccessfulSyncTime: number = Date.now()
 
+  /** ETag poller for hybrid RSS + ETag change detection */
+  private etagPoller: EtagPoller | null = null
+
+  /** Interval timer for ETag checks (fallback for cached RSS) */
+  private etagCheckInterval: NodeJS.Timeout | null = null
+
+  /** ETag check interval in ms (3 minutes) */
+  private readonly ETAG_CHECK_INTERVAL_MS = 3 * 60 * 1000
+
   /**
    * Creates a new WatchlistWorkflowService instance
    *
    * @param log - Fastify logger instance for recording workflow operations
    * @param fastify - Fastify instance for accessing other services
    * @param rssCheckIntervalMs - Interval in ms between RSS feed checks
-   * @param queueProcessDelayMs - Delay in ms before processing queued items
    */
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly rssCheckIntervalMs: number = 10000,
-    private readonly queueProcessDelayMs: number = 60000,
   ) {
     this.log.info('Initializing Watchlist Workflow Service')
+    // Initialize ETag poller (needs config, so created lazily after config is available)
   }
 
   /**
@@ -297,17 +302,10 @@ export class WatchlistWorkflowService {
         // Continue despite this error
       }
 
-      // Initial sync regardless of method
+      // Initial full reconciliation - syncs all users, establishes ETag baselines
       try {
-        this.log.debug('Starting initial watchlist fetch')
-        await this.fetchWatchlists()
-
-        this.log.debug('Starting initial watchlist item sync')
-        await this.syncWatchlistItems()
-
-        // Update last successful sync time after initial sync
-        this.lastSuccessfulSyncTime = Date.now()
-        this.log.debug('Set initial last successful sync time')
+        this.log.debug('Starting initial full reconciliation')
+        await this.reconcile({ mode: 'full' })
 
         // Schedule first periodic reconciliation for +20 minutes
         await this.schedulePendingReconciliation()
@@ -322,7 +320,7 @@ export class WatchlistWorkflowService {
             errorStack:
               syncError instanceof Error ? syncError.stack : undefined,
           },
-          'Error during initial watchlist synchronization',
+          'Error during initial reconciliation',
         )
 
         // Ensure failsafe is still scheduled even after initial sync failure
@@ -335,14 +333,14 @@ export class WatchlistWorkflowService {
           )
         }
 
-        throw new Error('Failed during initial watchlist synchronization', {
+        throw new Error('Failed during initial reconciliation', {
           cause: syncError,
         })
       }
 
-      // Start queue processor
-      this.log.debug('Starting queue processor')
-      this.startQueueProcessor()
+      // Start 3-minute ETag check interval (fallback for 24h RSS cache)
+      this.log.debug('Starting ETag check interval')
+      this.startEtagCheckInterval()
 
       // Update status to running after everything is initialized
       this.status = 'running'
@@ -352,7 +350,7 @@ export class WatchlistWorkflowService {
       this.rssMode = !this.isUsingRssFallback
 
       this.log.info(
-        `Watchlist workflow running in ${this.isUsingRssFallback ? 'periodic reconciliation' : 'RSS'} mode with periodic reconciliation`,
+        `Watchlist workflow running in ${this.isUsingRssFallback ? 'periodic reconciliation' : 'RSS'} mode with periodic reconciliation and 3-minute ETag checks`,
       )
 
       return true
@@ -404,12 +402,6 @@ export class WatchlistWorkflowService {
       this.rssCheckInterval = null
     }
 
-    // Clear queue processor interval
-    if (this.queueCheckInterval) {
-      clearInterval(this.queueCheckInterval)
-      this.queueCheckInterval = null
-    }
-
     // Clean up periodic reconciliation job regardless of mode
     try {
       await this.cleanupExistingManualSync()
@@ -420,8 +412,16 @@ export class WatchlistWorkflowService {
       )
     }
 
-    // Clear any pending changes
-    this.changeQueue.clear()
+    // Clear ETag check interval
+    if (this.etagCheckInterval) {
+      clearInterval(this.etagCheckInterval)
+      this.etagCheckInterval = null
+    }
+
+    // Clear ETag cache
+    if (this.etagPoller) {
+      this.etagPoller.clearCache()
+    }
 
     // Update status
     this.status = 'stopped'
@@ -429,6 +429,415 @@ export class WatchlistWorkflowService {
     this.rssMode = false
 
     return true
+  }
+
+  // ============================================================================
+  // Hybrid RSS + ETag Reconciliation
+  // ============================================================================
+
+  /**
+   * Unified reconciliation entry point for hybrid RSS + ETag sync.
+   *
+   * @param options.mode - 'full' for complete sync, 'etag' for lightweight ETag-based check
+   *
+   * Full mode (startup, manual refresh):
+   * - Syncs all users, all items
+   * - Establishes ETag baselines
+   *
+   * ETag mode (5-min interval, RSS trigger):
+   * - Checks friend changes (add/remove)
+   * - Checks ETags for all users
+   * - Only syncs users with changes (instant routing of new items)
+   */
+  async reconcile(options: { mode: 'full' | 'etag' }): Promise<void> {
+    // Ensure ETag poller is initialized
+    if (!this.etagPoller) {
+      this.etagPoller = new EtagPoller(this.config, this.log)
+    }
+
+    // Get primary user for ETag operations
+    const primaryUser = await this.dbService.getPrimaryUser()
+    if (!primaryUser) {
+      this.log.warn('No primary user found, cannot reconcile')
+      return
+    }
+
+    // Check friend changes ALWAYS (regardless of mode)
+    const friendChanges = await this.plexService.checkFriendChanges()
+
+    // Handle newly added friends immediately
+    for (const newFriend of friendChanges.added) {
+      this.log.info(
+        { userId: newFriend.userId, username: newFriend.username },
+        'New friend detected, establishing baseline and syncing',
+      )
+      await this.etagPoller.establishBaseline(newFriend)
+      // Initial items for new friend will be fetched during full sync or next ETag check
+    }
+
+    // Handle removed friends - invalidate their ETag cache
+    for (const removedFriend of friendChanges.removed) {
+      this.log.info(
+        { userId: removedFriend.userId, username: removedFriend.username },
+        'Friend removed, invalidating ETag cache',
+      )
+      this.etagPoller.invalidateUser(removedFriend.userId, removedFriend.watchlistId)
+    }
+
+    // Build EtagUserInfo array for current friends
+    const friends = this.buildEtagUserInfoFromMap(friendChanges.userMap)
+
+    if (options.mode === 'full') {
+      // Full sync - existing behavior
+      this.log.info('Starting full reconciliation')
+      await this.fetchWatchlists()
+      await this.syncWatchlistItems()
+
+      // Establish ETag baselines for all users after full sync
+      await this.etagPoller.establishAllBaselines(primaryUser.id, friends)
+
+      this.lastSuccessfulSyncTime = Date.now()
+      this.log.info('Full reconciliation completed')
+    } else {
+      // ETag mode - lightweight check with instant routing
+      this.log.debug('Starting ETag-based reconciliation')
+
+      const changes = await this.etagPoller.checkAllEtags(primaryUser.id, friends)
+
+      if (changes.length === 0) {
+        this.log.debug('ETag check: no changes detected, exiting early')
+        return
+      }
+
+      // Process changes for each user with new items
+      const changesWithNewItems = changes.filter(
+        (c) => c.changed && c.newItems.length > 0,
+      )
+
+      if (changesWithNewItems.length > 0) {
+        this.log.info(
+          {
+            userCount: changesWithNewItems.length,
+            totalNewItems: changesWithNewItems.reduce(
+              (sum, c) => sum + c.newItems.length,
+              0,
+            ),
+          },
+          'ETag check detected new items, routing instantly',
+        )
+
+        for (const change of changesWithNewItems) {
+          await this.routeNewItemsForUser(change)
+        }
+
+        // Post-routing tasks - call with no args to process System user attributions
+        await this.updateAutoApprovalUserAttribution()
+
+        // Sync statuses after routing new content
+        try {
+          const { shows: showUpdates, movies: movieUpdates } =
+            await this.showStatusService.syncAllStatuses()
+          this.log.debug(
+            `Updated ${showUpdates} show statuses and ${movieUpdates} movie statuses after ETag routing`,
+          )
+        } catch (statusError) {
+          this.log.warn(
+            { error: statusError },
+            'Error syncing statuses after ETag routing (non-fatal)',
+          )
+        }
+      }
+
+      this.lastSuccessfulSyncTime = Date.now()
+      this.log.debug('ETag-based reconciliation completed')
+    }
+  }
+
+  /**
+   * Route new items for a specific user detected via ETag polling.
+   * This is the "instant routing" path - no deferral needed since we know
+   * exactly WHO added WHAT.
+   *
+   * Flow:
+   * 1. Check user sync settings
+   * 2. Enrich each item via Plex API to get GUIDs, genres, thumb
+   * 3. Check for required IDs (TVDB for shows, TMDB for movies)
+   * 4. Check existence in target instances
+   * 5. Check Plex existence (if enabled)
+   * 6. Route via content router
+   * 7. Send notifications
+   */
+  private async routeNewItemsForUser(change: EtagPollResult): Promise<void> {
+    const { userId, newItems } = change
+
+    if (newItems.length === 0) return
+
+    // Get user info for routing context
+    const user = await this.dbService.getUser(userId)
+    if (!user) {
+      this.log.warn({ userId }, 'User not found for routing new items')
+      return
+    }
+
+    // Check if user has sync enabled
+    if (!user.can_sync) {
+      this.log.debug(
+        { userId, username: user.name, itemCount: newItems.length },
+        'Skipping items for user with sync disabled',
+      )
+      return
+    }
+
+    this.log.info(
+      { userId, username: user.name, itemCount: newItems.length },
+      'Routing new items for user',
+    )
+
+    // Pre-fetch existing series and movies for existence checking
+    // This is more efficient than checking each item individually
+    const [existingSeries, existingMovies, primaryUser] = await Promise.all([
+      this.sonarrManager.fetchAllSeries(),
+      this.radarrManager.fetchAllMovies(),
+      this.dbService.getPrimaryUser(),
+    ])
+
+    // Process each new item: enrich then route
+    for (const etagItem of newItems) {
+      try {
+        // Convert EtagPollItem to TokenWatchlistItem for enrichment
+        const tokenItem: TokenWatchlistItem = {
+          id: etagItem.id,
+          title: etagItem.title,
+          type: etagItem.type.toLowerCase(),
+          user_id: userId,
+          status: 'pending',
+          key: etagItem.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+
+        // Enrich item via Plex API to get GUIDs, genres, thumb
+        const enrichedItems = await toItemsSingle(
+          this.config,
+          this.log,
+          tokenItem,
+        )
+
+        if (enrichedItems.size === 0) {
+          this.log.warn(
+            { userId, itemId: etagItem.id, title: etagItem.title },
+            'Failed to enrich item - skipping routing',
+          )
+          continue
+        }
+
+        // Get the enriched item
+        const enrichedItem = [...enrichedItems][0]
+
+        // Parse GUIDs (handles string | string[] | undefined)
+        const parsedGuids = parseGuids(enrichedItem.guids)
+
+        // Skip if no GUIDs after enrichment
+        if (parsedGuids.length === 0) {
+          this.log.warn(
+            { userId, itemId: etagItem.id, title: etagItem.title },
+            'Item has no GUIDs after enrichment - skipping routing',
+          )
+          continue
+        }
+
+        // Parse genres (handles string | string[] | undefined)
+        const parsedGenres = parseGenres(enrichedItem.genres)
+
+        // Normalize type to 'movie' | 'show'
+        const normalizedType = enrichedItem.type.toLowerCase()
+
+        // Build temp item for routing helpers
+        const tempItem: TemptRssWatchlistItem = {
+          title: enrichedItem.title,
+          key: enrichedItem.key,
+          type: normalizedType,
+          thumb: enrichedItem.thumb,
+          guids: parsedGuids,
+          genres: parsedGenres,
+        }
+
+        // Save to watchlist_items table (same as full sync does)
+        // Use DbWatchlistItem (Item type) which matches createWatchlistItems signature
+        const dbItem: Omit<DbWatchlistItem, 'created_at' | 'updated_at'> = {
+          user_id: userId,
+          title: enrichedItem.title,
+          key: enrichedItem.key,
+          type: normalizedType,
+          thumb: enrichedItem.thumb, // Optional in DbWatchlistItem
+          guids: parsedGuids,
+          genres: parsedGenres,
+          status: 'pending' as const,
+        }
+
+        const insertedResults = await this.dbService.createWatchlistItems(
+          [dbItem],
+          { onConflict: 'ignore' }, // Don't overwrite if already exists
+        )
+
+        // Sync genres from the newly added item
+        await this.dbService.syncGenresFromWatchlist()
+
+        // Trigger Plex label sync for newly inserted items if enabled
+        if (
+          this.fastify.plexLabelSyncService &&
+          this.config.plexLabelSync?.enabled &&
+          insertedResults &&
+          insertedResults.length > 0
+        ) {
+          try {
+            for (const { id } of insertedResults) {
+              await this.fastify.plexLabelSyncService.syncLabelForNewWatchlistItem(
+                id,
+                dbItem.title,
+                true, // Enable tag fetching
+              )
+            }
+          } catch (labelError) {
+            this.log.warn(
+              { error: labelError, title: enrichedItem.title },
+              'Error syncing Plex labels for new item (non-fatal)',
+            )
+          }
+        }
+
+        // Route based on content type using existing helper methods
+        // These handle existence checks, Plex checks, and notifications
+        if (normalizedType === 'show') {
+          // Check for TVDB ID
+          const tvdbId = extractTvdbId(parsedGuids)
+          if (tvdbId === 0) {
+            this.log.warn(
+              { userId, title: enrichedItem.title, guids: parsedGuids },
+              'Show has no valid TVDB ID - skipping routing',
+            )
+            continue
+          }
+
+          const sonarrItem: SonarrItem = {
+            title: enrichedItem.title,
+            guids: parsedGuids,
+            type: 'show',
+            ended: false,
+            genres: parsedGenres,
+            status: 'pending',
+            series_status: 'continuing',
+          }
+
+          await this.processShowWithRouting({
+            tempItem,
+            numericUserId: userId,
+            userName: user.name,
+            sonarrItem,
+            existingSeries,
+            primaryUser,
+          })
+        } else if (normalizedType === 'movie') {
+          // Check for TMDB ID
+          const tmdbId = extractTmdbId(parsedGuids)
+          if (tmdbId === 0) {
+            this.log.warn(
+              { userId, title: enrichedItem.title, guids: parsedGuids },
+              'Movie has no valid TMDB ID - skipping routing',
+            )
+            continue
+          }
+
+          const radarrItem: RadarrItem = {
+            title: enrichedItem.title,
+            guids: parsedGuids,
+            type: 'movie',
+            genres: parsedGenres,
+          }
+
+          await this.processMovieWithRouting({
+            tempItem,
+            numericUserId: userId,
+            userName: user.name,
+            radarrItem,
+            existingMovies,
+            primaryUser,
+          })
+        }
+
+        this.log.debug(
+          { userId, title: enrichedItem.title, type: normalizedType },
+          'Successfully processed new item',
+        )
+      } catch (error) {
+        this.log.error(
+          { error, userId, itemId: etagItem.id, title: etagItem.title },
+          'Error routing new item',
+        )
+      }
+    }
+  }
+
+  /**
+   * Build EtagUserInfo array from the userMap returned by checkFriendChanges.
+   * Needs to include watchlistId for each friend.
+   */
+  private buildEtagUserInfoFromMap(
+    userMap: Map<string, number>,
+  ): EtagUserInfo[] {
+    const friends: EtagUserInfo[] = []
+
+    for (const [watchlistId, userId] of userMap) {
+      friends.push({
+        userId,
+        username: '', // We don't have username here, but EtagPoller uses watchlistId
+        watchlistId,
+        isPrimary: false,
+      })
+    }
+
+    return friends
+  }
+
+  /**
+   * Start the 3-minute ETag check interval.
+   * This serves as a fallback when RSS is cached (24h Cloudflare cache).
+   */
+  private startEtagCheckInterval(): void {
+    if (this.etagCheckInterval) {
+      clearInterval(this.etagCheckInterval)
+    }
+
+    this.log.info(
+      { intervalMs: this.ETAG_CHECK_INTERVAL_MS },
+      'Starting ETag check interval',
+    )
+
+    this.etagCheckInterval = setInterval(async () => {
+      try {
+        await this.reconcile({ mode: 'etag' })
+      } catch (error) {
+        this.log.error({ error }, 'Error in ETag check interval')
+      }
+    }, this.ETAG_CHECK_INTERVAL_MS)
+  }
+
+  /**
+   * Reset the 3-minute ETag check interval.
+   * Called when RSS triggers an ETag check to avoid redundant checks.
+   */
+  private resetEtagCheckInterval(): void {
+    if (this.etagCheckInterval) {
+      clearInterval(this.etagCheckInterval)
+      this.etagCheckInterval = setInterval(async () => {
+        try {
+          await this.reconcile({ mode: 'etag' })
+        } catch (error) {
+          this.log.error({ error }, 'Error in ETag check interval')
+        }
+      }, this.ETAG_CHECK_INTERVAL_MS)
+      this.log.debug('Reset ETag check interval after RSS-triggered check')
+    }
   }
 
   /**
@@ -611,11 +1020,15 @@ export class WatchlistWorkflowService {
   /**
    * Process results from RSS feed checks
    *
-   * Detects changes in both self and friends feeds and adds changed items to the queue.
+   * Detects changes in both self and friends feeds. When changes are detected,
+   * triggers ETag-based reconciliation to identify WHO changed and route instantly.
    *
    * @param results - RSS watchlist results containing both self and friends data
    */
   private async processRssResults(results: RssWatchlistResults): Promise<void> {
+    let selfChanged = false
+    let friendsChanged = false
+
     // Process self RSS feed
     if (results.self.users[0]?.watchlist) {
       const currentWatchlist = results.self.users[0].watchlist
@@ -631,13 +1044,12 @@ export class WatchlistWorkflowService {
           )
           this.previousSelfItems = this.createItemMap(currentWatchlist)
 
-          // If this is the first time we're seeing content, we should process all items as new
+          // If this is the first time we're seeing content, mark as changed to trigger reconcile
           if (this.hasProcessedInitialFeed.self === false) {
-            this.log.info('Processing initial items from first valid feed')
-            const allItemsAsChanges = new Set(
-              currentWatchlist.map((item) => this.convertToTempItem(item)),
+            this.log.info(
+              'First valid self feed - will trigger ETag reconciliation',
             )
-            await this.addToQueue(allItemsAsChanges, 'self')
+            selfChanged = true
             this.hasProcessedInitialFeed.self = true
           }
         } else {
@@ -648,7 +1060,11 @@ export class WatchlistWorkflowService {
             currentItems,
           )
           if (changes.size > 0) {
-            await this.addToQueue(changes, 'self')
+            this.log.debug(
+              { changeCount: changes.size },
+              'Self RSS feed detected changes',
+            )
+            selfChanged = true
           }
           this.previousSelfItems = currentItems
         }
@@ -672,13 +1088,12 @@ export class WatchlistWorkflowService {
           )
           this.previousFriendsItems = this.createItemMap(currentWatchlist)
 
-          // If this is the first time we're seeing content, we should process all items as new
+          // If this is the first time we're seeing content, mark as changed to trigger reconcile
           if (this.hasProcessedInitialFeed.friends === false) {
-            this.log.info('Processing initial items from first valid feed')
-            const allItemsAsChanges = new Set(
-              currentWatchlist.map((item) => this.convertToTempItem(item)),
+            this.log.info(
+              'First valid friends feed - will trigger ETag reconciliation',
             )
-            await this.addToQueue(allItemsAsChanges, 'friends')
+            friendsChanged = true
             this.hasProcessedInitialFeed.friends = true
           }
         } else {
@@ -689,10 +1104,33 @@ export class WatchlistWorkflowService {
             currentItems,
           )
           if (changes.size > 0) {
-            await this.addToQueue(changes, 'friends')
+            this.log.debug(
+              { changeCount: changes.size },
+              'Friends RSS feed detected changes',
+            )
+            friendsChanged = true
           }
           this.previousFriendsItems = currentItems
         }
+      }
+    }
+
+    // If any changes detected, trigger ETag-based reconciliation
+    // This identifies WHO changed and routes new items instantly
+    if (selfChanged || friendsChanged) {
+      this.log.info(
+        { selfChanged, friendsChanged },
+        'RSS detected changes - triggering ETag reconciliation',
+      )
+      try {
+        await this.reconcile({ mode: 'etag' })
+        // Reset the 3-minute interval since we just did an ETag check
+        this.resetEtagCheckInterval()
+      } catch (error) {
+        this.log.error(
+          { error },
+          'Error during RSS-triggered ETag reconciliation',
+        )
       }
     }
   }
@@ -729,8 +1167,8 @@ export class WatchlistWorkflowService {
           previousItem.type !== currentItem.type ||
           previousItem.thumb !== currentItem.thumb ||
           !this.arraysEqualIgnoreOrder(
-            this.safeParseArray(previousItem.genres),
-            this.safeParseArray(currentItem.genres),
+            parseGenres(previousItem.genres),
+            parseGenres(currentItem.genres),
           )
 
         if (hasChanged) {
@@ -743,8 +1181,8 @@ export class WatchlistWorkflowService {
                 type: previousItem.type !== currentItem.type,
                 thumb: previousItem.thumb !== currentItem.thumb,
                 genres: !this.arraysEqualIgnoreOrder(
-                  this.safeParseArray(previousItem.genres),
-                  this.safeParseArray(currentItem.genres),
+                  parseGenres(previousItem.genres),
+                  parseGenres(currentItem.genres),
                 ),
               },
             },
@@ -794,477 +1232,6 @@ export class WatchlistWorkflowService {
       guids: parseGuids(item.guids),
       genres: item.genres,
       key: item.plexKey,
-    }
-  }
-
-  /**
-   * Add changed items to the processing queue
-   *
-   * Adds new items to the change queue and optionally processes them immediately
-   * if no users have sync disabled.
-   *
-   * @param items - Set of watchlist items that have changed
-   * @param source - Source of the items ('self' or 'friends')
-   */
-  private async addToQueue(
-    items: Set<TemptRssWatchlistItem>,
-    source: 'self' | 'friends',
-  ): Promise<void> {
-    let hasNewItems = false
-    const routedGuids = new Set<string>() // Track which items were successfully routed
-
-    // Check if processing should be deferred (includes both sync disabled and user routing rules)
-    const shouldDefer = await this.shouldDeferProcessing()
-
-    if (shouldDefer) {
-      this.log.info(
-        'Deferring item processing to reconciliation phase due to sync settings or user routing rules',
-      )
-    }
-
-    // Process each item
-    for (const item of items) {
-      if (!this.changeQueue.has(item)) {
-        this.changeQueue.add(item)
-        hasNewItems = true
-
-        // Only process immediately if we don't need to defer
-        if (!shouldDefer) {
-          let wasRouted = false
-
-          if (item.type.toLowerCase() === 'show') {
-            this.log.info(`Processing show ${item.title} immediately`)
-            const normalizedItem = {
-              ...item,
-              type: 'show',
-            }
-            wasRouted = await this.processSonarrItem(normalizedItem)
-          } else if (item.type.toLowerCase() === 'movie') {
-            this.log.info(`Processing movie ${item.title} immediately`)
-            const normalizedItem = {
-              ...item,
-              type: 'movie',
-            }
-            wasRouted = await this.processRadarrItem(normalizedItem)
-          }
-
-          // Track routed GUIDs for storage
-          if (wasRouted && item.guids) {
-            const guids = Array.isArray(item.guids) ? item.guids : [item.guids]
-            for (const guid of guids) {
-              routedGuids.add(guid.toLowerCase())
-            }
-          }
-        } else {
-          this.log.debug(
-            `Queuing ${item.type} ${item.title} for later processing during reconciliation`,
-          )
-        }
-      }
-    }
-
-    // Store items and update timestamp if new items were added
-    if (hasNewItems) {
-      const now = Date.now()
-      this.lastQueueItemTime = now
-      this.log.info(
-        `Added ${items.size} changed items to queue from ${source} RSS feed`,
-      )
-      this.log.debug(`Queue timer updated: lastQueueItemTime=${now}`)
-
-      // Unschedule pending reconciliation since sync will happen via queue processing
-      await this.unschedulePendingReconciliation()
-
-      try {
-        await this.plexService.storeRssWatchlistItems(
-          items,
-          source,
-          routedGuids,
-        )
-        this.log.debug(`Stored ${items.size} changed ${source} RSS items`)
-      } catch (error) {
-        this.log.error({ error }, `Error storing ${source} RSS items:`)
-      }
-    }
-  }
-
-  /**
-   * Verify if a show already exists in any Sonarr instance
-   *
-   * @param item - Watchlist item to check
-   * @param exclusionsCache - Optional pre-fetched exclusions map by instance ID to avoid N+1 queries
-   * @returns Promise resolving to true if the item should be added, false otherwise
-   */
-  private async verifySonarrItem(
-    item: TemptRssWatchlistItem,
-    exclusionsCache?: Map<number, Set<SonarrItem>>,
-  ): Promise<boolean> {
-    try {
-      // Extract TVDB ID from item GUIDs
-      const tvdbId = extractTvdbId(item.guids)
-      if (tvdbId === 0) {
-        this.log.warn(
-          {
-            guids: item.guids,
-          },
-          `Show ${item.title} has no valid TVDB ID, skipping verification`,
-        )
-        return false
-      }
-
-      const instances = await this.sonarrManager.getAllInstances()
-
-      // Check each Sonarr instance
-      let anyChecked = false
-      let existsSomewhere = false
-      let canAcceptSomewhere = false
-
-      for (const instance of instances) {
-        // Check if series exists using lookup API
-        const result = await this.sonarrManager.seriesExistsByTvdbId(
-          instance.id,
-          tvdbId,
-        )
-
-        // Skip this instance if unavailable; continue checking others
-        if (!result.checked) {
-          this.log.warn(
-            {
-              error: result.error,
-              serviceName: result.serviceName,
-              instanceId: result.instanceId,
-            },
-            `Sonarr instance ${instance.name} unavailable for ${item.title}, skipping instance`,
-          )
-          continue
-        }
-        anyChecked = true
-
-        // Skip if series already exists
-        if (result.found) {
-          this.log.info(
-            `Show ${item.title} already exists in Sonarr instance ${instance.name}, skipping addition`,
-          )
-          existsSomewhere = true
-          break
-        }
-
-        // Determine if this instance can accept the item
-        if (instance.bypassIgnored) {
-          // Instance bypasses exclusions, can accept any item
-          canAcceptSomewhere = true
-        } else {
-          // Instance respects exclusions, check if item is excluded
-          // Use cached exclusions if available, otherwise fetch on demand
-          let exclusions: Set<SonarrItem>
-          const cachedExclusions = exclusionsCache?.get(instance.id)
-          if (cachedExclusions) {
-            exclusions = cachedExclusions
-          } else {
-            const sonarrService = this.sonarrManager.getSonarrService(
-              instance.id,
-            )
-            if (!sonarrService) {
-              this.log.warn(
-                {
-                  instanceId: instance.id,
-                  instanceName: instance.name,
-                },
-                `Sonarr service not found for instance ${instance.name}, skipping exclusion check`,
-              )
-              continue
-            }
-            exclusions = await sonarrService.fetchExclusions()
-          }
-
-          // Check if item matches any exclusion by TVDB ID
-          const isInExclusions = [...exclusions].some((exclusion) => {
-            const exclusionTvdbId = extractTvdbId(exclusion.guids)
-            return exclusionTvdbId !== 0 && exclusionTvdbId === tvdbId
-          })
-
-          if (!isInExclusions) {
-            canAcceptSomewhere = true
-          }
-        }
-      }
-
-      if (existsSomewhere) return false
-      if (!canAcceptSomewhere && anyChecked) {
-        this.log.info(
-          { title: item.title, tvdbId },
-          'Skipping series - all available Sonarr instances either have it or exclude it',
-        )
-        return false
-      }
-      return anyChecked
-    } catch (error) {
-      this.log.error({ error }, `Error verifying show ${item.title} in Sonarr:`)
-      throw error
-    }
-  }
-
-  /**
-   * Verify if a movie already exists in any Radarr instance
-   *
-   * @param item - Watchlist item to check
-   * @param exclusionsCache - Optional pre-fetched exclusions map by instance ID to avoid N+1 queries
-   * @returns Promise resolving to true if the item should be added, false otherwise
-   */
-  private async verifyRadarrItem(
-    item: TemptRssWatchlistItem,
-    exclusionsCache?: Map<number, Set<RadarrItem>>,
-  ): Promise<boolean> {
-    try {
-      // Extract TMDB ID from item GUIDs
-      const tmdbId = extractTmdbId(item.guids)
-      if (tmdbId === 0) {
-        this.log.warn(
-          {
-            guids: item.guids,
-          },
-          `Movie ${item.title} has no valid TMDB ID, skipping verification`,
-        )
-        return false
-      }
-
-      const instances = await this.radarrManager.getAllInstances()
-
-      // Check each Radarr instance
-      let anyChecked = false
-      let existsSomewhere = false
-      let canAcceptSomewhere = false
-
-      for (const instance of instances) {
-        // Check if movie exists using lookup API
-        const result = await this.radarrManager.movieExistsByTmdbId(
-          instance.id,
-          tmdbId,
-        )
-
-        // Skip this instance if unavailable; continue checking others
-        if (!result.checked) {
-          this.log.warn(
-            {
-              error: result.error,
-              serviceName: result.serviceName,
-              instanceId: result.instanceId,
-            },
-            `Radarr instance ${instance.name} unavailable for ${item.title}, skipping instance`,
-          )
-          continue
-        }
-        anyChecked = true
-
-        // Skip if movie already exists
-        if (result.found) {
-          this.log.info(
-            `Movie ${item.title} already exists in Radarr instance ${instance.name}, skipping addition`,
-          )
-          existsSomewhere = true
-          break
-        }
-
-        // Determine if this instance can accept the item
-        if (instance.bypassIgnored) {
-          // Instance bypasses exclusions, can accept any item
-          canAcceptSomewhere = true
-        } else {
-          // Instance respects exclusions, check if item is excluded
-          // Use cached exclusions if available, otherwise fetch on demand
-          let exclusions: Set<RadarrItem>
-          const cachedExclusions = exclusionsCache?.get(instance.id)
-          if (cachedExclusions) {
-            exclusions = cachedExclusions
-          } else {
-            const radarrService = this.radarrManager.getRadarrService(
-              instance.id,
-            )
-            if (!radarrService) {
-              this.log.warn(
-                {
-                  instanceId: instance.id,
-                  instanceName: instance.name,
-                },
-                `Radarr service not found for instance ${instance.name}, skipping exclusion check`,
-              )
-              continue
-            }
-            exclusions = await radarrService.fetchExclusions()
-          }
-
-          // Check if item matches any exclusion by TMDB ID
-          const isInExclusions = [...exclusions].some((exclusion) => {
-            const exclusionTmdbId = extractTmdbId(exclusion.guids)
-            return exclusionTmdbId !== 0 && exclusionTmdbId === tmdbId
-          })
-
-          if (!isInExclusions) {
-            canAcceptSomewhere = true
-          }
-        }
-      }
-
-      if (existsSomewhere) return false
-      if (!canAcceptSomewhere && anyChecked) {
-        this.log.info(
-          { title: item.title, tmdbId },
-          'Skipping movie - all available Radarr instances either have it or exclude it',
-        )
-        return false
-      }
-      return anyChecked
-    } catch (error) {
-      this.log.error(
-        { error },
-        `Error verifying movie ${item.title} in Radarr:`,
-      )
-      throw error
-    }
-  }
-
-  /**
-   * Process a movie watchlist item and add it to Radarr
-   *
-   * Extracts the TMDB ID, verifies the item doesn't already exist,
-   * and routes it using the content router.
-   *
-   * @param item - Movie watchlist item to process
-   * @returns Promise resolving to true if content was actually routed to Radarr
-   */
-  private async processRadarrItem(
-    item: TemptRssWatchlistItem,
-  ): Promise<boolean> {
-    try {
-      // Use utility function to extract TMDB ID
-      const tmdbId = extractTmdbId(item.guids)
-      if (tmdbId === 0) {
-        this.log.warn(
-          {
-            guids: item.guids,
-          },
-          `Movie ${item.title} has no valid TMDB ID, skipping Radarr processing`,
-        )
-        return false
-      }
-
-      // Verify item isn't already in Radarr
-      const shouldAdd = await this.verifyRadarrItem(item)
-      if (!shouldAdd) {
-        return false // Item exists, not routed
-      }
-
-      // Prepare item for Radarr
-      const radarrItem: RadarrItem = {
-        title: item.title,
-        guids: parseGuids(item.guids),
-        type: 'movie',
-        genres: this.safeParseArray<string>(item.genres),
-      }
-
-      // Use content router to route the item
-      const { routedInstances } = await this.contentRouter.routeContent(
-        radarrItem,
-        item.key,
-        {
-          syncing: false,
-        },
-      )
-
-      const wasRouted = routedInstances.length > 0
-
-      if (wasRouted) {
-        this.log.info(
-          `Successfully routed movie ${item.title} via content router`,
-        )
-      }
-
-      return wasRouted
-    } catch (error) {
-      this.log.error(
-        {
-          error,
-          title: item.title,
-          guids: item.guids,
-          type: item.type,
-        },
-        'Error processing movie',
-      )
-      throw error
-    }
-  }
-
-  /**
-   * Process a show watchlist item and add it to Sonarr
-   *
-   * Extracts the TVDB ID, verifies the item doesn't already exist,
-   * and routes it using the content router.
-   *
-   * @param item - Show watchlist item to process
-   * @returns Promise resolving to true if content was actually routed to Sonarr
-   */
-  private async processSonarrItem(
-    item: TemptRssWatchlistItem,
-  ): Promise<boolean> {
-    try {
-      // Use utility function to extract TVDB ID
-      const tvdbId = extractTvdbId(item.guids)
-      if (tvdbId === 0) {
-        this.log.warn(
-          {
-            guids: item.guids,
-          },
-          `Show ${item.title} has no valid TVDB ID, skipping Sonarr processing`,
-        )
-        return false
-      }
-
-      // Verify item isn't already in Sonarr
-      const shouldAdd = await this.verifySonarrItem(item)
-      if (!shouldAdd) {
-        return false // Item exists, not routed
-      }
-
-      // Prepare item for Sonarr
-      const sonarrItem: SonarrItem = {
-        title: item.title,
-        guids: parseGuids(item.guids),
-        type: 'show',
-        ended: false,
-        genres: this.safeParseArray<string>(item.genres),
-        status: 'pending',
-        series_status: 'continuing', // Default to continuing since we don't know yet
-      }
-
-      // Use content router to route the item
-      const { routedInstances } = await this.contentRouter.routeContent(
-        sonarrItem,
-        item.key,
-        {
-          syncing: false,
-        },
-      )
-
-      const wasRouted = routedInstances.length > 0
-
-      if (wasRouted) {
-        this.log.info(
-          `Successfully routed show ${item.title} via content router`,
-        )
-      }
-
-      return wasRouted
-    } catch (error) {
-      this.log.error(
-        {
-          error,
-          title: item.title,
-          guids: item.guids,
-          type: item.type,
-        },
-        'Error processing show in Sonarr',
-      )
-      throw error
     }
   }
 
@@ -1450,7 +1417,7 @@ export class WatchlistWorkflowService {
               type: item.type,
               thumb: item.thumb ?? undefined,
               guids: parsedGuids,
-              genres: this.safeParseArray<string>(item.genres),
+              genres: parseGenres(item.genres),
               key: item.key,
             }
 
@@ -1475,7 +1442,7 @@ export class WatchlistWorkflowService {
                 guids: parsedGuids,
                 type: 'show',
                 ended: false,
-                genres: this.safeParseArray<string>(tempItem.genres),
+                genres: parseGenres(tempItem.genres),
                 status: 'pending',
                 series_status: 'continuing',
               }
@@ -1511,7 +1478,7 @@ export class WatchlistWorkflowService {
                 title: tempItem.title,
                 guids: parsedGuids,
                 type: 'movie',
-                genres: this.safeParseArray<string>(tempItem.genres),
+                genres: parseGenres(tempItem.genres),
               }
 
               const wasAdded = await this.processMovieWithRouting({
@@ -1642,160 +1609,6 @@ export class WatchlistWorkflowService {
       )
       throw error
     }
-  }
-
-  /**
-   * Start the queue processor interval
-   *
-   * Sets up periodic processing of queued changes after a delay.
-   */
-  private startQueueProcessor(): void {
-    if (this.queueCheckInterval) {
-      clearInterval(this.queueCheckInterval)
-    }
-
-    this.queueCheckInterval = setInterval(async () => {
-      // Avoid concurrent processing with other operations
-      if (this.isRefreshing || this.isProcessingWorkflow) {
-        this.log.debug(
-          'Skipping queue processing - concurrent operation in progress',
-        )
-        return
-      }
-
-      // Check if enough time has passed and there are items to process
-      const timeSinceLastItem = Date.now() - this.lastQueueItemTime
-
-      if (
-        timeSinceLastItem >= this.queueProcessDelayMs &&
-        this.changeQueue.size > 0
-      ) {
-        // Set both flags to prevent any concurrent operations
-        this.isRefreshing = true
-        this.isProcessingWorkflow = true
-
-        try {
-          const queueSize = this.changeQueue.size
-          this.log.info(
-            'Queue process delay reached, checking processing requirements',
-          )
-          this.changeQueue.clear()
-
-          // Check if we need to defer processing
-          const shouldDefer = await this.shouldDeferProcessing()
-
-          if (shouldDefer) {
-            this.log.info(
-              'Performing full sync reconciliation due to sync settings or user routing rules',
-            )
-            // First refresh the watchlists
-            await this.fetchWatchlists()
-            // Then run full sync check
-            await this.syncWatchlistItems()
-            // Update last successful sync time after full sync
-            const now = Date.now()
-            this.lastSuccessfulSyncTime = now
-            // Reset deferral timer to prevent immediate periodic reconciliation after queue processing
-            this.lastQueueItemTime = now
-            this.log.debug('Updated last successful sync time after full sync')
-            this.log.debug(
-              'Reset deferral timer after queue processing to prevent immediate periodic reconciliation overlap',
-            )
-
-            // Schedule next reconciliation after full sync completion
-            await this.schedulePendingReconciliation()
-          } else {
-            this.log.info('Performing standard watchlist refresh')
-            await this.fetchWatchlists()
-            await this.syncWatchlistItems()
-            // Update last successful sync time after watchlist refresh
-            const now = Date.now()
-            this.lastSuccessfulSyncTime = now
-            // Reset deferral timer to prevent immediate periodic reconciliation after queue processing
-            this.lastQueueItemTime = now
-            this.log.debug(
-              'Updated last successful sync time after watchlist refresh',
-            )
-            this.log.debug(
-              'Reset deferral timer after queue processing to prevent immediate periodic reconciliation overlap',
-            )
-
-            // Schedule next reconciliation after watchlist refresh completion
-            await this.schedulePendingReconciliation()
-          }
-
-          this.log.info(`Queue processing completed for ${queueSize} items`)
-        } catch (error) {
-          // Don't set status to 'stopped' or stop the workflow
-          // This allows the workflow to continue and self-heal via reconciliation
-          this.log.error(
-            {
-              error,
-              errorMessage:
-                error instanceof Error ? error.message : String(error),
-              errorStack: error instanceof Error ? error.stack : undefined,
-            },
-            'Error in queue processing - will recover via scheduled reconciliation',
-          )
-
-          // Ensure failsafe is scheduled even after queue processing failure
-          try {
-            await this.schedulePendingReconciliation()
-          } catch (scheduleError) {
-            this.log.error(
-              { error: scheduleError },
-              'Failed to schedule failsafe after queue processing error',
-            )
-          }
-
-          // Don't throw - let the workflow continue running
-        } finally {
-          this.isRefreshing = false
-          this.isProcessingWorkflow = false
-        }
-      }
-    }, 10000) // Check every 10 seconds
-  }
-
-  /**
-   * Checks if processing should be deferred to reconciliation phase
-   *
-   * @returns Promise<boolean> True if processing should be deferred
-   */
-  private async shouldDeferProcessing(): Promise<boolean> {
-    // Check if any users have sync disabled
-    const hasUsersWithSyncDisabled =
-      await this.dbService.hasUsersWithSyncDisabled()
-
-    // Check if any user-related routing rules exist (only enabled ones)
-    const conditionalRules =
-      await this.fastify.db.getRouterRulesByType('conditional')
-    const hasUserRoutingRules = conditionalRules.some((rule) => {
-      // Skip disabled rules
-      if (rule.enabled === false) return false
-
-      const criteria = rule.criteria?.condition as
-        | Condition
-        | ConditionGroup
-        | undefined
-      return this.hasUserField(criteria)
-    })
-
-    // Check if any users have approval configuration (quotas, requires_approval, approval router rules)
-    const hasUsersWithApprovalConfig =
-      await this.dbService.hasUsersWithApprovalConfig()
-
-    // Check if Plex existence checking is enabled
-    // This requires deferring to reconciliation since we can only use the primary token
-    const plexExistenceCheckEnabled =
-      this.fastify.config.skipIfExistsOnPlex === true
-
-    return (
-      hasUsersWithSyncDisabled ||
-      hasUserRoutingRules ||
-      hasUsersWithApprovalConfig ||
-      plexExistenceCheckEnabled
-    )
   }
 
   /**
@@ -2070,25 +1883,6 @@ export class WatchlistWorkflowService {
     return false
   }
 
-  private safeParseArray<T>(value: unknown): T[] {
-    if (Array.isArray(value)) {
-      return value as T[]
-    }
-
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value)
-        return (
-          Array.isArray(parsed) ? parsed : [parsed].filter(Boolean)
-        ) as T[]
-      } catch (_e) {
-        return (value ? [value] : []) as T[]
-      }
-    }
-
-    return (value ? [value] : []) as T[]
-  }
-
   private arraysEqualIgnoreOrder<T>(a: T[], b: T[]): boolean {
     return a.length === b.length && a.every((v) => b.includes(v))
   }
@@ -2153,9 +1947,7 @@ export class WatchlistWorkflowService {
               await this.syncWatchlistItems()
 
               // Update timing trackers
-              const now = Date.now()
-              this.lastSuccessfulSyncTime = now
-              this.lastQueueItemTime = now
+              this.lastSuccessfulSyncTime = Date.now()
 
               this.log.info('Periodic reconciliation completed successfully')
             } finally {
