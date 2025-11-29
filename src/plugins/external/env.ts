@@ -558,13 +558,32 @@ export default fp(
             'publicContentNotifications',
           )
         : DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS,
-      quotaSettings: rawConfig.quotaSettings
-        ? safeJsonParse(
-            rawConfig.quotaSettings as string,
-            DEFAULT_QUOTA_SETTINGS,
-            'quotaSettings',
-          )
-        : DEFAULT_QUOTA_SETTINGS,
+      quotaSettings: (() => {
+        const parsed = rawConfig.quotaSettings
+          ? safeJsonParse<{
+              cleanup?: { enabled?: boolean; retentionDays?: number }
+              weeklyRolling?: { resetDays?: number }
+              monthly?: {
+                resetDay?: number
+                handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
+              }
+            }>(rawConfig.quotaSettings as string, {}, 'quotaSettings')
+          : {}
+        return {
+          cleanup: {
+            ...DEFAULT_QUOTA_SETTINGS.cleanup,
+            ...(parsed.cleanup ?? {}),
+          },
+          weeklyRolling: {
+            ...DEFAULT_QUOTA_SETTINGS.weeklyRolling,
+            ...(parsed.weeklyRolling ?? {}),
+          },
+          monthly: {
+            ...DEFAULT_QUOTA_SETTINGS.monthly,
+            ...(parsed.monthly ?? {}),
+          },
+        }
+      })(),
       approvalExpiration: rawConfig.approvalExpiration
         ? safeJsonParse(
             rawConfig.approvalExpiration as string,
@@ -572,13 +591,35 @@ export default fp(
             'approvalExpiration',
           )
         : DEFAULT_APPROVAL_EXPIRATION,
-      plexLabelSync: rawConfig.plexLabelSync
-        ? safeJsonParse(
-            rawConfig.plexLabelSync as string,
-            DEFAULT_PLEX_LABEL_SYNC,
-            'plexLabelSync',
-          )
-        : DEFAULT_PLEX_LABEL_SYNC,
+      plexLabelSync: (() => {
+        const parsed = rawConfig.plexLabelSync
+          ? safeJsonParse<{
+              enabled?: boolean
+              labelPrefix?: string
+              concurrencyLimit?: number
+              cleanupOrphanedLabels?: boolean
+              removedLabelMode?: 'remove' | 'keep' | 'special-label'
+              removedLabelPrefix?: string
+              autoResetOnScheduledSync?: boolean
+              scheduleTime?: string
+              dayOfWeek?: string
+              tagSync?: {
+                enabled?: boolean
+                syncRadarrTags?: boolean
+                syncSonarrTags?: boolean
+              }
+            }>(rawConfig.plexLabelSync as string, {}, 'plexLabelSync')
+          : {}
+        return {
+          ...DEFAULT_PLEX_LABEL_SYNC,
+          ...parsed,
+          // Handle nested tagSync object separately to preserve defaults
+          tagSync: {
+            ...DEFAULT_PLEX_LABEL_SYNC.tagSync,
+            ...(parsed.tagSync ?? {}),
+          },
+        }
+      })(),
       tagMigration: rawConfig.tagMigration
         ? safeJsonParse(
             rawConfig.tagMigration as string,

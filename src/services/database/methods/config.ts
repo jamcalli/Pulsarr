@@ -39,77 +39,63 @@ export async function getConfig(
           'config.plexSessionMonitoring',
         )
       : undefined,
-    publicContentNotifications: config.publicContentNotifications
-      ? this.safeJsonParse(
-          config.publicContentNotifications,
-          {
-            enabled: false,
-            discordWebhookUrls: '',
-            discordWebhookUrlsMovies: '',
-            discordWebhookUrlsShows: '',
-            appriseUrls: '',
-            appriseUrlsMovies: '',
-            appriseUrlsShows: '',
-          },
-          'config.publicContentNotifications',
-        )
-      : {
-          enabled: false,
-          discordWebhookUrls: '',
-          discordWebhookUrlsMovies: '',
-          discordWebhookUrlsShows: '',
-          appriseUrls: '',
-          appriseUrlsMovies: '',
-          appriseUrlsShows: '',
+    publicContentNotifications: {
+      enabled: false,
+      discordWebhookUrls: '',
+      discordWebhookUrlsMovies: '',
+      discordWebhookUrlsShows: '',
+      appriseUrls: '',
+      appriseUrlsMovies: '',
+      appriseUrlsShows: '',
+      ...(config.publicContentNotifications
+        ? this.safeJsonParse(
+            config.publicContentNotifications,
+            {},
+            'config.publicContentNotifications',
+          )
+        : {}),
+    },
+    quotaSettings: (() => {
+      const parsed = config.quotaSettings
+        ? this.safeJsonParse<{
+            cleanup?: { enabled?: boolean; retentionDays?: number }
+            weeklyRolling?: { resetDays?: number }
+            monthly?: {
+              resetDay?: number
+              handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
+            }
+          }>(config.quotaSettings, {}, 'config.quotaSettings')
+        : {}
+      return {
+        cleanup: {
+          enabled: true,
+          retentionDays: 90,
+          ...(parsed.cleanup ?? {}),
         },
-    quotaSettings: config.quotaSettings
-      ? this.safeJsonParse(
-          config.quotaSettings,
-          {
-            cleanup: {
-              enabled: true,
-              retentionDays: 90,
-            },
-            weeklyRolling: {
-              resetDays: 7,
-            },
-            monthly: {
-              resetDay: 1,
-              handleMonthEnd: 'last-day' as const,
-            },
-          },
-          'config.quotaSettings',
-        )
-      : {
-          cleanup: {
-            enabled: true,
-            retentionDays: 90,
-          },
-          weeklyRolling: {
-            resetDays: 7,
-          },
-          monthly: {
-            resetDay: 1,
-            handleMonthEnd: 'last-day' as const,
-          },
+        weeklyRolling: {
+          resetDays: 7,
+          ...(parsed.weeklyRolling ?? {}),
         },
-    approvalExpiration: config.approvalExpiration
-      ? this.safeJsonParse(
-          config.approvalExpiration,
-          {
-            enabled: false,
-            defaultExpirationHours: 72,
-            expirationAction: 'expire' as const,
-            cleanupExpiredDays: 30,
-          },
-          'config.approvalExpiration',
-        )
-      : {
-          enabled: false,
-          defaultExpirationHours: 72,
-          expirationAction: 'expire' as const,
-          cleanupExpiredDays: 30,
+        monthly: {
+          resetDay: 1,
+          handleMonthEnd: 'last-day' as const,
+          ...(parsed.monthly ?? {}),
         },
+      }
+    })(),
+    approvalExpiration: {
+      enabled: false,
+      defaultExpirationHours: 72,
+      expirationAction: 'expire' as const,
+      cleanupExpiredDays: 30,
+      ...(config.approvalExpiration
+        ? this.safeJsonParse(
+            config.approvalExpiration,
+            {},
+            'config.approvalExpiration',
+          )
+        : {}),
+    },
     newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
     newUserDefaultRequiresApproval: Boolean(
       config.newUserDefaultRequiresApproval ?? false,
@@ -185,43 +171,45 @@ export async function getConfig(
     plexServerUrl: config.plexServerUrl || undefined,
     skipIfExistsOnPlex: Boolean(config.skipIfExistsOnPlex ?? false),
     // Plex Label Sync configuration - nested object following complex config pattern
-    plexLabelSync: config.plexLabelSync
-      ? this.safeJsonParse(
-          config.plexLabelSync,
-          {
-            enabled: false,
-            labelPrefix: 'pulsarr',
-            concurrencyLimit: 5,
-            cleanupOrphanedLabels: false,
-            removedLabelMode: 'remove' as const,
-            removedLabelPrefix: 'pulsarr:removed',
-            autoResetOnScheduledSync: false,
-            scheduleTime: undefined,
-            dayOfWeek: '*',
-            tagSync: {
-              enabled: false,
-              syncRadarrTags: true,
-              syncSonarrTags: true,
-            },
-          },
-          'config.plexLabelSync',
-        )
-      : {
+    plexLabelSync: (() => {
+      const parsed = config.plexLabelSync
+        ? this.safeJsonParse<{
+            enabled?: boolean
+            labelPrefix?: string
+            concurrencyLimit?: number
+            cleanupOrphanedLabels?: boolean
+            removedLabelMode?: 'remove' | 'keep' | 'special-label'
+            removedLabelPrefix?: string
+            autoResetOnScheduledSync?: boolean
+            scheduleTime?: string
+            dayOfWeek?: string
+            tagSync?: {
+              enabled?: boolean
+              syncRadarrTags?: boolean
+              syncSonarrTags?: boolean
+            }
+          }>(config.plexLabelSync, {}, 'config.plexLabelSync')
+        : {}
+      return {
+        enabled: false,
+        labelPrefix: 'pulsarr',
+        concurrencyLimit: 5,
+        cleanupOrphanedLabels: false,
+        removedLabelMode: 'remove' as const,
+        removedLabelPrefix: 'pulsarr:removed',
+        autoResetOnScheduledSync: false,
+        scheduleTime: undefined,
+        dayOfWeek: '*',
+        ...parsed,
+        // Handle nested tagSync object separately to preserve defaults
+        tagSync: {
           enabled: false,
-          labelPrefix: 'pulsarr',
-          concurrencyLimit: 5,
-          cleanupOrphanedLabels: false,
-          removedLabelMode: 'remove' as const,
-          removedLabelPrefix: 'pulsarr:removed',
-          autoResetOnScheduledSync: false,
-          scheduleTime: undefined,
-          dayOfWeek: '*',
-          tagSync: {
-            enabled: false,
-            syncRadarrTags: true,
-            syncSonarrTags: true,
-          },
+          syncRadarrTags: true,
+          syncSonarrTags: true,
+          ...(parsed.tagSync ?? {}),
         },
+      }
+    })(),
     // Tag configuration
     tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
     tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
