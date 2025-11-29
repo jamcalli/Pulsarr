@@ -527,6 +527,27 @@ export class WatchlistWorkflowService {
       )
 
       if (changesWithNewItems.length > 0) {
+        // Check instance health before routing - abort if ANY instance is unavailable
+        // This prevents incorrect routing decisions; items will be caught in next full reconciliation
+        const [sonarrHealth, radarrHealth] = await Promise.all([
+          this.sonarrManager.checkInstancesHealth(),
+          this.radarrManager.checkInstancesHealth(),
+        ])
+
+        if (
+          sonarrHealth.unavailable.length > 0 ||
+          radarrHealth.unavailable.length > 0
+        ) {
+          this.log.warn(
+            {
+              sonarrUnavailable: sonarrHealth.unavailable,
+              radarrUnavailable: radarrHealth.unavailable,
+            },
+            'Some instances unavailable, deferring ETag routing to next full reconciliation',
+          )
+          return
+        }
+
         this.log.info(
           {
             userCount: changesWithNewItems.length,
@@ -1291,14 +1312,12 @@ export class WatchlistWorkflowService {
       this.fastify.plexServerService.clearContentCacheForReconciliation()
 
       // Check health of all Sonarr/Radarr instances before proceeding
-      // If all instances are unavailable, abort to prevent false approval creation
+      // Abort if ANY instance is unavailable to prevent incorrect routing decisions
       const [sonarrHealth, radarrHealth] = await Promise.all([
         this.sonarrManager.checkInstancesHealth(),
         this.radarrManager.checkInstancesHealth(),
       ])
 
-      const totalAvailable =
-        sonarrHealth.available.length + radarrHealth.available.length
       const totalConfigured =
         sonarrHealth.available.length +
         sonarrHealth.unavailable.length +
@@ -1312,27 +1331,18 @@ export class WatchlistWorkflowService {
         return
       }
 
-      if (totalConfigured > 0 && totalAvailable === 0) {
-        this.log.error(
-          'All Radarr/Sonarr instances are unavailable, aborting reconciliation to prevent false approval creation',
-        )
-        return
-      }
-
-      // Warn if some instances are unavailable (partial data)
       if (
         sonarrHealth.unavailable.length > 0 ||
         radarrHealth.unavailable.length > 0
       ) {
-        this.log.warn(
+        this.log.error(
           {
-            sonarrAvailable: sonarrHealth.available.length,
-            sonarrUnavailable: sonarrHealth.unavailable.length,
-            radarrAvailable: radarrHealth.available.length,
-            radarrUnavailable: radarrHealth.unavailable.length,
+            sonarrUnavailable: sonarrHealth.unavailable,
+            radarrUnavailable: radarrHealth.unavailable,
           },
-          'Some instances unavailable during reconciliation - proceeding with available instances only',
+          'Some instances unavailable, aborting reconciliation to prevent incorrect routing',
         )
+        return
       }
 
       // Get all users to check their sync permissions
@@ -1731,15 +1741,33 @@ export class WatchlistWorkflowService {
       // ETag routing path: use single-item API lookup on target instances only
       const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
       if (tvdbId > 0) {
+        let anyChecked = false
         for (const instanceId of targetInstanceIds) {
           const result = await this.sonarrManager.seriesExistsByTvdbId(
             instanceId,
             tvdbId,
           )
+          // Skip unavailable instances, continue checking others
+          if (!result.checked) {
+            this.log.warn(
+              { error: result.error, instanceId },
+              `Sonarr instance ${instanceId} unavailable for ${tempItem.title}, skipping instance`,
+            )
+            continue
+          }
+          anyChecked = true
           if (result.found) {
             existsInTargetInstance = true
             break
           }
+        }
+        // If no instances were successfully checked, skip this item
+        if (!anyChecked) {
+          this.log.warn(
+            { title: tempItem.title, targetInstanceIds },
+            'No Sonarr instances available to check existence, skipping item',
+          )
+          return false
         }
       }
     }
@@ -1775,6 +1803,7 @@ export class WatchlistWorkflowService {
         tempItem.key,
         {
           userId: numericUserId,
+          userName,
           syncing: false,
         },
       )
@@ -1891,15 +1920,33 @@ export class WatchlistWorkflowService {
       // ETag routing path: use single-item API lookup on target instances only
       const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
       if (tmdbId > 0) {
+        let anyChecked = false
         for (const instanceId of targetInstanceIds) {
           const result = await this.radarrManager.movieExistsByTmdbId(
             instanceId,
             tmdbId,
           )
+          // Skip unavailable instances, continue checking others
+          if (!result.checked) {
+            this.log.warn(
+              { error: result.error, instanceId },
+              `Radarr instance ${instanceId} unavailable for ${tempItem.title}, skipping instance`,
+            )
+            continue
+          }
+          anyChecked = true
           if (result.found) {
             existsInTargetInstance = true
             break
           }
+        }
+        // If no instances were successfully checked, skip this item
+        if (!anyChecked) {
+          this.log.warn(
+            { title: tempItem.title, targetInstanceIds },
+            'No Radarr instances available to check existence, skipping item',
+          )
+          return false
         }
       }
     }
@@ -1935,6 +1982,7 @@ export class WatchlistWorkflowService {
         tempItem.key,
         {
           userId: numericUserId,
+          userName,
           syncing: false,
         },
       )
