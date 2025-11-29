@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     pool: 'forks',
+    exclude: ['**/node_modules/**', '**/tmp/**'],
     env: {
       NODE_ENV: 'test',
     },
