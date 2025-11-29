@@ -116,7 +116,7 @@ export const getFriends = async (
   }
 
   if (hasAnySuccess) {
-    log.info(
+    log.debug(
       `Friends fetched successfully. Got ${friendsSet.size} unique friends${hasApiErrors ? ' (with some API errors)' : ''}`,
     )
   } else {

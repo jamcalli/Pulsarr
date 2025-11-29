@@ -105,7 +105,10 @@ export class EtagPoller {
 
     // Primary user baseline
     await this.establishPrimaryBaseline(token, primaryUserId)
-    this.log.debug({ userId: primaryUserId }, 'Primary user ETag baseline established')
+    this.log.debug(
+      { userId: primaryUserId },
+      'Primary user ETag baseline established',
+    )
 
     // Friends baselines
     for (const user of friends) {
@@ -329,7 +332,8 @@ export class EtagPoller {
         return
       }
 
-      const itemsData = (await itemsResponse.json()) as GraphQLWatchlistPollResponse
+      const itemsData =
+        (await itemsResponse.json()) as GraphQLWatchlistPollResponse
       const items = this.parseGraphQLItems(itemsData)
 
       // Phase 2: Fetch 2 items to get the ETag for change detection
@@ -501,7 +505,10 @@ export class EtagPoller {
 
       if (!checkResponse.ok) {
         const errorMsg = `GraphQL check error: ${checkResponse.status}`
-        this.log.warn({ userId, username: friend.username, status: checkResponse.status }, errorMsg)
+        this.log.warn(
+          { userId, username: friend.username, status: checkResponse.status },
+          errorMsg,
+        )
         return { changed: false, userId, newItems: [], error: errorMsg }
       }
 
@@ -535,7 +542,10 @@ export class EtagPoller {
 
       if (!fullResponse.ok) {
         const errorMsg = `GraphQL fetch error: ${fullResponse.status}`
-        this.log.warn({ userId, username: friend.username, status: fullResponse.status }, errorMsg)
+        this.log.warn(
+          { userId, username: friend.username, status: fullResponse.status },
+          errorMsg,
+        )
         return { changed: false, userId, newItems: [], error: errorMsg }
       }
 
@@ -543,7 +553,10 @@ export class EtagPoller {
 
       if (data.errors?.length) {
         const errorMsg = `GraphQL errors: ${data.errors.map((e) => e.message).join(', ')}`
-        this.log.warn({ userId, username: friend.username, errors: data.errors }, errorMsg)
+        this.log.warn(
+          { userId, username: friend.username, errors: data.errors },
+          errorMsg,
+        )
         return { changed: false, userId, newItems: [], error: errorMsg }
       }
 
@@ -571,7 +584,10 @@ export class EtagPoller {
       return { changed: newItems.length > 0, userId, newItems }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      this.log.error({ error, userId, username: friend.username }, 'Error checking friend watchlist')
+      this.log.error(
+        { error, userId, username: friend.username },
+        'Error checking friend watchlist',
+      )
       return { changed: false, userId, newItems: [], error: errorMsg }
     }
   }
@@ -602,7 +618,9 @@ export class EtagPoller {
   /**
    * Parse items from GraphQL response
    */
-  private parseGraphQLItems(data: GraphQLWatchlistPollResponse): EtagPollItem[] {
+  private parseGraphQLItems(
+    data: GraphQLWatchlistPollResponse,
+  ): EtagPollItem[] {
     const nodes = data.data?.userV2?.watchlist?.nodes ?? []
     return nodes.map((node) => ({
       id: node.id,
