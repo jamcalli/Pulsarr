@@ -22,7 +22,7 @@ export {
 } from './enrichment/index.js'
 
 // ETag polling
-export { EtagPoller, type EtagUserInfo } from './etag/index.js'
+export { EtagPoller } from './etag/etag-poller.js'
 
 // Fetching layer
 export {

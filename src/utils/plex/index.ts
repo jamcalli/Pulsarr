@@ -24,10 +24,7 @@ export {
   toItemsSingle,
 } from '@services/plex-watchlist/enrichment/index.js'
 // ETag polling
-export {
-  EtagPoller,
-  type EtagUserInfo,
-} from '@services/plex-watchlist/etag/etag-poller.js'
+export { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
 // Fetching layer
 export { getFriends } from '@services/plex-watchlist/fetching/friends-api.js'
 export {
