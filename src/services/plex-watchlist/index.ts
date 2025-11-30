@@ -33,7 +33,12 @@ export {
   getPlexWatchlistUrls,
   getRssFromPlexToken,
 } from './fetching/index.js'
-
+// Notifications module
+export {
+  type NotificationDeps,
+  sendWatchlistNotifications,
+  type WatchlistItemNotification,
+} from './notifications/notification-sender.js'
 // Users module
 export {
   checkForRemovedFriends,
