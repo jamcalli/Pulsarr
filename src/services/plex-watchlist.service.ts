@@ -16,6 +16,9 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import pLimit from 'p-limit'
+import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import {
   fetchSelfWatchlist,
   fetchWatchlistFromRss,
@@ -24,10 +27,7 @@ import {
   getPlexWatchlistUrls,
   pingPlex,
   processWatchlistItems,
-} from '@utils/plex/index.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import pLimit from 'p-limit'
-import type { PlexLabelSyncService } from './plex-label-sync.service.js'
+} from './plex-watchlist/index.js'
 import {
   type NotificationDeps,
   sendWatchlistNotifications,

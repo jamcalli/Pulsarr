@@ -40,6 +40,7 @@ import type {
   RoutingContext,
 } from '@root/types/router.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import { EtagPoller, toItemsSingle } from '@services/plex-watchlist/index.js'
 import {
   extractTmdbId,
   extractTvdbId,
@@ -48,7 +49,6 @@ import {
   parseGuids,
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { EtagPoller, toItemsSingle } from '@utils/plex/index.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
