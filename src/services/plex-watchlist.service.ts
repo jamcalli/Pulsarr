@@ -33,6 +33,10 @@ import {
   sendWatchlistNotifications,
 } from './plex-watchlist/notifications/notification-sender.js'
 import {
+  categorizeItems,
+  type ItemCategorizerDeps,
+} from './plex-watchlist/sync/item-categorizer.js'
+import {
   checkForRemovedFriends,
   clearUserCanSyncCache,
   ensureFriendUsers,
@@ -74,6 +78,13 @@ export class PlexWatchlistService {
       db: this.dbService,
       logger: this.log,
       fastify: this.fastify,
+    }
+  }
+
+  /** Gets the dependencies object for item categorization operations */
+  private get categorizerDeps(): ItemCategorizerDeps {
+    return {
+      logger: this.log,
     }
   }
 
@@ -582,39 +593,21 @@ export class PlexWatchlistService {
     return existingItems
   }
 
+  /**
+   * Categorizes watchlist items into brand new items and existing items to link.
+   * When forceRefresh is enabled, treats all items as new for metadata re-fetching.
+   */
   private categorizeItems(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
     existingItems: WatchlistItem[],
     forceRefresh = false,
   ) {
-    const brandNewItems = new Map<Friend, Set<TokenWatchlistItem>>()
-    const existingItemsToLink = new Map<Friend, Set<WatchlistItem>>()
-
-    if (forceRefresh) {
-      // When force refresh is enabled, treat all items as brand new to trigger metadata re-fetching
-      this.log.debug(
-        'Force refresh enabled - treating all items as new for metadata refresh',
-      )
-      userWatchlistMap.forEach((items, user) => {
-        brandNewItems.set(user, items)
-      })
-    } else {
-      // Normal categorization logic
-      const existingItemsByKey = this.mapExistingItemsByKey(existingItems)
-
-      userWatchlistMap.forEach((items, user) => {
-        const { newItems, itemsToLink } = this.separateNewAndExistingItems(
-          items,
-          user,
-          existingItemsByKey,
-        )
-
-        if (newItems.size > 0) brandNewItems.set(user, newItems)
-        if (itemsToLink.size > 0) existingItemsToLink.set(user, itemsToLink)
-      })
-    }
-
-    return { brandNewItems, existingItemsToLink }
+    return categorizeItems(
+      userWatchlistMap,
+      existingItems,
+      this.categorizerDeps,
+      forceRefresh,
+    )
   }
 
   private async processAndSaveNewItems(
@@ -850,137 +843,6 @@ export class PlexWatchlistService {
         existingItemsToLink,
         processedItems,
       ),
-    }
-  }
-
-  private mapExistingItemsByKey(existingItems: WatchlistItem[]) {
-    this.log.debug(`Mapping ${existingItems.length} existing items by key`)
-
-    const map = new Map<string, Map<number, WatchlistItem>>()
-    let skippedCount = 0
-
-    for (const item of existingItems) {
-      if (!item.key || !item.user_id) {
-        skippedCount++
-        continue
-      }
-
-      let userMap = map.get(item.key)
-      if (!userMap) {
-        userMap = new Map<number, WatchlistItem>()
-        map.set(item.key, userMap)
-      }
-
-      userMap.set(item.user_id, item)
-    }
-
-    this.log.debug(
-      {
-        totalItems: existingItems.length,
-        skippedItems: skippedCount,
-        uniqueKeys: map.size,
-      },
-      `Created key map with ${map.size} unique keys`,
-    )
-
-    return map
-  }
-
-  private separateNewAndExistingItems(
-    items: Set<TokenWatchlistItem>,
-    user: Friend & { userId: number },
-    existingItemsByKey: Map<string, Map<number, WatchlistItem>>,
-  ) {
-    const newItems = new Set<TokenWatchlistItem>()
-    const itemsToLink = new Set<WatchlistItem>()
-
-    let newItemsCount = 0
-    let existingItemsCount = 0
-    let alreadyLinkedCount = 0
-    let toBeLinkedCount = 0
-
-    this.log.debug(
-      `Separating ${items.size} items for user ${user.username} (ID: ${user.userId})`,
-    )
-
-    for (const item of items) {
-      const lookupKey = item.key || item.id
-
-      if (!lookupKey) {
-        this.log.warn(
-          {
-            title: item.title,
-          },
-          `Item missing key/id for user ${user.username}`,
-        )
-        continue
-      }
-
-      const existingItemMap = existingItemsByKey.get(lookupKey)
-
-      if (!existingItemMap) {
-        newItems.add(item)
-        newItemsCount++
-      } else {
-        existingItemsCount++
-
-        if (existingItemMap.has(user.userId)) {
-          alreadyLinkedCount++
-        } else {
-          const templateItem = existingItemMap.values().next().value
-
-          if (templateItem?.title && templateItem?.type) {
-            itemsToLink.add(this.createWatchlistItem(user, item, templateItem))
-            toBeLinkedCount++
-          } else {
-            this.log.warn(
-              {
-                hasTitle: !!templateItem?.title,
-                hasType: !!templateItem?.type,
-              },
-              `Invalid template item for ${lookupKey}`,
-            )
-            newItems.add(item)
-            newItemsCount++
-          }
-        }
-      }
-    }
-
-    this.log.debug(
-      `Processed ${items.size} items for user ${user.username}: ${newItemsCount} new, ${toBeLinkedCount} to link`,
-    )
-
-    this.log.debug(
-      {
-        total: items.size,
-        newItems: newItemsCount,
-        existingInDb: existingItemsCount,
-        alreadyLinked: alreadyLinkedCount,
-        toBeLinked: toBeLinkedCount,
-      },
-      `Detailed separation results for ${user.username}:`,
-    )
-
-    return { newItems, itemsToLink }
-  }
-
-  private createWatchlistItem(
-    user: Friend & { userId: number },
-    item: TokenWatchlistItem,
-    templateItem: WatchlistItem,
-  ): WatchlistItem {
-    return {
-      user_id: user.userId,
-      title: templateItem.title,
-      key: item.id,
-      type: templateItem.type,
-      thumb: templateItem.thumb,
-      guids: parseGuids(templateItem.guids),
-      genres: templateItem.genres || [],
-      status: 'pending' as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }
   }
 

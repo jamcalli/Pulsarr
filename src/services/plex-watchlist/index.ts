@@ -39,6 +39,14 @@ export {
   sendWatchlistNotifications,
   type WatchlistItemNotification,
 } from './notifications/notification-sender.js'
+// Sync module
+export {
+  categorizeItems,
+  createWatchlistItem,
+  type ItemCategorizerDeps,
+  mapExistingItemsByKey,
+  separateNewAndExistingItems,
+} from './sync/item-categorizer.js'
 // Users module
 export {
   checkForRemovedFriends,
