@@ -11,14 +11,15 @@ import type {
   WatchlistGroup,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type { FastifyBaseLogger } from 'fastify'
 
 /**
  * Dependencies for watchlist sync operations
  */
 export interface WatchlistSyncDeps {
-  db: FastifyInstance['db']
+  db: DatabaseService
   logger: FastifyBaseLogger
 }
 
