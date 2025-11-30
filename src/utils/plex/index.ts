@@ -1,33 +1,41 @@
-// Public API exports for Plex integration functionality
+// Re-exports from new location for backward compatibility
+// TODO: Update all imports to use @services/plex-watchlist/ directly, then remove this file
 
-// Basic API client functions
-export { fetchPlexAvatar, pingPlex } from './api-client.js'
-// ETag-based change detection
-export { EtagPoller, type EtagUserInfo } from './etag-poller.js'
-// Friends API
-export { getFriends } from './friends-api.js'
-// Helper functions and types
+// API layer
+export {
+  fetchPlexAvatar,
+  pingPlex,
+} from '@services/plex-watchlist/api/client.js'
+export {
+  getWatchlist,
+  getWatchlistForUser,
+} from '@services/plex-watchlist/api/graphql.js'
 export {
   hasValidPlexTokens,
   isRateLimitError,
   PLEX_API_TIMEOUT_MS,
   type RateLimitError,
-} from './helpers.js'
-// Item processing
+} from '@services/plex-watchlist/api/helpers.js'
+export { PlexRateLimiter } from '@services/plex-watchlist/api/rate-limiter.js'
+// Enrichment/processing
 export {
   processWatchlistItems,
   toItemsBatch,
   toItemsSingle,
-} from './item-processor.js'
-// Rate limiter
-export { PlexRateLimiter } from './rate-limiter.js'
-// RSS functionality
+} from '@services/plex-watchlist/enrichment/index.js'
+// ETag polling
+export {
+  EtagPoller,
+  type EtagUserInfo,
+} from '@services/plex-watchlist/etag/etag-poller.js'
+// Fetching layer
+export { getFriends } from '@services/plex-watchlist/fetching/friends-api.js'
 export {
   fetchWatchlistFromRss,
   getPlexWatchlistUrls,
   getRssFromPlexToken,
-} from './rss.js'
-// Watchlist API
-export { getWatchlist, getWatchlistForUser } from './watchlist-api.js'
-// High-level watchlist fetching
-export { fetchSelfWatchlist, getOthersWatchlist } from './watchlist-fetcher.js'
+} from '@services/plex-watchlist/fetching/rss-fetcher.js'
+export {
+  fetchSelfWatchlist,
+  getOthersWatchlist,
+} from '@services/plex-watchlist/fetching/watchlist-fetcher.js'
