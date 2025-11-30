@@ -32,6 +32,7 @@ import {
   type NotificationDeps,
   sendWatchlistNotifications,
 } from './plex-watchlist/notifications/notification-sender.js'
+import { mapRssItemsToWatchlist } from './plex-watchlist/rss/rss-mapper.js'
 import {
   categorizeItems,
   type ItemCategorizerDeps,
@@ -1147,16 +1148,11 @@ export class PlexWatchlistService {
     }
   }
 
+  /**
+   * Maps RSS items to the watchlist display format.
+   */
   private mapRssItemsToWatchlist(items: Set<TemptRssWatchlistItem>) {
-    return Array.from(items).map((item) => ({
-      title: item.title,
-      plexKey: item.key,
-      type: item.type,
-      thumb: item.thumb || '',
-      guids: parseGuids(item.guids),
-      genres: parseGenres(item.genres),
-      status: 'pending' as const,
-    }))
+    return mapRssItemsToWatchlist(items)
   }
 
   async matchRssPendingItemsSelf(
