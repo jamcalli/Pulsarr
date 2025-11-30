@@ -29,9 +29,6 @@ import type {
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
-// Re-export EtagUserInfo for convenience
-export type { EtagUserInfo }
-
 /**
  * ETag-based watchlist change detector.
  *
