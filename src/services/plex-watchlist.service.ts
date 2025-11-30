@@ -36,6 +36,11 @@ import {
   processAndSaveNewItems,
 } from './plex-watchlist/orchestration/item-processor.js'
 import {
+  checkForRemovedItems,
+  handleLinkedItemsForLabelSync,
+  type RemovalHandlerDeps,
+} from './plex-watchlist/orchestration/removal-handler.js'
+import {
   buildResponse,
   extractKeysAndRelationships,
   getExistingItems,
@@ -112,10 +117,19 @@ export class PlexWatchlistService {
       db: this.dbService,
       logger: this.log,
       config: this.config,
-      progress: this.fastify.progress,
+      fastify: this.fastify,
       plexLabelSyncService: this.plexLabelSyncService,
-      handleLinkedItemsForLabelSync:
-        this.handleLinkedItemsForLabelSync.bind(this),
+      handleLinkedItemsForLabelSync: (linkItems) =>
+        handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
+    }
+  }
+
+  /** Gets the dependencies object for removal handler operations */
+  private get removalHandlerDeps(): RemovalHandlerDeps {
+    return {
+      db: this.dbService,
+      logger: this.log,
+      plexLabelSyncService: this.plexLabelSyncService,
     }
   }
 
@@ -272,8 +286,8 @@ export class PlexWatchlistService {
     await linkExistingItems(existingItemsToLink, {
       db: this.dbService,
       logger: this.log,
-      handleLinkedItemsForLabelSync:
-        this.handleLinkedItemsForLabelSync.bind(this),
+      handleLinkedItemsForLabelSync: (linkItems) =>
+        handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
 
     const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
@@ -304,7 +318,7 @@ export class PlexWatchlistService {
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
     )
 
-    await this.checkForRemovedItems(userWatchlistMap)
+    await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
 
     return buildResponse(
       userWatchlistMap,
@@ -504,8 +518,8 @@ export class PlexWatchlistService {
     await linkExistingItems(existingItemsToLink, {
       db: this.dbService,
       logger: this.log,
-      handleLinkedItemsForLabelSync:
-        this.handleLinkedItemsForLabelSync.bind(this),
+      handleLinkedItemsForLabelSync: (linkItems) =>
+        handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
 
     const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
@@ -529,7 +543,7 @@ export class PlexWatchlistService {
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
     )
 
-    await this.checkForRemovedItems(userWatchlistMap)
+    await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
 
     return buildResponse(
       userWatchlistMap,
@@ -756,184 +770,6 @@ export class PlexWatchlistService {
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   ): Promise<void> {
     return this.processRssPendingItems(userWatchlistMap, 'friends')
-  }
-
-  private async handleRemovedItems(
-    userId: number,
-    currentKeys: Set<string>,
-    fetchedKeys: Set<string>,
-  ): Promise<void> {
-    const removedKeys = Array.from(currentKeys).filter(
-      (key) => !fetchedKeys.has(key),
-    )
-
-    if (removedKeys.length > 0) {
-      this.log.debug(
-        `Detected ${removedKeys.length} removed items for user ${userId}`,
-      )
-
-      // Get the watchlist items that will be deleted for label cleanup
-      if (this.plexLabelSyncService) {
-        try {
-          const itemsToDelete =
-            await this.dbService.getWatchlistItemsByKeys(removedKeys)
-          // Filter to only items belonging to this user
-          const userItemsToDelete = itemsToDelete.filter(
-            (item) => item.user_id === userId,
-          )
-
-          if (userItemsToDelete.length > 0) {
-            const labelCleanupItems = userItemsToDelete.map((item) => ({
-              id: item.id, // Already typed correctly by getWatchlistItemsByKeys
-              title: item.title,
-              key: item.key,
-              user_id: item.user_id,
-              guids: parseGuids(item.guids), // Add GUID array
-              contentType: (item.type === 'show' ? 'show' : 'movie') as
-                | 'movie'
-                | 'show', // Add content type
-            }))
-            await this.plexLabelSyncService.cleanupLabelsForWatchlistItems(
-              labelCleanupItems,
-            )
-          }
-        } catch (error) {
-          const err = error instanceof Error ? error : new Error(String(error))
-          this.log.error(
-            {
-              error: err,
-              stack: err.stack,
-              userId,
-              removedKeys,
-            },
-            'Failed to cleanup labels for removed watchlist items:',
-          )
-          // Continue with deletion even if label cleanup fails
-        }
-      }
-
-      await this.dbService.deleteWatchlistItems(userId, removedKeys)
-    }
-  }
-
-  /**
-   * Handles items that were just linked to users by queuing them for label sync
-   */
-  private async handleLinkedItemsForLabelSync(
-    linkItems: WatchlistItem[],
-  ): Promise<void> {
-    if (!this.plexLabelSyncService || linkItems.length === 0) {
-      return
-    }
-
-    try {
-      // Get the database items with IDs after linking
-      const keys = linkItems.map((item) => item.key)
-
-      const dbItems = await this.dbService.getWatchlistItemsByKeys(keys)
-
-      // Create composite key index for O(1) lookups instead of O(n) Array.find
-      const byKeyUser = new Map<string, { id: number; title: string }>()
-      for (const item of dbItems) {
-        if (
-          item.key &&
-          typeof item.user_id === 'number' &&
-          typeof item.id === 'number'
-        ) {
-          byKeyUser.set(`${item.key}:${item.user_id}`, {
-            id: item.id,
-            title: item.title,
-          })
-        }
-      }
-
-      // Group by unique content key to avoid duplicate pending syncs
-      // This mimics the content-centric approach used in full sync
-      const contentMap = new Map<
-        string,
-        { title: string; watchlistIds: number[] }
-      >()
-      const userCounts = new Map<number, number>()
-
-      for (const linkItem of linkItems) {
-        // O(1) lookup using composite key instead of O(n) Array.find
-        const dbItem = byKeyUser.get(`${linkItem.key}:${linkItem.user_id}`)
-
-        if (dbItem?.id && linkItem.key && typeof dbItem.id === 'number') {
-          // Group by content key
-          if (!contentMap.has(linkItem.key)) {
-            contentMap.set(linkItem.key, {
-              title: linkItem.title,
-              watchlistIds: [],
-            })
-          }
-
-          const contentEntry = contentMap.get(linkItem.key)
-          if (contentEntry) {
-            contentEntry.watchlistIds.push(dbItem.id)
-          }
-
-          // Count per user for logging
-          const count = userCounts.get(linkItem.user_id) || 0
-          userCounts.set(linkItem.user_id, count + 1)
-        }
-      }
-
-      // Queue one pending sync per unique content (not per watchlist item)
-      // This ensures all users for the same content are processed together
-      let totalQueued = 0
-      for (const [_contentKey, content] of contentMap.entries()) {
-        // Queue using the first watchlist ID as representative
-        // The processing will find ALL users with this content when processing
-        await this.plexLabelSyncService.queuePendingLabelSyncByWatchlistId(
-          content.watchlistIds[0],
-          content.title,
-        )
-        totalQueued++
-      }
-
-      // Log per user
-      for (const [userId, count] of userCounts.entries()) {
-        this.log.debug(`Detected ${count} re-added items for user ${userId}`)
-      }
-
-      if (totalQueued > 0) {
-        this.log.debug(
-          `Queued ${totalQueued} unique content items for label synchronization (grouped from ${linkItems.length} re-added items)`,
-        )
-      }
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error))
-      this.log.error(
-        {
-          error: err,
-          stack: err.stack,
-          linkItemsCount: linkItems.length,
-          linkItemsSample: linkItems.slice(0, 3).map((item) => ({
-            title: item.title,
-            key: item.key,
-            user_id: item.user_id,
-          })),
-        },
-        'Failed to queue re-added items for label sync:',
-      )
-      throw error // Re-throw to see the full error chain
-    }
-  }
-
-  private async checkForRemovedItems(
-    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
-  ): Promise<void> {
-    for (const [user, items] of userWatchlistMap.entries()) {
-      const currentItems = await this.dbService.getAllWatchlistItemsForUser(
-        user.userId,
-      )
-
-      const currentKeys = new Set(currentItems.map((item) => item.key))
-      const fetchedKeys = new Set(Array.from(items).map((item) => item.id))
-
-      await this.handleRemovedItems(user.userId, currentKeys, fetchedKeys)
-    }
   }
 
   /**

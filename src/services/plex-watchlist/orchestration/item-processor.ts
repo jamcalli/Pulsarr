@@ -11,6 +11,7 @@ import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
+import type { DatabaseService } from '@services/database.service.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
@@ -21,10 +22,10 @@ import { processWatchlistItems } from '../index.js'
  * Dependencies for item processor operations
  */
 export interface ItemProcessorDeps {
-  db: FastifyInstance['db']
+  db: DatabaseService
   logger: FastifyBaseLogger
   config: Config
-  progress: FastifyInstance['progress']
+  fastify: FastifyInstance
   plexLabelSyncService?: PlexLabelSyncService
   handleLinkedItemsForLabelSync: (linkItems: WatchlistItem[]) => Promise<void>
 }
@@ -134,7 +135,7 @@ export async function processAndSaveNewItems(
   isMetadataRefresh: boolean,
   deps: ItemProcessorDeps,
 ): Promise<Map<Friend, Set<WatchlistItem>>> {
-  const { db, logger, config, progress, plexLabelSyncService } = deps
+  const { db, logger, config, fastify, plexLabelSyncService } = deps
 
   if (brandNewItems.size === 0) {
     return new Map<Friend, Set<WatchlistItem>>()
@@ -143,13 +144,13 @@ export async function processAndSaveNewItems(
   logger.debug(`Processing ${brandNewItems.size} new items`)
 
   const operationId = `process-${Date.now()}`
-  const emitProgress = progress.hasActiveConnections()
+  const emitProgress = fastify.progress.hasActiveConnections()
 
   // Use the passed parameter to determine the type
   const type = isSelfWatchlist ? 'self-watchlist' : 'others-watchlist'
 
   if (emitProgress) {
-    progress.emit({
+    fastify.progress.emit({
       operationId,
       type,
       phase: 'start',
@@ -164,7 +165,7 @@ export async function processAndSaveNewItems(
     brandNewItems,
     emitProgress
       ? {
-          progress,
+          progress: fastify.progress,
           operationId,
           type,
         }
@@ -179,7 +180,7 @@ export async function processAndSaveNewItems(
 
     if (itemsToInsert.length > 0) {
       if (emitProgress) {
-        progress.emit({
+        fastify.progress.emit({
           operationId,
           type,
           phase: 'saving',
@@ -260,7 +261,7 @@ export async function processAndSaveNewItems(
       //   - Reconciliation: Sent directly from processShowWithRouting()/processMovieWithRouting()
 
       if (emitProgress) {
-        progress.emit({
+        fastify.progress.emit({
           operationId,
           type,
           phase: 'complete',
