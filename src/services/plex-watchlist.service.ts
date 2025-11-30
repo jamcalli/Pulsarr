@@ -1,4 +1,3 @@
-import type { User } from '@root/types/config.types.js'
 import type {
   EtagUserInfo,
   Friend,
@@ -29,14 +28,17 @@ import {
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
+import {
+  checkForRemovedFriends,
+  clearUserCanSyncCache,
+  ensureFriendUsers,
+  ensureTokenUsers,
+  type FriendUsersDeps,
+  getUserCanSync,
+} from './plex-watchlist/users/index.js'
 
 export class PlexWatchlistService {
-  // Cache for user sync permissions to avoid repeated DB lookups
-  private userCanSyncCache = new Map<number, boolean>()
-  // In-flight promise map to prevent concurrent DB hits for the same user
-  private userCanSyncInFlight = new Map<number, Promise<boolean>>()
   /** Creates a fresh service logger that inherits current log level */
-
   private get log(): FastifyBaseLogger {
     return createServiceLogger(this.baseLog, 'PLEX_WATCHLIST')
   }
@@ -52,27 +54,13 @@ export class PlexWatchlistService {
     return this.fastify.config
   }
 
-  /**
-   * Creates default quota configurations for a newly created user using the quota service.
-   */
-  private async createDefaultQuotasForUser(userId: number): Promise<void> {
-    try {
-      const quotas = await this.fastify.quotaService.setupDefaultQuotas(userId)
-
-      const createdQuotas = []
-      if (quotas.movieQuota) createdQuotas.push('movie')
-      if (quotas.showQuota) createdQuotas.push('show')
-
-      if (createdQuotas.length > 0) {
-        this.log.debug(
-          `Created default quotas for user ${userId}: ${createdQuotas.join(', ')}`,
-        )
-      }
-    } catch (error) {
-      this.log.error(
-        { error, userId },
-        'Failed to create default quotas for user',
-      )
+  /** Gets the common dependencies object for user-related operations */
+  private get userDeps(): FriendUsersDeps {
+    return {
+      config: this.config,
+      db: this.dbService,
+      logger: this.log,
+      fastify: this.fastify,
     }
   }
 
@@ -83,32 +71,7 @@ export class PlexWatchlistService {
    * @returns Promise resolving to boolean indicating if user can sync
    */
   private async getUserCanSync(userId: number): Promise<boolean> {
-    const cached = this.userCanSyncCache.get(userId)
-    if (cached !== undefined) return cached
-
-    const inflight = this.userCanSyncInFlight.get(userId)
-    if (inflight) return inflight
-
-    const p = (async () => {
-      try {
-        const dbUser = await this.dbService.getUser(userId)
-        const canSync = dbUser?.can_sync ?? false
-        this.userCanSyncCache.set(userId, canSync)
-        return canSync
-      } catch (error) {
-        this.log.error(
-          { error, userId },
-          'Failed to fetch user can_sync; treating as disabled',
-        )
-        this.userCanSyncCache.set(userId, false)
-        return false
-      } finally {
-        this.userCanSyncInFlight.delete(userId)
-      }
-    })()
-
-    this.userCanSyncInFlight.set(userId, p)
-    return p
+    return getUserCanSync(userId, { db: this.dbService, logger: this.log })
   }
 
   /**
@@ -597,208 +560,26 @@ export class PlexWatchlistService {
   }
 
   /**
-   * Ensures users exist for each Plex token in the configuration
+   * Ensures users exist for each Plex token in the configuration.
+   * Fetches actual usernames from Plex API, creates new users if needed,
+   * and marks the first token as the primary user.
    *
-   * Fetches the actual username from the Plex API for each token,
-   * creates new users if needed, and updates existing users.
-   * The first token is marked as the primary token user.
-   *
-   * @returns Promise resolving to a map of Plex usernames to user IDs
+   * @returns Map of Plex usernames to user IDs
    */
   private async ensureTokenUsers(): Promise<Map<string, number>> {
-    const userMap = new Map<string, number>()
-    await Promise.all(
-      this.config.plexTokens.map(async (token, index) => {
-        // Fetch the actual Plex username for this token
-        let plexUsername = `token${index + 1}` // Fallback name
-        const isPrimary = index === 0 // First token is primary
-
-        // Create AbortController for timeout
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 10_000) // 10s timeout
-
-        try {
-          // Fetch the actual username from Plex API with timeout handling
-          const response = await fetch('https://plex.tv/api/v2/user', {
-            headers: {
-              'X-Plex-Token': token,
-              Accept: 'application/json',
-            },
-            signal: controller.signal,
-          })
-
-          if (response.ok) {
-            const userData = (await response.json()) as { username: string }
-            if (userData?.username) {
-              plexUsername = userData.username
-              this.log.debug(
-                `Using actual Plex username: ${plexUsername} for token${index + 1}`,
-              )
-            }
-          }
-        } catch (error) {
-          // Handle timeout errors specifically
-          if (error instanceof Error && error.name === 'AbortError') {
-            this.log.warn(
-              `Timeout fetching Plex username for token${index + 1} after 10s, using fallback name`,
-            )
-          } else {
-            this.log.error(
-              { error, tokenIndex: index + 1 },
-              'Failed to fetch Plex username for token',
-            )
-          }
-          // Continue with the fallback name
-        } finally {
-          // Always clear the timeout to prevent memory leaks
-          clearTimeout(timeoutId)
-        }
-
-        // Variable to hold our user
-        let user: User | undefined
-
-        // If this is the primary token, try to get the existing primary user
-        if (isPrimary) {
-          user = await this.dbService.getPrimaryUser()
-        }
-
-        if (!user) {
-          // Check if a user with this name already exists
-          user = await this.dbService.getUser(plexUsername)
-        }
-
-        if (user) {
-          // Update existing user if needed
-          if (
-            user.is_primary_token !== isPrimary ||
-            user.name !== plexUsername
-          ) {
-            // If this user should be primary, update primary status first
-            if (isPrimary && !user.is_primary_token) {
-              // Use the database service method to set primary user
-              await this.dbService.setPrimaryUser(user.id)
-            }
-
-            // Update other user details if needed
-            await this.dbService.updateUser(user.id, {
-              name: plexUsername,
-              is_primary_token: isPrimary,
-            })
-
-            // Reload the user to get updated data
-            user = await this.dbService.getUser(plexUsername)
-          }
-        } else {
-          // If we're creating a primary user, ensure no other primaries exist
-          if (isPrimary) {
-            // Use the database service method to handle primary user setting
-            // We'll create the user first, then set it as primary
-            user = await this.dbService.createUser({
-              name: plexUsername,
-              apprise: null,
-              alias: null,
-              discord_id: null,
-              notify_apprise: false,
-              notify_discord: false,
-              notify_tautulli: false,
-              tautulli_notifier_id: null,
-              can_sync: this.config.newUserDefaultCanSync ?? true,
-              requires_approval:
-                this.config.newUserDefaultRequiresApproval ?? false,
-              is_primary_token: false, // Initially false, will set to true next
-            })
-
-            // Now set as primary using the database service method
-            await this.dbService.setPrimaryUser(user.id)
-
-            // Create default quotas for the new user
-            await this.createDefaultQuotasForUser(user.id)
-
-            // Reload to get updated data
-            user = await this.dbService.getUser(user.id)
-          } else {
-            // Create regular non-primary user
-            user = await this.dbService.createUser({
-              name: plexUsername,
-              apprise: null,
-              alias: null,
-              discord_id: null,
-              notify_apprise: false,
-              notify_discord: false,
-              notify_tautulli: false,
-              tautulli_notifier_id: null,
-              can_sync: this.config.newUserDefaultCanSync ?? true,
-              requires_approval:
-                this.config.newUserDefaultRequiresApproval ?? false,
-              is_primary_token: false,
-            })
-
-            // Create default quotas for the new user
-            await this.createDefaultQuotasForUser(user.id)
-          }
-        }
-
-        // Safety check for user ID
-        if (!user || typeof user.id !== 'number') {
-          throw new Error(`Failed to create or retrieve user ${plexUsername}`)
-        }
-
-        userMap.set(plexUsername, user.id)
-        this.log.debug(`Mapped user ${plexUsername} to ID ${user.id}`)
-      }),
-    )
-
-    this.log.debug(`Ensured users for ${this.config.plexTokens.length} tokens`)
-    return userMap
+    return ensureTokenUsers(this.userDeps)
   }
 
+  /**
+   * Ensures friend users exist in the database and tracks newly added friends.
+   *
+   * @param friends - Set of friends from Plex API
+   * @returns Map of watchlist IDs to user IDs, plus list of newly added users
+   */
   private async ensureFriendUsers(
     friends: Set<[Friend, string]>,
   ): Promise<{ userMap: Map<string, number>; added: EtagUserInfo[] }> {
-    const userMap = new Map<string, number>()
-    const added: EtagUserInfo[] = []
-
-    await Promise.all(
-      Array.from(friends).map(async ([friend]) => {
-        let user = await this.dbService.getUser(friend.username)
-        const isNewUser = !user
-
-        if (!user) {
-          user = await this.dbService.createUser({
-            name: friend.username,
-            apprise: null,
-            alias: null,
-            discord_id: null,
-            notify_apprise: false,
-            notify_discord: false,
-            notify_tautulli: false,
-            tautulli_notifier_id: null,
-            can_sync: this.config.newUserDefaultCanSync ?? true,
-            requires_approval:
-              this.config.newUserDefaultRequiresApproval ?? false,
-            is_primary_token: false,
-          })
-
-          // Create default quotas for the new user
-          await this.createDefaultQuotasForUser(user.id)
-        }
-
-        if (!user.id) throw new Error(`No ID for user ${friend.username}`)
-        userMap.set(friend.watchlistId, user.id)
-
-        // Track newly added users for ETag baseline establishment
-        if (isNewUser) {
-          added.push({
-            userId: user.id,
-            username: friend.username,
-            watchlistId: friend.watchlistId,
-            isPrimary: false,
-          })
-        }
-      }),
-    )
-
-    return { userMap, added }
+    return ensureFriendUsers(friends, this.userDeps)
   }
 
   private extractKeysAndRelationships(
@@ -1793,93 +1574,16 @@ export class PlexWatchlistService {
   }
 
   /**
-   * Checks for and removes users (friends) who are no longer in the current friends list.
-   *
-   * This method compares all existing users in the database (excluding the primary token user)
-   * with the current friends list from Plex. Any users not found in the current friends list
-   * are deleted from the database, which will cascade delete their watchlist items.
+   * Checks for and removes users who are no longer in the current friends list.
+   * Users not found in the friends list are deleted, cascading to their watchlist items.
    *
    * @param currentFriends - Set of current friends from Plex API
+   * @returns List of removed users for ETag cache invalidation
    */
   private async checkForRemovedFriends(
     currentFriends: Set<[Friend, string]>,
   ): Promise<EtagUserInfo[]> {
-    const removed: EtagUserInfo[] = []
-
-    try {
-      // Get all users from database
-      const allUsers = await this.dbService.getAllUsers()
-
-      // Get the primary user to exclude from cleanup
-      const primaryUser = await this.dbService.getPrimaryUser()
-
-      // Create a set of current friend usernames for O(1) lookup (case-insensitive)
-      const currentFriendUsernames = new Set(
-        Array.from(currentFriends).map(([friend]) =>
-          friend.username.toLowerCase(),
-        ),
-      )
-
-      // Find users who are no longer friends (excluding primary user)
-      const usersToDelete = allUsers.filter((user) => {
-        // Never delete the primary user
-        if (primaryUser && user.id === primaryUser.id) {
-          return false
-        }
-
-        // Delete users who are not in the current friends list (case-insensitive comparison)
-        return !currentFriendUsernames.has(user.name.toLowerCase())
-      })
-
-      if (usersToDelete.length > 0) {
-        this.log.info(
-          `Found ${usersToDelete.length} users who are no longer friends, removing them from database`,
-        )
-
-        // Delete users (this will cascade delete their watchlist items)
-        const userIds = usersToDelete.map((user) => user.id)
-        const result = await this.dbService.deleteUsers(userIds)
-
-        this.log.info(
-          `Successfully removed ${result.deletedCount} former friends from database`,
-        )
-
-        // Log details of removed users for transparency
-        const successfullyDeleted = usersToDelete.filter(
-          (user) => !result.failedIds.includes(user.id),
-        )
-
-        for (const user of successfullyDeleted) {
-          this.log.debug(`Removed former friend: ${user.name} (ID: ${user.id})`)
-          // Track removed users for ETag cache invalidation
-          removed.push({
-            userId: user.id,
-            username: user.name,
-            isPrimary: false,
-          })
-        }
-
-        // Log any failures
-        if (result.failedIds.length > 0) {
-          const failedUsers = usersToDelete.filter((user) =>
-            result.failedIds.includes(user.id),
-          )
-          this.log.warn(
-            `Failed to remove ${result.failedIds.length} former friends: ${failedUsers.map((u) => u.name).join(', ')}`,
-          )
-        }
-      } else {
-        this.log.debug('No removed friends detected, database is up to date')
-      }
-    } catch (error) {
-      this.log.error(
-        { error },
-        'Error checking for and removing former friends:',
-      )
-      // Don't throw - this is cleanup logic and shouldn't break the main flow
-    }
-
-    return removed
+    return checkForRemovedFriends(currentFriends, this.userDeps)
   }
 
   /**
@@ -1941,7 +1645,7 @@ export class PlexWatchlistService {
     source: 'self' | 'friends',
   ): Promise<void> {
     // Clear user sync cache for fresh permissions per operation
-    this.userCanSyncCache.clear()
+    clearUserCanSyncCache()
 
     // Prefetch can_sync for users to avoid repeated lookups during RSS matching
     const enabledUserIds = new Set<number>()
