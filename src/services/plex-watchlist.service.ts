@@ -17,7 +17,6 @@ import {
 } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import {
   fetchSelfWatchlist,
@@ -26,12 +25,16 @@ import {
   getOthersWatchlist,
   getPlexWatchlistUrls,
   pingPlex,
-  processWatchlistItems,
 } from './plex-watchlist/index.js'
 import {
   type NotificationDeps,
   sendWatchlistNotifications,
 } from './plex-watchlist/notifications/notification-sender.js'
+import {
+  type ItemProcessorDeps,
+  linkExistingItems,
+  processAndSaveNewItems,
+} from './plex-watchlist/orchestration/item-processor.js'
 import {
   buildResponse,
   extractKeysAndRelationships,
@@ -100,6 +103,19 @@ export class PlexWatchlistService {
     return {
       db: this.dbService,
       logger: this.log,
+    }
+  }
+
+  /** Gets the dependencies object for item processor operations */
+  private get itemProcessorDeps(): ItemProcessorDeps {
+    return {
+      db: this.dbService,
+      logger: this.log,
+      config: this.config,
+      progress: this.fastify.progress,
+      plexLabelSyncService: this.plexLabelSyncService,
+      handleLinkedItemsForLabelSync:
+        this.handleLinkedItemsForLabelSync.bind(this),
     }
   }
 
@@ -247,12 +263,18 @@ export class PlexWatchlistService {
       forceRefresh,
     )
 
-    const processedItems = await this.processAndSaveNewItems(
+    const processedItems = await processAndSaveNewItems(
       brandNewItems,
       true,
       forceRefresh,
+      this.itemProcessorDeps,
     )
-    await this.linkExistingItems(existingItemsToLink)
+    await linkExistingItems(existingItemsToLink, {
+      db: this.dbService,
+      logger: this.log,
+      handleLinkedItemsForLabelSync:
+        this.handleLinkedItemsForLabelSync.bind(this),
+    })
 
     const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
 
@@ -473,12 +495,18 @@ export class PlexWatchlistService {
       forceRefresh,
     )
 
-    const processedItems = await this.processAndSaveNewItems(
+    const processedItems = await processAndSaveNewItems(
       brandNewItems,
       false,
       forceRefresh,
+      this.itemProcessorDeps,
     )
-    await this.linkExistingItems(existingItemsToLink)
+    await linkExistingItems(existingItemsToLink, {
+      db: this.dbService,
+      logger: this.log,
+      handleLinkedItemsForLabelSync:
+        this.handleLinkedItemsForLabelSync.bind(this),
+    })
 
     const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
 
@@ -549,283 +577,6 @@ export class PlexWatchlistService {
       this.categorizerDeps,
       forceRefresh,
     )
-  }
-
-  private async processAndSaveNewItems(
-    brandNewItems: Map<Friend, Set<TokenWatchlistItem>>,
-    isSelfWatchlist = false,
-    isMetadataRefresh = false,
-  ): Promise<Map<Friend, Set<WatchlistItem>>> {
-    if (brandNewItems.size === 0) {
-      return new Map<Friend, Set<WatchlistItem>>()
-    }
-
-    this.log.debug(`Processing ${brandNewItems.size} new items`)
-
-    const operationId = `process-${Date.now()}`
-    const emitProgress = this.fastify.progress.hasActiveConnections()
-
-    // Use the passed parameter to determine the type
-    const type = isSelfWatchlist ? 'self-watchlist' : 'others-watchlist'
-
-    if (emitProgress) {
-      this.fastify.progress.emit({
-        operationId,
-        type,
-        phase: 'start',
-        progress: 0,
-        message: `Starting ${isSelfWatchlist ? 'self' : 'others'} watchlist processing`,
-      })
-    }
-
-    const processedItems = await processWatchlistItems(
-      this.config,
-      this.log,
-      brandNewItems,
-      emitProgress
-        ? {
-            progress: this.fastify.progress,
-            operationId,
-            type,
-          }
-        : undefined,
-    )
-
-    if (processedItems instanceof Map) {
-      const itemsToInsert = await this.prepareItemsForInsertion(processedItems)
-
-      if (itemsToInsert.length > 0) {
-        if (emitProgress) {
-          this.fastify.progress.emit({
-            operationId,
-            type,
-            phase: 'saving',
-            progress: 95,
-            message: `Saving ${itemsToInsert.length} items to database`,
-          })
-        }
-
-        const insertedResults = await this.dbService.createWatchlistItems(
-          itemsToInsert,
-          isMetadataRefresh
-            ? { onConflict: 'merge' }
-            : { onConflict: 'ignore' },
-        )
-        await this.dbService.syncGenresFromWatchlist()
-
-        // Queue newly inserted items for immediate Plex labeling if enabled
-        if (
-          this.plexLabelSyncService &&
-          this.config.plexLabelSync?.enabled &&
-          insertedResults &&
-          insertedResults.length > 0
-        ) {
-          try {
-            this.log.debug(
-              `Syncing immediate Plex labeling with tag fetching for ${insertedResults.length} newly added items`,
-            )
-
-            // Create a map of key -> item for efficient lookup
-            const itemMap = new Map(
-              itemsToInsert.map((item) => [item.key, item]),
-            )
-
-            // Process inserted items with bounded concurrency to avoid overwhelming *arr services
-            const concurrencyLimit =
-              this.config.plexLabelSync?.concurrencyLimit || 5
-            const limit = pLimit(concurrencyLimit)
-
-            const syncResults = await Promise.allSettled(
-              insertedResults.map(({ id, key }) =>
-                limit(async () => {
-                  const originalItem = itemMap.get(key)
-                  if (!originalItem || !this.plexLabelSyncService) {
-                    return false
-                  }
-
-                  return await this.plexLabelSyncService.syncLabelForNewWatchlistItem(
-                    id,
-                    originalItem.title,
-                    true, // Enable tag fetching
-                  )
-                }),
-              ),
-            )
-
-            // Log any failures
-            const failed = syncResults
-              .filter((result) => result.status === 'rejected')
-              .map((result) => (result as PromiseRejectedResult).reason)
-
-            if (failed.length > 0) {
-              this.log.warn(
-                {
-                  failures: failed,
-                },
-                `${failed.length} of ${insertedResults.length} Plex label sync operations failed`,
-              )
-            }
-          } catch (error) {
-            this.log.warn(
-              { error },
-              'Failed to sync immediate Plex labeling for newly inserted items',
-            )
-          }
-        }
-
-        this.log.debug(`Processed ${itemsToInsert.length} new items`)
-
-        // REMOVED: Old notification behavior that sent "Added by X" notifications
-        //          regardless of whether content was actually routed.
-        // New behavior: Notifications only sent after successful routing:
-        //   - RSS immediate: Checked via pendingItem.routed flag in processRssPendingItems()
-        //   - Reconciliation: Sent directly from processShowWithRouting()/processMovieWithRouting()
-
-        if (emitProgress) {
-          this.fastify.progress.emit({
-            operationId,
-            type,
-            phase: 'complete',
-            progress: 100,
-            message: 'All items processed and saved',
-          })
-        }
-      }
-
-      return processedItems
-    }
-
-    throw new Error(
-      'Expected Map<Friend, Set<WatchlistItem>> from processWatchlistItems',
-    )
-  }
-
-  // Old behavior: Sent "Added by X" notifications as soon as items were detected,
-  //               regardless of routing outcome or existing content status.
-  // New behavior: Notifications only sent when content is actually routed:
-  //   - RSS immediate path: Checked via pendingItem.routed flag in processRssPendingItems()
-  //   - Reconciliation path: Sent directly from processShowWithRouting()/processMovieWithRouting()
-  //     when routedInstances.length > 0
-  // This function was removed as part of the route-only notifications refactor.
-
-  private async linkExistingItems(
-    existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
-  ): Promise<void> {
-    if (existingItemsToLink.size === 0) {
-      this.log.debug('No existing items to link')
-      return
-    }
-
-    const linkItems: WatchlistItem[] = []
-    const userCounts: Record<string, number> = {}
-
-    for (const [user, items] of existingItemsToLink.entries()) {
-      const itemArray = Array.from(items)
-      linkItems.push(...itemArray)
-      userCounts[user.username] = itemArray.length
-    }
-
-    if (linkItems.length === 0) {
-      this.log.debug('No items to link after filtering')
-      return
-    }
-
-    this.log.debug(
-      `Linking ${linkItems.length} existing items to ${existingItemsToLink.size} users`,
-    )
-
-    this.log.debug(
-      {
-        userCounts,
-        sample: linkItems.slice(0, 3).map((item) => ({
-          title: item.title,
-          key: item.key,
-          userId: item.user_id,
-        })),
-      },
-      'Linking details:',
-    )
-
-    try {
-      await this.dbService.createWatchlistItems(linkItems, {
-        onConflict: 'merge',
-      })
-
-      await this.dbService.syncGenresFromWatchlist()
-
-      this.log.debug(
-        `Successfully linked ${linkItems.length} existing items to new users`,
-      )
-
-      // Queue re-added items for label synchronization
-      await this.handleLinkedItemsForLabelSync(linkItems)
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error))
-      this.log.error({ error: err }, 'Error linking existing items')
-      throw error
-    }
-  }
-
-  private async prepareItemsForInsertion(
-    processedItems: Map<Friend & { userId: number }, Set<WatchlistItem>>,
-  ) {
-    // Get all user IDs from the processedItems
-    const userIds = Array.from(processedItems.keys()).map((user) => user.userId)
-
-    // Fetch all users in one batch to get their sync permissions
-    const users = await Promise.all(
-      userIds.map((id) => {
-        // Ensure we're always passing a simple number, not an object
-        const numericId =
-          typeof id === 'object' && id !== null
-            ? 'id' in id
-              ? (id as { id: number }).id
-              : Number(id)
-            : Number(id)
-        return this.dbService.getUser(numericId)
-      }),
-    )
-
-    // Create a map of user ID to their can_sync permission
-    const userSyncPermissions = new Map<number, boolean>()
-    users.forEach((user, index) => {
-      if (user) {
-        userSyncPermissions.set(userIds[index], user.can_sync)
-      }
-    })
-
-    return Array.from(processedItems.entries()).flatMap(([user, items]) => {
-      // Make sure we have a numeric user ID
-      const numericUserId =
-        typeof user.userId === 'object' && user.userId !== null
-          ? 'id' in user.userId
-            ? (user.userId as { id: number }).id
-            : Number(user.userId)
-          : Number(user.userId)
-
-      // During initial sync, assume syncing is enabled if user not found
-      const canSync = userSyncPermissions.get(numericUserId) !== false
-
-      if (!canSync) {
-        this.log.debug(
-          `Skipping ${items.size} items for user ${user.username} (ID: ${numericUserId}) who has sync disabled`,
-        )
-        return []
-      }
-
-      return Array.from(items).map((item) => ({
-        user_id: numericUserId,
-        title: item.title,
-        key: item.key,
-        thumb: item.thumb,
-        type: item.type,
-        guids: parseGuids(item.guids),
-        genres: item.genres || [],
-        status: 'pending' as const,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }))
-    })
   }
 
   async processRssWatchlists(): Promise<RssWatchlistResults> {
