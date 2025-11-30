@@ -4,7 +4,7 @@ import {
   type MeResponse,
   MeResponseSchema,
 } from '@schemas/users/me.schema.js'
-import { fetchPlexAvatar } from '@utils/plex/index.js'
+import { fetchPlexAvatar } from '@services/plex-watchlist/index.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 
