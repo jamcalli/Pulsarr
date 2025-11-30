@@ -13,6 +13,7 @@ export {
   pingPlex,
   type RateLimitError,
 } from './api/index.js'
+
 // Enrichment/processing
 export {
   processWatchlistItems,
@@ -22,6 +23,7 @@ export {
 
 // ETag polling
 export { EtagPoller, type EtagUserInfo } from './etag/index.js'
+
 // Fetching layer
 export {
   fetchSelfWatchlist,
@@ -31,3 +33,17 @@ export {
   getPlexWatchlistUrls,
   getRssFromPlexToken,
 } from './fetching/index.js'
+
+// Users module
+export {
+  checkForRemovedFriends,
+  clearUserCanSyncCache,
+  createDefaultQuotasForUser,
+  ensureFriendUsers,
+  ensureTokenUsers,
+  type FriendUsersDeps,
+  getPermissionCacheSize,
+  getUserCanSync,
+  type PermissionsDeps,
+  type TokenUsersDeps,
+} from './users/index.js'
