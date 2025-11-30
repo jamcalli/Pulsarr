@@ -29,6 +29,10 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
 import {
+  type NotificationDeps,
+  sendWatchlistNotifications,
+} from './plex-watchlist/notifications/notification-sender.js'
+import {
   checkForRemovedFriends,
   clearUserCanSyncCache,
   ensureFriendUsers,
@@ -58,6 +62,15 @@ export class PlexWatchlistService {
   private get userDeps(): FriendUsersDeps {
     return {
       config: this.config,
+      db: this.dbService,
+      logger: this.log,
+      fastify: this.fastify,
+    }
+  }
+
+  /** Gets the dependencies object for notification operations */
+  private get notificationDeps(): NotificationDeps {
+    return {
       db: this.dbService,
       logger: this.log,
       fastify: this.fastify,
@@ -109,9 +122,10 @@ export class PlexWatchlistService {
   }
 
   /**
-   * Sends watchlist notifications to a user
+   * Sends watchlist notifications to a user via Discord and Apprise.
+   * Records the notification in the database if any notification method succeeds.
    *
-   * @param user - User to notify
+   * @param user - User to notify (must include userId)
    * @param item - Watchlist item details
    * @returns Promise resolving to boolean indicating if any notifications were sent
    */
@@ -124,107 +138,7 @@ export class PlexWatchlistService {
       thumb?: string
     },
   ): Promise<boolean> {
-    // Check if user has sync enabled before sending any notifications
-    const canSync = await this.getUserCanSync(user.userId)
-    if (!canSync) {
-      const name = user.username ?? 'Unknown User'
-      this.log.debug(
-        { userId: user.userId },
-        `Skipping notification for user ${name} (ID: ${user.userId}) - sync disabled`,
-      )
-      return false
-    }
-
-    const username = user.username || 'Unknown User'
-    let discordSent = false
-    let appriseSent = false
-
-    // Send Discord notification (simplified without discord_id check)
-    try {
-      // Runtime type guard to ensure valid Discord type (case-insensitive)
-      const t = typeof item.type === 'string' ? item.type.toLowerCase() : ''
-      const discordType: 'movie' | 'show' =
-        t === 'movie' || t === 'show' ? (t as 'movie' | 'show') : 'movie'
-
-      discordSent = await this.fastify.discord.sendMediaNotification({
-        username,
-        title: item.title,
-        type: discordType,
-        posterUrl: item.thumb,
-      })
-
-      this.log.debug(
-        { success: discordSent },
-        `Notified Discord admin endpoints that ${username} added "${item.title}"`,
-      )
-    } catch (error) {
-      this.log.error(
-        {
-          error,
-          username,
-          title: item.title,
-          type: item.type,
-          userId: user.userId,
-        },
-        'Error sending Discord webhook notification',
-      )
-    }
-
-    // Send Apprise notification
-    if (this.fastify.apprise?.isEnabled()) {
-      try {
-        appriseSent =
-          await this.fastify.apprise.sendWatchlistAdditionNotification({
-            title: item.title,
-            type:
-              typeof item.type === 'string'
-                ? item.type.toLowerCase()
-                : 'unknown',
-            addedBy: {
-              name: username,
-            },
-            posterUrl: item.thumb,
-          })
-
-        this.log.debug(
-          { success: appriseSent },
-          `Notified Apprise admin endpoints that ${username} added "${item.title}"`,
-        )
-      } catch (error) {
-        this.log.error(
-          {
-            error,
-            username,
-            title: item.title,
-            type: item.type,
-            userId: user.userId,
-          },
-          'Error sending Apprise notification',
-        )
-      }
-    }
-
-    // Record notification if either method succeeded
-    if (discordSent || appriseSent) {
-      const itemId =
-        typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
-
-      await this.dbService.createNotificationRecord({
-        watchlist_item_id:
-          itemId !== undefined && !Number.isNaN(itemId) ? itemId : null,
-        user_id: user.userId,
-        type: 'watchlist_add',
-        title: item.title,
-        message: `New ${item.type} added to watchlist`,
-        sent_to_discord: discordSent,
-        sent_to_apprise: appriseSent,
-        sent_to_webhook: true,
-      })
-
-      return true
-    }
-
-    return false
+    return sendWatchlistNotifications(user, item, this.notificationDeps)
   }
 
   async pingPlex(): Promise<boolean> {
