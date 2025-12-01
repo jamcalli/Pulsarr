@@ -346,10 +346,7 @@ describe('plex/rss', () => {
       server.use(
         http.get('https://rss.plex.tv/feed/watchlist/abc', ({ request }) => {
           const url = new URL(request.url)
-          if (
-            url.searchParams.get('format') === 'json' &&
-            url.searchParams.has('cache_buster')
-          ) {
+          if (url.searchParams.get('format') === 'json') {
             return HttpResponse.json(mockRssResponse)
           }
           return new HttpResponse(null, { status: 400 })
@@ -664,7 +661,7 @@ describe('plex/rss', () => {
       expect(result.size).toBe(0)
     })
 
-    it('should add cache buster to URL', async () => {
+    it('should add format=json to URL', async () => {
       let capturedUrl: URL | undefined
 
       server.use(
@@ -685,7 +682,6 @@ describe('plex/rss', () => {
         mockLogger,
       )
 
-      expect(capturedUrl?.searchParams.has('cache_buster')).toBe(true)
       expect(capturedUrl?.searchParams.get('format')).toBe('json')
     })
 

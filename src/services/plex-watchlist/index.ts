@@ -40,7 +40,7 @@ export {
   type WatchlistItemNotification,
 } from './notifications/notification-sender.js'
 // RSS module
-export { mapRssItemsToWatchlist } from './rss/rss-mapper.js'
+export { mapRssItemsToWatchlist, RssEtagPoller } from './rss/index.js'
 // Sync module
 export {
   categorizeItems,
