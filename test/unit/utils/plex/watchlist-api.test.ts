@@ -312,6 +312,7 @@ describe('plex/watchlist-api', () => {
     })
 
     it('should handle pagination', async () => {
+      vi.useFakeTimers()
       let callCount = 0
       server.use(
         http.post('https://community.plex.tv/api', () => {
@@ -347,16 +348,19 @@ describe('plex/watchlist-api', () => {
         }),
       )
 
-      const result = await getWatchlistForUser(
+      const resultPromise = getWatchlistForUser(
         config,
         mockLogger,
         'token',
         user,
         1,
       )
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
 
       expect(result.size).toBe(2)
       expect(callCount).toBe(2)
+      vi.useRealTimers()
     })
 
     it('should throw error when user object is invalid', async () => {
@@ -474,6 +478,7 @@ describe('plex/watchlist-api', () => {
     })
 
     it('should retry on generic error up to maxRetries', async () => {
+      vi.useFakeTimers()
       let callCount = 0
       server.use(
         http.post('https://community.plex.tv/api', () => {
@@ -494,7 +499,7 @@ describe('plex/watchlist-api', () => {
         }),
       )
 
-      const result = await getWatchlistForUser(
+      const resultPromise = getWatchlistForUser(
         config,
         mockLogger,
         'token',
@@ -504,9 +509,12 @@ describe('plex/watchlist-api', () => {
         0,
         2,
       )
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
 
       expect(result.size).toBe(0)
       expect(callCount).toBe(3)
+      vi.useRealTimers()
     })
 
     it('should fall back to database items when retries exhausted', async () => {
