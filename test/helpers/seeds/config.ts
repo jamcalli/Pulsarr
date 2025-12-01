@@ -15,7 +15,6 @@ import type { Knex } from 'knex'
  * - logLevel: enum
  * - closeGraceDelay: integer
  * - rateLimitMax: integer
- * - syncIntervalSeconds: integer (default: 10)
  * - queueProcessDelaySeconds: integer (default: 60)
  * - discordWebhookUrl: string
  * - discordBotToken: string
@@ -91,7 +90,6 @@ export const SEED_CONFIGS = [
     logLevel: 'silent',
     closeGraceDelay: 10000,
     rateLimitMax: 500,
-    syncIntervalSeconds: 10,
     queueProcessDelaySeconds: 60,
     discordWebhookUrl: null,
     discordBotToken: null,

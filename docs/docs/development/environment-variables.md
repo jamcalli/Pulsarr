@@ -50,7 +50,6 @@ allowIframes=false                     # Set to true to allow embedding in dashb
 authenticationMethod=required          # Authentication method: 'required', 'requiredExceptLocal', 'disabled' (default: required)
 closeGraceDelay=10000                  # Shutdown grace period in ms
 rateLimitMax=500                       # Max requests per time window
-syncIntervalSeconds=10                 # Sync interval in seconds
 queueProcessDelaySeconds=60            # Queue processing delay in seconds
 
 # Reverse Proxy Configuration (Optional)
