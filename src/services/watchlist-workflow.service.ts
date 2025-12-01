@@ -2410,7 +2410,7 @@ export class WatchlistWorkflowService {
       await this.fastify.scheduler.updateJobSchedule(
         this.MANUAL_SYNC_JOB_NAME,
         {
-          minutes: 20,
+          minutes: 40,
           runImmediately: false,
         },
         true,
