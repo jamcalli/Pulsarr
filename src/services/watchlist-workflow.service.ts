@@ -853,7 +853,9 @@ export class WatchlistWorkflowService {
           this.log.error({ error }, 'Error in change detection interval')
         }
       }, this.ETAG_CHECK_INTERVAL_MS)
-      this.log.debug('Reset change detection interval after RSS-triggered check')
+      this.log.debug(
+        'Reset change detection interval after RSS-triggered check',
+      )
     }
   }
 
@@ -2082,7 +2084,9 @@ export class WatchlistWorkflowService {
             if (this.etagCheckInterval) {
               clearInterval(this.etagCheckInterval)
               this.etagCheckInterval = null
-              this.log.debug('Paused change detection for periodic reconciliation')
+              this.log.debug(
+                'Paused change detection for periodic reconciliation',
+              )
             }
 
             try {
