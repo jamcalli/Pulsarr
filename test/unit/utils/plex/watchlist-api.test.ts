@@ -123,7 +123,7 @@ describe('plex/watchlist-api', () => {
       await getWatchlist('token', mockLogger, 100)
 
       expect(capturedParams?.get('X-Plex-Container-Start')).toBe('100')
-      expect(capturedParams?.get('X-Plex-Container-Size')).toBe('300')
+      expect(capturedParams?.get('X-Plex-Container-Size')).toBe('100')
     })
 
     it('should include correct headers in request', async () => {

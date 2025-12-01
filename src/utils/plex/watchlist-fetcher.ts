@@ -103,6 +103,9 @@ export const fetchSelfWatchlist = async (
           throw innerError
         }
       }
+
+      // We should be playing nice with the Plex servers
+      await new Promise((resolve) => setTimeout(resolve, 5_000 + Math.ceil(Math.random() * 10_000)))
     } catch (err) {
       log.error({ error: err }, 'Error fetching watchlist for token')
 
@@ -178,7 +181,7 @@ export const getOthersWatchlist = async (
   log.info(`Starting fetch of watchlists for ${friends.size} friends`)
 
   // Simple concurrency pool implementation
-  const MAX_CONCURRENT = 4 // Maximum number of concurrent friend fetches
+  const MAX_CONCURRENT = 2 // Maximum number of concurrent friend fetches
   const friendsArray = Array.from(friends)
   const results: Array<{
     user: Friend & { userId: number }
@@ -233,7 +236,7 @@ export const getOthersWatchlist = async (
 
     // Introduce a small delay between batches to avoid rate limits
     if (i + MAX_CONCURRENT < friendsArray.length) {
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 1_000 + Math.ceil(Math.random() * 4_000)))
     }
   }
 
