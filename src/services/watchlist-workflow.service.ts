@@ -424,6 +424,11 @@ export class WatchlistWorkflowService {
       this.etagPoller.clearCache()
     }
 
+    // Clear RSS ETag cache
+    if (this.rssEtagPoller) {
+      this.rssEtagPoller.clearCache()
+    }
+
     // Update status
     this.status = 'stopped'
     this.initialized = false
