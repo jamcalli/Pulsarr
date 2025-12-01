@@ -28,10 +28,8 @@ import type {
   Item as DbWatchlistItem,
   EtagPollResult,
   EtagUserInfo,
-  RssWatchlistResults,
   TemptRssWatchlistItem,
   TokenWatchlistItem,
-  WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type {
@@ -40,7 +38,11 @@ import type {
   RoutingContext,
 } from '@root/types/router.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import { EtagPoller, toItemsSingle } from '@services/plex-watchlist/index.js'
+import {
+  EtagPoller,
+  RssEtagPoller,
+  toItemsSingle,
+} from '@services/plex-watchlist/index.js'
 import {
   extractTmdbId,
   extractTvdbId,
@@ -73,18 +75,6 @@ export class WatchlistWorkflowService {
   /** Interval timer for checking RSS feeds */
   private rssCheckInterval: NodeJS.Timeout | null = null
 
-  /** Previous snapshot of self-watchlist items for change detection */
-  private previousSelfItems: Map<string, WatchlistItem> = new Map()
-
-  /** Previous snapshot of friends-watchlist items for change detection */
-  private previousFriendsItems: Map<string, WatchlistItem> = new Map()
-
-  /** Flag to track if first self feed has been processed */
-  private hasProcessedInitialFeed: { self: boolean; friends: boolean } = {
-    self: false,
-    friends: false,
-  }
-
   /** Flag to indicate if using RSS fallback */
   private isUsingRssFallback = false
 
@@ -93,6 +83,9 @@ export class WatchlistWorkflowService {
 
   /** Poller for hybrid change detection */
   private etagPoller: EtagPoller | null = null
+
+  /** RSS ETag poller for efficient HEAD-based change detection */
+  private rssEtagPoller: RssEtagPoller | null = null
 
   /** Interval timer for change detection checks */
   private etagCheckInterval: NodeJS.Timeout | null = null
@@ -116,7 +109,8 @@ export class WatchlistWorkflowService {
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-    private readonly rssCheckIntervalMs: number = 10000,
+    private readonly rssCheckIntervalMs: number = 30_000 +
+      Math.ceil(Math.random() * 30_000),
   ) {
     this.log.info('Initializing Watchlist Workflow Service')
     // Initialize ETag poller (needs config, so created lazily after config is available)
@@ -273,7 +267,8 @@ export class WatchlistWorkflowService {
           this.log.debug(
             'RSS feeds generated successfully, initializing monitoring',
           )
-          await this.initializeRssSnapshots()
+          // Initialize RSS ETag poller for efficient HEAD-based change detection
+          this.rssEtagPoller = new RssEtagPoller(this.log)
           this.startRssCheck()
           this.isUsingRssFallback = false
           this.rssMode = true
@@ -991,66 +986,11 @@ export class WatchlistWorkflowService {
   }
 
   /**
-   * Initialize RSS feed snapshots
-   *
-   * Creates initial maps of items from both self and friends RSS feeds
-   * to enable change detection on subsequent checks.
-   */
-  private async initializeRssSnapshots(): Promise<void> {
-    this.log.info('Initializing RSS snapshots')
-
-    const results = await this.plexService.processRssWatchlists()
-
-    // Process self watchlist
-    if (results.self.users[0]?.watchlist) {
-      this.previousSelfItems = this.createItemMap(
-        results.self.users[0].watchlist,
-      )
-      this.log.debug(
-        {
-          itemCount: this.previousSelfItems.size,
-        },
-        'Initialized self RSS feed snapshot',
-      )
-    }
-
-    // Process friends watchlist
-    if (results.friends.users[0]?.watchlist) {
-      this.previousFriendsItems = this.createItemMap(
-        results.friends.users[0].watchlist,
-      )
-      this.log.debug(
-        {
-          itemCount: this.previousFriendsItems.size,
-        },
-        'Initialized friends RSS feed snapshot',
-      )
-    }
-  }
-
-  /**
-   * Create a map of watchlist items keyed by their first GUID
-   *
-   * @param items - Array of watchlist items
-   * @returns Map of items keyed by their first GUID
-   */
-  private createItemMap(items: WatchlistItem[]): Map<string, WatchlistItem> {
-    const itemMap = new Map<string, WatchlistItem>()
-
-    for (const item of items) {
-      const guids = parseGuids(item.guids)
-      if (guids.length > 0) {
-        itemMap.set(guids[0], item)
-      }
-    }
-
-    return itemMap
-  }
-
-  /**
    * Start the RSS check interval
    *
-   * Sets up periodic checking of RSS feeds for changes.
+   * Sets up periodic checking of RSS feeds for changes using efficient
+   * HEAD requests with ETag. Only triggers ETag reconciliation when
+   * changes are detected, saving ~97% bandwidth vs full RSS fetches.
    */
   private startRssCheck(): void {
     if (this.rssCheckInterval) {
@@ -1059,8 +999,42 @@ export class WatchlistWorkflowService {
 
     this.rssCheckInterval = setInterval(async () => {
       try {
-        const results = await this.plexService.processRssWatchlists()
-        await this.processRssResults(results)
+        if (!this.rssEtagPoller) {
+          this.log.warn('RSS ETag poller not initialized, skipping check')
+          return
+        }
+
+        // Check both feeds using HEAD + If-None-Match (~1KB vs ~74KB for full fetch)
+        const selfResult = await this.rssEtagPoller.checkForChanges(
+          this.config.selfRss ?? '',
+          'self',
+        )
+        const friendsResult = await this.rssEtagPoller.checkForChanges(
+          this.config.friendsRss ?? '',
+          'friends',
+        )
+
+        // If any changes detected, trigger ETag-based reconciliation
+        // This identifies WHO changed and routes new items instantly
+        if (selfResult.changed || friendsResult.changed) {
+          this.log.info(
+            {
+              selfChanged: selfResult.changed,
+              friendsChanged: friendsResult.changed,
+            },
+            'RSS ETag changed - triggering reconciliation',
+          )
+          try {
+            await this.reconcile({ mode: 'etag' })
+            // Reset the 3-minute interval since we just did an ETag check
+            this.resetEtagCheckInterval()
+          } catch (reconcileError) {
+            this.log.error(
+              { error: reconcileError },
+              'Error during RSS-triggered ETag reconciliation',
+            )
+          }
+        }
       } catch (error) {
         this.log.error(
           {
@@ -1073,224 +1047,6 @@ export class WatchlistWorkflowService {
         )
       }
     }, this.rssCheckIntervalMs)
-  }
-
-  /**
-   * Process results from RSS feed checks
-   *
-   * Detects changes in both self and friends feeds. When changes are detected,
-   * triggers ETag-based reconciliation to identify WHO changed and route instantly.
-   *
-   * @param results - RSS watchlist results containing both self and friends data
-   */
-  private async processRssResults(results: RssWatchlistResults): Promise<void> {
-    let selfChanged = false
-    let friendsChanged = false
-
-    // Process self RSS feed
-    if (results.self.users[0]?.watchlist) {
-      const currentWatchlist = results.self.users[0].watchlist
-      const isFeedEmpty = currentWatchlist.length === 0
-
-      if (isFeedEmpty) {
-        this.log.warn('Self RSS feed is empty, skipping self feed processing')
-      } else {
-        // Check if previous state was empty or not yet initialized
-        if (this.previousSelfItems.size === 0) {
-          this.log.info(
-            `First valid self RSS feed received with ${currentWatchlist.length} items, establishing baseline`,
-          )
-          this.previousSelfItems = this.createItemMap(currentWatchlist)
-
-          // If this is the first time we're seeing content, mark as changed to trigger reconcile
-          if (this.hasProcessedInitialFeed.self === false) {
-            this.log.info(
-              'First valid self feed - will trigger ETag reconciliation',
-            )
-            selfChanged = true
-            this.hasProcessedInitialFeed.self = true
-          }
-        } else {
-          // Both current and previous feeds are valid, proceed with normal change detection
-          const currentItems = this.createItemMap(currentWatchlist)
-          const changes = this.detectChanges(
-            this.previousSelfItems,
-            currentItems,
-          )
-          if (changes.size > 0) {
-            this.log.debug(
-              { changeCount: changes.size },
-              'Self RSS feed detected changes',
-            )
-            selfChanged = true
-          }
-          this.previousSelfItems = currentItems
-        }
-      }
-    }
-
-    // Process friends RSS feed
-    if (results.friends.users[0]?.watchlist) {
-      const currentWatchlist = results.friends.users[0].watchlist
-      const isFeedEmpty = currentWatchlist.length === 0
-
-      if (isFeedEmpty) {
-        this.log.warn(
-          'Friends RSS feed is empty, skipping friends feed processing',
-        )
-      } else {
-        // Check if previous state was empty or not yet initialized
-        if (this.previousFriendsItems.size === 0) {
-          this.log.info(
-            `First valid friends RSS feed received with ${currentWatchlist.length} items, establishing baseline`,
-          )
-          this.previousFriendsItems = this.createItemMap(currentWatchlist)
-
-          // If this is the first time we're seeing content, mark as changed to trigger reconcile
-          if (this.hasProcessedInitialFeed.friends === false) {
-            this.log.info(
-              'First valid friends feed - will trigger ETag reconciliation',
-            )
-            friendsChanged = true
-            this.hasProcessedInitialFeed.friends = true
-          }
-        } else {
-          // Both current and previous feeds are valid, proceed with normal change detection
-          const currentItems = this.createItemMap(currentWatchlist)
-          const changes = this.detectChanges(
-            this.previousFriendsItems,
-            currentItems,
-          )
-          if (changes.size > 0) {
-            this.log.debug(
-              { changeCount: changes.size },
-              'Friends RSS feed detected changes',
-            )
-            friendsChanged = true
-          }
-          this.previousFriendsItems = currentItems
-        }
-      }
-    }
-
-    // If any changes detected, trigger ETag-based reconciliation
-    // This identifies WHO changed and routes new items instantly
-    if (selfChanged || friendsChanged) {
-      this.log.info(
-        { selfChanged, friendsChanged },
-        'RSS detected changes - triggering ETag reconciliation',
-      )
-      try {
-        await this.reconcile({ mode: 'etag' })
-        // Reset the 3-minute interval since we just did an ETag check
-        this.resetEtagCheckInterval()
-      } catch (error) {
-        this.log.error(
-          { error },
-          'Error during RSS-triggered ETag reconciliation',
-        )
-      }
-    }
-  }
-
-  /**
-   * Detect changes between previous and current RSS feed items
-   *
-   * Compares two maps of watchlist items to identify additions, removals, and modifications.
-   *
-   * @param previousItems - Map of previous watchlist items
-   * @param currentItems - Map of current watchlist items
-   * @returns Set of changed items requiring processing
-   */
-  private detectChanges(
-    previousItems: Map<string, WatchlistItem>,
-    currentItems: Map<string, WatchlistItem>,
-  ): Set<TemptRssWatchlistItem> {
-    const changes = new Set<TemptRssWatchlistItem>()
-
-    // Check for new or modified items
-    currentItems.forEach((currentItem, guid) => {
-      const previousItem = previousItems.get(guid)
-
-      if (!previousItem) {
-        // New item
-        this.log.debug(
-          { guid, title: currentItem.title },
-          'New item detected in RSS feed',
-        )
-        changes.add(this.convertToTempItem(currentItem))
-      } else {
-        const hasChanged =
-          previousItem.title !== currentItem.title ||
-          previousItem.type !== currentItem.type ||
-          previousItem.thumb !== currentItem.thumb ||
-          !this.arraysEqualIgnoreOrder(
-            parseGenres(previousItem.genres),
-            parseGenres(currentItem.genres),
-          )
-
-        if (hasChanged) {
-          this.log.debug(
-            {
-              guid,
-              title: currentItem.title,
-              changes: {
-                title: previousItem.title !== currentItem.title,
-                type: previousItem.type !== currentItem.type,
-                thumb: previousItem.thumb !== currentItem.thumb,
-                genres: !this.arraysEqualIgnoreOrder(
-                  parseGenres(previousItem.genres),
-                  parseGenres(currentItem.genres),
-                ),
-              },
-            },
-            'Item metadata changed in RSS feed',
-          )
-          changes.add(this.convertToTempItem(currentItem))
-        }
-      }
-    })
-
-    // Check for removed items (for logging purposes)
-    previousItems.forEach((item, guid) => {
-      if (!currentItems.has(guid)) {
-        this.log.debug(
-          { guid, title: item.title },
-          'Item removed from RSS feed',
-        )
-      }
-    })
-
-    // Log summary if changes were detected
-    if (changes.size > 0) {
-      this.log.info(
-        {
-          changedItemsCount: changes.size,
-          previousItemsCount: previousItems.size,
-          currentItemsCount: currentItems.size,
-        },
-        'RSS feed changes detected',
-      )
-    }
-
-    return changes
-  }
-
-  /**
-   * Convert a watchlist item to the temporary format used for processing
-   *
-   * @param item - Watchlist item from RSS feed
-   * @returns Temporary format watchlist item
-   */
-  private convertToTempItem(item: WatchlistItem): TemptRssWatchlistItem {
-    return {
-      title: item.title,
-      type: typeof item.type === 'string' ? item.type.toLowerCase() : item.type,
-      thumb: item.thumb,
-      guids: parseGuids(item.guids),
-      genres: item.genres,
-      key: item.plexKey,
-    }
   }
 
   /**
@@ -2022,10 +1778,6 @@ export class WatchlistWorkflowService {
       `Movie ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
     )
     return false
-  }
-
-  private arraysEqualIgnoreOrder<T>(a: T[], b: T[]): boolean {
-    return a.length === b.length && a.every((v) => b.includes(v))
   }
 
   /**
