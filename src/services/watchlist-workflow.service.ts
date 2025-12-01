@@ -2,17 +2,17 @@
  * Watchlist Workflow Service
  *
  * Handles the synchronization between Plex watchlists and Sonarr/Radarr using a
- * hybrid RSS + ETag approach for efficient change detection and instant routing.
+ * hybrid approach for efficient change detection and instant routing.
  *
  * Architecture:
- * - RSS feeds detect "something changed" (subject to 24h Cloudflare cache)
- * - ETag polling identifies WHO changed and WHAT was added
+ * - RSS feeds detect "something changed"
+ * - Change detection polling identifies WHO changed and WHAT was added
  * - New items are routed instantly with full user context (no deferral needed)
- * - 3-minute ETag interval serves as fallback for cached RSS
+ * - 3-minute polling interval ensures timely detection
  *
  * Responsible for:
  * - Monitoring Plex watchlists via RSS feeds for change detection
- * - Using ETag-based polling to identify specific user changes
+ * - Polling to identify specific user changes
  * - Routing new items instantly to Sonarr/Radarr via content router
  * - Coordinating with other services (PlexWatchlist, SonarrManager, RadarrManager)
  * - Supporting user sync settings and approval workflows
@@ -91,16 +91,16 @@ export class WatchlistWorkflowService {
   /** Timestamp of the last successful watchlist sync */
   private lastSuccessfulSyncTime: number = Date.now()
 
-  /** ETag poller for hybrid RSS + ETag change detection */
+  /** Poller for hybrid change detection */
   private etagPoller: EtagPoller | null = null
 
-  /** Interval timer for ETag checks (fallback for cached RSS) */
+  /** Interval timer for change detection checks */
   private etagCheckInterval: NodeJS.Timeout | null = null
 
-  /** ETag check interval in ms (3 minutes) */
+  /** Change detection interval in ms (3 minutes) */
   private readonly ETAG_CHECK_INTERVAL_MS = 3 * 60 * 1000
 
-  /** Debounce timer for syncAllStatuses after ETag routing */
+  /** Debounce timer for syncAllStatuses after routing */
   private statusSyncDebounceTimer: NodeJS.Timeout | null = null
 
   /** Debounce delay for status sync in ms (1 minute) */
@@ -338,8 +338,8 @@ export class WatchlistWorkflowService {
         })
       }
 
-      // Start 3-minute ETag check interval (fallback for 24h RSS cache)
-      this.log.debug('Starting ETag check interval')
+      // Start 3-minute change detection interval
+      this.log.debug('Starting watchlist change detection')
       this.startEtagCheckInterval()
 
       // Update status to running after everything is initialized
@@ -350,7 +350,7 @@ export class WatchlistWorkflowService {
       this.rssMode = !this.isUsingRssFallback
 
       this.log.info(
-        `Watchlist workflow running in ${this.isUsingRssFallback ? 'periodic reconciliation' : 'RSS'} mode with periodic reconciliation and 3-minute ETag checks`,
+        `Watchlist workflow running in ${this.isUsingRssFallback ? 'periodic reconciliation' : 'RSS'} mode with periodic reconciliation and 3-minute change detection`,
       )
 
       return true
@@ -424,7 +424,7 @@ export class WatchlistWorkflowService {
       this.statusSyncDebounceTimer = null
     }
 
-    // Clear ETag cache
+    // Clear watchlist cache
     if (this.etagPoller) {
       this.etagPoller.clearCache()
     }
@@ -438,7 +438,7 @@ export class WatchlistWorkflowService {
   }
 
   // ============================================================================
-  // Hybrid RSS + ETag Reconciliation
+  // Hybrid Reconciliation
   // ============================================================================
 
   /**
@@ -478,14 +478,14 @@ export class WatchlistWorkflowService {
         'New friend detected, establishing baseline and syncing',
       )
       await this.etagPoller.establishBaseline(newFriend)
-      // Initial items for new friend will be fetched during full sync or next ETag check
+      // Initial items for new friend will be fetched during full sync or next change check
     }
 
-    // Handle removed friends - invalidate their ETag cache
+    // Handle removed friends - clear their watchlist cache
     for (const removedFriend of friendChanges.removed) {
       this.log.info(
         { userId: removedFriend.userId, username: removedFriend.username },
-        'Friend removed, invalidating ETag cache',
+        'Friend removed, clearing watchlist cache',
       )
       this.etagPoller.invalidateUser(
         removedFriend.userId,
@@ -493,7 +493,7 @@ export class WatchlistWorkflowService {
       )
     }
 
-    // Build EtagUserInfo array for current friends
+    // Build user info array for current friends
     const friends = this.buildEtagUserInfoFromMap(friendChanges.userMap)
 
     if (options.mode === 'full') {
@@ -508,8 +508,8 @@ export class WatchlistWorkflowService {
       this.lastSuccessfulSyncTime = Date.now()
       this.log.info('Full reconciliation completed')
     } else {
-      // ETag mode - lightweight check with instant routing
-      this.log.debug('Starting ETag-based reconciliation')
+      // Lightweight check with instant routing
+      this.log.debug('Checking for watchlist changes')
 
       const changes = await this.etagPoller.checkAllEtags(
         primaryUser.id,
@@ -517,7 +517,7 @@ export class WatchlistWorkflowService {
       )
 
       if (changes.length === 0) {
-        this.log.debug('ETag check: no changes detected, exiting early')
+        this.log.debug('No watchlist changes detected')
         return
       }
 
@@ -543,7 +543,7 @@ export class WatchlistWorkflowService {
               sonarrUnavailable: sonarrHealth.unavailable,
               radarrUnavailable: radarrHealth.unavailable,
             },
-            'Some instances unavailable, deferring ETag routing to next full reconciliation',
+            'Some instances unavailable, deferring routing to next full reconciliation',
           )
           return
         }
@@ -556,7 +556,7 @@ export class WatchlistWorkflowService {
               0,
             ),
           },
-          'ETag check detected new items, routing instantly',
+          'New watchlist items detected, routing instantly',
         )
 
         for (const change of changesWithNewItems) {
@@ -564,8 +564,6 @@ export class WatchlistWorkflowService {
         }
 
         // Post-routing tasks - call with no args to process System user attributions
-        // Note: This may be removable for ETag path since we have user context,
-        // but keeping as a safety net for edge cases
         await this.updateAutoApprovalUserAttribution()
 
         // Schedule debounced status sync after routing new content
@@ -574,12 +572,12 @@ export class WatchlistWorkflowService {
       }
 
       this.lastSuccessfulSyncTime = Date.now()
-      this.log.debug('ETag-based reconciliation completed')
+      this.log.debug('Watchlist change check completed')
     }
   }
 
   /**
-   * Route new items for a specific user detected via ETag polling.
+   * Route new items for a specific user detected via change detection.
    * This is the "instant routing" path - no deferral needed since we know
    * exactly WHO added WHAT.
    *
@@ -820,8 +818,7 @@ export class WatchlistWorkflowService {
   }
 
   /**
-   * Start the 3-minute ETag check interval.
-   * This serves as a fallback when RSS is cached (24h Cloudflare cache).
+   * Start the 3-minute change detection interval.
    */
   private startEtagCheckInterval(): void {
     if (this.etagCheckInterval) {
@@ -830,21 +827,21 @@ export class WatchlistWorkflowService {
 
     this.log.info(
       { intervalMinutes: this.ETAG_CHECK_INTERVAL_MS / 60000 },
-      'Starting ETag check interval',
+      'Starting change detection interval',
     )
 
     this.etagCheckInterval = setInterval(async () => {
       try {
         await this.reconcile({ mode: 'etag' })
       } catch (error) {
-        this.log.error({ error }, 'Error in ETag check interval')
+        this.log.error({ error }, 'Error in change detection interval')
       }
     }, this.ETAG_CHECK_INTERVAL_MS)
   }
 
   /**
-   * Reset the 3-minute ETag check interval.
-   * Called when RSS triggers an ETag check to avoid redundant checks.
+   * Reset the 3-minute change detection interval.
+   * Called when RSS triggers a check to avoid redundant checks.
    */
   private resetEtagCheckInterval(): void {
     if (this.etagCheckInterval) {
@@ -853,15 +850,15 @@ export class WatchlistWorkflowService {
         try {
           await this.reconcile({ mode: 'etag' })
         } catch (error) {
-          this.log.error({ error }, 'Error in ETag check interval')
+          this.log.error({ error }, 'Error in change detection interval')
         }
       }, this.ETAG_CHECK_INTERVAL_MS)
-      this.log.debug('Reset ETag check interval after RSS-triggered check')
+      this.log.debug('Reset change detection interval after RSS-triggered check')
     }
   }
 
   /**
-   * Schedule a debounced syncAllStatuses call after ETag routing.
+   * Schedule a debounced syncAllStatuses call after routing.
    *
    * This batches multiple rapid routing operations (e.g., user adds several items
    * within seconds) into a single status sync call. The timer resets each time
@@ -2081,15 +2078,15 @@ export class WatchlistWorkflowService {
             // Unschedule this job to prevent concurrent execution
             await this.unschedulePendingReconciliation()
 
-            // Stop ETag polling during full reconciliation to prevent conflicts
+            // Stop change detection during full reconciliation to prevent conflicts
             if (this.etagCheckInterval) {
               clearInterval(this.etagCheckInterval)
               this.etagCheckInterval = null
-              this.log.debug('Stopped ETag polling for periodic reconciliation')
+              this.log.debug('Paused change detection for periodic reconciliation')
             }
 
             try {
-              // Perform full reconciliation (this also re-establishes ETag baselines)
+              // Perform full reconciliation (this also re-establishes baselines)
               await this.reconcile({ mode: 'full' })
 
               // Update timing trackers
@@ -2097,10 +2094,10 @@ export class WatchlistWorkflowService {
 
               this.log.info('Periodic reconciliation completed successfully')
             } finally {
-              // Restart ETag polling with fresh interval
+              // Restart change detection with fresh interval
               this.startEtagCheckInterval()
               this.log.debug(
-                'Restarted ETag polling after periodic reconciliation',
+                'Resumed change detection after periodic reconciliation',
               )
 
               // Schedule next periodic reconciliation for +40 minutes
