@@ -93,22 +93,15 @@ export async function generateAndSaveRssFeeds(
 export async function ensureRssFeeds(
   deps: RssProcessorDeps,
 ): Promise<{ selfRss?: string; friendsRss?: string }> {
-  const { db, logger, config, fastify } = deps
+  const { db, logger, config } = deps
 
   if (!config?.selfRss && !config?.friendsRss) {
     logger.debug(
       'No RSS feeds found in configuration, attempting to generate...',
     )
+    // generateAndSaveRssFeeds handles both DB persistence and in-memory config sync
     await generateAndSaveRssFeeds(deps)
     const updatedConfig = await db.getConfig()
-
-    // Sync the in-memory config with the updated RSS feeds
-    if (updatedConfig) {
-      await fastify.updateConfig({
-        selfRss: updatedConfig.selfRss,
-        friendsRss: updatedConfig.friendsRss,
-      })
-    }
 
     if (!updatedConfig?.selfRss && !updatedConfig?.friendsRss) {
       throw new Error('Unable to generate or retrieve RSS feed URLs')
