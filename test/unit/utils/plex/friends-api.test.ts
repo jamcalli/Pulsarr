@@ -1,6 +1,6 @@
 import type { Config } from '@root/types/config.types.js'
 import type { PlexApiResponse } from '@root/types/plex.types.js'
-import { getFriends } from '@root/utils/plex/friends-api.js'
+import { getFriends } from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
