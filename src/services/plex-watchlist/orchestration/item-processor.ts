@@ -104,6 +104,7 @@ export async function prepareItemsForInsertion(
       return []
     }
 
+    const now = new Date().toISOString()
     return Array.from(items).map((item) => ({
       user_id: numericUserId,
       title: item.title,
@@ -113,8 +114,8 @@ export async function prepareItemsForInsertion(
       guids: parseGuids(item.guids),
       genres: parseGenres(item.genres),
       status: 'pending' as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: now,
+      updated_at: now,
     }))
   })
 }

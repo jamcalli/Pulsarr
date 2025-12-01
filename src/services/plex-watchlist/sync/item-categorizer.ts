@@ -31,6 +31,7 @@ export function createWatchlistItem(
   item: TokenWatchlistItem,
   templateItem: WatchlistItem,
 ): WatchlistItem {
+  const now = new Date().toISOString()
   return {
     user_id: user.userId,
     title: templateItem.title,
@@ -40,8 +41,8 @@ export function createWatchlistItem(
     guids: parseGuids(templateItem.guids),
     genres: templateItem.genres || [],
     status: 'pending' as const,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: now,
+    updated_at: now,
   }
 }
 

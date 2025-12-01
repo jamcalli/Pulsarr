@@ -186,11 +186,8 @@ export function formatLinkedItems(
   existingItemsToLink: Map<Friend & { userId: number }, Set<WatchlistItem>>,
   user: Friend & { userId: number },
 ): ReturnType<typeof formatWatchlistItem>[] {
-  return existingItemsToLink.has(user)
-    ? Array.from(existingItemsToLink.get(user) as Set<WatchlistItem>).map(
-        (item) => formatWatchlistItem(item),
-      )
-    : []
+  const items = existingItemsToLink.get(user)
+  return items ? Array.from(items).map(formatWatchlistItem) : []
 }
 
 /**
