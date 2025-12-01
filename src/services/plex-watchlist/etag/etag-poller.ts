@@ -79,12 +79,12 @@ export class EtagPoller {
 
     this.log.debug(
       { userId: user.userId, username: user.username },
-      'ETag baseline established',
+      'Watchlist baseline established',
     )
   }
 
   /**
-   * Establish ETag baselines for all users.
+   * Establish baselines for all users.
    * Called after a full sync completes.
    *
    * @param primaryUserId - The primary user's ID
@@ -104,7 +104,7 @@ export class EtagPoller {
     await this.establishPrimaryBaseline(token, primaryUserId)
     this.log.debug(
       { userId: primaryUserId },
-      'Primary user ETag baseline established',
+      'Primary user watchlist baseline established',
     )
 
     // Friends baselines
@@ -121,12 +121,12 @@ export class EtagPoller {
 
     this.log.info(
       { friendCount: friends.length },
-      'ETag baselines established for all users',
+      'Watchlist baselines established for all users',
     )
   }
 
   /**
-   * Check all users' ETags against cached baselines.
+   * Check all users for watchlist changes.
    * Returns array of results with newItems for each changed user.
    *
    * @param primaryUserId - The primary user's ID
@@ -139,7 +139,7 @@ export class EtagPoller {
   ): Promise<EtagPollResult[]> {
     const token = this.config.plexTokens?.[0]
     if (!token) {
-      this.log.warn('Cannot check ETags: no Plex token configured')
+      this.log.warn('Cannot check watchlists: no Plex token configured')
       return []
     }
 
@@ -171,10 +171,10 @@ export class EtagPoller {
       const errorCount = results.filter((r) => r.error).length
       this.log.info(
         { changedCount, errorCount, totalChecked: 1 + friends.length },
-        'ETag check completed',
+        'Watchlist change check completed',
       )
     } else {
-      this.log.debug('ETag check: no changes detected')
+      this.log.debug('No watchlist changes detected')
     }
 
     return results
@@ -194,7 +194,7 @@ export class EtagPoller {
   }
 
   /**
-   * Remove a user from the ETag cache.
+   * Remove a user from the watchlist cache.
    * Called when a friend is removed.
    *
    * @param userId - The user ID to invalidate
@@ -206,21 +206,21 @@ export class EtagPoller {
 
     if (this.cache.has(primaryKey)) {
       this.cache.delete(primaryKey)
-      this.log.debug({ userId }, 'Invalidated primary user ETag cache')
+      this.log.debug({ userId }, 'Cleared primary user watchlist cache')
     }
 
     if (friendKey && this.cache.has(friendKey)) {
       this.cache.delete(friendKey)
-      this.log.debug({ userId, watchlistId }, 'Invalidated friend ETag cache')
+      this.log.debug({ userId, watchlistId }, 'Cleared friend watchlist cache')
     }
   }
 
   /**
-   * Clear the entire ETag cache.
+   * Clear the entire watchlist cache.
    */
   clearCache(): void {
     this.cache.clear()
-    this.log.debug('ETag cache cleared')
+    this.log.debug('Watchlist cache cleared')
   }
 
   /**
@@ -357,7 +357,7 @@ export class EtagPoller {
       if (!etagResponse.ok) {
         this.log.warn(
           { userId, username: friend.username, status: etagResponse.status },
-          'Failed to get ETag for friend baseline',
+          'Failed to establish friend watchlist baseline',
         )
         return
       }
