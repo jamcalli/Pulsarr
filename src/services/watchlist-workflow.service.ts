@@ -61,6 +61,8 @@ export class WatchlistWorkflowService {
   private readonly MANUAL_SYNC_JOB_NAME = 'periodic-watchlist-reconciliation'
   /** Current workflow status */
   private status: WorkflowStatus = 'stopped'
+  /** Tracks if a reconciliation is currently in progress */
+  private isReconciling = false
   /** Creates a fresh service logger that inherits current log level */
   private get log(): FastifyBaseLogger {
     return createServiceLogger(this.baseLog, 'WATCHLIST_WORKFLOW')
@@ -456,123 +458,143 @@ export class WatchlistWorkflowService {
    * - Only syncs users with changes (instant routing of new items)
    */
   async reconcile(options: { mode: 'full' | 'etag' }): Promise<void> {
-    // Ensure ETag poller is initialized
-    if (!this.etagPoller) {
-      this.etagPoller = new EtagPoller(this.config, this.log)
-    }
-
-    // Get primary user for ETag operations
-    const primaryUser = await this.dbService.getPrimaryUser()
-    if (!primaryUser) {
-      this.log.warn('No primary user found, cannot reconcile')
+    // Check if reconciliation is already in progress
+    if (this.isReconciling) {
+      this.log.debug(
+        { requestedMode: options.mode },
+        'Reconciliation already in progress, skipping',
+      )
       return
     }
 
-    // Check friend changes ALWAYS (regardless of mode)
-    const friendChanges = await this.plexService.checkFriendChanges()
+    this.isReconciling = true
+    const startTime = Date.now()
 
-    // Handle newly added friends immediately
-    for (const newFriend of friendChanges.added) {
-      this.log.info(
-        { userId: newFriend.userId, username: newFriend.username },
-        'New friend detected, establishing baseline and syncing',
-      )
-      await this.etagPoller.establishBaseline(newFriend)
-      // Initial items for new friend will be fetched during full sync or next change check
-    }
+    try {
+      // Ensure ETag poller is initialized
+      if (!this.etagPoller) {
+        this.etagPoller = new EtagPoller(this.config, this.log)
+      }
 
-    // Handle removed friends - clear their watchlist cache
-    for (const removedFriend of friendChanges.removed) {
-      this.log.info(
-        { userId: removedFriend.userId, username: removedFriend.username },
-        'Friend removed, clearing watchlist cache',
-      )
-      this.etagPoller.invalidateUser(
-        removedFriend.userId,
-        removedFriend.watchlistId,
-      )
-    }
-
-    // Build user info array for current friends
-    const friends = this.buildEtagUserInfoFromMap(friendChanges.userMap)
-
-    if (options.mode === 'full') {
-      // Full sync - existing behavior
-      this.log.info('Starting full reconciliation')
-      await this.fetchWatchlists()
-      await this.syncWatchlistItems()
-
-      // Establish ETag baselines for all users after full sync
-      await this.etagPoller.establishAllBaselines(primaryUser.id, friends)
-
-      this.lastSuccessfulSyncTime = Date.now()
-      this.log.info('Full reconciliation completed')
-    } else {
-      // Lightweight check with instant routing
-      this.log.debug('Checking for watchlist changes')
-
-      const changes = await this.etagPoller.checkAllEtags(
-        primaryUser.id,
-        friends,
-      )
-
-      if (changes.length === 0) {
-        this.log.debug('No watchlist changes detected')
+      // Get primary user for ETag operations
+      const primaryUser = await this.dbService.getPrimaryUser()
+      if (!primaryUser) {
+        this.log.warn('No primary user found, cannot reconcile')
         return
       }
 
-      // Process changes for each user with new items
-      const changesWithNewItems = changes.filter(
-        (c) => c.changed && c.newItems.length > 0,
-      )
+      // Check friend changes ALWAYS (regardless of mode)
+      const friendChanges = await this.plexService.checkFriendChanges()
 
-      if (changesWithNewItems.length > 0) {
-        // Check instance health before routing - abort if ANY instance is unavailable
-        // This prevents incorrect routing decisions; items will be caught in next full reconciliation
-        const [sonarrHealth, radarrHealth] = await Promise.all([
-          this.sonarrManager.checkInstancesHealth(),
-          this.radarrManager.checkInstancesHealth(),
-        ])
+      // Handle newly added friends immediately
+      for (const newFriend of friendChanges.added) {
+        this.log.info(
+          { userId: newFriend.userId, username: newFriend.username },
+          'New friend detected, establishing baseline and syncing',
+        )
+        await this.etagPoller.establishBaseline(newFriend)
+        // Initial items for new friend will be fetched during full sync or next change check
+      }
 
-        if (
-          sonarrHealth.unavailable.length > 0 ||
-          radarrHealth.unavailable.length > 0
-        ) {
-          this.log.warn(
-            {
-              sonarrUnavailable: sonarrHealth.unavailable,
-              radarrUnavailable: radarrHealth.unavailable,
-            },
-            'Some instances unavailable, deferring routing to next full reconciliation',
-          )
+      // Handle removed friends - clear their watchlist cache
+      for (const removedFriend of friendChanges.removed) {
+        this.log.info(
+          { userId: removedFriend.userId, username: removedFriend.username },
+          'Friend removed, clearing watchlist cache',
+        )
+        this.etagPoller.invalidateUser(
+          removedFriend.userId,
+          removedFriend.watchlistId,
+        )
+      }
+
+      // Build user info array for current friends
+      const friends = this.buildEtagUserInfoFromMap(friendChanges.userMap)
+
+      if (options.mode === 'full') {
+        // Full sync - existing behavior
+        this.log.info('Starting full reconciliation')
+        await this.fetchWatchlists()
+        await this.syncWatchlistItems()
+
+        // Establish ETag baselines for all users after full sync
+        await this.etagPoller.establishAllBaselines(primaryUser.id, friends)
+
+        this.lastSuccessfulSyncTime = Date.now()
+        this.log.info('Full reconciliation completed')
+      } else {
+        // Lightweight check with instant routing
+        this.log.debug('Checking for watchlist changes')
+
+        const changes = await this.etagPoller.checkAllEtags(
+          primaryUser.id,
+          friends,
+        )
+
+        if (changes.length === 0) {
+          this.log.debug('No watchlist changes detected')
           return
         }
 
-        this.log.info(
-          {
-            userCount: changesWithNewItems.length,
-            totalNewItems: changesWithNewItems.reduce(
-              (sum, c) => sum + c.newItems.length,
-              0,
-            ),
-          },
-          'New watchlist items detected, routing instantly',
+        // Process changes for each user with new items
+        const changesWithNewItems = changes.filter(
+          (c) => c.changed && c.newItems.length > 0,
         )
 
-        for (const change of changesWithNewItems) {
-          await this.routeNewItemsForUser(change)
+        if (changesWithNewItems.length > 0) {
+          // Check instance health before routing - abort if ANY instance is unavailable
+          // This prevents incorrect routing decisions; items will be caught in next full reconciliation
+          const [sonarrHealth, radarrHealth] = await Promise.all([
+            this.sonarrManager.checkInstancesHealth(),
+            this.radarrManager.checkInstancesHealth(),
+          ])
+
+          if (
+            sonarrHealth.unavailable.length > 0 ||
+            radarrHealth.unavailable.length > 0
+          ) {
+            this.log.warn(
+              {
+                sonarrUnavailable: sonarrHealth.unavailable,
+                radarrUnavailable: radarrHealth.unavailable,
+              },
+              'Some instances unavailable, deferring routing to next full reconciliation',
+            )
+            return
+          }
+
+          this.log.info(
+            {
+              userCount: changesWithNewItems.length,
+              totalNewItems: changesWithNewItems.reduce(
+                (sum, c) => sum + c.newItems.length,
+                0,
+              ),
+            },
+            'New watchlist items detected, routing instantly',
+          )
+
+          for (const change of changesWithNewItems) {
+            await this.routeNewItemsForUser(change)
+          }
+
+          // Post-routing tasks - call with no args to process System user attributions
+          await this.updateAutoApprovalUserAttribution()
+
+          // Schedule debounced status sync after routing new content
+          // This batches multiple rapid routing operations (e.g., user adds several items quickly)
+          this.scheduleDebouncedStatusSync()
         }
 
-        // Post-routing tasks - call with no args to process System user attributions
-        await this.updateAutoApprovalUserAttribution()
-
-        // Schedule debounced status sync after routing new content
-        // This batches multiple rapid routing operations (e.g., user adds several items quickly)
-        this.scheduleDebouncedStatusSync()
+        this.lastSuccessfulSyncTime = Date.now()
+        this.log.debug('Watchlist change check completed')
       }
-
-      this.lastSuccessfulSyncTime = Date.now()
-      this.log.debug('Watchlist change check completed')
+    } finally {
+      this.log.debug(
+        { mode: options.mode, durationMs: Date.now() - startTime },
+        'Reconciliation completed',
+      )
+      this.isReconciling = false
     }
   }
 
