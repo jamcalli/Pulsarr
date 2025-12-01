@@ -114,10 +114,6 @@ export const fetchWatchlistFromRss = async (
   try {
     const urlObj = new URL(url)
     urlObj.searchParams.append('format', 'json')
-    urlObj.searchParams.append(
-      'cache_buster',
-      Math.random().toString(36).substring(2, 14),
-    )
 
     const response = await fetch(urlObj.toString(), {
       headers: {
