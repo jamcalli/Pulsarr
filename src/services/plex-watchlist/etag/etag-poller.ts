@@ -27,6 +27,7 @@ import type {
   WatchlistEtagCache,
 } from '@root/types/plex.types.js'
 import type { FastifyBaseLogger } from 'fastify'
+import pLimit from 'p-limit'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
 /**
@@ -107,17 +108,24 @@ export class EtagPoller {
       'Primary user watchlist baseline established',
     )
 
-    // Friends baselines
-    for (const user of friends) {
-      if (user.watchlistId) {
-        const friend: Friend = {
-          watchlistId: user.watchlistId,
-          username: user.username,
-          userId: user.userId,
-        }
-        await this.establishFriendBaseline(token, friend, user.userId)
-      }
-    }
+    // Friends baselines (bounded concurrency to respect Plex API limits)
+    const limit = pLimit(2)
+    const friendsWithWatchlist = friends.filter(
+      (user): user is EtagUserInfo & { watchlistId: string } =>
+        typeof user.watchlistId === 'string',
+    )
+    await Promise.all(
+      friendsWithWatchlist.map((user) =>
+        limit(async () => {
+          const friend: Friend = {
+            watchlistId: user.watchlistId,
+            username: user.username,
+            userId: user.userId,
+          }
+          await this.establishFriendBaseline(token, friend, user.userId)
+        }),
+      ),
+    )
 
     this.log.info(
       { friendCount: friends.length },
@@ -151,18 +159,28 @@ export class EtagPoller {
       results.push(primaryResult)
     }
 
-    // Check friends
-    for (const user of friends) {
-      if (user.watchlistId) {
-        const friend: Friend = {
-          watchlistId: user.watchlistId,
-          username: user.username,
-          userId: user.userId,
-        }
-        const result = await this.checkFriend(token, friend, user.userId)
-        if (result.changed || result.error) {
-          results.push(result)
-        }
+    // Check friends (bounded concurrency to respect Plex API limits)
+    const limit = pLimit(2)
+    const friendsWithWatchlist = friends.filter(
+      (user): user is EtagUserInfo & { watchlistId: string } =>
+        typeof user.watchlistId === 'string',
+    )
+    const friendResults = await Promise.all(
+      friendsWithWatchlist.map((user) =>
+        limit(async () => {
+          const friend: Friend = {
+            watchlistId: user.watchlistId,
+            username: user.username,
+            userId: user.userId,
+          }
+          return this.checkFriend(token, friend, user.userId)
+        }),
+      ),
+    )
+
+    for (const result of friendResults) {
+      if (result.changed || result.error) {
+        results.push(result)
       }
     }
 
