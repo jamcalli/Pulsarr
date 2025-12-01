@@ -105,6 +105,8 @@ describe('plex/watchlist-fetcher', () => {
     })
 
     it('should handle pagination', async () => {
+      vi.useFakeTimers()
+
       let callCount = 0
       server.use(
         http.get(
@@ -145,10 +147,17 @@ describe('plex/watchlist-fetcher', () => {
         plexTokens: ['token'],
       } as Config
 
-      const result = await fetchSelfWatchlist(config, mockLogger, 1)
+      const resultPromise = fetchSelfWatchlist(config, mockLogger, 1)
+
+      // Advance timers to skip jitter delays
+      await vi.runAllTimersAsync()
+
+      const result = await resultPromise
 
       expect(result.size).toBe(2)
       expect(callCount).toBe(2)
+
+      vi.useRealTimers()
     })
 
     it('should log info when user has no items', async () => {
@@ -511,6 +520,8 @@ describe('plex/watchlist-fetcher', () => {
     })
 
     it('should process friends in batches', async () => {
+      vi.useFakeTimers()
+
       const processedFriends: string[] = []
 
       server.use(
@@ -548,9 +559,16 @@ describe('plex/watchlist-fetcher', () => {
         ])
       }
 
-      await getOthersWatchlist(config, mockLogger, friends)
+      const resultPromise = getOthersWatchlist(config, mockLogger, friends)
+
+      // Advance timers to skip batch delays
+      await vi.runAllTimersAsync()
+
+      await resultPromise
 
       expect(processedFriends).toHaveLength(10)
+
+      vi.useRealTimers()
     })
 
     it('should handle rate limit error', async () => {
