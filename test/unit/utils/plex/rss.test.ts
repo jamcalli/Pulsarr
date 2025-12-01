@@ -3,7 +3,7 @@ import {
   fetchWatchlistFromRss,
   getPlexWatchlistUrls,
   getRssFromPlexToken,
-} from '@root/utils/plex/rss.js'
+} from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'

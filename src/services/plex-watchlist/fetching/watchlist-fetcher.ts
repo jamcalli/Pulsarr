@@ -6,8 +6,8 @@ import type {
 } from '@root/types/plex.types.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { isRateLimitError } from './helpers.js'
-import { getWatchlist, getWatchlistForUser } from './watchlist-api.js'
+import { getWatchlist, getWatchlistForUser } from '../api/graphql.js'
+import { isRateLimitError } from '../api/helpers.js'
 
 /**
  * Fetches the current user's own watchlist from Plex.

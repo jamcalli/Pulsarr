@@ -5,11 +5,11 @@ import type {
   PlexApiResponse,
   PlexResponse,
 } from '@root/types/plex.types.js'
-import { PlexRateLimiter } from '@root/utils/plex/rate-limiter.js'
 import {
   getWatchlist,
   getWatchlistForUser,
-} from '@root/utils/plex/watchlist-api.js'
+  PlexRateLimiter,
+} from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'

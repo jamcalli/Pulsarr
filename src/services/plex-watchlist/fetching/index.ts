@@ -1,0 +1,14 @@
+// Fetching layer exports for Plex watchlist service
+
+// Friends API
+export { getFriends } from './friends-api.js'
+
+// RSS fetching
+export {
+  fetchWatchlistFromRss,
+  getPlexWatchlistUrls,
+  getRssFromPlexToken,
+} from './rss-fetcher.js'
+
+// Watchlist fetching
+export { fetchSelfWatchlist, getOthersWatchlist } from './watchlist-fetcher.js'

@@ -4,7 +4,7 @@ import {
   isRateLimitError,
   PLEX_API_TIMEOUT_MS,
   type RateLimitError,
-} from '@root/utils/plex/helpers.js'
+} from '@services/plex-watchlist/index.js'
 import { describe, expect, it } from 'vitest'
 
 describe('plex/helpers', () => {

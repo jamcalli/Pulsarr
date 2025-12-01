@@ -5,7 +5,7 @@ import type {
 } from '@root/types/plex.types.js'
 import { normalizeGuid } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { PLEX_API_TIMEOUT_MS } from './helpers.js'
+import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
 /**
  * Generates RSS feed URLs for the given Plex tokens.

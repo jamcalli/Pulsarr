@@ -3,8 +3,10 @@ import type {
   PlexApiResponse,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import { toItemsSingle } from '@root/utils/plex/processors/single-item.js'
-import { PlexRateLimiter } from '@root/utils/plex/rate-limiter.js'
+import {
+  PlexRateLimiter,
+  toItemsSingle,
+} from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'

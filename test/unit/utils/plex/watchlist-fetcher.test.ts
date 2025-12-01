@@ -1,10 +1,10 @@
 import type { Config } from '@root/types/config.types.js'
 import type { Friend, Item, PlexResponse } from '@root/types/plex.types.js'
-import { PlexRateLimiter } from '@root/utils/plex/rate-limiter.js'
 import {
   fetchSelfWatchlist,
   getOthersWatchlist,
-} from '@root/utils/plex/watchlist-fetcher.js'
+  PlexRateLimiter,
+} from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
