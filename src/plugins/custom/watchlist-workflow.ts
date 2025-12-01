@@ -10,7 +10,12 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const rssCheckIntervalMs = (fastify.config.syncIntervalSeconds || 10) * 1000
+    // Spread out the RSS checks randomly between 1 and 5 minutes - we should be playing nice with the Plex servers
+    const syncIntervalSeconds = fastify.config.syncIntervalSeconds || 10
+    const rssCheckIntervalMs =
+      (6 * syncIntervalSeconds +
+        Math.ceil(Math.random() * 4 * 6 * syncIntervalSeconds)) *
+      1_000
     const queueProcessDelayMs =
       (fastify.config.queueProcessDelaySeconds || 60) * 1000
 

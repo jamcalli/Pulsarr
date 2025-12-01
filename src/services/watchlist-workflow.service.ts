@@ -111,8 +111,10 @@ export class WatchlistWorkflowService {
   constructor(
     private readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-    private readonly rssCheckIntervalMs: number = 10000,
-    private readonly queueProcessDelayMs: number = 60000,
+    // Spread out the RSS checks randomly between 1 and 5 minutes - we should be playing nice with the Plex servers
+    private readonly rssCheckIntervalMs: number = 60_000 +
+      Math.ceil(Math.random() * 240_000),
+    private readonly queueProcessDelayMs: number = 60_000,
   ) {
     this.log.info('Initializing Watchlist Workflow Service')
   }
