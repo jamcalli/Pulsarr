@@ -28,6 +28,7 @@ import type {
   Item as DbWatchlistItem,
   EtagPollResult,
   EtagUserInfo,
+  Friend,
   Item,
   TemptRssWatchlistItem,
   TokenWatchlistItem,
@@ -40,9 +41,20 @@ import type {
 } from '@root/types/router.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
+  categorizeItems,
   EtagPoller,
+  extractKeysAndRelationships,
+  getExistingItems,
+  getOthersWatchlist,
+  handleLinkedItemsForLabelSync,
+  type ItemCategorizerDeps,
+  type ItemProcessorDeps,
+  linkExistingItems,
+  processAndSaveNewItems,
+  type RemovalHandlerDeps,
   RssEtagPoller,
   toItemsSingle,
+  type WatchlistSyncDeps,
 } from '@services/plex-watchlist/index.js'
 import {
   extractTmdbId,
@@ -166,6 +178,51 @@ export class WatchlistWorkflowService {
    */
   private get showStatusService() {
     return this.fastify.sync
+  }
+
+  /**
+   * Gets the dependencies object for item categorization operations
+   */
+  private get categorizerDeps(): ItemCategorizerDeps {
+    return {
+      logger: this.log,
+    }
+  }
+
+  /**
+   * Gets the dependencies object for watchlist sync operations
+   */
+  private get watchlistSyncDeps(): WatchlistSyncDeps {
+    return {
+      db: this.dbService,
+      logger: this.log,
+    }
+  }
+
+  /**
+   * Gets the dependencies object for removal handler operations
+   */
+  private get removalHandlerDeps(): RemovalHandlerDeps {
+    return {
+      db: this.dbService,
+      logger: this.log,
+      plexLabelSyncService: this.fastify.plexLabelSyncService,
+    }
+  }
+
+  /**
+   * Gets the dependencies object for item processor operations
+   */
+  private get itemProcessorDeps(): ItemProcessorDeps {
+    return {
+      db: this.dbService,
+      logger: this.log,
+      config: this.config,
+      fastify: this.fastify,
+      plexLabelSyncService: this.fastify.plexLabelSyncService,
+      handleLinkedItemsForLabelSync: (linkItems) =>
+        handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
+    }
   }
 
   /**
@@ -510,10 +567,37 @@ export class WatchlistWorkflowService {
       for (const newFriend of friendChanges.added) {
         this.log.info(
           { userId: newFriend.userId, username: newFriend.username },
-          'New friend detected, establishing baseline and syncing',
+          'New friend detected',
         )
+
+        if (options.mode === 'etag') {
+          // ETag mode: sync and route immediately (full sync won't follow)
+          try {
+            const brandNewItems = await this.syncSingleFriend(newFriend)
+
+            if (brandNewItems.length > 0) {
+              this.log.info(
+                { userId: newFriend.userId, itemCount: brandNewItems.length },
+                'Routing new friend watchlist items',
+              )
+
+              // Route pre-enriched items (no double enrichment)
+              await this.routeEnrichedItemsForUser(
+                newFriend.userId,
+                brandNewItems,
+              )
+            }
+          } catch (error) {
+            this.log.error(
+              { userId: newFriend.userId, username: newFriend.username, error },
+              'Failed to sync new friend - will retry on next full reconciliation',
+            )
+            // Don't throw - let reconciliation continue for other users
+          }
+        }
+        // Full mode: fetchWatchlists() will handle this friend's items
+
         await this.etagPoller.establishBaseline(newFriend)
-        // Initial items for new friend will be fetched during full sync or next change check
       }
 
       // Handle removed friends - clear their watchlist cache
@@ -710,6 +794,159 @@ export class WatchlistWorkflowService {
     }
 
     return false
+  }
+
+  /**
+   * Route pre-enriched, already-saved items for a user.
+   * Used when items are synced via processAndSaveNewItems (new friend flow).
+   * Does NOT enrich or save - items must already be in DB.
+   *
+   * @param userId - The user ID to route items for
+   * @param items - Pre-enriched items from processAndSaveNewItems (already have GUIDs/genres, thumb may be undefined)
+   */
+  private async routeEnrichedItemsForUser(
+    userId: number,
+    items: Item[],
+  ): Promise<void> {
+    if (items.length === 0) return
+
+    const user = await this.dbService.getUser(userId)
+    if (!user) {
+      this.log.warn({ userId }, 'User not found for routing enriched items')
+      return
+    }
+
+    if (!user.can_sync) {
+      this.log.debug(
+        { userId, username: user.name, itemCount: items.length },
+        'Skipping enriched items for user with sync disabled',
+      )
+      return
+    }
+
+    const primaryUser = await this.dbService.getPrimaryUser()
+
+    this.log.info(
+      { userId, username: user.name, itemCount: items.length },
+      'Routing enriched items for user',
+    )
+
+    for (const item of items) {
+      try {
+        await this.routeSingleItem({
+          item,
+          userId,
+          userName: user.name,
+          primaryUser,
+        })
+      } catch (error) {
+        this.log.error(
+          { error, userId, title: item.title },
+          'Error routing enriched item',
+        )
+      }
+    }
+  }
+
+  /**
+   * Sync a single friend's complete watchlist to DB.
+   * Returns only brand new items (not items linked from other users).
+   *
+   * @param friend - The new friend to sync
+   * @returns Array of brand new Items saved to DB (ready for routing)
+   */
+  private async syncSingleFriend(friend: EtagUserInfo): Promise<Item[]> {
+    const token = this.config.plexTokens[0]
+    if (!token || !friend.watchlistId) {
+      this.log.warn(
+        { userId: friend.userId },
+        'Cannot sync friend: missing token or watchlistId',
+      )
+      return []
+    }
+
+    // Build single-friend set for getOthersWatchlist
+    const friendData: Friend & { userId: number } = {
+      watchlistId: friend.watchlistId,
+      username: friend.username,
+      userId: friend.userId,
+    }
+    const friendSet = new Set([[friendData, token]] as [
+      Friend & { userId: number },
+      string,
+    ][])
+
+    // Fetch complete watchlist (paginated, gets ALL items)
+    const userWatchlistMap = await getOthersWatchlist(
+      this.config,
+      this.log,
+      friendSet,
+      (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
+    )
+
+    if (userWatchlistMap.size === 0) {
+      this.log.debug(
+        { userId: friend.userId },
+        'New friend has empty watchlist',
+      )
+      return []
+    }
+
+    // Extract keys for DB lookup across ALL users (not just this friend)
+    // This ensures cross-user item detection works correctly
+    const { allKeys, userKeyMap } = extractKeysAndRelationships(
+      userWatchlistMap,
+      this.watchlistSyncDeps,
+    )
+
+    // Query DB for items that already exist (for ANY user, not just new friend)
+    const existingItems = await getExistingItems(
+      userKeyMap,
+      allKeys,
+      this.watchlistSyncDeps,
+    )
+
+    // Categorize: brand new (need routing) vs existing (just link)
+    const { brandNewItems, existingItemsToLink } = categorizeItems(
+      userWatchlistMap,
+      existingItems,
+      this.categorizerDeps,
+      false, // forceRefresh = false
+    )
+
+    // Enrich and save brand new items to DB (via toItemsBatch internally)
+    const processedItems = await processAndSaveNewItems(
+      brandNewItems,
+      false, // isSelfWatchlist = false
+      false, // isMetadataRefresh = false
+      this.itemProcessorDeps,
+    )
+
+    // Link existing items (already routed for other users, just need DB link + label sync)
+    await linkExistingItems(existingItemsToLink, {
+      db: this.dbService,
+      logger: this.log,
+      handleLinkedItemsForLabelSync: (linkItems) =>
+        handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
+    })
+
+    // Flatten Map<Friend, Set<Item>> to Item[]
+    const newItemsArray: Item[] = []
+    for (const items of processedItems.values()) {
+      newItemsArray.push(...items)
+    }
+
+    this.log.info(
+      {
+        userId: friend.userId,
+        username: friend.username,
+        brandNewItems: newItemsArray.length,
+        linkedItems: existingItemsToLink.size,
+      },
+      'New friend watchlist synced',
+    )
+
+    return newItemsArray
   }
 
   /**

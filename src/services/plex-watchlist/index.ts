@@ -39,6 +39,21 @@ export {
   sendWatchlistNotifications,
   type WatchlistItemNotification,
 } from './notifications/notification-sender.js'
+export {
+  type ItemProcessorDeps,
+  linkExistingItems,
+  processAndSaveNewItems,
+} from './orchestration/item-processor.js'
+export {
+  handleLinkedItemsForLabelSync,
+  type RemovalHandlerDeps,
+} from './orchestration/removal-handler.js'
+// Orchestration module
+export {
+  extractKeysAndRelationships,
+  getExistingItems,
+  type WatchlistSyncDeps,
+} from './orchestration/watchlist-sync.js'
 // RSS module
 export { mapRssItemsToWatchlist, RssEtagPoller } from './rss/index.js'
 // Sync module
