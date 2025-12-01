@@ -28,6 +28,7 @@ import type {
   Item as DbWatchlistItem,
   EtagPollResult,
   EtagUserInfo,
+  Item,
   TemptRssWatchlistItem,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
@@ -618,6 +619,100 @@ export class WatchlistWorkflowService {
   }
 
   /**
+   * Route a single pre-enriched item to Sonarr/Radarr.
+   * Shared by routeNewItemsForUser() and routeEnrichedItemsForUser().
+   *
+   * @param params - Item data and routing context
+   * @returns true if content was added, false otherwise
+   */
+  private async routeSingleItem(params: {
+    item: Item
+    userId: number
+    userName: string
+    primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
+  }): Promise<boolean> {
+    const { item, userId, userName, primaryUser } = params
+
+    const parsedGuids = parseGuids(item.guids)
+    const parsedGenres = parseGenres(item.genres)
+    const normalizedType = item.type.toLowerCase()
+
+    if (parsedGuids.length === 0) {
+      this.log.warn(
+        { userId, title: item.title },
+        'Item has no GUIDs - skipping routing',
+      )
+      return false
+    }
+
+    const tempItem: TemptRssWatchlistItem = {
+      title: item.title,
+      key: item.key,
+      type: normalizedType,
+      thumb: item.thumb ?? '', // thumb may be undefined from DB
+      guids: parsedGuids,
+      genres: parsedGenres,
+    }
+
+    if (normalizedType === 'show') {
+      const tvdbId = extractTvdbId(parsedGuids)
+      if (tvdbId === 0) {
+        this.log.warn(
+          { userId, title: item.title, guids: parsedGuids },
+          'Show has no valid TVDB ID - skipping routing',
+        )
+        return false
+      }
+
+      const sonarrItem: SonarrItem = {
+        title: item.title,
+        guids: parsedGuids,
+        type: 'show',
+        ended: false,
+        genres: parsedGenres,
+        status: 'pending',
+        series_status: 'continuing',
+      }
+
+      return this.processShowWithRouting({
+        tempItem,
+        numericUserId: userId,
+        userName,
+        sonarrItem,
+        primaryUser,
+      })
+    }
+
+    if (normalizedType === 'movie') {
+      const tmdbId = extractTmdbId(parsedGuids)
+      if (tmdbId === 0) {
+        this.log.warn(
+          { userId, title: item.title, guids: parsedGuids },
+          'Movie has no valid TMDB ID - skipping routing',
+        )
+        return false
+      }
+
+      const radarrItem: RadarrItem = {
+        title: item.title,
+        guids: parsedGuids,
+        type: 'movie',
+        genres: parsedGenres,
+      }
+
+      return this.processMovieWithRouting({
+        tempItem,
+        numericUserId: userId,
+        userName,
+        radarrItem,
+        primaryUser,
+      })
+    }
+
+    return false
+  }
+
+  /**
    * Route new items for a specific user detected via change detection.
    * This is the "instant routing" path - no deferral needed since we know
    * exactly WHO added WHAT.
@@ -713,16 +808,6 @@ export class WatchlistWorkflowService {
         // Normalize type to 'movie' | 'show'
         const normalizedType = enrichedItem.type.toLowerCase()
 
-        // Build temp item for routing helpers
-        const tempItem: TemptRssWatchlistItem = {
-          title: enrichedItem.title,
-          key: enrichedItem.key,
-          type: normalizedType,
-          thumb: enrichedItem.thumb,
-          guids: parsedGuids,
-          genres: parsedGenres,
-        }
-
         // Save to watchlist_items table (same as full sync does)
         // Use DbWatchlistItem (Item type) which matches createWatchlistItems signature
         const dbItem: Omit<DbWatchlistItem, 'created_at' | 'updated_at'> = {
@@ -767,62 +852,13 @@ export class WatchlistWorkflowService {
           }
         }
 
-        // Route based on content type using existing helper methods
-        // These handle existence checks, Plex checks, and notifications
-        if (normalizedType === 'show') {
-          // Check for TVDB ID
-          const tvdbId = extractTvdbId(parsedGuids)
-          if (tvdbId === 0) {
-            this.log.warn(
-              { userId, title: enrichedItem.title, guids: parsedGuids },
-              'Show has no valid TVDB ID - skipping routing',
-            )
-            continue
-          }
-
-          const sonarrItem: SonarrItem = {
-            title: enrichedItem.title,
-            guids: parsedGuids,
-            type: 'show',
-            ended: false,
-            genres: parsedGenres,
-            status: 'pending',
-            series_status: 'continuing',
-          }
-
-          await this.processShowWithRouting({
-            tempItem,
-            numericUserId: userId,
-            userName: user.name,
-            sonarrItem,
-            primaryUser,
-          })
-        } else if (normalizedType === 'movie') {
-          // Check for TMDB ID
-          const tmdbId = extractTmdbId(parsedGuids)
-          if (tmdbId === 0) {
-            this.log.warn(
-              { userId, title: enrichedItem.title, guids: parsedGuids },
-              'Movie has no valid TMDB ID - skipping routing',
-            )
-            continue
-          }
-
-          const radarrItem: RadarrItem = {
-            title: enrichedItem.title,
-            guids: parsedGuids,
-            type: 'movie',
-            genres: parsedGenres,
-          }
-
-          await this.processMovieWithRouting({
-            tempItem,
-            numericUserId: userId,
-            userName: user.name,
-            radarrItem,
-            primaryUser,
-          })
-        }
+        // Use shared routing logic
+        await this.routeSingleItem({
+          item: enrichedItem,
+          userId,
+          userName: user.name,
+          primaryUser,
+        })
 
         this.log.debug(
           { userId, title: enrichedItem.title, type: normalizedType },
