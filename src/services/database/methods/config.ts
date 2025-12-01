@@ -129,7 +129,6 @@ export async function getConfig(
     // Handle app configuration
     baseUrl: config.baseUrl || undefined,
     // Handle timing defaults
-    syncIntervalSeconds: config.syncIntervalSeconds ?? 10,
     queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
     // Handle notification timing defaults
     queueWaitTime: config.queueWaitTime ?? 120000,
@@ -269,7 +268,6 @@ export async function createConfig(
       closeGraceDelay: config.closeGraceDelay,
       rateLimitMax: config.rateLimitMax,
       // Timing fields
-      syncIntervalSeconds: config.syncIntervalSeconds ?? 10,
       queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
       // Notification timing fields
       queueWaitTime: config.queueWaitTime ?? 120000,
@@ -431,7 +429,6 @@ const ALLOWED_COLUMNS = new Set([
   'logLevel',
   'closeGraceDelay',
   'rateLimitMax',
-  'syncIntervalSeconds',
   'queueProcessDelaySeconds',
 
   // Discord integration

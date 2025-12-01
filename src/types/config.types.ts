@@ -100,7 +100,6 @@ export interface Config {
   closeGraceDelay: number
   authenticationMethod: 'required' | 'requiredExceptLocal' | 'disabled'
   rateLimitMax: number
-  syncIntervalSeconds: number
   queueProcessDelaySeconds: number
   // Discord Config
   discordWebhookUrl: string

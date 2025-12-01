@@ -144,10 +144,6 @@ const schema = {
       enum: ['required', 'requiredExceptLocal', 'disabled'],
       default: 'required',
     },
-    syncIntervalSeconds: {
-      type: 'number',
-      default: 10,
-    },
     queueProcessDelaySeconds: {
       type: 'number',
       default: 60,
