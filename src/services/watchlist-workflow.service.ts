@@ -458,13 +458,32 @@ export class WatchlistWorkflowService {
    * - Only syncs users with changes (instant routing of new items)
    */
   async reconcile(options: { mode: 'full' | 'etag' }): Promise<void> {
-    // Check if reconciliation is already in progress
-    if (this.isReconciling) {
-      this.log.debug(
-        { requestedMode: options.mode },
-        'Reconciliation already in progress, skipping',
-      )
-      return
+    // Full sync takes priority - wait for any in-progress reconciliation
+    if (options.mode === 'full') {
+      const maxWaitMs = 5 * 60 * 1000 // 5 minutes max wait
+      const startWait = Date.now()
+
+      while (this.isReconciling) {
+        if (Date.now() - startWait > maxWaitMs) {
+          this.log.warn(
+            'Timeout waiting for in-progress reconciliation, proceeding with full sync',
+          )
+          break
+        }
+        this.log.debug(
+          'Waiting for in-progress reconciliation before full sync',
+        )
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+      }
+    } else {
+      // ETag mode skips if anything is running
+      if (this.isReconciling) {
+        this.log.debug(
+          { requestedMode: options.mode },
+          'Reconciliation already in progress, skipping',
+        )
+        return
+      }
     }
 
     this.isReconciling = true
