@@ -408,12 +408,17 @@ export class EtagPoller {
     url.searchParams.append('X-Plex-Container-Size', '20')
 
     try {
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        'X-Plex-Token': token,
+      }
+      // Only include If-None-Match if we have a valid ETag
+      if (cached.etag) {
+        headers['If-None-Match'] = cached.etag
+      }
+
       const response = await fetch(url.toString(), {
-        headers: {
-          Accept: 'application/json',
-          'X-Plex-Token': token,
-          'If-None-Match': cached.etag,
-        },
+        headers,
         signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
       })
 
@@ -435,14 +440,18 @@ export class EtagPoller {
       // Diff to find new items
       const newItems = this.diffItems(freshItems, cached.items)
 
-      // Update cache
-      if (newEtag) {
-        this.cache.set(cacheKey, {
-          etag: newEtag,
-          lastCheck: Date.now(),
-          items: freshItems,
-        })
+      // Update cache - always update items/timestamp even if ETag is missing
+      if (!newEtag) {
+        this.log.warn(
+          { userId },
+          'Primary API response missing ETag header - caching items without ETag',
+        )
       }
+      this.cache.set(cacheKey, {
+        etag: newEtag,
+        lastCheck: Date.now(),
+        items: freshItems,
+      })
 
       if (newItems.length > 0) {
         this.log.debug(
@@ -562,14 +571,18 @@ export class EtagPoller {
       // Diff to find new items
       const newItems = this.diffItems(freshItems, cached.items)
 
-      // Update cache with fresh items and new ETag
-      if (newEtag) {
-        this.cache.set(cacheKey, {
-          etag: newEtag,
-          lastCheck: Date.now(),
-          items: freshItems,
-        })
+      // Update cache - always update items/timestamp even if ETag is missing
+      if (!newEtag) {
+        this.log.warn(
+          { userId, username: friend.username },
+          'GraphQL API response missing ETag header - caching items without ETag',
+        )
       }
+      this.cache.set(cacheKey, {
+        etag: newEtag,
+        lastCheck: Date.now(),
+        items: freshItems,
+      })
 
       if (newItems.length > 0) {
         this.log.debug(

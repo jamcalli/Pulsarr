@@ -195,8 +195,8 @@ export interface GraphQLWatchlistPollResponse {
 
 /** Cached ETag data for a user's watchlist */
 export interface WatchlistEtagCache {
-  /** ETag from 2-item query (for change detection) */
-  etag: string
+  /** ETag from 2-item query (for change detection), null if API didn't return one */
+  etag: string | null
   /** Timestamp of last check */
   lastCheck: number
   /** First 20 items cached (for diffing to find new items) */
