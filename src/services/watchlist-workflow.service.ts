@@ -865,7 +865,7 @@ export class WatchlistWorkflowService {
    * @returns Array of brand new Items saved to DB (ready for routing)
    */
   private async syncSingleFriend(friend: EtagUserInfo): Promise<Item[]> {
-    const token = this.config.plexTokens[0]
+    const token = this.config.plexTokens?.[0]
     if (!token || !friend.watchlistId) {
       this.log.warn(
         { userId: friend.userId },
