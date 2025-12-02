@@ -27,7 +27,7 @@ export interface ItemCategorizerDeps {
  * @returns A new WatchlistItem for the user
  */
 export function createWatchlistItem(
-  user: Friend & { userId: number },
+  user: Friend,
   item: TokenWatchlistItem,
   templateItem: WatchlistItem,
 ): WatchlistItem {
@@ -101,7 +101,7 @@ export function mapExistingItemsByKey(
  */
 export function separateNewAndExistingItems(
   items: Set<TokenWatchlistItem>,
-  user: Friend & { userId: number },
+  user: Friend,
   existingItemsByKey: Map<string, Map<number, WatchlistItem>>,
   deps: ItemCategorizerDeps,
 ): { newItems: Set<TokenWatchlistItem>; itemsToLink: Set<WatchlistItem> } {
@@ -216,7 +216,7 @@ export function categorizeItems(
     userWatchlistMap.forEach((items, user) => {
       const { newItems, itemsToLink } = separateNewAndExistingItems(
         items,
-        user as Friend & { userId: number },
+        user,
         existingItemsByKey,
         deps,
       )

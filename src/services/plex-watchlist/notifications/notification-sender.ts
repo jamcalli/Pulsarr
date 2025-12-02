@@ -123,17 +123,24 @@ export async function sendWatchlistNotifications(
     const itemId =
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
-    await deps.db.createNotificationRecord({
-      watchlist_item_id:
-        itemId !== undefined && !Number.isNaN(itemId) ? itemId : null,
-      user_id: user.userId,
-      type: 'watchlist_add',
-      title: item.title,
-      message: `New ${item.type} added to watchlist`,
-      sent_to_discord: discordSent,
-      sent_to_apprise: appriseSent,
-      sent_to_webhook: true,
-    })
+    try {
+      await deps.db.createNotificationRecord({
+        watchlist_item_id:
+          itemId !== undefined && !Number.isNaN(itemId) ? itemId : null,
+        user_id: user.userId,
+        type: 'watchlist_add',
+        title: item.title,
+        message: `New ${item.type} added to watchlist`,
+        sent_to_discord: discordSent,
+        sent_to_apprise: appriseSent,
+        sent_to_webhook: true,
+      })
+    } catch (error) {
+      deps.logger.error(
+        { error, userId: user.userId, title: item.title },
+        'Failed to record notification history',
+      )
+    }
 
     return true
   }
