@@ -12,8 +12,8 @@ import {
   isRateLimitError,
   PLEX_API_TIMEOUT_MS,
   type RateLimitError,
-} from '../helpers.js'
-import { PlexRateLimiter } from '../rate-limiter.js'
+} from '../api/helpers.js'
+import { PlexRateLimiter } from '../api/rate-limiter.js'
 
 /**
  * Handle a Plex API rate-limit for a single watchlist item: apply a global cooldown, optionally wait and retry, or fail when retries are exhausted.

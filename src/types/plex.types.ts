@@ -162,3 +162,80 @@ export interface RssResponse {
   description: string
   items: RssWatchlistItem[]
 }
+
+// ============================================================================
+// ETag Polling Types
+// ============================================================================
+
+/** Discover API response for primary user watchlist polling */
+export interface DiscoverWatchlistResponse {
+  MediaContainer?: {
+    Metadata?: Array<{
+      key?: string
+      title?: string
+      type?: string
+      ratingKey?: string
+      thumb?: string
+    }>
+    totalSize?: number
+  }
+}
+
+/** GraphQL watchlist response for ETag polling (simplified subset of PlexApiResponse) */
+export interface GraphQLWatchlistPollResponse {
+  data?: {
+    userV2?: {
+      watchlist?: {
+        nodes: EtagPollItem[]
+      }
+    }
+  }
+  errors?: Array<{ message: string }>
+}
+
+/** Cached ETag data for a user's watchlist */
+export interface WatchlistEtagCache {
+  /** ETag from 2-item query (for change detection), null if API didn't return one */
+  etag: string | null
+  /** Timestamp of last check */
+  lastCheck: number
+  /** First 20 items cached (for diffing to find new items) */
+  items: EtagPollItem[]
+}
+
+/** Result of an ETag poll operation */
+export interface EtagPollResult {
+  /** Whether the watchlist has changed since last poll */
+  changed: boolean
+  /** User ID associated with this watchlist */
+  userId: number
+  /** NEW items found by diffing fresh vs cached (for instant routing) */
+  newItems: EtagPollItem[]
+  /** Error message if poll failed */
+  error?: string
+}
+
+/** Minimal watchlist item from ETag poll response */
+export interface EtagPollItem {
+  id: string
+  title: string
+  type: string
+}
+
+/** User info for ETag polling and friend change tracking */
+export interface EtagUserInfo {
+  userId: number
+  username: string
+  watchlistId?: string // Only for friends (GraphQL ID), undefined for primary
+  isPrimary: boolean
+}
+
+/** Result of friend change detection */
+export interface FriendChangesResult {
+  /** Newly added friends with their info */
+  added: EtagUserInfo[]
+  /** Removed friends with their info */
+  removed: EtagUserInfo[]
+  /** Map of watchlistId to userId for all current friends */
+  userMap: Map<string, number>
+}

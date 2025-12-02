@@ -10,15 +10,13 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const rssCheckIntervalMs = (fastify.config.syncIntervalSeconds || 10) * 1000
-    const queueProcessDelayMs =
-      (fastify.config.queueProcessDelaySeconds || 60) * 1000
+    // 30-60s with jitter to spread load across Plex servers
+    const rssCheckIntervalMs = 30_000 + Math.ceil(Math.random() * 30_000)
 
     const watchlistWorkflow = new WatchlistWorkflowService(
       fastify.log,
       fastify,
       rssCheckIntervalMs,
-      queueProcessDelayMs,
     )
 
     // Create wrapped versions of the startWorkflow and stop methods

@@ -1,6 +1,6 @@
 import type { Config } from '@root/types/config.types.js'
 import type { PlexApiResponse } from '@root/types/plex.types.js'
-import { getFriends } from '@root/utils/plex/friends-api.js'
+import { getFriends } from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
@@ -151,7 +151,7 @@ describe('plex/friends-api', () => {
       expect(result.success).toBe(true)
       expect(result.hasApiErrors).toBe(true)
       expect(result.friends.size).toBe(1)
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         expect.stringContaining('(with some API errors)'),
       )
     })
@@ -404,7 +404,7 @@ describe('plex/friends-api', () => {
 
       await getFriends(config, mockLogger)
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         'Friends fetched successfully. Got 2 unique friends',
       )
     })

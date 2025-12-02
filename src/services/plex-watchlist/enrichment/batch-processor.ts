@@ -2,8 +2,8 @@ import type { Config } from '@root/types/config.types.js'
 import type { Item, TokenWatchlistItem } from '@root/types/plex.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { isRateLimitError } from '../helpers.js'
-import { PlexRateLimiter } from '../rate-limiter.js'
+import { isRateLimitError } from '../api/helpers.js'
+import { PlexRateLimiter } from '../api/rate-limiter.js'
 import { toItemsSingle } from './single-item.js'
 
 /**

@@ -104,7 +104,6 @@ export const ConfigFullSchema = z.object({
   logLevel: LogLevelEnum.optional(),
   closeGraceDelay: z.number().optional(),
   rateLimitMax: z.number().optional(),
-  syncIntervalSeconds: z.number(),
   queueProcessDelaySeconds: z.number(),
   // Discord Config
   discordWebhookUrl: z.string().optional(),
@@ -261,7 +260,6 @@ export const ConfigUpdateSchema = z.object({
   logLevel: LogLevelEnum.optional(),
   closeGraceDelay: z.number().optional(),
   rateLimitMax: z.number().optional(),
-  syncIntervalSeconds: z.number().optional(),
   queueProcessDelaySeconds: z.number().optional(),
   // Discord Config
   discordWebhookUrl: z.string().optional(),
