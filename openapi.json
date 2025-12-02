@@ -4269,9 +4269,6 @@
                         "rateLimitMax": {
                           "type": "number"
                         },
-                        "syncIntervalSeconds": {
-                          "type": "number"
-                        },
                         "queueProcessDelaySeconds": {
                           "type": "number"
                         },
@@ -4810,7 +4807,6 @@
                         "created_at",
                         "updated_at",
                         "cookieSecured",
-                        "syncIntervalSeconds",
                         "queueProcessDelaySeconds",
                         "enableApprise",
                         "appriseUrl",
@@ -5017,9 +5013,6 @@
                     "type": "number"
                   },
                   "rateLimitMax": {
-                    "type": "number"
-                  },
-                  "syncIntervalSeconds": {
                     "type": "number"
                   },
                   "queueProcessDelaySeconds": {
@@ -5638,9 +5631,6 @@
                         "rateLimitMax": {
                           "type": "number"
                         },
-                        "syncIntervalSeconds": {
-                          "type": "number"
-                        },
                         "queueProcessDelaySeconds": {
                           "type": "number"
                         },
@@ -6179,7 +6169,6 @@
                         "created_at",
                         "updated_at",
                         "cookieSecured",
-                        "syncIntervalSeconds",
                         "queueProcessDelaySeconds",
                         "enableApprise",
                         "appriseUrl",
