@@ -1,6 +1,7 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-export const HealthCheckSchema = z.object({
+export const HealthCheckResponseSchema = z.object({
   status: z.enum(['healthy', 'unhealthy']),
   timestamp: z.string().datetime(),
   checks: z.object({
@@ -8,7 +9,8 @@ export const HealthCheckSchema = z.object({
   }),
 })
 
-export type HealthCheck = z.infer<typeof HealthCheckSchema>
+export type HealthCheckResponse = z.infer<typeof HealthCheckResponseSchema>
 
-export const HealthCheckResponseSchema = HealthCheckSchema
-export type HealthCheckResponse = HealthCheck
+// Re-export shared error schema with domain-specific alias
+export { ErrorSchema as HealthCheckErrorSchema }
+export type HealthCheckError = z.infer<typeof ErrorSchema>

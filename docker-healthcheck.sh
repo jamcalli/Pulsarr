@@ -4,10 +4,16 @@ set -e
 # Read basePath from environment (defaults to empty string if not set)
 BASE_PATH="${basePath:-}"
 
-# Normalize basePath: strip trailing slash, add leading slash if non-empty
-if [ -n "$BASE_PATH" ]; then
-  BASE_PATH="$(echo "$BASE_PATH" | sed 's:/*$::')"
-  BASE_PATH="/${BASE_PATH#/}"
+# Normalize basePath: strip leading/trailing slashes, then add single leading slash
+if [ -n "$BASE_PATH" ] && [ "$BASE_PATH" != "/" ]; then
+  # Remove all leading and trailing slashes
+  BASE_PATH="$(echo "$BASE_PATH" | sed 's:^/*::' | sed 's:/*$::')"
+  # Add leading slash if we still have content
+  if [ -n "$BASE_PATH" ]; then
+    BASE_PATH="/${BASE_PATH}"
+  fi
+else
+  BASE_PATH=""
 fi
 
 # Construct health check URL
