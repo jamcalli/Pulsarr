@@ -39,6 +39,7 @@ export {
   sendWatchlistNotifications,
   type WatchlistItemNotification,
 } from './notifications/notification-sender.js'
+// Orchestration module
 export {
   type ItemProcessorDeps,
   linkExistingItems,
@@ -48,7 +49,6 @@ export {
   handleLinkedItemsForLabelSync,
   type RemovalHandlerDeps,
 } from './orchestration/removal-handler.js'
-// Orchestration module
 export {
   extractKeysAndRelationships,
   getExistingItems,
