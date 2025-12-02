@@ -6,7 +6,7 @@ import type {
   PlexApiResponse,
 } from '@root/types/plex.types.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { PLEX_API_TIMEOUT_MS } from './helpers.js'
+import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
 /**
  * Fetches the list of friends from the Plex API for all configured tokens.
@@ -116,7 +116,7 @@ export const getFriends = async (
   }
 
   if (hasAnySuccess) {
-    log.info(
+    log.debug(
       `Friends fetched successfully. Got ${friendsSet.size} unique friends${hasApiErrors ? ' (with some API errors)' : ''}`,
     )
   } else {

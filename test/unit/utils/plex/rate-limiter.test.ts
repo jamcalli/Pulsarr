@@ -1,4 +1,4 @@
-import { PlexRateLimiter } from '@root/utils/plex/rate-limiter.js'
+import { PlexRateLimiter } from '@services/plex-watchlist/index.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
 

@@ -19,9 +19,9 @@ import type {
   PlexShowMetadata,
   PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
+import { toItemsSingle } from '@services/plex-watchlist/index.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
-import { toItemsSingle } from '@utils/plex/index.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {

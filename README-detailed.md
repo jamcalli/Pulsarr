@@ -540,7 +540,6 @@ enableRequestLogging=false              # Enable HTTP request logging (default: 
 authenticationMethod=required          # Authentication method (required, requiredExceptLocal, disabled)
 closeGraceDelay=10000                  # Shutdown grace period in ms
 rateLimitMax=100                       # Max requests per time window
-syncIntervalSeconds=10                 # Sync interval in seconds
 queueProcessDelaySeconds=60            # Queue processing delay in seconds
 
 # Discord Configuration

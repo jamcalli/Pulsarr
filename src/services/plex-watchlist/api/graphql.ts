@@ -88,7 +88,7 @@ export const getWatchlist = async (
   // Wait if we're already rate limited before making any API call
   await rateLimiter.waitIfLimited(log, progressInfo)
 
-  const containerSize = 300
+  const containerSize = 100
   const url = new URL(
     'https://discover.provider.plex.tv/library/sections/watchlist/all',
   )
@@ -384,6 +384,11 @@ export const getWatchlistForUser = async (
       }
 
       if (watchlist.pageInfo.hasNextPage && watchlist.pageInfo.endCursor) {
+        // Delay between pagination requests per Plex developer request
+        await new Promise((resolve) =>
+          setTimeout(resolve, 5_000 + Math.ceil(Math.random() * 10_000)),
+        )
+
         const nextPageItems = await getWatchlistForUser(
           config,
           log,

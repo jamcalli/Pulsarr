@@ -5,11 +5,11 @@ import type {
   PlexApiResponse,
   PlexResponse,
 } from '@root/types/plex.types.js'
-import { PlexRateLimiter } from '@root/utils/plex/rate-limiter.js'
 import {
   getWatchlist,
   getWatchlistForUser,
-} from '@root/utils/plex/watchlist-api.js'
+  PlexRateLimiter,
+} from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
@@ -123,7 +123,7 @@ describe('plex/watchlist-api', () => {
       await getWatchlist('token', mockLogger, 100)
 
       expect(capturedParams?.get('X-Plex-Container-Start')).toBe('100')
-      expect(capturedParams?.get('X-Plex-Container-Size')).toBe('300')
+      expect(capturedParams?.get('X-Plex-Container-Size')).toBe('100')
     })
 
     it('should include correct headers in request', async () => {
@@ -312,6 +312,7 @@ describe('plex/watchlist-api', () => {
     })
 
     it('should handle pagination', async () => {
+      vi.useFakeTimers()
       let callCount = 0
       server.use(
         http.post('https://community.plex.tv/api', () => {
@@ -347,16 +348,19 @@ describe('plex/watchlist-api', () => {
         }),
       )
 
-      const result = await getWatchlistForUser(
+      const resultPromise = getWatchlistForUser(
         config,
         mockLogger,
         'token',
         user,
         1,
       )
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
 
       expect(result.size).toBe(2)
       expect(callCount).toBe(2)
+      vi.useRealTimers()
     })
 
     it('should throw error when user object is invalid', async () => {
@@ -474,6 +478,7 @@ describe('plex/watchlist-api', () => {
     })
 
     it('should retry on generic error up to maxRetries', async () => {
+      vi.useFakeTimers()
       let callCount = 0
       server.use(
         http.post('https://community.plex.tv/api', () => {
@@ -494,7 +499,7 @@ describe('plex/watchlist-api', () => {
         }),
       )
 
-      const result = await getWatchlistForUser(
+      const resultPromise = getWatchlistForUser(
         config,
         mockLogger,
         'token',
@@ -504,9 +509,12 @@ describe('plex/watchlist-api', () => {
         0,
         2,
       )
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
 
       expect(result.size).toBe(0)
       expect(callCount).toBe(3)
+      vi.useRealTimers()
     })
 
     it('should fall back to database items when retries exhausted', async () => {

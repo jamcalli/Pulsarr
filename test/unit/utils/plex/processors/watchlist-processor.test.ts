@@ -4,7 +4,7 @@ import type {
   PlexApiResponse,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import { processWatchlistItems } from '@root/utils/plex/processors/watchlist-processor.js'
+import { processWatchlistItems } from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'

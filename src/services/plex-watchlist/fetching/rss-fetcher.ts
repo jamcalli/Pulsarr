@@ -5,7 +5,7 @@ import type {
 } from '@root/types/plex.types.js'
 import { normalizeGuid } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
-import { PLEX_API_TIMEOUT_MS } from './helpers.js'
+import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
 /**
  * Generates RSS feed URLs for the given Plex tokens.
@@ -114,10 +114,6 @@ export const fetchWatchlistFromRss = async (
   try {
     const urlObj = new URL(url)
     urlObj.searchParams.append('format', 'json')
-    urlObj.searchParams.append(
-      'cache_buster',
-      Math.random().toString(36).substring(2, 14),
-    )
 
     const response = await fetch(urlObj.toString(), {
       headers: {

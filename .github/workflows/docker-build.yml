@@ -32,23 +32,23 @@ jobs:
           # Get the commit that the tag points to
           TAG_COMMIT=$(git rev-parse ${{ github.ref }})
           echo "Tag commit: $TAG_COMMIT"
-          
-          # Check if this commit is on the develop branch
-          BRANCH_CONTAINS=$(git branch -r --contains $TAG_COMMIT | grep "origin/develop" || true)
+
+          # Check if this commit is on develop or a feature branch
+          BRANCH_CONTAINS=$(git branch -r --contains $TAG_COMMIT | grep -E "origin/(develop|feature/)" || true)
           echo "Branch contains check: $BRANCH_CONTAINS"
-          
+
           if [[ -n "$BRANCH_CONTAINS" ]]; then
             echo "is_valid_branch=true" >> $GITHUB_OUTPUT
-            echo "Tag is on the develop branch"
+            echo "Tag is on a valid branch for beta releases"
           else
             echo "is_valid_branch=false" >> $GITHUB_OUTPUT
-            echo "Beta releases should only be created from the develop branch"
+            echo "Beta releases should only be created from develop or feature branches"
             exit 1
           fi
       
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@318604b99e75e41977312d83839a89be02ca4893 # v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: |
             lakker/pulsarr
