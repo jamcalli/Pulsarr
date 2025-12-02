@@ -7,6 +7,7 @@ export default async function (fastify: FastifyInstance) {
     '/v1/users/login',
     '/v1/users/create-admin',
     '/v1/notifications/webhook',
+    '/health',
   ]
 
   // Compute full public paths with basePath prefix at startup

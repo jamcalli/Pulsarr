@@ -848,6 +848,22 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: "category",
+      label: "System",
+      link: {
+        type: "doc",
+        id: "api/system",
+      },
+      items: [
+        {
+          type: "doc",
+          id: "api/get-health",
+          label: "Health check endpoint",
+          className: "api-method get",
+        },
+      ],
+    },
+    {
+      type: "category",
       label: "Tags",
       link: {
         type: "doc",
