@@ -586,6 +586,10 @@ export class WatchlistWorkflowService {
                 newFriend.userId,
                 brandNewItems,
               )
+
+              // Post-routing tasks - update attribution and schedule status sync
+              await this.updateAutoApprovalUserAttribution()
+              this.scheduleDebouncedStatusSync()
             }
 
             // Only establish baseline after successful sync
