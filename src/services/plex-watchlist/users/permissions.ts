@@ -44,7 +44,7 @@ export async function getUserCanSync(
         { error, userId },
         'Failed to fetch user can_sync; treating as disabled',
       )
-      userCanSyncCache.set(userId, false)
+      // Don't cache on error - allow retry on next check
       return false
     } finally {
       userCanSyncInFlight.delete(userId)
