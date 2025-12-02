@@ -55,6 +55,8 @@ COPY --from=builder /app/dist ./dist
 COPY migrations ./migrations
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
+COPY docker-healthcheck.sh ./
+RUN chmod +x docker-healthcheck.sh
 
 # Copy license and documentation files for compliance
 COPY LICENSE* ./
@@ -71,5 +73,8 @@ ENV tmdbApiKey=${TMDBAPIKEY}
 VOLUME ["/app/build-cache"]
 VOLUME ["/app/data"]
 EXPOSE 3003
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD ./docker-healthcheck.sh
 
 CMD ["./docker-entrypoint.sh"]

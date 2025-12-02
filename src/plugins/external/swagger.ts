@@ -137,6 +137,10 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           description: 'Synchronization control endpoints',
         },
         {
+          name: 'System',
+          description: 'System health and monitoring endpoints',
+        },
+        {
           name: 'Tags',
           description: 'Tag management endpoints',
         },

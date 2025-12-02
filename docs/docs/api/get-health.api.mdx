@@ -1,0 +1,63 @@
+---
+id: get-health
+title: "Health check endpoint"
+description: "Returns the health status of the application. Used by Docker HEALTHCHECK and orchestrators. Does not require authentication."
+sidebar_label: "Health check endpoint"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVktv4zYQ/ivEoIcYlWLZeTTRxTCSoAl2D0aSLYrKKsBI44gbidSSo80atv57MaLlOInbRU8Fij1JmBl+8/o4wxWYGq0kZfRNDjE8Il2jLKmAAEg+OogTuFs6wgrSAHJ0mVU1W0MMt0iN1U5QgaLoDglHkhonzKITyrouVdaBH4pPDnPxsBSXJntCK66vph/vry+ury4+CKlzYWxWoCMryVh3KC4NOqENCYtfGmVRyIYK1NTDQQAWXW20QwfxCsZRxJ/XAV7iQjYliduNJQSQGU2oiW13oht+dnxgBS4rsJL8R8saIQbz8BkzggBqy4Ui5d35PHfsHFmlHyEA1E3FRfMFWUIAje7/0zYAUhU6klW97/DC2EoSxJBLwpBN2bMkQsv5/HkwiQ8m8Xyez+d5Mj4+PUuT6PgsXW8ko6OTX87TZHzaS6KEtUn0YhpF6x2zKBqE0Tgcn7P96rgNvYOoMzlL16MkGqeD0IvC83SdjMbpfJ6vj5JolA7WneL49Dxdj0Z7zSJvM95VjlgzTqLwLB0MBvfeJeP18qN0ECdReMKCg0m8+z+fH87n+c+DyWByMIn/GAx+gjaArMDsyX2/a7kk+SAd/lPfzBP3QaoSc0jblmnWETBn5RYgDUDmuWLuyHK242QhS4dvj23Ystv8bdDfQ2Ksk+joB7l/kPv/SO42gAqpMJvd4xlRQAzDol9DDu1XtLyJVtDYEmJY1daQyUzZxsPhqjCO2nhVG0stvN1RF40jU4m7DgMC+Cqtkg+lL1kPw/9bahNxAvxxfuV11wziXvMa/75A0cOIhlccGZGZqmo0Xz8Uz4qKbhn6NLijHLC/zz10aTJZduJ9+KzQskJhrLiZCZnnFt12yc6a0klrd/C5Eq/xj6LoaH/oxpIwWjwXKiu2UMoJ22jN3OEO9WXvahIPh0vT2LD2tqHSjqTO8DAz1TsXM6sqaZd9+f8FVLw35EtlMaMNnJhmGdfhoCsxZzJ44yEeDreV3Q/4sVfvBUuZfFljFS079slafcDltGGCJin7cuicMnor2jlxx9PW82z33PZyeiEEoDiQAmXeEZQbDTH8Hk5nN6E3eB3ydHYjnnD55kEkGqf0o9geExvANngd49+4z4x5UvjiftOSd87vPFbIcyLfH4KHcsBXW+mF6XwqKhm2J9h0drM3r9xkTYWaPN7C2C0lQyHFrMRv4llSVpTKkVCa8NG+mN4ZzZb8mLyVuY+eB4eH/23kr4ajSnbbcJOpf+2KbmAJ1HltlH53DVcvq/W/fvVu2kf4jYZ1KZXmtDrKrzajs1/PPL38qElgteKOfbJl27L4S4OWKZ2+DETP6J6HzPYnXHJbsgxr6iZn2XjivHlZMOm3M/zXq3to278AmIciUg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Health check endpoint"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/health"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Returns the health status of the application. Used by Docker HEALTHCHECK and orchestrators. Does not require authentication.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"status":{"type":"string","enum":["healthy","unhealthy"]},"timestamp":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"},"checks":{"type":"object","properties":{"database":{"type":"string","enum":["ok","failed"]}},"required":["database"],"additionalProperties":false}},"required":["status","timestamp","checks"],"additionalProperties":false}}}},"503":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"status":{"type":"string","enum":["healthy","unhealthy"]},"timestamp":{"type":"string","format":"date-time","pattern":"^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"},"checks":{"type":"object","properties":{"database":{"type":"string","enum":["ok","failed"]}},"required":["database"],"additionalProperties":false}},"required":["status","timestamp","checks"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
