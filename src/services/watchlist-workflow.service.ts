@@ -587,17 +587,22 @@ export class WatchlistWorkflowService {
                 brandNewItems,
               )
             }
+
+            // Only establish baseline after successful sync
+            // If sync failed, next full reconciliation will handle this friend
+            await this.etagPoller.establishBaseline(newFriend)
           } catch (error) {
             this.log.error(
               { userId: newFriend.userId, username: newFriend.username, error },
               'Failed to sync new friend - will retry on next full reconciliation',
             )
-            // Don't throw - let reconciliation continue for other users
+            // Don't establish baseline - let full reconciliation handle this friend
           }
+        } else {
+          // Full mode: fetchWatchlists() will handle this friend's items
+          // Establish baseline for future change detection
+          await this.etagPoller.establishBaseline(newFriend)
         }
-        // Full mode: fetchWatchlists() will handle this friend's items
-
-        await this.etagPoller.establishBaseline(newFriend)
       }
 
       // Handle removed friends - clear their watchlist cache
