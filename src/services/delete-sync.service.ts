@@ -30,6 +30,10 @@ import {
   TagCache,
 } from '@services/delete-sync/cache/index.js'
 import {
+  extractGuidsFromWatchlistItems,
+  fetchWatchlistItems,
+} from '@services/delete-sync/data-fetching/index.js'
+import {
   executeTagBasedDeletion,
   executeWatchlistDeletion,
 } from '@services/delete-sync/orchestration/index.js'
@@ -1139,139 +1143,15 @@ export class DeleteSyncService {
     respectUserSyncSetting = false,
   ): Promise<Set<string>> {
     try {
-      const watchlistItems = await this.fetchWatchlistItems(
-        respectUserSyncSetting,
-      )
-      return this.extractGuidsFromWatchlistItems(watchlistItems)
+      const watchlistItems = await fetchWatchlistItems(respectUserSyncSetting, {
+        db: this.dbService,
+        logger: this.log,
+      })
+      return extractGuidsFromWatchlistItems(watchlistItems, this.log)
     } catch (error) {
       this.log.error({ error }, 'Error in getAllWatchlistItems:')
       throw error
     }
-  }
-
-  /**
-   * Fetches all watchlist items from the database
-   * Optionally filters by user sync settings
-   */
-  private async fetchWatchlistItems(
-    respectUserSyncSetting: boolean,
-  ): Promise<Array<{ title: string; guids?: string | string[] }>> {
-    if (respectUserSyncSetting) {
-      return this.fetchWatchlistItemsWithUserFilter()
-    }
-
-    // Get all watchlist items regardless of user sync settings
-    const [shows, movies] = await Promise.all([
-      this.dbService.getAllShowWatchlistItems(),
-      this.dbService.getAllMovieWatchlistItems(),
-    ])
-
-    const watchlistItems = [...shows, ...movies]
-    this.log.info(
-      `Found ${watchlistItems.length} watchlist items from all users`,
-    )
-
-    return watchlistItems
-  }
-
-  /**
-   * Fetches watchlist items filtered by users with sync enabled
-   */
-  private async fetchWatchlistItemsWithUserFilter(): Promise<
-    Array<{ title: string; guids?: string | string[] }>
-  > {
-    // Get all users to check their sync permissions
-    const allUsers = await this.dbService.getAllUsers()
-    const syncEnabledUserIds = allUsers
-      .filter((user) => user.can_sync !== false)
-      .map((user) => user.id)
-
-    this.log.info(
-      `Found ${syncEnabledUserIds.length} users with sync enabled out of ${allUsers.length} total users`,
-    )
-
-    // Only get watchlist items from users with sync enabled
-    const [shows, movies] = await Promise.all([
-      this.dbService.getAllShowWatchlistItems().then((items) =>
-        items.filter((item) => {
-          const userId =
-            typeof item.user_id === 'object'
-              ? (item.user_id as { id: number }).id
-              : Number(item.user_id)
-          return syncEnabledUserIds.includes(userId)
-        }),
-      ),
-      this.dbService.getAllMovieWatchlistItems().then((items) =>
-        items.filter((item) => {
-          const userId =
-            typeof item.user_id === 'object'
-              ? (item.user_id as { id: number }).id
-              : Number(item.user_id)
-          return syncEnabledUserIds.includes(userId)
-        }),
-      ),
-    ])
-
-    const watchlistItems = [...shows, ...movies]
-    this.log.info(
-      `Found ${watchlistItems.length} watchlist items from users with sync enabled`,
-    )
-
-    return watchlistItems
-  }
-
-  /**
-   * Extracts GUIDs from watchlist items into a set for efficient lookup
-   */
-  private extractGuidsFromWatchlistItems(
-    watchlistItems: Array<{ title: string; guids?: string | string[] }>,
-  ): Set<string> {
-    // Create a set of unique GUIDs for efficient lookup
-    const guidSet = new Set<string>()
-    let malformedItems = 0
-
-    // Process all items to extract GUIDs using the standardized GUID handler
-    for (const item of watchlistItems) {
-      try {
-        // Use parseGuids utility for consistent GUID parsing and normalization
-        const parsedGuids = parseGuids(item.guids)
-
-        // Add each parsed and normalized GUID to the set for efficient lookup
-        for (const guid of parsedGuids) {
-          guidSet.add(guid)
-        }
-
-        // Protection system uses standardized GUIDs instead of keys
-        // Standardized identifiers enable cross-platform content matching
-      } catch (error) {
-        malformedItems++
-        this.log.warn(
-          {
-            error: error instanceof Error ? error : new Error(String(error)),
-            guids: item.guids,
-          },
-          `Malformed guids in watchlist item "${item.title}"`,
-        )
-      }
-    }
-
-    if (malformedItems > 0) {
-      this.log.warn(
-        `Found ${malformedItems} watchlist items with malformed GUIDs`,
-      )
-    }
-
-    this.log.debug(
-      `Extracted ${guidSet.size} unique GUIDs from watchlist items`,
-    )
-
-    // Trace sample of collected identifiers (limited to 5)
-    if (this.log.level === 'trace') {
-      const sampleGuids = Array.from(guidSet).slice(0, 5)
-      this.log.trace({ sampleGuids }, 'Sample of watchlist GUIDs (first 5)')
-    }
-
-    return guidSet
   }
 
   /**
