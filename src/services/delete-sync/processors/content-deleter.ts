@@ -35,7 +35,7 @@ export interface ShowDeletionConfig extends ValidationConfig {
 /**
  * Context for movie deletion
  */
-export interface MovieDeletionContext {
+export interface MovieDeletionDeps {
   movies: RadarrItem[]
   config: MovieDeletionConfig
   validators: ContentValidators
@@ -51,7 +51,7 @@ export interface MovieDeletionContext {
 /**
  * Context for show deletion
  */
-export interface ShowDeletionContext {
+export interface ShowDeletionDeps {
   shows: SonarrItem[]
   config: ShowDeletionConfig
   validators: ContentValidators
@@ -199,7 +199,7 @@ function logShowDeletionSuccess(
  * @param counters - Deletion counters to update
  */
 export async function processMovieDeletions(
-  context: MovieDeletionContext,
+  context: MovieDeletionDeps,
   counters: DeletionCounters,
 ): Promise<void> {
   const {
@@ -360,7 +360,7 @@ export async function processMovieDeletions(
  * @param counters - Deletion counters to update
  */
 export async function processShowDeletions(
-  context: ShowDeletionContext,
+  context: ShowDeletionDeps,
   counters: DeletionCounters,
 ): Promise<void> {
   const {
