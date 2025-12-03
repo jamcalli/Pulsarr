@@ -170,7 +170,7 @@ function createRequestSerializer() {
  * Build a Pulsarr log filename from a date (or return the current-log name).
  *
  * If `time` is falsy (null/undefined/0) the function returns `pulsarr-current.log`.
- * Otherwise it returns `pulsarr-YYYY-MM-DD[-index].log`.
+ * Otherwise it returns `pulsarr-YYYY-MM-DD[-index].log.gz` for rotated (compressed) logs.
  *
  * @param time - Date or timestamp to base the filename on; falsy returns the current log name.
  * @param index - Optional rotation index appended as `-index`; only included when a truthy number is provided.
@@ -183,7 +183,7 @@ function filename(time: number | Date | null, index?: number): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   const indexStr = index ? `-${index}` : ''
-  return `pulsarr-${year}-${month}-${day}${indexStr}.log`
+  return `pulsarr-${year}-${month}-${day}${indexStr}.log.gz`
 }
 
 /**
