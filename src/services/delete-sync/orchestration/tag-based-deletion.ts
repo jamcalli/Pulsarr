@@ -20,7 +20,7 @@ import {
   createEmptyResult,
   createSafetyTriggeredResult,
 } from '@services/delete-sync/utils/index.js'
-import { performSafetyCheck } from '@services/delete-sync/validation/index.js'
+import { performTagBasedSafetyCheck } from '@services/delete-sync/validation/index.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -54,7 +54,7 @@ export interface TagBasedDeletionDeps {
  * Performs tag-based safety check to prevent mass deletion
  * Returns a result if safety check fails, or null if it passes
  */
-async function performTagBasedSafetyCheck(
+async function performTagBasedDeletionSafetyCheck(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
   context: TagBasedDeletionDeps,
@@ -125,17 +125,12 @@ async function performTagBasedSafetyCheck(
         ),
       ])
 
-    const safetyCheck = performSafetyCheck(
+    const safetyCheck = performTagBasedSafetyCheck(
       existingSeries,
       existingMovies,
       taggedForDeletionSeries,
       taggedForDeletionMovies,
-      {
-        deleteMovie: config.deleteMovie,
-        deleteEndedShow: config.deleteEndedShow,
-        deleteContinuingShow: config.deleteContinuingShow,
-        maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
-      },
+      config,
       logger,
     )
 
@@ -227,7 +222,7 @@ export async function executeTagBasedDeletion(
   }
 
   // Run safety check to prevent mass deletion
-  const safetyCheckResult = await performTagBasedSafetyCheck(
+  const safetyCheckResult = await performTagBasedDeletionSafetyCheck(
     existingSeries,
     existingMovies,
     context,

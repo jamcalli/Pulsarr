@@ -26,7 +26,6 @@ import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   ensureProtectionCache,
   ensureTrackedCache,
-  isAnyGuidTracked as isAnyGuidTrackedHelper,
   TagCache,
 } from '@services/delete-sync/cache/index.js'
 import {
@@ -41,7 +40,7 @@ import {
   createEmptyResult,
   createSafetyTriggeredResult,
 } from '@services/delete-sync/utils/index.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import { performWatchlistSafetyCheck } from '@services/delete-sync/validation/safety-checker.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -144,27 +143,6 @@ export class DeleteSyncService {
       this.log,
     )
     return this.protectedGuids
-  }
-
-  /**
-   * Returns true if any of the provided GUIDs exist in the protected set.
-   * Optional onHit callback lets callers log the first matching GUID.
-   */
-  /**
-   * Returns true if any of the provided GUIDs exist in the tracked set.
-   * When deleteSyncTrackedOnly is enabled, only tracked content can be deleted.
-   * Optional onHit callback lets callers log the first matching GUID.
-   */
-  private isAnyGuidTracked(
-    guidList: string[],
-    onHit?: (guid: string) => void,
-  ): boolean {
-    return isAnyGuidTrackedHelper(
-      guidList,
-      this.trackedGuids,
-      this.config.deleteSyncTrackedOnly,
-      onHit,
-    )
   }
 
   /**
@@ -340,11 +318,15 @@ export class DeleteSyncService {
         const protectedGuids = protectionLoadResult.protectedGuids
 
         // Step 9: Perform safety check for mass deletion prevention (with protection awareness)
-        const safetyResult = this.performSafetyCheck(
+        const safetyResult = performWatchlistSafetyCheck(
           existingSeries,
           existingMovies,
           allWatchlistItems,
           protectedGuids,
+          this.config,
+          this.trackedGuids,
+          this.config.deleteSyncTrackedOnly,
+          this.log,
         )
 
         if (!safetyResult.safe) {
@@ -520,146 +502,6 @@ export class DeleteSyncService {
       `Found ${existingSeries.length} series in Sonarr and ${existingMovies.length} movies in Radarr`,
     )
     return { existingSeries, existingMovies }
-  }
-
-  /**
-   * Performs safety check to prevent mass deletion
-   */
-  private performSafetyCheck(
-    existingSeries: SonarrItem[],
-    existingMovies: RadarrItem[],
-    allWatchlistItems: Set<string>,
-    protectedGuids: Set<string> | null = null,
-  ): { safe: boolean; message: string } {
-    // Count potential deletions
-    const deletionCounts = this.countPotentialDeletions(
-      existingSeries,
-      existingMovies,
-      allWatchlistItems,
-      protectedGuids,
-    )
-
-    const totalPotentialDeletes = deletionCounts.movies + deletionCounts.shows
-    const potentialDeletionPercentage =
-      deletionCounts.totalConsidered > 0
-        ? (totalPotentialDeletes / deletionCounts.totalConsidered) * 100
-        : 0
-
-    // Prevent mass deletion if percentage is too high
-    const MAX_DELETION_PERCENTAGE = Number(
-      this.config.maxDeletionPrevention ?? 10,
-    ) // Default to 10% as configured in the database
-
-    if (
-      Number.isNaN(MAX_DELETION_PERCENTAGE) ||
-      MAX_DELETION_PERCENTAGE < 0 ||
-      MAX_DELETION_PERCENTAGE > 100
-    ) {
-      // Debug breadcrumbs for config validation failures
-      this.log.debug({
-        rawMaxDeletionPrevention: this.config.maxDeletionPrevention,
-        parsed: MAX_DELETION_PERCENTAGE,
-        type: typeof this.config.maxDeletionPrevention,
-      })
-      return {
-        safe: false,
-        message: `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100 inclusive.`,
-      }
-    }
-
-    if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
-      return {
-        safe: false,
-        message: `Safety check failed: Would delete ${totalPotentialDeletes} out of ${deletionCounts.totalConsidered} eligible items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
-      }
-    }
-
-    return { safe: true, message: 'Safety check passed' }
-  }
-
-  /**
-   * Counts potential deletions for safety check
-   * Returns counts of movies, shows, and total items considered
-   */
-  private countPotentialDeletions(
-    existingSeries: SonarrItem[],
-    existingMovies: RadarrItem[],
-    watchlistGuids: Set<string>,
-    protectedGuids: Set<string> | null,
-  ): { movies: number; shows: number; totalConsidered: number } {
-    let potentialMovieDeletes = 0
-    let potentialShowDeletes = 0
-    let totalConsideredItems = 0
-
-    const considerMovies = this.config.deleteMovie === true
-    const considerEnded = this.config.deleteEndedShow === true
-    const considerContinuing = this.config.deleteContinuingShow === true
-
-    // Use Set membership directly for O(1) lookups
-    const watchlistGuidsSet = watchlistGuids
-    const protectedGuidsSet = protectedGuids ?? null
-
-    // Count movies not in watchlist and not protected (only if we actually delete movies)
-    if (considerMovies) {
-      for (const movie of existingMovies) {
-        totalConsideredItems++
-        const movieGuidList = parseGuids(movie.guids)
-        const existsInWatchlist = movieGuidList.some((g) =>
-          watchlistGuidsSet.has(g),
-        )
-        if (!existsInWatchlist) {
-          // Check if movie is tracked (if tracked-only deletion is enabled)
-          const isTracked = this.isAnyGuidTracked(movieGuidList)
-          if (!isTracked) {
-            continue // Skip non-tracked items when tracked-only is enabled
-          }
-
-          // Check if movie is protected by playlist
-          const isProtected =
-            protectedGuidsSet != null
-              ? movieGuidList.some((g) => protectedGuidsSet.has(g))
-              : false
-          if (!isProtected) {
-            potentialMovieDeletes++
-          }
-        }
-      }
-    }
-
-    // Count shows not in watchlist and not protected, but only for show types configured for deletion
-    for (const show of existingSeries) {
-      const isContinuing = show.series_status !== 'ended'
-      const shouldConsider = isContinuing ? considerContinuing : considerEnded
-      if (!shouldConsider) continue
-      totalConsideredItems++
-
-      const showGuidList = parseGuids(show.guids)
-      const existsInWatchlist = showGuidList.some((g) =>
-        watchlistGuidsSet.has(g),
-      )
-      if (!existsInWatchlist) {
-        // Check if show is tracked (if tracked-only deletion is enabled)
-        const isTracked = this.isAnyGuidTracked(showGuidList)
-        if (!isTracked) {
-          continue // Skip non-tracked items when tracked-only is enabled
-        }
-
-        // Check if show is protected by playlist
-        const isProtected =
-          protectedGuidsSet != null
-            ? showGuidList.some((g) => protectedGuidsSet.has(g))
-            : false
-        if (!isProtected) {
-          potentialShowDeletes++
-        }
-      }
-    }
-
-    return {
-      movies: potentialMovieDeletes,
-      shows: potentialShowDeletes,
-      totalConsidered: totalConsideredItems,
-    }
   }
 
   /**

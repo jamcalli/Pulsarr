@@ -11,4 +11,7 @@ export type {
   SafetyCheckConfig,
   SafetyCheckResult,
 } from './safety-checker.js'
-export { performSafetyCheck } from './safety-checker.js'
+export {
+  performTagBasedSafetyCheck,
+  performWatchlistSafetyCheck,
+} from './safety-checker.js'
