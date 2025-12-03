@@ -25,7 +25,7 @@ import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyBaseLogger } from 'fastify'
 
-export interface TagBasedDeletionContext {
+export interface TagBasedDeletionDeps {
   config: {
     removedTagPrefix: string
     deleteSyncTrackedOnly: boolean
@@ -57,7 +57,7 @@ export interface TagBasedDeletionContext {
 async function performTagBasedSafetyCheck(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
-  context: TagBasedDeletionContext,
+  context: TagBasedDeletionDeps,
 ): Promise<DeleteSyncResult | null> {
   const { config, sonarrManager, radarrManager, tagCache, logger } = context
 
@@ -180,7 +180,7 @@ async function performTagBasedSafetyCheck(
 export async function executeTagBasedDeletion(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
-  context: TagBasedDeletionContext,
+  context: TagBasedDeletionDeps,
   dryRun = false,
 ): Promise<DeleteSyncResult> {
   const { config, logger, sonarrManager, radarrManager, tagCache } = context

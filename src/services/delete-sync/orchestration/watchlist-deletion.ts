@@ -15,7 +15,7 @@ import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyBaseLogger } from 'fastify'
 
-export interface WatchlistDeletionContext {
+export interface WatchlistDeletionDeps {
   config: {
     deleteMovie: boolean
     deleteEndedShow: boolean
@@ -49,7 +49,7 @@ export async function executeWatchlistDeletion(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
   watchlistGuids: Set<string>,
-  context: WatchlistDeletionContext,
+  context: WatchlistDeletionDeps,
   dryRun = false,
 ): Promise<DeleteSyncResult> {
   const { config, logger, sonarrManager, radarrManager, tagCache } = context
