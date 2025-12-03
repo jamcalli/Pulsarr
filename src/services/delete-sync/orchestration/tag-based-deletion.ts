@@ -11,16 +11,16 @@ import {
   processShowDeletions,
 } from '@services/delete-sync/processors/content-deleter.js'
 import {
-  createEmptyResult,
-  createSafetyTriggeredResult,
-} from '@services/delete-sync/result-builder.js'
-import { performSafetyCheck } from '@services/delete-sync/safety-checker.js'
-import {
   countTaggedMovies,
   countTaggedSeries,
   getRemovalTagPrefixNormalized,
 } from '@services/delete-sync/tag-operations/index.js'
 import { DeletionCounters } from '@services/delete-sync/utils/deletion-counters.js'
+import {
+  createEmptyResult,
+  createSafetyTriggeredResult,
+} from '@services/delete-sync/utils/index.js'
+import { performSafetyCheck } from '@services/delete-sync/validation/index.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
 import type { FastifyBaseLogger } from 'fastify'

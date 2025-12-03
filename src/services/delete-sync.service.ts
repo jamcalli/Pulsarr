@@ -36,7 +36,7 @@ import {
 import {
   createEmptyResult,
   createSafetyTriggeredResult,
-} from '@services/delete-sync/result-builder.js'
+} from '@services/delete-sync/utils/index.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
