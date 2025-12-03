@@ -23,15 +23,14 @@ export class ImdbService {
   private static toTconst(imdbGuid: string): string {
     return imdbGuid.replace(/^imdb:/, '')
   }
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'IMDB')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
     private readonly db: DatabaseService,
-    private readonly baseLog: FastifyBaseLogger,
-  ) {}
+    readonly baseLog: FastifyBaseLogger,
+  ) {
+    this.log = createServiceLogger(baseLog, 'IMDB')
+  }
 
   /**
    * Check if a title has IMDB rating data

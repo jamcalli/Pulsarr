@@ -76,10 +76,8 @@ export class WatchlistWorkflowService {
   private status: WorkflowStatus = 'stopped'
   /** Tracks if a reconciliation is currently in progress */
   private isReconciling = false
-  /** Creates a fresh service logger that inherits current log level */
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'WATCHLIST_WORKFLOW')
-  }
+  /** Service logger that inherits parent log level changes */
+  private readonly log: FastifyBaseLogger
 
   /** Tracks if the workflow is fully initialized */
   private initialized = false
@@ -122,11 +120,12 @@ export class WatchlistWorkflowService {
    * @param rssCheckIntervalMs - Interval in ms between RSS feed checks
    */
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly rssCheckIntervalMs: number = 30_000 +
       Math.ceil(Math.random() * 30_000),
   ) {
+    this.log = createServiceLogger(baseLog, 'WATCHLIST_WORKFLOW')
     this.log.info('Initializing Watchlist Workflow Service')
     // Initialize ETag poller (needs config, so created lazily after config is available)
   }

@@ -7,7 +7,7 @@ import fp from 'fastify-plugin'
  */
 const quotaPlugin: FastifyPluginAsync = async (fastify, _opts) => {
   // Create the quota service
-  const quotaService = new QuotaService(fastify)
+  const quotaService = new QuotaService(fastify.log, fastify)
 
   fastify.decorate('quotaService', quotaService)
 

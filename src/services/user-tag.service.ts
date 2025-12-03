@@ -61,19 +61,16 @@ interface MediaService {
  * Service to manage user tagging for media in Sonarr and Radarr
  */
 export class UserTagService {
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'USER_TAG')
-  }
+  private readonly log: FastifyBaseLogger
 
   /** Tag migration service for migrating colon-based tags to hyphen-based format */
   private readonly migrationService: TagMigrationService
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(baseLog, 'USER_TAG')
     this.migrationService = new TagMigrationService(baseLog, fastify)
   }
 

@@ -7,7 +7,7 @@ import fp from 'fastify-plugin'
  */
 const approvalPlugin: FastifyPluginAsync = async (fastify) => {
   // Create the approval service
-  const approvalService = new ApprovalService(fastify)
+  const approvalService = new ApprovalService(fastify.log, fastify)
 
   fastify.decorate('approvalService', approvalService)
 
