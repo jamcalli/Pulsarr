@@ -28,6 +28,7 @@ import {
   ensureTrackedCache,
   TagCache,
 } from '@services/delete-sync/cache/index.js'
+import { cleanupApprovalRequestsForDeletedContent } from '@services/delete-sync/cleanup/index.js'
 import {
   extractGuidsFromWatchlistItems,
   fetchWatchlistItems,
@@ -353,7 +354,19 @@ export class DeleteSyncService {
       )
 
       // Step 10: Clean up approval requests for deleted content if enabled
-      await this.cleanupApprovalRequestsForDeletedContent(dryRun)
+      await cleanupApprovalRequestsForDeletedContent(
+        {
+          db: this.dbService,
+          approvalService: this.fastify.approvalService,
+          deletedMovieGuids: this.deletedMovieGuids,
+          deletedShowGuids: this.deletedShowGuids,
+          config: {
+            deleteSyncCleanupApprovals: this.config.deleteSyncCleanupApprovals,
+          },
+          log: this.log,
+        },
+        dryRun,
+      )
 
       // Step 11: Send notifications about results if enabled
       await this.sendNotificationsIfEnabled(result, dryRun)
@@ -626,99 +639,6 @@ export class DeleteSyncService {
           moviesCount,
         ),
       }
-    }
-  }
-
-  /**
-   * Clean up approval requests for content that was deleted
-   * This removes approval records from the database for items that no longer exist
-   */
-  private async cleanupApprovalRequestsForDeletedContent(
-    dryRun: boolean,
-  ): Promise<void> {
-    if (!this.config.deleteSyncCleanupApprovals || dryRun) {
-      return
-    }
-
-    try {
-      let totalCleaned = 0
-
-      // Clean up movie approval requests
-      if (this.deletedMovieGuids.size > 0) {
-        this.log.info(
-          `Cleaning up movie approval requests for content with ${this.deletedMovieGuids.size} deleted GUIDs`,
-        )
-        const movieApprovals = await this.dbService.getApprovalRequestsByGuids(
-          this.deletedMovieGuids,
-          'movie',
-        )
-
-        // Use ApprovalService to delete each request (handles SSE events)
-        for (const approval of movieApprovals) {
-          try {
-            await this.fastify.approvalService.deleteApprovalRequest(
-              approval.id,
-            )
-            totalCleaned++
-          } catch (error) {
-            this.log.error(
-              {
-                error,
-                approvalId: approval.id,
-                title: approval.contentTitle,
-              },
-              'Error deleting individual approval request during cleanup',
-            )
-          }
-        }
-
-        this.log.info(
-          `Cleaned up ${movieApprovals.length} movie approval records`,
-        )
-      }
-
-      // Clean up show approval requests
-      if (this.deletedShowGuids.size > 0) {
-        this.log.info(
-          `Cleaning up show approval requests for content with ${this.deletedShowGuids.size} deleted GUIDs`,
-        )
-        const showApprovals = await this.dbService.getApprovalRequestsByGuids(
-          this.deletedShowGuids,
-          'show',
-        )
-
-        // Use ApprovalService to delete each request (handles SSE events)
-        for (const approval of showApprovals) {
-          try {
-            await this.fastify.approvalService.deleteApprovalRequest(
-              approval.id,
-            )
-            totalCleaned++
-          } catch (error) {
-            this.log.error(
-              {
-                error,
-                approvalId: approval.id,
-                title: approval.contentTitle,
-              },
-              'Error deleting individual approval request during cleanup',
-            )
-          }
-        }
-
-        this.log.info(
-          `Cleaned up ${showApprovals.length} show approval records`,
-        )
-      }
-
-      if (totalCleaned > 0) {
-        this.log.info(`Total approval requests cleaned up: ${totalCleaned}`)
-      }
-    } catch (cleanupError) {
-      this.log.error(
-        { error: cleanupError },
-        'Error cleaning up approval requests for deleted content',
-      )
     }
   }
 
