@@ -1,6 +1,6 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import { performSafetyCheck } from '@services/delete-sync/safety-checker.js'
+import { performSafetyCheck } from '@services/delete-sync/validation/index.js'
 import { describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
