@@ -31,6 +31,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/webhook',
     {
       schema: {
+        security: [],
         summary: 'Process media webhook',
         operationId: 'processMediaWebhook',
         description:

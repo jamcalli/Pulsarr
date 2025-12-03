@@ -14,6 +14,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/create-admin',
     {
       schema: {
+        security: [],
         summary: 'Create admin user',
         operationId: 'createAdminUser',
         description: 'Create the first admin user account for the system',
@@ -31,11 +32,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const hasAdmin = await fastify.db.hasAdminUsers()
         if (hasAdmin) {
-          reply.status(409)
-          return {
-            success: false,
-            message: 'An admin user already exists in the system',
-          }
+          return reply.conflict('An admin user already exists in the system')
         }
 
         const existingEmail = await fastify.db.getAdminUser(email)
@@ -43,13 +40,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           await fastify.db.getAdminUserByUsername(username)
 
         if (existingEmail) {
-          reply.status(409)
-          return { success: false, message: 'Email already exists' }
+          return reply.conflict('Email already exists')
         }
 
         if (existingUsername) {
-          reply.status(409)
-          return { success: false, message: 'Username already exists' }
+          return reply.conflict('Username already exists')
         }
 
         const hashedPassword = await fastify.hash(password)
