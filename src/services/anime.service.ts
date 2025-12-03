@@ -16,16 +16,14 @@ import type { FastifyBaseLogger } from 'fastify'
 export class AnimeService {
   private static readonly USER_AGENT =
     'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'ANIME')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
     private readonly db: DatabaseService,
-    private readonly baseLog: FastifyBaseLogger,
-  ) {}
+    readonly baseLog: FastifyBaseLogger,
+  ) {
+    this.log = createServiceLogger(baseLog, 'ANIME')
+  }
 
   /**
    * Check if any external IDs indicate anime content

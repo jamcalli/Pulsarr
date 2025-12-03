@@ -78,16 +78,14 @@ export class TmdbService {
   // SERVICE INITIALIZATION
   // ============================================================
   //
-
-  /** Creates a fresh service logger that inherits current log level */
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'TMDB')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(baseLog, 'TMDB')
+  }
 
   /**
    * Get current TMDB API Read Access Token from config

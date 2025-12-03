@@ -54,11 +54,7 @@ const PLEX_API_TIMEOUT = 30000 // 30 seconds for Plex API operations
  * PlexServerService class for maintaining state and providing Plex operations
  */
 export class PlexServerService {
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'PLEX_SERVER')
-  }
+  private readonly log: FastifyBaseLogger
 
   // Connection and server information cache
   private serverConnections: PlexServerConnectionInfo[] | null = null
@@ -106,9 +102,10 @@ export class PlexServerService {
    * @param fastify - Fastify instance for accessing configuration
    */
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(baseLog, 'PLEX_SERVER')
     this.log.info('Initializing PlexServerService')
   }
 

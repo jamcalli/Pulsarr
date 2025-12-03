@@ -52,17 +52,14 @@ export class ContentRouterService {
   private rulesCachePromise: Promise<
     Awaited<ReturnType<FastifyInstance['db']['getAllRouterRules']>>
   > | null = null
-
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'CONTENT_ROUTER')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(baseLog, 'CONTENT_ROUTER')
+  }
 
   /**
    * Initialize the router service by loading all evaluators from the router-evaluators directory.

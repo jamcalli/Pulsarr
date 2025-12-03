@@ -105,20 +105,22 @@ export class DatabaseService {
   public readonly isPostgres: boolean
 
   /**
+   * Service logger that inherits parent log level changes
+   */
+  public readonly log: FastifyBaseLogger
+
+  /**
    * Creates a new DatabaseService instance
    *
    * @param log - Fastify logger instance for recording database operations
    * @param fastify - Fastify instance containing configuration and context
    */
-  public get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'DATABASE')
-  }
-
   constructor(
     public readonly baseLog: FastifyBaseLogger,
     public readonly fastify: FastifyInstance,
     testKnex?: Knex,
   ) {
+    this.log = createServiceLogger(baseLog, 'DATABASE')
     this.isPostgres = fastify.config.dbType === 'postgres'
     this.knex =
       testKnex ??
