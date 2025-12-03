@@ -9,19 +9,17 @@ import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class StatusService {
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'WATCHLIST_STATUS')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly dbService: FastifyInstance['db'],
     private readonly sonarrManager: FastifyInstance['sonarrManager'],
     private readonly radarrManager: FastifyInstance['radarrManager'],
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(baseLog, 'WATCHLIST_STATUS')
+  }
 
   /**
    * Syncs status information for all watchlist items from Sonarr and Radarr instances.

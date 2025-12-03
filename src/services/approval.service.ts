@@ -18,12 +18,14 @@ export class ApprovalService {
   private notificationQueue: Set<number> = new Set()
   private notificationTimer: NodeJS.Timeout | null = null
   private readonly NOTIFICATION_DEBOUNCE_MS = 3000 // 3 seconds
+  private readonly log: FastifyBaseLogger
 
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.fastify.log, 'APPROVAL')
+  constructor(
+    readonly baseLog: FastifyBaseLogger,
+    private readonly fastify: FastifyInstance,
+  ) {
+    this.log = createServiceLogger(baseLog, 'APPROVAL')
   }
-
-  constructor(private fastify: FastifyInstance) {}
 
   /**
    * Log scheduled job execution with proper service prefix

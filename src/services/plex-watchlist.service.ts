@@ -61,17 +61,16 @@ import {
 } from './plex-watchlist/users/index.js'
 
 export class PlexWatchlistService {
-  /** Creates a fresh service logger that inherits current log level */
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'PLEX_WATCHLIST')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
     private readonly plexLabelSyncService?: PlexLabelSyncService,
-  ) {}
+  ) {
+    this.log = createServiceLogger(baseLog, 'PLEX_WATCHLIST')
+  }
 
   private get config() {
     return this.fastify.config
