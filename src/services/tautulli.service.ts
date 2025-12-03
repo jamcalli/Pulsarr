@@ -92,17 +92,13 @@ export class TautulliService {
   private readonly MAX_ATTEMPTS = 20 // 10 minutes total with 30s intervals
   private readonly MAX_AGE_MS = 1800000 // 30 minutes max age
   private isPolling = false
-
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'TAUTULLI')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(baseLog, 'TAUTULLI')
     this.db = fastify.db
   }
 

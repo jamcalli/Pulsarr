@@ -22,15 +22,13 @@ export class LogStreamingService {
   private readonly logFilePath: string
   private _watchTickInFlight = false
   private partialLine = ''
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'LOG_STREAMING')
-  }
+  private readonly log: FastifyBaseLogger
 
   private constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     readonly _fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(baseLog, 'LOG_STREAMING')
     this.eventEmitter = new EventEmitter()
     // Allow many concurrent SSE consumers without warnings
     this.eventEmitter.setMaxListeners(100)

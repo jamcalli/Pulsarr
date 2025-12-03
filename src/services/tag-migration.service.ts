@@ -82,15 +82,14 @@ interface PreMigrationPrefixes {
  * Service to migrate tags from colon format to hyphen format
  */
 export class TagMigrationService {
-  /** Creates a fresh service logger that inherits current log level */
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'TAG_MIGRATION')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(baseLog, 'TAG_MIGRATION')
+  }
 
   /**
    * Get pre-migration prefix values from file written by database migration 064
