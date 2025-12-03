@@ -11,6 +11,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/health',
     {
       schema: {
+        security: [],
         summary: 'Health check endpoint',
         operationId: 'getHealth',
         description:

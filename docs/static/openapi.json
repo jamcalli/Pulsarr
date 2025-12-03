@@ -50,6 +50,7 @@
           "System"
         ],
         "description": "Returns the health status of the application. Used by Docker HEALTHCHECK and orchestrators. Does not require authentication.",
+        "security": [],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -13776,6 +13777,7 @@
             "required": false
           }
         ],
+        "security": [],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -18751,7 +18753,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "anyOf": [
+                "oneOf": [
                   {
                     "type": "object",
                     "properties": {
@@ -19202,7 +19204,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "anyOf": [
+                "oneOf": [
                   {
                     "type": "object",
                     "properties": {
@@ -28555,6 +28557,7 @@
           },
           "required": true
         },
+        "security": [],
         "responses": {
           "201": {
             "description": "Default Response",
@@ -28648,6 +28651,7 @@
           },
           "required": true
         },
+        "security": [],
         "responses": {
           "200": {
             "description": "Default Response",
