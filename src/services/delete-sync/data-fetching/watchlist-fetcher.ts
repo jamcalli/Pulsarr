@@ -90,35 +90,17 @@ export function extractGuidsFromWatchlistItems(
 ): Set<string> {
   // Create a set of unique GUIDs for efficient lookup
   const guidSet = new Set<string>()
-  let malformedItems = 0
 
   // Process all items to extract GUIDs using the standardized GUID handler
   for (const item of watchlistItems) {
-    try {
-      // Use parseGuids utility for consistent GUID parsing and normalization
-      const parsedGuids = parseGuids(item.guids)
+    // Use parseGuids utility for consistent GUID parsing and normalization
+    // parseGuids handles all edge cases gracefully and never throws
+    const parsedGuids = parseGuids(item.guids)
 
-      // Add each parsed and normalized GUID to the set for efficient lookup
-      for (const guid of parsedGuids) {
-        guidSet.add(guid)
-      }
-
-      // Protection system uses standardized GUIDs instead of keys
-      // Standardized identifiers enable cross-platform content matching
-    } catch (error) {
-      malformedItems++
-      logger.warn(
-        {
-          error: error instanceof Error ? error : new Error(String(error)),
-          guids: item.guids,
-        },
-        `Malformed guids in watchlist item "${item.title}"`,
-      )
+    // Add each parsed and normalized GUID to the set for efficient lookup
+    for (const guid of parsedGuids) {
+      guidSet.add(guid)
     }
-  }
-
-  if (malformedItems > 0) {
-    logger.warn(`Found ${malformedItems} watchlist items with malformed GUIDs`)
   }
 
   logger.debug(`Extracted ${guidSet.size} unique GUIDs from watchlist items`)

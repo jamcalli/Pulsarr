@@ -77,7 +77,7 @@ export async function sendNotificationsIfEnabled(
   // Apprise notification logic
   if (sendApprise && apprise?.isEnabled()) {
     try {
-      await apprise?.sendDeleteSyncNotification(result, dryRun)
+      await apprise.sendDeleteSyncNotification(result, dryRun)
     } catch (notifyError) {
       log.error(
         {
