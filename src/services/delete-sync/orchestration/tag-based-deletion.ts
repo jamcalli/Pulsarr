@@ -57,9 +57,9 @@ export interface TagBasedDeletionDeps {
 async function performTagBasedDeletionSafetyCheck(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
-  context: TagBasedDeletionDeps,
+  deps: TagBasedDeletionDeps,
 ): Promise<DeleteSyncResult | null> {
-  const { config, sonarrManager, radarrManager, tagCache, logger } = context
+  const { config, sonarrManager, radarrManager, tagCache, logger } = deps
 
   try {
     // Count how many items would be deleted by tag-based deletion
@@ -78,18 +78,18 @@ async function performTagBasedDeletionSafetyCheck(
           },
           sonarrManager,
           tagCache,
-          context.protectedGuids,
+          deps.protectedGuids,
           (guids) =>
             isAnyGuidProtected(
               guids,
-              context.protectedGuids,
+              deps.protectedGuids,
               config.enablePlexPlaylistProtection,
             ),
-          context.trackedGuids,
+          deps.trackedGuids,
           (guids) =>
             isAnyGuidTracked(
               guids,
-              context.trackedGuids,
+              deps.trackedGuids,
               config.deleteSyncTrackedOnly,
             ),
           logger,
@@ -107,18 +107,18 @@ async function performTagBasedDeletionSafetyCheck(
           },
           radarrManager,
           tagCache,
-          context.protectedGuids,
+          deps.protectedGuids,
           (guids) =>
             isAnyGuidProtected(
               guids,
-              context.protectedGuids,
+              deps.protectedGuids,
               config.enablePlexPlaylistProtection,
             ),
-          context.trackedGuids,
+          deps.trackedGuids,
           (guids) =>
             isAnyGuidTracked(
               guids,
-              context.trackedGuids,
+              deps.trackedGuids,
               config.deleteSyncTrackedOnly,
             ),
           logger,
@@ -168,17 +168,17 @@ async function performTagBasedDeletionSafetyCheck(
  *
  * @param existingSeries - All series from Sonarr
  * @param existingMovies - All movies from Radarr
- * @param context - Context containing services and configuration
+ * @param deps - Dependencies containing services and configuration
  * @param dryRun - Whether to simulate without making changes
  * @returns Delete sync result
  */
 export async function executeTagBasedDeletion(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
-  context: TagBasedDeletionDeps,
+  deps: TagBasedDeletionDeps,
   dryRun = false,
 ): Promise<DeleteSyncResult> {
-  const { config, logger, sonarrManager, radarrManager, tagCache } = context
+  const { config, logger, sonarrManager, radarrManager, tagCache } = deps
 
   logger.debug(
     `Beginning tag-based deletion ${dryRun ? '(DRY RUN)' : 'process'} using tag "${config.removedTagPrefix}"`,
@@ -199,7 +199,7 @@ export async function executeTagBasedDeletion(
 
   // Cache is already loaded in service before calling this function
   // Safety check to verify caches were loaded if features are enabled
-  if (config.deleteSyncTrackedOnly && !context.trackedGuids) {
+  if (config.deleteSyncTrackedOnly && !deps.trackedGuids) {
     const errorMsg =
       'Tracked-only deletion is enabled but tracked GUIDs were not loaded'
     logger.error(errorMsg)
@@ -210,7 +210,7 @@ export async function executeTagBasedDeletion(
     )
   }
 
-  if (config.enablePlexPlaylistProtection && !context.protectedGuids) {
+  if (config.enablePlexPlaylistProtection && !deps.protectedGuids) {
     const errorMsg =
       'Plex playlist protection is enabled but protected GUIDs were not loaded'
     logger.error(errorMsg)
@@ -225,7 +225,7 @@ export async function executeTagBasedDeletion(
   const safetyCheckResult = await performTagBasedDeletionSafetyCheck(
     existingSeries,
     existingMovies,
-    context,
+    deps,
   )
   if (safetyCheckResult) {
     return safetyCheckResult
@@ -251,25 +251,25 @@ export async function executeTagBasedDeletion(
         isAnyGuidTracked: (guids, onHit) =>
           isAnyGuidTracked(
             guids,
-            context.trackedGuids,
+            deps.trackedGuids,
             config.deleteSyncTrackedOnly,
             onHit,
           ),
         isAnyGuidProtected: (guids, onHit) =>
           isAnyGuidProtected(
             guids,
-            context.protectedGuids,
+            deps.protectedGuids,
             config.enablePlexPlaylistProtection,
             onHit,
           ),
       },
       radarrManager,
       tagCache,
-      protectedGuids: context.protectedGuids,
+      protectedGuids: deps.protectedGuids,
       logger,
       dryRun,
-      deletedGuidsTracker: context.deletedMovieGuids,
-      playlistName: context.protectionPlaylistName,
+      deletedGuidsTracker: deps.deletedMovieGuids,
+      playlistName: deps.protectionPlaylistName,
     },
     counters,
   )
@@ -292,25 +292,25 @@ export async function executeTagBasedDeletion(
         isAnyGuidTracked: (guids, onHit) =>
           isAnyGuidTracked(
             guids,
-            context.trackedGuids,
+            deps.trackedGuids,
             config.deleteSyncTrackedOnly,
             onHit,
           ),
         isAnyGuidProtected: (guids, onHit) =>
           isAnyGuidProtected(
             guids,
-            context.protectedGuids,
+            deps.protectedGuids,
             config.enablePlexPlaylistProtection,
             onHit,
           ),
       },
       sonarrManager,
       tagCache,
-      protectedGuids: context.protectedGuids,
+      protectedGuids: deps.protectedGuids,
       logger,
       dryRun,
-      deletedGuidsTracker: context.deletedShowGuids,
-      playlistName: context.protectionPlaylistName,
+      deletedGuidsTracker: deps.deletedShowGuids,
+      playlistName: deps.protectionPlaylistName,
     },
     counters,
   )
