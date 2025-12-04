@@ -41,7 +41,7 @@ export interface WatchlistDeletionDeps {
  * @param existingSeries - All series from Sonarr
  * @param existingMovies - All movies from Radarr
  * @param watchlistGuids - Set of GUIDs that exist in watchlists
- * @param context - Context containing services and configuration
+ * @param deps - Dependencies containing services and configuration
  * @param dryRun - Whether to simulate without making changes
  * @returns Delete sync result
  */
@@ -49,17 +49,17 @@ export async function executeWatchlistDeletion(
   existingSeries: SonarrItem[],
   existingMovies: RadarrItem[],
   watchlistGuids: Set<string>,
-  context: WatchlistDeletionDeps,
+  deps: WatchlistDeletionDeps,
   dryRun = false,
 ): Promise<DeleteSyncResult> {
-  const { config, logger, sonarrManager, radarrManager, tagCache } = context
+  const { config, logger, sonarrManager, radarrManager, tagCache } = deps
 
   logger.info(
     `Beginning deletion ${dryRun ? '(DRY RUN)' : 'process'} based on configuration`,
   )
 
   // Note: Protection playlists are now loaded before the safety check
-  // context.protectedGuids should already be populated if protection is enabled
+  // deps.protectedGuids should already be populated if protection is enabled
 
   // Initialize deletion counters
   const counters = new DeletionCounters()
@@ -80,25 +80,25 @@ export async function executeWatchlistDeletion(
         isAnyGuidTracked: (guids, onHit) =>
           isAnyGuidTracked(
             guids,
-            context.trackedGuids,
+            deps.trackedGuids,
             config.deleteSyncTrackedOnly,
             onHit,
           ),
         isAnyGuidProtected: (guids, onHit) =>
           isAnyGuidProtected(
             guids,
-            context.protectedGuids,
+            deps.protectedGuids,
             config.enablePlexPlaylistProtection,
             onHit,
           ),
       },
       radarrManager,
       tagCache,
-      protectedGuids: context.protectedGuids,
+      protectedGuids: deps.protectedGuids,
       logger,
       dryRun,
-      deletedGuidsTracker: context.deletedMovieGuids,
-      playlistName: context.protectionPlaylistName,
+      deletedGuidsTracker: deps.deletedMovieGuids,
+      playlistName: deps.protectionPlaylistName,
     },
     counters,
   )
@@ -120,25 +120,25 @@ export async function executeWatchlistDeletion(
         isAnyGuidTracked: (guids, onHit) =>
           isAnyGuidTracked(
             guids,
-            context.trackedGuids,
+            deps.trackedGuids,
             config.deleteSyncTrackedOnly,
             onHit,
           ),
         isAnyGuidProtected: (guids, onHit) =>
           isAnyGuidProtected(
             guids,
-            context.protectedGuids,
+            deps.protectedGuids,
             config.enablePlexPlaylistProtection,
             onHit,
           ),
       },
       sonarrManager,
       tagCache,
-      protectedGuids: context.protectedGuids,
+      protectedGuids: deps.protectedGuids,
       logger,
       dryRun,
-      deletedGuidsTracker: context.deletedShowGuids,
-      playlistName: context.protectionPlaylistName,
+      deletedGuidsTracker: deps.deletedShowGuids,
+      playlistName: deps.protectionPlaylistName,
     },
     counters,
   )

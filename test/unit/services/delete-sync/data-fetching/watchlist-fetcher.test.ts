@@ -1,29 +1,34 @@
+/**
+ * Unit tests for watchlist-fetcher module
+ *
+ * Tests fetching and extracting GUIDs from watchlist items for delete sync.
+ * Verifies proper handling of user sync settings, GUID extraction from
+ * various formats, and deduplication of GUIDs across items.
+ */
+
 import type { DatabaseService } from '@services/database.service.js'
 import {
   extractGuidsFromWatchlistItems,
   fetchWatchlistItems,
 } from '@services/delete-sync/data-fetching/watchlist-fetcher.js'
-import type { FastifyBaseLogger } from 'fastify'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMockLogger } from '../../../../mocks/logger.js'
 
 describe('Watchlist Fetcher', () => {
-  let mockDb: DatabaseService
-  let mockLogger: FastifyBaseLogger
+  let mockLogger: ReturnType<typeof createMockLogger>
+  let mockDb: {
+    getAllShowWatchlistItems: ReturnType<typeof vi.fn>
+    getAllMovieWatchlistItems: ReturnType<typeof vi.fn>
+    getAllUsers: ReturnType<typeof vi.fn>
+  }
 
   beforeEach(() => {
+    mockLogger = createMockLogger()
     mockDb = {
       getAllShowWatchlistItems: vi.fn(),
       getAllMovieWatchlistItems: vi.fn(),
       getAllUsers: vi.fn(),
-    } as unknown as DatabaseService
-
-    mockLogger = {
-      info: vi.fn(),
-      debug: vi.fn(),
-      warn: vi.fn(),
-      trace: vi.fn(),
-      level: 'info',
-    } as unknown as FastifyBaseLogger
+    }
   })
 
   describe('fetchWatchlistItems', () => {
@@ -38,15 +43,11 @@ describe('Watchlist Fetcher', () => {
           { title: 'Movie 2', guids: 'plex:movie/2', user_id: 3 },
         ]
 
-        vi.mocked(mockDb.getAllShowWatchlistItems).mockResolvedValue(
-          mockShows as never,
-        )
-        vi.mocked(mockDb.getAllMovieWatchlistItems).mockResolvedValue(
-          mockMovies as never,
-        )
+        mockDb.getAllShowWatchlistItems.mockResolvedValue(mockShows)
+        mockDb.getAllMovieWatchlistItems.mockResolvedValue(mockMovies)
 
         const result = await fetchWatchlistItems(false, {
-          db: mockDb,
+          db: mockDb as unknown as DatabaseService,
           logger: mockLogger,
         })
 
@@ -58,11 +59,11 @@ describe('Watchlist Fetcher', () => {
       })
 
       it('should return empty array when no items exist', async () => {
-        vi.mocked(mockDb.getAllShowWatchlistItems).mockResolvedValue([])
-        vi.mocked(mockDb.getAllMovieWatchlistItems).mockResolvedValue([])
+        mockDb.getAllShowWatchlistItems.mockResolvedValue([])
+        mockDb.getAllMovieWatchlistItems.mockResolvedValue([])
 
         const result = await fetchWatchlistItems(false, {
-          db: mockDb,
+          db: mockDb as unknown as DatabaseService,
           logger: mockLogger,
         })
 
@@ -89,16 +90,12 @@ describe('Watchlist Fetcher', () => {
           { title: 'Movie 2', guids: 'plex:movie/2', user_id: 2 }, // Filtered out
         ]
 
-        vi.mocked(mockDb.getAllUsers).mockResolvedValue(mockUsers as never)
-        vi.mocked(mockDb.getAllShowWatchlistItems).mockResolvedValue(
-          mockShows as never,
-        )
-        vi.mocked(mockDb.getAllMovieWatchlistItems).mockResolvedValue(
-          mockMovies as never,
-        )
+        mockDb.getAllUsers.mockResolvedValue(mockUsers)
+        mockDb.getAllShowWatchlistItems.mockResolvedValue(mockShows)
+        mockDb.getAllMovieWatchlistItems.mockResolvedValue(mockMovies)
 
         const result = await fetchWatchlistItems(true, {
-          db: mockDb,
+          db: mockDb as unknown as DatabaseService,
           logger: mockLogger,
         })
 
@@ -121,14 +118,12 @@ describe('Watchlist Fetcher', () => {
           { title: 'Show 1', guids: 'plex:show/1', user_id: { id: 1 } },
         ]
 
-        vi.mocked(mockDb.getAllUsers).mockResolvedValue(mockUsers as never)
-        vi.mocked(mockDb.getAllShowWatchlistItems).mockResolvedValue(
-          mockShows as never,
-        )
-        vi.mocked(mockDb.getAllMovieWatchlistItems).mockResolvedValue([])
+        mockDb.getAllUsers.mockResolvedValue(mockUsers)
+        mockDb.getAllShowWatchlistItems.mockResolvedValue(mockShows)
+        mockDb.getAllMovieWatchlistItems.mockResolvedValue([])
 
         const result = await fetchWatchlistItems(true, {
-          db: mockDb,
+          db: mockDb as unknown as DatabaseService,
           logger: mockLogger,
         })
 
@@ -146,14 +141,12 @@ describe('Watchlist Fetcher', () => {
           { title: 'Show 2', guids: 'plex:show/2', user_id: 2 },
         ]
 
-        vi.mocked(mockDb.getAllUsers).mockResolvedValue(mockUsers as never)
-        vi.mocked(mockDb.getAllShowWatchlistItems).mockResolvedValue(
-          mockShows as never,
-        )
-        vi.mocked(mockDb.getAllMovieWatchlistItems).mockResolvedValue([])
+        mockDb.getAllUsers.mockResolvedValue(mockUsers)
+        mockDb.getAllShowWatchlistItems.mockResolvedValue(mockShows)
+        mockDb.getAllMovieWatchlistItems.mockResolvedValue([])
 
         const result = await fetchWatchlistItems(true, {
-          db: mockDb,
+          db: mockDb as unknown as DatabaseService,
           logger: mockLogger,
         })
 
@@ -167,14 +160,14 @@ describe('Watchlist Fetcher', () => {
           { id: 2, can_sync: false },
         ]
 
-        vi.mocked(mockDb.getAllUsers).mockResolvedValue(mockUsers as never)
-        vi.mocked(mockDb.getAllShowWatchlistItems).mockResolvedValue([
+        mockDb.getAllUsers.mockResolvedValue(mockUsers)
+        mockDb.getAllShowWatchlistItems.mockResolvedValue([
           { title: 'Show 1', guids: 'plex:show/1', user_id: 1 },
-        ] as never)
-        vi.mocked(mockDb.getAllMovieWatchlistItems).mockResolvedValue([])
+        ])
+        mockDb.getAllMovieWatchlistItems.mockResolvedValue([])
 
         const result = await fetchWatchlistItems(true, {
-          db: mockDb,
+          db: mockDb as unknown as DatabaseService,
           logger: mockLogger,
         })
 
@@ -238,7 +231,10 @@ describe('Watchlist Fetcher', () => {
         { title: 'Item 3', guids: null },
       ]
 
-      const result = extractGuidsFromWatchlistItems(items as never, mockLogger)
+      const result = extractGuidsFromWatchlistItems(
+        items as { title: string; guids: string | string[] | undefined }[],
+        mockLogger,
+      )
 
       expect(result.size).toBe(1)
       expect(result.has('plex:movie/1')).toBe(true)
@@ -279,7 +275,10 @@ describe('Watchlist Fetcher', () => {
         { title: 'Item 2', guids: [] },
       ]
 
-      const result = extractGuidsFromWatchlistItems(items as never, mockLogger)
+      const result = extractGuidsFromWatchlistItems(
+        items as { title: string; guids: string | string[] | undefined }[],
+        mockLogger,
+      )
 
       expect(result.size).toBe(0)
       expect(mockLogger.debug).toHaveBeenCalledWith(
@@ -288,10 +287,8 @@ describe('Watchlist Fetcher', () => {
     })
 
     it('should log trace sample when logger level is trace', () => {
-      const traceLogger = {
-        ...mockLogger,
-        level: 'trace',
-      } as unknown as FastifyBaseLogger
+      const traceLogger = createMockLogger()
+      ;(traceLogger as unknown as { level: string }).level = 'trace'
 
       const items = [
         { title: 'Item 1', guids: 'plex:movie/1' },

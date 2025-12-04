@@ -1,58 +1,69 @@
+/**
+ * Unit tests for delete-sync-notifier module
+ *
+ * Tests notification sending for delete sync operations including Discord
+ * and Apprise notifications. Verifies proper handling of notification
+ * preferences, dry run mode, and error recovery.
+ */
+
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
+import type { AppriseNotificationService } from '@services/apprise-notifications.service.js'
 import type { DeleteSyncNotifierDeps } from '@services/delete-sync/notifications/delete-sync-notifier.js'
 import { sendNotificationsIfEnabled } from '@services/delete-sync/notifications/index.js'
-import type { FastifyBaseLogger } from 'fastify'
-import { describe, expect, it, vi } from 'vitest'
+import type { DiscordNotificationService } from '@services/discord-notifications.service.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMockLogger } from '../../../../mocks/logger.js'
 
 describe('delete-sync-notifier', () => {
-  const createMockLogger = (): FastifyBaseLogger =>
-    ({
-      info: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-      debug: vi.fn(),
-      trace: vi.fn(),
-      fatal: vi.fn(),
-      child: vi.fn(() => createMockLogger()),
-    }) as unknown as FastifyBaseLogger
+  let mockLogger: ReturnType<typeof createMockLogger>
+  let mockDiscord: {
+    sendDeleteSyncNotification: ReturnType<typeof vi.fn>
+  }
+  let mockApprise: {
+    isEnabled: ReturnType<typeof vi.fn>
+    sendDeleteSyncNotification: ReturnType<typeof vi.fn>
+  }
+  let baseDeps: DeleteSyncNotifierDeps
 
-  const createMockDiscordService = (sendSuccess = true) => ({
-    sendDeleteSyncNotification: vi.fn().mockImplementation(async () => {
-      if (!sendSuccess) {
-        throw new Error('Discord send failed')
-      }
-      return true
-    }),
-  })
+  /**
+   * Helper to create mock DeleteSyncResult
+   */
+  function createMockResult(deletedCount = 5): DeleteSyncResult {
+    return {
+      movies: { deleted: 2, skipped: 0, items: [] },
+      shows: { deleted: 3, skipped: 0, items: [] },
+      total: { deleted: deletedCount, skipped: 0, processed: deletedCount },
+    }
+  }
 
-  const createMockAppriseService = (enabled = true, sendSuccess = true) => ({
-    isEnabled: vi.fn().mockReturnValue(enabled),
-    sendDeleteSyncNotification: vi.fn().mockImplementation(async () => {
-      if (!sendSuccess) {
-        throw new Error('Apprise send failed')
-      }
-      return true
-    }),
-  })
-
-  const createMockResult = (deletedCount = 5): DeleteSyncResult => ({
-    movies: { deleted: 2, skipped: 0, items: [] },
-    shows: { deleted: 3, skipped: 0, items: [] },
-    total: { deleted: deletedCount, skipped: 0, processed: deletedCount },
+  beforeEach(() => {
+    mockLogger = createMockLogger()
+    mockDiscord = {
+      sendDeleteSyncNotification: vi.fn().mockResolvedValue(true),
+    }
+    mockApprise = {
+      isEnabled: vi.fn().mockReturnValue(true),
+      sendDeleteSyncNotification: vi.fn().mockResolvedValue(true),
+    }
+    baseDeps = {
+      discord: mockDiscord as unknown as DiscordNotificationService,
+      apprise: mockApprise as unknown as AppriseNotificationService,
+      config: {
+        deleteSyncNotify: 'all',
+        deleteSyncNotifyOnlyOnDeletion: false,
+      },
+      log: mockLogger,
+    }
   })
 
   describe('sendNotificationsIfEnabled', () => {
     it('should skip all notifications when deleteSyncNotify is "none"', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'none',
           deleteSyncNotifyOnlyOnDeletion: false,
         },
-        log: createMockLogger(),
       }
 
       await sendNotificationsIfEnabled(deps, createMockResult(), false)
@@ -65,16 +76,12 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should skip notifications when deleteSyncNotifyOnlyOnDeletion is true and no deletions occurred', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'all',
           deleteSyncNotifyOnlyOnDeletion: true,
         },
-        log: createMockLogger(),
       }
 
       await sendNotificationsIfEnabled(deps, createMockResult(0), false)
@@ -87,20 +94,9 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should send Discord notification for "all" setting', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
-        config: {
-          deleteSyncNotify: 'all',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-        log: createMockLogger(),
-      }
       const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, false)
+      await sendNotificationsIfEnabled(baseDeps, result, false)
 
       expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
@@ -114,16 +110,12 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should send Discord-only notification for "discord-only" setting', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'discord-only',
           deleteSyncNotifyOnlyOnDeletion: false,
         },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -138,16 +130,12 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should send Discord notification for "discord-webhook" setting', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'discord-webhook',
           deleteSyncNotifyOnlyOnDeletion: false,
         },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -162,16 +150,12 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should send Discord notification for "discord-message" setting', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'discord-message',
           deleteSyncNotifyOnlyOnDeletion: false,
         },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -186,16 +170,12 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should send Discord notification for "discord-both" setting', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'discord-both',
           deleteSyncNotifyOnlyOnDeletion: false,
         },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -210,16 +190,12 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should send Discord notification for legacy "webhook" setting', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'webhook',
           deleteSyncNotifyOnlyOnDeletion: false,
         },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -234,16 +210,12 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should send Discord notification for legacy "message" setting', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'message',
           deleteSyncNotifyOnlyOnDeletion: false,
         },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -258,16 +230,12 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should send Discord notification for legacy "both" setting', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'both',
           deleteSyncNotifyOnlyOnDeletion: false,
         },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -282,16 +250,12 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should send Apprise-only notification for "apprise-only" setting', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
+      const deps = {
+        ...baseDeps,
         config: {
           deleteSyncNotify: 'apprise-only',
           deleteSyncNotifyOnlyOnDeletion: false,
         },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -305,15 +269,9 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should not send Discord notification when discord service is null', async () => {
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
+      const deps = {
+        ...baseDeps,
         discord: null,
-        apprise: mockApprise as any,
-        config: {
-          deleteSyncNotify: 'all',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -326,15 +284,9 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should not send Apprise notification when apprise service is null', async () => {
-      const mockDiscord = createMockDiscordService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
+      const deps = {
+        ...baseDeps,
         apprise: null,
-        config: {
-          deleteSyncNotify: 'all',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-        log: createMockLogger(),
       }
       const result = createMockResult()
 
@@ -348,20 +300,10 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should not send Apprise notification when apprise service is disabled', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService(false) // disabled
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
-        config: {
-          deleteSyncNotify: 'all',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-        log: createMockLogger(),
-      }
+      mockApprise.isEnabled.mockReturnValue(false)
       const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, false)
+      await sendNotificationsIfEnabled(baseDeps, result, false)
 
       expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
@@ -372,23 +314,15 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should handle Discord send errors gracefully', async () => {
-      const mockDiscord = createMockDiscordService(false) // fail
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
-        config: {
-          deleteSyncNotify: 'all',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-        log: createMockLogger(),
-      }
+      mockDiscord.sendDeleteSyncNotification.mockRejectedValue(
+        new Error('Discord send failed'),
+      )
       const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, false)
+      await sendNotificationsIfEnabled(baseDeps, result, false)
 
       expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalled()
-      expect(deps.log.error).toHaveBeenCalledWith(
+      expect(baseDeps.log.error).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.any(Error),
         }),
@@ -399,23 +333,15 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should handle Apprise send errors gracefully', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService(true, false) // enabled but fail
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
-        config: {
-          deleteSyncNotify: 'all',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-        log: createMockLogger(),
-      }
+      mockApprise.sendDeleteSyncNotification.mockRejectedValue(
+        new Error('Apprise send failed'),
+      )
       const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, false)
+      await sendNotificationsIfEnabled(baseDeps, result, false)
 
       expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalled()
-      expect(deps.log.error).toHaveBeenCalledWith(
+      expect(baseDeps.log.error).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.any(Error),
         }),
@@ -426,20 +352,9 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should pass dryRun flag correctly to notification services', async () => {
-      const mockDiscord = createMockDiscordService()
-      const mockApprise = createMockAppriseService()
-      const deps: DeleteSyncNotifierDeps = {
-        discord: mockDiscord as any,
-        apprise: mockApprise as any,
-        config: {
-          deleteSyncNotify: 'all',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-        log: createMockLogger(),
-      }
       const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, true)
+      await sendNotificationsIfEnabled(baseDeps, result, true)
 
       expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
