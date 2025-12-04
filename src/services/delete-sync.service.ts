@@ -33,6 +33,7 @@ import {
   extractGuidsFromWatchlistItems,
   fetchWatchlistItems,
 } from '@services/delete-sync/data-fetching/index.js'
+import { sendNotificationsIfEnabled } from '@services/delete-sync/notifications/index.js'
 import {
   executeTagBasedDeletion,
   executeWatchlistDeletion,
@@ -369,7 +370,20 @@ export class DeleteSyncService {
       )
 
       // Step 11: Send notifications about results if enabled
-      await this.sendNotificationsIfEnabled(result, dryRun)
+      await sendNotificationsIfEnabled(
+        {
+          discord: this.fastify.discord,
+          apprise: this.fastify.apprise,
+          config: {
+            deleteSyncNotify: this.config.deleteSyncNotify || null,
+            deleteSyncNotifyOnlyOnDeletion:
+              this.config.deleteSyncNotifyOnlyOnDeletion,
+          },
+          log: this.log,
+        },
+        result,
+        dryRun,
+      )
 
       return result
     } catch (error) {
@@ -414,7 +428,20 @@ export class DeleteSyncService {
     )
 
     // Send notification about the safety trigger if enabled
-    this.sendNotificationsIfEnabled(result, dryRun).catch((error) => {
+    sendNotificationsIfEnabled(
+      {
+        discord: this.fastify.discord,
+        apprise: this.fastify.apprise,
+        config: {
+          deleteSyncNotify: this.config.deleteSyncNotify || null,
+          deleteSyncNotifyOnlyOnDeletion:
+            this.config.deleteSyncNotifyOnlyOnDeletion,
+        },
+        log: this.log,
+      },
+      result,
+      dryRun,
+    ).catch((error) => {
       this.logError('Error sending delete sync notification:', error)
     })
 
@@ -638,91 +665,6 @@ export class DeleteSyncService {
           seriesCount,
           moviesCount,
         ),
-      }
-    }
-  }
-
-  /**
-   * Sends notifications about delete sync results if enabled
-   */
-  private async sendNotificationsIfEnabled(
-    result: DeleteSyncResult,
-    dryRun: boolean,
-  ): Promise<void> {
-    const notifySetting = this.config.deleteSyncNotify || 'none'
-
-    // Skip all notifications if set to none
-    if (notifySetting === 'none') {
-      this.log.info(
-        'Delete sync notifications disabled, skipping all notifications',
-      )
-      return
-    }
-
-    // Check if we should only notify when items were actually deleted
-    if (
-      this.config.deleteSyncNotifyOnlyOnDeletion &&
-      result.total.deleted === 0
-    ) {
-      this.log.info(
-        'Delete sync completed with no deletions, skipping notification as per configuration',
-      )
-      return
-    }
-
-    const sendDiscord = [
-      // Modern values
-      'all',
-      'discord-only',
-      'discord-webhook',
-      'discord-message',
-      'discord-both',
-      'webhook-only',
-      'dm-only',
-      // Legacy values (back-compat)
-      'message',
-      'webhook',
-      'both',
-    ].includes(notifySetting)
-
-    const sendApprise = ['all', 'apprise-only'].includes(notifySetting)
-
-    // Discord notification logic
-    if (sendDiscord && this.fastify.discord) {
-      try {
-        // Pass notification preference to control webhook vs DM
-        await this.fastify.discord.sendDeleteSyncNotification(
-          result,
-          dryRun,
-          notifySetting,
-        )
-      } catch (notifyError) {
-        this.log.error(
-          {
-            error:
-              notifyError instanceof Error
-                ? notifyError
-                : new Error(String(notifyError)),
-          },
-          'Error sending delete sync Discord notification:',
-        )
-      }
-    }
-
-    // Apprise notification logic
-    if (sendApprise && this.fastify.apprise?.isEnabled()) {
-      try {
-        await this.fastify.apprise?.sendDeleteSyncNotification(result, dryRun)
-      } catch (notifyError) {
-        this.log.error(
-          {
-            error:
-              notifyError instanceof Error
-                ? notifyError
-                : new Error(String(notifyError)),
-          },
-          'Error sending delete sync Apprise notification:',
-        )
       }
     }
   }
