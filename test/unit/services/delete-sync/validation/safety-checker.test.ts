@@ -1,10 +1,10 @@
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
-import { performSafetyCheck } from '@services/delete-sync/safety-checker.js'
+import { performTagBasedSafetyCheck } from '@services/delete-sync/validation/index.js'
 import { describe, expect, it } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
-describe('performSafetyCheck', () => {
+describe('performTagBasedSafetyCheck', () => {
   const createMockMovies = (count: number): RadarrItem[] =>
     Array.from({ length: count }, (_, i) => ({
       id: i + 1,
@@ -48,7 +48,7 @@ describe('performSafetyCheck', () => {
       }
 
       // Tag 5 movies and 5 shows = 10 out of 200 = 5%
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         series,
         movies,
         5, // tagged series
@@ -75,7 +75,7 @@ describe('performSafetyCheck', () => {
       }
 
       // Tag exactly 10 movies = 10%
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         series,
         movies,
         0,
@@ -101,7 +101,7 @@ describe('performSafetyCheck', () => {
       }
 
       // Tag 15 movies = 15%
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         series,
         movies,
         0,
@@ -127,7 +127,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 10,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         [],
         0,
@@ -155,7 +155,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 10,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         series,
         movies,
         0, // series not counted
@@ -179,7 +179,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 10,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         series,
         movies,
         10, // series counted
@@ -202,7 +202,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 10,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         series,
         movies,
         5, // only ended shows
@@ -226,7 +226,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 10,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         series,
         movies,
         5, // only continuing shows
@@ -250,7 +250,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 10,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         series,
         movies,
         10, // 10 shows total
@@ -275,7 +275,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 'invalid',
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -300,7 +300,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: -5,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -324,7 +324,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 150,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -348,7 +348,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: '20',
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -371,7 +371,7 @@ describe('performSafetyCheck', () => {
       }
 
       // 11 movies = 11%, should fail with default 10% threshold
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -395,7 +395,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 10,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -418,7 +418,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 100,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -442,7 +442,7 @@ describe('performSafetyCheck', () => {
       }
 
       // 1 movie out of 10000 = 0.01%
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -466,7 +466,7 @@ describe('performSafetyCheck', () => {
       }
 
       // Any deletion should fail with 0% threshold
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -488,7 +488,7 @@ describe('performSafetyCheck', () => {
         maxDeletionPrevention: 0,
       }
 
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,
@@ -515,7 +515,7 @@ describe('performSafetyCheck', () => {
 
       // Total eligible: 100 movies + 50 ended shows = 150
       // Tagged: 10 movies + 5 ended shows = 15 = 10%
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         series,
         movies,
         5, // tagged ended shows
@@ -540,7 +540,7 @@ describe('performSafetyCheck', () => {
       }
 
       // 33 out of 333 = 9.909090...%
-      const result = performSafetyCheck(
+      const result = performTagBasedSafetyCheck(
         [],
         movies,
         0,

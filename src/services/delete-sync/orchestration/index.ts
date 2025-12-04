@@ -2,9 +2,9 @@
 
 export {
   executeTagBasedDeletion,
-  type TagBasedDeletionContext,
+  type TagBasedDeletionDeps,
 } from './tag-based-deletion.js'
 export {
   executeWatchlistDeletion,
-  type WatchlistDeletionContext,
+  type WatchlistDeletionDeps,
 } from './watchlist-deletion.js'
