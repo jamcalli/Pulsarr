@@ -431,6 +431,7 @@ export class EtagPoller {
 
     try {
       const headers: Record<string, string> = {
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         'X-Plex-Token': token,
       }
@@ -438,7 +439,6 @@ export class EtagPoller {
       if (cached.etag) {
         headers['If-None-Match'] = cached.etag
       }
-      headers['User-Agent'] = USER_AGENT
 
       const response = await fetch(url.toString(), {
         headers,
