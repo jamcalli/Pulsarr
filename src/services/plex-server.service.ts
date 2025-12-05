@@ -22,6 +22,7 @@ import type {
 import { toItemsSingle } from '@services/plex-watchlist/index.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { USER_AGENT } from '@utils/version.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
@@ -215,6 +216,7 @@ export class PlexServerService {
       const resourcesUrl = new URL('/api/v2/resources', plexTvUrl)
       const resourcesResponse = await fetch(resourcesUrl.toString(), {
         headers: {
+          'User-Agent': USER_AGENT,
           Accept: 'application/json',
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': 'Pulsarr',

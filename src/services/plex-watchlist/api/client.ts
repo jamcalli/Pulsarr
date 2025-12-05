@@ -1,3 +1,4 @@
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from './helpers.js'
 
@@ -17,6 +18,7 @@ export const pingPlex = async (
 
     const response = await fetch(url.toString(), {
       headers: {
+        'User-Agent': USER_AGENT,
         'X-Plex-Token': token,
         'X-Plex-Client-Identifier': 'pulsarr',
         Accept: 'application/json',
@@ -58,6 +60,7 @@ export async function fetchPlexAvatar(
     // Plex.tv API endpoint for user account info
     const response = await fetch('https://plex.tv/api/v2/user', {
       headers: {
+        'User-Agent': USER_AGENT,
         'X-Plex-Token': token,
         Accept: 'application/json',
       },

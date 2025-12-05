@@ -4,6 +4,7 @@ import type {
   RssResponse,
 } from '@root/types/plex.types.js'
 import { normalizeGuid } from '@utils/guid-handler.js'
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
@@ -71,6 +72,7 @@ export const getRssFromPlexToken = async (
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
+        'User-Agent': USER_AGENT,
         'Content-Type': 'application/json',
         'X-Plex-Token': token,
       },
@@ -117,6 +119,7 @@ export const fetchWatchlistFromRss = async (
 
     const response = await fetch(urlObj.toString(), {
       headers: {
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
