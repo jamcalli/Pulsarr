@@ -9,9 +9,9 @@ import { createInterface } from 'node:readline'
 import { Readable, Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
+import { USER_AGENT } from './version.js'
 
 const DEFAULT_TIMEOUT = 300_000 // 5 minutes
-const DEFAULT_USER_AGENT = 'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
 
 type FetchInit = Parameters<typeof fetch>[1]
 
@@ -99,7 +99,7 @@ export async function* streamLines(
   const {
     url,
     timeout = DEFAULT_TIMEOUT,
-    userAgent = DEFAULT_USER_AGENT,
+    userAgent = USER_AGENT,
     isGzipped = false,
     retries = 2,
     signal,
@@ -159,7 +159,7 @@ export async function fetchContent(options: StreamOptions): Promise<string> {
   const {
     url,
     timeout = DEFAULT_TIMEOUT,
-    userAgent = DEFAULT_USER_AGENT,
+    userAgent = USER_AGENT,
     isGzipped = false,
     retries = 2,
     signal,

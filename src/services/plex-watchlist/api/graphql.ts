@@ -9,6 +9,7 @@ import type {
 } from '@root/types/plex.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
 import { parseGenres, parseGuids } from '@utils/guid-handler.js'
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
   isRateLimitError,
@@ -98,6 +99,7 @@ export const getWatchlist = async (
   try {
     const response = await fetch(url.toString(), {
       headers: {
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         'X-Plex-Token': token,
       },
@@ -271,6 +273,7 @@ export const getWatchlistForUser = async (
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
+        'User-Agent': USER_AGENT,
         'Content-Type': 'application/json',
         'X-Plex-Token': token,
       },

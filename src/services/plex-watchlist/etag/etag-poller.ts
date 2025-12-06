@@ -26,6 +26,7 @@ import type {
   GraphQLWatchlistPollResponse,
   WatchlistEtagCache,
 } from '@root/types/plex.types.js'
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
@@ -273,6 +274,7 @@ export class EtagPoller {
     try {
       const response = await fetch(url.toString(), {
         headers: {
+          'User-Agent': USER_AGENT,
           Accept: 'application/json',
           'X-Plex-Token': token,
         },
@@ -322,6 +324,7 @@ export class EtagPoller {
       const itemsResponse = await fetch('https://community.plex.tv/api', {
         method: 'POST',
         headers: {
+          'User-Agent': USER_AGENT,
           'Content-Type': 'application/json',
           'X-Plex-Token': token,
         },
@@ -355,6 +358,7 @@ export class EtagPoller {
       const etagResponse = await fetch('https://community.plex.tv/api', {
         method: 'POST',
         headers: {
+          'User-Agent': USER_AGENT,
           'Content-Type': 'application/json',
           'X-Plex-Token': token,
         },
@@ -427,6 +431,7 @@ export class EtagPoller {
 
     try {
       const headers: Record<string, string> = {
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         'X-Plex-Token': token,
       }
@@ -510,6 +515,7 @@ export class EtagPoller {
       const checkResponse = await fetch('https://community.plex.tv/api', {
         method: 'POST',
         headers: {
+          'User-Agent': USER_AGENT,
           'Content-Type': 'application/json',
           'X-Plex-Token': token,
         },
@@ -547,6 +553,7 @@ export class EtagPoller {
       const fullResponse = await fetch('https://community.plex.tv/api', {
         method: 'POST',
         headers: {
+          'User-Agent': USER_AGENT,
           'Content-Type': 'application/json',
           'X-Plex-Token': token,
         },

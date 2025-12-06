@@ -11,6 +11,7 @@
  * @see fixes/rss-etag-polling-plan.md for full documentation
  */
 
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 
@@ -69,7 +70,9 @@ export class RssEtagPoller {
 
     try {
       // Build request headers
-      const headers: Record<string, string> = {}
+      const headers: Record<string, string> = {
+        'User-Agent': USER_AGENT,
+      }
       // Only include If-None-Match if we have a valid ETag
       if (cached?.etag) {
         headers['If-None-Match'] = cached.etag
