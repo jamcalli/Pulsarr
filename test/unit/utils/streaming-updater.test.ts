@@ -1,6 +1,7 @@
 import { Readable } from 'node:stream'
 import { createGzip } from 'node:zlib'
 import { fetchContent, streamLines } from '@utils/streaming-updater.js'
+import { USER_AGENT } from '@utils/version.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { server } from '../../setup/msw-setup.js'
@@ -139,9 +140,7 @@ describe('streaming-updater', () => {
         lines.push(line)
       }
 
-      expect(capturedUserAgent).toBe(
-        'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)',
-      )
+      expect(capturedUserAgent).toBe(USER_AGENT)
     })
 
     it('should throw error when response has no body', async () => {
@@ -488,9 +487,7 @@ describe('streaming-updater', () => {
 
       await fetchContent({ url: 'https://example.com/content.txt' })
 
-      expect(capturedUserAgent).toBe(
-        'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)',
-      )
+      expect(capturedUserAgent).toBe(USER_AGENT)
     })
 
     it('should throw error when gzipped response has no body', async () => {

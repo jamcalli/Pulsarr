@@ -6,6 +6,7 @@ import type {
 } from '@root/types/plex.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
 import { normalizeGuid } from '@utils/guid-handler.js'
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
   hasValidPlexTokens,
@@ -143,6 +144,7 @@ export const toItemsSingle = async (
 
     const response = await fetch(url.toString(), {
       headers: {
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         'X-Plex-Token': config.plexTokens[0],
       },
