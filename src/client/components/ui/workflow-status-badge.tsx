@@ -135,7 +135,7 @@ export function WatchlistStatusBadge() {
         {status.charAt(0).toUpperCase() + status.slice(1)}
         {status === 'running' && (
           <span className="ml-1 text-xs opacity-75">
-            ({syncMode === 'manual' ? 'Manual Sync' : 'RSS'})
+            ({syncMode === 'polling' ? 'Polling' : 'RSS'})
           </span>
         )}
       </Badge>
