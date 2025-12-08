@@ -1490,6 +1490,17 @@ async function handleApprovalAction(
 
     // Process the approval/rejection using the EXACT same logic as API routes
     if (action === 'approve') {
+      // Check instance health before approving
+      const healthCheck = await fastify.approvalService.checkInstanceHealth(
+        approval.contentType,
+      )
+      if (!healthCheck.available) {
+        await interaction.editReply(
+          `❌ Cannot process approval: ${healthCheck.unavailableType} instances are unavailable. Please try again later.`,
+        )
+        return
+      }
+
       // Step 1: Approve the request (same as API route)
       const approvedRequest = await fastify.approvalService.approveRequest(
         approvalId,
