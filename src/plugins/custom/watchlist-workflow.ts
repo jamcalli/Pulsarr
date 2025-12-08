@@ -99,7 +99,7 @@ export default fp(
  * Emits a progress event with the current watchlist workflow status.
  *
  * If there are active progress connections, the function retrieves the workflow status and determines
- * the synchronization mode—using "manual" if an RSS fallback is enabled, or "rss" otherwise. It generates
+ * the synchronization mode—using "polling" if an RSS fallback is enabled, or "rss" otherwise. It generates
  * a unique operation ID based on the current time and emits a progress event with a status message and metadata
  * that includes the sync mode and RSS availability.
  *
@@ -113,7 +113,7 @@ function emitWatchlistWorkflowStatus(fastify: FastifyInstance) {
 
   const status = fastify.watchlistWorkflow.getStatus()
   const syncMode = fastify.watchlistWorkflow.getIsUsingRssFallback()
-    ? 'manual'
+    ? 'polling'
     : 'rss'
   const operationId = `watchlist-workflow-status-${Date.now()}`
 

@@ -518,8 +518,9 @@ export class WatchlistWorkflowService {
       this.statusSyncDebounceTimer = null
     }
 
-    // Clear watchlist cache
+    // Stop staggered polling and clear watchlist cache
     if (this.etagPoller) {
+      this.etagPoller.stopStaggeredPolling()
       this.etagPoller.clearCache()
     }
 
@@ -1195,13 +1196,22 @@ export class WatchlistWorkflowService {
   }
 
   /**
-   * Start the 3-minute change detection interval.
+   * Start change detection based on mode.
+   * - RSS mode: Uses 3-minute interval with ETag checks
+   * - Non-RSS mode: Uses 5-minute staggered polling
    */
   private startEtagCheckInterval(): void {
     if (this.etagCheckInterval) {
       clearInterval(this.etagCheckInterval)
     }
 
+    // Non-RSS mode: Use staggered polling
+    if (this.isUsingRssFallback) {
+      this.startStaggeredPolling()
+      return
+    }
+
+    // RSS mode: Use regular interval
     this.log.info(
       { intervalMinutes: this.ETAG_CHECK_INTERVAL_MS / 60000 },
       'Starting change detection interval',
@@ -1214,6 +1224,246 @@ export class WatchlistWorkflowService {
         this.log.error({ error }, 'Error in change detection interval')
       }
     }, this.ETAG_CHECK_INTERVAL_MS)
+  }
+
+  /**
+   * Start staggered polling for non-RSS mode.
+   * Polls users sequentially with even distribution across 5-minute cycles.
+   */
+  private async startStaggeredPolling(): Promise<void> {
+    if (!this.etagPoller) {
+      this.etagPoller = new EtagPoller(this.config, this.log)
+    }
+
+    const primaryUser = await this.dbService.getPrimaryUser()
+    if (!primaryUser) {
+      this.log.warn('No primary user found, cannot start staggered polling')
+      return
+    }
+
+    // Get initial friends list
+    const friends = await this.getEtagFriendsList()
+
+    // Start staggered polling with callbacks
+    this.etagPoller.startStaggeredPolling(
+      primaryUser.id,
+      friends,
+      // onUserChanged callback - handle watchlist changes
+      async (result) => {
+        await this.handleStaggeredPollResult(result)
+      },
+      // onCycleStart callback - refresh friends at start of each cycle
+      async () => {
+        return this.refreshFriendsForStaggeredPolling()
+      },
+    )
+
+    this.log.info('Started staggered ETag polling for non-RSS mode')
+  }
+
+  /**
+   * Handle a staggered poll result when a user has new items.
+   */
+  private async handleStaggeredPollResult(
+    result: EtagPollResult,
+  ): Promise<void> {
+    if (!result.changed || result.newItems.length === 0) return
+
+    const user = await this.dbService.getUser(result.userId)
+    if (!user) {
+      this.log.warn(
+        { userId: result.userId },
+        'User not found for staggered poll result',
+      )
+      return
+    }
+
+    this.log.info(
+      {
+        userId: result.userId,
+        username: user.name,
+        newItems: result.newItems.length,
+      },
+      'Staggered poll detected new items',
+    )
+
+    // Check instance health
+    const [sonarrHealth, radarrHealth] = await Promise.all([
+      this.sonarrManager.checkInstancesHealth(),
+      this.radarrManager.checkInstancesHealth(),
+    ])
+
+    const instancesUnavailable =
+      sonarrHealth.unavailable.length > 0 || radarrHealth.unavailable.length > 0
+
+    // Convert EtagPollItems to TokenWatchlistItems
+    const tokenItems: TokenWatchlistItem[] = result.newItems.map((item) => ({
+      id: item.id,
+      title: item.title,
+      type: item.type,
+      user_id: result.userId,
+      status: 'pending' as const,
+      key: item.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }))
+
+    const isPrimary = await this.isPrimaryUser(result.userId)
+
+    if (instancesUnavailable && this.deferredRoutingQueue) {
+      this.log.warn(
+        {
+          userId: result.userId,
+          itemCount: tokenItems.length,
+        },
+        'Instances unavailable, queuing items for deferred routing',
+      )
+
+      // Need to enrich first before queuing
+      const { processedItems } = await processItemsForUser(
+        {
+          user: {
+            userId: result.userId,
+            username: user.name,
+            watchlistId: '',
+          },
+          items: tokenItems,
+          isSelfWatchlist: isPrimary,
+        },
+        this.itemProcessorDeps,
+      )
+
+      if (processedItems.length > 0) {
+        this.deferredRoutingQueue.enqueue({
+          type: 'newFriend',
+          userId: result.userId,
+          items: processedItems,
+        })
+      }
+      return
+    }
+
+    // Process and route items
+    const { processedItems, linkedItems } = await processItemsForUser(
+      {
+        user: {
+          userId: result.userId,
+          username: user.name,
+          watchlistId: '',
+        },
+        items: tokenItems,
+        isSelfWatchlist: isPrimary,
+      },
+      this.itemProcessorDeps,
+    )
+
+    const allItemsToRoute = [...processedItems, ...linkedItems]
+    if (allItemsToRoute.length > 0) {
+      await this.routeEnrichedItemsForUser(result.userId, allItemsToRoute)
+      await this.updateAutoApprovalUserAttribution()
+      this.scheduleDebouncedStatusSync()
+    }
+  }
+
+  /**
+   * Refresh friends list at the start of each staggered polling cycle.
+   *
+   * This method:
+   * 1. Detects new Plex friends → creates DB user → syncs watchlist → establishes baseline
+   * 2. Detects removed friends → invalidates ETag cache → removes from UUID cache
+   * 3. Returns updated friends list for the polling rotation
+   *
+   * New friends are immediately synced and added to the current cycle's rotation.
+   */
+  private async refreshFriendsForStaggeredPolling(): Promise<EtagUserInfo[]> {
+    try {
+      const friendChanges = await this.plexService.checkFriendChanges()
+      this.updatePlexUuidCache(friendChanges.userMap)
+
+      // Handle new friends - sync immediately and establish baseline
+      for (const newFriend of friendChanges.added) {
+        this.log.info(
+          { username: newFriend.username, userId: newFriend.userId },
+          'New friend detected in staggered polling cycle',
+        )
+
+        try {
+          // Sync new friend's watchlist
+          await this.syncSingleFriend({
+            userId: newFriend.userId,
+            username: newFriend.username,
+            isPrimary: false,
+            watchlistId: newFriend.watchlistId,
+          })
+
+          // Establish baseline for new friend
+          if (this.etagPoller) {
+            await this.etagPoller.establishBaseline({
+              userId: newFriend.userId,
+              username: newFriend.username,
+              isPrimary: false,
+              watchlistId: newFriend.watchlistId,
+            })
+          }
+        } catch (error) {
+          this.log.error(
+            { error, username: newFriend.username },
+            'Failed to sync new friend in staggered polling',
+          )
+        }
+      }
+
+      // Handle removed friends - clean up cache
+      for (const removed of friendChanges.removed) {
+        this.log.info(
+          { userId: removed.userId, username: removed.username },
+          'Friend removed, cleaning up from staggered polling',
+        )
+
+        if (this.etagPoller) {
+          this.etagPoller.invalidateUser(removed.userId, removed.watchlistId)
+        }
+
+        // Remove from UUID cache
+        for (const [uuid, userId] of this.plexUuidCache.entries()) {
+          if (userId === removed.userId) {
+            this.plexUuidCache.delete(uuid)
+            break
+          }
+        }
+      }
+
+      // Return updated friends list
+      return this.getEtagFriendsList()
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Failed to refresh friends for staggered polling',
+      )
+      // Return current list on error
+      return this.getEtagFriendsList()
+    }
+  }
+
+  /**
+   * Get friends list formatted for EtagPoller.
+   *
+   * Note: Uses checkFriendChanges() which also ensures users exist in DB.
+   * This is intentional - after initial reconciliation, existing users are
+   * returned with no side effects. New users are created if Plex friends
+   * changed between calls, which is the desired behavior.
+   */
+  private async getEtagFriendsList(): Promise<EtagUserInfo[]> {
+    const friendChanges = await this.plexService.checkFriendChanges()
+    return this.buildEtagUserInfoFromMap(friendChanges.userMap)
+  }
+
+  /**
+   * Check if a user is the primary user.
+   */
+  private async isPrimaryUser(userId: number): Promise<boolean> {
+    const primaryUser = await this.dbService.getPrimaryUser()
+    return primaryUser?.id === userId
   }
 
   /**

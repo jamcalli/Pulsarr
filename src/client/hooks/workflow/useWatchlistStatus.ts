@@ -11,7 +11,7 @@ import { useProgressStore } from '@/stores/progressStore'
  */
 export function useWatchlistStatus() {
   const [status, setStatus] = useState<string>('unknown')
-  const [syncMode, setSyncMode] = useState<'manual' | 'rss'>('manual')
+  const [syncMode, setSyncMode] = useState<'polling' | 'rss'>('polling')
   const [rssAvailable, setRssAvailable] = useState<boolean>(false)
   const subscribeToType = useProgressStore(state => state.subscribeToType)
 
