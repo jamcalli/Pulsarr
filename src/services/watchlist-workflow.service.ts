@@ -113,6 +113,13 @@ export class WatchlistWorkflowService {
   private readonly STATUS_SYNC_DEBOUNCE_MS = 60 * 1000
 
   /**
+   * In-memory cache mapping Plex user UUIDs (watchlistId) to database user IDs.
+   * Used for RSS author field lookups. Friends only - self-RSS is always primary user.
+   * Populated during friend sync operations.
+   */
+  private plexUuidCache: Map<string, number> = new Map()
+
+  /**
    * Creates a new WatchlistWorkflowService instance
    *
    * @param log - Fastify logger instance for recording workflow operations
@@ -562,6 +569,9 @@ export class WatchlistWorkflowService {
       // Check friend changes ALWAYS (regardless of mode)
       const friendChanges = await this.plexService.checkFriendChanges()
 
+      // Update UUID cache with current friends mapping
+      this.updatePlexUuidCache(friendChanges.userMap)
+
       // Handle newly added friends immediately
       for (const newFriend of friendChanges.added) {
         this.log.info(
@@ -572,18 +582,28 @@ export class WatchlistWorkflowService {
         if (options.mode === 'etag') {
           // ETag mode: sync and route immediately (full sync won't follow)
           try {
-            const brandNewItems = await this.syncSingleFriend(newFriend)
+            const { brandNewItems, linkedItems } =
+              await this.syncSingleFriend(newFriend)
 
-            if (brandNewItems.length > 0) {
+            // Route ALL items - both brand new AND linked
+            // Linked items need routing because this user may have different router rules
+            const allItemsToRoute = [...brandNewItems, ...linkedItems]
+
+            if (allItemsToRoute.length > 0) {
               this.log.info(
-                { userId: newFriend.userId, itemCount: brandNewItems.length },
-                'Routing new friend watchlist items',
+                {
+                  userId: newFriend.userId,
+                  brandNew: brandNewItems.length,
+                  linked: linkedItems.length,
+                  total: allItemsToRoute.length,
+                },
+                'Routing new friend watchlist items (brand new + linked)',
               )
 
               // Route pre-enriched items (no double enrichment)
               await this.routeEnrichedItemsForUser(
                 newFriend.userId,
-                brandNewItems,
+                allItemsToRoute,
               )
 
               // Post-routing tasks - update attribution and schedule status sync
@@ -858,28 +878,33 @@ export class WatchlistWorkflowService {
 
   /**
    * Sync a single friend's complete watchlist to DB.
-   * Returns only brand new items (not items linked from other users).
+   * Returns both brand new items AND linked items (both need routing).
+   *
+   * IMPORTANT: Both brand new AND linked items need routing because each user
+   * may have different router rules pointing to different instances.
    *
    * @param friend - The new friend to sync
-   * @returns Array of brand new Items saved to DB (ready for routing)
+   * @returns Object with brandNewItems and linkedItems arrays (both ready for routing)
    */
-  private async syncSingleFriend(friend: EtagUserInfo): Promise<Item[]> {
+  private async syncSingleFriend(
+    friend: EtagUserInfo,
+  ): Promise<{ brandNewItems: Item[]; linkedItems: Item[] }> {
     const token = this.config.plexTokens?.[0]
     if (!token || !friend.watchlistId) {
       this.log.warn(
         { userId: friend.userId },
         'Cannot sync friend: missing token or watchlistId',
       )
-      return []
+      return { brandNewItems: [], linkedItems: [] }
     }
 
     // Build single-friend set for getOthersWatchlist
-    const friendData: Friend & { userId: number } = {
+    const friendDataForMap: Friend & { userId: number } = {
       watchlistId: friend.watchlistId,
       username: friend.username,
       userId: friend.userId,
     }
-    const friendSet = new Set([[friendData, token]] as [
+    const friendSet = new Set([[friendDataForMap, token]] as [
       Friend & { userId: number },
       string,
     ][])
@@ -897,7 +922,7 @@ export class WatchlistWorkflowService {
         { userId: friend.userId },
         'New friend has empty watchlist',
       )
-      return []
+      return { brandNewItems: [], linkedItems: [] }
     }
 
     // Extract keys for DB lookup across ALL users (not just this friend)
@@ -930,7 +955,7 @@ export class WatchlistWorkflowService {
       this.itemProcessorDeps,
     )
 
-    // Link existing items (already routed for other users, just need DB link + label sync)
+    // Link existing items - these also need routing for this user's target instances!
     await linkExistingItems(existingItemsToLink, {
       db: this.dbService,
       logger: this.log,
@@ -939,22 +964,30 @@ export class WatchlistWorkflowService {
     })
 
     // Flatten Map<Friend, Set<Item>> to Item[]
-    const newItemsArray: Item[] = []
+    const brandNewItemsArray: Item[] = []
     for (const items of processedItems.values()) {
-      newItemsArray.push(...items)
+      brandNewItemsArray.push(...items)
+    }
+
+    // Collect linked items - these need routing too (user may have different router rules)
+    const linkedItemsArray: Item[] = []
+    const linkedItemsSet = existingItemsToLink.get(friendDataForMap)
+    if (linkedItemsSet) {
+      linkedItemsArray.push(...linkedItemsSet)
     }
 
     this.log.info(
       {
         userId: friend.userId,
         username: friend.username,
-        brandNewItems: newItemsArray.length,
-        linkedItems: existingItemsToLink.size,
+        brandNewItems: brandNewItemsArray.length,
+        linkedItems: linkedItemsArray.length,
       },
       'New friend watchlist synced',
     )
 
-    return newItemsArray
+    // Return BOTH - caller routes all items with user-specific router rules
+    return { brandNewItems: brandNewItemsArray, linkedItems: linkedItemsArray }
   }
 
   /**
@@ -1137,6 +1170,20 @@ export class WatchlistWorkflowService {
     }
 
     return friends
+  }
+
+  /**
+   * Updates the in-memory UUID cache from a userMap.
+   * Called whenever friend sync operations return a fresh userMap.
+   *
+   * @param userMap - Map of Plex UUID (watchlistId) to database user ID
+   */
+  private updatePlexUuidCache(userMap: Map<string, number>): void {
+    this.plexUuidCache = new Map(userMap)
+    this.log.debug(
+      { cacheSize: this.plexUuidCache.size },
+      'Updated Plex UUID cache',
+    )
   }
 
   /**

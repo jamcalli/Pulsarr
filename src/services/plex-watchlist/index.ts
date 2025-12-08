@@ -50,6 +50,12 @@ export {
   type RemovalHandlerDeps,
 } from './orchestration/removal-handler.js'
 export {
+  type ProcessItemsInput,
+  type ProcessItemsResult,
+  processItemsForUser,
+  type UnifiedProcessorDeps,
+} from './orchestration/unified-processor.js'
+export {
   extractKeysAndRelationships,
   getExistingItems,
   type WatchlistSyncDeps,
