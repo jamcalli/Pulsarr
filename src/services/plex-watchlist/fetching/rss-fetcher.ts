@@ -2,11 +2,26 @@ import type {
   Item,
   PlexApiResponse,
   RssResponse,
+  RssWatchlistItem,
 } from '@root/types/plex.types.js'
-import { normalizeGuid } from '@utils/guid-handler.js'
+import { normalizeGenre, normalizeGuid } from '@utils/guid-handler.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
+
+/**
+ * Generate a stable cache key from GUIDs.
+ * Used for RSS feed diffing to detect new items consistently.
+ *
+ * @param guids - Array of GUID strings
+ * @returns Stable key string (sorted, normalized, joined)
+ */
+export function generateStableKey(guids: string[]): string {
+  return guids
+    .map((g) => g.toLowerCase().trim())
+    .sort()
+    .join('|')
+}
 
 /**
  * Generates RSS feed URLs for the given Plex tokens.
@@ -158,15 +173,8 @@ export const fetchWatchlistFromRss = async (
                 (genre): genre is string =>
                   typeof genre === 'string' && genre.trim().length > 0,
               )
-              .map((genre) => {
-                if (genre.toLowerCase() === 'sci-fi & fantasy') {
-                  return 'Sci-Fi & Fantasy'
-                }
-                return genre
-                  .split(' ')
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(' ')
-              }),
+              .map(normalizeGenre)
+              .filter(Boolean),
             user_id: userId,
             status: 'pending',
             created_at: new Date().toISOString(),
@@ -184,4 +192,147 @@ export const fetchWatchlistFromRss = async (
 
   log.debug(`Successfully processed ${items.size} items from RSS feed`)
   return items
+}
+
+/**
+ * Result of fetching raw RSS feed content
+ */
+export interface RawRssFetchResult {
+  success: boolean
+  items: RssWatchlistItem[]
+  etag: string | null
+  authError?: boolean
+  notFound?: boolean
+  error?: string
+}
+
+/**
+ * Fetch raw RSS feed content with ETag support.
+ * Used by the RSS feed cache for efficient polling.
+ *
+ * @param url - The RSS feed URL
+ * @param token - Plex authentication token
+ * @param log - Logger instance
+ * @param previousEtag - Previous ETag for conditional request (optional)
+ * @returns Raw RSS items with metadata
+ */
+export async function fetchRawRssFeed(
+  url: string,
+  token: string,
+  log: FastifyBaseLogger,
+  previousEtag?: string,
+): Promise<RawRssFetchResult> {
+  try {
+    const urlObj = new URL(url)
+    urlObj.searchParams.set('format', 'json')
+
+    // First do a HEAD request to check ETag
+    const headResponse = await fetch(urlObj.toString(), {
+      method: 'HEAD',
+      headers: {
+        'User-Agent': USER_AGENT,
+        'X-Plex-Token': token,
+        'X-Plex-Client-Identifier': 'pulsarr',
+        ...(previousEtag && { 'If-None-Match': previousEtag }),
+      },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
+    })
+
+    // Not modified - content unchanged
+    if (headResponse.status === 304) {
+      log.debug('RSS feed unchanged (304 Not Modified)')
+      return { success: true, items: [], etag: previousEtag ?? null }
+    }
+
+    // Auth errors
+    if (headResponse.status === 401 || headResponse.status === 403) {
+      log.warn('RSS feed auth error - user may lack RSS access')
+      return { success: false, items: [], etag: null, authError: true }
+    }
+
+    // Not found
+    if (headResponse.status === 404) {
+      log.warn('RSS feed not found')
+      return { success: false, items: [], etag: null, notFound: true }
+    }
+
+    if (!headResponse.ok) {
+      return {
+        success: false,
+        items: [],
+        etag: null,
+        error: `HEAD request failed: HTTP ${headResponse.status}`,
+      }
+    }
+
+    const newEtag = headResponse.headers.get('ETag')
+
+    // Fetch full content
+    const getResponse = await fetch(urlObj.toString(), {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'X-Plex-Token': token,
+        'X-Plex-Client-Identifier': 'pulsarr',
+        Accept: 'application/json',
+      },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
+    })
+
+    if (!getResponse.ok) {
+      return {
+        success: false,
+        items: [],
+        etag: null,
+        error: `GET request failed: HTTP ${getResponse.status}`,
+      }
+    }
+
+    const json = (await getResponse.json()) as RssResponse
+    const items: RssWatchlistItem[] = []
+
+    if (json?.items && Array.isArray(json.items)) {
+      for (const rawItem of json.items) {
+        // Validate required fields
+        if (
+          !rawItem.title ||
+          !rawItem.category ||
+          !Array.isArray(rawItem.guids) ||
+          rawItem.guids.length === 0
+        ) {
+          log.debug({ title: rawItem.title }, 'Skipping malformed RSS item')
+          continue
+        }
+
+        // Normalize GUIDs
+        const normalizedGuids = rawItem.guids
+          .filter(
+            (guid): guid is string =>
+              typeof guid === 'string' && guid.trim().length > 0,
+          )
+          .map((guid) => normalizeGuid(guid))
+
+        if (normalizedGuids.length === 0) {
+          log.debug(
+            { title: rawItem.title },
+            'Skipping item with no valid GUIDs',
+          )
+          continue
+        }
+
+        items.push({
+          ...rawItem,
+          guids: normalizedGuids,
+          // Extract author field (Plex user UUID)
+          author: rawItem.author,
+        })
+      }
+    }
+
+    log.debug({ itemCount: items.length, etag: newEtag }, 'RSS feed fetched')
+    return { success: true, items, etag: newEtag }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    log.error({ error: errorMessage }, 'Failed to fetch RSS feed')
+    return { success: false, items: [], etag: null, error: errorMessage }
+  }
 }
