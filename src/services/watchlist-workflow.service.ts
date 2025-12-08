@@ -3081,16 +3081,22 @@ export class WatchlistWorkflowService {
   }
 
   /**
-   * Schedule the next periodic reconciliation to run in 40 minutes
+   * Schedule the next periodic reconciliation to run in 2 hours.
+   *
+   * With RSS/ETag handling real-time additions (seconds to minutes),
+   * this periodic sync now primarily handles:
+   * - Removal detection (comparing DB vs fetched watchlist)
+   * - Label cleanup for items no longer on watchlists
+   * - Catch-all failsafe for any edge cases missed by incremental detection
    */
   private async schedulePendingReconciliation(): Promise<void> {
     try {
-      const scheduleTime = new Date(Date.now() + 40 * 60 * 1000) // +40 minutes
+      const scheduleTime = new Date(Date.now() + 120 * 60 * 1000) // +2 hours
 
       await this.fastify.scheduler.updateJobSchedule(
         this.MANUAL_SYNC_JOB_NAME,
         {
-          minutes: 40,
+          minutes: 120,
           runImmediately: false,
         },
         true,
