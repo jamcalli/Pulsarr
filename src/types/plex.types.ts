@@ -142,6 +142,19 @@ export interface RssWatchlistItem {
     url: string
   }
   keywords?: string[]
+  /**
+   * Plex user UUID (hex string) who added this item.
+   * Maps to allFriendsV2 GraphQL id field for friend lookups.
+   * Present in both self and friends RSS feeds.
+   */
+  author?: string
+  /**
+   * Content rating information (e.g., pg-13, r)
+   */
+  rating?: {
+    rating?: string
+    scheme?: string
+  }
 }
 
 export interface TemptRssWatchlistItem {

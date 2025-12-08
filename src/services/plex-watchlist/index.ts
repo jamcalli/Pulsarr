@@ -14,9 +14,22 @@ export {
   type RateLimitError,
 } from './api/index.js'
 
+// Cache layer
+export {
+  type CachedRssItem,
+  type RssDiffResult,
+  type RssFeedCacheConfig,
+  RssFeedCacheManager,
+} from './cache/index.js'
+
 // Enrichment/processing
 export {
+  batchLookupByGuid,
+  type EnrichedRssMetadata,
+  type GuidLookupConfig,
+  lookupByGuid,
   processWatchlistItems,
+  selectPrimaryGuid,
   toItemsBatch,
   toItemsSingle,
 } from './enrichment/index.js'
@@ -26,12 +39,15 @@ export { EtagPoller } from './etag/etag-poller.js'
 
 // Fetching layer
 export {
+  fetchRawRssFeed,
   fetchSelfWatchlist,
   fetchWatchlistFromRss,
+  generateStableKey,
   getFriends,
   getOthersWatchlist,
   getPlexWatchlistUrls,
   getRssFromPlexToken,
+  type RawRssFetchResult,
 } from './fetching/index.js'
 // Notifications module
 export {
