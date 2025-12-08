@@ -3,7 +3,6 @@ import type {
   Friend,
   FriendChangesResult,
   RssWatchlistResults,
-  TemptRssWatchlistItem,
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
@@ -32,16 +31,10 @@ import {
   type RemovalHandlerDeps,
 } from './plex-watchlist/orchestration/removal-handler.js'
 import {
-  matchRssPendingItemsFriends,
-  matchRssPendingItemsSelf,
-  type RssMatcherDeps,
-} from './plex-watchlist/orchestration/rss-matcher.js'
-import {
   generateAndSaveRssFeeds,
   processRssWatchlists,
   processRssWatchlistsWithUserDetails,
   type RssProcessorDeps,
-  storeRssWatchlistItems,
 } from './plex-watchlist/orchestration/rss-processor.js'
 import {
   buildResponse,
@@ -139,15 +132,6 @@ export class PlexWatchlistService {
       logger: this.log,
       config: this.config,
       fastify: this.fastify,
-    }
-  }
-
-  /** Gets the dependencies object for RSS matcher operations */
-  private get rssMatcherDeps(): RssMatcherDeps {
-    return {
-      db: this.dbService,
-      logger: this.log,
-      notificationDeps: this.notificationDeps,
     }
   }
 
@@ -287,10 +271,6 @@ export class PlexWatchlistService {
       }
       allItemsMap.set(user, existingUserItems)
     }
-
-    await this.matchRssPendingItemsSelf(
-      allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
-    )
 
     await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
 
@@ -471,10 +451,6 @@ export class PlexWatchlistService {
       }
     }
 
-    await this.matchRssPendingItemsFriends(
-      allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
-    )
-
     await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
 
     return buildResponse(
@@ -535,29 +511,6 @@ export class PlexWatchlistService {
    */
   async processRssWatchlistsWithUserDetails(): Promise<RssWatchlistResults> {
     return processRssWatchlistsWithUserDetails(this.rssProcessorDeps)
-  }
-
-  async storeRssWatchlistItems(
-    items: Set<TemptRssWatchlistItem>,
-    source: 'self' | 'friends',
-    routedGuids?: Set<string>,
-  ): Promise<void> {
-    return storeRssWatchlistItems(items, source, routedGuids, {
-      db: this.dbService,
-      logger: this.log,
-    })
-  }
-
-  async matchRssPendingItemsSelf(
-    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
-  ): Promise<void> {
-    return matchRssPendingItemsSelf(userWatchlistMap, this.rssMatcherDeps)
-  }
-
-  async matchRssPendingItemsFriends(
-    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
-  ): Promise<void> {
-    return matchRssPendingItemsFriends(userWatchlistMap, this.rssMatcherDeps)
   }
 
   /**
