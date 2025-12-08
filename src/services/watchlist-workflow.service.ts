@@ -25,7 +25,6 @@
  */
 
 import type {
-  Item as DbWatchlistItem,
   EtagPollResult,
   EtagUserInfo,
   Friend,
@@ -51,9 +50,9 @@ import {
   type ItemProcessorDeps,
   linkExistingItems,
   processAndSaveNewItems,
+  processItemsForUser,
   type RemovalHandlerDeps,
   RssEtagPoller,
-  toItemsSingle,
   type WatchlistSyncDeps,
 } from '@services/plex-watchlist/index.js'
 import {
@@ -66,6 +65,7 @@ import {
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
+import { DeferredRoutingQueue } from './deferred-routing-queue.service.js'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
@@ -118,6 +118,12 @@ export class WatchlistWorkflowService {
    * Populated during friend sync operations.
    */
   private plexUuidCache: Map<string, number> = new Map()
+
+  /**
+   * Queue for routing attempts that fail due to instance unavailability.
+   * Retries automatically when instances recover.
+   */
+  private deferredRoutingQueue: DeferredRoutingQueue | null = null
 
   /**
    * Creates a new WatchlistWorkflowService instance
@@ -363,6 +369,24 @@ export class WatchlistWorkflowService {
         // Continue despite this error
       }
 
+      // Initialize deferred routing queue for instance unavailability recovery
+      this.deferredRoutingQueue = new DeferredRoutingQueue({
+        sonarrManager: this.sonarrManager,
+        radarrManager: this.radarrManager,
+        callbacks: {
+          routeEtagChange: (change) => this.routeNewItemsForUser(change),
+          routeNewFriendItems: (userId, items) =>
+            this.routeEnrichedItemsForUser(userId, items),
+          onDrained: () => {
+            // Post-routing tasks after queue drain
+            this.updateAutoApprovalUserAttribution()
+            this.scheduleDebouncedStatusSync()
+          },
+        },
+        log: this.log,
+      })
+      this.deferredRoutingQueue.start()
+
       // Initial full reconciliation - syncs all users, establishes ETag baselines
       try {
         this.log.debug('Starting initial full reconciliation')
@@ -495,6 +519,12 @@ export class WatchlistWorkflowService {
       this.rssEtagPoller.clearCache()
     }
 
+    // Stop deferred routing queue (drops any queued items)
+    if (this.deferredRoutingQueue) {
+      this.deferredRoutingQueue.stop()
+      this.deferredRoutingQueue = null
+    }
+
     // Update status
     this.status = 'stopped'
     this.initialized = false
@@ -590,25 +620,56 @@ export class WatchlistWorkflowService {
             const allItemsToRoute = [...brandNewItems, ...linkedItems]
 
             if (allItemsToRoute.length > 0) {
-              this.log.info(
-                {
-                  userId: newFriend.userId,
-                  brandNew: brandNewItems.length,
-                  linked: linkedItems.length,
-                  total: allItemsToRoute.length,
-                },
-                'Routing new friend watchlist items (brand new + linked)',
-              )
+              // Check instance health before routing - queue if unavailable
+              const [sonarrHealth, radarrHealth] = await Promise.all([
+                this.sonarrManager.checkInstancesHealth(),
+                this.radarrManager.checkInstancesHealth(),
+              ])
 
-              // Route pre-enriched items (no double enrichment)
-              await this.routeEnrichedItemsForUser(
-                newFriend.userId,
-                allItemsToRoute,
-              )
+              if (
+                sonarrHealth.unavailable.length > 0 ||
+                radarrHealth.unavailable.length > 0
+              ) {
+                this.log.warn(
+                  {
+                    userId: newFriend.userId,
+                    username: newFriend.username,
+                    itemCount: allItemsToRoute.length,
+                    sonarrUnavailable: sonarrHealth.unavailable,
+                    radarrUnavailable: radarrHealth.unavailable,
+                  },
+                  'Some instances unavailable, queuing new friend items for deferred routing',
+                )
 
-              // Post-routing tasks - update attribution and schedule status sync
-              await this.updateAutoApprovalUserAttribution()
-              this.scheduleDebouncedStatusSync()
+                // Queue items for retry when instances recover
+                if (this.deferredRoutingQueue) {
+                  this.deferredRoutingQueue.enqueue({
+                    type: 'newFriend',
+                    userId: newFriend.userId,
+                    items: allItemsToRoute,
+                  })
+                }
+              } else {
+                this.log.info(
+                  {
+                    userId: newFriend.userId,
+                    brandNew: brandNewItems.length,
+                    linked: linkedItems.length,
+                    total: allItemsToRoute.length,
+                  },
+                  'Routing new friend watchlist items (brand new + linked)',
+                )
+
+                // Route pre-enriched items (no double enrichment)
+                await this.routeEnrichedItemsForUser(
+                  newFriend.userId,
+                  allItemsToRoute,
+                )
+
+                // Post-routing tasks - update attribution and schedule status sync
+                await this.updateAutoApprovalUserAttribution()
+                this.scheduleDebouncedStatusSync()
+              }
             }
 
             // Only establish baseline after successful sync
@@ -674,8 +735,8 @@ export class WatchlistWorkflowService {
         )
 
         if (changesWithNewItems.length > 0) {
-          // Check instance health before routing - abort if ANY instance is unavailable
-          // This prevents incorrect routing decisions; items will be caught in next full reconciliation
+          // Check instance health before routing - queue if ANY instance is unavailable
+          // This prevents incorrect routing decisions; queued items retry when instances recover
           const [sonarrHealth, radarrHealth] = await Promise.all([
             this.sonarrManager.checkInstancesHealth(),
             this.radarrManager.checkInstancesHealth(),
@@ -689,9 +750,17 @@ export class WatchlistWorkflowService {
               {
                 sonarrUnavailable: sonarrHealth.unavailable,
                 radarrUnavailable: radarrHealth.unavailable,
+                changesCount: changesWithNewItems.length,
               },
-              'Some instances unavailable, deferring routing to next full reconciliation',
+              'Some instances unavailable, queuing changes for deferred routing',
             )
+
+            // Queue each change for retry when instances recover
+            if (this.deferredRoutingQueue) {
+              for (const change of changesWithNewItems) {
+                this.deferredRoutingQueue.enqueue({ type: 'etag', change })
+              }
+            }
             return
           }
 
@@ -992,17 +1061,12 @@ export class WatchlistWorkflowService {
 
   /**
    * Route new items for a specific user detected via change detection.
-   * This is the "instant routing" path - no deferral needed since we know
-   * exactly WHO added WHAT.
+   * Uses the unified processing flow for efficient categorization:
+   * - Brand new items: enrich via Plex API, save to DB, route
+   * - Existing items: link to user (skip enrichment), route
    *
-   * Flow:
-   * 1. Check user sync settings
-   * 2. Enrich each item via Plex API to get GUIDs, genres, thumb
-   * 3. Check for required IDs (TVDB for shows, TMDB for movies)
-   * 4. Check existence in target instances
-   * 5. Check Plex existence (if enabled)
-   * 6. Route via content router
-   * 7. Send notifications
+   * Both brand new AND linked items are routed because each user may have
+   * different router rules pointing to different instances.
    */
   private async routeNewItemsForUser(change: EtagPollResult): Promise<void> {
     const { userId, newItems } = change
@@ -1027,127 +1091,56 @@ export class WatchlistWorkflowService {
 
     this.log.info(
       { userId, username: user.name, itemCount: newItems.length },
-      'Routing new items for user',
+      'Routing new items for user via unified flow',
     )
 
-    // Fetch primary user for Plex existence checks
-    const primaryUser = await this.dbService.getPrimaryUser()
+    // Convert EtagPollItems to TokenWatchlistItems for unified processing
+    const tokenItems: TokenWatchlistItem[] = newItems.map((etagItem) => ({
+      id: etagItem.id,
+      title: etagItem.title,
+      type: etagItem.type.toLowerCase(),
+      user_id: userId,
+      status: 'pending' as const,
+      key: etagItem.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }))
 
-    // Process each new item: enrich then route
-    // Note: Existence checks use single-item API lookup (routing-aware) instead of
-    // bulk fetching all content - more efficient for the small batches typical of ETag routing
-    for (const etagItem of newItems) {
-      try {
-        // Convert EtagPollItem to TokenWatchlistItem for enrichment
-        const tokenItem: TokenWatchlistItem = {
-          id: etagItem.id,
-          title: etagItem.title,
-          type: etagItem.type.toLowerCase(),
-          user_id: userId,
-          status: 'pending',
-          key: etagItem.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
+    // Use unified processing flow
+    // This efficiently categorizes items:
+    // - Brand new: enrich → save → return for routing
+    // - Existing: link to user → return for routing
+    const { brandNewCount, linkedCount, processedItems, linkedItems } =
+      await processItemsForUser(
+        {
+          user: {
+            userId,
+            username: user.name,
+            watchlistId: '', // Not needed for GraphQL path
+          },
+          items: tokenItems,
+          isSelfWatchlist: false, // ETag path is for friends
+        },
+        this.itemProcessorDeps,
+      )
 
-        // Enrich item via Plex API to get GUIDs, genres, thumb
-        const enrichedItems = await toItemsSingle(
-          this.config,
-          this.log,
-          tokenItem,
-        )
+    // Route ALL items - both brand new AND linked
+    // Linked items need routing because this user may have different router rules
+    const allItemsToRoute = [...processedItems, ...linkedItems]
 
-        if (enrichedItems.size === 0) {
-          this.log.warn(
-            { userId, itemId: etagItem.id, title: etagItem.title },
-            'Failed to enrich item - skipping routing',
-          )
-          continue
-        }
-
-        // Get the enriched item
-        const enrichedItem = [...enrichedItems][0]
-
-        // Parse GUIDs (handles string | string[] | undefined)
-        const parsedGuids = parseGuids(enrichedItem.guids)
-
-        // Skip if no GUIDs after enrichment
-        if (parsedGuids.length === 0) {
-          this.log.warn(
-            { userId, itemId: etagItem.id, title: etagItem.title },
-            'Item has no GUIDs after enrichment - skipping routing',
-          )
-          continue
-        }
-
-        // Parse genres (handles string | string[] | undefined)
-        const parsedGenres = parseGenres(enrichedItem.genres)
-
-        // Normalize type to 'movie' | 'show'
-        const normalizedType = enrichedItem.type.toLowerCase()
-
-        // Save to watchlist_items table (same as full sync does)
-        // Use DbWatchlistItem (Item type) which matches createWatchlistItems signature
-        const dbItem: Omit<DbWatchlistItem, 'created_at' | 'updated_at'> = {
-          user_id: userId,
-          title: enrichedItem.title,
-          key: enrichedItem.key,
-          type: normalizedType,
-          thumb: enrichedItem.thumb, // Optional in DbWatchlistItem
-          guids: parsedGuids,
-          genres: parsedGenres,
-          status: 'pending' as const,
-        }
-
-        const insertedResults = await this.dbService.createWatchlistItems(
-          [dbItem],
-          { onConflict: 'ignore' }, // Don't overwrite if already exists
-        )
-
-        // Sync genres from the newly added item
-        await this.dbService.syncGenresFromWatchlist()
-
-        // Trigger Plex label sync for newly inserted items if enabled
-        if (
-          this.fastify.plexLabelSyncService &&
-          this.config.plexLabelSync?.enabled &&
-          insertedResults &&
-          insertedResults.length > 0
-        ) {
-          try {
-            for (const { id } of insertedResults) {
-              await this.fastify.plexLabelSyncService.syncLabelForNewWatchlistItem(
-                id,
-                dbItem.title,
-                true, // Enable tag fetching
-              )
-            }
-          } catch (labelError) {
-            this.log.warn(
-              { error: labelError, title: enrichedItem.title },
-              'Error syncing Plex labels for new item (non-fatal)',
-            )
-          }
-        }
-
-        // Use shared routing logic
-        await this.routeSingleItem({
-          item: enrichedItem,
+    if (allItemsToRoute.length > 0) {
+      this.log.info(
+        {
           userId,
-          userName: user.name,
-          primaryUser,
-        })
+          username: user.name,
+          brandNew: brandNewCount,
+          linked: linkedCount,
+          routing: allItemsToRoute.length,
+        },
+        'Routing items via unified flow',
+      )
 
-        this.log.debug(
-          { userId, title: enrichedItem.title, type: normalizedType },
-          'Successfully processed new item',
-        )
-      } catch (error) {
-        this.log.error(
-          { error, userId, itemId: etagItem.id, title: etagItem.title },
-          'Error routing new item',
-        )
-      }
+      await this.routeEnrichedItemsForUser(userId, allItemsToRoute)
     }
   }
 

@@ -75,6 +75,59 @@ export class ApprovalService {
   }
 
   /**
+   * Check if required instances are available for approval processing.
+   * Returns health check result indicating if instances are available.
+   *
+   * @param contentType - 'movie' or 'show' to determine which instance type to check
+   * @returns Object with availability status and unavailable instance type if any
+   */
+  async checkInstanceHealth(
+    contentType: 'movie' | 'show',
+  ): Promise<{ available: boolean; unavailableType?: 'Radarr' | 'Sonarr' }> {
+    if (contentType === 'movie') {
+      const health = await this.fastify.radarrManager.checkInstancesHealth()
+      if (health.unavailable.length > 0) {
+        return { available: false, unavailableType: 'Radarr' }
+      }
+    } else {
+      const health = await this.fastify.sonarrManager.checkInstancesHealth()
+      if (health.unavailable.length > 0) {
+        return { available: false, unavailableType: 'Sonarr' }
+      }
+    }
+    return { available: true }
+  }
+
+  /**
+   * Check health for all instance types (used by bulk operations).
+   * Returns a list of unavailable instance types.
+   *
+   * @returns Object with arrays of unavailable instance types
+   */
+  async checkAllInstancesHealth(): Promise<{
+    allAvailable: boolean
+    unavailable: ('Radarr' | 'Sonarr')[]
+  }> {
+    const [sonarrHealth, radarrHealth] = await Promise.all([
+      this.fastify.sonarrManager.checkInstancesHealth(),
+      this.fastify.radarrManager.checkInstancesHealth(),
+    ])
+
+    const unavailable: ('Radarr' | 'Sonarr')[] = []
+    if (sonarrHealth.unavailable.length > 0) {
+      unavailable.push('Sonarr')
+    }
+    if (radarrHealth.unavailable.length > 0) {
+      unavailable.push('Radarr')
+    }
+
+    return {
+      allAvailable: unavailable.length === 0,
+      unavailable,
+    }
+  }
+
+  /**
    * Calculates expiration date based on trigger type and configuration
    */
   private calculateExpirationDate(trigger: ApprovalTrigger): Date | null {
@@ -444,51 +497,61 @@ export class ApprovalService {
 
       // Handle expiration action (auto-approve or just expire)
       if (config.expirationAction === 'auto_approve') {
-        // Get expired pending requests atomically from database
-        const expiredRequests =
-          await this.fastify.db.getExpiredPendingRequests()
-
-        if (expiredRequests.length > 0) {
-          this.log.info(
-            `Auto-approving ${expiredRequests.length} expired approval requests`,
+        // Check instance health before auto-approving - skip cycle if any instances are down
+        const healthCheck = await this.checkAllInstancesHealth()
+        if (!healthCheck.allAvailable) {
+          this.log.warn(
+            { unavailable: healthCheck.unavailable },
+            'Skipping auto-approve maintenance: some instances are unavailable',
           )
+          // Still proceed with other maintenance (expiration, cleanup) below
+        } else {
+          // Get expired pending requests atomically from database
+          const expiredRequests =
+            await this.fastify.db.getExpiredPendingRequests()
 
-          // Auto-approve each expired request
-          for (const request of expiredRequests) {
-            try {
-              // Approve the request with system user (ID 0)
-              const approvedRequest = await this.fastify.db.approveRequest(
-                request.id,
-                0, // System user
-                'Auto-approved: Request expired with auto-approval enabled',
-              )
+          if (expiredRequests.length > 0) {
+            this.log.info(
+              `Auto-approving ${expiredRequests.length} expired approval requests`,
+            )
 
-              if (approvedRequest) {
-                // Emit SSE event for approved request
-                this.emitApprovalEvent(
-                  'approved',
-                  approvedRequest,
-                  approvedRequest.userName,
+            // Auto-approve each expired request
+            for (const request of expiredRequests) {
+              try {
+                // Approve the request with system user (ID 0)
+                const approvedRequest = await this.fastify.db.approveRequest(
+                  request.id,
+                  0, // System user
+                  'Auto-approved: Request expired with auto-approval enabled',
                 )
 
-                // Process the approved request (route to Radarr/Sonarr)
-                const processResult =
-                  await this.processApprovedRequest(approvedRequest)
-                if (processResult.success) {
-                  this.log.info(
-                    `Successfully auto-approved and processed expired request ${request.id} for user ${request.userId}: ${request.contentTitle}`,
+                if (approvedRequest) {
+                  // Emit SSE event for approved request
+                  this.emitApprovalEvent(
+                    'approved',
+                    approvedRequest,
+                    approvedRequest.userName,
                   )
-                } else {
-                  this.log.warn(
-                    `Auto-approved expired request ${request.id} but failed to process: ${processResult.error}`,
-                  )
+
+                  // Process the approved request (route to Radarr/Sonarr)
+                  const processResult =
+                    await this.processApprovedRequest(approvedRequest)
+                  if (processResult.success) {
+                    this.log.info(
+                      `Successfully auto-approved and processed expired request ${request.id} for user ${request.userId}: ${request.contentTitle}`,
+                    )
+                  } else {
+                    this.log.warn(
+                      `Auto-approved expired request ${request.id} but failed to process: ${processResult.error}`,
+                    )
+                  }
                 }
+              } catch (error) {
+                this.log.error(
+                  { error },
+                  `Failed to auto-approve expired request ${request.id}`,
+                )
               }
-            } catch (error) {
-              this.log.error(
-                { error },
-                `Failed to auto-approve expired request ${request.id}`,
-              )
             }
           }
         }
