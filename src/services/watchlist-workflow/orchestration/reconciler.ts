@@ -122,13 +122,10 @@ async function handleEtagModeChanges(
 
   deps.logger.info(
     {
-      userCount: changesWithNewItems.length,
-      totalNewItems: changesWithNewItems.reduce(
-        (sum, c) => sum + c.newItems.length,
-        0,
-      ),
+      users: changesWithNewItems.length,
+      items: changesWithNewItems.reduce((sum, c) => sum + c.newItems.length, 0),
     },
-    'New watchlist items detected, routing instantly',
+    'New watchlist items detected',
   )
 
   for (const change of changesWithNewItems) {

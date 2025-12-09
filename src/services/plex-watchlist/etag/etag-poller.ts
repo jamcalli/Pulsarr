@@ -226,16 +226,12 @@ export class EtagPoller {
       }
     }
 
-    if (results.length > 0) {
-      const changedCount = results.filter((r) => r.changed).length
-      const errorCount = results.filter((r) => r.error).length
-      this.log.info(
-        { changedCount, errorCount, totalChecked: 1 + friends.length },
-        'Watchlist change check completed',
-      )
-    } else {
-      this.log.debug('No watchlist changes detected')
-    }
+    const changedCount = results.filter((r) => r.changed).length
+    const errorCount = results.filter((r) => r.error).length
+    this.log.debug(
+      { changedCount, errorCount, totalChecked: 1 + friends.length },
+      'Watchlist change check completed',
+    )
 
     return results
   }
