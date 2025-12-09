@@ -5,18 +5,22 @@
  * Used by the hybrid RSS + ETag approach to identify which specific user's
  * watchlist changed, enabling targeted sync instead of full reconciliation.
  *
- * Two-Phase Caching Strategy:
- * - Phase 1 (Baseline): Fetch 50 items (for diffing), then 2-item query (for ETag)
- * - Phase 2 (Check): 2-item query to compare ETag, if changed fetch 50 items and diff
+ * Two different strategies based on API capabilities:
+ *
+ * Primary User (Discover API - supports true 304):
+ * - Single 50-item request with If-None-Match header
+ * - Server returns 304 if unchanged, avoiding response body
+ * - If changed, diff items against cache to find new ones
+ *
+ * Friends (GraphQL API - no 304 support):
+ * - Baseline: Fetch 50 items (for diffing), then 2-item query (for ETag)
+ * - Check: 2-item query to compare ETag, if changed fetch 50 items and diff
+ * - 2-item query is cheapest possible GraphQL call for change detection
  *
  * Staggered Polling (Non-RSS Mode):
- * - 5-minute total cycle time
+ * - ~5-minute cycle time (faster for small user counts due to buffer)
  * - Users polled sequentially with even distribution
  * - ±10% jitter to prevent synchronization drift
- *
- * Uses two different APIs:
- * - Direct API (discover.provider.plex.tv) for primary token user - supports true 304 responses
- * - GraphQL API (community.plex.tv/api) for friends - requires client-side ETag comparison
  *
  * @see fixes/rss-etag-hybrid-approach.md for full documentation
  */
@@ -444,7 +448,8 @@ export class EtagPoller {
       return
     }
 
-    // Calculate base interval: divide cycle time by (users + 1) to include buffer
+    // Calculate base interval: divide cycle time by (users + 1) to include buffer before next cycle
+    // For small user counts this results in faster cycles (e.g., 1 user = ~2.5 min cycles)
     const baseInterval = STAGGERED_CYCLE_MS / (userCount + 1)
 
     // Apply jitter: ±10%
@@ -539,13 +544,17 @@ export class EtagPoller {
       const data = (await response.json()) as DiscoverWatchlistResponse
       const items = this.parseDiscoverItems(data)
 
-      if (etag) {
-        this.cache.set(cacheKey, {
-          etag,
-          lastCheck: Date.now(),
-          items,
-        })
+      if (!etag) {
+        this.log.warn(
+          { userId },
+          'Primary baseline response missing ETag header - caching items without ETag',
+        )
       }
+      this.cache.set(cacheKey, {
+        etag,
+        lastCheck: Date.now(),
+        items,
+      })
     } catch (error) {
       this.log.error({ error, userId }, 'Error establishing primary baseline')
     }
@@ -632,13 +641,17 @@ export class EtagPoller {
 
       const etag = etagResponse.headers.get('etag')
 
-      if (etag) {
-        this.cache.set(cacheKey, {
-          etag,
-          lastCheck: Date.now(),
-          items,
-        })
+      if (!etag) {
+        this.log.warn(
+          { userId, username: friend.username },
+          'Friend baseline response missing ETag header - caching items without ETag',
+        )
       }
+      this.cache.set(cacheKey, {
+        etag,
+        lastCheck: Date.now(),
+        items,
+      })
     } catch (error) {
       this.log.error(
         { error, userId, username: friend.username },
