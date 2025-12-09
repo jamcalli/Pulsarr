@@ -23,7 +23,7 @@ import type { SonarrManagerService } from './sonarr-manager.service.js'
  */
 export type DeferredEntry =
   | { type: 'etag'; change: EtagPollResult }
-  | { type: 'newFriend'; userId: number; items: Item[] }
+  | { type: 'items'; userId: number; items: Item[] }
 
 /**
  * Callbacks for routing different entry types
@@ -31,8 +31,8 @@ export type DeferredEntry =
 export interface DeferredRoutingCallbacks {
   /** Route items from ETag change detection */
   routeEtagChange: (change: EtagPollResult) => Promise<void>
-  /** Route items for a new friend */
-  routeNewFriendItems: (userId: number, items: Item[]) => Promise<void>
+  /** Route pre-enriched items for a user (primary or friend) */
+  routeItemsForUser: (userId: number, items: Item[]) => Promise<void>
   /** Called after queue is fully drained */
   onDrained: () => void
 }
@@ -190,11 +190,8 @@ export class DeferredRoutingQueue {
             case 'etag':
               await this.callbacks.routeEtagChange(entry.change)
               break
-            case 'newFriend':
-              await this.callbacks.routeNewFriendItems(
-                entry.userId,
-                entry.items,
-              )
+            case 'items':
+              await this.callbacks.routeItemsForUser(entry.userId, entry.items)
               break
           }
         } catch (error) {
