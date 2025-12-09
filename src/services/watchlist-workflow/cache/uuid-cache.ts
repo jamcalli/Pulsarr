@@ -56,6 +56,7 @@ export async function refreshPlexUuidCache(
   try {
     const friendChanges = await deps.plexService.checkFriendChanges()
     const newCache = updatePlexUuidCache(friendChanges.userMap, deps)
+    deps.logger.debug({ cacheSize: newCache.size }, 'Plex UUID cache refreshed')
     return newCache
   } catch (error) {
     deps.logger.error({ error }, 'Failed to refresh Plex UUID cache')
