@@ -96,6 +96,7 @@ export async function processRssFriendsItems(
     }
 
     // Convert to TokenWatchlistItems for unified processor
+    // IMPORTANT: Preserve guids, genres, and thumb from enrichment - these are required for routing
     const tokenItems: TokenWatchlistItem[] = enrichedItems.map((item) => ({
       id: item.key,
       title: item.title,
@@ -103,8 +104,11 @@ export async function processRssFriendsItems(
       user_id: item.user_id,
       status: 'pending' as const,
       key: item.key,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      thumb: item.thumb,
+      guids: item.guids,
+      genres: item.genres,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
     }))
 
     // ALWAYS process through DB first - ensures items are persisted regardless of instance health
