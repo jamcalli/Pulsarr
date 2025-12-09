@@ -45,7 +45,16 @@ export type {
 export {
   checkHealthAndQueueIfUnavailable,
   checkInstanceHealth,
+  hasUserField,
   queueForDeferredRouting,
+  type RouteContentResult,
+  type RouteMovieParams,
+  type RouteShowParams,
+  type RouteSingleItemParams,
+  routeEnrichedItemsForUser,
+  routeMovie,
+  routeShow,
+  routeSingleItem,
 } from './routing/index.js'
 
 // RSS processing
