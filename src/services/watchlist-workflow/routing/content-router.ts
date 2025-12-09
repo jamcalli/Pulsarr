@@ -258,6 +258,16 @@ export async function routeShow(
     primaryUser,
   } = params
 
+  // Defensive check: Sonarr requires TVDB ID
+  const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
+  if (tvdbId <= 0) {
+    deps.logger.warn(
+      { title: tempItem.title, userId },
+      'Show has no valid TVDB ID - Sonarr cannot add without it, skipping',
+    )
+    return { routed: false, skippedReason: 'no-valid-id' }
+  }
+
   // Get target instances based on routing rules
   const context: RoutingContext = {
     userId,
@@ -377,6 +387,16 @@ export async function routeMovie(
     existingMovies,
     primaryUser,
   } = params
+
+  // Defensive check: Radarr requires TMDB ID
+  const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
+  if (tmdbId <= 0) {
+    deps.logger.warn(
+      { title: tempItem.title, userId },
+      'Movie has no valid TMDB ID - Radarr cannot add without it, skipping',
+    )
+    return { routed: false, skippedReason: 'no-valid-id' }
+  }
 
   // Get target instances based on routing rules
   const context: RoutingContext = {

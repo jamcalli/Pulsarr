@@ -58,4 +58,9 @@ export {
 } from './routing/index.js'
 
 // RSS processing
-// export { } from './rss/index.js'
+export {
+  enrichRssItems,
+  processRssFriendsItems,
+  processRssSelfItems,
+  type RssEnricherDeps,
+} from './rss/index.js'
