@@ -142,6 +142,19 @@ export interface RssWatchlistItem {
     url: string
   }
   keywords?: string[]
+  /**
+   * Plex user UUID (hex string) who added this item.
+   * Maps to allFriendsV2 GraphQL id field for friend lookups.
+   * Present in both self and friends RSS feeds.
+   */
+  author?: string
+  /**
+   * Content rating information (e.g., pg-13, r)
+   */
+  rating?: {
+    rating?: string
+    scheme?: string
+  }
 }
 
 export interface TemptRssWatchlistItem {
@@ -199,7 +212,7 @@ export interface WatchlistEtagCache {
   etag: string | null
   /** Timestamp of last check */
   lastCheck: number
-  /** First 20 items cached (for diffing to find new items) */
+  /** Cached items for diffing to find new items */
   items: EtagPollItem[]
 }
 
@@ -209,6 +222,8 @@ export interface EtagPollResult {
   changed: boolean
   /** User ID associated with this watchlist */
   userId: number
+  /** Whether this is the primary user's watchlist */
+  isPrimary: boolean
   /** NEW items found by diffing fresh vs cached (for instant routing) */
   newItems: EtagPollItem[]
   /** Error message if poll failed */

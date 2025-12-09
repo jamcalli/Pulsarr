@@ -5,9 +5,12 @@ export { getFriends } from './friends-api.js'
 
 // RSS fetching
 export {
+  fetchRawRssFeed,
   fetchWatchlistFromRss,
+  generateStableKey,
   getPlexWatchlistUrls,
   getRssFromPlexToken,
+  type RawRssFetchResult,
 } from './rss-fetcher.js'
 
 // Watchlist fetching

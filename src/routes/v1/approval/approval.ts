@@ -379,6 +379,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               `Invalid state transition from ${currentStatus} to ${targetStatus}`,
             )
           }
+
+          // Check instance health before approving
+          if (targetStatus === 'approved') {
+            const healthCheck =
+              await fastify.approvalService.checkInstanceHealth(
+                existingRequest.contentType,
+              )
+            if (!healthCheck.available) {
+              return reply.serviceUnavailable(
+                `Cannot process approval: ${healthCheck.unavailableType} instances are unavailable`,
+              )
+            }
+          }
         } else {
           // If no status provided, we're just updating other fields (like routing)
           // Still prevent updates to finalized requests
@@ -682,6 +695,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
+        // Check instance health before approving
+        const healthCheck = await fastify.approvalService.checkInstanceHealth(
+          existingRequest.contentType,
+        )
+        if (!healthCheck.available) {
+          return reply.serviceUnavailable(
+            `Cannot process approval: ${healthCheck.unavailableType} instances are unavailable`,
+          )
+        }
+
         // Approve the request using the approval service (handles SSE events)
         const approvedRequest = await fastify.approvalService.approveRequest(
           requestId,
@@ -748,6 +771,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const userId = request.session.user?.id
         if (!userId) {
           return reply.unauthorized('User not authenticated')
+        }
+
+        // Check all instance health before bulk approve
+        const healthCheck =
+          await fastify.approvalService.checkAllInstancesHealth()
+        if (!healthCheck.allAvailable) {
+          return reply.serviceUnavailable(
+            `Cannot process bulk approval: ${healthCheck.unavailable.join(' and ')} instances are unavailable`,
+          )
         }
 
         const result = await fastify.approvalService.batchApprove(
