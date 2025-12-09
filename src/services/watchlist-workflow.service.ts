@@ -1,22 +1,20 @@
 /**
  * Watchlist Workflow Service
  *
- * Handles the synchronization between Plex watchlists and Sonarr/Radarr using a
- * hybrid approach for efficient change detection and instant routing.
+ * Handles the synchronization between Plex watchlists and Sonarr/Radarr using
+ * efficient change detection and instant routing.
  *
- * Architecture:
- * - RSS feeds detect "something changed"
- * - Change detection polling identifies WHO changed and WHAT was added
- * - New items are routed instantly with full user context (no deferral needed)
- * - 3-minute polling interval ensures timely detection
+ * Two mutually exclusive modes:
+ * - RSS mode: 10-30s polling via RSS feeds for near-realtime detection
+ * - ETag mode (fallback): 5-minute staggered polling with ±10% jitter per user
+ *
+ * Both modes include 2-hour periodic full reconciliation as a failsafe.
  *
  * Responsible for:
- * - Monitoring Plex watchlists via RSS feeds for change detection
- * - Polling to identify specific user changes
+ * - Monitoring Plex watchlists for change detection
  * - Routing new items instantly to Sonarr/Radarr via content router
  * - Coordinating with other services (PlexWatchlist, SonarrManager, RadarrManager)
  * - Supporting user sync settings and approval workflows
- * - Periodic full reconciliation as a failsafe
  *
  * @example
  * // Starting the workflow in a Fastify plugin:
@@ -113,9 +111,6 @@ export class WatchlistWorkflowService {
   /** Interval timer for change detection checks */
   private etagCheckInterval: NodeJS.Timeout | null = null
 
-  /** Change detection interval in ms (3 minutes) */
-  private readonly ETAG_CHECK_INTERVAL_MS = 3 * 60 * 1000
-
   /** Debounce timer for syncAllStatuses after routing */
   private statusSyncDebounceTimer: NodeJS.Timeout | null = null
 
@@ -145,8 +140,9 @@ export class WatchlistWorkflowService {
   constructor(
     readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-    private readonly rssCheckIntervalMs: number = 30_000 +
-      Math.ceil(Math.random() * 30_000),
+    // RSS check interval: 10-30s with jitter for near-realtime detection
+    private readonly rssCheckIntervalMs: number = 10_000 +
+      Math.ceil(Math.random() * 20_000),
   ) {
     this.log = createServiceLogger(baseLog, 'WATCHLIST_WORKFLOW')
     this.log.info('Initializing Watchlist Workflow Service')
@@ -328,12 +324,32 @@ export class WatchlistWorkflowService {
       this.rssFeedCache = result.rssFeedCache
       this.deferredRoutingQueue = result.deferredRoutingQueue
 
-      // Start RSS check interval if RSS mode enabled
-      if (this.rssMode) {
-        this.startRssCheck()
+      // Establish baselines BEFORE reconciliation to detect changes during sync
+      // Any items added while reconciliation runs will be caught on first poll
+      if (this.rssMode && this.rssFeedCache) {
+        const token = this.config.plexTokens?.[0]
+        if (token) {
+          this.log.debug('Priming RSS caches before reconciliation')
+          await this.rssFeedCache.primeCaches(
+            this.config.selfRss,
+            this.config.friendsRss,
+            token,
+          )
+        }
+      } else if (!this.rssMode) {
+        // ETag mode: establish baselines before sync
+        this.log.debug('Establishing ETag baselines before reconciliation')
+        if (!this.etagPoller) {
+          this.etagPoller = new EtagPoller(this.config, this.log)
+        }
+        const primaryUser = await this.dbService.getPrimaryUser()
+        if (primaryUser) {
+          const friends = await this.getEtagFriendsList()
+          await this.etagPoller.establishAllBaselines(primaryUser.id, friends)
+        }
       }
 
-      // Initial full reconciliation - syncs all users, establishes ETag baselines
+      // Initial full reconciliation - syncs all users
       try {
         this.log.debug('Starting initial full reconciliation')
         await this.reconcile({ mode: 'full' })
@@ -357,17 +373,34 @@ export class WatchlistWorkflowService {
         })
       }
 
-      // Start 3-minute change detection interval
-      this.log.debug('Starting watchlist change detection')
-      this.startEtagCheckInterval()
+      // Start the appropriate change detection based on mode
+      // RSS mode and ETag mode are mutually exclusive
+      // Note: Baselines were established before reconciliation above
+      if (this.rssMode) {
+        // RSS mode: use RSS feeds for instant detection
+        this.startRssCheck()
+      } else {
+        // ETag mode (fallback): use 5-minute staggered polling for change detection
+        this.log.debug('Starting ETag staggered polling')
+        this.startEtagCheckInterval()
+      }
 
       // Update status to running
       this.status = 'running'
       this.initialized = true
 
-      this.log.info(
-        `Watchlist workflow running in ${this.isUsingRssFallback ? 'periodic reconciliation' : 'RSS'} mode with periodic reconciliation and 3-minute change detection`,
-      )
+      // Log the actual mode clearly:
+      // - RSS mode: RSS feeds for instant detection + 2-hour full reconciliation
+      // - ETag mode: 5-min staggered ETag polling + 2-hour full reconciliation (no RSS)
+      if (this.isUsingRssFallback) {
+        this.log.info(
+          'Watchlist workflow running in ETag mode (5-minute staggered polling, 2-hour full reconciliation)',
+        )
+      } else {
+        this.log.info(
+          'Watchlist workflow running in RSS mode (instant detection, 2-hour full reconciliation)',
+        )
+      }
 
       return true
     } catch (error) {
@@ -657,34 +690,16 @@ export class WatchlistWorkflowService {
   }
 
   /**
-   * Start change detection based on mode.
-   * - RSS mode: Uses 3-minute interval with ETag checks
-   * - Non-RSS mode: Uses 5-minute staggered polling
+   * Start ETag-based change detection.
+   * Uses 5-minute staggered polling with ±10% jitter per user.
+   * Only called in ETag mode (non-RSS fallback).
    */
   private startEtagCheckInterval(): void {
     if (this.etagCheckInterval) {
       clearInterval(this.etagCheckInterval)
     }
 
-    // Non-RSS mode: Use staggered polling
-    if (this.isUsingRssFallback) {
-      this.startStaggeredPolling()
-      return
-    }
-
-    // RSS mode: Use regular interval
-    this.log.info(
-      { intervalMinutes: this.ETAG_CHECK_INTERVAL_MS / 60000 },
-      'Starting change detection interval',
-    )
-
-    this.etagCheckInterval = setInterval(async () => {
-      try {
-        await this.reconcile({ mode: 'etag' })
-      } catch (error) {
-        this.log.error({ error }, 'Error in change detection interval')
-      }
-    }, this.ETAG_CHECK_INTERVAL_MS)
+    this.startStaggeredPolling()
   }
 
   /**
@@ -812,6 +827,9 @@ export class WatchlistWorkflowService {
     if (this.rssCheckInterval) {
       clearInterval(this.rssCheckInterval)
     }
+
+    // Note: RSS caches are primed before reconciliation in startWorkflow()
+    // This ensures we detect items added during the sync process
 
     this.rssCheckInterval = setInterval(async () => {
       try {

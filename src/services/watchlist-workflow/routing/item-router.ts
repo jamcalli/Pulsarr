@@ -183,7 +183,7 @@ export async function routeEnrichedItemsForUser(
 
   const primaryUser = await deps.db.getPrimaryUser()
 
-  deps.logger.info(
+  deps.logger.debug(
     { userId, username: user.name, itemCount: items.length },
     'Routing enriched items for user',
   )
@@ -243,9 +243,9 @@ export async function routeNewItemsForUser(
     return
   }
 
-  deps.logger.info(
+  deps.logger.debug(
     { userId, username: user.name, itemCount: newItems.length },
-    'Routing new items for user via unified flow',
+    'Processing new items for user',
   )
 
   // Convert EtagPollItems to TokenWatchlistItems for unified processing
@@ -288,13 +288,11 @@ export async function routeNewItemsForUser(
   if (allItemsToRoute.length > 0) {
     deps.logger.info(
       {
-        userId,
         username: user.name,
-        brandNew: brandNewCount,
-        linked: linkedCount,
-        routing: allItemsToRoute.length,
+        newItems: brandNewCount,
+        linkedItems: linkedCount,
       },
-      'Routing items via unified flow',
+      'Routing items for user',
     )
 
     await deps.routeEnrichedItemsForUser(userId, allItemsToRoute)
