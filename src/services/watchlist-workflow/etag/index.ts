@@ -4,4 +4,10 @@
  * Handles ETag-based change detection and staggered polling.
  */
 
-// Exports will be added as handlers are implemented
+export { buildEtagUserInfoFromMap } from './helpers.js'
+
+export {
+  getEtagFriendsList,
+  handleStaggeredPollResult,
+  refreshFriendsForStaggeredPolling,
+} from './staggered-poller.js'

@@ -181,14 +181,22 @@ export interface LifecycleDeps extends BaseDeps {
  */
 export interface StaggeredPollerDeps extends BaseDeps {
   plexService: PlexWatchlistService
+  sonarrManager: SonarrManagerService
+  radarrManager: RadarrManagerService
   etagPoller: EtagPoller | null
   deferredRoutingQueue: DeferredRoutingQueue | null
-  /** Bound callback for routing new items from ETag changes */
-  routeNewItemsForUser: (change: EtagPollResult) => Promise<void>
+  itemProcessorDeps: ItemProcessorDeps
   /** Bound callback for routing enriched items */
   routeEnrichedItemsForUser: (userId: number, items: Item[]) => Promise<void>
-  /** Bound callback for looking up user ID by Plex UUID */
-  lookupUserByUuid: (uuid: string) => Promise<number | null>
+  /** Bound callback for syncing a single friend */
+  syncSingleFriend: (userInfo: {
+    userId: number
+    username: string
+    isPrimary: boolean
+    watchlistId?: string
+  }) => Promise<{ brandNewItems: Item[]; linkedItems: Item[] }>
+  /** Bound callback for updating UUID cache */
+  updatePlexUuidCache: (userMap: Map<string, number>) => void
   /** Bound callback for updating approval attribution */
   updateAutoApprovalUserAttribution: () => Promise<void>
   /** Bound callback for scheduling debounced status sync */

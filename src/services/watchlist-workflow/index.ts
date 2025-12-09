@@ -16,6 +16,13 @@ export {
   refreshPlexUuidCache,
   updatePlexUuidCache,
 } from './cache/index.js'
+// ETag polling
+export {
+  buildEtagUserInfoFromMap,
+  getEtagFriendsList,
+  handleStaggeredPollResult,
+  refreshFriendsForStaggeredPolling,
+} from './etag/index.js'
 // Types
 export type {
   AttributionDeps,
@@ -33,9 +40,6 @@ export type {
   SyncEngineDeps,
   UuidCacheDeps,
 } from './types.js'
-
-// ETag polling
-// export { } from './etag/index.js'
 
 // Fetching
 // export { } from './fetching/index.js'
