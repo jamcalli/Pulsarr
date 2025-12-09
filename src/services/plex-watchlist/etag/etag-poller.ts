@@ -377,6 +377,7 @@ export class EtagPoller {
       return {
         changed: false,
         userId: user.userId,
+        isPrimary: user.isPrimary,
         newItems: [],
         error: 'No Plex token configured',
       }
@@ -390,6 +391,7 @@ export class EtagPoller {
       return {
         changed: false,
         userId: user.userId,
+        isPrimary: false,
         newItems: [],
         error: 'Friend missing watchlistId',
       }
@@ -702,7 +704,7 @@ export class EtagPoller {
     if (!cached) {
       // No baseline - need to establish first
       await this.establishPrimaryBaseline(token, userId)
-      return { changed: false, userId, newItems: [] }
+      return { changed: false, userId, isPrimary: true, newItems: [] }
     }
 
     const url = new URL(
@@ -729,13 +731,19 @@ export class EtagPoller {
 
       // 304 = no change
       if (response.status === 304) {
-        return { changed: false, userId, newItems: [] }
+        return { changed: false, userId, isPrimary: true, newItems: [] }
       }
 
       if (!response.ok) {
         const errorMsg = `Primary API error: ${response.status}`
         this.log.warn({ userId, status: response.status }, errorMsg)
-        return { changed: false, userId, newItems: [], error: errorMsg }
+        return {
+          changed: false,
+          userId,
+          isPrimary: true,
+          newItems: [],
+          error: errorMsg,
+        }
       }
 
       const newEtag = response.headers.get('etag')
@@ -765,11 +773,17 @@ export class EtagPoller {
         )
       }
 
-      return { changed: newItems.length > 0, userId, newItems }
+      return { changed: newItems.length > 0, userId, isPrimary: true, newItems }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       this.log.error({ error, userId }, 'Error checking primary watchlist')
-      return { changed: false, userId, newItems: [], error: errorMsg }
+      return {
+        changed: false,
+        userId,
+        isPrimary: true,
+        newItems: [],
+        error: errorMsg,
+      }
     }
   }
 
@@ -789,7 +803,7 @@ export class EtagPoller {
     if (!cached) {
       // No baseline - need to establish first
       await this.establishFriendBaseline(token, friend, userId)
-      return { changed: false, userId, newItems: [] }
+      return { changed: false, userId, isPrimary: false, newItems: [] }
     }
 
     try {
@@ -821,14 +835,20 @@ export class EtagPoller {
           { userId, username: friend.username, status: checkResponse.status },
           errorMsg,
         )
-        return { changed: false, userId, newItems: [], error: errorMsg }
+        return {
+          changed: false,
+          userId,
+          isPrimary: false,
+          newItems: [],
+          error: errorMsg,
+        }
       }
 
       const newEtag = checkResponse.headers.get('etag')
 
       // Compare ETags - if same, no change
       if (newEtag && newEtag === cached.etag) {
-        return { changed: false, userId, newItems: [] }
+        return { changed: false, userId, isPrimary: false, newItems: [] }
       }
 
       // Phase 2: ETag changed - fetch 50 items for diffing
@@ -859,7 +879,13 @@ export class EtagPoller {
           { userId, username: friend.username, status: fullResponse.status },
           errorMsg,
         )
-        return { changed: false, userId, newItems: [], error: errorMsg }
+        return {
+          changed: false,
+          userId,
+          isPrimary: false,
+          newItems: [],
+          error: errorMsg,
+        }
       }
 
       const data = (await fullResponse.json()) as GraphQLWatchlistPollResponse
@@ -870,7 +896,13 @@ export class EtagPoller {
           { userId, username: friend.username, errors: data.errors },
           errorMsg,
         )
-        return { changed: false, userId, newItems: [], error: errorMsg }
+        return {
+          changed: false,
+          userId,
+          isPrimary: false,
+          newItems: [],
+          error: errorMsg,
+        }
       }
 
       const freshItems = this.parseGraphQLItems(data)
@@ -898,14 +930,25 @@ export class EtagPoller {
         )
       }
 
-      return { changed: newItems.length > 0, userId, newItems }
+      return {
+        changed: newItems.length > 0,
+        userId,
+        isPrimary: false,
+        newItems,
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       this.log.error(
         { error, userId, username: friend.username },
         'Error checking friend watchlist',
       )
-      return { changed: false, userId, newItems: [], error: errorMsg }
+      return {
+        changed: false,
+        userId,
+        isPrimary: false,
+        newItems: [],
+        error: errorMsg,
+      }
     }
   }
 

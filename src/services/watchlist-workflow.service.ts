@@ -1122,6 +1122,9 @@ export class WatchlistWorkflowService {
       updated_at: new Date().toISOString(),
     }))
 
+    // Use isPrimary from EtagPollResult - already known at the source
+    const isSelfWatchlist = change.isPrimary
+
     // Use unified processing flow
     // This efficiently categorizes items:
     // - Brand new: enrich → save → return for routing
@@ -1132,10 +1135,10 @@ export class WatchlistWorkflowService {
           user: {
             userId,
             username: user.name,
-            watchlistId: '', // Not needed for GraphQL path
+            watchlistId: '',
           },
           items: tokenItems,
-          isSelfWatchlist: false, // ETag path is for friends
+          isSelfWatchlist,
         },
         this.itemProcessorDeps,
       )
@@ -1308,8 +1311,6 @@ export class WatchlistWorkflowService {
       updated_at: new Date().toISOString(),
     }))
 
-    const isPrimary = await this.isPrimaryUser(result.userId)
-
     if (instancesUnavailable && this.deferredRoutingQueue) {
       this.log.warn(
         {
@@ -1319,8 +1320,8 @@ export class WatchlistWorkflowService {
         'Instances unavailable, queuing items for deferred routing',
       )
 
-      // Need to enrich first before queuing
-      const { processedItems } = await processItemsForUser(
+      // Process through DB first (ensures items are persisted), then queue for routing
+      const { processedItems, linkedItems } = await processItemsForUser(
         {
           user: {
             userId: result.userId,
@@ -1328,16 +1329,19 @@ export class WatchlistWorkflowService {
             watchlistId: '',
           },
           items: tokenItems,
-          isSelfWatchlist: isPrimary,
+          isSelfWatchlist: result.isPrimary,
         },
         this.itemProcessorDeps,
       )
 
-      if (processedItems.length > 0) {
+      // Queue BOTH processed and linked items - linked items also need routing
+      // because this user may have different router rules than the original owner
+      const allItemsToQueue = [...processedItems, ...linkedItems]
+      if (allItemsToQueue.length > 0) {
         this.deferredRoutingQueue.enqueue({
           type: 'newFriend',
           userId: result.userId,
-          items: processedItems,
+          items: allItemsToQueue,
         })
       }
       return
@@ -1352,7 +1356,7 @@ export class WatchlistWorkflowService {
           watchlistId: '',
         },
         items: tokenItems,
-        isSelfWatchlist: isPrimary,
+        isSelfWatchlist: result.isPrimary,
       },
       this.itemProcessorDeps,
     )
@@ -1456,14 +1460,6 @@ export class WatchlistWorkflowService {
   private async getEtagFriendsList(): Promise<EtagUserInfo[]> {
     const friendChanges = await this.plexService.checkFriendChanges()
     return this.buildEtagUserInfoFromMap(friendChanges.userMap)
-  }
-
-  /**
-   * Check if a user is the primary user.
-   */
-  private async isPrimaryUser(userId: number): Promise<boolean> {
-    const primaryUser = await this.dbService.getPrimaryUser()
-    return primaryUser?.id === userId
   }
 
   /**
@@ -1691,32 +1687,10 @@ export class WatchlistWorkflowService {
       this.radarrManager.checkInstancesHealth(),
     ])
 
-    if (
-      sonarrHealth.unavailable.length > 0 ||
-      radarrHealth.unavailable.length > 0
-    ) {
-      this.log.warn(
-        {
-          sonarrUnavailable: sonarrHealth.unavailable,
-          radarrUnavailable: radarrHealth.unavailable,
-          itemCount: items.length,
-        },
-        'Some instances unavailable, queuing self RSS items for deferred routing',
-      )
+    const instancesUnavailable =
+      sonarrHealth.unavailable.length > 0 || radarrHealth.unavailable.length > 0
 
-      // Queue enriched items for later - need to enrich first
-      const enrichedItems = await this.enrichRssItems(items)
-      if (enrichedItems.length > 0 && this.deferredRoutingQueue) {
-        this.deferredRoutingQueue.enqueue({
-          type: 'newFriend',
-          userId: primaryUser.id,
-          items: enrichedItems,
-        })
-      }
-      return
-    }
-
-    // Enrich and route items
+    // Enrich items first (needed for both online and offline paths)
     const enrichedItems = await this.enrichRssItems(items)
     if (enrichedItems.length === 0) {
       return
@@ -1734,6 +1708,7 @@ export class WatchlistWorkflowService {
       updated_at: new Date().toISOString(),
     }))
 
+    // ALWAYS process through DB first - ensures items are persisted regardless of instance health
     const { processedItems, linkedItems } = await processItemsForUser(
       {
         user: {
@@ -1747,12 +1722,36 @@ export class WatchlistWorkflowService {
       this.itemProcessorDeps,
     )
 
-    const allItemsToRoute = [...processedItems, ...linkedItems]
-    if (allItemsToRoute.length > 0) {
-      await this.routeEnrichedItemsForUser(primaryUser.id, allItemsToRoute)
-      await this.updateAutoApprovalUserAttribution()
-      this.scheduleDebouncedStatusSync()
+    const allItems = [...processedItems, ...linkedItems]
+    if (allItems.length === 0) {
+      return
     }
+
+    // If instances unavailable, queue for deferred routing (items already in DB)
+    if (instancesUnavailable) {
+      this.log.warn(
+        {
+          sonarrUnavailable: sonarrHealth.unavailable,
+          radarrUnavailable: radarrHealth.unavailable,
+          itemCount: allItems.length,
+        },
+        'Some instances unavailable, queuing self RSS items for deferred routing',
+      )
+
+      if (this.deferredRoutingQueue) {
+        this.deferredRoutingQueue.enqueue({
+          type: 'newFriend',
+          userId: primaryUser.id,
+          items: allItems,
+        })
+      }
+      return
+    }
+
+    // Route items immediately
+    await this.routeEnrichedItemsForUser(primaryUser.id, allItems)
+    await this.updateAutoApprovalUserAttribution()
+    this.scheduleDebouncedStatusSync()
   }
 
   /**
@@ -1801,37 +1800,16 @@ export class WatchlistWorkflowService {
         continue
       }
 
-      // Enrich items
-      const enrichedItems = await this.enrichRssItems(authorItems)
-      if (enrichedItems.length === 0) {
-        continue
-      }
-
-      if (instancesUnavailable) {
-        this.log.warn(
-          {
-            userId,
-            itemCount: enrichedItems.length,
-            sonarrUnavailable: sonarrHealth.unavailable,
-            radarrUnavailable: radarrHealth.unavailable,
-          },
-          'Some instances unavailable, queuing friend RSS items for deferred routing',
-        )
-
-        if (this.deferredRoutingQueue) {
-          this.deferredRoutingQueue.enqueue({
-            type: 'newFriend',
-            userId,
-            items: enrichedItems,
-          })
-        }
-        continue
-      }
-
-      // Get user info for unified processor
+      // Get user info for unified processor (needed for both online and offline paths)
       const user = await this.dbService.getUser(userId)
       if (!user) {
         this.log.warn({ userId, authorUuid }, 'User not found for author UUID')
+        continue
+      }
+
+      // Enrich items
+      const enrichedItems = await this.enrichRssItems(authorItems)
+      if (enrichedItems.length === 0) {
         continue
       }
 
@@ -1847,6 +1825,7 @@ export class WatchlistWorkflowService {
         updated_at: new Date().toISOString(),
       }))
 
+      // ALWAYS process through DB first - ensures items are persisted regardless of instance health
       const { processedItems, linkedItems } = await processItemsForUser(
         {
           user: {
@@ -1860,10 +1839,35 @@ export class WatchlistWorkflowService {
         this.itemProcessorDeps,
       )
 
-      const allItemsToRoute = [...processedItems, ...linkedItems]
-      if (allItemsToRoute.length > 0) {
-        await this.routeEnrichedItemsForUser(userId, allItemsToRoute)
+      const allItems = [...processedItems, ...linkedItems]
+      if (allItems.length === 0) {
+        continue
       }
+
+      // If instances unavailable, queue for deferred routing (items already in DB)
+      if (instancesUnavailable) {
+        this.log.warn(
+          {
+            userId,
+            itemCount: allItems.length,
+            sonarrUnavailable: sonarrHealth.unavailable,
+            radarrUnavailable: radarrHealth.unavailable,
+          },
+          'Some instances unavailable, queuing friend RSS items for deferred routing',
+        )
+
+        if (this.deferredRoutingQueue) {
+          this.deferredRoutingQueue.enqueue({
+            type: 'newFriend',
+            userId,
+            items: allItems,
+          })
+        }
+        continue
+      }
+
+      // Route items immediately
+      await this.routeEnrichedItemsForUser(userId, allItems)
     }
 
     // Post-routing tasks

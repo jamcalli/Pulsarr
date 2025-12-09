@@ -135,79 +135,93 @@ export class DeferredRoutingQueue {
   }
 
   /**
-   * Check instance health and drain queue if all instances are healthy
+   * Check instance health and drain queue if all instances are healthy.
+   *
+   * This method is called from setInterval, so we wrap the entire body in
+   * try/catch to prevent unhandled promise rejections from crashing the process.
    */
   private async checkHealthAndDrain(): Promise<void> {
-    if (this.queue.length === 0) {
-      return
-    }
-
-    this.log.debug(
-      { queueSize: this.queue.length },
-      'Checking instance health for queue drain',
-    )
-
-    // Check health of all instances
-    const [sonarrHealth, radarrHealth] = await Promise.all([
-      this.sonarrManager.checkInstancesHealth(),
-      this.radarrManager.checkInstancesHealth(),
-    ])
-
-    // Only drain when ALL instances are healthy
-    // We require all instances to be available to ensure correct routing decisions
-    if (
-      sonarrHealth.unavailable.length > 0 ||
-      radarrHealth.unavailable.length > 0
-    ) {
-      this.log.debug(
-        {
-          queueSize: this.queue.length,
-          sonarrUnavailable: sonarrHealth.unavailable,
-          radarrUnavailable: radarrHealth.unavailable,
-        },
-        'Instances still unavailable, keeping queue',
-      )
-      return
-    }
-
-    this.log.info(
-      { queueSize: this.queue.length },
-      'All instances healthy, draining deferred queue',
-    )
-
-    // Take all items from queue and clear it
-    const toProcess = [...this.queue]
-    this.queue = []
-
-    // Process all queued items through their original entry points
-    for (const entry of toProcess) {
-      try {
-        switch (entry.type) {
-          case 'etag':
-            await this.callbacks.routeEtagChange(entry.change)
-            break
-          case 'newFriend':
-            await this.callbacks.routeNewFriendItems(entry.userId, entry.items)
-            break
-        }
-      } catch (error) {
-        // If routing fails again, re-queue the entry
-        this.log.warn(
-          { type: entry.type, error },
-          'Deferred routing failed, re-queuing',
-        )
-        this.queue.push(entry)
+    try {
+      if (this.queue.length === 0) {
+        return
       }
-    }
 
-    // If queue is fully drained, notify caller
-    if (this.queue.length === 0) {
-      this.log.info('Deferred queue fully drained')
-      this.callbacks.onDrained()
-    } else {
+      this.log.debug(
+        { queueSize: this.queue.length },
+        'Checking instance health for queue drain',
+      )
+
+      // Check health of all instances
+      const [sonarrHealth, radarrHealth] = await Promise.all([
+        this.sonarrManager.checkInstancesHealth(),
+        this.radarrManager.checkInstancesHealth(),
+      ])
+
+      // Only drain when ALL instances are healthy
+      // We require all instances to be available to ensure correct routing decisions
+      if (
+        sonarrHealth.unavailable.length > 0 ||
+        radarrHealth.unavailable.length > 0
+      ) {
+        this.log.debug(
+          {
+            queueSize: this.queue.length,
+            sonarrUnavailable: sonarrHealth.unavailable,
+            radarrUnavailable: radarrHealth.unavailable,
+          },
+          'Instances still unavailable, keeping queue',
+        )
+        return
+      }
+
       this.log.info(
-        { remaining: this.queue.length },
-        'Deferred queue partially drained, some items re-queued',
+        { queueSize: this.queue.length },
+        'All instances healthy, draining deferred queue',
+      )
+
+      // Take all items from queue and clear it
+      const toProcess = [...this.queue]
+      this.queue = []
+
+      // Process all queued items through their original entry points
+      for (const entry of toProcess) {
+        try {
+          switch (entry.type) {
+            case 'etag':
+              await this.callbacks.routeEtagChange(entry.change)
+              break
+            case 'newFriend':
+              await this.callbacks.routeNewFriendItems(
+                entry.userId,
+                entry.items,
+              )
+              break
+          }
+        } catch (error) {
+          // If routing fails again, re-queue the entry
+          this.log.warn(
+            { type: entry.type, error },
+            'Deferred routing failed, re-queuing',
+          )
+          this.queue.push(entry)
+        }
+      }
+
+      // If queue is fully drained, notify caller
+      if (this.queue.length === 0) {
+        this.log.info('Deferred queue fully drained')
+        this.callbacks.onDrained()
+      } else {
+        this.log.info(
+          { remaining: this.queue.length },
+          'Deferred queue partially drained, some items re-queued',
+        )
+      }
+    } catch (error) {
+      // Top-level catch prevents unhandled promise rejections from setInterval callback
+      this.log.error(
+        { error, queueSize: this.queue.length },
+        'Deferred routing queue health check failed',
       )
     }
   }
