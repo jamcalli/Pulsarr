@@ -66,7 +66,10 @@ export class EtagPoller {
   /** Whether staggered polling is active */
   private isStaggeredPollingActive = false
 
-  /** Current user queue for staggered polling */
+  /** Primary user for staggered polling (stored separately for robustness) */
+  private staggeredPrimaryUser: EtagUserInfo | null = null
+
+  /** Current user queue for staggered polling (primary + friends) */
   private staggeredUserQueue: EtagUserInfo[] = []
 
   /** Current index in staggered polling queue */
@@ -315,11 +318,15 @@ export class EtagPoller {
     this.onUserChangedCallback = onUserChanged
     this.onCycleStartCallback = onCycleStart
 
+    // Store primary user separately for robustness during queue rebuilds
+    this.staggeredPrimaryUser = {
+      userId: primaryUserId,
+      username: 'Primary',
+      isPrimary: true,
+    }
+
     // Build initial user queue: primary user first, then friends
-    this.staggeredUserQueue = [
-      { userId: primaryUserId, username: 'Primary', isPrimary: true },
-      ...friends,
-    ]
+    this.staggeredUserQueue = [this.staggeredPrimaryUser, ...friends]
     this.staggeredCurrentIndex = 0
 
     this.log.info(
@@ -341,6 +348,7 @@ export class EtagPoller {
     }
 
     this.isStaggeredPollingActive = false
+    this.staggeredPrimaryUser = null
     this.staggeredUserQueue = []
     this.staggeredCurrentIndex = 0
     this.onUserChangedCallback = null
@@ -410,10 +418,15 @@ export class EtagPoller {
     if (this.onCycleStartCallback) {
       try {
         const updatedFriends = await this.onCycleStartCallback()
-        const primaryUser = this.staggeredUserQueue.find((u) => u.isPrimary)
 
-        if (primaryUser) {
-          this.staggeredUserQueue = [primaryUser, ...updatedFriends]
+        // Use stored primary user (more robust than searching queue)
+        if (this.staggeredPrimaryUser) {
+          this.staggeredUserQueue = [
+            this.staggeredPrimaryUser,
+            ...updatedFriends,
+          ]
+        } else {
+          this.staggeredUserQueue = updatedFriends
         }
 
         this.log.debug(
@@ -607,6 +620,16 @@ export class EtagPoller {
 
       const itemsData =
         (await itemsResponse.json()) as GraphQLWatchlistPollResponse
+
+      // Check for GraphQL errors (consistent with checkFriend)
+      if (itemsData.errors?.length) {
+        this.log.warn(
+          { userId, username: friend.username, errors: itemsData.errors },
+          `GraphQL errors while fetching items for friend baseline: ${itemsData.errors.map((e) => e.message).join(', ')}`,
+        )
+        return
+      }
+
       const items = this.parseGraphQLItems(itemsData)
 
       // Phase 2: Fetch 2 items to get the ETag for change detection
