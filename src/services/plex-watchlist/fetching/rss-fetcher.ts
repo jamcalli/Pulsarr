@@ -14,13 +14,13 @@ import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
  * Used for RSS feed diffing to detect new items consistently.
  *
  * @param guids - Array of GUID strings
- * @returns Stable key string (sorted, normalized, joined)
+ * @returns Stable key string (sorted, normalized, deduplicated, joined)
  */
 export function generateStableKey(guids: string[]): string {
-  return guids
-    .map((g) => g.toLowerCase().trim())
-    .sort()
-    .join('|')
+  const normalized = guids.map((g) => g.toLowerCase().trim()).filter(Boolean)
+
+  // Deduplicate after normalization to keep keys stable
+  return Array.from(new Set(normalized)).sort().join('|')
 }
 
 /**

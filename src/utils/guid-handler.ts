@@ -74,6 +74,20 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
 }
 
 /**
+ * Special case handling for genres that don't follow simple title case rules.
+ * These match the canonical genre names in the database.
+ * Hoisted to module level to avoid re-allocation on each call.
+ */
+const GENRE_SPECIAL_CASES: Record<string, string> = {
+  'sci-fi & fantasy': 'Sci-Fi & Fantasy',
+  'tv movie': 'TV Movie',
+  'mini-series': 'Mini-Series',
+  'film-noir': 'Film-Noir',
+  'war & politics': 'War & Politics',
+  'action/adventure': 'Action/Adventure',
+}
+
+/**
  * Normalizes a single genre string to title case for consistent storage.
  *
  * RSS feeds often return lowercase genres (e.g., "sci-fi & fantasy") while
@@ -89,19 +103,8 @@ export function normalizeGenre(genre: string): string {
 
   const lower = trimmed.toLowerCase()
 
-  // Special case handling for genres that don't follow simple title case rules
-  // These match the canonical genre names in the database
-  const specialCases: Record<string, string> = {
-    'sci-fi & fantasy': 'Sci-Fi & Fantasy',
-    'tv movie': 'TV Movie',
-    'mini-series': 'Mini-Series',
-    'film-noir': 'Film-Noir',
-    'war & politics': 'War & Politics',
-    'action/adventure': 'Action/Adventure',
-  }
-
-  if (lower in specialCases) {
-    return specialCases[lower]
+  if (lower in GENRE_SPECIAL_CASES) {
+    return GENRE_SPECIAL_CASES[lower]
   }
 
   // Title case: capitalize first letter of each word, lowercase the rest

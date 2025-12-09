@@ -222,6 +222,8 @@ export interface EtagPollResult {
   changed: boolean
   /** User ID associated with this watchlist */
   userId: number
+  /** Whether this is the primary user's watchlist */
+  isPrimary: boolean
   /** NEW items found by diffing fresh vs cached (for instant routing) */
   newItems: EtagPollItem[]
   /** Error message if poll failed */
