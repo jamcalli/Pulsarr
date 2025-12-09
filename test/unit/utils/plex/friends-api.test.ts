@@ -274,9 +274,17 @@ describe('plex/friends-api', () => {
     })
 
     it('should handle timeout errors', async () => {
+      // Mock AbortSignal.timeout to return an immediately aborted signal
+      const originalTimeout = AbortSignal.timeout
+      AbortSignal.timeout = () => {
+        const controller = new AbortController()
+        controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
+        return controller.signal
+      }
+
       server.use(
         http.post('https://community.plex.tv/api', async () => {
-          await new Promise((resolve) => setTimeout(resolve, 6000))
+          // This handler won't be reached due to immediate abort
           return HttpResponse.json({
             data: { allFriendsV2: [] },
           } as PlexApiResponse)
@@ -291,7 +299,10 @@ describe('plex/friends-api', () => {
 
       expect(result.success).toBe(false)
       expect(result.hasApiErrors).toBe(true)
-    }, 10000)
+
+      // Restore original
+      AbortSignal.timeout = originalTimeout
+    })
 
     it('should send correct GraphQL query', async () => {
       let capturedBody: unknown = null

@@ -86,10 +86,17 @@ describe('plex/api-client', () => {
     })
 
     it('should return false when request times out', async () => {
+      // Mock AbortSignal.timeout to return an immediately aborted signal
+      const originalTimeout = AbortSignal.timeout
+      AbortSignal.timeout = () => {
+        const controller = new AbortController()
+        controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
+        return controller.signal
+      }
+
       server.use(
         http.get('https://plex.tv/api/v2/ping', async () => {
-          // Delay longer than PLEX_API_TIMEOUT_MS (5000ms)
-          await new Promise((resolve) => setTimeout(resolve, 6000))
+          // This handler won't be reached due to immediate abort
           return HttpResponse.json({ status: 'ok' })
         }),
       )
@@ -97,7 +104,10 @@ describe('plex/api-client', () => {
       const result = await pingPlex('token', mockLogger)
       expect(result).toBe(false)
       expect(mockLogger.error).toHaveBeenCalled()
-    }, 10000)
+
+      // Restore original
+      AbortSignal.timeout = originalTimeout
+    })
 
     it('should include correct headers in request', async () => {
       let capturedHeaders: Headers | undefined
@@ -193,16 +203,27 @@ describe('plex/api-client', () => {
     })
 
     it('should return null when request times out', async () => {
+      // Mock AbortSignal.timeout to return an immediately aborted signal
+      const originalTimeout = AbortSignal.timeout
+      AbortSignal.timeout = () => {
+        const controller = new AbortController()
+        controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
+        return controller.signal
+      }
+
       server.use(
         http.get('https://plex.tv/api/v2/user', async () => {
-          await new Promise((resolve) => setTimeout(resolve, 6000))
+          // This handler won't be reached due to immediate abort
           return HttpResponse.json({ thumb: 'should-not-reach' })
         }),
       )
 
       const result = await fetchPlexAvatar('token', mockLogger)
       expect(result).toBe(null)
-    }, 10000)
+
+      // Restore original
+      AbortSignal.timeout = originalTimeout
+    })
 
     it('should work without logger parameter', async () => {
       server.use(
