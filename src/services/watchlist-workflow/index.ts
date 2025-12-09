@@ -42,7 +42,11 @@ export type {
 // export { } from './orchestration/index.js'
 
 // Routing
-// export { } from './routing/index.js'
+export {
+  checkHealthAndQueueIfUnavailable,
+  checkInstanceHealth,
+  queueForDeferredRouting,
+} from './routing/index.js'
 
 // RSS processing
 // export { } from './rss/index.js'
