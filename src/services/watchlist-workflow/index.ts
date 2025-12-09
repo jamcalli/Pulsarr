@@ -27,7 +27,11 @@ export type {
 // export { } from './attribution/index.js'
 
 // Cache
-// export { } from './cache/index.js'
+export {
+  lookupUserByUuid,
+  refreshPlexUuidCache,
+  updatePlexUuidCache,
+} from './cache/index.js'
 
 // ETag polling
 // export { } from './etag/index.js'
