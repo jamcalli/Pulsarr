@@ -228,20 +228,20 @@ export async function fetchRawRssFeed(
     const urlObj = new URL(url)
     urlObj.searchParams.set('format', 'json')
 
-    // First do a HEAD request to check ETag
-    const headResponse = await fetch(urlObj.toString(), {
-      method: 'HEAD',
+    // Single GET request with conditional ETag - server returns 304 with no body if unchanged
+    const response = await fetch(urlObj.toString(), {
       headers: {
         'User-Agent': USER_AGENT,
         'X-Plex-Token': token,
         'X-Plex-Client-Identifier': 'pulsarr',
+        Accept: 'application/json',
         ...(previousEtag && { 'If-None-Match': previousEtag }),
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
     })
 
     // Not modified - content unchanged
-    if (headResponse.status === 304) {
+    if (response.status === 304) {
       log.debug('RSS feed unchanged (304 Not Modified)')
       return {
         success: true,
@@ -252,50 +252,30 @@ export async function fetchRawRssFeed(
     }
 
     // Auth errors
-    if (headResponse.status === 401 || headResponse.status === 403) {
+    if (response.status === 401 || response.status === 403) {
       log.warn('RSS feed auth error - user may lack RSS access')
       return { success: false, items: [], etag: null, authError: true }
     }
 
     // Not found
-    if (headResponse.status === 404) {
+    if (response.status === 404) {
       log.warn('RSS feed not found')
       return { success: false, items: [], etag: null, notFound: true }
     }
 
-    if (!headResponse.ok) {
+    if (!response.ok) {
       return {
         success: false,
         items: [],
         etag: null,
-        error: `HEAD request failed: HTTP ${headResponse.status}`,
+        error: `Request failed: HTTP ${response.status}`,
       }
     }
 
-    // Fetch full content
-    const getResponse = await fetch(urlObj.toString(), {
-      headers: {
-        'User-Agent': USER_AGENT,
-        'X-Plex-Token': token,
-        'X-Plex-Client-Identifier': 'pulsarr',
-        Accept: 'application/json',
-      },
-      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
-    })
+    // Extract ETag from response
+    const newEtag = response.headers.get('ETag')
 
-    if (!getResponse.ok) {
-      return {
-        success: false,
-        items: [],
-        etag: null,
-        error: `GET request failed: HTTP ${getResponse.status}`,
-      }
-    }
-
-    // Extract ETag from GET response to ensure consistency with fetched items
-    const newEtag = getResponse.headers.get('ETag')
-
-    const json = (await getResponse.json()) as RssResponse
+    const json = (await response.json()) as RssResponse
     const items: RssWatchlistItem[] = []
 
     if (json?.items && Array.isArray(json.items)) {

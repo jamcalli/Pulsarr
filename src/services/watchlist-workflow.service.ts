@@ -384,7 +384,7 @@ export class WatchlistWorkflowService {
         radarrManager: this.radarrManager,
         callbacks: {
           routeEtagChange: (change) => this.routeNewItemsForUser(change),
-          routeNewFriendItems: (userId, items) =>
+          routeItemsForUser: (userId, items) =>
             this.routeEnrichedItemsForUser(userId, items),
           onDrained: () => {
             // Post-routing tasks after queue drain
@@ -660,7 +660,7 @@ export class WatchlistWorkflowService {
                 // Queue items for retry when instances recover
                 if (this.deferredRoutingQueue) {
                   this.deferredRoutingQueue.enqueue({
-                    type: 'newFriend',
+                    type: 'items',
                     userId: newFriend.userId,
                     items: allItemsToRoute,
                   })
@@ -1339,7 +1339,7 @@ export class WatchlistWorkflowService {
       const allItemsToQueue = [...processedItems, ...linkedItems]
       if (allItemsToQueue.length > 0) {
         this.deferredRoutingQueue.enqueue({
-          type: 'newFriend',
+          type: 'items',
           userId: result.userId,
           items: allItemsToQueue,
         })
@@ -1393,12 +1393,65 @@ export class WatchlistWorkflowService {
 
         try {
           // Sync new friend's watchlist
-          await this.syncSingleFriend({
+          const { brandNewItems, linkedItems } = await this.syncSingleFriend({
             userId: newFriend.userId,
             username: newFriend.username,
             isPrimary: false,
             watchlistId: newFriend.watchlistId,
           })
+
+          // Route ALL items - both brand new AND linked (matches ETag mode behavior)
+          const allItemsToRoute = [...brandNewItems, ...linkedItems]
+
+          if (allItemsToRoute.length > 0) {
+            // Check instance health before routing - queue if unavailable
+            const [sonarrHealth, radarrHealth] = await Promise.all([
+              this.sonarrManager.checkInstancesHealth(),
+              this.radarrManager.checkInstancesHealth(),
+            ])
+
+            if (
+              sonarrHealth.unavailable.length > 0 ||
+              radarrHealth.unavailable.length > 0
+            ) {
+              this.log.warn(
+                {
+                  userId: newFriend.userId,
+                  username: newFriend.username,
+                  itemCount: allItemsToRoute.length,
+                  sonarrUnavailable: sonarrHealth.unavailable,
+                  radarrUnavailable: radarrHealth.unavailable,
+                },
+                'Some instances unavailable, queuing new friend items for deferred routing',
+              )
+
+              if (this.deferredRoutingQueue) {
+                this.deferredRoutingQueue.enqueue({
+                  type: 'items',
+                  userId: newFriend.userId,
+                  items: allItemsToRoute,
+                })
+              }
+            } else {
+              this.log.info(
+                {
+                  userId: newFriend.userId,
+                  brandNew: brandNewItems.length,
+                  linked: linkedItems.length,
+                  total: allItemsToRoute.length,
+                },
+                'Routing new friend watchlist items (brand new + linked)',
+              )
+
+              await this.routeEnrichedItemsForUser(
+                newFriend.userId,
+                allItemsToRoute,
+              )
+
+              await this.updateAutoApprovalUserAttribution()
+              this.scheduleDebouncedStatusSync()
+            }
+          }
 
           // Establish baseline for new friend
           if (this.etagPoller) {
@@ -1691,7 +1744,7 @@ export class WatchlistWorkflowService {
       sonarrHealth.unavailable.length > 0 || radarrHealth.unavailable.length > 0
 
     // Enrich items first (needed for both online and offline paths)
-    const enrichedItems = await this.enrichRssItems(items)
+    const enrichedItems = await this.enrichRssItems(items, primaryUser.id)
     if (enrichedItems.length === 0) {
       return
     }
@@ -1701,7 +1754,7 @@ export class WatchlistWorkflowService {
       id: item.key,
       title: item.title,
       type: item.type.toLowerCase(),
-      user_id: primaryUser.id,
+      user_id: item.user_id,
       status: 'pending' as const,
       key: item.key,
       created_at: new Date().toISOString(),
@@ -1740,7 +1793,7 @@ export class WatchlistWorkflowService {
 
       if (this.deferredRoutingQueue) {
         this.deferredRoutingQueue.enqueue({
-          type: 'newFriend',
+          type: 'items',
           userId: primaryUser.id,
           items: allItems,
         })
@@ -1808,7 +1861,7 @@ export class WatchlistWorkflowService {
       }
 
       // Enrich items
-      const enrichedItems = await this.enrichRssItems(authorItems)
+      const enrichedItems = await this.enrichRssItems(authorItems, userId)
       if (enrichedItems.length === 0) {
         continue
       }
@@ -1818,7 +1871,7 @@ export class WatchlistWorkflowService {
         id: item.key,
         title: item.title,
         type: item.type.toLowerCase(),
-        user_id: userId,
+        user_id: item.user_id,
         status: 'pending' as const,
         key: item.key,
         created_at: new Date().toISOString(),
@@ -1858,7 +1911,7 @@ export class WatchlistWorkflowService {
 
         if (this.deferredRoutingQueue) {
           this.deferredRoutingQueue.enqueue({
-            type: 'newFriend',
+            type: 'items',
             userId,
             items: allItems,
           })
@@ -1878,8 +1931,14 @@ export class WatchlistWorkflowService {
   /**
    * Enrich RSS items by looking up Plex rating keys via GUID.
    * Items that fail enrichment are skipped.
+   *
+   * @param items - Cached RSS items to enrich
+   * @param userId - User ID to associate with enriched items
    */
-  private async enrichRssItems(items: CachedRssItem[]): Promise<Item[]> {
+  private async enrichRssItems(
+    items: CachedRssItem[],
+    userId: number,
+  ): Promise<Item[]> {
     const token = this.config.plexTokens?.[0]
     if (!token) {
       this.log.warn('No Plex token for RSS item enrichment')
@@ -1924,7 +1983,7 @@ export class WatchlistWorkflowService {
           thumb: metadata.thumb || item.thumb || '',
           guids: metadata.guids.length > 0 ? metadata.guids : item.guids,
           genres: metadata.genres.length > 0 ? metadata.genres : item.genres,
-          user_id: 0, // Set by caller
+          user_id: userId,
           status: 'pending',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
