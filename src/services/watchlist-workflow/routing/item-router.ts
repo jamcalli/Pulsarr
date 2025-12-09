@@ -5,16 +5,22 @@
  * to the content router. Handles user sync checks and item validation.
  */
 
-import type { Item, TemptRssWatchlistItem } from '@root/types/plex.types.js'
+import type {
+  EtagPollResult,
+  Item,
+  TemptRssWatchlistItem,
+  TokenWatchlistItem,
+} from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import { processItemsForUser } from '@services/plex-watchlist/orchestration/unified-processor.js'
 import {
   extractTmdbId,
   extractTvdbId,
   parseGenres,
   parseGuids,
 } from '@utils/guid-handler.js'
-import type { ContentRoutingDeps } from '../types.js'
+import type { ContentRoutingDeps, RssProcessorDeps } from '../types.js'
 import { routeMovie, routeShow } from './content-router.js'
 
 /**
@@ -199,5 +205,98 @@ export async function routeEnrichedItemsForUser(
         'Error routing enriched item',
       )
     }
+  }
+}
+
+/**
+ * Route new items detected via ETag polling.
+ *
+ * Processes ETag poll results by:
+ * 1. Converting items to TokenWatchlistItem format
+ * 2. Processing through unified flow (enrich/save)
+ * 3. Routing both new and linked items
+ *
+ * @param change - The ETag poll result with new items
+ * @param deps - Service dependencies
+ */
+export async function routeNewItemsForUser(
+  change: EtagPollResult,
+  deps: RssProcessorDeps,
+): Promise<void> {
+  const { userId, newItems } = change
+
+  if (newItems.length === 0) return
+
+  // Get user info for routing context
+  const user = await deps.db.getUser(userId)
+  if (!user) {
+    deps.logger.warn({ userId }, 'User not found for routing new items')
+    return
+  }
+
+  // Check if user has sync enabled
+  if (!user.can_sync) {
+    deps.logger.debug(
+      { userId, username: user.name, itemCount: newItems.length },
+      'Skipping items for user with sync disabled',
+    )
+    return
+  }
+
+  deps.logger.info(
+    { userId, username: user.name, itemCount: newItems.length },
+    'Routing new items for user via unified flow',
+  )
+
+  // Convert EtagPollItems to TokenWatchlistItems for unified processing
+  const tokenItems: TokenWatchlistItem[] = newItems.map((etagItem) => ({
+    id: etagItem.id,
+    title: etagItem.title,
+    type: etagItem.type.toLowerCase(),
+    user_id: userId,
+    status: 'pending' as const,
+    key: etagItem.id,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }))
+
+  // Use isPrimary from EtagPollResult - already known at the source
+  const isSelfWatchlist = change.isPrimary
+
+  // Use unified processing flow
+  // This efficiently categorizes items:
+  // - Brand new: enrich → save → return for routing
+  // - Existing: link to user → return for routing
+  const { brandNewCount, linkedCount, processedItems, linkedItems } =
+    await processItemsForUser(
+      {
+        user: {
+          userId,
+          username: user.name,
+          watchlistId: '',
+        },
+        items: tokenItems,
+        isSelfWatchlist,
+      },
+      deps.itemProcessorDeps,
+    )
+
+  // Route ALL items - both brand new AND linked
+  // Linked items need routing because this user may have different router rules
+  const allItemsToRoute = [...processedItems, ...linkedItems]
+
+  if (allItemsToRoute.length > 0) {
+    deps.logger.info(
+      {
+        userId,
+        username: user.name,
+        brandNew: brandNewCount,
+        linked: linkedCount,
+        routing: allItemsToRoute.length,
+      },
+      'Routing items via unified flow',
+    )
+
+    await deps.routeEnrichedItemsForUser(userId, allItemsToRoute)
   }
 }

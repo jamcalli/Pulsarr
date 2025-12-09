@@ -50,7 +50,15 @@ export type {
 // export { } from './lifecycle/index.js'
 
 // Orchestration
-export { type SyncResult, syncWatchlistItems } from './orchestration/index.js'
+export {
+  handleNewFriendEtagMode,
+  handleNewFriendFullMode,
+  handleRemovedFriend,
+  type NewFriendHandlerResult,
+  processFriendChanges,
+  type SyncResult,
+  syncWatchlistItems,
+} from './orchestration/index.js'
 
 // Routing
 export {
@@ -64,6 +72,7 @@ export {
   type RouteSingleItemParams,
   routeEnrichedItemsForUser,
   routeMovie,
+  routeNewItemsForUser,
   routeShow,
   routeSingleItem,
 } from './routing/index.js'
