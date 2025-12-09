@@ -4,4 +4,8 @@
  * Handles UUID cache management for Plex user lookups.
  */
 
-// Exports will be added as handlers are implemented
+export {
+  lookupUserByUuid,
+  refreshPlexUuidCache,
+  updatePlexUuidCache,
+} from './uuid-cache.js'
