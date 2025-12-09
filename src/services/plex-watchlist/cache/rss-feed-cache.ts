@@ -162,8 +162,8 @@ export class RssFeedCacheManager {
       }
     }
 
-    // No change (304 Not Modified)
-    if (result.items.length === 0 && result.etag === cache.etag) {
+    // No change (HTTP 304 Not Modified)
+    if (result.notModified) {
       return {
         feed: feedType,
         changed: false,

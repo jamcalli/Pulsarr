@@ -201,6 +201,8 @@ export interface RawRssFetchResult {
   success: boolean
   items: RssWatchlistItem[]
   etag: string | null
+  /** Explicit flag for HTTP 304 Not Modified response */
+  notModified?: boolean
   authError?: boolean
   notFound?: boolean
   error?: string
@@ -241,7 +243,12 @@ export async function fetchRawRssFeed(
     // Not modified - content unchanged
     if (headResponse.status === 304) {
       log.debug('RSS feed unchanged (304 Not Modified)')
-      return { success: true, items: [], etag: previousEtag ?? null }
+      return {
+        success: true,
+        items: [],
+        etag: previousEtag ?? null,
+        notModified: true,
+      }
     }
 
     // Auth errors
