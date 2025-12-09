@@ -1,0 +1,119 @@
+/**
+ * Scheduler Module
+ *
+ * Handles periodic reconciliation scheduling operations.
+ */
+
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+
+/**
+ * Dependencies for scheduler operations
+ */
+export interface SchedulerDeps {
+  logger: FastifyBaseLogger
+  fastify: FastifyInstance
+  jobName: string
+}
+
+/**
+ * Schedule the next periodic reconciliation.
+ *
+ * With RSS/ETag handling real-time additions, this periodic sync primarily handles:
+ * - Removal detection (comparing DB vs fetched watchlist)
+ * - Label cleanup for items no longer on watchlists
+ * - Catch-all failsafe for edge cases missed by incremental detection
+ *
+ * @param deps - Service dependencies
+ */
+export async function schedulePendingReconciliation(
+  deps: SchedulerDeps,
+): Promise<void> {
+  try {
+    const scheduleTime = new Date(Date.now() + 120 * 60 * 1000) // +2 hours
+
+    await deps.fastify.scheduler.updateJobSchedule(
+      deps.jobName,
+      {
+        minutes: 120,
+        runImmediately: false,
+      },
+      true,
+    )
+
+    const delayMinutes = Math.round(
+      (scheduleTime.getTime() - Date.now()) / 60000,
+    )
+    deps.logger.info(
+      `Scheduled next periodic reconciliation in ${delayMinutes} minutes`,
+    )
+  } catch (error) {
+    deps.logger.error(
+      {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+      'Error scheduling pending reconciliation',
+    )
+    throw error
+  }
+}
+
+/**
+ * Cancel any pending periodic reconciliation job.
+ *
+ * @param deps - Service dependencies
+ */
+export async function unschedulePendingReconciliation(
+  deps: SchedulerDeps,
+): Promise<void> {
+  try {
+    // Simply disable the job - scheduler handles existence check internally
+    await deps.fastify.scheduler.updateJobSchedule(deps.jobName, null, false)
+
+    deps.logger.debug('Unscheduled pending periodic reconciliation')
+  } catch (error) {
+    deps.logger.error(
+      {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+      'Error unscheduling pending reconciliation',
+    )
+    // Don't throw here - this is called during sync start and shouldn't block sync
+  }
+}
+
+/**
+ * Clean up any existing manual sync job from previous runs.
+ *
+ * @param deps - Service dependencies
+ */
+export async function cleanupExistingManualSync(
+  deps: SchedulerDeps,
+): Promise<void> {
+  try {
+    const existingSchedule = await deps.fastify.db.getScheduleByName(
+      deps.jobName,
+    )
+
+    if (existingSchedule) {
+      deps.logger.info(
+        'Found existing periodic reconciliation job from previous run, cleaning up',
+      )
+      await deps.fastify.scheduler.unscheduleJob(deps.jobName)
+      await deps.fastify.db.deleteSchedule(deps.jobName)
+      deps.logger.info(
+        'Successfully cleaned up existing periodic reconciliation job',
+      )
+    }
+  } catch (error) {
+    deps.logger.error(
+      {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+      'Error cleaning up existing periodic reconciliation job',
+    )
+    throw error
+  }
+}

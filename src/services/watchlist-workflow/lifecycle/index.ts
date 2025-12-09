@@ -1,7 +1,12 @@
 /**
  * Lifecycle Module
  *
- * Handles workflow startup, shutdown, and scheduling.
+ * Handles workflow lifecycle management including scheduling.
  */
 
-// Exports will be added as handlers are implemented
+export {
+  cleanupExistingManualSync,
+  type SchedulerDeps,
+  schedulePendingReconciliation,
+  unschedulePendingReconciliation,
+} from './scheduler.js'
