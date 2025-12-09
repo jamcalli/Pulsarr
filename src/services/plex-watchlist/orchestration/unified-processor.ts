@@ -33,7 +33,7 @@ import {
  */
 export interface ProcessItemsInput {
   /** The user these items are for */
-  user: Friend & { userId: number }
+  user: Friend
   /** Items to process - must have key/id field */
   items: TokenWatchlistItem[]
   /** Whether this is the self watchlist (primary user) vs friends */

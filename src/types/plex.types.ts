@@ -212,7 +212,7 @@ export interface WatchlistEtagCache {
   etag: string | null
   /** Timestamp of last check */
   lastCheck: number
-  /** First 20 items cached (for diffing to find new items) */
+  /** Cached items for diffing to find new items */
   items: EtagPollItem[]
 }
 

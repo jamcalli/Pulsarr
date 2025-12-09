@@ -486,7 +486,9 @@ export class EtagPoller {
     // Check if cycle is complete
     if (this.staggeredCurrentIndex >= this.staggeredUserQueue.length) {
       // Cycle complete, start next cycle
-      this.startNextCycle()
+      this.startNextCycle().catch((error) => {
+        this.log.error({ error }, 'Error starting next polling cycle')
+      })
     } else {
       // More users to check, schedule next
       this.scheduleNextUserCheck()
@@ -499,8 +501,8 @@ export class EtagPoller {
 
   /**
    * Establish baseline for primary user.
-   * Phase 1: Fetch 50 items for diffing cache
-   * Phase 2: Primary API supports 304, so we use the 20-item ETag directly
+   * Phase 1: Fetch items for diffing cache
+   * Phase 2: Primary API supports 304, so we use the cached ETag directly
    */
   private async establishPrimaryBaseline(
     token: string,
