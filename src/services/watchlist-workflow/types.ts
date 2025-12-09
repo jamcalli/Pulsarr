@@ -150,11 +150,20 @@ export interface ReconcilerDeps extends BaseDeps {
 }
 
 /**
- * Friend handler deps - extends ReconcilerDeps with UUID lookup and label sync
+ * Friend handler deps - extends ReconcilerDeps with UUID lookup, label sync, and friend sync
  */
 export interface FriendHandlerDeps extends ReconcilerDeps {
   /** Bound callback for looking up user ID by Plex UUID */
   lookupUserByUuid: (uuid: string) => Promise<number | null>
+  /** Bound callback for syncing a single friend's watchlist */
+  syncSingleFriend: (userInfo: {
+    userId: number
+    username: string
+    isPrimary: boolean
+    watchlistId?: string
+  }) => Promise<{ brandNewItems: Item[]; linkedItems: Item[] }>
+  /** Bound callback for updating UUID cache */
+  updatePlexUuidCache: (userMap: Map<string, number>) => void
   plexLabelSyncService?: PlexLabelSyncService
 }
 

@@ -24,5 +24,6 @@ export { hasUserField } from './helpers.js'
 export {
   type RouteSingleItemParams,
   routeEnrichedItemsForUser,
+  routeNewItemsForUser,
   routeSingleItem,
 } from './item-router.js'
