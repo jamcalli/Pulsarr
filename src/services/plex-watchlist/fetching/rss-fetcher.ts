@@ -272,8 +272,6 @@ export async function fetchRawRssFeed(
       }
     }
 
-    const newEtag = headResponse.headers.get('ETag')
-
     // Fetch full content
     const getResponse = await fetch(urlObj.toString(), {
       headers: {
@@ -293,6 +291,9 @@ export async function fetchRawRssFeed(
         error: `GET request failed: HTTP ${getResponse.status}`,
       }
     }
+
+    // Extract ETag from GET response to ensure consistency with fetched items
+    const newEtag = getResponse.headers.get('ETag')
 
     const json = (await getResponse.json()) as RssResponse
     const items: RssWatchlistItem[] = []
