@@ -4,4 +4,7 @@
  * Handles watchlist fetching operations.
  */
 
-// Exports will be added as handlers are implemented
+export {
+  fetchWatchlists,
+  type WatchlistFetcherDeps,
+} from './watchlist-fetcher.js'

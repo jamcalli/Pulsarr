@@ -23,6 +23,11 @@ export {
   handleStaggeredPollResult,
   refreshFriendsForStaggeredPolling,
 } from './etag/index.js'
+// Fetching
+export {
+  fetchWatchlists,
+  type WatchlistFetcherDeps,
+} from './fetching/index.js'
 // Types
 export type {
   AttributionDeps,
@@ -41,14 +46,11 @@ export type {
   UuidCacheDeps,
 } from './types.js'
 
-// Fetching
-// export { } from './fetching/index.js'
-
 // Lifecycle
 // export { } from './lifecycle/index.js'
 
 // Orchestration
-// export { } from './orchestration/index.js'
+export { type SyncResult, syncWatchlistItems } from './orchestration/index.js'
 
 // Routing
 export {

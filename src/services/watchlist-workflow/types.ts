@@ -82,17 +82,16 @@ export interface HealthCheckResult {
 // ============================================================================
 
 /**
- * Sync deps - used by sync-engine, watchlist-fetcher
+ * Sync deps - used by sync-engine
  */
-export interface SyncEngineDeps extends BaseDeps {
-  plexService: PlexWatchlistService
-  sonarrManager: SonarrManagerService
-  radarrManager: RadarrManagerService
-  plexServerService: PlexServerService
+export interface SyncEngineDeps extends ContentRoutingDeps {
   statusService: StatusService
-  plexLabelSyncService?: PlexLabelSyncService
-  /** Bound callback for routing content */
-  routeContent: (params: ContentRoutingParams) => Promise<boolean>
+  /** Callback to update auto-approval attribution with prefetched data */
+  updateAutoApprovalUserAttributionWithPrefetch: (
+    shows: unknown[],
+    movies: unknown[],
+    userById: Map<number, { id: number; name: string }>,
+  ) => Promise<void>
 }
 
 // ============================================================================
