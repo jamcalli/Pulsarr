@@ -87,15 +87,27 @@ export function normalizeGenre(genre: string): string {
   const trimmed = genre.trim()
   if (!trimmed) return ''
 
-  // Special case handling for known multi-word genres
-  if (trimmed.toLowerCase() === 'sci-fi & fantasy') {
-    return 'Sci-Fi & Fantasy'
+  const lower = trimmed.toLowerCase()
+
+  // Special case handling for genres that don't follow simple title case rules
+  // These match the canonical genre names in the database
+  const specialCases: Record<string, string> = {
+    'sci-fi & fantasy': 'Sci-Fi & Fantasy',
+    'tv movie': 'TV Movie',
+    'mini-series': 'Mini-Series',
+    'film-noir': 'Film-Noir',
+    'war & politics': 'War & Politics',
+    'action/adventure': 'Action/Adventure',
   }
 
-  // Title case: capitalize first letter of each word
+  if (lower in specialCases) {
+    return specialCases[lower]
+  }
+
+  // Title case: capitalize first letter of each word, lowercase the rest
   return trimmed
     .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
 }
 
