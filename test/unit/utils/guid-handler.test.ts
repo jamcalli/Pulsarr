@@ -10,6 +10,7 @@ import {
   getGuidMatchScore,
   hasMatchingGuids,
   hasMatchingParsedGuids,
+  normalizeGenre,
   normalizeGuid,
   parseGenres,
   parseGuids,
@@ -388,6 +389,68 @@ describe('guid-handler', () => {
       expect(extractPlexKey('plex://show')).toBeUndefined()
       expect(extractPlexKey('plex://movie/')).toBeUndefined()
       expect(extractPlexKey('plex://show///')).toBeUndefined()
+    })
+  })
+
+  describe('normalizeGenre', () => {
+    it('should convert lowercase genre to title case', () => {
+      expect(normalizeGenre('action')).toBe('Action')
+      expect(normalizeGenre('drama')).toBe('Drama')
+    })
+
+    it('should handle multi-word genres', () => {
+      expect(normalizeGenre('science fiction')).toBe('Science Fiction')
+      expect(normalizeGenre('romantic comedy')).toBe('Romantic Comedy')
+    })
+
+    it('should handle special case genres matching database format', () => {
+      // Sci-Fi & Fantasy
+      expect(normalizeGenre('sci-fi & fantasy')).toBe('Sci-Fi & Fantasy')
+      expect(normalizeGenre('SCI-FI & FANTASY')).toBe('Sci-Fi & Fantasy')
+      expect(normalizeGenre('Sci-Fi & Fantasy')).toBe('Sci-Fi & Fantasy')
+      // TV Movie
+      expect(normalizeGenre('tv movie')).toBe('TV Movie')
+      expect(normalizeGenre('TV MOVIE')).toBe('TV Movie')
+      // Mini-Series
+      expect(normalizeGenre('mini-series')).toBe('Mini-Series')
+      expect(normalizeGenre('MINI-SERIES')).toBe('Mini-Series')
+      // Film-Noir
+      expect(normalizeGenre('film-noir')).toBe('Film-Noir')
+      // War & Politics
+      expect(normalizeGenre('war & politics')).toBe('War & Politics')
+      // Action/Adventure
+      expect(normalizeGenre('action/adventure')).toBe('Action/Adventure')
+    })
+
+    it('should preserve already title-cased genres', () => {
+      expect(normalizeGenre('Action')).toBe('Action')
+      expect(normalizeGenre('Science Fiction')).toBe('Science Fiction')
+    })
+
+    it('should normalize all-uppercase genres to title case', () => {
+      expect(normalizeGenre('ACTION')).toBe('Action')
+      expect(normalizeGenre('SCIENCE FICTION')).toBe('Science Fiction')
+      expect(normalizeGenre('DRAMA')).toBe('Drama')
+    })
+
+    it('should trim whitespace', () => {
+      expect(normalizeGenre('  action  ')).toBe('Action')
+      expect(normalizeGenre('\tdrama\n')).toBe('Drama')
+    })
+
+    it('should return empty string for empty input', () => {
+      expect(normalizeGenre('')).toBe('')
+      expect(normalizeGenre('   ')).toBe('')
+    })
+
+    it('should handle hyphenated genres', () => {
+      expect(normalizeGenre('rom-com')).toBe('Rom-com')
+      expect(normalizeGenre('sci-fi')).toBe('Sci-fi')
+      expect(normalizeGenre('ROM-COM')).toBe('Rom-com')
+    })
+
+    it('should handle genres with special characters', () => {
+      expect(normalizeGenre('action & adventure')).toBe('Action & Adventure')
     })
   })
 
