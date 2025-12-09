@@ -5,6 +5,17 @@
  * Consolidates all workflow functionality into focused modules.
  */
 
+// Attribution
+export {
+  type AttributionPrefetchedData,
+  updateAutoApprovalUserAttribution,
+} from './attribution/index.js'
+// Cache
+export {
+  lookupUserByUuid,
+  refreshPlexUuidCache,
+  updatePlexUuidCache,
+} from './cache/index.js'
 // Types
 export type {
   AttributionDeps,
@@ -22,16 +33,6 @@ export type {
   SyncEngineDeps,
   UuidCacheDeps,
 } from './types.js'
-
-// Attribution
-// export { } from './attribution/index.js'
-
-// Cache
-export {
-  lookupUserByUuid,
-  refreshPlexUuidCache,
-  updatePlexUuidCache,
-} from './cache/index.js'
 
 // ETag polling
 // export { } from './etag/index.js'

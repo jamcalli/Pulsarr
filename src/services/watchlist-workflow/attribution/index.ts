@@ -4,4 +4,7 @@
  * Handles approval attribution logic for watchlist items.
  */
 
-// Exports will be added as handlers are implemented
+export {
+  type AttributionPrefetchedData,
+  updateAutoApprovalUserAttribution,
+} from './approval-attributor.js'
