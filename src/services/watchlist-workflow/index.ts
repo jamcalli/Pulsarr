@@ -31,18 +31,32 @@ export {
 // Lifecycle
 export {
   cleanupExistingManualSync,
+  cleanupWorkflow,
+  initializeWorkflow,
   type SchedulerDeps,
   schedulePendingReconciliation,
+  setupPeriodicReconciliation,
   unschedulePendingReconciliation,
+  type WorkflowCleanupResult,
+  type WorkflowComponents,
+  type WorkflowInitResult,
+  type WorkflowStartDeps,
+  type WorkflowStopDeps,
 } from './lifecycle/index.js'
 // Orchestration
 export {
+  type FriendSyncResult,
   handleNewFriendEtagMode,
   handleNewFriendFullMode,
   handleRemovedFriend,
   type NewFriendHandlerResult,
   processFriendChanges,
+  type ReconcileDeps,
+  type ReconcileState,
+  reconcile,
   type SyncResult,
+  type SyncSingleFriendDeps,
+  syncSingleFriend,
   syncWatchlistItems,
 } from './orchestration/index.js'
 // Routing

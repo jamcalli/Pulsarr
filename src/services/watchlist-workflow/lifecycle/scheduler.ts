@@ -117,3 +117,42 @@ export async function cleanupExistingManualSync(
     throw error
   }
 }
+
+/**
+ * Setup periodic reconciliation job.
+ *
+ * Creates the scheduled job with the provided tick handler.
+ * The tick handler is responsible for:
+ * - Checking if workflow is running
+ * - Unscheduling to prevent concurrent execution
+ * - Pausing change detection
+ * - Running reconciliation
+ * - Resuming change detection
+ * - Rescheduling the next run
+ *
+ * @param onTick - Callback to execute on each scheduled tick
+ * @param deps - Service dependencies
+ */
+export async function setupPeriodicReconciliation(
+  onTick: (jobName: string) => Promise<void>,
+  deps: SchedulerDeps,
+): Promise<void> {
+  try {
+    // Create the periodic job with the provided tick handler
+    await deps.fastify.scheduler.scheduleJob(deps.jobName, onTick)
+
+    deps.logger.info(
+      'Periodic watchlist reconciliation job created (will be dynamically scheduled)',
+    )
+  } catch (error) {
+    deps.logger.error(
+      {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      },
+      'Error setting up periodic reconciliation',
+    )
+    throw error
+  }
+}
