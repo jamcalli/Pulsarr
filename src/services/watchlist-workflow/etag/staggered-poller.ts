@@ -152,6 +152,18 @@ export async function refreshFriendsForStaggeredPolling(
     deps.updatePlexUuidCache(friendChanges.userMap)
     currentCache = new Map(friendChanges.userMap)
 
+    // Check instance health once before processing new friends
+    // Health status won't change during a single refresh cycle
+    const health =
+      friendChanges.added.length > 0
+        ? await checkInstanceHealth({
+            sonarrManager: deps.sonarrManager,
+            radarrManager: deps.radarrManager,
+            deferredRoutingQueue: deps.deferredRoutingQueue,
+            logger: deps.logger,
+          })
+        : null
+
     // Handle new friends - sync immediately and establish baseline
     for (const newFriend of friendChanges.added) {
       deps.logger.info(
@@ -172,22 +184,14 @@ export async function refreshFriendsForStaggeredPolling(
         const allItemsToRoute: Item[] = [...brandNewItems, ...linkedItems]
 
         if (allItemsToRoute.length > 0) {
-          // Check instance health before routing - queue if unavailable
-          const health = await checkInstanceHealth({
-            sonarrManager: deps.sonarrManager,
-            radarrManager: deps.radarrManager,
-            deferredRoutingQueue: deps.deferredRoutingQueue,
-            logger: deps.logger,
-          })
-
-          if (!health.available) {
+          if (!health?.available) {
             deps.logger.warn(
               {
                 userId: newFriend.userId,
                 username: newFriend.username,
                 itemCount: allItemsToRoute.length,
-                sonarrUnavailable: health.sonarrUnavailable,
-                radarrUnavailable: health.radarrUnavailable,
+                sonarrUnavailable: health?.sonarrUnavailable,
+                radarrUnavailable: health?.radarrUnavailable,
               },
               'Some instances unavailable, queuing new friend items for deferred routing',
             )

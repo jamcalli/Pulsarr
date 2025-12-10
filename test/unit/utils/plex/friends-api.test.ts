@@ -276,32 +276,33 @@ describe('plex/friends-api', () => {
     it('should handle timeout errors', async () => {
       // Mock AbortSignal.timeout to return an immediately aborted signal
       const originalTimeout = AbortSignal.timeout
-      AbortSignal.timeout = () => {
-        const controller = new AbortController()
-        controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
-        return controller.signal
+      try {
+        AbortSignal.timeout = () => {
+          const controller = new AbortController()
+          controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
+          return controller.signal
+        }
+
+        server.use(
+          http.post('https://community.plex.tv/api', async () => {
+            // This handler won't be reached due to immediate abort
+            return HttpResponse.json({
+              data: { allFriendsV2: [] },
+            } as PlexApiResponse)
+          }),
+        )
+
+        const config: Config = {
+          plexTokens: ['token'],
+        } as Config
+
+        const result = await getFriends(config, mockLogger)
+
+        expect(result.success).toBe(false)
+        expect(result.hasApiErrors).toBe(true)
+      } finally {
+        AbortSignal.timeout = originalTimeout
       }
-
-      server.use(
-        http.post('https://community.plex.tv/api', async () => {
-          // This handler won't be reached due to immediate abort
-          return HttpResponse.json({
-            data: { allFriendsV2: [] },
-          } as PlexApiResponse)
-        }),
-      )
-
-      const config: Config = {
-        plexTokens: ['token'],
-      } as Config
-
-      const result = await getFriends(config, mockLogger)
-
-      expect(result.success).toBe(false)
-      expect(result.hasApiErrors).toBe(true)
-
-      // Restore original
-      AbortSignal.timeout = originalTimeout
     })
 
     it('should send correct GraphQL query', async () => {

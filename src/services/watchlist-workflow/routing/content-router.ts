@@ -83,18 +83,12 @@ function checkShowExistsInBulkData(
       targetInstanceIds.includes(series.sonarr_instance_id),
   )
 
-  const potentialMatches = targetInstanceSeries
-    .map((series) => ({
-      series,
-      score: getGuidMatchScore(
-        parseGuids(series.guids),
-        parseGuids(tempItem.guids),
-      ),
-    }))
-    .filter((match) => match.score > 0)
-    .sort((a, b) => b.score - a.score)
-
-  return potentialMatches.length > 0
+  // Check if any series has a matching GUID (no need to sort since we only check existence)
+  return targetInstanceSeries.some(
+    (series) =>
+      getGuidMatchScore(parseGuids(series.guids), parseGuids(tempItem.guids)) >
+      0,
+  )
 }
 
 /**
@@ -111,34 +105,25 @@ function checkMovieExistsInBulkData(
       targetInstanceIds.includes(movie.radarr_instance_id),
   )
 
-  const potentialMatches = targetInstanceMovies
-    .map((movie) => ({
-      movie,
-      score: getGuidMatchScore(
-        parseGuids(movie.guids),
-        parseGuids(tempItem.guids),
-      ),
-    }))
-    .filter((match) => match.score > 0)
-    .sort((a, b) => b.score - a.score)
-
-  return potentialMatches.length > 0
+  // Check if any movie has a matching GUID (no need to sort since we only check existence)
+  return targetInstanceMovies.some(
+    (movie) =>
+      getGuidMatchScore(parseGuids(movie.guids), parseGuids(tempItem.guids)) >
+      0,
+  )
 }
 
 /**
  * Check if show exists in target instances using API lookup (ETag path)
+ *
+ * Note: Caller (routeShow) must validate TVDB ID before calling this function.
  */
 async function checkShowExistsViaApi(
   tempItem: TemptRssWatchlistItem,
   targetInstanceIds: number[],
   deps: ContentRoutingDeps,
 ): Promise<{ exists: boolean; anyChecked: boolean }> {
-  const guids = parseGuids(tempItem.guids)
-  const tvdbId = extractTvdbId(guids)
-
-  if (tvdbId <= 0) {
-    return { exists: false, anyChecked: true }
-  }
+  const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
 
   let anyChecked = false
   for (const instanceId of targetInstanceIds) {
@@ -163,18 +148,15 @@ async function checkShowExistsViaApi(
 
 /**
  * Check if movie exists in target instances using API lookup (ETag path)
+ *
+ * Note: Caller (routeMovie) must validate TMDB ID before calling this function.
  */
 async function checkMovieExistsViaApi(
   tempItem: TemptRssWatchlistItem,
   targetInstanceIds: number[],
   deps: ContentRoutingDeps,
 ): Promise<{ exists: boolean; anyChecked: boolean }> {
-  const guids = parseGuids(tempItem.guids)
-  const tmdbId = extractTmdbId(guids)
-
-  if (tmdbId <= 0) {
-    return { exists: false, anyChecked: true }
-  }
+  const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
 
   let anyChecked = false
   for (const instanceId of targetInstanceIds) {
