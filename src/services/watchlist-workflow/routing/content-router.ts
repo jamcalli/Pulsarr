@@ -1,9 +1,9 @@
 /**
  * Content Router Module
  *
- * Provides unified routing logic for both shows and movies.
- * Consolidates the duplicate processShowWithRouting/processMovieWithRouting
- * methods into a single generic function.
+ * Unified routing module with separate show/movie entry points sharing
+ * a common workflow: get target instances → check existence → check Plex →
+ * route content → send notification.
  */
 
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
@@ -13,7 +13,7 @@ import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   extractTmdbId,
   extractTvdbId,
-  getGuidMatchScore,
+  hasMatchingParsedGuids,
   parseGuids,
 } from '@utils/guid-handler.js'
 import type { ContentRoutingDeps } from '../types.js'
@@ -77,6 +77,7 @@ function checkShowExistsInBulkData(
   existingSeries: SonarrItem[],
   targetInstanceIds: number[],
 ): boolean {
+  const tempGuids = parseGuids(tempItem.guids)
   const targetInstanceSeries = existingSeries.filter(
     (series) =>
       series.sonarr_instance_id !== undefined &&
@@ -84,10 +85,8 @@ function checkShowExistsInBulkData(
   )
 
   // Check if any series has a matching GUID (no need to sort since we only check existence)
-  return targetInstanceSeries.some(
-    (series) =>
-      getGuidMatchScore(parseGuids(series.guids), parseGuids(tempItem.guids)) >
-      0,
+  return targetInstanceSeries.some((series) =>
+    hasMatchingParsedGuids(parseGuids(series.guids), tempGuids),
   )
 }
 
@@ -99,6 +98,7 @@ function checkMovieExistsInBulkData(
   existingMovies: RadarrItem[],
   targetInstanceIds: number[],
 ): boolean {
+  const tempGuids = parseGuids(tempItem.guids)
   const targetInstanceMovies = existingMovies.filter(
     (movie) =>
       movie.radarr_instance_id !== undefined &&
@@ -106,10 +106,8 @@ function checkMovieExistsInBulkData(
   )
 
   // Check if any movie has a matching GUID (no need to sort since we only check existence)
-  return targetInstanceMovies.some(
-    (movie) =>
-      getGuidMatchScore(parseGuids(movie.guids), parseGuids(tempItem.guids)) >
-      0,
+  return targetInstanceMovies.some((movie) =>
+    hasMatchingParsedGuids(parseGuids(movie.guids), tempGuids),
   )
 }
 
