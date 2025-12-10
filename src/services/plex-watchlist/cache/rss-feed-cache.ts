@@ -105,6 +105,76 @@ export class RssFeedCacheManager {
   }
 
   /**
+   * Prime both RSS caches by fetching current feeds without reporting new items.
+   * Call this during startup to establish baselines before starting the polling interval.
+   *
+   * @param selfUrl - Self RSS feed URL
+   * @param friendsUrl - Friends RSS feed URL
+   * @param token - Plex token for authentication
+   */
+  async primeCaches(
+    selfUrl: string | undefined,
+    friendsUrl: string | undefined,
+    token: string,
+  ): Promise<void> {
+    this.log.debug('Priming RSS feed caches (establishing baseline)')
+
+    const primePromises: Promise<void>[] = []
+
+    if (selfUrl) {
+      primePromises.push(this.primeFeed('self', selfUrl, token, this.selfCache))
+    }
+
+    if (friendsUrl) {
+      primePromises.push(
+        this.primeFeed('friends', friendsUrl, token, this.friendsCache),
+      )
+    }
+
+    await Promise.all(primePromises)
+
+    this.log.info(
+      {
+        selfItems: this.selfCache.items.size,
+        friendsItems: this.friendsCache.items.size,
+      },
+      'RSS feed caches primed',
+    )
+  }
+
+  /**
+   * Prime a single feed cache without reporting new items
+   */
+  private async primeFeed(
+    feedType: 'self' | 'friends',
+    url: string,
+    token: string,
+    cache: FeedCache,
+  ): Promise<void> {
+    const result = await fetchRawRssFeed(url, token, this.log, undefined)
+
+    if (!result.success || result.notModified) {
+      this.log.warn(
+        { feed: feedType, success: result.success },
+        'Failed to prime RSS cache',
+      )
+      return
+    }
+
+    // Build cache without reporting items as new
+    const { newCache } = this.diffAndUpdateCache(feedType, result.items, cache)
+
+    cache.etag = result.etag
+    cache.lastFetch = Date.now()
+    cache.items = newCache
+
+    this.log.debug(
+      { feed: feedType, itemCount: newCache.size },
+      'RSS feed cache primed',
+    )
+  }
+
+  /**
    * Clear both caches (used on workflow stop)
    */
   clearCaches(): void {

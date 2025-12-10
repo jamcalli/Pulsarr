@@ -214,20 +214,32 @@ describe('plex/watchlist-api', () => {
     })
 
     it('should handle timeout error', async () => {
-      server.use(
-        http.get(
-          'https://discover.provider.plex.tv/library/sections/watchlist/all',
-          async () => {
-            await new Promise((resolve) => setTimeout(resolve, 6000))
-            return HttpResponse.json({
-              MediaContainer: { Metadata: [], totalSize: 0 },
-            } as PlexResponse)
-          },
-        ),
-      )
+      // Mock AbortSignal.timeout to return an immediately aborted signal
+      const originalTimeout = AbortSignal.timeout
+      try {
+        AbortSignal.timeout = () => {
+          const controller = new AbortController()
+          controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
+          return controller.signal
+        }
 
-      await expect(getWatchlist('token', mockLogger)).rejects.toThrow()
-    }, 10000)
+        server.use(
+          http.get(
+            'https://discover.provider.plex.tv/library/sections/watchlist/all',
+            async () => {
+              // This handler won't be reached due to immediate abort
+              return HttpResponse.json({
+                MediaContainer: { Metadata: [], totalSize: 0 },
+              } as PlexResponse)
+            },
+          ),
+        )
+
+        await expect(getWatchlist('token', mockLogger)).rejects.toThrow()
+      } finally {
+        AbortSignal.timeout = originalTimeout
+      }
+    })
 
     it('should handle network error', async () => {
       server.use(
