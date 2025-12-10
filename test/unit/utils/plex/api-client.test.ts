@@ -88,25 +88,26 @@ describe('plex/api-client', () => {
     it('should return false when request times out', async () => {
       // Mock AbortSignal.timeout to return an immediately aborted signal
       const originalTimeout = AbortSignal.timeout
-      AbortSignal.timeout = () => {
-        const controller = new AbortController()
-        controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
-        return controller.signal
+      try {
+        AbortSignal.timeout = () => {
+          const controller = new AbortController()
+          controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
+          return controller.signal
+        }
+
+        server.use(
+          http.get('https://plex.tv/api/v2/ping', async () => {
+            // This handler won't be reached due to immediate abort
+            return HttpResponse.json({ status: 'ok' })
+          }),
+        )
+
+        const result = await pingPlex('token', mockLogger)
+        expect(result).toBe(false)
+        expect(mockLogger.error).toHaveBeenCalled()
+      } finally {
+        AbortSignal.timeout = originalTimeout
       }
-
-      server.use(
-        http.get('https://plex.tv/api/v2/ping', async () => {
-          // This handler won't be reached due to immediate abort
-          return HttpResponse.json({ status: 'ok' })
-        }),
-      )
-
-      const result = await pingPlex('token', mockLogger)
-      expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalled()
-
-      // Restore original
-      AbortSignal.timeout = originalTimeout
     })
 
     it('should include correct headers in request', async () => {
@@ -205,24 +206,25 @@ describe('plex/api-client', () => {
     it('should return null when request times out', async () => {
       // Mock AbortSignal.timeout to return an immediately aborted signal
       const originalTimeout = AbortSignal.timeout
-      AbortSignal.timeout = () => {
-        const controller = new AbortController()
-        controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
-        return controller.signal
+      try {
+        AbortSignal.timeout = () => {
+          const controller = new AbortController()
+          controller.abort(new DOMException('TimeoutError', 'TimeoutError'))
+          return controller.signal
+        }
+
+        server.use(
+          http.get('https://plex.tv/api/v2/user', async () => {
+            // This handler won't be reached due to immediate abort
+            return HttpResponse.json({ thumb: 'should-not-reach' })
+          }),
+        )
+
+        const result = await fetchPlexAvatar('token', mockLogger)
+        expect(result).toBe(null)
+      } finally {
+        AbortSignal.timeout = originalTimeout
       }
-
-      server.use(
-        http.get('https://plex.tv/api/v2/user', async () => {
-          // This handler won't be reached due to immediate abort
-          return HttpResponse.json({ thumb: 'should-not-reach' })
-        }),
-      )
-
-      const result = await fetchPlexAvatar('token', mockLogger)
-      expect(result).toBe(null)
-
-      // Restore original
-      AbortSignal.timeout = originalTimeout
     })
 
     it('should work without logger parameter', async () => {

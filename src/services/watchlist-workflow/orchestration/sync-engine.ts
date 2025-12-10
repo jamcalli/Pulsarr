@@ -210,8 +210,9 @@ export async function syncWatchlistItems(
             return { type: 'skipped', reason: 'user_setting' }
           }
 
-          // Parse GUIDs once for reuse
+          // Parse GUIDs and genres once for reuse
           const parsedGuids = parseGuids(item.guids)
+          const parsedGenres = parseGenres(item.genres)
 
           // Convert item to temp format for processing
           const tempItem: TemptRssWatchlistItem = {
@@ -219,7 +220,7 @@ export async function syncWatchlistItems(
             type: item.type,
             thumb: item.thumb ?? undefined,
             guids: parsedGuids,
-            genres: parseGenres(item.genres),
+            genres: parsedGenres,
             key: item.key,
           }
 
@@ -244,7 +245,7 @@ export async function syncWatchlistItems(
               guids: parsedGuids,
               type: 'show',
               ended: false,
-              genres: parseGenres(tempItem.genres),
+              genres: parsedGenres,
               status: 'pending',
               series_status: 'continuing',
             }
@@ -283,7 +284,7 @@ export async function syncWatchlistItems(
               title: tempItem.title,
               guids: parsedGuids,
               type: 'movie',
-              genres: parseGenres(tempItem.genres),
+              genres: parsedGenres,
             }
 
             const result = await routeMovie(

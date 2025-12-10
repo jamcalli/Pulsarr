@@ -29,20 +29,17 @@ export async function schedulePendingReconciliation(
   deps: SchedulerDeps,
 ): Promise<void> {
   try {
-    const scheduleTime = new Date(Date.now() + 120 * 60 * 1000) // +2 hours
+    const delayMinutes = 120 // 2 hours
 
     await deps.fastify.scheduler.updateJobSchedule(
       deps.jobName,
       {
-        minutes: 120,
+        minutes: delayMinutes,
         runImmediately: false,
       },
       true,
     )
 
-    const delayMinutes = Math.round(
-      (scheduleTime.getTime() - Date.now()) / 60000,
-    )
     deps.logger.info(
       `Scheduled next periodic reconciliation in ${delayMinutes} minutes`,
     )
