@@ -58,6 +58,7 @@ export async function handleStaggeredPollResult(
   })
 
   // Convert EtagPollItems to TokenWatchlistItems
+  const now = new Date().toISOString()
   const tokenItems: TokenWatchlistItem[] = result.newItems.map((item) => ({
     id: item.id,
     title: item.title,
@@ -65,8 +66,8 @@ export async function handleStaggeredPollResult(
     user_id: result.userId,
     status: 'pending' as const,
     key: item.id,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: now,
+    updated_at: now,
   }))
 
   if (!health.available && deps.deferredRoutingQueue) {
@@ -268,16 +269,16 @@ export async function refreshFriendsForStaggeredPolling(
       }
     }
 
-    // Return updated friends list
-    const friends = await getEtagFriendsList(deps)
+    // Return updated friends list derived from the in-memory cache
+    const friends = buildEtagUserInfoFromMap(currentCache)
     return { friends, updatedCache: currentCache }
   } catch (error) {
     deps.logger.error(
       { error },
       'Failed to refresh friends for staggered polling',
     )
-    // Return current list on error
-    const friends = await getEtagFriendsList(deps)
+    // On error, fall back to whatever we have in the current cache
+    const friends = buildEtagUserInfoFromMap(currentCache)
     return { friends, updatedCache: currentCache }
   }
 }
