@@ -967,8 +967,10 @@ export class WatchlistWorkflowService {
 
               this.log.info('Periodic reconciliation completed successfully')
             } finally {
-              // Restart change detection with fresh interval
-              this.startEtagCheckInterval()
+              // Restart change detection with fresh interval (ETag mode only)
+              if (!this.rssMode) {
+                this.startEtagCheckInterval()
+              }
               this.log.debug(
                 'Resumed change detection after periodic reconciliation',
               )
