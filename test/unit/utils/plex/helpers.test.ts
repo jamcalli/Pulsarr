@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest'
 
 describe('plex/helpers', () => {
   describe('PLEX_API_TIMEOUT_MS', () => {
-    it('should be set to 5000ms', () => {
-      expect(PLEX_API_TIMEOUT_MS).toBe(5000)
+    it('should be set to 30000ms', () => {
+      expect(PLEX_API_TIMEOUT_MS).toBe(30000)
     })
   })
 

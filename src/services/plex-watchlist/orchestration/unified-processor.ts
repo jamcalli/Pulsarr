@@ -110,7 +110,7 @@ export async function processItemsForUser(
 
   logger.debug(
     { userId: user.userId, username: user.username, itemCount: items.length },
-    'Processing items via unified flow',
+    'Processing items for user',
   )
 
   // Step 1: Get all keys from items for DB lookup
@@ -193,14 +193,14 @@ export async function processItemsForUser(
     linkedItems = Array.from(linkedItemsSet ?? [])
   }
 
-  logger.info(
+  logger.debug(
     {
       userId: user.userId,
       username: user.username,
       brandNew: brandNewCount,
       linked: linkedCount,
     },
-    'Items processed via unified flow',
+    'Items processed for user',
   )
 
   // Return BOTH brand new AND linked items
