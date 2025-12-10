@@ -274,15 +274,12 @@ export async function syncSingleFriend(
   }
 
   // Build single-friend set for getOthersWatchlist
-  const friendDataForMap: Friend & { userId: number } = {
+  const friendDataForMap: Friend = {
     watchlistId: friend.watchlistId,
     username: friend.username,
     userId: friend.userId,
   }
-  const friendSet = new Set([[friendDataForMap, token]] as [
-    Friend & { userId: number },
-    string,
-  ][])
+  const friendSet = new Set([[friendDataForMap, token]] as [Friend, string][])
 
   // Fetch complete watchlist (paginated, gets ALL items)
   const userWatchlistMap = await getOthersWatchlist(

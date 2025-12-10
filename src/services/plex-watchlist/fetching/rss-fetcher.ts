@@ -310,8 +310,6 @@ export async function fetchRawRssFeed(
         items.push({
           ...rawItem,
           guids: normalizedGuids,
-          // Extract author field (Plex user UUID)
-          author: rawItem.author,
         })
       }
     }

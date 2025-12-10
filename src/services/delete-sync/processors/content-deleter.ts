@@ -235,15 +235,6 @@ export async function processMovieDeletions(
   // Process each instance
   for (const [instanceId, instanceMovies] of moviesByInstance.entries()) {
     for (const movie of instanceMovies) {
-      // Skip movies without instance ID
-      if (!movie.radarr_instance_id) {
-        logger.warn(
-          `Movie "${movie.title}" has no Radarr instance ID, skipping deletion`,
-        )
-        counters.incrementMovieSkipped()
-        continue
-      }
-
       try {
         // Get the appropriate Radarr service for this instance
         const service = radarrManager.getRadarrService(instanceId)
@@ -404,15 +395,6 @@ export async function processShowDeletions(
         continue
       }
       if (!isContinuing && !config.deleteEndedShow) {
-        continue
-      }
-
-      // Skip shows without instance ID
-      if (!show.sonarr_instance_id) {
-        logger.warn(
-          `${isContinuing ? 'Continuing' : 'Ended'} show "${show.title}" has no Sonarr instance ID, skipping deletion`,
-        )
-        counters.incrementShowSkipped(isContinuing)
         continue
       }
 

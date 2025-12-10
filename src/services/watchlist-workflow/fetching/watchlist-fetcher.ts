@@ -34,68 +34,12 @@ export async function fetchWatchlists(
   await deps.unschedulePendingReconciliation()
 
   try {
-    // Fetch both self and friends watchlists in parallel
-    const fetchResults = await Promise.allSettled([
-      // Self watchlist promise
-      (async () => {
-        try {
-          deps.logger.debug('Fetching self watchlist')
-          return await deps.plexService.getSelfWatchlist()
-        } catch (selfError) {
-          deps.logger.error(
-            {
-              error: selfError,
-              errorMessage:
-                selfError instanceof Error
-                  ? selfError.message
-                  : String(selfError),
-              errorStack:
-                selfError instanceof Error ? selfError.stack : undefined,
-            },
-            'Error refreshing self watchlist',
-          )
-          throw new Error('Failed to refresh self watchlist', {
-            cause: selfError,
-          })
-        }
-      })(),
-
-      // Friends watchlist promise
-      (async () => {
-        try {
-          deps.logger.debug('Fetching friends watchlists')
-          return await deps.plexService.getOthersWatchlists()
-        } catch (friendsError) {
-          deps.logger.error(
-            {
-              error: friendsError,
-              errorMessage:
-                friendsError instanceof Error
-                  ? friendsError.message
-                  : String(friendsError),
-              errorStack:
-                friendsError instanceof Error ? friendsError.stack : undefined,
-            },
-            'Error refreshing friends watchlists',
-          )
-          throw new Error('Failed to refresh friends watchlists', {
-            cause: friendsError,
-          })
-        }
-      })(),
+    // Fetch both self and friends watchlists in parallel - both must succeed
+    deps.logger.debug('Fetching self and friends watchlists in parallel')
+    await Promise.all([
+      deps.plexService.getSelfWatchlist(),
+      deps.plexService.getOthersWatchlists(),
     ])
-
-    // Check for any failures
-    const selfResult = fetchResults[0]
-    const friendsResult = fetchResults[1]
-
-    if (selfResult.status === 'rejected') {
-      throw selfResult.reason
-    }
-
-    if (friendsResult.status === 'rejected') {
-      throw friendsResult.reason
-    }
 
     deps.logger.info('Watchlists refreshed successfully')
   } catch (error) {
