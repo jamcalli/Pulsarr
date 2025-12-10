@@ -331,6 +331,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
           500: ApprovalErrorSchema,
+          503: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
