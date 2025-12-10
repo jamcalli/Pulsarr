@@ -211,15 +211,6 @@ export class PlexWatchlistService {
 
     userWatchlistMap.set(tokenUser, items)
 
-    // Don't error out if a user has no items in their watch list.
-    if (userWatchlistMap.size === 0) {
-      this.log.debug('No items in self watchlist, returning empty result')
-      return {
-        total: 0,
-        users: [],
-      }
-    }
-
     const { allKeys, userKeyMap } = extractKeysAndRelationships(
       userWatchlistMap,
       this.watchlistSyncDeps,
@@ -247,30 +238,6 @@ export class PlexWatchlistService {
       handleLinkedItemsForLabelSync: (linkItems) =>
         handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
-
-    const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
-
-    for (const item of existingItems) {
-      const user = Array.from(userWatchlistMap.keys()).find(
-        (u) => u.userId === item.user_id,
-      )
-      if (user) {
-        const userItems = allItemsMap.get(user) || new Set<WatchlistItem>()
-        userItems.add(item)
-        allItemsMap.set(user, userItems)
-      }
-    }
-
-    for (const [user, items] of processedItems.entries()) {
-      const existingUserItems =
-        allItemsMap.get(user) || new Set<WatchlistItem>()
-      for (const item of items) {
-        if (!existingUserItems.has(item)) {
-          existingUserItems.add(item)
-        }
-      }
-      allItemsMap.set(user, existingUserItems)
-    }
 
     await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
 
@@ -433,23 +400,6 @@ export class PlexWatchlistService {
       handleLinkedItemsForLabelSync: (linkItems) =>
         handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
-
-    const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
-
-    for (const [user, items] of processedItems.entries()) {
-      allItemsMap.set(user, items)
-    }
-
-    for (const item of existingItems) {
-      const user = Array.from(userWatchlistMap.keys()).find(
-        (u) => u.userId === item.user_id,
-      )
-      if (user) {
-        const userItems = allItemsMap.get(user) || new Set<WatchlistItem>()
-        userItems.add(item)
-        allItemsMap.set(user, userItems)
-      }
-    }
 
     await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
 

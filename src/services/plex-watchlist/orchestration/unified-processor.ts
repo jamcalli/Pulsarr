@@ -114,7 +114,7 @@ export async function processItemsForUser(
   )
 
   // Step 1: Get all keys from items for DB lookup
-  const allKeys = items.map((item) => item.key || item.id).filter(Boolean)
+  const allKeys = items.map((item) => item.key ?? item.id).filter(Boolean)
 
   if (allKeys.length === 0) {
     logger.warn(
