@@ -342,10 +342,10 @@ export async function syncSingleFriend(
   }
 
   // Collect linked items - these need routing too (user may have different router rules)
+  // Flatten all values since this is single-friend (avoids object identity issues with Map keys)
   const linkedItemsArray: Item[] = []
-  const linkedItemsSet = existingItemsToLink.get(friendDataForMap)
-  if (linkedItemsSet) {
-    linkedItemsArray.push(...linkedItemsSet)
+  for (const items of existingItemsToLink.values()) {
+    linkedItemsArray.push(...items)
   }
 
   deps.logger.info(

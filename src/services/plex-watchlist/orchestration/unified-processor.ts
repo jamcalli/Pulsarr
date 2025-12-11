@@ -133,10 +133,7 @@ export async function processItemsForUser(
   const existingItems = await db.getWatchlistItemsByKeys(allKeys)
 
   // Step 3: Build user watchlist map for categorization
-  const userWatchlistMap = new Map<
-    Friend & { userId: number },
-    Set<TokenWatchlistItem>
-  >()
+  const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
   userWatchlistMap.set(user, new Set(items))
 
   // Step 4: Categorize into brand new vs existing
