@@ -1,7 +1,8 @@
 import type { Config } from '@root/types/config.types.js'
 
 // Network timeout constants
-export const PLEX_API_TIMEOUT_MS = 5000 // 5 seconds for Plex API calls
+// Increased to 30 seconds to handle large watchlists (1000+ items) and slow Plex responses
+export const PLEX_API_TIMEOUT_MS = 30_000
 
 // Custom error interface for rate limit errors
 export interface RateLimitError extends Error {

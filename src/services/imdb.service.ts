@@ -11,27 +11,24 @@ import type { DatabaseService } from '@services/database.service.js'
 import { extractTypedGuid } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { streamLines } from '@utils/streaming-updater.js'
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 export class ImdbService {
-  private static readonly USER_AGENT =
-    'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
-
   /**
    * Extract tconst from IMDb GUID (e.g., "imdb:tt1234567" → "tt1234567")
    */
   private static toTconst(imdbGuid: string): string {
     return imdbGuid.replace(/^imdb:/, '')
   }
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'IMDB')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
     private readonly db: DatabaseService,
-    private readonly baseLog: FastifyBaseLogger,
-  ) {}
+    readonly baseLog: FastifyBaseLogger,
+  ) {
+    this.log = createServiceLogger(baseLog, 'IMDB')
+  }
 
   /**
    * Check if a title has IMDB rating data
@@ -94,7 +91,7 @@ export class ImdbService {
       for await (const line of streamLines({
         url: IMDB_RATINGS_URL,
         isGzipped: true,
-        userAgent: ImdbService.USER_AGENT,
+        userAgent: USER_AGENT,
         timeout: 600000, // 10 minutes
         retries: 2,
       })) {

@@ -10,22 +10,19 @@ import { ANIME_LIST_URL, ANIME_SOURCES } from '@root/types/anime.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { fetchContent } from '@utils/streaming-updater.js'
+import { USER_AGENT } from '@utils/version.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger } from 'fastify'
 
 export class AnimeService {
-  private static readonly USER_AGENT =
-    'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'ANIME')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
     private readonly db: DatabaseService,
-    private readonly baseLog: FastifyBaseLogger,
-  ) {}
+    readonly baseLog: FastifyBaseLogger,
+  ) {
+    this.log = createServiceLogger(baseLog, 'ANIME')
+  }
 
   /**
    * Check if any external IDs indicate anime content
@@ -57,7 +54,7 @@ export class AnimeService {
       this.log.info('Downloading anime list XML...')
       const xmlContent = await fetchContent({
         url: ANIME_LIST_URL,
-        userAgent: AnimeService.USER_AGENT,
+        userAgent: USER_AGENT,
         timeout: 120000, // 2 minutes timeout
         retries: 2,
       })

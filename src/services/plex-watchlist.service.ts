@@ -3,7 +3,6 @@ import type {
   Friend,
   FriendChangesResult,
   RssWatchlistResults,
-  TemptRssWatchlistItem,
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
@@ -32,16 +31,10 @@ import {
   type RemovalHandlerDeps,
 } from './plex-watchlist/orchestration/removal-handler.js'
 import {
-  matchRssPendingItemsFriends,
-  matchRssPendingItemsSelf,
-  type RssMatcherDeps,
-} from './plex-watchlist/orchestration/rss-matcher.js'
-import {
   generateAndSaveRssFeeds,
   processRssWatchlists,
   processRssWatchlistsWithUserDetails,
   type RssProcessorDeps,
-  storeRssWatchlistItems,
 } from './plex-watchlist/orchestration/rss-processor.js'
 import {
   buildResponse,
@@ -61,17 +54,16 @@ import {
 } from './plex-watchlist/users/index.js'
 
 export class PlexWatchlistService {
-  /** Creates a fresh service logger that inherits current log level */
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'PLEX_WATCHLIST')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
     private readonly plexLabelSyncService?: PlexLabelSyncService,
-  ) {}
+  ) {
+    this.log = createServiceLogger(baseLog, 'PLEX_WATCHLIST')
+  }
 
   private get config() {
     return this.fastify.config
@@ -140,15 +132,6 @@ export class PlexWatchlistService {
       logger: this.log,
       config: this.config,
       fastify: this.fastify,
-    }
-  }
-
-  /** Gets the dependencies object for RSS matcher operations */
-  private get rssMatcherDeps(): RssMatcherDeps {
-    return {
-      db: this.dbService,
-      logger: this.log,
-      notificationDeps: this.notificationDeps,
     }
   }
 
@@ -228,15 +211,6 @@ export class PlexWatchlistService {
 
     userWatchlistMap.set(tokenUser, items)
 
-    // Don't error out if a user has no items in their watch list.
-    if (userWatchlistMap.size === 0) {
-      this.log.debug('No items in self watchlist, returning empty result')
-      return {
-        total: 0,
-        users: [],
-      }
-    }
-
     const { allKeys, userKeyMap } = extractKeysAndRelationships(
       userWatchlistMap,
       this.watchlistSyncDeps,
@@ -264,34 +238,6 @@ export class PlexWatchlistService {
       handleLinkedItemsForLabelSync: (linkItems) =>
         handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
-
-    const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
-
-    for (const item of existingItems) {
-      const user = Array.from(userWatchlistMap.keys()).find(
-        (u) => u.userId === item.user_id,
-      )
-      if (user) {
-        const userItems = allItemsMap.get(user) || new Set<WatchlistItem>()
-        userItems.add(item)
-        allItemsMap.set(user, userItems)
-      }
-    }
-
-    for (const [user, items] of processedItems.entries()) {
-      const existingUserItems =
-        allItemsMap.get(user) || new Set<WatchlistItem>()
-      for (const item of items) {
-        if (!existingUserItems.has(item)) {
-          existingUserItems.add(item)
-        }
-      }
-      allItemsMap.set(user, existingUserItems)
-    }
-
-    await this.matchRssPendingItemsSelf(
-      allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
-    )
 
     await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
 
@@ -455,27 +401,6 @@ export class PlexWatchlistService {
         handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
     })
 
-    const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
-
-    for (const [user, items] of processedItems.entries()) {
-      allItemsMap.set(user, items)
-    }
-
-    for (const item of existingItems) {
-      const user = Array.from(userWatchlistMap.keys()).find(
-        (u) => u.userId === item.user_id,
-      )
-      if (user) {
-        const userItems = allItemsMap.get(user) || new Set<WatchlistItem>()
-        userItems.add(item)
-        allItemsMap.set(user, userItems)
-      }
-    }
-
-    await this.matchRssPendingItemsFriends(
-      allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
-    )
-
     await checkForRemovedItems(userWatchlistMap, this.removalHandlerDeps)
 
     return buildResponse(
@@ -536,29 +461,6 @@ export class PlexWatchlistService {
    */
   async processRssWatchlistsWithUserDetails(): Promise<RssWatchlistResults> {
     return processRssWatchlistsWithUserDetails(this.rssProcessorDeps)
-  }
-
-  async storeRssWatchlistItems(
-    items: Set<TemptRssWatchlistItem>,
-    source: 'self' | 'friends',
-    routedGuids?: Set<string>,
-  ): Promise<void> {
-    return storeRssWatchlistItems(items, source, routedGuids, {
-      db: this.dbService,
-      logger: this.log,
-    })
-  }
-
-  async matchRssPendingItemsSelf(
-    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
-  ): Promise<void> {
-    return matchRssPendingItemsSelf(userWatchlistMap, this.rssMatcherDeps)
-  }
-
-  async matchRssPendingItemsFriends(
-    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
-  ): Promise<void> {
-    return matchRssPendingItemsFriends(userWatchlistMap, this.rssMatcherDeps)
   }
 
   /**

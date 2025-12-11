@@ -1,5 +1,5 @@
 export type WorkflowMetadata = {
-  syncMode: 'manual' | 'rss'
+  syncMode: 'polling' | 'rss'
   rssAvailable: boolean
 }
 

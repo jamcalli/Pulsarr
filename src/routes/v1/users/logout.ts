@@ -32,22 +32,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // If auth is disabled globally or for local addresses
         if (isAuthDisabled || isLocalBypass) {
-          // Return 400 Bad Request to prevent the client from treating this as a successful logout
-          reply.status(400)
-          return {
-            success: false,
-            message:
-              'Logout not available: Authentication is disabled for your IP address.',
-          }
+          return reply.badRequest(
+            'Logout not available: Authentication is disabled for your IP address.',
+          )
         }
 
         // Normal logout flow
         if (!request.session.user) {
-          reply.status(400)
-          return {
-            success: false,
-            message: 'No active session found.',
-          }
+          return reply.badRequest('No active session found.')
         }
 
         await request.session.destroy()

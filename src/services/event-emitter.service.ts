@@ -7,16 +7,13 @@ export class ProgressService {
   private static instance: ProgressService
   private eventEmitter: EventEmitter
   private activeConnections: Set<string> = new Set()
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'EVENT_EMITTER')
-  }
+  private readonly log: FastifyBaseLogger
 
   private constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     readonly _fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(baseLog, 'EVENT_EMITTER')
     this.eventEmitter = new EventEmitter()
     // Allow many concurrent SSE consumers without warnings
     this.eventEmitter.setMaxListeners(100)

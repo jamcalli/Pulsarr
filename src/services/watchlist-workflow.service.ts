@@ -1,22 +1,20 @@
 /**
  * Watchlist Workflow Service
  *
- * Handles the synchronization between Plex watchlists and Sonarr/Radarr using a
- * hybrid approach for efficient change detection and instant routing.
+ * Handles the synchronization between Plex watchlists and Sonarr/Radarr using
+ * efficient change detection and instant routing.
  *
- * Architecture:
- * - RSS feeds detect "something changed"
- * - Change detection polling identifies WHO changed and WHAT was added
- * - New items are routed instantly with full user context (no deferral needed)
- * - 3-minute polling interval ensures timely detection
+ * Two mutually exclusive modes:
+ * - RSS mode: 10-30s polling via RSS feeds for near-realtime detection
+ * - ETag mode (fallback): 5-minute staggered polling with ±10% jitter per user
+ *
+ * Both modes include 2-hour periodic full reconciliation as a failsafe.
  *
  * Responsible for:
- * - Monitoring Plex watchlists via RSS feeds for change detection
- * - Polling to identify specific user changes
+ * - Monitoring Plex watchlists for change detection
  * - Routing new items instantly to Sonarr/Radarr via content router
  * - Coordinating with other services (PlexWatchlist, SonarrManager, RadarrManager)
  * - Supporting user sync settings and approval workflows
- * - Periodic full reconciliation as a failsafe
  *
  * @example
  * // Starting the workflow in a Fastify plugin:
@@ -25,47 +23,58 @@
  */
 
 import type {
-  Item as DbWatchlistItem,
   EtagPollResult,
   EtagUserInfo,
-  Friend,
   Item,
-  TemptRssWatchlistItem,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import type { Item as RadarrItem } from '@root/types/radarr.types.js'
-import type {
-  Condition,
-  ConditionGroup,
-  RoutingContext,
-} from '@root/types/router.types.js'
-import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import type { RssCacheInfo } from '@services/plex-watchlist/index.js'
 import {
-  categorizeItems,
+  type CachedRssItem,
   EtagPoller,
-  extractKeysAndRelationships,
-  getExistingItems,
-  getOthersWatchlist,
   handleLinkedItemsForLabelSync,
   type ItemCategorizerDeps,
   type ItemProcessorDeps,
-  linkExistingItems,
-  processAndSaveNewItems,
   type RemovalHandlerDeps,
-  RssEtagPoller,
-  toItemsSingle,
+  type RssEtagPoller,
+  type RssFeedCacheManager,
   type WatchlistSyncDeps,
 } from '@services/plex-watchlist/index.js'
-import {
-  extractTmdbId,
-  extractTvdbId,
-  getGuidMatchScore,
-  parseGenres,
-  parseGuids,
-} from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import pLimit from 'p-limit'
+import type { DeferredRoutingQueue } from './deferred-routing-queue.service.js'
+import {
+  // Lifecycle
+  checkAndSwitchModeIfNeeded,
+  checkInitialRssCacheMode,
+  cleanupExistingManualSync,
+  cleanupWorkflow,
+  // Fetching
+  fetchWatchlists as fetchWatchlistsModule,
+  getEtagFriendsList,
+  handleStaggeredPollResult,
+  initializeWorkflow,
+  // Cache
+  lookupUserByUuid,
+  type ModeSwitcherState,
+  // RSS
+  processRssFriendsItems as processRssFriendsItemsModule,
+  processRssSelfItems as processRssSelfItemsModule,
+  type ReconcileState,
+  // Orchestration
+  reconcile as reconcileModule,
+  refreshFriendsForStaggeredPolling,
+  // Routing
+  routeEnrichedItemsForUser as routeEnrichedItemsForUserModule,
+  routeNewItemsForUser as routeNewItemsForUserModule,
+  schedulePendingReconciliation,
+  syncSingleFriend as syncSingleFriendModule,
+  syncWatchlistItems as syncWatchlistItemsModule,
+  unschedulePendingReconciliation,
+  // Attribution
+  updateAutoApprovalUserAttribution,
+  updatePlexUuidCache,
+} from './watchlist-workflow/index.js'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
@@ -76,10 +85,8 @@ export class WatchlistWorkflowService {
   private status: WorkflowStatus = 'stopped'
   /** Tracks if a reconciliation is currently in progress */
   private isReconciling = false
-  /** Creates a fresh service logger that inherits current log level */
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'WATCHLIST_WORKFLOW')
-  }
+  /** Service logger that inherits parent log level changes */
+  private readonly log: FastifyBaseLogger
 
   /** Tracks if the workflow is fully initialized */
   private initialized = false
@@ -91,7 +98,7 @@ export class WatchlistWorkflowService {
   private rssCheckInterval: NodeJS.Timeout | null = null
 
   /** Flag to indicate if using RSS fallback */
-  private isUsingRssFallback = false
+  private isEtagFallbackActive = false
 
   /** Timestamp of the last successful watchlist sync */
   private lastSuccessfulSyncTime: number = Date.now()
@@ -102,17 +109,33 @@ export class WatchlistWorkflowService {
   /** RSS ETag poller for efficient HEAD-based change detection */
   private rssEtagPoller: RssEtagPoller | null = null
 
-  /** Interval timer for change detection checks */
-  private etagCheckInterval: NodeJS.Timeout | null = null
-
-  /** Change detection interval in ms (3 minutes) */
-  private readonly ETAG_CHECK_INTERVAL_MS = 3 * 60 * 1000
+  /** RSS feed cache manager for item diffing and author tracking */
+  private rssFeedCache: RssFeedCacheManager | null = null
 
   /** Debounce timer for syncAllStatuses after routing */
   private statusSyncDebounceTimer: NodeJS.Timeout | null = null
 
   /** Debounce delay for status sync in ms (1 minute) */
   private readonly STATUS_SYNC_DEBOUNCE_MS = 60 * 1000
+
+  /**
+   * In-memory cache mapping Plex user UUIDs (watchlistId) to database user IDs.
+   * Used for RSS author field lookups. Friends only - self-RSS is always primary user.
+   * Populated during friend sync operations.
+   */
+  private plexUuidCache: Map<string, number> = new Map()
+
+  /**
+   * Queue for routing attempts that fail due to instance unavailability.
+   * Retries automatically when instances recover.
+   */
+  private deferredRoutingQueue: DeferredRoutingQueue | null = null
+
+  /** Tracks if RSS mode is disabled due to aggressive CDN caching */
+  private rssCacheDisabled = false
+
+  /** Last detected RSS cache info for logging/debugging */
+  private lastRssCacheInfo: RssCacheInfo | null = null
 
   /**
    * Creates a new WatchlistWorkflowService instance
@@ -122,11 +145,13 @@ export class WatchlistWorkflowService {
    * @param rssCheckIntervalMs - Interval in ms between RSS feed checks
    */
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-    private readonly rssCheckIntervalMs: number = 30_000 +
-      Math.ceil(Math.random() * 30_000),
+    // RSS check interval: 10-30s with jitter for near-realtime detection
+    private readonly rssCheckIntervalMs: number = 10_000 +
+      Math.ceil(Math.random() * 20_000),
   ) {
+    this.log = createServiceLogger(baseLog, 'WATCHLIST_WORKFLOW')
     this.log.info('Initializing Watchlist Workflow Service')
     // Initialize ETag poller (needs config, so created lazily after config is available)
   }
@@ -239,7 +264,7 @@ export class WatchlistWorkflowService {
    * @returns boolean indicating if the service is using RSS fallback
    */
   public getIsUsingRssFallback(): boolean {
-    return this.isUsingRssFallback
+    return this.isEtagFallbackActive
   }
 
   /**
@@ -280,104 +305,81 @@ export class WatchlistWorkflowService {
     try {
       // Set status to starting immediately
       this.status = 'starting'
-
       this.log.debug('Starting watchlist workflow initialization')
 
-      // Clean up any existing manual sync jobs from previous runs
-      try {
-        this.log.debug('Cleaning up existing manual sync jobs')
-        await this.cleanupExistingManualSync()
-      } catch (cleanupError) {
-        this.log.warn(
-          { error: cleanupError },
-          'Error during cleanup of existing manual sync jobs (non-fatal)',
+      // Initialize workflow components via extracted module
+      const result = await initializeWorkflow({
+        logger: this.log,
+        plexService: this.plexService,
+        sonarrManager: this.sonarrManager,
+        radarrManager: this.radarrManager,
+        cleanupExistingManualSync: () => this.cleanupExistingManualSync(),
+        setupPeriodicReconciliation: () => this.setupPeriodicReconciliation(),
+        routeEtagChange: (change) => this.routeNewItemsForUser(change),
+        routeItemsForUser: (userId, items) =>
+          this.routeEnrichedItemsForUser(userId, items),
+        onQueueDrained: () => {
+          this.updateAutoApprovalUserAttribution()
+          this.scheduleDebouncedStatusSync()
+        },
+      })
+
+      // Apply initialization results to service state
+      this.rssMode = result.rssMode
+      this.isEtagFallbackActive = result.isEtagFallbackActive
+      this.rssEtagPoller = result.rssEtagPoller
+      this.rssFeedCache = result.rssFeedCache
+      this.deferredRoutingQueue = result.deferredRoutingQueue
+
+      // Check RSS cache - if too aggressive, switch to ETag mode
+      if (this.rssMode) {
+        const { cacheInfo, shouldDisableRss } = await checkInitialRssCacheMode(
+          this.config.selfRss,
+          this.log,
         )
-        // Continue despite this error
-      }
-
-      // Verify Plex connectivity
-      try {
-        this.log.debug('Verifying Plex connectivity')
-        await this.plexService.pingPlex()
-        this.log.info('Plex connection verified')
-      } catch (plexError) {
-        this.log.error(
-          { error: plexError },
-          'Failed to verify Plex connectivity',
-        )
-        throw new Error('Failed to verify Plex connectivity', {
-          cause: plexError,
-        })
-      }
-
-      // Try to generate RSS feeds first
-      try {
-        this.log.debug('Generating RSS feeds')
-        const rssFeeds = await this.plexService.generateAndSaveRssFeeds()
-
-        if ('error' in rssFeeds) {
-          this.log.warn(
-            { error: rssFeeds.error },
-            'Failed to generate RSS feeds, falling back to manual sync',
-          )
-          this.isUsingRssFallback = true
+        this.lastRssCacheInfo = cacheInfo
+        if (shouldDisableRss) {
+          this.rssCacheDisabled = true
           this.rssMode = false
-        } else {
-          // Initialize RSS monitoring if feeds were generated successfully
-          this.log.debug(
-            'RSS feeds generated successfully, initializing monitoring',
-          )
-          // Initialize RSS ETag poller for efficient HEAD-based change detection
-          this.rssEtagPoller = new RssEtagPoller(this.log)
-          this.startRssCheck()
-          this.isUsingRssFallback = false
-          this.rssMode = true
+          this.isEtagFallbackActive = true
         }
-      } catch (rssError) {
-        this.log.error(
-          { error: rssError },
-          'Error generating or initializing RSS feeds',
-        )
-        throw new Error('Failed to generate or initialize RSS feeds', {
-          cause: rssError,
-        })
       }
 
-      // Set up periodic reconciliation job regardless of RSS mode
-      try {
-        this.log.debug('Setting up periodic reconciliation job')
-        await this.setupPeriodicReconciliation()
-      } catch (reconciliationError) {
-        this.log.warn(
-          {
-            error: reconciliationError,
-          },
-          'Failed to setup periodic reconciliation',
-        )
-        // Continue despite this error
+      // Establish baselines BEFORE reconciliation to detect changes during sync
+      // Any items added while reconciliation runs will be caught on first poll
+      if (this.rssMode && this.rssFeedCache) {
+        const token = this.config.plexTokens?.[0]
+        if (token) {
+          this.log.debug('Priming RSS caches before reconciliation')
+          await this.rssFeedCache.primeCaches(
+            this.config.selfRss,
+            this.config.friendsRss,
+            token,
+          )
+        }
+      } else if (!this.rssMode) {
+        // ETag mode: establish baselines before sync
+        this.log.debug('Establishing ETag baselines before reconciliation')
+        if (!this.etagPoller) {
+          this.etagPoller = new EtagPoller(this.config, this.log)
+        }
+        const primaryUser = await this.dbService.getPrimaryUser()
+        if (primaryUser) {
+          const friends = await this.getEtagFriendsList()
+          await this.etagPoller.establishAllBaselines(primaryUser.id, friends)
+        }
       }
 
-      // Initial full reconciliation - syncs all users, establishes ETag baselines
+      // Initial full reconciliation - syncs all users
       try {
         this.log.debug('Starting initial full reconciliation')
         await this.reconcile({ mode: 'full' })
-
-        // Schedule first periodic reconciliation for +20 minutes
         await this.schedulePendingReconciliation()
       } catch (syncError) {
         this.log.error(
-          {
-            error: syncError,
-            errorMessage:
-              syncError instanceof Error
-                ? syncError.message
-                : String(syncError),
-            errorStack:
-              syncError instanceof Error ? syncError.stack : undefined,
-          },
+          { error: syncError },
           'Error during initial reconciliation',
         )
-
         // Ensure failsafe is still scheduled even after initial sync failure
         try {
           await this.schedulePendingReconciliation()
@@ -387,58 +389,53 @@ export class WatchlistWorkflowService {
             'Failed to schedule failsafe after initial sync error',
           )
         }
-
         throw new Error('Failed during initial reconciliation', {
           cause: syncError,
         })
       }
 
-      // Start 3-minute change detection interval
-      this.log.debug('Starting watchlist change detection')
-      this.startEtagCheckInterval()
+      // Start the appropriate change detection based on mode
+      // RSS mode and ETag mode are mutually exclusive
+      // Note: Baselines were established before reconciliation above
+      if (this.rssMode) {
+        // RSS mode: use RSS feeds for instant detection
+        this.startRssCheck()
+      } else {
+        // ETag mode (fallback): use 5-minute staggered polling for change detection
+        this.log.debug('Starting ETag staggered polling')
+        this.startEtagCheckInterval()
+      }
 
-      // Update status to running after everything is initialized
+      // Update status to running
       this.status = 'running'
       this.initialized = true
 
-      // Set the RSS mode flag based on whether we're using RSS fallback
-      this.rssMode = !this.isUsingRssFallback
-
-      this.log.info(
-        `Watchlist workflow running in ${this.isUsingRssFallback ? 'periodic reconciliation' : 'RSS'} mode with periodic reconciliation and 3-minute change detection`,
-      )
+      // Log the actual mode clearly:
+      // - RSS mode: RSS feeds for instant detection + 2-hour full reconciliation
+      // - ETag mode: 5-min staggered ETag polling + 2-hour full reconciliation (no RSS)
+      if (this.isEtagFallbackActive) {
+        this.log.info(
+          'Watchlist workflow running in ETag mode (5-minute staggered polling, 2-hour full reconciliation)',
+        )
+      } else {
+        this.log.info(
+          'Watchlist workflow running in RSS mode (instant detection, 2-hour full reconciliation)',
+        )
+      }
 
       return true
     } catch (error) {
       this.status = 'stopped'
       this.initialized = false
       this.rssMode = false
-
-      // Enhanced error logging
-      this.log.error(
-        {
-          error,
-          errorDetails:
-            error instanceof Error
-              ? {
-                  message: error.message,
-                  name: error.name,
-                  stack: error.stack,
-                  cause: error.cause,
-                }
-              : undefined,
-        },
-        'Error in Watchlist workflow',
-      )
-
+      this.log.error({ error }, 'Error in Watchlist workflow')
       throw error
     }
   }
 
   /**
-   * Stop the watchlist workflow
-   *
-   * Clears all intervals and resets the workflow state.
+   * Stop the watchlist workflow.
+   * Delegates component cleanup to extracted module while managing timers locally.
    *
    * @returns Promise resolving to true if stopped successfully, false otherwise
    */
@@ -451,43 +448,33 @@ export class WatchlistWorkflowService {
     this.log.info('Stopping Watchlist workflow')
     this.status = 'stopping'
 
-    // Clear RSS check interval
+    // Clear timers (service-level state)
     if (this.rssCheckInterval) {
       clearInterval(this.rssCheckInterval)
       this.rssCheckInterval = null
     }
-
-    // Clean up periodic reconciliation job regardless of mode
-    try {
-      await this.cleanupExistingManualSync()
-    } catch (error) {
-      this.log.error(
-        { error },
-        'Error cleaning up periodic reconciliation during shutdown',
-      )
-    }
-
-    // Clear ETag check interval
-    if (this.etagCheckInterval) {
-      clearInterval(this.etagCheckInterval)
-      this.etagCheckInterval = null
-    }
-
-    // Clear status sync debounce timer
     if (this.statusSyncDebounceTimer) {
       clearTimeout(this.statusSyncDebounceTimer)
       this.statusSyncDebounceTimer = null
     }
 
-    // Clear watchlist cache
-    if (this.etagPoller) {
-      this.etagPoller.clearCache()
-    }
+    // Cleanup workflow components via extracted module
+    const result = await cleanupWorkflow(
+      {
+        etagPoller: this.etagPoller,
+        rssEtagPoller: this.rssEtagPoller,
+        rssFeedCache: this.rssFeedCache,
+        deferredRoutingQueue: this.deferredRoutingQueue,
+      },
+      {
+        logger: this.log,
+        cleanupExistingManualSync: () => this.cleanupExistingManualSync(),
+      },
+    )
 
-    // Clear RSS ETag cache
-    if (this.rssEtagPoller) {
-      this.rssEtagPoller.clearCache()
-    }
+    // Apply cleanup results
+    this.rssFeedCache = result.rssFeedCache
+    this.deferredRoutingQueue = result.deferredRoutingQueue
 
     // Update status
     this.status = 'stopped'
@@ -503,683 +490,292 @@ export class WatchlistWorkflowService {
 
   /**
    * Unified reconciliation entry point for hybrid RSS + ETag sync.
+   * Delegates to extracted reconciler module.
    *
    * @param options.mode - 'full' for complete sync, 'etag' for lightweight ETag-based check
-   *
-   * Full mode (startup, manual refresh):
-   * - Syncs all users, all items
-   * - Establishes ETag baselines
-   *
-   * ETag mode (5-min interval, RSS trigger):
-   * - Checks friend changes (add/remove)
-   * - Checks ETags for all users
-   * - Only syncs users with changes (instant routing of new items)
    */
   async reconcile(options: { mode: 'full' | 'etag' }): Promise<void> {
-    // Full sync takes priority - wait for any in-progress reconciliation
-    if (options.mode === 'full') {
-      const maxWaitMs = 5 * 60 * 1000 // 5 minutes max wait
-      const startWait = Date.now()
-
-      while (this.isReconciling) {
-        if (Date.now() - startWait > maxWaitMs) {
-          this.log.warn(
-            'Timeout waiting for in-progress reconciliation, proceeding with full sync',
-          )
-          break
-        }
-        this.log.debug(
-          'Waiting for in-progress reconciliation before full sync',
-        )
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-      }
-    } else {
-      // ETag mode skips if anything is running
-      if (this.isReconciling) {
-        this.log.debug(
-          { requestedMode: options.mode },
-          'Reconciliation already in progress, skipping',
-        )
-        return
-      }
+    const state: ReconcileState = {
+      isReconciling: this.isReconciling,
+      lastSuccessfulSyncTime: this.lastSuccessfulSyncTime,
     }
-
-    this.isReconciling = true
-    const startTime = Date.now()
-
-    try {
-      // Ensure ETag poller is initialized
-      if (!this.etagPoller) {
-        this.etagPoller = new EtagPoller(this.config, this.log)
-      }
-
-      // Get primary user for ETag operations
-      const primaryUser = await this.dbService.getPrimaryUser()
-      if (!primaryUser) {
-        this.log.warn('No primary user found, cannot reconcile')
-        return
-      }
-
-      // Check friend changes ALWAYS (regardless of mode)
-      const friendChanges = await this.plexService.checkFriendChanges()
-
-      // Handle newly added friends immediately
-      for (const newFriend of friendChanges.added) {
-        this.log.info(
-          { userId: newFriend.userId, username: newFriend.username },
-          'New friend detected',
-        )
-
-        if (options.mode === 'etag') {
-          // ETag mode: sync and route immediately (full sync won't follow)
-          try {
-            const brandNewItems = await this.syncSingleFriend(newFriend)
-
-            if (brandNewItems.length > 0) {
-              this.log.info(
-                { userId: newFriend.userId, itemCount: brandNewItems.length },
-                'Routing new friend watchlist items',
-              )
-
-              // Route pre-enriched items (no double enrichment)
-              await this.routeEnrichedItemsForUser(
-                newFriend.userId,
-                brandNewItems,
-              )
-
-              // Post-routing tasks - update attribution and schedule status sync
-              await this.updateAutoApprovalUserAttribution()
-              this.scheduleDebouncedStatusSync()
-            }
-
-            // Only establish baseline after successful sync
-            // If sync failed, next full reconciliation will handle this friend
-            await this.etagPoller.establishBaseline(newFriend)
-          } catch (error) {
-            this.log.error(
-              { userId: newFriend.userId, username: newFriend.username, error },
-              'Failed to sync new friend - will retry on next full reconciliation',
-            )
-            // Don't establish baseline - let full reconciliation handle this friend
-          }
-        } else {
-          // Full mode: fetchWatchlists() will handle this friend's items
-          // Establish baseline for future change detection
-          await this.etagPoller.establishBaseline(newFriend)
-        }
-      }
-
-      // Handle removed friends - clear their watchlist cache
-      for (const removedFriend of friendChanges.removed) {
-        this.log.info(
-          { userId: removedFriend.userId, username: removedFriend.username },
-          'Friend removed, clearing watchlist cache',
-        )
-        this.etagPoller.invalidateUser(
-          removedFriend.userId,
-          removedFriend.watchlistId,
-        )
-      }
-
-      // Build user info array for current friends
-      const friends = this.buildEtagUserInfoFromMap(friendChanges.userMap)
-
-      if (options.mode === 'full') {
-        // Full sync - existing behavior
-        this.log.info('Starting full reconciliation')
-        await this.fetchWatchlists()
-        await this.syncWatchlistItems()
-
-        // Establish ETag baselines for all users after full sync
-        await this.etagPoller.establishAllBaselines(primaryUser.id, friends)
-
-        this.lastSuccessfulSyncTime = Date.now()
-        this.log.info('Full reconciliation completed')
-      } else {
-        // Lightweight check with instant routing
-        this.log.debug('Checking for watchlist changes')
-
-        const changes = await this.etagPoller.checkAllEtags(
-          primaryUser.id,
-          friends,
-        )
-
-        if (changes.length === 0) {
-          this.log.debug('No watchlist changes detected')
-          return
-        }
-
-        // Process changes for each user with new items
-        const changesWithNewItems = changes.filter(
-          (c) => c.changed && c.newItems.length > 0,
-        )
-
-        if (changesWithNewItems.length > 0) {
-          // Check instance health before routing - abort if ANY instance is unavailable
-          // This prevents incorrect routing decisions; items will be caught in next full reconciliation
-          const [sonarrHealth, radarrHealth] = await Promise.all([
-            this.sonarrManager.checkInstancesHealth(),
-            this.radarrManager.checkInstancesHealth(),
-          ])
-
-          if (
-            sonarrHealth.unavailable.length > 0 ||
-            radarrHealth.unavailable.length > 0
-          ) {
-            this.log.warn(
-              {
-                sonarrUnavailable: sonarrHealth.unavailable,
-                radarrUnavailable: radarrHealth.unavailable,
-              },
-              'Some instances unavailable, deferring routing to next full reconciliation',
-            )
-            return
-          }
-
-          this.log.info(
-            {
-              userCount: changesWithNewItems.length,
-              totalNewItems: changesWithNewItems.reduce(
-                (sum, c) => sum + c.newItems.length,
-                0,
-              ),
-            },
-            'New watchlist items detected, routing instantly',
-          )
-
-          for (const change of changesWithNewItems) {
-            await this.routeNewItemsForUser(change)
-          }
-
-          // Post-routing tasks - call with no args to process System user attributions
-          await this.updateAutoApprovalUserAttribution()
-
-          // Schedule debounced status sync after routing new content
-          // This batches multiple rapid routing operations (e.g., user adds several items quickly)
-          this.scheduleDebouncedStatusSync()
-        }
-
-        this.lastSuccessfulSyncTime = Date.now()
-        this.log.debug('Watchlist change check completed')
-      }
-    } finally {
-      this.log.debug(
-        { mode: options.mode, durationMs: Date.now() - startTime },
-        'Reconciliation completed',
-      )
-      this.isReconciling = false
-    }
-  }
-
-  /**
-   * Route a single pre-enriched item to Sonarr/Radarr.
-   * Shared by routeNewItemsForUser() and routeEnrichedItemsForUser().
-   *
-   * @param params - Item data and routing context
-   * @returns true if content was added, false otherwise
-   */
-  private async routeSingleItem(params: {
-    item: Item
-    userId: number
-    userName: string
-    primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
-  }): Promise<boolean> {
-    const { item, userId, userName, primaryUser } = params
-
-    const parsedGuids = parseGuids(item.guids)
-    const parsedGenres = parseGenres(item.genres)
-    const normalizedType = item.type.toLowerCase()
-
-    if (parsedGuids.length === 0) {
-      this.log.warn(
-        { userId, title: item.title },
-        'Item has no GUIDs - skipping routing',
-      )
-      return false
-    }
-
-    const tempItem: TemptRssWatchlistItem = {
-      title: item.title,
-      key: item.key,
-      type: normalizedType,
-      thumb: item.thumb ?? '', // thumb may be undefined from DB
-      guids: parsedGuids,
-      genres: parsedGenres,
-    }
-
-    if (normalizedType === 'show') {
-      const tvdbId = extractTvdbId(parsedGuids)
-      if (tvdbId === 0) {
-        this.log.warn(
-          { userId, title: item.title, guids: parsedGuids },
-          'Show has no valid TVDB ID - skipping routing',
-        )
-        return false
-      }
-
-      const sonarrItem: SonarrItem = {
-        title: item.title,
-        guids: parsedGuids,
-        type: 'show',
-        ended: false,
-        genres: parsedGenres,
-        status: 'pending',
-        series_status: 'continuing',
-      }
-
-      return this.processShowWithRouting({
-        tempItem,
-        numericUserId: userId,
-        userName,
-        sonarrItem,
-        primaryUser,
-      })
-    }
-
-    if (normalizedType === 'movie') {
-      const tmdbId = extractTmdbId(parsedGuids)
-      if (tmdbId === 0) {
-        this.log.warn(
-          { userId, title: item.title, guids: parsedGuids },
-          'Movie has no valid TMDB ID - skipping routing',
-        )
-        return false
-      }
-
-      const radarrItem: RadarrItem = {
-        title: item.title,
-        guids: parsedGuids,
-        type: 'movie',
-        genres: parsedGenres,
-      }
-
-      return this.processMovieWithRouting({
-        tempItem,
-        numericUserId: userId,
-        userName,
-        radarrItem,
-        primaryUser,
-      })
-    }
-
-    return false
+    await reconcileModule(options, this.reconcilerDeps, state, (updates) => {
+      if (updates.isReconciling !== undefined)
+        this.isReconciling = updates.isReconciling
+      if (updates.lastSuccessfulSyncTime !== undefined)
+        this.lastSuccessfulSyncTime = updates.lastSuccessfulSyncTime
+    })
   }
 
   /**
    * Route pre-enriched, already-saved items for a user.
-   * Used when items are synced via processAndSaveNewItems (new friend flow).
-   * Does NOT enrich or save - items must already be in DB.
-   *
-   * @param userId - The user ID to route items for
-   * @param items - Pre-enriched items from processAndSaveNewItems (already have GUIDs/genres, thumb may be undefined)
+   * Delegates to extracted routing module.
    */
   private async routeEnrichedItemsForUser(
     userId: number,
     items: Item[],
   ): Promise<void> {
-    if (items.length === 0) return
-
-    const user = await this.dbService.getUser(userId)
-    if (!user) {
-      this.log.warn({ userId }, 'User not found for routing enriched items')
-      return
-    }
-
-    if (!user.can_sync) {
-      this.log.debug(
-        { userId, username: user.name, itemCount: items.length },
-        'Skipping enriched items for user with sync disabled',
-      )
-      return
-    }
-
-    const primaryUser = await this.dbService.getPrimaryUser()
-
-    this.log.info(
-      { userId, username: user.name, itemCount: items.length },
-      'Routing enriched items for user',
+    return routeEnrichedItemsForUserModule(
+      userId,
+      items,
+      this.contentRoutingDeps,
     )
-
-    for (const item of items) {
-      try {
-        await this.routeSingleItem({
-          item,
-          userId,
-          userName: user.name,
-          primaryUser,
-        })
-      } catch (error) {
-        this.log.error(
-          { error, userId, title: item.title },
-          'Error routing enriched item',
-        )
-      }
-    }
   }
 
   /**
    * Sync a single friend's complete watchlist to DB.
-   * Returns only brand new items (not items linked from other users).
-   *
-   * @param friend - The new friend to sync
-   * @returns Array of brand new Items saved to DB (ready for routing)
+   * Delegates to extracted friend handler module.
    */
-  private async syncSingleFriend(friend: EtagUserInfo): Promise<Item[]> {
-    const token = this.config.plexTokens?.[0]
-    if (!token || !friend.watchlistId) {
-      this.log.warn(
-        { userId: friend.userId },
-        'Cannot sync friend: missing token or watchlistId',
-      )
-      return []
-    }
-
-    // Build single-friend set for getOthersWatchlist
-    const friendData: Friend & { userId: number } = {
-      watchlistId: friend.watchlistId,
-      username: friend.username,
-      userId: friend.userId,
-    }
-    const friendSet = new Set([[friendData, token]] as [
-      Friend & { userId: number },
-      string,
-    ][])
-
-    // Fetch complete watchlist (paginated, gets ALL items)
-    const userWatchlistMap = await getOthersWatchlist(
-      this.config,
-      this.log,
-      friendSet,
-      (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
-    )
-
-    if (userWatchlistMap.size === 0) {
-      this.log.debug(
-        { userId: friend.userId },
-        'New friend has empty watchlist',
-      )
-      return []
-    }
-
-    // Extract keys for DB lookup across ALL users (not just this friend)
-    // This ensures cross-user item detection works correctly
-    const { allKeys, userKeyMap } = extractKeysAndRelationships(
-      userWatchlistMap,
-      this.watchlistSyncDeps,
-    )
-
-    // Query DB for items that already exist (for ANY user, not just new friend)
-    const existingItems = await getExistingItems(
-      userKeyMap,
-      allKeys,
-      this.watchlistSyncDeps,
-    )
-
-    // Categorize: brand new (need routing) vs existing (just link)
-    const { brandNewItems, existingItemsToLink } = categorizeItems(
-      userWatchlistMap,
-      existingItems,
-      this.categorizerDeps,
-      false, // forceRefresh = false
-    )
-
-    // Enrich and save brand new items to DB (via toItemsBatch internally)
-    const processedItems = await processAndSaveNewItems(
-      brandNewItems,
-      false, // isSelfWatchlist = false
-      false, // isMetadataRefresh = false
-      this.itemProcessorDeps,
-    )
-
-    // Link existing items (already routed for other users, just need DB link + label sync)
-    await linkExistingItems(existingItemsToLink, {
-      db: this.dbService,
-      logger: this.log,
-      handleLinkedItemsForLabelSync: (linkItems) =>
-        handleLinkedItemsForLabelSync(linkItems, this.removalHandlerDeps),
-    })
-
-    // Flatten Map<Friend, Set<Item>> to Item[]
-    const newItemsArray: Item[] = []
-    for (const items of processedItems.values()) {
-      newItemsArray.push(...items)
-    }
-
-    this.log.info(
-      {
-        userId: friend.userId,
-        username: friend.username,
-        brandNewItems: newItemsArray.length,
-        linkedItems: existingItemsToLink.size,
-      },
-      'New friend watchlist synced',
-    )
-
-    return newItemsArray
+  private async syncSingleFriend(
+    friend: EtagUserInfo,
+  ): Promise<{ brandNewItems: Item[]; linkedItems: Item[] }> {
+    return syncSingleFriendModule(friend, this.syncSingleFriendDeps)
   }
 
   /**
    * Route new items for a specific user detected via change detection.
-   * This is the "instant routing" path - no deferral needed since we know
-   * exactly WHO added WHAT.
-   *
-   * Flow:
-   * 1. Check user sync settings
-   * 2. Enrich each item via Plex API to get GUIDs, genres, thumb
-   * 3. Check for required IDs (TVDB for shows, TMDB for movies)
-   * 4. Check existence in target instances
-   * 5. Check Plex existence (if enabled)
-   * 6. Route via content router
-   * 7. Send notifications
+   * Delegates to extracted routing module.
    */
   private async routeNewItemsForUser(change: EtagPollResult): Promise<void> {
-    const { userId, newItems } = change
+    return routeNewItemsForUserModule(change, this.rssProcessorDeps)
+  }
 
-    if (newItems.length === 0) return
-
-    // Get user info for routing context
-    const user = await this.dbService.getUser(userId)
-    if (!user) {
-      this.log.warn({ userId }, 'User not found for routing new items')
-      return
+  /** UUID cache deps for extracted cache functions */
+  private get uuidCacheDeps() {
+    return {
+      logger: this.log,
+      plexService: this.plexService,
     }
+  }
 
-    // Check if user has sync enabled
-    if (!user.can_sync) {
-      this.log.debug(
-        { userId, username: user.name, itemCount: newItems.length },
-        'Skipping items for user with sync disabled',
-      )
-      return
+  /** Watchlist fetcher deps */
+  private get watchlistFetcherDeps() {
+    return {
+      logger: this.log,
+      plexService: this.plexService,
+      unschedulePendingReconciliation: () =>
+        this.unschedulePendingReconciliation(),
     }
+  }
 
-    this.log.info(
-      { userId, username: user.name, itemCount: newItems.length },
-      'Routing new items for user',
-    )
+  /** RSS processor deps */
+  private get rssProcessorDeps() {
+    return {
+      logger: this.log,
+      config: this.config,
+      db: this.dbService,
+      fastify: this.fastify,
+      itemProcessorDeps: this.itemProcessorDeps,
+      sonarrManager: this.sonarrManager,
+      radarrManager: this.radarrManager,
+      deferredRoutingQueue: this.deferredRoutingQueue,
+      routeEnrichedItemsForUser: (userId: number, items: Item[]) =>
+        this.routeEnrichedItemsForUser(userId, items),
+      updateAutoApprovalUserAttribution: () =>
+        this.updateAutoApprovalUserAttribution(),
+      scheduleDebouncedStatusSync: () => this.scheduleDebouncedStatusSync(),
+    }
+  }
 
-    // Fetch primary user for Plex existence checks
-    const primaryUser = await this.dbService.getPrimaryUser()
+  /** RSS friends processor deps (extends rssProcessorDeps) */
+  private get rssFriendsProcessorDeps() {
+    return {
+      ...this.rssProcessorDeps,
+      lookupUserByUuid: (uuid: string) => this.lookupUserByUuid(uuid),
+    }
+  }
 
-    // Process each new item: enrich then route
-    // Note: Existence checks use single-item API lookup (routing-aware) instead of
-    // bulk fetching all content - more efficient for the small batches typical of ETag routing
-    for (const etagItem of newItems) {
-      try {
-        // Convert EtagPollItem to TokenWatchlistItem for enrichment
-        const tokenItem: TokenWatchlistItem = {
-          id: etagItem.id,
-          title: etagItem.title,
-          type: etagItem.type.toLowerCase(),
-          user_id: userId,
-          status: 'pending',
-          key: etagItem.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
+  /** Staggered poller deps */
+  private get staggeredPollerDeps() {
+    return {
+      logger: this.log,
+      config: this.config,
+      db: this.dbService,
+      fastify: this.fastify,
+      plexService: this.plexService,
+      sonarrManager: this.sonarrManager,
+      radarrManager: this.radarrManager,
+      etagPoller: this.etagPoller,
+      deferredRoutingQueue: this.deferredRoutingQueue,
+      itemProcessorDeps: this.itemProcessorDeps,
+      routeEnrichedItemsForUser: (userId: number, items: Item[]) =>
+        this.routeEnrichedItemsForUser(userId, items),
+      syncSingleFriend: (userInfo: {
+        userId: number
+        username: string
+        isPrimary: boolean
+        watchlistId?: string
+      }) => this.syncSingleFriend(userInfo),
+      updatePlexUuidCache: (userMap: Map<string, number>) =>
+        this.updatePlexUuidCache(userMap),
+      updateAutoApprovalUserAttribution: () =>
+        this.updateAutoApprovalUserAttribution(),
+      scheduleDebouncedStatusSync: () => this.scheduleDebouncedStatusSync(),
+    }
+  }
 
-        // Enrich item via Plex API to get GUIDs, genres, thumb
-        const enrichedItems = await toItemsSingle(
-          this.config,
-          this.log,
-          tokenItem,
-        )
+  /** Content routing deps - used by routeShow, routeMovie, routeSingleItem, routeEnrichedItemsForUser */
+  private get contentRoutingDeps() {
+    return {
+      logger: this.log,
+      config: this.config,
+      db: this.dbService,
+      fastify: this.fastify,
+      contentRouter: this.contentRouter,
+      sonarrManager: this.sonarrManager,
+      radarrManager: this.radarrManager,
+      plexServerService: this.fastify.plexServerService,
+      plexService: this.plexService,
+    }
+  }
 
-        if (enrichedItems.size === 0) {
-          this.log.warn(
-            { userId, itemId: etagItem.id, title: etagItem.title },
-            'Failed to enrich item - skipping routing',
-          )
-          continue
-        }
+  /** Sync engine deps - used by syncWatchlistItems */
+  private get syncEngineDeps() {
+    return {
+      ...this.contentRoutingDeps,
+      statusService: this.showStatusService,
+      updateAutoApprovalUserAttributionWithPrefetch: (
+        shows: unknown[],
+        movies: unknown[],
+        userById: Map<number, { id: number; name: string }>,
+      ) =>
+        this.updateAutoApprovalUserAttribution(
+          shows as TokenWatchlistItem[],
+          movies as TokenWatchlistItem[],
+          userById as Map<
+            number,
+            Awaited<ReturnType<typeof this.dbService.getUser>>
+          >,
+        ),
+    }
+  }
 
-        // Get the enriched item
-        const enrichedItem = [...enrichedItems][0]
+  /** Single friend sync deps */
+  private get syncSingleFriendDeps() {
+    return {
+      logger: this.log,
+      config: this.config,
+      db: this.dbService,
+      categorizerDeps: this.categorizerDeps,
+      watchlistSyncDeps: this.watchlistSyncDeps,
+      itemProcessorDeps: this.itemProcessorDeps,
+      removalHandlerDeps: this.removalHandlerDeps,
+    }
+  }
 
-        // Parse GUIDs (handles string | string[] | undefined)
-        const parsedGuids = parseGuids(enrichedItem.guids)
-
-        // Skip if no GUIDs after enrichment
-        if (parsedGuids.length === 0) {
-          this.log.warn(
-            { userId, itemId: etagItem.id, title: etagItem.title },
-            'Item has no GUIDs after enrichment - skipping routing',
-          )
-          continue
-        }
-
-        // Parse genres (handles string | string[] | undefined)
-        const parsedGenres = parseGenres(enrichedItem.genres)
-
-        // Normalize type to 'movie' | 'show'
-        const normalizedType = enrichedItem.type.toLowerCase()
-
-        // Save to watchlist_items table (same as full sync does)
-        // Use DbWatchlistItem (Item type) which matches createWatchlistItems signature
-        const dbItem: Omit<DbWatchlistItem, 'created_at' | 'updated_at'> = {
-          user_id: userId,
-          title: enrichedItem.title,
-          key: enrichedItem.key,
-          type: normalizedType,
-          thumb: enrichedItem.thumb, // Optional in DbWatchlistItem
-          guids: parsedGuids,
-          genres: parsedGenres,
-          status: 'pending' as const,
-        }
-
-        const insertedResults = await this.dbService.createWatchlistItems(
-          [dbItem],
-          { onConflict: 'ignore' }, // Don't overwrite if already exists
-        )
-
-        // Sync genres from the newly added item
-        await this.dbService.syncGenresFromWatchlist()
-
-        // Trigger Plex label sync for newly inserted items if enabled
-        if (
-          this.fastify.plexLabelSyncService &&
-          this.config.plexLabelSync?.enabled &&
-          insertedResults &&
-          insertedResults.length > 0
-        ) {
-          try {
-            for (const { id } of insertedResults) {
-              await this.fastify.plexLabelSyncService.syncLabelForNewWatchlistItem(
-                id,
-                dbItem.title,
-                true, // Enable tag fetching
-              )
-            }
-          } catch (labelError) {
-            this.log.warn(
-              { error: labelError, title: enrichedItem.title },
-              'Error syncing Plex labels for new item (non-fatal)',
-            )
-          }
-        }
-
-        // Use shared routing logic
-        await this.routeSingleItem({
-          item: enrichedItem,
-          userId,
-          userName: user.name,
-          primaryUser,
-        })
-
-        this.log.debug(
-          { userId, title: enrichedItem.title, type: normalizedType },
-          'Successfully processed new item',
-        )
-      } catch (error) {
-        this.log.error(
-          { error, userId, itemId: etagItem.id, title: etagItem.title },
-          'Error routing new item',
-        )
-      }
+  /** Reconciler deps - used by reconcile */
+  private get reconcilerDeps() {
+    return {
+      logger: this.log,
+      config: this.config,
+      db: this.dbService,
+      fastify: this.fastify,
+      plexService: this.plexService,
+      sonarrManager: this.sonarrManager,
+      radarrManager: this.radarrManager,
+      etagPoller: this.etagPoller,
+      deferredRoutingQueue: this.deferredRoutingQueue,
+      syncWatchlistItems: () => this.syncWatchlistItems(),
+      fetchWatchlists: () => this.fetchWatchlists(),
+      routeNewItemsForUser: (change: EtagPollResult) =>
+        this.routeNewItemsForUser(change),
+      routeEnrichedItemsForUser: (userId: number, items: Item[]) =>
+        this.routeEnrichedItemsForUser(userId, items),
+      updateAutoApprovalUserAttribution: () =>
+        this.updateAutoApprovalUserAttribution(),
+      scheduleDebouncedStatusSync: () => this.scheduleDebouncedStatusSync(),
+      getEtagPoller: () => this.etagPoller,
+      setEtagPoller: (poller: EtagPoller) => {
+        this.etagPoller = poller
+      },
+      syncSingleFriend: (userInfo: {
+        userId: number
+        username: string
+        isPrimary: boolean
+        watchlistId?: string
+      }) => this.syncSingleFriend(userInfo),
+      updatePlexUuidCache: (userMap: Map<string, number>) =>
+        this.updatePlexUuidCache(userMap),
     }
   }
 
   /**
-   * Build EtagUserInfo array from the userMap returned by checkFriendChanges.
-   * Needs to include watchlistId for each friend.
+   * Updates the in-memory UUID cache from a userMap.
    */
-  private buildEtagUserInfoFromMap(
-    userMap: Map<string, number>,
-  ): EtagUserInfo[] {
-    const friends: EtagUserInfo[] = []
-
-    for (const [watchlistId, userId] of userMap) {
-      friends.push({
-        userId,
-        username: '', // We don't have username here, but EtagPoller uses watchlistId
-        watchlistId,
-        isPrimary: false,
-      })
-    }
-
-    return friends
+  private updatePlexUuidCache(userMap: Map<string, number>): void {
+    this.plexUuidCache = updatePlexUuidCache(userMap, this.uuidCacheDeps)
   }
 
   /**
-   * Start the 3-minute change detection interval.
+   * Start ETag-based change detection.
+   * Uses 5-minute staggered polling with ±10% jitter per user.
+   * Only called in ETag mode (non-RSS fallback).
    */
   private startEtagCheckInterval(): void {
-    if (this.etagCheckInterval) {
-      clearInterval(this.etagCheckInterval)
-    }
-
-    this.log.info(
-      { intervalMinutes: this.ETAG_CHECK_INTERVAL_MS / 60000 },
-      'Starting change detection interval',
-    )
-
-    this.etagCheckInterval = setInterval(async () => {
-      try {
-        await this.reconcile({ mode: 'etag' })
-      } catch (error) {
-        this.log.error({ error }, 'Error in change detection interval')
-      }
-    }, this.ETAG_CHECK_INTERVAL_MS)
+    void this.startStaggeredPolling().catch((error) => {
+      this.log.error({ error }, 'Failed to start staggered ETag polling')
+    })
   }
 
   /**
-   * Reset the 3-minute change detection interval.
-   * Called when RSS triggers a check to avoid redundant checks.
+   * Start staggered polling for non-RSS mode.
+   * Polls users sequentially with even distribution across 5-minute cycles.
    */
-  private resetEtagCheckInterval(): void {
-    if (this.etagCheckInterval) {
-      clearInterval(this.etagCheckInterval)
-      this.etagCheckInterval = setInterval(async () => {
-        try {
-          await this.reconcile({ mode: 'etag' })
-        } catch (error) {
-          this.log.error({ error }, 'Error in change detection interval')
-        }
-      }, this.ETAG_CHECK_INTERVAL_MS)
-      this.log.debug(
-        'Reset change detection interval after RSS-triggered check',
-      )
+  private async startStaggeredPolling(): Promise<void> {
+    if (!this.etagPoller) {
+      this.etagPoller = new EtagPoller(this.config, this.log)
     }
+
+    const primaryUser = await this.dbService.getPrimaryUser()
+    if (!primaryUser) {
+      this.log.warn('No primary user found, cannot start staggered polling')
+      return
+    }
+
+    // Get initial friends list
+    const friends = await this.getEtagFriendsList()
+
+    // Start staggered polling with callbacks
+    this.etagPoller.startStaggeredPolling(
+      primaryUser.id,
+      friends,
+      // onUserChanged callback - handle watchlist changes
+      async (result) => {
+        await this.handleStaggeredPollResult(result)
+      },
+      // onCycleStart callback - refresh friends at start of each cycle
+      async () => {
+        return this.refreshFriendsForStaggeredPolling()
+      },
+    )
+  }
+
+  /**
+   * Handle a staggered poll result when a user has new items.
+   */
+  private async handleStaggeredPollResult(
+    result: EtagPollResult,
+  ): Promise<void> {
+    return handleStaggeredPollResult(result, this.staggeredPollerDeps)
+  }
+
+  /**
+   * Refresh friends list at the start of each staggered polling cycle.
+   */
+  private async refreshFriendsForStaggeredPolling(): Promise<EtagUserInfo[]> {
+    const result = await refreshFriendsForStaggeredPolling(
+      this.plexUuidCache,
+      this.staggeredPollerDeps,
+    )
+    this.plexUuidCache = result.updatedCache
+    return result.friends
+  }
+
+  /**
+   * Get friends list formatted for EtagPoller.
+   */
+  private async getEtagFriendsList(): Promise<EtagUserInfo[]> {
+    return getEtagFriendsList({ plexService: this.plexService })
   }
 
   /**
@@ -1223,144 +819,75 @@ export class WatchlistWorkflowService {
 
   /**
    * Fetch all watchlists (self and friends)
-   *
-   * Refreshes the local copy of watchlists and updates show/movie statuses.
-   * Self and friend watchlists are fetched in parallel to improve performance.
    */
   async fetchWatchlists(): Promise<void> {
-    this.log.info('Refreshing watchlists')
-
-    // Unschedule pending reconciliation since sync is starting
-    await this.unschedulePendingReconciliation()
-
-    try {
-      // Fetch both self and friends watchlists in parallel
-      const fetchResults = await Promise.allSettled([
-        // Self watchlist promise
-        (async () => {
-          try {
-            this.log.debug('Fetching self watchlist')
-            return await this.plexService.getSelfWatchlist()
-          } catch (selfError) {
-            this.log.error(
-              {
-                error: selfError,
-                errorMessage:
-                  selfError instanceof Error
-                    ? selfError.message
-                    : String(selfError),
-                errorStack:
-                  selfError instanceof Error ? selfError.stack : undefined,
-              },
-              'Error refreshing self watchlist',
-            )
-            throw new Error('Failed to refresh self watchlist', {
-              cause: selfError,
-            })
-          }
-        })(),
-
-        // Friends watchlist promise
-        (async () => {
-          try {
-            this.log.debug('Fetching friends watchlists')
-            return await this.plexService.getOthersWatchlists()
-          } catch (friendsError) {
-            this.log.error(
-              {
-                error: friendsError,
-                errorMessage:
-                  friendsError instanceof Error
-                    ? friendsError.message
-                    : String(friendsError),
-                errorStack:
-                  friendsError instanceof Error
-                    ? friendsError.stack
-                    : undefined,
-              },
-              'Error refreshing friends watchlists',
-            )
-            throw new Error('Failed to refresh friends watchlists', {
-              cause: friendsError,
-            })
-          }
-        })(),
-      ])
-
-      // Check for any failures
-      const selfResult = fetchResults[0]
-      const friendsResult = fetchResults[1]
-
-      if (selfResult.status === 'rejected') {
-        throw selfResult.reason
-      }
-
-      if (friendsResult.status === 'rejected') {
-        throw friendsResult.reason
-      }
-
-      this.log.info('Watchlists refreshed successfully')
-    } catch (error) {
-      this.log.error(
-        {
-          error,
-          errorMessage: error instanceof Error ? error.message : String(error),
-          errorStack: error instanceof Error ? error.stack : undefined,
-        },
-        'Error refreshing watchlists',
-      )
-      throw error
-    }
+    return fetchWatchlistsModule(this.watchlistFetcherDeps)
   }
 
   /**
    * Start the RSS check interval
    *
-   * Sets up periodic checking of RSS feeds for changes using efficient
-   * HEAD requests with ETag. Only triggers ETag reconciliation when
-   * changes are detected, saving ~97% bandwidth vs full RSS fetches.
+   * Sets up periodic checking of RSS feeds for changes using the
+   * RssFeedCacheManager. Each poll:
+   * 1. Checks feed ETags (HEAD request)
+   * 2. If changed, fetches content and diffs against cache
+   * 3. New items are enriched via GUID lookup and routed
+   *
+   * Self-RSS: Items attributed to primary user
+   * Friends-RSS: Items attributed by author UUID lookup
    */
   private startRssCheck(): void {
     if (this.rssCheckInterval) {
       clearInterval(this.rssCheckInterval)
     }
 
+    // Note: RSS caches are primed before reconciliation in startWorkflow()
+    // This ensures we detect items added during the sync process
+
     this.rssCheckInterval = setInterval(async () => {
       try {
-        if (!this.rssEtagPoller) {
-          this.log.warn('RSS ETag poller not initialized, skipping check')
+        if (!this.rssFeedCache) {
+          this.log.warn('RSS feed cache not initialized, skipping check')
           return
         }
 
-        // Check both feeds using HEAD + If-None-Match (~1KB vs ~74KB for full fetch)
-        const selfResult = await this.rssEtagPoller.checkForChanges(
-          this.config.selfRss ?? '',
-          'self',
-        )
-        const friendsResult = await this.rssEtagPoller.checkForChanges(
-          this.config.friendsRss ?? '',
-          'friends',
-        )
+        const token = this.config.plexTokens?.[0]
+        if (!token) {
+          this.log.warn('No Plex token available for RSS check')
+          return
+        }
 
-        // If any changes detected, trigger ETag-based reconciliation
-        // This identifies WHO changed and routes new items instantly
-        if (selfResult.changed || friendsResult.changed) {
-          this.log.info(
-            {
-              selfChanged: selfResult.changed,
-              friendsChanged: friendsResult.changed,
-            },
-            'RSS ETag changed - triggering reconciliation',
+        // Check both feeds - each returns only truly NEW items
+        const selfUrl = this.config.selfRss
+        const friendsUrl = this.config.friendsRss
+
+        // Process self feed (primary user items)
+        if (selfUrl) {
+          const selfResult = await this.rssFeedCache.checkSelfFeed(
+            selfUrl,
+            token,
           )
-          try {
-            await this.reconcile({ mode: 'etag' })
-            // Reset the 3-minute interval since we just did an ETag check
-            this.resetEtagCheckInterval()
-          } catch (reconcileError) {
-            this.log.error(
-              { error: reconcileError },
-              'Error during RSS-triggered ETag reconciliation',
+          if (selfResult.changed && selfResult.newItems.length > 0) {
+            this.log.info(
+              { newItems: selfResult.newItems.length },
+              'New items detected in self RSS feed',
             )
+            await this.processRssSelfItems(selfResult.newItems)
+          }
+        }
+
+        // Process friends feed (items attributed by author UUID)
+        if (friendsUrl) {
+          const friendsResult = await this.rssFeedCache.checkFriendsFeed(
+            friendsUrl,
+            token,
+          )
+          if (friendsResult.changed && friendsResult.newItems.length > 0) {
+            this.log.info(
+              { newItems: friendsResult.newItems.length },
+              'New items detected in friends RSS feed',
+            )
+            await this.processRssFriendsItems(friendsResult.newItems)
           }
         }
       } catch (error) {
@@ -1378,764 +905,39 @@ export class WatchlistWorkflowService {
   }
 
   /**
-   * Synchronize watchlist items between Plex, Sonarr, and Radarr
-   *
-   * Processes all watchlist items, respecting user sync settings,
-   * and ensures items are correctly routed to the appropriate instances.
+   * Process new items from self RSS feed (primary user).
+   */
+  private async processRssSelfItems(items: CachedRssItem[]): Promise<void> {
+    return processRssSelfItemsModule(items, this.rssProcessorDeps)
+  }
+
+  /**
+   * Process new items from friends RSS feed.
+   */
+  private async processRssFriendsItems(items: CachedRssItem[]): Promise<void> {
+    return processRssFriendsItemsModule(items, this.rssFriendsProcessorDeps)
+  }
+
+  /**
+   * Look up user ID by Plex UUID (author field).
+   * First checks cache, then refreshes friend list if not found.
+   */
+  private async lookupUserByUuid(uuid: string): Promise<number | null> {
+    const result = await lookupUserByUuid(
+      uuid,
+      this.plexUuidCache,
+      this.uuidCacheDeps,
+    )
+    this.plexUuidCache = result.cache
+    return result.userId
+  }
+
+  /**
+   * Synchronize watchlist items between Plex, Sonarr, and Radarr.
+   * Delegates to extracted sync engine module.
    */
   private async syncWatchlistItems(): Promise<void> {
-    this.log.info('Performing watchlist item sync')
-
-    try {
-      // Clear Plex resources cache to ensure fresh data for this reconciliation cycle
-      this.fastify.plexServerService.clearPlexResourcesCache()
-
-      // Clear content availability cache for this reconciliation cycle
-      // This is reconciliation-scoped - cache is rebuilt fresh each cycle
-      this.fastify.plexServerService.clearContentCacheForReconciliation()
-
-      // Check health of all Sonarr/Radarr instances before proceeding
-      // Abort if ANY instance is unavailable to prevent incorrect routing decisions
-      const [sonarrHealth, radarrHealth] = await Promise.all([
-        this.sonarrManager.checkInstancesHealth(),
-        this.radarrManager.checkInstancesHealth(),
-      ])
-
-      const totalConfigured =
-        sonarrHealth.available.length +
-        sonarrHealth.unavailable.length +
-        radarrHealth.available.length +
-        radarrHealth.unavailable.length
-
-      if (totalConfigured === 0) {
-        this.log.debug(
-          'No Radarr/Sonarr instances configured, skipping reconciliation',
-        )
-        return
-      }
-
-      if (
-        sonarrHealth.unavailable.length > 0 ||
-        radarrHealth.unavailable.length > 0
-      ) {
-        this.log.error(
-          {
-            sonarrUnavailable: sonarrHealth.unavailable,
-            radarrUnavailable: radarrHealth.unavailable,
-          },
-          'Some instances unavailable, aborting reconciliation to prevent incorrect routing',
-        )
-        return
-      }
-
-      // Get all users to check their sync permissions
-      const allUsers = await this.dbService.getAllUsers()
-      const userSyncStatus = new Map<number, boolean>()
-      const userById = new Map<number, (typeof allUsers)[number]>()
-
-      // Create maps for user sync status and user objects for quick lookups (avoids N+1 queries)
-      for (const user of allUsers) {
-        userSyncStatus.set(user.id, user.can_sync !== false)
-        userById.set(user.id, user)
-      }
-
-      // Fetch primary user once to avoid N+1 queries during item processing
-      const primaryUser = await this.dbService.getPrimaryUser()
-
-      // DEBUG: Log user sync settings
-      for (const [userId, canSync] of userSyncStatus.entries()) {
-        this.log.debug(`User ${userId} can_sync setting: ${canSync}`)
-      }
-
-      // Get all shows and movies from watchlists
-      const [shows, movies] = await Promise.all([
-        this.dbService.getAllShowWatchlistItems(),
-        this.dbService.getAllMovieWatchlistItems(),
-      ])
-      const allWatchlistItems = [...shows, ...movies]
-
-      // Get all existing series and movies from Sonarr/Radarr
-      // Each instance's bypassIgnored setting determines if exclusions are included
-      const [existingSeries, existingMovies] = await Promise.all([
-        this.sonarrManager.fetchAllSeries(),
-        this.radarrManager.fetchAllMovies(),
-      ])
-
-      // Statistics tracking
-      let showsAdded = 0
-      let moviesAdded = 0
-      let unmatchedShows = 0
-      let unmatchedMovies = 0
-      let skippedDueToUserSetting = 0
-      let skippedDueToMissingIds = 0
-      const skippedItems: { shows: string[]; movies: string[] } = {
-        shows: [],
-        movies: [],
-      }
-
-      // Create a set of all watchlist GUIDs for fast lookup
-      const watchlistGuids = new Set(
-        allWatchlistItems.flatMap((item) => parseGuids(item.guids)),
-      )
-
-      // Check unmatched items in Sonarr/Radarr (for reporting purposes)
-      for (const series of existingSeries) {
-        const hasMatch = series.guids.some((guid) => watchlistGuids.has(guid))
-        if (!hasMatch) {
-          unmatchedShows++
-          this.log.debug(
-            {
-              title: series.title,
-              guids: series.guids,
-            },
-            'Sonarr series not matched to any watchlist item',
-          )
-        }
-      }
-
-      for (const movie of existingMovies) {
-        const hasMatch = movie.guids.some((guid) => watchlistGuids.has(guid))
-        if (!hasMatch) {
-          unmatchedMovies++
-          this.log.debug(
-            {
-              title: movie.title,
-              guids: movie.guids,
-            },
-            'Radarr movie not matched to any watchlist item',
-          )
-        }
-      }
-
-      // Process watchlist items with rate limiting to prevent overwhelming Plex
-      // Use same concurrency pattern as label sync service
-      const concurrencyLimit =
-        this.fastify.config.plexLabelSync?.concurrencyLimit || 5
-      const limit = pLimit(concurrencyLimit)
-
-      this.log.debug(
-        `Processing ${allWatchlistItems.length} watchlist items with concurrency limit of ${concurrencyLimit}`,
-      )
-
-      const processingResults = await Promise.allSettled(
-        allWatchlistItems.map((item) =>
-          limit(async () => {
-            const numericUserId = item.user_id
-
-            if (!Number.isFinite(numericUserId) || numericUserId <= 0) {
-              this.log.warn(
-                `Item "${item.title}" has invalid user_id: ${item.user_id}, skipping`,
-              )
-              return { type: 'skipped', reason: 'invalid_user_id' }
-            }
-
-            // Check if user has sync enabled
-            const canSync = userSyncStatus.get(numericUserId)
-
-            if (canSync === false) {
-              this.log.debug(
-                `Skipping item "${item.title}" during sync as user ${numericUserId} has sync disabled`,
-              )
-              return { type: 'skipped', reason: 'user_setting' }
-            }
-
-            // Parse GUIDs once for reuse
-            const parsedGuids = parseGuids(item.guids)
-
-            // Convert item to temp format for processing
-            const tempItem: TemptRssWatchlistItem = {
-              title: item.title,
-              type: item.type,
-              thumb: item.thumb ?? undefined,
-              guids: parsedGuids,
-              genres: parseGenres(item.genres),
-              key: item.key,
-            }
-
-            // Process shows
-            if (item.type === 'show') {
-              // Check for TVDB ID using extractTvdbId
-              const tvdbId = extractTvdbId(parsedGuids)
-
-              if (tvdbId === 0) {
-                return {
-                  type: 'skipped',
-                  reason: 'missing_id',
-                  title: tempItem.title,
-                  contentType: 'show',
-                }
-              }
-
-              // Use helper for routing-aware existence check and routing
-              const user = userById.get(numericUserId)
-              const sonarrItem: SonarrItem = {
-                title: tempItem.title,
-                guids: parsedGuids,
-                type: 'show',
-                ended: false,
-                genres: parseGenres(tempItem.genres),
-                status: 'pending',
-                series_status: 'continuing',
-              }
-
-              const wasAdded = await this.processShowWithRouting({
-                tempItem,
-                numericUserId,
-                userName: user?.name,
-                sonarrItem,
-                existingSeries,
-                primaryUser,
-              })
-
-              return { type: 'show', added: wasAdded }
-            }
-            // Process movies
-            else if (item.type === 'movie') {
-              // Check for TMDB ID using extractTmdbId
-              const tmdbId = extractTmdbId(parsedGuids)
-
-              if (tmdbId === 0) {
-                return {
-                  type: 'skipped',
-                  reason: 'missing_id',
-                  title: tempItem.title,
-                  contentType: 'movie',
-                }
-              }
-
-              // Use helper for routing-aware existence check and routing
-              const user = userById.get(numericUserId)
-              const radarrItem: RadarrItem = {
-                title: tempItem.title,
-                guids: parsedGuids,
-                type: 'movie',
-                genres: parseGenres(tempItem.genres),
-              }
-
-              const wasAdded = await this.processMovieWithRouting({
-                tempItem,
-                numericUserId,
-                userName: user?.name,
-                radarrItem,
-                existingMovies,
-                primaryUser,
-              })
-
-              return { type: 'movie', added: wasAdded }
-            }
-
-            return { type: 'unknown' }
-          }),
-        ),
-      )
-
-      // Aggregate results
-      for (const result of processingResults) {
-        if (result.status === 'fulfilled') {
-          const value = result.value
-          if (value.type === 'show' && value.added) {
-            showsAdded++
-          } else if (value.type === 'movie' && value.added) {
-            moviesAdded++
-          } else if (value.type === 'skipped') {
-            if (value.reason === 'user_setting') {
-              skippedDueToUserSetting++
-            } else if (value.reason === 'missing_id') {
-              skippedDueToMissingIds++
-              if (value.contentType === 'show') {
-                skippedItems.shows.push(value.title)
-              } else if (value.contentType === 'movie') {
-                skippedItems.movies.push(value.title)
-              }
-            }
-          }
-        } else {
-          this.log.error(
-            { error: result.reason },
-            'Error processing watchlist item during reconciliation',
-          )
-        }
-      }
-
-      // Prepare summary statistics
-      const summary = {
-        added: {
-          shows: showsAdded,
-          movies: moviesAdded,
-        },
-        unmatched: {
-          shows: unmatchedShows,
-          movies: unmatchedMovies,
-        },
-        skippedDueToUserSetting,
-        skippedDueToMissingIds,
-      }
-
-      this.log.info(
-        {
-          added: summary.added,
-          unmatched: summary.unmatched,
-          skippedDueToUserSetting: summary.skippedDueToUserSetting,
-          skippedDueToMissingIds: summary.skippedDueToMissingIds,
-        },
-        'Watchlist sync completed',
-      )
-
-      // Update auto-approval records to attribute them to actual users
-      await this.updateAutoApprovalUserAttribution(shows, movies, userById)
-
-      // Sync statuses after adding new content to ensure tags are applied
-      // Pass the already-fetched data to avoid redundant API calls
-      try {
-        const { shows: showUpdates, movies: movieUpdates } =
-          await this.showStatusService.syncAllStatuses({
-            existingSeries,
-            existingMovies,
-          })
-        this.log.debug(
-          `Updated ${showUpdates} show statuses and ${movieUpdates} movie statuses after watchlist sync`,
-        )
-      } catch (statusError) {
-        this.log.warn(
-          { error: statusError },
-          'Error syncing statuses after watchlist sync (non-fatal)',
-        )
-        // Continue despite this error
-      }
-
-      // Log warnings about unmatched items
-      if (unmatchedShows > 0 || unmatchedMovies > 0) {
-        this.log.debug(
-          `Found ${unmatchedShows} shows and ${unmatchedMovies} movies in Sonarr/Radarr that are not in watchlists`,
-        )
-      }
-
-      // Log skipped items info
-      if (skippedDueToUserSetting > 0) {
-        this.log.info(
-          `Skipped ${skippedDueToUserSetting} items due to user sync settings`,
-        )
-      }
-
-      if (skippedDueToMissingIds > 0) {
-        const showsRemaining = Math.max(0, skippedItems.shows.length - 3)
-        const moviesRemaining = Math.max(0, skippedItems.movies.length - 3)
-        this.log.warn(
-          {
-            total: skippedDueToMissingIds,
-            shows: {
-              count: skippedItems.shows.length,
-              examples: skippedItems.shows.slice(0, 3),
-              ...(showsRemaining > 0 && { andMore: showsRemaining }),
-            },
-            movies: {
-              count: skippedItems.movies.length,
-              examples: skippedItems.movies.slice(0, 3),
-              ...(moviesRemaining > 0 && { andMore: moviesRemaining }),
-            },
-          },
-          'Skipped items due to missing required IDs',
-        )
-      }
-    } catch (error) {
-      this.log.error(
-        {
-          error,
-          errorMessage: error instanceof Error ? error.message : String(error),
-          errorStack: error instanceof Error ? error.stack : undefined,
-        },
-        'Error during watchlist sync',
-      )
-      throw error
-    }
-  }
-
-  /**
-   * Helper to check if shows exist in target instances and route if needed.
-   *
-   * When existingSeries is provided (full reconciliation path), uses pre-fetched bulk
-   * data for efficient batch processing. When not provided (ETag routing path), uses
-   * single-item API lookup for efficiency with small batches.
-   *
-   * @returns true if content was added, false if it already exists
-   */
-  private async processShowWithRouting(params: {
-    tempItem: TemptRssWatchlistItem
-    numericUserId: number
-    userName: string | undefined
-    sonarrItem: SonarrItem
-    existingSeries?: SonarrItem[]
-    primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
-  }): Promise<boolean> {
-    const {
-      tempItem,
-      numericUserId,
-      userName,
-      sonarrItem,
-      existingSeries,
-      primaryUser,
-    } = params
-
-    // Get target instances based on routing rules for this user/content
-    const context: RoutingContext = {
-      userId: numericUserId,
-      userName,
-      itemKey: tempItem.key,
-      contentType: 'show',
-      syncing: false,
-    }
-    const targetInstanceIds = await this.contentRouter.getTargetInstances(
-      sonarrItem,
-      context,
-    )
-
-    if (targetInstanceIds.length === 0) {
-      this.log.warn(
-        `No target instances available for show ${tempItem.title}, skipping`,
-      )
-      return false
-    }
-
-    // Check if show exists in target instances (routing-aware existence check)
-    let existsInTargetInstance = false
-
-    if (existingSeries) {
-      // Full reconciliation path: use pre-fetched bulk data for efficiency
-      const targetInstanceSeries = existingSeries.filter((series) => {
-        return (
-          series.sonarr_instance_id !== undefined &&
-          targetInstanceIds.includes(series.sonarr_instance_id)
-        )
-      })
-
-      const potentialMatches = targetInstanceSeries
-        .map((series) => ({
-          series,
-          score: getGuidMatchScore(
-            parseGuids(series.guids),
-            parseGuids(tempItem.guids),
-          ),
-        }))
-        .filter((match) => match.score > 0)
-        .sort((a, b) => b.score - a.score)
-
-      existsInTargetInstance = potentialMatches.length > 0
-    } else {
-      // ETag routing path: use single-item API lookup on target instances only
-      const tvdbId = extractTvdbId(parseGuids(tempItem.guids))
-      if (tvdbId > 0) {
-        let anyChecked = false
-        for (const instanceId of targetInstanceIds) {
-          const result = await this.sonarrManager.seriesExistsByTvdbId(
-            instanceId,
-            tvdbId,
-          )
-          // Skip unavailable instances, continue checking others
-          if (!result.checked) {
-            this.log.warn(
-              { error: result.error, instanceId },
-              `Sonarr instance ${instanceId} unavailable for ${tempItem.title}, skipping instance`,
-            )
-            continue
-          }
-          anyChecked = true
-          if (result.found) {
-            existsInTargetInstance = true
-            break
-          }
-        }
-        // If no instances were successfully checked, skip this item
-        if (!anyChecked) {
-          this.log.warn(
-            { title: tempItem.title, targetInstanceIds },
-            'No Sonarr instances available to check existence, skipping item',
-          )
-          return false
-        }
-      }
-    }
-
-    // If already exists in target instance, skip without checking Plex
-    if (existsInTargetInstance) {
-      this.log.debug(
-        `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
-      )
-      return false
-    }
-
-    // Only check Plex if item doesn't exist in Sonarr AND config is enabled
-    let existsOnPlex = false
-    if (this.fastify.config.skipIfExistsOnPlex) {
-      // Determine if the requesting user is the primary token user
-      const isPrimaryUser = primaryUser
-        ? numericUserId === primaryUser.id
-        : false
-
-      existsOnPlex =
-        await this.fastify.plexServerService.checkExistenceAcrossServers(
-          tempItem.key,
-          'show',
-          isPrimaryUser,
-        )
-    }
-
-    // Add to Sonarr if not exists on Plex
-    if (!existsOnPlex) {
-      const { routedInstances } = await this.contentRouter.routeContent(
-        sonarrItem,
-        tempItem.key,
-        {
-          userId: numericUserId,
-          userName,
-          syncing: false,
-        },
-      )
-
-      // Send notification only if content was actually routed and not already notified
-      if (routedInstances.length > 0 && userName) {
-        // Check if notification was already sent for this user/title
-        const existingNotifications =
-          await this.dbService.checkExistingWebhooks(numericUserId, [
-            tempItem.title,
-          ])
-
-        if (!existingNotifications.get(tempItem.title)) {
-          await this.plexService.sendWatchlistNotifications(
-            {
-              userId: numericUserId,
-              username: userName,
-              watchlistId: String(numericUserId),
-            },
-            {
-              title: tempItem.title,
-              type: 'show',
-              thumb: tempItem.thumb,
-            },
-          )
-        } else {
-          this.log.debug(
-            `Skipping notification for "${tempItem.title}" - already sent previously to user ${userName}`,
-          )
-        }
-      }
-
-      return true
-    }
-
-    // If we get here, item exists on Plex - skip addition
-    this.log.info(
-      `Show ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
-    )
-    return false
-  }
-
-  /**
-   * Helper to check if movies exist in target instances and route if needed.
-   *
-   * When existingMovies is provided (full reconciliation path), uses pre-fetched bulk
-   * data for efficient batch processing. When not provided (ETag routing path), uses
-   * single-item API lookup for efficiency with small batches.
-   *
-   * @returns true if content was added, false if it already exists
-   */
-  private async processMovieWithRouting(params: {
-    tempItem: TemptRssWatchlistItem
-    numericUserId: number
-    userName: string | undefined
-    radarrItem: RadarrItem
-    existingMovies?: RadarrItem[]
-    primaryUser: Awaited<ReturnType<FastifyInstance['db']['getPrimaryUser']>>
-  }): Promise<boolean> {
-    const {
-      tempItem,
-      numericUserId,
-      userName,
-      radarrItem,
-      existingMovies,
-      primaryUser,
-    } = params
-
-    // Get target instances based on routing rules for this user/content
-    const context: RoutingContext = {
-      userId: numericUserId,
-      userName,
-      itemKey: tempItem.key,
-      contentType: 'movie',
-      syncing: false,
-    }
-    const targetInstanceIds = await this.contentRouter.getTargetInstances(
-      radarrItem,
-      context,
-    )
-
-    if (targetInstanceIds.length === 0) {
-      this.log.warn(
-        `No target instances available for movie ${tempItem.title}, skipping`,
-      )
-      return false
-    }
-
-    // Check if movie exists in target instances (routing-aware existence check)
-    let existsInTargetInstance = false
-
-    if (existingMovies) {
-      // Full reconciliation path: use pre-fetched bulk data for efficiency
-      const targetInstanceMovies = existingMovies.filter((movie) => {
-        return (
-          movie.radarr_instance_id !== undefined &&
-          targetInstanceIds.includes(movie.radarr_instance_id)
-        )
-      })
-
-      const potentialMatches = targetInstanceMovies
-        .map((movie) => ({
-          movie,
-          score: getGuidMatchScore(
-            parseGuids(movie.guids),
-            parseGuids(tempItem.guids),
-          ),
-        }))
-        .filter((match) => match.score > 0)
-        .sort((a, b) => b.score - a.score)
-
-      existsInTargetInstance = potentialMatches.length > 0
-    } else {
-      // ETag routing path: use single-item API lookup on target instances only
-      const tmdbId = extractTmdbId(parseGuids(tempItem.guids))
-      if (tmdbId > 0) {
-        let anyChecked = false
-        for (const instanceId of targetInstanceIds) {
-          const result = await this.radarrManager.movieExistsByTmdbId(
-            instanceId,
-            tmdbId,
-          )
-          // Skip unavailable instances, continue checking others
-          if (!result.checked) {
-            this.log.warn(
-              { error: result.error, instanceId },
-              `Radarr instance ${instanceId} unavailable for ${tempItem.title}, skipping instance`,
-            )
-            continue
-          }
-          anyChecked = true
-          if (result.found) {
-            existsInTargetInstance = true
-            break
-          }
-        }
-        // If no instances were successfully checked, skip this item
-        if (!anyChecked) {
-          this.log.warn(
-            { title: tempItem.title, targetInstanceIds },
-            'No Radarr instances available to check existence, skipping item',
-          )
-          return false
-        }
-      }
-    }
-
-    // If already exists in target instance, skip without checking Plex
-    if (existsInTargetInstance) {
-      this.log.debug(
-        `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
-      )
-      return false
-    }
-
-    // Only check Plex if item doesn't exist in Radarr AND config is enabled
-    let existsOnPlex = false
-    if (this.fastify.config.skipIfExistsOnPlex) {
-      // Determine if the requesting user is the primary token user
-      const isPrimaryUser = primaryUser
-        ? numericUserId === primaryUser.id
-        : false
-
-      existsOnPlex =
-        await this.fastify.plexServerService.checkExistenceAcrossServers(
-          tempItem.key,
-          'movie',
-          isPrimaryUser,
-        )
-    }
-
-    // Add to Radarr if not exists on Plex
-    if (!existsOnPlex) {
-      const { routedInstances } = await this.contentRouter.routeContent(
-        radarrItem,
-        tempItem.key,
-        {
-          userId: numericUserId,
-          userName,
-          syncing: false,
-        },
-      )
-
-      // Send notification only if content was actually routed and not already notified
-      if (routedInstances.length > 0 && userName) {
-        // Check if notification was already sent for this user/title
-        const existingNotifications =
-          await this.dbService.checkExistingWebhooks(numericUserId, [
-            tempItem.title,
-          ])
-
-        if (!existingNotifications.get(tempItem.title)) {
-          await this.plexService.sendWatchlistNotifications(
-            {
-              userId: numericUserId,
-              username: userName,
-              watchlistId: String(numericUserId),
-            },
-            {
-              title: tempItem.title,
-              type: 'movie',
-              thumb: tempItem.thumb,
-            },
-          )
-        } else {
-          this.log.debug(
-            `Skipping notification for "${tempItem.title}" - already sent previously to user ${userName}`,
-          )
-        }
-      }
-
-      return true
-    }
-
-    // If we get here, item exists on Plex - skip addition
-    this.log.info(
-      `Movie ${tempItem.title} already exists on an accessible Plex server, skipping addition`,
-    )
-    return false
-  }
-
-  /**
-   * Checks if a condition or condition group contains a user field
-   *
-   * @param condition - The condition or condition group to check
-   * @returns True if the condition contains a user field
-   */
-  private hasUserField(
-    condition: Condition | ConditionGroup | undefined,
-  ): boolean {
-    // Base case: undefined or null
-    if (!condition) {
-      return false
-    }
-
-    // Check if this is a condition with field === 'user'
-    if ('field' in condition && condition.field === 'user') {
-      return true
-    }
-
-    // Check if this is a condition group with sub-conditions
-    if ('conditions' in condition && Array.isArray(condition.conditions)) {
-      return condition.conditions.some((subCondition) =>
-        this.hasUserField(subCondition),
-      )
-    }
-
-    // Otherwise, return false
-    return false
+    await syncWatchlistItemsModule(this.syncEngineDeps)
   }
 
   private async setupPeriodicReconciliation(): Promise<void> {
@@ -2160,17 +962,25 @@ export class WatchlistWorkflowService {
             // Unschedule this job to prevent concurrent execution
             await this.unschedulePendingReconciliation()
 
-            // Stop change detection during full reconciliation to prevent conflicts
-            if (this.etagCheckInterval) {
-              clearInterval(this.etagCheckInterval)
-              this.etagCheckInterval = null
-              this.log.debug(
-                'Paused change detection for periodic reconciliation',
-              )
-            }
-
             try {
+              // Check RSS cache and hot-swap modes if needed
+              const modeResult = await checkAndSwitchModeIfNeeded(
+                this.modeSwitcherDeps,
+                this.modeSwitcherState,
+                this.modeSwitcherCallbacks,
+              )
+              this.lastRssCacheInfo = modeResult.cacheInfo
+              if (modeResult.switched && modeResult.stateUpdate) {
+                this.rssMode = modeResult.stateUpdate.rssMode
+                this.isEtagFallbackActive =
+                  modeResult.stateUpdate.isEtagFallbackActive
+                this.rssCacheDisabled = modeResult.stateUpdate.rssCacheDisabled
+                this.log.info({ newMode: modeResult.newMode }, 'Mode switched')
+              }
+
               // Perform full reconciliation (this also re-establishes baselines)
+              // Note: Change detection (RSS or ETag) continues during reconciliation
+              // to catch new items - deduplication handles any overlap
               await this.reconcile({ mode: 'full' })
 
               // Update timing trackers
@@ -2178,13 +988,7 @@ export class WatchlistWorkflowService {
 
               this.log.info('Periodic reconciliation completed successfully')
             } finally {
-              // Restart change detection with fresh interval
-              this.startEtagCheckInterval()
-              this.log.debug(
-                'Resumed change detection after periodic reconciliation',
-              )
-
-              // Schedule next periodic reconciliation for +40 minutes
+              // Schedule next periodic reconciliation
               await this.schedulePendingReconciliation()
             }
           } catch (error) {
@@ -2227,315 +1031,86 @@ export class WatchlistWorkflowService {
   }
 
   private async cleanupExistingManualSync(): Promise<void> {
-    try {
-      const existingSchedule = await this.fastify.db.getScheduleByName(
-        this.MANUAL_SYNC_JOB_NAME,
-      )
+    return cleanupExistingManualSync(this.schedulerDeps)
+  }
 
-      if (existingSchedule) {
-        this.log.info(
-          'Found existing periodic reconciliation job from previous run, cleaning up',
-        )
-        await this.fastify.scheduler.unscheduleJob(this.MANUAL_SYNC_JOB_NAME)
-        await this.fastify.db.deleteSchedule(this.MANUAL_SYNC_JOB_NAME)
-        this.log.info(
-          'Successfully cleaned up existing periodic reconciliation job',
-        )
-      }
-    } catch (error) {
-      this.log.error(
-        {
-          error,
-          errorMessage: error instanceof Error ? error.message : String(error),
-        },
-        'Error cleaning up existing periodic reconciliation job',
-      )
-      throw error
+  /** Attribution deps for extracted attribution functions */
+  private get attributionDeps() {
+    return {
+      logger: this.log,
+      db: this.dbService,
+      fastify: this.fastify,
     }
   }
 
   /**
    * Updates auto-approval records that were created with System user (ID: 0)
    * to attribute them to the actual users who added the content to their watchlists.
-   * Optionally accepts prefetched watchlist arrays to avoid extra DB reads.
    */
   private async updateAutoApprovalUserAttribution(
     prefetchedShows?: TokenWatchlistItem[],
     prefetchedMovies?: TokenWatchlistItem[],
     userById?: Map<number, Awaited<ReturnType<typeof this.dbService.getUser>>>,
   ): Promise<void> {
-    try {
-      this.log.debug('Updating auto-approval user attribution')
+    return updateAutoApprovalUserAttribution(this.attributionDeps, {
+      shows: prefetchedShows,
+      movies: prefetchedMovies,
+      userById,
+    })
+  }
 
-      // Get all auto-approval records created by system user (ID: 0)
-      const systemApprovalRecords =
-        await this.dbService.getApprovalRequestsByCriteria({
-          userId: 0,
-          status: 'auto_approved',
-        })
+  /** Scheduler deps for extracted lifecycle functions */
+  private get schedulerDeps() {
+    return {
+      logger: this.log,
+      fastify: this.fastify,
+      jobName: this.MANUAL_SYNC_JOB_NAME,
+    }
+  }
 
-      if (systemApprovalRecords.length === 0) {
-        this.log.debug('No system auto-approval records found to update')
-        return
-      }
+  /** Mode switcher deps */
+  private get modeSwitcherDeps() {
+    return {
+      log: this.log,
+      config: this.config,
+      getPrimaryUser: () => this.dbService.getPrimaryUser(),
+      getEtagFriendsList: () => this.getEtagFriendsList(),
+    }
+  }
 
-      this.log.debug(
-        `Found ${systemApprovalRecords.length} system auto-approval records to process`,
-      )
+  /** Mode switcher state - mutable references to service state */
+  private get modeSwitcherState(): ModeSwitcherState {
+    return {
+      rssMode: this.rssMode,
+      isEtagFallbackActive: this.isEtagFallbackActive,
+      rssCacheDisabled: this.rssCacheDisabled,
+      lastRssCacheInfo: this.lastRssCacheInfo,
+      rssCheckInterval: this.rssCheckInterval,
+      etagPoller: this.etagPoller,
+      rssFeedCache: this.rssFeedCache,
+      rssEtagPoller: this.rssEtagPoller,
+    }
+  }
 
-      // Get all watchlist items for matching (reuse prefetched lists if provided)
-      const watchlistShows =
-        prefetchedShows ?? (await this.dbService.getAllShowWatchlistItems())
-      const watchlistMovies =
-        prefetchedMovies ?? (await this.dbService.getAllMovieWatchlistItems())
-      const allWatchlistItems = [...watchlistShows, ...watchlistMovies]
-
-      // Build indexes for fast and unambiguous lookups
-      const keyIndex = new Map<string, TokenWatchlistItem[]>()
-      const guidIndex = new Map<string, TokenWatchlistItem[]>()
-      for (const item of allWatchlistItems) {
-        if (item.key) {
-          const arr = keyIndex.get(item.key)
-          if (arr) arr.push(item)
-          else keyIndex.set(item.key, [item])
-        }
-        for (const g of parseGuids(item.guids)) {
-          const arr = guidIndex.get(g)
-          if (arr) arr.push(item)
-          else guidIndex.set(g, [item])
-        }
-      }
-
-      let updatedRecords = 0
-      let ambiguousRecords = 0
-
-      const normalizeUserId = (val: unknown): number | null => {
-        const id =
-          typeof val === 'number'
-            ? val
-            : typeof val === 'object' && val !== null && 'id' in val
-              ? (val as { id: number }).id
-              : Number.parseInt(String(val), 10)
-        return Number.isFinite(id) && id > 0 ? (id as number) : null
-      }
-
-      for (const approvalRecord of systemApprovalRecords) {
-        try {
-          // Prefer exact content key match
-          let matchingWatchlistItem: TokenWatchlistItem | undefined
-          if (approvalRecord.contentKey) {
-            const keyCandidates = keyIndex.get(approvalRecord.contentKey)
-            if (keyCandidates && keyCandidates.length === 1) {
-              matchingWatchlistItem = keyCandidates[0]
-            } else if (keyCandidates && keyCandidates.length > 1) {
-              // Disambiguate: attribute only if all candidates resolve to the same user
-              const userIds = new Set<number>()
-              for (const it of keyCandidates) {
-                const uid = normalizeUserId(it.user_id)
-                if (uid) userIds.add(uid)
-              }
-              if (userIds.size === 1) {
-                const onlyUserId = [...userIds][0]
-                matchingWatchlistItem = keyCandidates.find(
-                  (it) => normalizeUserId(it.user_id) === onlyUserId,
-                )
-              } else {
-                ambiguousRecords++
-                this.log.warn(
-                  `Ambiguous key match for approval record ${approvalRecord.id} ("${approvalRecord.contentTitle}"); multiple users share content key. Skipping attribution to avoid misattribution.`,
-                )
-                continue
-              }
-            }
-          }
-
-          // Fallback to GUID-based candidates if no key match
-          if (!matchingWatchlistItem) {
-            const recordGuids = parseGuids(approvalRecord.contentGuids)
-            const candidateSet = new Set<TokenWatchlistItem>()
-            for (const g of recordGuids) {
-              const arr = guidIndex.get(g)
-              if (arr) {
-                for (const it of arr) candidateSet.add(it)
-              }
-            }
-            const candidates = [...candidateSet]
-
-            if (candidates.length === 1) {
-              matchingWatchlistItem = candidates[0]
-            } else if (candidates.length > 1) {
-              // Disambiguate: attribute only if all candidates resolve to the same user
-              const userIds = new Set<number>()
-              for (const it of candidates) {
-                const uid = normalizeUserId(it.user_id)
-                if (uid) userIds.add(uid)
-              }
-              if (userIds.size === 1) {
-                const onlyUserId = [...userIds][0]
-                matchingWatchlistItem = candidates.find(
-                  (it) => normalizeUserId(it.user_id) === onlyUserId,
-                )
-              } else {
-                ambiguousRecords++
-                this.log.warn(
-                  `Ambiguous GUID match for approval record ${approvalRecord.id} ("${approvalRecord.contentTitle}"); multiple users share GUIDs. Skipping attribution to avoid misattribution.`,
-                )
-                continue
-              }
-            }
-          }
-
-          if (matchingWatchlistItem) {
-            // Normalize user ID
-            const numericUserId = normalizeUserId(matchingWatchlistItem.user_id)
-
-            if (!numericUserId) {
-              this.log.warn(
-                `Invalid user_id "${matchingWatchlistItem.user_id}" for approval record ${approvalRecord.id}`,
-              )
-              continue
-            }
-
-            // Get user details (from cache if available, otherwise query DB)
-            const user =
-              userById?.get(numericUserId) ??
-              (await this.dbService.getUser(numericUserId))
-            if (!user) {
-              this.log.warn(
-                `User ${numericUserId} not found for approval record ${approvalRecord.id}`,
-              )
-              continue
-            }
-
-            // Update the approval record with the real user
-            const updatedRequest =
-              await this.dbService.updateApprovalRequestAttribution(
-                approvalRecord.id,
-                numericUserId,
-                `Auto-approved for ${user.name} (attribution updated during reconciliation)`,
-              )
-
-            this.log.debug(
-              `Updated auto-approval record ${approvalRecord.id} from System to ${user.name} for "${approvalRecord.contentTitle}"`,
-            )
-            updatedRecords++
-
-            // Emit SSE event for the updated attribution using the same format as approval service
-            if (
-              this.fastify.progress?.hasActiveConnections() &&
-              updatedRequest
-            ) {
-              const metadata = {
-                action: 'updated' as const,
-                requestId: updatedRequest.id,
-                userId: updatedRequest.userId,
-                userName: updatedRequest.userName || user.name,
-                contentTitle: updatedRequest.contentTitle,
-                contentType: updatedRequest.contentType,
-                status: updatedRequest.status,
-              }
-
-              this.fastify.progress.emit({
-                operationId: `approval-${updatedRequest.id}`,
-                type: 'approval',
-                phase: 'updated',
-                progress: 100,
-                message: `Updated auto-approval attribution for "${updatedRequest.contentTitle}" to ${user.name}`,
-                metadata,
-              })
-            }
-          } else {
-            this.log.debug(
-              `No matching watchlist item found for auto-approval record: "${approvalRecord.contentTitle}" (${approvalRecord.contentKey})`,
-            )
-          }
-        } catch (error) {
-          this.log.error(
-            { error },
-            `Failed to update user attribution for approval record ${approvalRecord.id}`,
-          )
-        }
-      }
-
-      if (updatedRecords > 0) {
-        this.log.info(
-          `Updated user attribution for ${updatedRecords} auto-approval records`,
-        )
-      } else {
-        this.log.debug(
-          'No auto-approval records needed user attribution updates',
-        )
-      }
-      if (ambiguousRecords > 0) {
-        this.log.warn(
-          `Skipped ${ambiguousRecords} auto-approval records due to ambiguous GUID matches across multiple users`,
-        )
-      }
-    } catch (error) {
-      this.log.error(
-        { error },
-        'Failed to update auto-approval user attribution',
-      )
-      // Don't throw - this is a non-critical operation
+  /** Mode switcher callbacks */
+  private get modeSwitcherCallbacks() {
+    return {
+      startRssCheck: () => this.startRssCheck(),
+      startEtagCheckInterval: () => this.startEtagCheckInterval(),
     }
   }
 
   /**
-   * Schedule the next periodic reconciliation to run in 40 minutes
+   * Schedule the next periodic reconciliation to run in 2 hours.
    */
   private async schedulePendingReconciliation(): Promise<void> {
-    try {
-      const scheduleTime = new Date(Date.now() + 40 * 60 * 1000) // +40 minutes
-
-      await this.fastify.scheduler.updateJobSchedule(
-        this.MANUAL_SYNC_JOB_NAME,
-        {
-          minutes: 40,
-          runImmediately: false,
-        },
-        true,
-      )
-
-      const delayMinutes = Math.round(
-        (scheduleTime.getTime() - Date.now()) / 60000,
-      )
-      this.log.info(
-        `Scheduled next periodic reconciliation in ${delayMinutes} minutes`,
-      )
-    } catch (error) {
-      this.log.error(
-        {
-          error,
-          errorMessage: error instanceof Error ? error.message : String(error),
-        },
-        'Error scheduling pending reconciliation',
-      )
-      throw error
-    }
+    return schedulePendingReconciliation(this.schedulerDeps)
   }
 
   /**
    * Cancel any pending periodic reconciliation job
    */
   private async unschedulePendingReconciliation(): Promise<void> {
-    try {
-      // Simply disable the job - scheduler handles existence check internally
-      await this.fastify.scheduler.updateJobSchedule(
-        this.MANUAL_SYNC_JOB_NAME,
-        null,
-        false,
-      )
-
-      this.log.debug('Unscheduled pending periodic reconciliation')
-    } catch (error) {
-      this.log.error(
-        {
-          error,
-          errorMessage: error instanceof Error ? error.message : String(error),
-        },
-        'Error unscheduling pending reconciliation',
-      )
-      // Don't throw here - this is called during sync start and shouldn't block sync
-    }
+    return unschedulePendingReconciliation(this.schedulerDeps)
   }
 }
