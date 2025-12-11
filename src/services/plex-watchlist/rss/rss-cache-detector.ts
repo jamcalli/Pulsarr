@@ -133,6 +133,11 @@ function parseCacheDirective(
   cacheControl: string,
   directive: string,
 ): number | null {
+  // Validate directive to prevent potential ReDoS from untrusted input
+  if (!/^[a-z-]+$/i.test(directive)) {
+    return null
+  }
+
   // Match directive=value pattern, handling optional spaces
   const regex = new RegExp(`${directive}\\s*=\\s*(\\d+)`, 'i')
   const match = cacheControl.match(regex)

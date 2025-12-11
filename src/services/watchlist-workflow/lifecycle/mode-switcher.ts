@@ -182,11 +182,18 @@ async function switchToEtagMode(
     state.etagPoller = new EtagPoller(config, log)
   }
 
-  // Establish ETag baselines
+  // Establish ETag baselines (best-effort - don't block mode switch on failure)
   const primaryUser = await deps.getPrimaryUser()
   if (primaryUser) {
-    const friends = await deps.getEtagFriendsList()
-    await state.etagPoller.establishAllBaselines(primaryUser.id, friends)
+    try {
+      const friends = await deps.getEtagFriendsList()
+      await state.etagPoller.establishAllBaselines(primaryUser.id, friends)
+    } catch (error) {
+      log.warn(
+        { error: error instanceof Error ? error.message : String(error) },
+        'Failed to establish ETag baselines, will retry on next poll',
+      )
+    }
   }
 
   // Start ETag polling
