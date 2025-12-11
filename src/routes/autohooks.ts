@@ -3,27 +3,35 @@ import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 
 export default async function (fastify: FastifyInstance) {
-  const publicPaths = [
+  // Public API paths that don't require authentication
+  const publicApiPaths = [
     '/v1/users/login',
     '/v1/users/create-admin',
     '/v1/notifications/webhook',
-    '/health',
   ]
 
   // Compute full public paths with basePath prefix at startup
   const basePath = normalizeBasePath(fastify.config.basePath)
-  const fullPublicPaths = publicPaths.map((path) =>
+  const fullPublicApiPaths = publicApiPaths.map((path) =>
     basePath === '/' ? path : `${basePath}${path}`,
   )
+  const v1Prefix = basePath === '/' ? '/v1/' : `${basePath}/v1/`
+
   fastify.log.debug(
-    { basePath, fullPublicPaths },
-    'Computed public paths for authentication bypass',
+    { basePath, fullPublicApiPaths },
+    'Computed public API paths for authentication bypass',
   )
 
   fastify.addHook('onRequest', async (request, reply) => {
-    // Skip authentication for public paths
     const urlWithoutQuery = request.url.split('?')[0]
-    const isPublicPath = fullPublicPaths.some(
+
+    // Skip auth for non-API routes (SPA routes handle their own auth/redirects)
+    if (!urlWithoutQuery.startsWith(v1Prefix)) {
+      return
+    }
+
+    // Skip authentication for public API paths
+    const isPublicPath = fullPublicApiPaths.some(
       (fullPath) =>
         urlWithoutQuery === fullPath ||
         urlWithoutQuery.startsWith(`${fullPath}/`),
