@@ -230,7 +230,7 @@ async function switchToRssMode(
 
   // Prime RSS caches (best-effort - don't block mode switch on failure)
   const token = config.plexTokens?.[0]
-  if (token && state.rssFeedCache) {
+  if (token && state.rssFeedCache && config.selfRss) {
     try {
       await state.rssFeedCache.primeCaches(
         config.selfRss,
