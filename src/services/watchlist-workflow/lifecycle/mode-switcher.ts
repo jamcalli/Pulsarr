@@ -42,11 +42,20 @@ export interface ModeSwitcherCallbacks {
   startEtagCheckInterval: () => void
 }
 
+/** State updates to apply after mode switch */
+export interface ModeStateUpdate {
+  rssMode: boolean
+  isUsingRssFallback: boolean
+  rssCacheDisabled: boolean
+}
+
 /** Result of checking RSS cache and potentially switching modes */
 export interface ModeCheckResult {
   switched: boolean
   newMode: 'RSS' | 'ETag' | null
   cacheInfo: RssCacheInfo
+  /** State updates to apply - only present if switched is true */
+  stateUpdate?: ModeStateUpdate
 }
 
 /**
@@ -126,8 +135,8 @@ export async function checkAndSwitchModeIfNeeded(
       { sMaxAge: cacheInfo.sMaxAge },
       'RSS CDN cache too aggressive, switching to ETag mode',
     )
-    await switchToEtagMode(deps, state, callbacks)
-    return { switched: true, newMode: 'ETag', cacheInfo }
+    const stateUpdate = await switchToEtagMode(deps, state, callbacks)
+    return { switched: true, newMode: 'ETag', cacheInfo, stateUpdate }
   }
 
   // Case 2: Cache is now acceptable - switch ETag → RSS
@@ -136,8 +145,8 @@ export async function checkAndSwitchModeIfNeeded(
       { sMaxAge: cacheInfo.sMaxAge },
       'RSS CDN cache now acceptable, switching to RSS mode',
     )
-    await switchToRssMode(deps, state, callbacks)
-    return { switched: true, newMode: 'RSS', cacheInfo }
+    const stateUpdate = await switchToRssMode(deps, state, callbacks)
+    return { switched: true, newMode: 'RSS', cacheInfo, stateUpdate }
   }
 
   return { switched: false, newMode: null, cacheInfo }
@@ -145,18 +154,18 @@ export async function checkAndSwitchModeIfNeeded(
 
 /**
  * Switch from RSS mode to ETag mode.
+ * Returns state updates for the caller to apply.
  */
 async function switchToEtagMode(
   deps: ModeSwitcherDeps,
   state: ModeSwitcherState,
   callbacks: ModeSwitcherCallbacks,
-): Promise<void> {
+): Promise<ModeStateUpdate> {
   const { log, config } = deps
 
   // Stop RSS polling
   if (state.rssCheckInterval) {
     clearInterval(state.rssCheckInterval)
-    state.rssCheckInterval = null
   }
 
   // Clear RSS caches
@@ -179,22 +188,20 @@ async function switchToEtagMode(
   // Start ETag polling
   callbacks.startEtagCheckInterval()
 
-  // Update state
-  state.rssMode = false
-  state.isUsingRssFallback = true
-  state.rssCacheDisabled = true
-
   log.info('Mode switch complete: now running in ETag mode')
+
+  return { rssMode: false, isUsingRssFallback: true, rssCacheDisabled: true }
 }
 
 /**
  * Switch from ETag mode to RSS mode.
+ * Returns state updates for the caller to apply.
  */
 async function switchToRssMode(
   deps: ModeSwitcherDeps,
   state: ModeSwitcherState,
   callbacks: ModeSwitcherCallbacks,
-): Promise<void> {
+): Promise<ModeStateUpdate> {
   const { log, config } = deps
 
   // Stop ETag staggered polling
@@ -223,10 +230,7 @@ async function switchToRssMode(
   // Start RSS polling
   callbacks.startRssCheck()
 
-  // Update state
-  state.rssMode = true
-  state.isUsingRssFallback = false
-  state.rssCacheDisabled = false
-
   log.info('Mode switch complete: now running in RSS mode')
+
+  return { rssMode: true, isUsingRssFallback: false, rssCacheDisabled: false }
 }

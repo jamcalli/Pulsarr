@@ -970,7 +970,11 @@ export class WatchlistWorkflowService {
                 this.modeSwitcherCallbacks,
               )
               this.lastRssCacheInfo = modeResult.cacheInfo
-              if (modeResult.switched) {
+              if (modeResult.switched && modeResult.stateUpdate) {
+                this.rssMode = modeResult.stateUpdate.rssMode
+                this.isUsingRssFallback =
+                  modeResult.stateUpdate.isUsingRssFallback
+                this.rssCacheDisabled = modeResult.stateUpdate.rssCacheDisabled
                 this.log.info({ newMode: modeResult.newMode }, 'Mode switched')
               }
 

@@ -36,6 +36,7 @@ export {
   cleanupWorkflow,
   initializeWorkflow,
   type ModeCheckResult,
+  type ModeStateUpdate,
   type ModeSwitcherCallbacks,
   type ModeSwitcherDeps,
   type ModeSwitcherState,
