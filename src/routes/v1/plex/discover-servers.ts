@@ -4,6 +4,7 @@ import {
   PlexTokenSchema,
 } from '@schemas/plex/discover-servers.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 
@@ -76,6 +77,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const response = await fetch(url.toString(), {
           method: 'GET',
           headers: {
+            'User-Agent': USER_AGENT,
             Accept: 'application/json',
             'X-Plex-Token': plexToken,
             'X-Plex-Client-Identifier': 'pulsarr',

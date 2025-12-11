@@ -10,11 +10,14 @@ import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class QuotaService {
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.fastify.log, 'QUOTA')
-  }
+  private readonly log: FastifyBaseLogger
 
-  constructor(private fastify: FastifyInstance) {}
+  constructor(
+    readonly baseLog: FastifyBaseLogger,
+    private readonly fastify: FastifyInstance,
+  ) {
+    this.log = createServiceLogger(baseLog, 'QUOTA')
+  }
 
   /**
    * Log scheduled job execution with proper service prefix

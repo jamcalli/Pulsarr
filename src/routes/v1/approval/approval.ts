@@ -331,6 +331,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
           500: ApprovalErrorSchema,
+          503: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -378,6 +379,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             return reply.conflict(
               `Invalid state transition from ${currentStatus} to ${targetStatus}`,
             )
+          }
+
+          // Check instance health before approving
+          if (targetStatus === 'approved') {
+            const healthCheck =
+              await fastify.approvalService.checkInstanceHealth(
+                existingRequest.contentType,
+              )
+            if (!healthCheck.available) {
+              return reply.serviceUnavailable(
+                `Cannot process approval: ${healthCheck.unavailableType} instances are unavailable`,
+              )
+            }
           }
         } else {
           // If no status provided, we're just updating other fields (like routing)
@@ -650,6 +664,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           404: ApprovalErrorSchema,
           409: ApprovalErrorSchema,
           500: ApprovalErrorSchema,
+          503: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -679,6 +694,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         ) {
           return reply.conflict(
             `Cannot approve request that is already ${existingRequest.status}`,
+          )
+        }
+
+        // Check instance health before approving
+        const healthCheck = await fastify.approvalService.checkInstanceHealth(
+          existingRequest.contentType,
+        )
+        if (!healthCheck.available) {
+          return reply.serviceUnavailable(
+            `Cannot process approval: ${healthCheck.unavailableType} instances are unavailable`,
           )
         }
 
@@ -738,6 +763,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           400: ApprovalErrorSchema,
           401: ApprovalErrorSchema,
           500: ApprovalErrorSchema,
+          503: ApprovalErrorSchema,
         },
         tags: ['Approval'],
       },
@@ -748,6 +774,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const userId = request.session.user?.id
         if (!userId) {
           return reply.unauthorized('User not authenticated')
+        }
+
+        // Check all instance health before bulk approve
+        const healthCheck =
+          await fastify.approvalService.checkAllInstancesHealth()
+        if (!healthCheck.allAvailable) {
+          return reply.serviceUnavailable(
+            `Cannot process bulk approval: ${healthCheck.unavailable.join(' and ')} instances are unavailable`,
+          )
         }
 
         const result = await fastify.approvalService.batchApprove(

@@ -13,7 +13,6 @@ import type {
 } from '@root/types/plex.types.js'
 import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
-import { parseGenres, parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { fetchWatchlistFromRss, getPlexWatchlistUrls } from '../index.js'
 import { mapRssItemsToWatchlist } from '../rss/rss-mapper.js'
@@ -211,45 +210,4 @@ export async function processRssWatchlistsWithUserDetails(
   }
 
   return results
-}
-
-/**
- * Stores RSS watchlist items in the temporary RSS items table.
- *
- * @param items - Set of RSS items to store
- * @param source - Source identifier ('self' or 'friends')
- * @param routedGuids - Optional set of GUIDs that were successfully routed
- * @param deps - Dependencies for the operation
- */
-export async function storeRssWatchlistItems(
-  items: Set<TemptRssWatchlistItem>,
-  source: 'self' | 'friends',
-  routedGuids: Set<string> | undefined,
-  deps: Pick<RssProcessorDeps, 'db' | 'logger'>,
-): Promise<void> {
-  const { db, logger } = deps
-
-  const formattedItems = Array.from(items).map((item) => {
-    const itemGuids = parseGuids(item.guids)
-    // Check if any of this item's GUIDs were routed
-    const isRouted = routedGuids
-      ? itemGuids.some((g) => routedGuids.has(g.toLowerCase()))
-      : false
-
-    return {
-      title: item.title,
-      type: item.type,
-      thumb: item.thumb || undefined,
-      guids: itemGuids,
-      genres: parseGenres(item.genres),
-      source: source,
-      routed: isRouted,
-    }
-  })
-
-  if (formattedItems.length > 0) {
-    await db.createTempRssItems(formattedItems)
-    await db.syncGenresFromWatchlist()
-    logger.debug(`Stored ${formattedItems.length} RSS items for ${source}`)
-  }
 }

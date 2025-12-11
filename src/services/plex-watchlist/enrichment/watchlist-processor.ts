@@ -50,7 +50,7 @@ export const processWatchlistItems = async (
 
   // Process each user's watchlist
   for (const [user, watchlistItems] of userWatchlistMap.entries()) {
-    log.info(
+    log.debug(
       `Processing ${watchlistItems.size} watchlist items for user ${user.username}`,
     )
 

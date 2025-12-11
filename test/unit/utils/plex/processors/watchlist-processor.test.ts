@@ -257,7 +257,7 @@ describe('plex/processors/watchlist-processor', () => {
 
       await processWatchlistItems(config, mockLogger, userWatchlistMap)
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         'Processing 1 watchlist items for user testuser',
       )
     })

@@ -74,6 +74,47 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
 }
 
 /**
+ * Special case handling for genres that don't follow simple title case rules.
+ * These match the canonical genre names in the database.
+ * Hoisted to module level to avoid re-allocation on each call.
+ */
+const GENRE_SPECIAL_CASES: Record<string, string> = {
+  'sci-fi & fantasy': 'Sci-Fi & Fantasy',
+  'tv movie': 'TV Movie',
+  'mini-series': 'Mini-Series',
+  'film-noir': 'Film-Noir',
+  'war & politics': 'War & Politics',
+  'action/adventure': 'Action/Adventure',
+}
+
+/**
+ * Normalizes a single genre string to title case for consistent storage.
+ *
+ * RSS feeds often return lowercase genres (e.g., "sci-fi & fantasy") while
+ * API sources return properly cased genres. This function ensures all genres
+ * are stored consistently in the database.
+ *
+ * @param genre - The genre string to normalize
+ * @returns The genre in title case (e.g., "Sci-Fi & Fantasy")
+ */
+export function normalizeGenre(genre: string): string {
+  const trimmed = genre.trim()
+  if (!trimmed) return ''
+
+  const lower = trimmed.toLowerCase()
+
+  if (lower in GENRE_SPECIAL_CASES) {
+    return GENRE_SPECIAL_CASES[lower]
+  }
+
+  // Title case: capitalize first letter of each word, lowercase the rest
+  return trimmed
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
+/**
  * Parses genre input from various formats into an array of genre strings.
  *
  * Accepts an array of strings, a JSON-encoded string array, a plain string (treated as a single genre), or undefined. Filters out non-string values for safety. Returns an empty array if the input is undefined or invalid.

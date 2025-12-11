@@ -23,12 +23,11 @@ import type {
   TmdbTvMetadata,
 } from '@schemas/tmdb/tmdb.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export class TmdbService {
   private static readonly BASE_URL = 'https://api.themoviedb.org/3'
-  private static readonly USER_AGENT =
-    'Pulsarr/1.0 (+https://github.com/jamcalli/pulsarr)'
 
   //
   // ============================================================
@@ -78,16 +77,14 @@ export class TmdbService {
   // SERVICE INITIALIZATION
   // ============================================================
   //
-
-  /** Creates a fresh service logger that inherits current log level */
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'TMDB')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.log = createServiceLogger(baseLog, 'TMDB')
+  }
 
   /**
    * Get current TMDB API Read Access Token from config
@@ -245,7 +242,7 @@ export class TmdbService {
 
     const response = await this.rateLimitedFetch(url, {
       headers: {
-        'User-Agent': TmdbService.USER_AGENT,
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },
@@ -282,7 +279,7 @@ export class TmdbService {
 
     const response = await this.rateLimitedFetch(url, {
       headers: {
-        'User-Agent': TmdbService.USER_AGENT,
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },
@@ -322,7 +319,7 @@ export class TmdbService {
 
     const response = await this.rateLimitedFetch(url, {
       headers: {
-        'User-Agent': TmdbService.USER_AGENT,
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },
@@ -362,7 +359,7 @@ export class TmdbService {
 
     const response = await this.rateLimitedFetch(url, {
       headers: {
-        'User-Agent': TmdbService.USER_AGENT,
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },
@@ -469,7 +466,7 @@ export class TmdbService {
     try {
       const response = await this.rateLimitedFetch(url, {
         headers: {
-          'User-Agent': TmdbService.USER_AGENT,
+          'User-Agent': USER_AGENT,
           Accept: 'application/json',
           Authorization: `Bearer ${this.accessToken}`,
         },
@@ -691,7 +688,7 @@ export class TmdbService {
 
     const response = await this.rateLimitedFetch(url, {
       headers: {
-        'User-Agent': TmdbService.USER_AGENT,
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },
@@ -769,7 +766,7 @@ export class TmdbService {
 
     const response = await this.rateLimitedFetch(url, {
       headers: {
-        'User-Agent': TmdbService.USER_AGENT,
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
         Authorization: `Bearer ${this.accessToken}`,
       },

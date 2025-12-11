@@ -26,9 +26,14 @@ import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   ensureProtectionCache,
   ensureTrackedCache,
-  isAnyGuidTracked as isAnyGuidTrackedHelper,
   TagCache,
 } from '@services/delete-sync/cache/index.js'
+import { cleanupApprovalRequestsForDeletedContent } from '@services/delete-sync/cleanup/index.js'
+import {
+  extractGuidsFromWatchlistItems,
+  fetchWatchlistItems,
+} from '@services/delete-sync/data-fetching/index.js'
+import { sendNotificationsIfEnabled } from '@services/delete-sync/notifications/index.js'
 import {
   executeTagBasedDeletion,
   executeWatchlistDeletion,
@@ -36,8 +41,8 @@ import {
 import {
   createEmptyResult,
   createSafetyTriggeredResult,
-} from '@services/delete-sync/result-builder.js'
-import { parseGuids } from '@utils/guid-handler.js'
+} from '@services/delete-sync/utils/index.js'
+import { performWatchlistSafetyCheck } from '@services/delete-sync/validation/safety-checker.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
@@ -75,16 +80,13 @@ export class DeleteSyncService {
    * @param log - Fastify logger instance for recording operations
    * @param fastify - Fastify instance for accessing other services and configuration
    */
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'DELETE_SYNC')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(baseLog, 'DELETE_SYNC')
     this.log.info('Initializing Delete Sync Service')
   }
 
@@ -143,27 +145,6 @@ export class DeleteSyncService {
       this.log,
     )
     return this.protectedGuids
-  }
-
-  /**
-   * Returns true if any of the provided GUIDs exist in the protected set.
-   * Optional onHit callback lets callers log the first matching GUID.
-   */
-  /**
-   * Returns true if any of the provided GUIDs exist in the tracked set.
-   * When deleteSyncTrackedOnly is enabled, only tracked content can be deleted.
-   * Optional onHit callback lets callers log the first matching GUID.
-   */
-  private isAnyGuidTracked(
-    guidList: string[],
-    onHit?: (guid: string) => void,
-  ): boolean {
-    return isAnyGuidTrackedHelper(
-      guidList,
-      this.trackedGuids,
-      this.config.deleteSyncTrackedOnly,
-      onHit,
-    )
   }
 
   /**
@@ -339,11 +320,15 @@ export class DeleteSyncService {
         const protectedGuids = protectionLoadResult.protectedGuids
 
         // Step 9: Perform safety check for mass deletion prevention (with protection awareness)
-        const safetyResult = this.performSafetyCheck(
+        const safetyResult = performWatchlistSafetyCheck(
           existingSeries,
           existingMovies,
           allWatchlistItems,
           protectedGuids,
+          this.config,
+          this.trackedGuids,
+          this.config.deleteSyncTrackedOnly,
+          this.log,
         )
 
         if (!safetyResult.safe) {
@@ -370,10 +355,35 @@ export class DeleteSyncService {
       )
 
       // Step 10: Clean up approval requests for deleted content if enabled
-      await this.cleanupApprovalRequestsForDeletedContent(dryRun)
+      await cleanupApprovalRequestsForDeletedContent(
+        {
+          db: this.dbService,
+          approvalService: this.fastify.approvalService,
+          deletedMovieGuids: this.deletedMovieGuids,
+          deletedShowGuids: this.deletedShowGuids,
+          config: {
+            deleteSyncCleanupApprovals: this.config.deleteSyncCleanupApprovals,
+          },
+          log: this.log,
+        },
+        dryRun,
+      )
 
       // Step 11: Send notifications about results if enabled
-      await this.sendNotificationsIfEnabled(result, dryRun)
+      await sendNotificationsIfEnabled(
+        {
+          discord: this.fastify.discord,
+          apprise: this.fastify.apprise,
+          config: {
+            deleteSyncNotify: this.config.deleteSyncNotify || null,
+            deleteSyncNotifyOnlyOnDeletion:
+              this.config.deleteSyncNotifyOnlyOnDeletion,
+          },
+          log: this.log,
+        },
+        result,
+        dryRun,
+      )
 
       return result
     } catch (error) {
@@ -418,7 +428,20 @@ export class DeleteSyncService {
     )
 
     // Send notification about the safety trigger if enabled
-    this.sendNotificationsIfEnabled(result, dryRun).catch((error) => {
+    sendNotificationsIfEnabled(
+      {
+        discord: this.fastify.discord,
+        apprise: this.fastify.apprise,
+        config: {
+          deleteSyncNotify: this.config.deleteSyncNotify || null,
+          deleteSyncNotifyOnlyOnDeletion:
+            this.config.deleteSyncNotifyOnlyOnDeletion,
+        },
+        log: this.log,
+      },
+      result,
+      dryRun,
+    ).catch((error) => {
       this.logError('Error sending delete sync notification:', error)
     })
 
@@ -519,146 +542,6 @@ export class DeleteSyncService {
       `Found ${existingSeries.length} series in Sonarr and ${existingMovies.length} movies in Radarr`,
     )
     return { existingSeries, existingMovies }
-  }
-
-  /**
-   * Performs safety check to prevent mass deletion
-   */
-  private performSafetyCheck(
-    existingSeries: SonarrItem[],
-    existingMovies: RadarrItem[],
-    allWatchlistItems: Set<string>,
-    protectedGuids: Set<string> | null = null,
-  ): { safe: boolean; message: string } {
-    // Count potential deletions
-    const deletionCounts = this.countPotentialDeletions(
-      existingSeries,
-      existingMovies,
-      allWatchlistItems,
-      protectedGuids,
-    )
-
-    const totalPotentialDeletes = deletionCounts.movies + deletionCounts.shows
-    const potentialDeletionPercentage =
-      deletionCounts.totalConsidered > 0
-        ? (totalPotentialDeletes / deletionCounts.totalConsidered) * 100
-        : 0
-
-    // Prevent mass deletion if percentage is too high
-    const MAX_DELETION_PERCENTAGE = Number(
-      this.config.maxDeletionPrevention ?? 10,
-    ) // Default to 10% as configured in the database
-
-    if (
-      Number.isNaN(MAX_DELETION_PERCENTAGE) ||
-      MAX_DELETION_PERCENTAGE < 0 ||
-      MAX_DELETION_PERCENTAGE > 100
-    ) {
-      // Debug breadcrumbs for config validation failures
-      this.log.debug({
-        rawMaxDeletionPrevention: this.config.maxDeletionPrevention,
-        parsed: MAX_DELETION_PERCENTAGE,
-        type: typeof this.config.maxDeletionPrevention,
-      })
-      return {
-        safe: false,
-        message: `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage between 0 and 100 inclusive.`,
-      }
-    }
-
-    if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
-      return {
-        safe: false,
-        message: `Safety check failed: Would delete ${totalPotentialDeletes} out of ${deletionCounts.totalConsidered} eligible items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
-      }
-    }
-
-    return { safe: true, message: 'Safety check passed' }
-  }
-
-  /**
-   * Counts potential deletions for safety check
-   * Returns counts of movies, shows, and total items considered
-   */
-  private countPotentialDeletions(
-    existingSeries: SonarrItem[],
-    existingMovies: RadarrItem[],
-    watchlistGuids: Set<string>,
-    protectedGuids: Set<string> | null,
-  ): { movies: number; shows: number; totalConsidered: number } {
-    let potentialMovieDeletes = 0
-    let potentialShowDeletes = 0
-    let totalConsideredItems = 0
-
-    const considerMovies = this.config.deleteMovie === true
-    const considerEnded = this.config.deleteEndedShow === true
-    const considerContinuing = this.config.deleteContinuingShow === true
-
-    // Use Set membership directly for O(1) lookups
-    const watchlistGuidsSet = watchlistGuids
-    const protectedGuidsSet = protectedGuids ?? null
-
-    // Count movies not in watchlist and not protected (only if we actually delete movies)
-    if (considerMovies) {
-      for (const movie of existingMovies) {
-        totalConsideredItems++
-        const movieGuidList = parseGuids(movie.guids)
-        const existsInWatchlist = movieGuidList.some((g) =>
-          watchlistGuidsSet.has(g),
-        )
-        if (!existsInWatchlist) {
-          // Check if movie is tracked (if tracked-only deletion is enabled)
-          const isTracked = this.isAnyGuidTracked(movieGuidList)
-          if (!isTracked) {
-            continue // Skip non-tracked items when tracked-only is enabled
-          }
-
-          // Check if movie is protected by playlist
-          const isProtected =
-            protectedGuidsSet != null
-              ? movieGuidList.some((g) => protectedGuidsSet.has(g))
-              : false
-          if (!isProtected) {
-            potentialMovieDeletes++
-          }
-        }
-      }
-    }
-
-    // Count shows not in watchlist and not protected, but only for show types configured for deletion
-    for (const show of existingSeries) {
-      const isContinuing = show.series_status !== 'ended'
-      const shouldConsider = isContinuing ? considerContinuing : considerEnded
-      if (!shouldConsider) continue
-      totalConsideredItems++
-
-      const showGuidList = parseGuids(show.guids)
-      const existsInWatchlist = showGuidList.some((g) =>
-        watchlistGuidsSet.has(g),
-      )
-      if (!existsInWatchlist) {
-        // Check if show is tracked (if tracked-only deletion is enabled)
-        const isTracked = this.isAnyGuidTracked(showGuidList)
-        if (!isTracked) {
-          continue // Skip non-tracked items when tracked-only is enabled
-        }
-
-        // Check if show is protected by playlist
-        const isProtected =
-          protectedGuidsSet != null
-            ? showGuidList.some((g) => protectedGuidsSet.has(g))
-            : false
-        if (!isProtected) {
-          potentialShowDeletes++
-        }
-      }
-    }
-
-    return {
-      movies: potentialMovieDeletes,
-      shows: potentialShowDeletes,
-      totalConsidered: totalConsideredItems,
-    }
   }
 
   /**
@@ -782,184 +665,6 @@ export class DeleteSyncService {
           seriesCount,
           moviesCount,
         ),
-      }
-    }
-  }
-
-  /**
-   * Clean up approval requests for content that was deleted
-   * This removes approval records from the database for items that no longer exist
-   */
-  private async cleanupApprovalRequestsForDeletedContent(
-    dryRun: boolean,
-  ): Promise<void> {
-    if (!this.config.deleteSyncCleanupApprovals || dryRun) {
-      return
-    }
-
-    try {
-      let totalCleaned = 0
-
-      // Clean up movie approval requests
-      if (this.deletedMovieGuids.size > 0) {
-        this.log.info(
-          `Cleaning up movie approval requests for content with ${this.deletedMovieGuids.size} deleted GUIDs`,
-        )
-        const movieApprovals = await this.dbService.getApprovalRequestsByGuids(
-          this.deletedMovieGuids,
-          'movie',
-        )
-
-        // Use ApprovalService to delete each request (handles SSE events)
-        for (const approval of movieApprovals) {
-          try {
-            await this.fastify.approvalService.deleteApprovalRequest(
-              approval.id,
-            )
-            totalCleaned++
-          } catch (error) {
-            this.log.error(
-              {
-                error,
-                approvalId: approval.id,
-                title: approval.contentTitle,
-              },
-              'Error deleting individual approval request during cleanup',
-            )
-          }
-        }
-
-        this.log.info(
-          `Cleaned up ${movieApprovals.length} movie approval records`,
-        )
-      }
-
-      // Clean up show approval requests
-      if (this.deletedShowGuids.size > 0) {
-        this.log.info(
-          `Cleaning up show approval requests for content with ${this.deletedShowGuids.size} deleted GUIDs`,
-        )
-        const showApprovals = await this.dbService.getApprovalRequestsByGuids(
-          this.deletedShowGuids,
-          'show',
-        )
-
-        // Use ApprovalService to delete each request (handles SSE events)
-        for (const approval of showApprovals) {
-          try {
-            await this.fastify.approvalService.deleteApprovalRequest(
-              approval.id,
-            )
-            totalCleaned++
-          } catch (error) {
-            this.log.error(
-              {
-                error,
-                approvalId: approval.id,
-                title: approval.contentTitle,
-              },
-              'Error deleting individual approval request during cleanup',
-            )
-          }
-        }
-
-        this.log.info(
-          `Cleaned up ${showApprovals.length} show approval records`,
-        )
-      }
-
-      if (totalCleaned > 0) {
-        this.log.info(`Total approval requests cleaned up: ${totalCleaned}`)
-      }
-    } catch (cleanupError) {
-      this.log.error(
-        { error: cleanupError },
-        'Error cleaning up approval requests for deleted content',
-      )
-    }
-  }
-
-  /**
-   * Sends notifications about delete sync results if enabled
-   */
-  private async sendNotificationsIfEnabled(
-    result: DeleteSyncResult,
-    dryRun: boolean,
-  ): Promise<void> {
-    const notifySetting = this.config.deleteSyncNotify || 'none'
-
-    // Skip all notifications if set to none
-    if (notifySetting === 'none') {
-      this.log.info(
-        'Delete sync notifications disabled, skipping all notifications',
-      )
-      return
-    }
-
-    // Check if we should only notify when items were actually deleted
-    if (
-      this.config.deleteSyncNotifyOnlyOnDeletion &&
-      result.total.deleted === 0
-    ) {
-      this.log.info(
-        'Delete sync completed with no deletions, skipping notification as per configuration',
-      )
-      return
-    }
-
-    const sendDiscord = [
-      // Modern values
-      'all',
-      'discord-only',
-      'discord-webhook',
-      'discord-message',
-      'discord-both',
-      'webhook-only',
-      'dm-only',
-      // Legacy values (back-compat)
-      'message',
-      'webhook',
-      'both',
-    ].includes(notifySetting)
-
-    const sendApprise = ['all', 'apprise-only'].includes(notifySetting)
-
-    // Discord notification logic
-    if (sendDiscord && this.fastify.discord) {
-      try {
-        // Pass notification preference to control webhook vs DM
-        await this.fastify.discord.sendDeleteSyncNotification(
-          result,
-          dryRun,
-          notifySetting,
-        )
-      } catch (notifyError) {
-        this.log.error(
-          {
-            error:
-              notifyError instanceof Error
-                ? notifyError
-                : new Error(String(notifyError)),
-          },
-          'Error sending delete sync Discord notification:',
-        )
-      }
-    }
-
-    // Apprise notification logic
-    if (sendApprise && this.fastify.apprise?.isEnabled()) {
-      try {
-        await this.fastify.apprise?.sendDeleteSyncNotification(result, dryRun)
-      } catch (notifyError) {
-        this.log.error(
-          {
-            error:
-              notifyError instanceof Error
-                ? notifyError
-                : new Error(String(notifyError)),
-          },
-          'Error sending delete sync Apprise notification:',
-        )
       }
     }
   }
@@ -1142,139 +847,15 @@ export class DeleteSyncService {
     respectUserSyncSetting = false,
   ): Promise<Set<string>> {
     try {
-      const watchlistItems = await this.fetchWatchlistItems(
-        respectUserSyncSetting,
-      )
-      return this.extractGuidsFromWatchlistItems(watchlistItems)
+      const watchlistItems = await fetchWatchlistItems(respectUserSyncSetting, {
+        db: this.dbService,
+        logger: this.log,
+      })
+      return extractGuidsFromWatchlistItems(watchlistItems, this.log)
     } catch (error) {
       this.log.error({ error }, 'Error in getAllWatchlistItems:')
       throw error
     }
-  }
-
-  /**
-   * Fetches all watchlist items from the database
-   * Optionally filters by user sync settings
-   */
-  private async fetchWatchlistItems(
-    respectUserSyncSetting: boolean,
-  ): Promise<Array<{ title: string; guids?: string | string[] }>> {
-    if (respectUserSyncSetting) {
-      return this.fetchWatchlistItemsWithUserFilter()
-    }
-
-    // Get all watchlist items regardless of user sync settings
-    const [shows, movies] = await Promise.all([
-      this.dbService.getAllShowWatchlistItems(),
-      this.dbService.getAllMovieWatchlistItems(),
-    ])
-
-    const watchlistItems = [...shows, ...movies]
-    this.log.info(
-      `Found ${watchlistItems.length} watchlist items from all users`,
-    )
-
-    return watchlistItems
-  }
-
-  /**
-   * Fetches watchlist items filtered by users with sync enabled
-   */
-  private async fetchWatchlistItemsWithUserFilter(): Promise<
-    Array<{ title: string; guids?: string | string[] }>
-  > {
-    // Get all users to check their sync permissions
-    const allUsers = await this.dbService.getAllUsers()
-    const syncEnabledUserIds = allUsers
-      .filter((user) => user.can_sync !== false)
-      .map((user) => user.id)
-
-    this.log.info(
-      `Found ${syncEnabledUserIds.length} users with sync enabled out of ${allUsers.length} total users`,
-    )
-
-    // Only get watchlist items from users with sync enabled
-    const [shows, movies] = await Promise.all([
-      this.dbService.getAllShowWatchlistItems().then((items) =>
-        items.filter((item) => {
-          const userId =
-            typeof item.user_id === 'object'
-              ? (item.user_id as { id: number }).id
-              : Number(item.user_id)
-          return syncEnabledUserIds.includes(userId)
-        }),
-      ),
-      this.dbService.getAllMovieWatchlistItems().then((items) =>
-        items.filter((item) => {
-          const userId =
-            typeof item.user_id === 'object'
-              ? (item.user_id as { id: number }).id
-              : Number(item.user_id)
-          return syncEnabledUserIds.includes(userId)
-        }),
-      ),
-    ])
-
-    const watchlistItems = [...shows, ...movies]
-    this.log.info(
-      `Found ${watchlistItems.length} watchlist items from users with sync enabled`,
-    )
-
-    return watchlistItems
-  }
-
-  /**
-   * Extracts GUIDs from watchlist items into a set for efficient lookup
-   */
-  private extractGuidsFromWatchlistItems(
-    watchlistItems: Array<{ title: string; guids?: string | string[] }>,
-  ): Set<string> {
-    // Create a set of unique GUIDs for efficient lookup
-    const guidSet = new Set<string>()
-    let malformedItems = 0
-
-    // Process all items to extract GUIDs using the standardized GUID handler
-    for (const item of watchlistItems) {
-      try {
-        // Use parseGuids utility for consistent GUID parsing and normalization
-        const parsedGuids = parseGuids(item.guids)
-
-        // Add each parsed and normalized GUID to the set for efficient lookup
-        for (const guid of parsedGuids) {
-          guidSet.add(guid)
-        }
-
-        // Protection system uses standardized GUIDs instead of keys
-        // Standardized identifiers enable cross-platform content matching
-      } catch (error) {
-        malformedItems++
-        this.log.warn(
-          {
-            error: error instanceof Error ? error : new Error(String(error)),
-            guids: item.guids,
-          },
-          `Malformed guids in watchlist item "${item.title}"`,
-        )
-      }
-    }
-
-    if (malformedItems > 0) {
-      this.log.warn(
-        `Found ${malformedItems} watchlist items with malformed GUIDs`,
-      )
-    }
-
-    this.log.debug(
-      `Extracted ${guidSet.size} unique GUIDs from watchlist items`,
-    )
-
-    // Trace sample of collected identifiers (limited to 5)
-    if (this.log.level === 'trace') {
-      const sampleGuids = Array.from(guidSet).slice(0, 5)
-      this.log.trace({ sampleGuids }, 'Sample of watchlist GUIDs (first 5)')
-    }
-
-    return guidSet
   }
 
   /**

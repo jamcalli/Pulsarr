@@ -7,6 +7,7 @@
 
 import type { Config, User } from '@root/types/config.types.js'
 import type { DatabaseService } from '@services/database.service.js'
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 
 export interface TokenUsersDeps {
@@ -75,6 +76,7 @@ export async function ensureTokenUsers(
         // Fetch the actual username from Plex API with timeout handling
         const response = await fetch('https://plex.tv/api/v2/user', {
           headers: {
+            'User-Agent': USER_AGENT,
             'X-Plex-Token': token,
             Accept: 'application/json',
           },

@@ -33,9 +33,9 @@ export interface ShowDeletionConfig extends ValidationConfig {
 }
 
 /**
- * Context for movie deletion
+ * Dependencies for movie deletion
  */
-export interface MovieDeletionContext {
+export interface MovieDeletionDeps {
   movies: RadarrItem[]
   config: MovieDeletionConfig
   validators: ContentValidators
@@ -49,9 +49,9 @@ export interface MovieDeletionContext {
 }
 
 /**
- * Context for show deletion
+ * Dependencies for show deletion
  */
-export interface ShowDeletionContext {
+export interface ShowDeletionDeps {
   shows: SonarrItem[]
   config: ShowDeletionConfig
   validators: ContentValidators
@@ -195,11 +195,11 @@ function logShowDeletionSuccess(
 /**
  * Process movie deletions in tag-based mode
  *
- * @param context - Movie deletion context
+ * @param deps - Movie deletion dependencies
  * @param counters - Deletion counters to update
  */
 export async function processMovieDeletions(
-  context: MovieDeletionContext,
+  deps: MovieDeletionDeps,
   counters: DeletionCounters,
 ): Promise<void> {
   const {
@@ -213,7 +213,7 @@ export async function processMovieDeletions(
     dryRun,
     deletedGuidsTracker,
     playlistName,
-  } = context
+  } = deps
 
   // Check if movie deletion is enabled
   if (!config.deleteMovie) {
@@ -235,15 +235,6 @@ export async function processMovieDeletions(
   // Process each instance
   for (const [instanceId, instanceMovies] of moviesByInstance.entries()) {
     for (const movie of instanceMovies) {
-      // Skip movies without instance ID
-      if (!movie.radarr_instance_id) {
-        logger.warn(
-          `Movie "${movie.title}" has no Radarr instance ID, skipping deletion`,
-        )
-        counters.incrementMovieSkipped()
-        continue
-      }
-
       try {
         // Get the appropriate Radarr service for this instance
         const service = radarrManager.getRadarrService(instanceId)
@@ -356,11 +347,11 @@ export async function processMovieDeletions(
 /**
  * Process show deletions in tag-based mode
  *
- * @param context - Show deletion context
+ * @param deps - Show deletion dependencies
  * @param counters - Deletion counters to update
  */
 export async function processShowDeletions(
-  context: ShowDeletionContext,
+  deps: ShowDeletionDeps,
   counters: DeletionCounters,
 ): Promise<void> {
   const {
@@ -374,7 +365,7 @@ export async function processShowDeletions(
     dryRun,
     deletedGuidsTracker,
     playlistName,
-  } = context
+  } = deps
 
   // Check if any show deletion is enabled
   if (!config.deleteEndedShow && !config.deleteContinuingShow) {
@@ -404,15 +395,6 @@ export async function processShowDeletions(
         continue
       }
       if (!isContinuing && !config.deleteEndedShow) {
-        continue
-      }
-
-      // Skip shows without instance ID
-      if (!show.sonarr_instance_id) {
-        logger.warn(
-          `${isContinuing ? 'Continuing' : 'Ended'} show "${show.title}" has no Sonarr instance ID, skipping deletion`,
-        )
-        counters.incrementShowSkipped(isContinuing)
         continue
       }
 

@@ -15,17 +15,14 @@ export class PendingWebhooksService {
   private isRunning = false
   private _processingWebhooks = false
   private _cleaningUp = false
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'PENDING_WEBHOOKS')
-  }
+  private readonly log: FastifyBaseLogger
 
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     config?: Partial<PendingWebhooksConfig>,
   ) {
+    this.log = createServiceLogger(baseLog, 'PENDING_WEBHOOKS')
     this._config = {
       retryInterval: 20, // Process every 20 seconds
       maxAge: 10, // Keep webhooks for max 10 minutes

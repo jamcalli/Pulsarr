@@ -22,6 +22,7 @@ import type {
 import { toItemsSingle } from '@services/plex-watchlist/index.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
+import { USER_AGENT } from '@utils/version.js'
 import { XMLParser } from 'fast-xml-parser'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
@@ -54,11 +55,7 @@ const PLEX_API_TIMEOUT = 30000 // 30 seconds for Plex API operations
  * PlexServerService class for maintaining state and providing Plex operations
  */
 export class PlexServerService {
-  /** Creates a fresh service logger that inherits current log level */
-
-  private get log(): FastifyBaseLogger {
-    return createServiceLogger(this.baseLog, 'PLEX_SERVER')
-  }
+  private readonly log: FastifyBaseLogger
 
   // Connection and server information cache
   private serverConnections: PlexServerConnectionInfo[] | null = null
@@ -106,9 +103,10 @@ export class PlexServerService {
    * @param fastify - Fastify instance for accessing configuration
    */
   constructor(
-    private readonly baseLog: FastifyBaseLogger,
+    readonly baseLog: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {
+    this.log = createServiceLogger(baseLog, 'PLEX_SERVER')
     this.log.info('Initializing PlexServerService')
   }
 
@@ -218,6 +216,7 @@ export class PlexServerService {
       const resourcesUrl = new URL('/api/v2/resources', plexTvUrl)
       const resourcesResponse = await fetch(resourcesUrl.toString(), {
         headers: {
+          'User-Agent': USER_AGENT,
           Accept: 'application/json',
           'X-Plex-Token': adminToken,
           'X-Plex-Client-Identifier': 'Pulsarr',

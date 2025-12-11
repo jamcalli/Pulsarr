@@ -2,10 +2,26 @@ import type {
   Item,
   PlexApiResponse,
   RssResponse,
+  RssWatchlistItem,
 } from '@root/types/plex.types.js'
-import { normalizeGuid } from '@utils/guid-handler.js'
+import { normalizeGenre, normalizeGuid } from '@utils/guid-handler.js'
+import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
+
+/**
+ * Generate a stable cache key from GUIDs.
+ * Used for RSS feed diffing to detect new items consistently.
+ *
+ * @param guids - Array of GUID strings
+ * @returns Stable key string (sorted, normalized, deduplicated, joined)
+ */
+export function generateStableKey(guids: string[]): string {
+  const normalized = guids.map((g) => g.toLowerCase().trim()).filter(Boolean)
+
+  // Deduplicate after normalization to keep keys stable
+  return Array.from(new Set(normalized)).sort().join('|')
+}
 
 /**
  * Generates RSS feed URLs for the given Plex tokens.
@@ -71,6 +87,7 @@ export const getRssFromPlexToken = async (
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
+        'User-Agent': USER_AGENT,
         'Content-Type': 'application/json',
         'X-Plex-Token': token,
       },
@@ -117,6 +134,7 @@ export const fetchWatchlistFromRss = async (
 
     const response = await fetch(urlObj.toString(), {
       headers: {
+        'User-Agent': USER_AGENT,
         Accept: 'application/json',
       },
       signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
@@ -155,15 +173,8 @@ export const fetchWatchlistFromRss = async (
                 (genre): genre is string =>
                   typeof genre === 'string' && genre.trim().length > 0,
               )
-              .map((genre) => {
-                if (genre.toLowerCase() === 'sci-fi & fantasy') {
-                  return 'Sci-Fi & Fantasy'
-                }
-                return genre
-                  .split(' ')
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(' ')
-              }),
+              .map(normalizeGenre)
+              .filter(Boolean),
             user_id: userId,
             status: 'pending',
             created_at: new Date().toISOString(),
@@ -181,4 +192,133 @@ export const fetchWatchlistFromRss = async (
 
   log.debug(`Successfully processed ${items.size} items from RSS feed`)
   return items
+}
+
+/**
+ * Result of fetching raw RSS feed content
+ */
+export interface RawRssFetchResult {
+  success: boolean
+  items: RssWatchlistItem[]
+  etag: string | null
+  /** Explicit flag for HTTP 304 Not Modified response */
+  notModified?: boolean
+  authError?: boolean
+  notFound?: boolean
+  error?: string
+}
+
+/**
+ * Fetch raw RSS feed content with ETag support.
+ * Used by the RSS feed cache for efficient polling.
+ *
+ * @param url - The RSS feed URL
+ * @param token - Plex authentication token
+ * @param log - Logger instance
+ * @param previousEtag - Previous ETag for conditional request (optional)
+ * @returns Raw RSS items with metadata
+ */
+export async function fetchRawRssFeed(
+  url: string,
+  token: string,
+  log: FastifyBaseLogger,
+  previousEtag?: string,
+): Promise<RawRssFetchResult> {
+  try {
+    const urlObj = new URL(url)
+    urlObj.searchParams.set('format', 'json')
+
+    // Single GET request with conditional ETag - server returns 304 with no body if unchanged
+    const response = await fetch(urlObj.toString(), {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'X-Plex-Token': token,
+        'X-Plex-Client-Identifier': 'pulsarr',
+        Accept: 'application/json',
+        ...(previousEtag && { 'If-None-Match': previousEtag }),
+      },
+      signal: AbortSignal.timeout(PLEX_API_TIMEOUT_MS),
+    })
+
+    // Not modified - content unchanged
+    if (response.status === 304) {
+      log.debug('RSS feed unchanged (304 Not Modified)')
+      return {
+        success: true,
+        items: [],
+        etag: previousEtag ?? null,
+        notModified: true,
+      }
+    }
+
+    // Auth errors
+    if (response.status === 401 || response.status === 403) {
+      log.warn('RSS feed auth error - user may lack RSS access')
+      return { success: false, items: [], etag: null, authError: true }
+    }
+
+    // Not found
+    if (response.status === 404) {
+      log.warn('RSS feed not found')
+      return { success: false, items: [], etag: null, notFound: true }
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        items: [],
+        etag: null,
+        error: `Request failed: HTTP ${response.status}`,
+      }
+    }
+
+    // Extract ETag from response
+    const newEtag = response.headers.get('ETag')
+
+    const json = (await response.json()) as RssResponse
+    const items: RssWatchlistItem[] = []
+
+    if (json?.items && Array.isArray(json.items)) {
+      for (const rawItem of json.items) {
+        // Validate required fields
+        if (
+          !rawItem.title ||
+          !rawItem.category ||
+          !Array.isArray(rawItem.guids) ||
+          rawItem.guids.length === 0
+        ) {
+          log.debug({ title: rawItem.title }, 'Skipping malformed RSS item')
+          continue
+        }
+
+        // Normalize GUIDs
+        const normalizedGuids = rawItem.guids
+          .filter(
+            (guid): guid is string =>
+              typeof guid === 'string' && guid.trim().length > 0,
+          )
+          .map((guid) => normalizeGuid(guid))
+
+        if (normalizedGuids.length === 0) {
+          log.debug(
+            { title: rawItem.title },
+            'Skipping item with no valid GUIDs',
+          )
+          continue
+        }
+
+        items.push({
+          ...rawItem,
+          guids: normalizedGuids,
+        })
+      }
+    }
+
+    log.debug({ itemCount: items.length, etag: newEtag }, 'RSS feed fetched')
+    return { success: true, items, etag: newEtag }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    log.error({ error: errorMessage }, 'Failed to fetch RSS feed')
+    return { success: false, items: [], etag: null, error: errorMessage }
+  }
 }

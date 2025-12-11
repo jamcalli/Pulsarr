@@ -213,63 +213,6 @@ declare module '@services/database.service.js' {
     ): Promise<{ id: number; key: string }[]>
 
     /**
-     * Creates temporary RSS items for processing
-     * @param items - Array of temporary RSS items to create
-     * @returns Promise resolving to void when complete
-     */
-    createTempRssItems(
-      this: DatabaseService,
-      items: Array<{
-        title: string
-        type: string
-        thumb?: string
-        guids: string[]
-        genres?: string[]
-        source: 'self' | 'friends'
-        routed?: boolean
-      }>,
-    ): Promise<void>
-
-    /**
-     * Retrieves temporary RSS items
-     * @param source - Optional source filter ('self' or 'friends')
-     * @returns Promise resolving to array of temporary RSS items
-     */
-    getTempRssItems(
-      this: DatabaseService,
-      source?: 'self' | 'friends',
-    ): Promise<
-      Array<{
-        id: number
-        title: string
-        type: string
-        thumb: string | null
-        guids: string[]
-        genres: string[]
-        source: 'self' | 'friends'
-        created_at: string
-        routed: boolean
-      }>
-    >
-
-    /**
-     * Deletes specific temporary RSS items by ID
-     * @param ids - Array of item IDs to delete
-     * @returns Promise resolving to void when complete
-     */
-    deleteTempRssItems(this: DatabaseService, ids: number[]): Promise<void>
-
-    /**
-     * Deletes all temporary RSS items
-     * @param source - Optional source filter ('self' or 'friends')
-     * @returns Promise resolving to void when complete
-     */
-    deleteAllTempRssItems(
-      this: DatabaseService,
-      source?: 'self' | 'friends',
-    ): Promise<void>
-
-    /**
      * Deletes watchlist items for a user
      * @param userId - ID of the user
      * @param keys - Array of watchlist item keys to delete
