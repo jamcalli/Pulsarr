@@ -27,7 +27,7 @@ export interface ModeSwitcherDeps {
 /** Mutable state managed by the workflow service */
 export interface ModeSwitcherState {
   rssMode: boolean
-  isUsingRssFallback: boolean
+  isEtagFallbackActive: boolean
   rssCacheDisabled: boolean
   lastRssCacheInfo: RssCacheInfo | null
   rssCheckInterval: NodeJS.Timeout | null
@@ -45,7 +45,7 @@ export interface ModeSwitcherCallbacks {
 /** State updates to apply after mode switch */
 export interface ModeStateUpdate {
   rssMode: boolean
-  isUsingRssFallback: boolean
+  isEtagFallbackActive: boolean
   rssCacheDisabled: boolean
 }
 
@@ -166,6 +166,7 @@ async function switchToEtagMode(
   // Stop RSS polling
   if (state.rssCheckInterval) {
     clearInterval(state.rssCheckInterval)
+    state.rssCheckInterval = null
   }
 
   // Clear RSS caches
@@ -190,7 +191,7 @@ async function switchToEtagMode(
 
   log.info('Mode switch complete: now running in ETag mode')
 
-  return { rssMode: false, isUsingRssFallback: true, rssCacheDisabled: true }
+  return { rssMode: false, isEtagFallbackActive: true, rssCacheDisabled: true }
 }
 
 /**
@@ -217,14 +218,21 @@ async function switchToRssMode(
     state.rssEtagPoller = new RssEtagPoller(log)
   }
 
-  // Prime RSS caches
+  // Prime RSS caches (best-effort - don't block mode switch on failure)
   const token = config.plexTokens?.[0]
   if (token && state.rssFeedCache) {
-    await state.rssFeedCache.primeCaches(
-      config.selfRss,
-      config.friendsRss,
-      token,
-    )
+    try {
+      await state.rssFeedCache.primeCaches(
+        config.selfRss,
+        config.friendsRss,
+        token,
+      )
+    } catch (error) {
+      log.warn(
+        { error: error instanceof Error ? error.message : String(error) },
+        'Failed to prime RSS caches, will retry on next poll',
+      )
+    }
   }
 
   // Start RSS polling
@@ -232,5 +240,5 @@ async function switchToRssMode(
 
   log.info('Mode switch complete: now running in RSS mode')
 
-  return { rssMode: true, isUsingRssFallback: false, rssCacheDisabled: false }
+  return { rssMode: true, isEtagFallbackActive: false, rssCacheDisabled: false }
 }
