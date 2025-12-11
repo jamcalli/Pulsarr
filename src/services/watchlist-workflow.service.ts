@@ -98,7 +98,7 @@ export class WatchlistWorkflowService {
   private rssCheckInterval: NodeJS.Timeout | null = null
 
   /** Flag to indicate if using RSS fallback */
-  private isUsingRssFallback = false
+  private isEtagFallbackActive = false
 
   /** Timestamp of the last successful watchlist sync */
   private lastSuccessfulSyncTime: number = Date.now()
@@ -264,7 +264,7 @@ export class WatchlistWorkflowService {
    * @returns boolean indicating if the service is using RSS fallback
    */
   public getIsUsingRssFallback(): boolean {
-    return this.isUsingRssFallback
+    return this.isEtagFallbackActive
   }
 
   /**
@@ -326,7 +326,7 @@ export class WatchlistWorkflowService {
 
       // Apply initialization results to service state
       this.rssMode = result.rssMode
-      this.isUsingRssFallback = result.isUsingRssFallback
+      this.isEtagFallbackActive = result.isEtagFallbackActive
       this.rssEtagPoller = result.rssEtagPoller
       this.rssFeedCache = result.rssFeedCache
       this.deferredRoutingQueue = result.deferredRoutingQueue
@@ -341,7 +341,7 @@ export class WatchlistWorkflowService {
         if (shouldDisableRss) {
           this.rssCacheDisabled = true
           this.rssMode = false
-          this.isUsingRssFallback = true
+          this.isEtagFallbackActive = true
         }
       }
 
@@ -413,7 +413,7 @@ export class WatchlistWorkflowService {
       // Log the actual mode clearly:
       // - RSS mode: RSS feeds for instant detection + 2-hour full reconciliation
       // - ETag mode: 5-min staggered ETag polling + 2-hour full reconciliation (no RSS)
-      if (this.isUsingRssFallback) {
+      if (this.isEtagFallbackActive) {
         this.log.info(
           'Watchlist workflow running in ETag mode (5-minute staggered polling, 2-hour full reconciliation)',
         )
@@ -972,8 +972,8 @@ export class WatchlistWorkflowService {
               this.lastRssCacheInfo = modeResult.cacheInfo
               if (modeResult.switched && modeResult.stateUpdate) {
                 this.rssMode = modeResult.stateUpdate.rssMode
-                this.isUsingRssFallback =
-                  modeResult.stateUpdate.isUsingRssFallback
+                this.isEtagFallbackActive =
+                  modeResult.stateUpdate.isEtagFallbackActive
                 this.rssCacheDisabled = modeResult.stateUpdate.rssCacheDisabled
                 this.log.info({ newMode: modeResult.newMode }, 'Mode switched')
               }
@@ -1082,7 +1082,7 @@ export class WatchlistWorkflowService {
   private get modeSwitcherState(): ModeSwitcherState {
     return {
       rssMode: this.rssMode,
-      isUsingRssFallback: this.isUsingRssFallback,
+      isEtagFallbackActive: this.isEtagFallbackActive,
       rssCacheDisabled: this.rssCacheDisabled,
       lastRssCacheInfo: this.lastRssCacheInfo,
       rssCheckInterval: this.rssCheckInterval,

@@ -41,7 +41,7 @@ export interface WorkflowInitResult {
   /** Whether RSS mode is enabled */
   rssMode: boolean
   /** Whether using RSS fallback (manual sync mode) */
-  isUsingRssFallback: boolean
+  isEtagFallbackActive: boolean
   /** RSS ETag poller instance (null if RSS mode disabled) */
   rssEtagPoller: RssEtagPoller | null
   /** RSS feed cache manager instance (null if RSS mode disabled) */
@@ -71,7 +71,7 @@ export async function initializeWorkflow(
   deps: WorkflowStartDeps,
 ): Promise<WorkflowInitResult> {
   let rssMode = false
-  let isUsingRssFallback = false
+  let isEtagFallbackActive = false
   let rssEtagPoller: RssEtagPoller | null = null
   let rssFeedCache: RssFeedCacheManager | null = null
 
@@ -110,7 +110,7 @@ export async function initializeWorkflow(
         { error: rssFeeds.error },
         'Failed to generate RSS feeds, falling back to manual sync',
       )
-      isUsingRssFallback = true
+      isEtagFallbackActive = true
       rssMode = false
     } else {
       // Initialize RSS monitoring if feeds were generated successfully
@@ -121,7 +121,7 @@ export async function initializeWorkflow(
       rssEtagPoller = new RssEtagPoller(deps.logger)
       // Initialize RSS feed cache for item diffing and author tracking
       rssFeedCache = new RssFeedCacheManager(deps.logger)
-      isUsingRssFallback = false
+      isEtagFallbackActive = false
       rssMode = true
     }
   } catch (rssError) {
@@ -161,7 +161,7 @@ export async function initializeWorkflow(
 
   return {
     rssMode,
-    isUsingRssFallback,
+    isEtagFallbackActive,
     rssEtagPoller,
     rssFeedCache,
     deferredRoutingQueue,
