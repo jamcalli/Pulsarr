@@ -975,7 +975,7 @@ export class WatchlistWorkflowService {
                 'Resumed change detection after periodic reconciliation',
               )
 
-              // Schedule next periodic reconciliation for +40 minutes
+              // Schedule next periodic reconciliation
               await this.schedulePendingReconciliation()
             }
           } catch (error) {
