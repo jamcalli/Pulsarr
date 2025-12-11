@@ -7,8 +7,6 @@ import {
   fastifyZodOpenApiPlugin,
   fastifyZodOpenApiTransform,
   fastifyZodOpenApiTransformObject,
-  serializerCompiler,
-  validatorCompiler,
 } from 'fastify-zod-openapi'
 
 const createOpenapiConfig = (fastify: FastifyInstance) => {
@@ -193,10 +191,6 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    // Set up Zod validators with fast-json-stringify serialization
-    fastify.setValidatorCompiler(validatorCompiler)
-    fastify.setSerializerCompiler(serializerCompiler)
-
     // Register the zod-openapi plugin (required for schema transformation)
     await fastify.register(fastifyZodOpenApiPlugin)
 
