@@ -4,10 +4,12 @@ import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 import {
-  jsonSchemaTransform,
+  fastifyZodOpenApiPlugin,
+  fastifyZodOpenApiTransform,
+  fastifyZodOpenApiTransformObject,
   serializerCompiler,
   validatorCompiler,
-} from 'fastify-type-provider-zod'
+} from 'fastify-zod-openapi'
 
 const createOpenapiConfig = (fastify: FastifyInstance) => {
   const urlObject = new URL(fastify.config.baseUrl)
@@ -184,15 +186,19 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
     },
     hideUntagged: true,
     exposeRoute: true,
-    transform: jsonSchemaTransform,
+    transform: fastifyZodOpenApiTransform,
+    transformObject: fastifyZodOpenApiTransformObject,
   }
 }
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    // Set up Zod validators
+    // Set up Zod validators with fast-json-stringify serialization
     fastify.setValidatorCompiler(validatorCompiler)
     fastify.setSerializerCompiler(serializerCompiler)
+
+    // Register the zod-openapi plugin (required for schema transformation)
+    await fastify.register(fastifyZodOpenApiPlugin)
 
     /**
      * Register Swagger with combined config

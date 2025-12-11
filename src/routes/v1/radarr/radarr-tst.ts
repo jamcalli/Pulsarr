@@ -1,3 +1,4 @@
+import { NoContentSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
@@ -90,7 +91,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         body: RadarrInstanceSchema.partial(),
         tags: ['Radarr'],
         response: {
-          204: z.void(),
+          204: NoContentSchema,
           400: z.object({
             statusCode: z.number(),
             error: z.string(),
@@ -172,7 +173,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         params: z.object({ id: z.coerce.number() }),
         tags: ['Radarr'],
         response: {
-          204: z.void(),
+          204: NoContentSchema,
           400: z.object({
             statusCode: z.number(),
             error: z.string(),
