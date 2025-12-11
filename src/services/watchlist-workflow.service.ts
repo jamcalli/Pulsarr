@@ -108,9 +108,6 @@ export class WatchlistWorkflowService {
   /** RSS feed cache manager for item diffing and author tracking */
   private rssFeedCache: RssFeedCacheManager | null = null
 
-  /** Interval timer for change detection checks */
-  private etagCheckInterval: NodeJS.Timeout | null = null
-
   /** Debounce timer for syncAllStatuses after routing */
   private statusSyncDebounceTimer: NodeJS.Timeout | null = null
 
@@ -432,10 +429,6 @@ export class WatchlistWorkflowService {
       clearInterval(this.rssCheckInterval)
       this.rssCheckInterval = null
     }
-    if (this.etagCheckInterval) {
-      clearInterval(this.etagCheckInterval)
-      this.etagCheckInterval = null
-    }
     if (this.statusSyncDebounceTimer) {
       clearTimeout(this.statusSyncDebounceTimer)
       this.statusSyncDebounceTimer = null
@@ -695,11 +688,9 @@ export class WatchlistWorkflowService {
    * Only called in ETag mode (non-RSS fallback).
    */
   private startEtagCheckInterval(): void {
-    if (this.etagCheckInterval) {
-      clearInterval(this.etagCheckInterval)
-    }
-
-    this.startStaggeredPolling()
+    void this.startStaggeredPolling().catch((error) => {
+      this.log.error({ error }, 'Failed to start staggered ETag polling')
+    })
   }
 
   /**
@@ -949,17 +940,10 @@ export class WatchlistWorkflowService {
             // Unschedule this job to prevent concurrent execution
             await this.unschedulePendingReconciliation()
 
-            // Stop change detection during full reconciliation to prevent conflicts
-            if (this.etagCheckInterval) {
-              clearInterval(this.etagCheckInterval)
-              this.etagCheckInterval = null
-              this.log.debug(
-                'Paused change detection for periodic reconciliation',
-              )
-            }
-
             try {
               // Perform full reconciliation (this also re-establishes baselines)
+              // Note: Change detection (RSS or ETag) continues during reconciliation
+              // to catch new items - deduplication handles any overlap
               await this.reconcile({ mode: 'full' })
 
               // Update timing trackers
@@ -967,14 +951,6 @@ export class WatchlistWorkflowService {
 
               this.log.info('Periodic reconciliation completed successfully')
             } finally {
-              // Restart change detection with fresh interval (ETag mode only)
-              if (!this.rssMode) {
-                this.startEtagCheckInterval()
-              }
-              this.log.debug(
-                'Resumed change detection after periodic reconciliation',
-              )
-
               // Schedule next periodic reconciliation
               await this.schedulePendingReconciliation()
             }
