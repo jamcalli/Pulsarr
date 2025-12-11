@@ -270,15 +270,21 @@ export async function routeShow(
   }
 
   // Check existence in target instances
-  let existsInTargetInstance = false
-
   if (existingSeries) {
-    existsInTargetInstance = checkShowExistsInBulkData(
+    // Bulk sync path - use debug level to avoid log spam during reconciliation
+    const existsInTargetInstance = checkShowExistsInBulkData(
       tempItem,
       existingSeries,
       targetInstanceIds,
     )
+    if (existsInTargetInstance) {
+      deps.logger.debug(
+        `Show ${tempItem.title} already exists in Sonarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+      )
+      return { routed: false, skippedReason: 'exists-in-target' }
+    }
   } else {
+    // Real-time detection path (ETag/RSS) - use info level for visibility
     const { exists, anyChecked } = await checkShowExistsViaApi(
       tempItem,
       targetInstanceIds,
@@ -293,14 +299,12 @@ export async function routeShow(
       return { routed: false, skippedReason: 'no-instances-available' }
     }
 
-    existsInTargetInstance = exists
-  }
-
-  if (existsInTargetInstance) {
-    deps.logger.debug(
-      `Show ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
-    )
-    return { routed: false, skippedReason: 'exists-in-target' }
+    if (exists) {
+      deps.logger.info(
+        `Show ${tempItem.title} already exists in Sonarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+      )
+      return { routed: false, skippedReason: 'exists-in-target' }
+    }
   }
 
   // Check Plex existence if configured
@@ -400,15 +404,21 @@ export async function routeMovie(
   }
 
   // Check existence in target instances
-  let existsInTargetInstance = false
-
   if (existingMovies) {
-    existsInTargetInstance = checkMovieExistsInBulkData(
+    // Bulk sync path - use debug level to avoid log spam during reconciliation
+    const existsInTargetInstance = checkMovieExistsInBulkData(
       tempItem,
       existingMovies,
       targetInstanceIds,
     )
+    if (existsInTargetInstance) {
+      deps.logger.debug(
+        `Movie ${tempItem.title} already exists in Radarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+      )
+      return { routed: false, skippedReason: 'exists-in-target' }
+    }
   } else {
+    // Real-time detection path (ETag/RSS) - use info level for visibility
     const { exists, anyChecked } = await checkMovieExistsViaApi(
       tempItem,
       targetInstanceIds,
@@ -423,14 +433,12 @@ export async function routeMovie(
       return { routed: false, skippedReason: 'no-instances-available' }
     }
 
-    existsInTargetInstance = exists
-  }
-
-  if (existsInTargetInstance) {
-    deps.logger.debug(
-      `Movie ${tempItem.title} already exists in target instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
-    )
-    return { routed: false, skippedReason: 'exists-in-target' }
+    if (exists) {
+      deps.logger.info(
+        `Movie ${tempItem.title} already exists in Radarr instance(s) ${targetInstanceIds.join(', ')}, skipping addition`,
+      )
+      return { routed: false, skippedReason: 'exists-in-target' }
+    }
   }
 
   // Check Plex existence if configured
