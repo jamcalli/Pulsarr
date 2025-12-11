@@ -6,6 +6,14 @@
  */
 
 export {
+  checkAndSwitchModeIfNeeded,
+  checkInitialRssCacheMode,
+  type ModeCheckResult,
+  type ModeSwitcherCallbacks,
+  type ModeSwitcherDeps,
+  type ModeSwitcherState,
+} from './mode-switcher.js'
+export {
   cleanupExistingManualSync,
   type SchedulerDeps,
   schedulePendingReconciliation,

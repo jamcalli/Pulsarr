@@ -30,9 +30,15 @@ export {
 } from './fetching/index.js'
 // Lifecycle
 export {
+  checkAndSwitchModeIfNeeded,
+  checkInitialRssCacheMode,
   cleanupExistingManualSync,
   cleanupWorkflow,
   initializeWorkflow,
+  type ModeCheckResult,
+  type ModeSwitcherCallbacks,
+  type ModeSwitcherDeps,
+  type ModeSwitcherState,
   type SchedulerDeps,
   schedulePendingReconciliation,
   setupPeriodicReconciliation,
