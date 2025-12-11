@@ -184,10 +184,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -317,10 +314,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -815,10 +809,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -1367,10 +1358,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -1849,10 +1837,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -2603,10 +2588,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -3196,10 +3178,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -3356,10 +3335,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -3522,10 +3498,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -3651,10 +3624,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -3874,10 +3844,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -4096,10 +4063,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -4283,10 +4247,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -4416,10 +4377,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "config": {
                       "type": "object",
@@ -5780,10 +5738,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "config": {
                       "type": "object",
@@ -11542,10 +11497,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -12349,10 +12301,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -14195,10 +14144,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -14478,10 +14424,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "genres": {
                       "type": "array",
@@ -14638,12 +14581,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -14657,12 +14613,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -15054,10 +15023,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -15207,12 +15173,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -15226,12 +15205,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -15442,10 +15434,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -15629,10 +15618,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -15750,10 +15736,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -15942,10 +15925,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -16107,10 +16087,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -16251,10 +16228,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -16429,10 +16403,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -16569,10 +16540,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -16766,10 +16734,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -16892,10 +16857,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -17022,10 +16984,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -17205,10 +17164,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -17328,10 +17284,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -18823,12 +18776,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -18975,12 +18941,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19257,12 +19236,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19276,12 +19268,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19424,12 +19429,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19443,12 +19461,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19505,12 +19536,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19524,12 +19568,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19588,12 +19645,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19607,12 +19677,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19689,12 +19772,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19708,12 +19804,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19891,12 +20000,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -19910,12 +20032,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -20045,12 +20180,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -20148,12 +20296,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -20212,12 +20373,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -20231,12 +20405,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -20295,12 +20482,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -20314,12 +20514,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -20464,12 +20677,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -20539,12 +20765,25 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
                     "error": {
                       "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
                     }
                   },
                   "required": [
-                    "error"
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -24529,10 +24768,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -24695,10 +24931,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -25874,10 +26107,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -27053,10 +27283,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -28201,10 +28428,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -28363,10 +28587,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -28895,10 +29116,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -29031,10 +29249,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -29164,10 +29379,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -29363,10 +29575,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -29564,10 +29773,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -29739,10 +29945,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
@@ -29884,10 +30087,7 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
+                      "type": "boolean"
                     },
                     "message": {
                       "type": "string"
