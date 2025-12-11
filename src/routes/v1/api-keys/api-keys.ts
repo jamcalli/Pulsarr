@@ -5,9 +5,10 @@ import {
   GetApiKeysResponseSchema,
   RevokeApiKeyParamsSchema,
 } from '@schemas/api-keys/api-keys.schema.js'
+import { NoContentSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
+import type { z } from 'zod'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Create API Key
@@ -114,7 +115,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         description: 'Revoke an API key by ID',
         params: RevokeApiKeyParamsSchema,
         response: {
-          204: z.void(),
+          204: NoContentSchema,
           404: ApiKeyErrorSchema,
           500: ApiKeyErrorSchema,
         },
