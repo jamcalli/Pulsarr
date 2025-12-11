@@ -21,14 +21,14 @@ export const CreateApiKeySchema = z.object({
 })
 
 export const CreateApiKeyResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   apiKey: ApiKeySchema,
 })
 
 // Get API Keys Schema
 export const GetApiKeysResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   apiKeys: z.array(ApiKeySchema),
 })
@@ -39,7 +39,7 @@ export const RevokeApiKeyParamsSchema = z.object({
 })
 
 export const RevokeApiKeyResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
 })
 

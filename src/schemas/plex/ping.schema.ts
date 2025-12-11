@@ -2,7 +2,7 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 export const PingSuccessSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
 })
 
 export type PingSuccess = z.infer<typeof PingSuccessSchema>

@@ -3,20 +3,16 @@
 import {
   DiscordBotResponseSchema,
   ErrorSchema,
-  type WebhookValidationRequest,
   WebhookValidationRequestSchema,
-  type WebhookValidationResponse,
   WebhookValidationResponseSchema,
 } from '@schemas/notifications/discord-control.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Start Discord Bot
-  fastify.post<{
-    Reply: z.infer<typeof DiscordBotResponseSchema>
-  }>(
+  fastify.post(
     '/discordstart',
     {
       schema: {
@@ -68,9 +64,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Stop Discord Bot
-  fastify.post<{
-    Reply: z.infer<typeof DiscordBotResponseSchema>
-  }>(
+  fastify.post(
     '/discordstop',
     {
       schema: {
@@ -122,10 +116,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Validate Discord Webhooks
-  fastify.post<{
-    Body: WebhookValidationRequest
-    Reply: WebhookValidationResponse
-  }>(
+  fastify.post(
     '/validatewebhook',
     {
       schema: {

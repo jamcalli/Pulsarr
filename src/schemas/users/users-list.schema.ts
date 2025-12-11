@@ -21,13 +21,13 @@ const UserWithCountSchema = UserBaseSchema.extend({
 })
 
 export const UserListResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   users: z.array(UserBaseSchema),
 })
 
 export const UserListWithCountsResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   users: z.array(UserWithCountSchema),
 })

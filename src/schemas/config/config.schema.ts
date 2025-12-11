@@ -487,12 +487,12 @@ export const ConfigUpdateSchema = z.object({
 
 // Response schemas
 export const ConfigGetResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   config: ConfigFullSchema,
 })
 
 export const ConfigUpdateResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   config: ConfigFullSchema,
 })
 

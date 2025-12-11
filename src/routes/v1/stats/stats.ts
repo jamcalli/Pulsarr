@@ -17,15 +17,12 @@ import {
   UserStatSchema,
 } from '@schemas/stats/stats.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all dashboard stats combined
-  fastify.get<{
-    Querystring: z.infer<typeof LimitQuerySchema & typeof ActivityQuerySchema>
-    Reply: z.infer<typeof DashboardStatsSchema>
-  }>(
+  fastify.get(
     '/all',
     {
       schema: {
@@ -117,9 +114,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get instance breakdown
-  fastify.get<{
-    Reply: z.infer<typeof InstanceContentBreakdownSchema>
-  }>(
+  fastify.get(
     '/instance-content',
     {
       schema: {
@@ -149,10 +144,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get top genres only
-  fastify.get<{
-    Querystring: z.infer<typeof LimitQuerySchema>
-    Reply: z.infer<typeof GenreStatSchema>[]
-  }>(
+  fastify.get(
     '/genres',
     {
       schema: {
@@ -182,10 +174,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get most watched shows
-  fastify.get<{
-    Querystring: z.infer<typeof LimitQuerySchema>
-    Reply: z.infer<typeof ContentStatSchema>[]
-  }>(
+  fastify.get(
     '/shows',
     {
       schema: {
@@ -215,10 +204,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get most watched movies
-  fastify.get<{
-    Querystring: z.infer<typeof LimitQuerySchema>
-    Reply: z.infer<typeof ContentStatSchema>[]
-  }>(
+  fastify.get(
     '/movies',
     {
       schema: {
@@ -248,10 +234,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get top users by watchlist count
-  fastify.get<{
-    Querystring: z.infer<typeof LimitQuerySchema>
-    Reply: z.infer<typeof UserStatSchema>[]
-  }>(
+  fastify.get(
     '/users',
     {
       schema: {
@@ -281,10 +264,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get recent activity stats
-  fastify.get<{
-    Querystring: z.infer<typeof ActivityQuerySchema>
-    Reply: z.infer<typeof ActivityStatsSchema>
-  }>(
+  fastify.get(
     '/activity',
     {
       schema: {
@@ -315,9 +295,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get availability time stats
-  fastify.get<{
-    Reply: z.infer<typeof AvailabilityTimeSchema>[]
-  }>(
+  fastify.get(
     '/availability',
     {
       schema: {
@@ -348,9 +326,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // NEW ENDPOINT: Get grabbed to notified time stats
-  fastify.get<{
-    Reply: z.infer<typeof GrabbedToNotifiedTimeSchema>[]
-  }>(
+  fastify.get(
     '/grabbed-to-notified',
     {
       schema: {
@@ -381,9 +357,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // NEW ENDPOINT: Get detailed status transition metrics
-  fastify.get<{
-    Reply: z.infer<typeof StatusTransitionTimeSchema>[]
-  }>(
+  fastify.get(
     '/status-transitions',
     {
       schema: {
@@ -414,9 +388,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // NEW ENDPOINT: Get status flow data for visualization
-  fastify.get<{
-    Reply: z.infer<typeof StatusFlowDataSchema>[]
-  }>(
+  fastify.get(
     '/status-flow',
     {
       schema: {
@@ -443,10 +415,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
-  fastify.get<{
-    Querystring: z.infer<typeof ActivityQuerySchema>
-    Reply: z.infer<typeof NotificationStatsSchema>
-  }>(
+  fastify.get(
     '/notifications',
     {
       schema: {

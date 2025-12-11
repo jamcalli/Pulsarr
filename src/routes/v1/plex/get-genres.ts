@@ -3,13 +3,11 @@ import {
   WatchlistGenresResponseSchema,
 } from '@schemas/plex/get-genres.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Reply: z.infer<typeof WatchlistGenresResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/genres',
     {
       schema: {

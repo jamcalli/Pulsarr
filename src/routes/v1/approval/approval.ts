@@ -5,22 +5,19 @@ import {
   ApprovalRequestUpdateResponseSchema,
   ApprovalStatsResponseSchema,
   ApprovalSuccessResponseSchema,
-  type BulkApprovalRequest,
   BulkApprovalRequestSchema,
-  type BulkDeleteRequest,
   BulkDeleteRequestSchema,
   BulkOperationResponseSchema,
-  type BulkRejectRequest,
   BulkRejectRequestSchema,
   CreateApprovalRequestSchema,
   GetApprovalRequestsQuerySchema,
   UpdateApprovalRequestSchema,
 } from '@schemas/approval/approval.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   /**
    * Calculates dynamic expiration info based on current config settings
    */
@@ -86,12 +83,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     }
   }
   // Create approval request
-  fastify.post<{
-    Body: z.infer<typeof CreateApprovalRequestSchema>
-    Reply:
-      | z.infer<typeof ApprovalRequestCreateResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.post(
     '/requests',
     {
       schema: {
@@ -159,12 +151,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get approval requests (with filtering)
-  fastify.get<{
-    Querystring: z.infer<typeof GetApprovalRequestsQuerySchema>
-    Reply:
-      | z.infer<typeof ApprovalRequestsListResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.get(
     '/requests',
     {
       schema: {
@@ -235,12 +222,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get specific approval request by ID
-  fastify.get<{
-    Params: { id: string }
-    Reply:
-      | z.infer<typeof ApprovalRequestCreateResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.get(
     '/requests/:id',
     {
       schema: {
@@ -305,13 +287,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Update approval request (approve/reject/modify)
-  fastify.patch<{
-    Params: { id: string }
-    Body: z.infer<typeof UpdateApprovalRequestSchema>
-    Reply:
-      | z.infer<typeof ApprovalRequestUpdateResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.patch(
     '/requests/:id',
     {
       schema: {
@@ -460,12 +436,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Delete approval request (hard delete from database)
-  fastify.delete<{
-    Params: { id: string }
-    Reply:
-      | z.infer<typeof ApprovalSuccessResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.delete(
     '/requests/:id',
     {
       schema: {
@@ -516,13 +487,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Reject approval request (marks as rejected, keeps in database)
-  fastify.post<{
-    Params: { id: string }
-    Body: { reason?: string }
-    Reply:
-      | z.infer<typeof ApprovalSuccessResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.post(
     '/requests/:id/reject',
     {
       schema: {
@@ -597,11 +562,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get approval statistics
-  fastify.get<{
-    Reply:
-      | z.infer<typeof ApprovalStatsResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.get(
     '/stats',
     {
       schema: {
@@ -636,13 +597,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Approve request and execute routing
-  fastify.post<{
-    Params: { id: string }
-    Body: { notes?: string }
-    Reply:
-      | z.infer<typeof ApprovalSuccessResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.post(
     '/requests/:id/approve',
     {
       schema: {
@@ -745,12 +700,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk approve requests
-  fastify.post<{
-    Body: BulkApprovalRequest
-    Reply:
-      | z.infer<typeof BulkOperationResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.post(
     '/requests/bulk/approve',
     {
       schema: {
@@ -812,12 +762,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk reject requests
-  fastify.post<{
-    Body: BulkRejectRequest
-    Reply:
-      | z.infer<typeof BulkOperationResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.post(
     '/requests/bulk/reject',
     {
       schema: {
@@ -869,12 +814,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk delete requests
-  fastify.delete<{
-    Body: BulkDeleteRequest
-    Reply:
-      | z.infer<typeof BulkOperationResponseSchema>
-      | z.infer<typeof ApprovalErrorSchema>
-  }>(
+  fastify.delete(
     '/requests/bulk/delete',
     {
       schema: {

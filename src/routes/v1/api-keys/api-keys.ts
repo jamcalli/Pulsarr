@@ -7,17 +7,11 @@ import {
 } from '@schemas/api-keys/api-keys.schema.js'
 import { NoContentSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Create API Key
-  fastify.post<{
-    Body: z.infer<typeof CreateApiKeySchema>
-    Reply:
-      | z.infer<typeof CreateApiKeyResponseSchema>
-      | z.infer<typeof ApiKeyErrorSchema>
-  }>(
+  fastify.post(
     '/api-keys',
     {
       schema: {
@@ -60,11 +54,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get API Keys
-  fastify.get<{
-    Reply:
-      | z.infer<typeof GetApiKeysResponseSchema>
-      | z.infer<typeof ApiKeyErrorSchema>
-  }>(
+  fastify.get(
     '/api-keys',
     {
       schema: {
@@ -104,9 +94,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Revoke API Key
-  fastify.delete<{
-    Params: z.infer<typeof RevokeApiKeyParamsSchema>
-  }>(
+  fastify.delete(
     '/api-keys/:id',
     {
       schema: {

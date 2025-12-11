@@ -4,15 +4,11 @@ import {
   UserListWithCountsResponseSchema,
 } from '@schemas/users/users-list.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Reply:
-      | z.infer<typeof UserListResponseSchema>
-      | z.infer<typeof UserErrorSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/users/list',
     {
       schema: {
@@ -67,11 +63,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
-  fastify.get<{
-    Reply:
-      | z.infer<typeof UserListWithCountsResponseSchema>
-      | z.infer<typeof UserErrorSchema>
-  }>(
+  fastify.get(
     '/users/list/with-counts',
     {
       schema: {

@@ -5,16 +5,11 @@ import {
   UpdateUserSchema,
   UserErrorSchema,
 } from '@schemas/users/users.schema.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: z.infer<typeof CreateUserSchema>
-    Reply:
-      | z.infer<typeof CreateUserResponseSchema>
-      | z.infer<typeof UserErrorSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/users',
     {
       schema: {
@@ -64,13 +59,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
-  fastify.patch<{
-    Params: { id: string }
-    Body: z.infer<typeof UpdateUserSchema>
-    Reply:
-      | z.infer<typeof UpdateUserResponseSchema>
-      | z.infer<typeof UserErrorSchema>
-  }>(
+  fastify.patch(
     '/users/:id',
     {
       schema: {
@@ -140,12 +129,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
-  fastify.get<{
-    Params: { id: string }
-    Reply:
-      | z.infer<typeof CreateUserResponseSchema>
-      | z.infer<typeof UserErrorSchema>
-  }>(
+  fastify.get(
     '/users/:id',
     {
       schema: {

@@ -237,14 +237,14 @@ export const GetTmdbMetadataQuerySchema = z.object({
 
 // Response schemas
 export const TmdbMetadataSuccessResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   metadata: TmdbContentMetadataSchema,
 })
 
 // TMDB Regions Response Schemas
 export const TmdbRegionsSuccessResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   regions: z.array(TmdbRegionSchema),
 })

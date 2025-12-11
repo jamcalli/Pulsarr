@@ -1,17 +1,14 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { UpdateCredentialsSchema } from '@schemas/auth/users.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
 const responseSchema = z.object({
   message: z.string(),
 })
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.put<{
-    Body: z.infer<typeof UpdateCredentialsSchema>
-    Reply: z.infer<typeof responseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.put(
     '/update-password',
     {
       config: {

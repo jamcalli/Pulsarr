@@ -1,19 +1,14 @@
 import {
-  type GetUserWatchlistError,
   GetUserWatchlistErrorSchema,
   GetUserWatchlistParamsSchema,
   type GetUserWatchlistResponse,
   GetUserWatchlistResponseSchema,
 } from '@schemas/users/watchlist.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const watchlistRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Params: z.infer<typeof GetUserWatchlistParamsSchema>
-    Reply: GetUserWatchlistResponse | GetUserWatchlistError
-  }>(
+const watchlistRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/:userId/watchlist',
     {
       schema: {

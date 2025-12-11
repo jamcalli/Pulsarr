@@ -2,7 +2,7 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 export const WatchlistGenresResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   genres: z.array(z.string()),
 })
 

@@ -103,37 +103,37 @@ export const DailyStatsResponseSchema = z.object({
 })
 
 export const GetUsersWithQuotasResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   userQuotas: z.array(UserQuotaResponseSchema),
 })
 
 export const UserQuotaCreateResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   userQuotas: UserQuotasResponseSchema,
 })
 
 export const UserQuotaGetResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   userQuotas: UserQuotasResponseSchema,
 })
 
 export const UserQuotaUpdateResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   userQuotas: UserQuotasResponseSchema,
 })
 
 export const QuotaStatusGetResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   quotaStatus: QuotaStatusResponseSchema.nullable(),
 })
 
 export const BulkQuotaStatusResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   quotaStatuses: z.array(
     z.object({
@@ -144,7 +144,7 @@ export const BulkQuotaStatusResponseSchema = z.object({
 })
 
 export const QuotaUsageListResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   quotaUsage: z.array(QuotaUsageResponseSchema),
   total: z.number(),
@@ -153,13 +153,13 @@ export const QuotaUsageListResponseSchema = z.object({
 })
 
 export const DailyStatsListResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   dailyStats: z.array(DailyStatsResponseSchema),
 })
 
 export const QuotaSuccessResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
 })
 
@@ -186,7 +186,7 @@ export const BulkQuotaOperationSchema = z.object({
 })
 
 export const BulkQuotaOperationResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   processedCount: z.number(),
   failedIds: z.array(z.number()).optional(),

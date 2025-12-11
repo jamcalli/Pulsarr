@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { CronExpressionParser } from 'cron-parser'
 import { z } from 'zod'
 
@@ -117,9 +118,8 @@ export const SuccessResponseSchema = z.object({
   message: z.string(),
 })
 
-export const ErrorResponseSchema = z.object({
-  error: z.string(),
-})
+// Re-export shared ErrorSchema with alias for backward compatibility
+export { ErrorSchema, ErrorSchema as ErrorResponseSchema }
 
 // Schema for delete sync dry run results
 export const DeleteItemSchema = z.object({
@@ -162,7 +162,7 @@ export type ScheduleUpdate = z.infer<typeof ScheduleUpdateSchema>
 export type JobRunInfo = z.infer<typeof JobRunInfoSchema>
 export type JobStatus = z.infer<typeof JobStatusSchema>
 export type SuccessResponse = z.infer<typeof SuccessResponseSchema>
-export type ErrorResponse = z.infer<typeof ErrorResponseSchema>
+export type ErrorResponse = z.infer<typeof ErrorSchema>
 export type DeleteItem = z.infer<typeof DeleteItemSchema>
 export type DeletionContentTypeResult = z.infer<
   typeof DeletionContentTypeResultSchema

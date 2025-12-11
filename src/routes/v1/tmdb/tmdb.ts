@@ -1,6 +1,5 @@
 import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
 import {
-  type GetTmdbMetadataParams,
   GetTmdbMetadataParamsSchema,
   type GetTmdbMetadataQuery,
   GetTmdbMetadataQuerySchema,
@@ -14,10 +13,10 @@ import {
   type TmdbTvMetadata,
 } from '@schemas/tmdb/tmdb.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Intelligent TMDB metadata endpoint - accepts GUID format (tmdb:123 or tvdb:456)
   fastify.get<{
     Params: { id: string }
@@ -148,11 +147,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get movie metadata by TMDB ID
-  fastify.get<{
-    Params: GetTmdbMetadataParams
-    Querystring: GetTmdbMetadataQuery
-    Reply: TmdbMetadataSuccessResponse | TmdbMetadataErrorResponse
-  }>(
+  fastify.get(
     '/movie/:id',
     {
       schema: {
@@ -210,11 +205,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get TV show metadata by TMDB ID
-  fastify.get<{
-    Params: GetTmdbMetadataParams
-    Querystring: GetTmdbMetadataQuery
-    Reply: TmdbMetadataSuccessResponse | TmdbMetadataErrorResponse
-  }>(
+  fastify.get(
     '/tv/:id',
     {
       schema: {
