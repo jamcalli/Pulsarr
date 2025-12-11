@@ -77,7 +77,13 @@ export {
   type WatchlistSyncDeps,
 } from './orchestration/watchlist-sync.js'
 // RSS module
-export { mapRssItemsToWatchlist, RssEtagPoller } from './rss/index.js'
+export {
+  detectRssCacheSettings,
+  getCacheThresholdSeconds,
+  mapRssItemsToWatchlist,
+  type RssCacheInfo,
+  RssEtagPoller,
+} from './rss/index.js'
 // Sync module
 export {
   categorizeItems,
