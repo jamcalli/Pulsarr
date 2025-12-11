@@ -3,14 +3,10 @@ import {
   CreateAdminResponseSchema,
   CreateAdminSchema,
 } from '@schemas/auth/admin-user.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: z.infer<typeof CreateAdminSchema>
-    Reply: z.infer<typeof CreateAdminResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/create-admin',
     {
       schema: {

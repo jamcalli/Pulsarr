@@ -4,14 +4,11 @@ import {
   QuerystringSchema,
 } from '@schemas/sonarr/get-quality-profiles.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Querystring: z.infer<typeof QuerystringSchema>
-    Reply: z.infer<typeof QualityProfilesResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/quality-profiles',
     {
       schema: {

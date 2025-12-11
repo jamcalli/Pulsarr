@@ -15,7 +15,7 @@ export const CreateUserSchema = z.object({
 })
 
 export const CreateUserResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   user: z.object({
     id: z.number(),
@@ -37,7 +37,7 @@ export const CreateUserResponseSchema = z.object({
 export const UpdateUserSchema = CreateUserSchema.partial()
 
 export const UpdateUserResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   user: z.object({
     id: z.number(),
@@ -62,7 +62,7 @@ export const BulkUpdateRequestSchema = z.object({
 })
 
 export const BulkUpdateResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   updatedCount: z.number(),
   failedIds: z.array(z.number()).optional(),

@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 // Base rolling monitored show schema
@@ -50,9 +51,7 @@ export const getRollingMonitoredSchema = {
       success: z.boolean(),
       shows: z.array(RollingMonitoredShowSchema),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
   },
 }
 
@@ -68,9 +67,7 @@ export const runSessionMonitorSchema = {
       success: z.boolean(),
       result: SessionMonitoringResultSchema,
     }),
-    400: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
   },
 }
 
@@ -89,12 +86,8 @@ export const deleteRollingMonitoredSchema = {
       success: z.boolean(),
       message: z.string(),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
-    404: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
+    404: ErrorSchema,
   },
 }
 
@@ -113,12 +106,8 @@ export const resetRollingMonitoredSchema = {
       success: z.boolean(),
       message: z.string(),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
-    404: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
+    404: ErrorSchema,
   },
 }
 
@@ -138,9 +127,7 @@ export const resetInactiveShowsSchema = {
       message: z.string(),
       resetCount: z.number(),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
   },
 }
 
@@ -160,9 +147,7 @@ export const getInactiveRollingMonitoredSchema = {
       shows: z.array(RollingMonitoredShowSchema),
       inactivityDays: z.number(),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
   },
 }
 

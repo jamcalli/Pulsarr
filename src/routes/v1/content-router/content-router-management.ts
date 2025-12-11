@@ -11,14 +11,12 @@ import {
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
 import { RuleBuilder } from '@utils/rule-builder.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all router rules
-  fastify.get<{
-    Reply: z.infer<typeof ContentRouterRuleListResponseSchema>
-  }>(
+  fastify.get(
     '/rules',
     {
       schema: {
@@ -270,10 +268,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Create a router rule
-  fastify.post<{
-    Body: z.infer<typeof ContentRouterRuleSchema>
-    Reply: z.infer<typeof ContentRouterRuleResponseSchema>
-  }>(
+  fastify.post(
     '/rules',
     {
       schema: {

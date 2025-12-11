@@ -7,14 +7,12 @@ import {
   SyncTaggingResponseSchema,
 } from '@schemas/tags/user-tags.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Create user tags in Sonarr and/or Radarr instances
-  fastify.post<{
-    Reply: z.infer<typeof CreateTaggingResponseSchema>
-  }>(
+  fastify.post(
     '/create',
     {
       schema: {
@@ -98,7 +96,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message,
-          mode: 'create',
+          mode: 'create' as const,
           sonarr: {
             created: sonarrResults.created,
             skipped: sonarrResults.skipped,
@@ -122,9 +120,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Synchronize content with user tags in Sonarr and Radarr
-  fastify.post<{
-    Reply: z.infer<typeof SyncTaggingResponseSchema>
-  }>(
+  fastify.post(
     '/sync',
     {
       schema: {
@@ -150,7 +146,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             success: false,
             message:
               'Tag synchronization skipped: user tagging is disabled in configuration',
-            mode: 'sync',
+            mode: 'sync' as const,
             sonarr: {
               tagged: 0,
               skipped: 0,
@@ -197,7 +193,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message,
-          mode: 'sync',
+          mode: 'sync' as const,
           sonarr: {
             tagged: results.sonarr.tagged,
             skipped: results.sonarr.skipped,
@@ -222,9 +218,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Clean up orphaned user tags
-  fastify.post<{
-    Reply: z.infer<typeof CleanupResponseSchema>
-  }>(
+  fastify.post(
     '/cleanup',
     {
       schema: {
@@ -321,7 +315,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             success: false,
             message:
               'Tag removal skipped: user tagging is disabled in configuration',
-            mode: 'remove',
+            mode: 'remove' as const,
             sonarr: {
               itemsProcessed: 0,
               itemsUpdated: 0,
@@ -370,7 +364,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message,
-          mode: 'remove',
+          mode: 'remove' as const,
           sonarr: results.sonarr,
           radarr: results.radarr,
         }

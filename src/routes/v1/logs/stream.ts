@@ -6,14 +6,10 @@ import {
   LogStreamResponseSchema,
 } from '@schemas/logs/logs.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const logStreamRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Querystring: z.infer<typeof LogStreamQuerySchema>
-    Reply: z.infer<typeof LogStreamResponseSchema>
-  }>(
+const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/stream',
     {
       schema: {

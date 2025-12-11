@@ -1,6 +1,6 @@
 import { NoContentSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
 // Zod schema for Sonarr instance configuration
@@ -24,7 +24,7 @@ const SonarrInstanceSchema = z.object({
     .default('standard'),
 })
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all instances
   fastify.get<{
     Reply: Array<z.infer<typeof SonarrInstanceSchema> & { id: number }>

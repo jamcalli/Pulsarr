@@ -18,7 +18,7 @@ import {
   UserQuotaUpdateResponseSchema,
 } from '@schemas/quota/quota.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
 // Helper to create quota success responses
@@ -28,14 +28,9 @@ function createQuotaSuccess(
   return { success: true, message }
 }
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Create user quota
-  fastify.post<{
-    Body: z.infer<typeof CreateUserQuotaSchema>
-    Reply:
-      | z.infer<typeof UserQuotaCreateResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.post(
     '/users',
     {
       schema: {
@@ -92,12 +87,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get user quota by user ID
-  fastify.get<{
-    Params: { userId: string }
-    Reply:
-      | z.infer<typeof UserQuotaGetResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.get(
     '/users/:userId',
     {
       schema: {
@@ -139,13 +129,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Update user quota
-  fastify.patch<{
-    Params: { userId: string }
-    Body: z.infer<typeof UpdateUserQuotaSchema>
-    Reply:
-      | z.infer<typeof UserQuotaUpdateResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.patch(
     '/users/:userId',
     {
       schema: {
@@ -213,13 +197,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Update separate movie and show quotas
-  fastify.patch<{
-    Params: { userId: string }
-    Body: z.infer<typeof UpdateSeparateQuotasSchema>
-    Reply:
-      | z.infer<typeof UserQuotaUpdateResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.patch(
     '/users/:userId/separate',
     {
       schema: {
@@ -337,12 +315,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Delete user quota
-  fastify.delete<{
-    Params: { userId: string }
-    Reply:
-      | z.infer<typeof QuotaSuccessResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.delete(
     '/users/:userId',
     {
       schema: {
@@ -380,11 +353,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get all users with quotas
-  fastify.get<{
-    Reply:
-      | z.infer<typeof GetUsersWithQuotasResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.get(
     '/users',
     {
       schema: {
@@ -417,13 +386,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get quota status for a user
-  fastify.get<{
-    Params: { userId: string }
-    Querystring: { contentType?: 'movie' | 'show' }
-    Reply:
-      | z.infer<typeof QuotaStatusGetResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.get(
     '/users/:userId/status',
     {
       schema: {
@@ -468,12 +431,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get quota status for multiple users
-  fastify.post<{
-    Body: { userIds: number[]; contentType?: 'movie' | 'show' }
-    Reply:
-      | z.infer<typeof BulkQuotaStatusResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.post(
     '/users/status/bulk',
     {
       schema: {
@@ -523,13 +481,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Record quota usage
-  fastify.post<{
-    Params: { userId: string }
-    Body: { contentType: 'movie' | 'show'; requestDate?: string }
-    Reply:
-      | z.infer<typeof QuotaSuccessResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.post(
     '/users/:userId/usage',
     {
       schema: {
@@ -576,12 +528,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get quota usage history
-  fastify.get<{
-    Querystring: z.infer<typeof GetQuotaUsageQuerySchema>
-    Reply:
-      | z.infer<typeof QuotaUsageListResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.get(
     '/usage',
     {
       schema: {
@@ -639,12 +586,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get daily usage statistics
-  fastify.get<{
-    Querystring: z.infer<typeof GetDailyStatsQuerySchema>
-    Reply:
-      | z.infer<typeof DailyStatsListResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.get(
     '/stats/daily',
     {
       schema: {
@@ -683,12 +625,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Bulk quota operations
-  fastify.patch<{
-    Body: z.infer<typeof BulkQuotaOperationSchema>
-    Reply:
-      | z.infer<typeof BulkQuotaOperationResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.patch(
     '/users/bulk',
     {
       schema: {
@@ -757,12 +694,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Cleanup old quota usage records
-  fastify.delete<{
-    Querystring: { olderThanDays?: number }
-    Reply:
-      | z.infer<typeof QuotaSuccessResponseSchema>
-      | z.infer<typeof QuotaErrorSchema>
-  }>(
+  fastify.delete(
     '/usage/cleanup',
     {
       schema: {
