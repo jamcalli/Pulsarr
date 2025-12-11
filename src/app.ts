@@ -6,15 +6,6 @@ import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import fp from 'fastify-plugin'
 import { serializerCompiler, validatorCompiler } from 'fastify-zod-openapi'
 
-export const options = {
-  ajv: {
-    customOptions: {
-      coerceTypes: 'array' as const,
-      removeAdditional: 'all' as const,
-    },
-  },
-}
-
 /**
  * Configures and initializes the Fastify server with plugin autoloading,
  * route handlers, and Vite integration for serving a single-page application.
