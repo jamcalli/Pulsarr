@@ -108,7 +108,6 @@ export async function checkAndSwitchModeIfNeeded(
       newMode: null,
       cacheInfo: {
         sMaxAge: null,
-        maxAge: null,
         isCacheTooAggressive: false,
         description: 'No RSS URL configured',
       },
@@ -120,7 +119,6 @@ export async function checkAndSwitchModeIfNeeded(
   log.info(
     {
       sMaxAge: cacheInfo.sMaxAge,
-      maxAge: cacheInfo.maxAge,
       isCacheTooAggressive: cacheInfo.isCacheTooAggressive,
       currentMode: state.rssMode ? 'RSS' : 'ETag',
     },
@@ -154,7 +152,12 @@ export async function checkAndSwitchModeIfNeeded(
 
 /**
  * Switch from RSS mode to ETag mode.
- * Returns state updates for the caller to apply.
+ *
+ * Note: This function uses a hybrid state mutation approach:
+ * - Object references (timers, pollers, caches) are mutated directly since
+ *   they're passed by reference and need immediate cleanup/initialization
+ * - Boolean flags (rssMode, etc.) are returned for the caller to apply since
+ *   primitives are passed by value and mutations wouldn't propagate
  */
 async function switchToEtagMode(
   deps: ModeSwitcherDeps,

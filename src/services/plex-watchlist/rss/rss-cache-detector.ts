@@ -16,8 +16,6 @@ import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
 export interface RssCacheInfo {
   /** CDN/proxy cache duration in seconds (s-maxage), null if not present */
   sMaxAge: number | null
-  /** Browser cache duration in seconds (max-age), null if not present */
-  maxAge: number | null
   /** Whether the cache duration exceeds the acceptable threshold */
   isCacheTooAggressive: boolean
   /** Human-readable description of the cache status */
@@ -34,9 +32,11 @@ const CACHE_THRESHOLD_SECONDS = 300
 /**
  * Detect RSS feed cache settings by performing a HEAD request.
  *
- * Parses the Cache-Control header to extract:
- * - s-maxage: CDN/proxy cache duration (what affects our polling)
- * - max-age: Browser cache duration (less relevant for server-side polling)
+ * Parses the Cache-Control header to extract s-maxage (CDN/proxy cache duration).
+ * This is what determines if our polling will see fresh data or cached responses.
+ *
+ * Note: max-age (browser cache) is irrelevant for server-side requests since
+ * Node.js fetch doesn't use browser caching.
  *
  * @param rssUrl - RSS feed URL to check
  * @param log - Logger instance
@@ -49,7 +49,6 @@ export async function detectRssCacheSettings(
   if (!rssUrl) {
     return {
       sMaxAge: null,
-      maxAge: null,
       isCacheTooAggressive: false,
       description: 'No RSS URL provided',
     }
@@ -71,7 +70,6 @@ export async function detectRssCacheSettings(
       )
       return {
         sMaxAge: null,
-        maxAge: null,
         isCacheTooAggressive: false,
         description: `HTTP ${response.status} - unable to detect cache settings`,
       }
@@ -83,32 +81,22 @@ export async function detectRssCacheSettings(
       log.debug({ rssUrl }, 'No Cache-Control header found on RSS feed')
       return {
         sMaxAge: null,
-        maxAge: null,
         isCacheTooAggressive: false,
         description: 'No Cache-Control header present',
       }
     }
 
-    // Parse cache-control directives
+    // Parse s-maxage (CDN cache) - this is what matters for server-side requests
     const sMaxAge = parseCacheDirective(cacheControl, 's-maxage')
-    const maxAge = parseCacheDirective(cacheControl, 'max-age')
+    const isCacheTooAggressive = (sMaxAge ?? 0) > CACHE_THRESHOLD_SECONDS
 
-    // s-maxage is what CDNs use, so that's our primary concern
-    const effectiveCacheTime = sMaxAge ?? maxAge ?? 0
-    const isCacheTooAggressive = effectiveCacheTime > CACHE_THRESHOLD_SECONDS
-
-    const description = buildCacheDescription(
-      sMaxAge,
-      maxAge,
-      isCacheTooAggressive,
-    )
+    const description = buildCacheDescription(sMaxAge, isCacheTooAggressive)
 
     log.debug(
       {
         rssUrl,
         cacheControl,
         sMaxAge,
-        maxAge,
         isCacheTooAggressive,
         thresholdSeconds: CACHE_THRESHOLD_SECONDS,
       },
@@ -117,7 +105,6 @@ export async function detectRssCacheSettings(
 
     return {
       sMaxAge,
-      maxAge,
       isCacheTooAggressive,
       description,
     }
@@ -129,7 +116,6 @@ export async function detectRssCacheSettings(
     )
     return {
       sMaxAge: null,
-      maxAge: null,
       isCacheTooAggressive: false,
       description: `Error: ${errorMessage}`,
     }
@@ -140,7 +126,7 @@ export async function detectRssCacheSettings(
  * Parse a numeric directive from Cache-Control header.
  *
  * @param cacheControl - Full Cache-Control header value
- * @param directive - Directive name to parse (e.g., 's-maxage', 'max-age')
+ * @param directive - Directive name to parse (e.g., 's-maxage')
  * @returns Parsed value in seconds, or null if not found
  */
 function parseCacheDirective(
@@ -164,26 +150,14 @@ function parseCacheDirective(
  */
 function buildCacheDescription(
   sMaxAge: number | null,
-  maxAge: number | null,
   isTooAggressive: boolean,
 ): string {
-  const parts: string[] = []
-
-  if (sMaxAge !== null) {
-    const minutes = Math.round(sMaxAge / 60)
-    parts.push(`CDN cache: ${minutes} min`)
+  if (sMaxAge === null) {
+    return 'No CDN cache directive found'
   }
 
-  if (maxAge !== null && maxAge !== sMaxAge) {
-    const minutes = Math.round(maxAge / 60)
-    parts.push(`browser cache: ${minutes} min`)
-  }
-
-  if (parts.length === 0) {
-    return 'No cache directives found'
-  }
-
-  const cacheInfo = parts.join(', ')
+  const minutes = Math.round(sMaxAge / 60)
+  const cacheInfo = `CDN cache: ${minutes} min`
 
   if (isTooAggressive) {
     return `${cacheInfo} (too aggressive for real-time detection)`
