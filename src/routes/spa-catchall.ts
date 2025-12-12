@@ -24,27 +24,28 @@ export default async function spaRoute(fastify: FastifyInstance) {
         // Normalize request path (strip query + basePath)
         const rawPath = request.url.split('?')[0] ?? request.url
         const basePath = normalizeBasePath(fastify.config.basePath)
-        const path =
-          basePath !== '/' && rawPath.startsWith(basePath)
-            ? rawPath.slice(basePath.length) || '/'
-            : rawPath
+        const hasBasePrefix =
+          basePath !== '/' &&
+          (rawPath === basePath || rawPath.startsWith(`${basePath}/`))
+        const path = hasBasePrefix
+          ? rawPath.slice(basePath.length) || '/'
+          : rawPath
 
         // Skip API routes and static assets — ensure we do NOT fall through to SPA HTML
         const lastSeg = path.split('/').pop() ?? ''
         if (
+          path === '/v1' ||
           path.startsWith('/v1/') ||
           path === '/favicon.ico' ||
           lastSeg.includes('.')
         ) {
-          reply.callNotFound()
-          return
+          return reply.callNotFound()
         }
 
         // Only serve SPA for HTML navigations; return 404 for non-HTML (e.g., XHR/fetch)
         const accept = request.headers.accept ?? ''
         if (typeof accept === 'string' && !accept.includes('text/html')) {
-          reply.callNotFound()
-          return
+          return reply.callNotFound()
         }
 
         // Get auth bypass status first

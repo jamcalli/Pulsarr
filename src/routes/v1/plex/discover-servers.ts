@@ -66,8 +66,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         url.searchParams.append('includeRelay', '0')
         url.searchParams.append('includeIPv6', '0')
 
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 10_000)
         const response = await fetch(url.toString(), {
           method: 'GET',
+          signal: controller.signal,
           headers: {
             'User-Agent': USER_AGENT,
             Accept: 'application/json',
@@ -76,7 +79,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             'X-Plex-Product': 'Pulsarr',
             'X-Plex-Platform': 'Web',
           },
-        })
+        }).finally(() => clearTimeout(timeout))
 
         if (!response.ok) {
           // Pass along the HTTP status code with the error

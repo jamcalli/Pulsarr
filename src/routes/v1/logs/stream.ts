@@ -114,6 +114,8 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 if (result === 'keepalive') {
                   // Abort the once() listener to prevent accumulation
                   iterationAbort.abort()
+                  // Swallow the expected AbortError from the aborted once() listener
+                  logPromise.catch(() => {})
                   // Send SSE comment as keep-alive (not visible to client as data)
                   yield { comment: 'keep-alive' }
                   continue

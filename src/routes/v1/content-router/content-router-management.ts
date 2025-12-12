@@ -295,10 +295,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             negate: false,
           },
           root_folder: ruleData.root_folder,
-          quality_profile:
-            typeof ruleData.quality_profile === 'string'
-              ? Number.parseInt(ruleData.quality_profile, 10)
-              : ruleData.quality_profile,
+          quality_profile: (() => {
+            if (typeof ruleData.quality_profile === 'string') {
+              const parsed = Number.parseInt(ruleData.quality_profile, 10)
+              return Number.isFinite(parsed) ? parsed : null
+            }
+            return ruleData.quality_profile
+          })(),
           tags: Array.isArray(ruleData.tags) ? ruleData.tags : [],
           order: ruleData.order ?? 50,
           enabled: ruleData.enabled ?? true,
@@ -440,10 +443,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         // Handle quality profile conversion
         if (updates.quality_profile !== undefined) {
-          updatesAsRouterRule.quality_profile =
-            typeof updates.quality_profile === 'string'
-              ? Number.parseInt(updates.quality_profile, 10)
-              : updates.quality_profile || null
+          updatesAsRouterRule.quality_profile = (() => {
+            if (typeof updates.quality_profile === 'string') {
+              const parsed = Number.parseInt(updates.quality_profile, 10)
+              return Number.isFinite(parsed) ? parsed : null
+            }
+            return updates.quality_profile ?? null
+          })()
         }
 
         // Update condition if provided
