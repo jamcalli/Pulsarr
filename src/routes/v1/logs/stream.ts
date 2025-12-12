@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { on } from 'node:events'
+import { once } from 'node:events'
 import {
   type LogEntry,
   LogStreamQuerySchema,
@@ -7,6 +7,9 @@ import {
 } from '@schemas/logs/logs.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
+
+// Keep-alive interval in milliseconds (30 seconds)
+const KEEP_ALIVE_INTERVAL = 30_000
 
 const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
@@ -67,12 +70,30 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
             // Then stream live entries if follow is enabled
             if (follow) {
-              for await (const [entry] of on(
-                logService.getEventEmitter(),
-                'log',
-                { signal: abortController.signal },
-              )) {
-                const logEntry = entry as LogEntry
+              const emitter = logService.getEventEmitter()
+
+              while (!abortController.signal.aborted) {
+                // Race between log event and keep-alive timeout
+                const logPromise = once(emitter, 'log', {
+                  signal: abortController.signal,
+                })
+                const keepAlivePromise = new Promise<'keepalive'>((resolve) =>
+                  setTimeout(() => resolve('keepalive'), KEEP_ALIVE_INTERVAL),
+                )
+
+                const result = await Promise.race([
+                  logPromise,
+                  keepAlivePromise,
+                ])
+
+                if (result === 'keepalive') {
+                  // Send SSE comment as keep-alive (not visible to client as data)
+                  yield { comment: 'keep-alive' }
+                  continue
+                }
+
+                // Got a log entry
+                const logEntry = result[0] as LogEntry
 
                 // Apply text filter if provided
                 if (
