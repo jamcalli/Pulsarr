@@ -64,18 +64,16 @@ export function usePlexNotifications() {
   // Function to fetch current notification status
   const fetchCurrentStatus = useCallback(async () => {
     // Don't show loading state for status refresh after delete
+    const controller = new AbortController()
+    const signal = controller.signal
+
+    // Add a timeout to prevent hanging
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+
     try {
-      const controller = new AbortController()
-      const signal = controller.signal
-
-      // Add a timeout to prevent hanging
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-
       const response = await fetch(api('/v1/plex/notification-status'), {
         signal,
       })
-
-      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -101,6 +99,8 @@ export function usePlexNotifications() {
     } catch (error) {
       // Just log the error, don't show to user since this is a background refresh
       console.error('Error fetching notification status after deletion:', error)
+    } finally {
+      clearTimeout(timeoutId)
     }
   }, [form, config?.plexTokens])
 

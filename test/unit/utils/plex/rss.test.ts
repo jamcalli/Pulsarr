@@ -231,6 +231,7 @@ describe('plex/rss', () => {
 
     it('should use first token only (single-token design)', async () => {
       let callCount = 0
+      let capturedToken: string | null = null
       server.use(
         http.post(
           'https://discover.provider.plex.tv/rss',
@@ -242,6 +243,7 @@ describe('plex/rss', () => {
               'feedType' in body &&
               body.feedType === 'watchlist'
             ) {
+              capturedToken = request.headers.get('X-Plex-Token')
               callCount++
               return HttpResponse.json({
                 RSSInfo: [
@@ -259,6 +261,7 @@ describe('plex/rss', () => {
 
       // Only first token is used
       expect(callCount).toBe(1)
+      expect(capturedToken).toBe('token1')
       expect(result.selfRss).toBe('https://rss.plex.tv/feed/watchlist/1')
     })
 

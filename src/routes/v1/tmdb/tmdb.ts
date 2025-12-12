@@ -24,14 +24,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description:
           'Accepts GUID format IDs (tmdb:123, tvdb:456) and resolves to fetch TMDB metadata',
         params: z.object({
-          id: z.string().min(1, {
-            error: 'GUID is required (format: tmdb:123 or tvdb:456)',
+          id: z.string().regex(/^(tmdb|tvdb):\d+$/i, {
+            error: 'Invalid GUID format (expected: tmdb:123 or tvdb:456)',
           }),
         }),
         querystring: GetTmdbMetadataQuerySchema,
         response: {
           200: TmdbMetadataSuccessResponseSchema,
+          400: TmdbMetadataErrorResponseSchema,
           404: TmdbMetadataErrorResponseSchema,
+          500: TmdbMetadataErrorResponseSchema,
           503: TmdbMetadataErrorResponseSchema,
         },
         tags: ['TMDB'],
@@ -152,7 +154,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         querystring: GetTmdbMetadataQuerySchema,
         response: {
           200: TmdbMetadataSuccessResponseSchema,
+          400: TmdbMetadataErrorResponseSchema,
           404: TmdbMetadataErrorResponseSchema,
+          500: TmdbMetadataErrorResponseSchema,
           503: TmdbMetadataErrorResponseSchema,
         },
         tags: ['TMDB'],
@@ -210,7 +214,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         querystring: GetTmdbMetadataQuerySchema,
         response: {
           200: TmdbMetadataSuccessResponseSchema,
+          400: TmdbMetadataErrorResponseSchema,
           404: TmdbMetadataErrorResponseSchema,
+          500: TmdbMetadataErrorResponseSchema,
           503: TmdbMetadataErrorResponseSchema,
         },
         tags: ['TMDB'],
@@ -268,6 +274,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           'Fetch list of regions/countries that have watch provider data available in TMDB',
         response: {
           200: TmdbRegionsSuccessResponseSchema,
+          500: TmdbRegionsErrorResponseSchema,
           503: TmdbRegionsErrorResponseSchema,
         },
         tags: ['TMDB'],

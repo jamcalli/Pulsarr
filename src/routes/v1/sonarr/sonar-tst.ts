@@ -1,34 +1,18 @@
-import { ErrorSchema, NoContentSchema } from '@schemas/common/error.schema.js'
+import {
+  ErrorSchema,
+  NoContentSchema,
+  SonarrInstanceCreateResponseSchema,
+  SonarrInstanceListResponseSchema,
+  SonarrInstanceSchema,
+  SonarrInstanceUpdateSchema,
+} from '@schemas/sonarr/sonarr-instance.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-// Zod schema for Sonarr instance configuration
-const SonarrInstanceSchema = z.object({
-  name: z.string().min(1, { error: 'Name is required' }),
-  baseUrl: z.string().url({ error: 'Invalid base URL' }),
-  apiKey: z.string().min(1, { error: 'API Key is required' }),
-  qualityProfile: z.union([z.string(), z.number()]).nullish(),
-  rootFolder: z.string().nullish(),
-  bypassIgnored: z.boolean().optional().default(false),
-  seasonMonitoring: z.string().optional().default('all'),
-  monitorNewItems: z.enum(['all', 'none']).default('all'),
-  searchOnAdd: z.boolean().optional().default(true),
-  createSeasonFolders: z.boolean().optional().default(false),
-  tags: z.array(z.string()).optional().default([]),
-  isDefault: z.boolean().optional().default(false),
-  syncedInstances: z.array(z.number()).optional(),
-  seriesType: z
-    .enum(['standard', 'anime', 'daily'])
-    .optional()
-    .default('standard'),
-})
-
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all instances
-  fastify.get<{
-    Reply: Array<z.infer<typeof SonarrInstanceSchema> & { id: number }>
-  }>(
+  fastify.get(
     '/instances',
     {
       schema: {
@@ -36,7 +20,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'getSonarrInstances',
         description: 'Retrieve all configured Sonarr instances',
         response: {
-          200: z.array(SonarrInstanceSchema.extend({ id: z.number() })),
+          200: SonarrInstanceListResponseSchema,
         },
         tags: ['Sonarr'],
       },
@@ -55,10 +39,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   // Create instance
-  fastify.post<{
-    Body: z.infer<typeof SonarrInstanceSchema>
-    Reply: { id: number }
-  }>(
+  fastify.post(
     '/instances',
     {
       schema: {
@@ -67,7 +48,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Create a new Sonarr instance configuration',
         body: SonarrInstanceSchema,
         response: {
-          201: z.object({ id: z.number().int().positive() }),
+          201: SonarrInstanceCreateResponseSchema,
         },
         tags: ['Sonarr'],
       },
@@ -82,10 +63,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   // Update instance
-  fastify.put<{
-    Params: { id: number }
-    Body: Partial<z.infer<typeof SonarrInstanceSchema>>
-  }>(
+  fastify.put(
     '/instances/:id',
     {
       schema: {
@@ -93,7 +71,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'updateSonarrInstance',
         description: 'Update an existing Sonarr instance configuration',
         params: z.object({ id: z.coerce.number() }),
-        body: SonarrInstanceSchema.partial(),
+        body: SonarrInstanceUpdateSchema,
         tags: ['Sonarr'],
         response: {
           204: NoContentSchema,
@@ -149,9 +127,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   // Delete instance
-  fastify.delete<{
-    Params: { id: number }
-  }>(
+  fastify.delete(
     '/instances/:id',
     {
       schema: {

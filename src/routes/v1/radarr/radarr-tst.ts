@@ -1,31 +1,18 @@
-import { ErrorSchema, NoContentSchema } from '@schemas/common/error.schema.js'
+import {
+  ErrorSchema,
+  NoContentSchema,
+  RadarrInstanceCreateResponseSchema,
+  RadarrInstanceListResponseSchema,
+  RadarrInstanceSchema,
+  RadarrInstanceUpdateSchema,
+} from '@schemas/radarr/radarr-instance.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-// Zod schema for Radarr instance configuration
-const RadarrInstanceSchema = z.object({
-  name: z.string().min(1, { error: 'Name is required' }),
-  baseUrl: z.string().url({ error: 'Invalid base URL' }),
-  apiKey: z.string().min(1, { error: 'API Key is required' }),
-  qualityProfile: z.union([z.string(), z.number()]).nullish(),
-  rootFolder: z.string().nullish(),
-  bypassIgnored: z.boolean().optional().default(false),
-  searchOnAdd: z.boolean().optional().default(true),
-  minimumAvailability: z
-    .enum(['announced', 'inCinemas', 'released'])
-    .optional()
-    .default('released'),
-  tags: z.array(z.string()).optional().default([]),
-  isDefault: z.boolean().optional().default(false),
-  syncedInstances: z.array(z.number()).optional(),
-})
-
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all instances
-  fastify.get<{
-    Reply: Array<z.infer<typeof RadarrInstanceSchema> & { id: number }>
-  }>(
+  fastify.get(
     '/instances',
     {
       schema: {
@@ -33,7 +20,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'getRadarrInstances',
         description: 'Retrieve all configured Radarr instances',
         response: {
-          200: z.array(RadarrInstanceSchema.extend({ id: z.number() })),
+          200: RadarrInstanceListResponseSchema,
         },
         tags: ['Radarr'],
       },
@@ -51,10 +38,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   // Create instance
-  fastify.post<{
-    Body: z.infer<typeof RadarrInstanceSchema>
-    Reply: { id: number }
-  }>(
+  fastify.post(
     '/instances',
     {
       schema: {
@@ -63,7 +47,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Create a new Radarr instance configuration',
         body: RadarrInstanceSchema,
         response: {
-          201: z.object({ id: z.number().int().positive() }),
+          201: RadarrInstanceCreateResponseSchema,
         },
         tags: ['Radarr'],
       },
@@ -77,10 +61,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   // Update instance
-  fastify.put<{
-    Params: { id: number }
-    Body: Partial<z.infer<typeof RadarrInstanceSchema>>
-  }>(
+  fastify.put(
     '/instances/:id',
     {
       schema: {
@@ -88,7 +69,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'updateRadarrInstance',
         description: 'Update an existing Radarr instance configuration',
         params: z.object({ id: z.coerce.number() }),
-        body: RadarrInstanceSchema.partial(),
+        body: RadarrInstanceUpdateSchema,
         tags: ['Radarr'],
         response: {
           204: NoContentSchema,
@@ -144,9 +125,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   )
 
   // Delete instance
-  fastify.delete<{
-    Params: { id: number }
-  }>(
+  fastify.delete(
     '/instances/:id',
     {
       schema: {

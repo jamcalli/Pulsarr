@@ -43,8 +43,15 @@ export default async function (fastify: FastifyInstance) {
     }
 
     // Check for API key authentication first (no bypass for API keys)
-    const apiKey = request.headers['x-api-key'] as string
-    if (apiKey) {
+    const apiKeyHeader = request.headers['x-api-key']
+    const apiKey =
+      typeof apiKeyHeader === 'string'
+        ? apiKeyHeader
+        : Array.isArray(apiKeyHeader)
+          ? apiKeyHeader[0]
+          : undefined
+
+    if (apiKey && apiKey.length > 0) {
       try {
         await new Promise<void>((resolve, reject) => {
           fastify.verifyApiKey(request, reply, (err) => {
@@ -80,7 +87,10 @@ export default async function (fastify: FastifyInstance) {
       }
       // Create temporary admin session for bypassed requests
       // so handlers can safely access request.session.user
-      createTemporaryAdminSession(request)
+      // Only set if no existing session to avoid overwriting authenticated users
+      if (!request.session.user) {
+        createTemporaryAdminSession(request)
+      }
       return
     }
 
