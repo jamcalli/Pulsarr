@@ -295,8 +295,8 @@ export const ContentRouterPluginsResponseSchema = z.object({
   plugins: z.array(
     z.object({
       name: z.string(),
-      description: z.string().optional(),
-      version: z.string().optional(),
+      description: z.string(),
+      priority: z.number(),
     }),
   ),
 })
@@ -332,7 +332,7 @@ export const ContentRouterRuleListResponseSchema = z.object({
 })
 
 export const ContentRouterRuleSuccessSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
 })
 

@@ -31,8 +31,10 @@ enableRequestLogging=false             # HTTP request logging (default: false)
                                        # Sensitive query parameters (token, apiKey, password) are automatically redacted
 
 # Server Configuration
-baseUrl=http://x.x.x.x                 # Local network address
-port=3003                              # Application port
+baseUrl=http://x.x.x.x                 # External address where Pulsarr can be reached (for webhook URLs)
+port=3003                              # External port for webhook URL generation (what Sonarr/Radarr use to call back)
+listenPort=3003                        # Internal port the server binds to (default: 3003, rarely needs changing)
+                                       # Docker users: use port mapping (e.g., 8080:3003) instead of changing listenPort
 dbPath=./data/db/pulsarr.db            # SQLite database location (only used when dbType is not set)
 
 # PostgreSQL Configuration (optional - uncomment to use PostgreSQL instead of SQLite)
@@ -226,7 +228,9 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 ## Environment Variable Categories
 
 ### Core Application
-- `baseUrl`, `port`, `TZ` - Essential server configuration
+- `baseUrl`, `port`, `listenPort`, `TZ` - Essential server configuration
+  - `port` - External port for webhook URL generation (what Sonarr/Radarr use to reach Pulsarr)
+  - `listenPort` - Internal port the server binds to (default: 3003)
 - `logLevel`, `enableConsoleOutput`, `enableRequestLogging` - Comprehensive logging configuration
 - `authenticationMethod` - Security settings
 - `basePath` - Optional reverse proxy subfolder support

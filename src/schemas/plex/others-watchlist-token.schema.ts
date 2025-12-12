@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 const WatchlistItemSchema = z.object({
@@ -24,31 +25,24 @@ const OthersWatchlistSuccessSchema = z.object({
   ),
 })
 
-const OthersWatchlistErrorSchema = z.object({
-  error: z.string(),
-})
-
-const OthersWatchlistResponseSchema = z.union([
-  OthersWatchlistSuccessSchema,
-  OthersWatchlistErrorSchema,
-])
-
 export const othersWatchlistSchema = {
   summary: 'Get others watchlist tokens',
   operationId: 'getOthersWatchlistTokens',
   description: 'Retrieve watchlist items from other Plex users',
   tags: ['Plex'],
   response: {
-    200: OthersWatchlistResponseSchema,
+    200: OthersWatchlistSuccessSchema,
+    400: ErrorSchema,
+    500: ErrorSchema,
   },
 }
 
-export type OthersWatchlistResponse = z.infer<
-  typeof OthersWatchlistResponseSchema
->
 export type OthersWatchlistSuccess = z.infer<
   typeof OthersWatchlistSuccessSchema
 >
-export type OthersWatchlistError = z.infer<typeof OthersWatchlistErrorSchema>
 export type WatchlistItem = z.infer<typeof WatchlistItemSchema>
 export type User = z.infer<typeof UserSchema>
+
+// Re-export ErrorSchema for domain-specific error type
+export { ErrorSchema as OthersWatchlistErrorSchema }
+export type OthersWatchlistError = z.infer<typeof ErrorSchema>

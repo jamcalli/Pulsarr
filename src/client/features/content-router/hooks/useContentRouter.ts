@@ -49,7 +49,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         throw new Error(`Failed to fetch ${targetType} routing rules`)
       }
 
-      const data = (await response.json()) as ContentRouterRuleListResponse
+      const data: ContentRouterRuleListResponse = await response.json()
 
       setRules(data.rules)
 
@@ -93,7 +93,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           throw new Error('Failed to create routing rule')
         }
 
-        const data = (await response.json()) as ContentRouterRuleResponse
+        const data: ContentRouterRuleResponse = await response.json()
 
         // Update rules state with the new rule
         setRules((prevRules) => [...prevRules, data.rule])
@@ -129,7 +129,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           throw new Error('Failed to update routing rule')
         }
 
-        const data = (await response.json()) as ContentRouterRuleResponse
+        const data: ContentRouterRuleResponse = await response.json()
 
         // Update the rule in the local state
         setRules((prevRules) =>

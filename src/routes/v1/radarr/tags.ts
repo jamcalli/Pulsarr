@@ -4,14 +4,11 @@ import {
 } from '@schemas/radarr/get-quality-profiles.schema.js'
 import { TagsResponseSchema } from '@schemas/radarr/get-tags.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Querystring: z.infer<typeof QuerystringSchema>
-    Reply: z.infer<typeof TagsResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/tags',
     {
       schema: {
@@ -30,10 +27,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const instanceId = Number.parseInt(request.query.instanceId, 10)
-        if (Number.isNaN(instanceId)) {
-          return reply.badRequest('Invalid instance ID')
-        }
+        const { instanceId } = request.query
 
         const instance =
           await fastify.radarrManager.getRadarrInstance(instanceId)

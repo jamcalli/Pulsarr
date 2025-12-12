@@ -114,7 +114,8 @@ export const useConfigStore = create<ConfigState>()(
 
             if (!response.ok) {
               const errorData: ConfigError = await response.json()
-              const message = errorData.error || 'Failed to load configuration'
+              const message =
+                errorData.message || 'Failed to load configuration'
               throw new Error(message)
             }
 
@@ -167,7 +168,7 @@ export const useConfigStore = create<ConfigState>()(
             if (!response.ok) {
               const errorData: ConfigError = await response.json()
               const message =
-                errorData.error || 'Failed to update configuration'
+                errorData.message || 'Failed to update configuration'
               throw new Error(message)
             }
 

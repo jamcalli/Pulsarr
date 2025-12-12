@@ -1,13 +1,10 @@
 import { LogoutBodySchema, LogoutResponseSchema } from '@schemas/auth/logout.js'
+import { ErrorSchema } from '@schemas/common/error.schema.js'
 import { isLocalIpAddress } from '@utils/ip.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: z.infer<typeof LogoutBodySchema>
-    Reply: z.infer<typeof LogoutResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/logout',
     {
       schema: {
@@ -17,7 +14,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         body: LogoutBodySchema,
         response: {
           200: LogoutResponseSchema,
-          400: LogoutResponseSchema,
+          400: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Authentication'],
       },

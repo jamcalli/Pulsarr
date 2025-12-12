@@ -1,12 +1,8 @@
 import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
 import {
-  type GetTmdbMetadataParams,
   GetTmdbMetadataParamsSchema,
-  type GetTmdbMetadataQuery,
   GetTmdbMetadataQuerySchema,
-  type TmdbMetadataErrorResponse,
   TmdbMetadataErrorResponseSchema,
-  type TmdbMetadataSuccessResponse,
   TmdbMetadataSuccessResponseSchema,
   type TmdbMovieMetadata,
   TmdbRegionsErrorResponseSchema,
@@ -14,16 +10,12 @@ import {
   type TmdbTvMetadata,
 } from '@schemas/tmdb/tmdb.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Intelligent TMDB metadata endpoint - accepts GUID format (tmdb:123 or tvdb:456)
-  fastify.get<{
-    Params: { id: string }
-    Querystring: GetTmdbMetadataQuery
-    Reply: TmdbMetadataSuccessResponse | TmdbMetadataErrorResponse
-  }>(
+  fastify.get(
     '/metadata/:id',
     {
       schema: {
@@ -32,14 +24,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         description:
           'Accepts GUID format IDs (tmdb:123, tvdb:456) and resolves to fetch TMDB metadata',
         params: z.object({
-          id: z.string().min(1, {
-            error: 'GUID is required (format: tmdb:123 or tvdb:456)',
+          id: z.string().regex(/^(tmdb|tvdb):\d+$/i, {
+            error: 'Invalid GUID format (expected: tmdb:123 or tvdb:456)',
           }),
         }),
         querystring: GetTmdbMetadataQuerySchema,
         response: {
           200: TmdbMetadataSuccessResponseSchema,
+          400: TmdbMetadataErrorResponseSchema,
           404: TmdbMetadataErrorResponseSchema,
+          500: TmdbMetadataErrorResponseSchema,
           503: TmdbMetadataErrorResponseSchema,
         },
         tags: ['TMDB'],
@@ -148,11 +142,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get movie metadata by TMDB ID
-  fastify.get<{
-    Params: GetTmdbMetadataParams
-    Querystring: GetTmdbMetadataQuery
-    Reply: TmdbMetadataSuccessResponse | TmdbMetadataErrorResponse
-  }>(
+  fastify.get(
     '/movie/:id',
     {
       schema: {
@@ -164,7 +154,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         querystring: GetTmdbMetadataQuerySchema,
         response: {
           200: TmdbMetadataSuccessResponseSchema,
+          400: TmdbMetadataErrorResponseSchema,
           404: TmdbMetadataErrorResponseSchema,
+          500: TmdbMetadataErrorResponseSchema,
           503: TmdbMetadataErrorResponseSchema,
         },
         tags: ['TMDB'],
@@ -210,11 +202,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get TV show metadata by TMDB ID
-  fastify.get<{
-    Params: GetTmdbMetadataParams
-    Querystring: GetTmdbMetadataQuery
-    Reply: TmdbMetadataSuccessResponse | TmdbMetadataErrorResponse
-  }>(
+  fastify.get(
     '/tv/:id',
     {
       schema: {
@@ -226,7 +214,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         querystring: GetTmdbMetadataQuerySchema,
         response: {
           200: TmdbMetadataSuccessResponseSchema,
+          400: TmdbMetadataErrorResponseSchema,
           404: TmdbMetadataErrorResponseSchema,
+          500: TmdbMetadataErrorResponseSchema,
           503: TmdbMetadataErrorResponseSchema,
         },
         tags: ['TMDB'],
@@ -284,6 +274,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           'Fetch list of regions/countries that have watch provider data available in TMDB',
         response: {
           200: TmdbRegionsSuccessResponseSchema,
+          500: TmdbRegionsErrorResponseSchema,
           503: TmdbRegionsErrorResponseSchema,
         },
         tags: ['TMDB'],

@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 const PlexInstanceResultSchema = z.object({
@@ -14,10 +15,6 @@ const PlexNotificationStatusResponseSchema = z.object({
     radarr: z.array(PlexInstanceResultSchema),
     sonarr: z.array(PlexInstanceResultSchema),
   }),
-})
-
-const ErrorSchema = z.object({
-  error: z.string(),
 })
 
 export const plexGetNotificationStatusSchema = {

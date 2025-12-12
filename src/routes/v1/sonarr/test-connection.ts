@@ -4,14 +4,10 @@ import {
   TestConnectionResponseSchema,
 } from '@schemas/sonarr/test-connection.schema.js'
 import { logServiceError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: z.infer<typeof TestConnectionBodySchema>
-    Reply: z.infer<typeof TestConnectionResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/test-connection',
     {
       schema: {

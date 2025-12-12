@@ -81,6 +81,10 @@ const schema = {
       type: 'number',
       default: 3003,
     },
+    listenPort: {
+      type: 'number',
+      default: 3003,
+    },
     dbType: {
       type: 'string',
       enum: ['sqlite', 'postgres'],
