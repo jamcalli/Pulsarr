@@ -80,12 +80,12 @@ export function usePlexNotifications() {
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(
-          errorData.error || 'Failed to fetch Plex notification status',
+          errorData.message || 'Failed to fetch Plex notification status',
         )
       }
 
-      const results =
-        (await response.json()) as ExtendedPlexNotificationStatusResponse
+      const results: ExtendedPlexNotificationStatusResponse =
+        await response.json()
       setLastResults(results)
 
       // If we have current settings after removal (shouldn't happen, but just in case),
@@ -138,12 +138,12 @@ export function usePlexNotifications() {
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(
-            errorData.error || 'Failed to fetch Plex notification status',
+            errorData.message || 'Failed to fetch Plex notification status',
           )
         }
 
-        const results =
-          (await response.json()) as ExtendedPlexNotificationStatusResponse
+        const results: ExtendedPlexNotificationStatusResponse =
+          await response.json()
 
         // Check if the request was aborted before setting state
         if (signal.aborted) return
@@ -229,7 +229,7 @@ export function usePlexNotifications() {
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(
-            errorData.error || 'Failed to configure Plex notifications',
+            errorData.message || 'Failed to configure Plex notifications',
           )
         }
 
@@ -330,7 +330,7 @@ export function usePlexNotifications() {
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(
-          errorData.error || 'Failed to remove Plex notifications',
+          errorData.message || 'Failed to remove Plex notifications',
         )
       }
 

@@ -1,4 +1,4 @@
-import { NoContentSchema } from '@schemas/common/error.schema.js'
+import { ErrorSchema, NoContentSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
@@ -97,11 +97,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         tags: ['Sonarr'],
         response: {
           204: NoContentSchema,
-          400: z.object({
-            statusCode: z.number(),
-            error: z.string(),
-            message: z.string(),
-          }),
+          400: ErrorSchema,
+          401: ErrorSchema,
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
       },
     },
@@ -179,16 +178,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         tags: ['Sonarr'],
         response: {
           204: NoContentSchema,
-          400: z.object({
-            statusCode: z.number(),
-            error: z.string(),
-            message: z.string(),
-          }),
-          500: z.object({
-            statusCode: z.number(),
-            error: z.string(),
-            message: z.string(),
-          }),
+          400: ErrorSchema,
+          500: ErrorSchema,
         },
       },
     },

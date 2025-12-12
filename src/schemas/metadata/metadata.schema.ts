@@ -1,3 +1,4 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 // Metadata refresh success response schema
@@ -9,16 +10,11 @@ export const MetadataRefreshSuccessResponseSchema = z.object({
   othersItems: z.number(),
 })
 
-// Metadata refresh error response schema
-export const MetadataRefreshErrorResponseSchema = z.object({
-  success: z.boolean().default(false),
-  message: z.string(),
-})
+// Re-export shared ErrorSchema with domain-specific alias
+export { ErrorSchema as MetadataRefreshErrorResponseSchema }
 
 // Type exports
 export type MetadataRefreshSuccessResponse = z.infer<
   typeof MetadataRefreshSuccessResponseSchema
 >
-export type MetadataRefreshErrorResponse = z.infer<
-  typeof MetadataRefreshErrorResponseSchema
->
+export type MetadataRefreshErrorResponse = z.infer<typeof ErrorSchema>

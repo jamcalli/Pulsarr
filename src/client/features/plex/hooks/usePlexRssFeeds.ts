@@ -1,4 +1,4 @@
-import type { RssFeedsResponse } from '@root/schemas/plex/generate-rss-feeds.schema'
+import type { RssFeedsSuccess } from '@root/schemas/plex/generate-rss-feeds.schema'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
@@ -31,16 +31,15 @@ export function usePlexRssFeeds() {
       ])
 
       if (!response.ok) {
-        throw new Error('Failed to generate RSS feeds')
+        // Try to extract error message from response body
+        const errorData = await response.json().catch(() => null)
+        const errorMessage =
+          errorData?.message || 'Failed to generate RSS feeds'
+        throw new Error(errorMessage)
       }
 
-      // Parse the response as the correct schema type
-      const data = (await response.json()) as RssFeedsResponse
-
-      // Check if response has error
-      if ('error' in data) {
-        throw new Error(data.error || 'Failed to generate RSS feeds')
-      }
+      // Parse the response as the success schema type
+      const data: RssFeedsSuccess = await response.json()
 
       // Validate response payload before updating config
       const self = typeof data.self === 'string' ? data.self.trim() : ''
