@@ -102,7 +102,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Revoke an API key by ID',
         params: RevokeApiKeyParamsSchema,
         response: {
-          204: { description: 'No Content' },
+          204: { type: 'null', description: 'No Content' },
           404: ApiKeyErrorSchema,
           500: ApiKeyErrorSchema,
         },

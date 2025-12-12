@@ -50,6 +50,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           403: PlexServerErrorSchema,
           404: PlexServerErrorSchema,
           500: PlexServerErrorSchema,
+          504: PlexServerErrorSchema,
         },
         tags: ['Plex'],
       },
@@ -157,6 +158,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         logRouteError(fastify.log, request, err, {
           message: 'Failed to discover Plex servers',
         })
+
+        // Handle timeout/abort errors
+        if (err instanceof Error && err.name === 'AbortError') {
+          return reply.gatewayTimeout(
+            'Request to Plex API timed out after 10 seconds',
+          )
+        }
 
         // Handle Fastify-specific errors
         if (

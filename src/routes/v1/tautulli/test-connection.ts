@@ -20,6 +20,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           200: TestConnectionResponseSchema,
           400: ErrorSchema,
           500: ErrorSchema,
+          504: ErrorSchema,
         },
         tags: ['Tautulli'],
       },
@@ -36,8 +37,16 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         const { tautulliUrl, tautulliApiKey } = request.body
 
+        // Validate URL protocol to prevent SSRF attacks
+        const baseUrl = new URL(tautulliUrl)
+        if (baseUrl.protocol !== 'http:' && baseUrl.protocol !== 'https:') {
+          return reply.badRequest(
+            'Invalid Tautulli URL protocol (must be http or https)',
+          )
+        }
+
         // Test connection by making an API call to the arnold endpoint
-        const url = new URL(`${tautulliUrl}/api/v2`)
+        const url = new URL('/api/v2', baseUrl)
         const searchParams = new URLSearchParams({
           apikey: tautulliApiKey,
           cmd: 'arnold',
@@ -83,6 +92,13 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         // Preserve framework-provided HTTP errors
         if (error instanceof Error && 'statusCode' in error) {
           throw error
+        }
+
+        // Handle timeout/abort errors
+        if (error instanceof Error && error.name === 'AbortError') {
+          return reply.gatewayTimeout(
+            'Request to Tautulli timed out after 10 seconds',
+          )
         }
 
         logRouteError(fastify.log, request, error, {
