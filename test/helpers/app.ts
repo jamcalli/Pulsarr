@@ -17,6 +17,13 @@ export async function build(t?: TestContext): Promise<FastifyInstance> {
 
   const app = Fastify({
     logger: false, // Disable logging in tests
+    // Match production AJV options from server.ts
+    ajv: {
+      customOptions: {
+        coerceTypes: 'array',
+        removeAdditional: 'all',
+      },
+    },
   })
 
   // Register the main app

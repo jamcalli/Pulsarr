@@ -28,12 +28,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'getAllDashboardStats',
         description:
           'Retrieve comprehensive dashboard statistics including genres, content, users, and activity',
-        querystring: z.object({
-          ...LimitQuerySchema.shape,
-          ...ActivityQuerySchema.shape,
-        }),
+        querystring: LimitQuerySchema.merge(ActivityQuerySchema),
         response: {
           200: DashboardStatsSchema,
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -152,6 +150,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         querystring: LimitQuerySchema,
         response: {
           200: z.array(GenreStatSchema),
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -182,6 +181,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         querystring: LimitQuerySchema,
         response: {
           200: z.array(ContentStatSchema),
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -212,6 +212,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         querystring: LimitQuerySchema,
         response: {
           200: z.array(ContentStatSchema),
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -242,6 +243,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         querystring: LimitQuerySchema,
         response: {
           200: z.array(UserStatSchema),
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -273,6 +275,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         querystring: ActivityQuerySchema,
         response: {
           200: ActivityStatsSchema,
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -424,6 +427,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         querystring: ActivityQuerySchema,
         response: {
           200: NotificationStatsSchema,
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],

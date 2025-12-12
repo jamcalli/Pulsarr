@@ -45,7 +45,7 @@ export const getPlexWatchlistUrls = async (
   log: FastifyBaseLogger,
 ): Promise<PlexWatchlistUrls> => {
   // Use the first token (single-token design)
-  const token = Array.from(tokens)[0]
+  const token = tokens.values().next().value as string | undefined
   if (!token) {
     log.warn('No Plex token provided')
     return { selfRss: null, friendsRss: null }
