@@ -92,10 +92,6 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           description: 'Metadata refresh and management endpoints',
         },
         {
-          name: 'Models',
-          description: 'Data models and schema definitions',
-        },
-        {
           name: 'Notifications',
           description: 'Notification system endpoints',
         },

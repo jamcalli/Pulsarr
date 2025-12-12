@@ -26,13 +26,17 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async () => {
       const instances = await fastify.sonarrManager.getAllInstances()
-      // Ensure searchOnAdd and seriesType are defined for all instances
+      // Ensure all fields have defaults for legacy rows missing values
       return instances.map((instance) => ({
         ...instance,
+        bypassIgnored: instance.bypassIgnored ?? false,
+        seasonMonitoring: instance.seasonMonitoring ?? 'all',
+        monitorNewItems: instance.monitorNewItems ?? 'all',
         searchOnAdd: instance.searchOnAdd ?? true,
         createSeasonFolders: instance.createSeasonFolders ?? false,
         seriesType: instance.seriesType ?? 'standard',
         tags: (instance.tags ?? []).map((t) => t.toString()),
+        isDefault: instance.isDefault ?? false,
       }))
     },
   )

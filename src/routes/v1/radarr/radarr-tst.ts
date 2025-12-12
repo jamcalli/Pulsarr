@@ -26,12 +26,14 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async () => {
       const instances = await fastify.radarrManager.getAllInstances()
-      // Ensure defaults are provided for all instances
+      // Ensure all fields have defaults for legacy rows missing values
       return instances.map((instance) => ({
         ...instance,
+        bypassIgnored: instance.bypassIgnored ?? false,
         searchOnAdd: instance.searchOnAdd ?? true,
         minimumAvailability: instance.minimumAvailability ?? 'released',
         tags: (instance.tags ?? []).map((t) => t.toString()),
+        isDefault: instance.isDefault ?? false,
       }))
     },
   )

@@ -44,12 +44,15 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         })
         url.search = searchParams.toString()
 
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 10_000)
         const response = await fetch(url.toString(), {
           method: 'GET',
+          signal: controller.signal,
           headers: {
             Accept: 'application/json',
           },
-        })
+        }).finally(() => clearTimeout(timeout))
 
         if (!response.ok) {
           return {

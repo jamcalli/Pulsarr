@@ -5183,12 +5183,6 @@
                   "discordGuildId": {
                     "type": "string"
                   },
-                  "enableApprise": {
-                    "type": "boolean"
-                  },
-                  "appriseUrl": {
-                    "type": "string"
-                  },
                   "systemAppriseUrl": {
                     "type": "string"
                   },
@@ -5227,8 +5221,7 @@
                   "tautulliUrl": {
                     "anyOf": [
                       {
-                        "type": "string",
-                        "format": "uri"
+                        "type": "string"
                       },
                       {
                         "type": "string",
@@ -5367,8 +5360,7 @@
                   "plexServerUrl": {
                     "anyOf": [
                       {
-                        "type": "string",
-                        "format": "uri"
+                        "type": "string"
                       },
                       {
                         "type": "string",
@@ -5730,7 +5722,8 @@
                       "sonarr"
                     ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           },
@@ -12423,12 +12416,14 @@
                           "description": {
                             "type": "string"
                           },
-                          "version": {
-                            "type": "string"
+                          "priority": {
+                            "type": "number"
                           }
                         },
                         "required": [
-                          "name"
+                          "name",
+                          "description",
+                          "priority"
                         ],
                         "additionalProperties": false
                       }
@@ -18376,7 +18371,9 @@
                       "type": "object",
                       "properties": {
                         "id": {
-                          "type": "number"
+                          "type": "integer",
+                          "exclusiveMinimum": true,
+                          "maximum": 9007199254740991
                         },
                         "name": {
                           "type": "string"
@@ -21410,7 +21407,9 @@
                       "type": "object",
                       "properties": {
                         "id": {
-                          "type": "number"
+                          "type": "integer",
+                          "exclusiveMinimum": true,
+                          "maximum": 9007199254740991
                         },
                         "name": {
                           "type": "string"
@@ -29857,6 +29856,38 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
           }
         }
       }
@@ -30630,7 +30661,9 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
             },
             "in": "path",
             "name": "id",
@@ -30802,7 +30835,9 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
             },
             "in": "path",
             "name": "id",
@@ -31057,6 +31092,38 @@
                     "success",
                     "message",
                     "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -31514,10 +31581,6 @@
     {
       "name": "Metadata",
       "description": "Metadata refresh and management endpoints"
-    },
-    {
-      "name": "Models",
-      "description": "Data models and schema definitions"
     },
     {
       "name": "Notifications",
