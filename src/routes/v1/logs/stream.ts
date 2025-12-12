@@ -73,13 +73,29 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
               const emitter = logService.getEventEmitter()
 
               while (!abortController.signal.aborted) {
+                // Use a per-iteration AbortController for the once() call
+                // This prevents listener accumulation when keep-alive wins the race
+                const iterationAbort = new AbortController()
+
+                // Abort iteration listener when connection closes
+                abortController.signal.addEventListener(
+                  'abort',
+                  () => iterationAbort.abort(),
+                  { once: true },
+                )
+
                 // Race between log event and keep-alive timeout
                 const logPromise = once(emitter, 'log', {
-                  signal: abortController.signal,
+                  signal: iterationAbort.signal,
                 })
-                const keepAlivePromise = new Promise<'keepalive'>((resolve) =>
-                  setTimeout(() => resolve('keepalive'), KEEP_ALIVE_INTERVAL),
-                )
+
+                let keepAliveTimer: NodeJS.Timeout | null = null
+                const keepAlivePromise = new Promise<'keepalive'>((resolve) => {
+                  keepAliveTimer = setTimeout(
+                    () => resolve('keepalive'),
+                    KEEP_ALIVE_INTERVAL,
+                  )
+                })
 
                 const result = await Promise.race([
                   logPromise,
@@ -87,9 +103,16 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 ])
 
                 if (result === 'keepalive') {
+                  // Abort the once() listener to prevent accumulation
+                  iterationAbort.abort()
                   // Send SSE comment as keep-alive (not visible to client as data)
                   yield { comment: 'keep-alive' }
                   continue
+                }
+
+                // Log event won - clear the keep-alive timer
+                if (keepAliveTimer) {
+                  clearTimeout(keepAliveTimer)
                 }
 
                 // Got a log entry
