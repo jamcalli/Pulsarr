@@ -2,7 +2,7 @@ import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 export const QuerystringSchema = z.object({
-  instanceId: z.string(),
+  instanceId: z.coerce.number().int().positive(),
 })
 
 export const InstanceInfoSchema = z.object({
