@@ -1,34 +1,14 @@
 import type {
-  RollingMonitoredShow as BaseRollingMonitoredShow,
+  RollingMonitoredShow,
   SessionMonitoringResult,
-} from '@root/types/plex-session.types.js'
+} from '@root/schemas/session-monitoring/session-monitoring.schema'
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
 
-// API response type with date strings
-export interface RollingMonitoredShow
-  extends Omit<
-    BaseRollingMonitoredShow,
-    | 'last_session_date'
-    | 'created_at'
-    | 'updated_at'
-    | 'last_updated_at'
-    | 'tvdb_id'
-    | 'imdb_id'
-    | 'plex_user_id'
-    | 'plex_username'
-  > {
-  tvdb_id: string | null
-  imdb_id: string | null
-  last_session_date: string | null
-  plex_user_id: string | null
-  plex_username: string | null
-  created_at: string
-  updated_at: string
-  last_updated_at: string
-}
+// Re-export types for components that import from this hook
+export type { RollingMonitoredShow, SessionMonitoringResult }
 
 export interface UseRollingMonitoringReturn {
   // Data

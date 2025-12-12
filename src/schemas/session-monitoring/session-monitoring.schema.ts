@@ -5,17 +5,17 @@ import { z } from 'zod'
 const RollingMonitoredShowSchema = z.object({
   id: z.number(),
   sonarr_series_id: z.number(),
-  tvdb_id: z.string().nullable(),
-  imdb_id: z.string().nullable(),
+  tvdb_id: z.string().nullish(),
+  imdb_id: z.string().nullish(),
   show_title: z.string(),
   monitoring_type: z.enum(['pilotRolling', 'firstSeasonRolling']),
   current_monitored_season: z.number(),
   last_watched_season: z.number(),
   last_watched_episode: z.number(),
-  last_session_date: z.string().nullable(),
+  last_session_date: z.string().nullish(),
   sonarr_instance_id: z.number(),
-  plex_user_id: z.string().nullable(),
-  plex_username: z.string().nullable(),
+  plex_user_id: z.string().nullish(),
+  plex_username: z.string().nullish(),
   created_at: z.string(),
   updated_at: z.string(),
   last_updated_at: z.string(),
@@ -80,6 +80,9 @@ export const deleteRollingMonitoredSchema = {
   tags: ['Session Monitoring'],
   params: z.object({
     id: z.string(),
+  }),
+  querystring: z.object({
+    reset: z.string().optional(),
   }),
   response: {
     200: z.object({
