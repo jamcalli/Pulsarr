@@ -467,11 +467,18 @@ export function usePublicContentNotifications() {
     }
   }, [config, form])
 
+  // Clearable URL fields only (excludes boolean flags like enabled and _*Tested)
+  type ClearableUrlField =
+    | 'discordWebhookUrls'
+    | 'discordWebhookUrlsMovies'
+    | 'discordWebhookUrlsShows'
+    | 'appriseUrls'
+    | 'appriseUrlsMovies'
+    | 'appriseUrlsShows'
+
   // Handle clearing individual field URLs
   const handleClearField = useCallback(
-    async (
-      fieldName: Exclude<keyof PublicContentNotificationsFormValues, 'enabled'>,
-    ) => {
+    async (fieldName: ClearableUrlField) => {
       setIsClearing(true)
 
       try {
@@ -519,7 +526,7 @@ export function usePublicContentNotifications() {
           }))
         }
 
-        const fieldLabels: Record<string, string> = {
+        const fieldLabels: Record<ClearableUrlField, string> = {
           discordWebhookUrls: 'General Discord webhook URLs',
           discordWebhookUrlsMovies: 'Movie Discord webhook URLs',
           discordWebhookUrlsShows: 'Show Discord webhook URLs',
@@ -528,7 +535,7 @@ export function usePublicContentNotifications() {
           appriseUrlsShows: 'Show Apprise URLs',
         }
 
-        toast.success(`${fieldLabels[fieldName as string]} have been cleared`)
+        toast.success(`${fieldLabels[fieldName]} have been cleared`)
       } catch (error) {
         console.error(`Failed to clear ${fieldName}:`, error)
 
