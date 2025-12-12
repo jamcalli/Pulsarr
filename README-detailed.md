@@ -464,6 +464,9 @@ The `.env` file is required for the initial setup and contains essential configu
 | `baseUrl` | Base URL where Pulsarr can be reached by Sonarr/Radarr (e.g., `http://pulsarr` for Docker network or `http://your-server-ip`) | Yes | `http://localhost` |
 | `port` | External port for webhook URL generation (what Sonarr/Radarr use to call back). Combined with baseUrl. | Yes | `3003` |
 | `listenPort` | Internal port the server binds to. Docker users should use port mapping instead (e.g., `8080:3003`). | No | `3003` |
+
+> **Note**: For examples showing how `baseUrl`, `port`, and `listenPort` work together (Docker and bare metal), see the [Configuration documentation](https://jamcalli.github.io/Pulsarr/docs/installation/configuration).
+
 | `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
 | `logLevel` | Logging level (silent, fatal, error, warn, info, debug, trace) | Recommended | `info` |
 | `enableConsoleOutput` | Show logs in terminal (default: true) | No | `true` |

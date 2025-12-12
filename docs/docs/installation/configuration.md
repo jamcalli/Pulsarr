@@ -51,6 +51,31 @@ The `baseUrl` and `port` create the webhook address for Sonarr/Radarr to reach P
 
 *Required only if you're using the Apprise integration.
 
+:::tip Non-Default Port Configuration
+When using a port other than `3003`, ensure your configuration values align:
+
+**Docker (port mapping)**
+```yaml
+# docker-compose.yml
+ports:
+  - "8080:3003"  # host:container
+```
+```env
+baseUrl=http://your-server-ip
+port=8080        # External port (webhook URLs)
+listenPort=3003  # Internal bind port (container default)
+```
+
+**Bare metal (direct binding)**
+```env
+baseUrl=http://your-server-ip
+port=8080        # External port (webhook URLs)
+listenPort=8080  # Server binds to this port directly
+```
+
+**Key point**: Webhook URLs are generated using `baseUrl:port`. Ensure `port` matches what Sonarr/Radarr can actually reach—whether that's a Docker-mapped port or the `listenPort` on bare metal.
+:::
+
 ## Database Configuration
 
 Pulsarr supports both SQLite (default) and PostgreSQL databases:
