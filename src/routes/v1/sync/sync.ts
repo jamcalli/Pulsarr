@@ -22,6 +22,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         querystring: InstanceTypeQuerySchema,
         response: {
           200: SyncInstanceResultSchema,
+          404: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Sync'],

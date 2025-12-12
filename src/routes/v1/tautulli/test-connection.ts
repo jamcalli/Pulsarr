@@ -77,6 +77,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           message: data?.response?.message || 'Connection test failed',
         }
       } catch (error) {
+        // Preserve framework-provided HTTP errors
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
+
         logRouteError(fastify.log, request, error, {
           message: 'Failed to test Tautulli connection',
         })

@@ -1,5 +1,3 @@
-// File: src/routes/v1/stats/dashboard.ts
-
 import {
   ActivityQuerySchema,
   ActivityStatsSchema,
