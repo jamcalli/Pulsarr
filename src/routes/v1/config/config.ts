@@ -79,15 +79,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        // Create a copy of the config update without the protected Apprise fields
-        const { enableApprise, appriseUrl, ...safeConfigUpdate } = request.body
-
-        // If someone tries to update the protected fields, log a warning
-        if (enableApprise !== undefined || appriseUrl !== undefined) {
-          return reply.badRequest(
-            'enableApprise and appriseUrl are read-only via API',
-          )
-        }
+        // Schema is .strict() so unknown fields (like enableApprise/appriseUrl) are rejected by Zod
+        const safeConfigUpdate = request.body
 
         // Create next config state for validation (current + incoming changes)
         const nextConfig = { ...fastify.config, ...safeConfigUpdate }
