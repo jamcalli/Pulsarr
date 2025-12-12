@@ -1,18 +1,10 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
-const RssFeedsSuccessSchema = z.object({
+export const RssFeedsSuccessSchema = z.object({
   self: z.string(),
   friends: z.string(),
 })
-
-const RssFeedsErrorSchema = z.object({
-  error: z.string(),
-})
-
-const RssFeedsResponseSchema = z.union([
-  RssFeedsSuccessSchema,
-  RssFeedsErrorSchema,
-])
 
 export const rssFeedsSchema = {
   summary: 'Generate RSS feeds',
@@ -20,10 +12,14 @@ export const rssFeedsSchema = {
   description: 'Generate RSS feed URLs for Plex watchlists',
   tags: ['Plex'],
   response: {
-    200: RssFeedsResponseSchema,
+    200: RssFeedsSuccessSchema,
+    400: ErrorSchema,
+    500: ErrorSchema,
   },
 }
 
-export type RssFeedsResponse = z.infer<typeof RssFeedsResponseSchema>
 export type RssFeedsSuccess = z.infer<typeof RssFeedsSuccessSchema>
-export type RssFeedsError = z.infer<typeof RssFeedsErrorSchema>
+
+// Re-export ErrorSchema for domain-specific error type
+export { ErrorSchema as RssFeedsErrorSchema }
+export type RssFeedsError = z.infer<typeof ErrorSchema>

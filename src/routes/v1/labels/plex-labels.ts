@@ -5,14 +5,11 @@ import {
   SyncPlexLabelsResponseSchema,
 } from '@schemas/labels/plex-labels.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Synchronize plex labels for all content
-  fastify.post<{
-    Reply: z.infer<typeof SyncPlexLabelsResponseSchema>
-  }>(
+  fastify.post(
     '/sync',
     {
       schema: {
@@ -82,9 +79,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Clean up orphaned plex labels and pending syncs
-  fastify.post<{
-    Reply: z.infer<typeof CleanupPlexLabelsResponseSchema>
-  }>(
+  fastify.post(
     '/cleanup',
     {
       schema: {
@@ -176,9 +171,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Remove pulsarr labels from content
-  fastify.delete<{
-    Reply: z.infer<typeof RemovePlexLabelsResponseSchema>
-  }>(
+  fastify.delete(
     '/remove',
     {
       schema: {

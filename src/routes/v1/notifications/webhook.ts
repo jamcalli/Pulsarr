@@ -1,10 +1,7 @@
 import {
   ErrorSchema,
-  type WebhookPayload,
   WebhookPayloadSchema,
-  type WebhookQuery,
   WebhookQuerySchema,
-  type WebhookResponse,
   WebhookResponseSchema,
 } from '@root/schemas/notifications/webhook.schema.js'
 import {
@@ -20,14 +17,10 @@ import {
   webhookQueue,
 } from '@root/utils/webhook/index.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: WebhookPayload
-    Reply: WebhookResponse
-    Querystring: WebhookQuery
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/webhook',
     {
       schema: {

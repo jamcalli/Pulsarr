@@ -1,19 +1,18 @@
 import { randomUUID } from 'node:crypto'
-import { on } from 'node:events'
+import { once } from 'node:events'
 import {
   type LogEntry,
   LogStreamQuerySchema,
   LogStreamResponseSchema,
 } from '@schemas/logs/logs.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const logStreamRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Querystring: z.infer<typeof LogStreamQuerySchema>
-    Reply: z.infer<typeof LogStreamResponseSchema>
-  }>(
+// Keep-alive interval in milliseconds (30 seconds)
+const KEEP_ALIVE_INTERVAL = 30_000
+
+const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/stream',
     {
       schema: {
@@ -71,12 +70,59 @@ const logStreamRoute: FastifyPluginAsync = async (fastify) => {
 
             // Then stream live entries if follow is enabled
             if (follow) {
-              for await (const [entry] of on(
-                logService.getEventEmitter(),
-                'log',
-                { signal: abortController.signal },
-              )) {
-                const logEntry = entry as LogEntry
+              const emitter = logService.getEventEmitter()
+
+              while (!abortController.signal.aborted) {
+                // Use a per-iteration AbortController for the once() call
+                // This prevents listener accumulation when keep-alive wins the race
+                const iterationAbort = new AbortController()
+
+                // Named handler so we can remove it after each iteration
+                const onConnectionAbort = () => iterationAbort.abort()
+                abortController.signal.addEventListener(
+                  'abort',
+                  onConnectionAbort,
+                )
+
+                // Race between log event and keep-alive timeout
+                const logPromise = once(emitter, 'log', {
+                  signal: iterationAbort.signal,
+                })
+
+                let keepAliveTimer: NodeJS.Timeout | null = null
+                const keepAlivePromise = new Promise<'keepalive'>((resolve) => {
+                  keepAliveTimer = setTimeout(
+                    () => resolve('keepalive'),
+                    KEEP_ALIVE_INTERVAL,
+                  )
+                })
+
+                let result: Awaited<typeof logPromise> | 'keepalive'
+                try {
+                  result = await Promise.race([logPromise, keepAlivePromise])
+                } finally {
+                  // Always clean up to prevent listener accumulation
+                  abortController.signal.removeEventListener(
+                    'abort',
+                    onConnectionAbort,
+                  )
+                  if (keepAliveTimer) {
+                    clearTimeout(keepAliveTimer)
+                  }
+                }
+
+                if (result === 'keepalive') {
+                  // Abort the once() listener to prevent accumulation
+                  iterationAbort.abort()
+                  // Swallow the expected AbortError from the aborted once() listener
+                  logPromise.catch(() => {})
+                  // Send SSE comment as keep-alive (not visible to client as data)
+                  yield { comment: 'keep-alive' }
+                  continue
+                }
+
+                // Got a log entry
+                const logEntry = result[0] as LogEntry
 
                 // Apply text filter if provided
                 if (
@@ -105,7 +151,12 @@ const logStreamRoute: FastifyPluginAsync = async (fastify) => {
             // Defensive: ensure the connection is removed on any exit path
             try {
               logService.removeConnection(connectionId)
-            } catch {}
+            } catch (cleanupError) {
+              fastify.log.debug(
+                { cleanupError, connectionId },
+                'Cleanup error removing log connection',
+              )
+            }
           }
         })(),
       )

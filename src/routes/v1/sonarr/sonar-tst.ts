@@ -1,33 +1,17 @@
+import {
+  ErrorSchema,
+  SonarrInstanceCreateResponseSchema,
+  SonarrInstanceListResponseSchema,
+  SonarrInstanceSchema,
+  SonarrInstanceUpdateSchema,
+} from '@schemas/sonarr/sonarr-instance.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-// Zod schema for Sonarr instance configuration
-const SonarrInstanceSchema = z.object({
-  name: z.string().min(1, { error: 'Name is required' }),
-  baseUrl: z.string().url({ error: 'Invalid base URL' }),
-  apiKey: z.string().min(1, { error: 'API Key is required' }),
-  qualityProfile: z.union([z.string(), z.number()]).nullish(),
-  rootFolder: z.string().nullish(),
-  bypassIgnored: z.boolean().optional().default(false),
-  seasonMonitoring: z.string().optional().default('all'),
-  monitorNewItems: z.enum(['all', 'none']).default('all'),
-  searchOnAdd: z.boolean().optional().default(true),
-  createSeasonFolders: z.boolean().optional().default(false),
-  tags: z.array(z.string()).optional().default([]),
-  isDefault: z.boolean().optional().default(false),
-  syncedInstances: z.array(z.number()).optional(),
-  seriesType: z
-    .enum(['standard', 'anime', 'daily'])
-    .optional()
-    .default('standard'),
-})
-
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all instances
-  fastify.get<{
-    Reply: Array<z.infer<typeof SonarrInstanceSchema> & { id: number }>
-  }>(
+  fastify.get(
     '/instances',
     {
       schema: {
@@ -35,29 +19,30 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'getSonarrInstances',
         description: 'Retrieve all configured Sonarr instances',
         response: {
-          200: z.array(SonarrInstanceSchema.extend({ id: z.number() })),
+          200: SonarrInstanceListResponseSchema,
         },
         tags: ['Sonarr'],
       },
     },
     async () => {
       const instances = await fastify.sonarrManager.getAllInstances()
-      // Ensure searchOnAdd and seriesType are defined for all instances
+      // Ensure all fields have defaults for legacy rows missing values
       return instances.map((instance) => ({
         ...instance,
+        bypassIgnored: instance.bypassIgnored ?? false,
+        seasonMonitoring: instance.seasonMonitoring ?? 'all',
+        monitorNewItems: instance.monitorNewItems ?? 'all',
         searchOnAdd: instance.searchOnAdd ?? true,
         createSeasonFolders: instance.createSeasonFolders ?? false,
         seriesType: instance.seriesType ?? 'standard',
         tags: (instance.tags ?? []).map((t) => t.toString()),
+        isDefault: instance.isDefault ?? false,
       }))
     },
   )
 
   // Create instance
-  fastify.post<{
-    Body: z.infer<typeof SonarrInstanceSchema>
-    Reply: { id: number }
-  }>(
+  fastify.post(
     '/instances',
     {
       schema: {
@@ -66,7 +51,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         description: 'Create a new Sonarr instance configuration',
         body: SonarrInstanceSchema,
         response: {
-          201: z.object({ id: z.number().int().positive() }),
+          201: SonarrInstanceCreateResponseSchema,
         },
         tags: ['Sonarr'],
       },
@@ -81,10 +66,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Update instance
-  fastify.put<{
-    Params: { id: number }
-    Body: Partial<z.infer<typeof SonarrInstanceSchema>>
-  }>(
+  fastify.put(
     '/instances/:id',
     {
       schema: {
@@ -92,15 +74,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'updateSonarrInstance',
         description: 'Update an existing Sonarr instance configuration',
         params: z.object({ id: z.coerce.number() }),
-        body: SonarrInstanceSchema.partial(),
+        body: SonarrInstanceUpdateSchema,
         tags: ['Sonarr'],
         response: {
-          204: z.void(),
-          400: z.object({
-            statusCode: z.number(),
-            error: z.string(),
-            message: z.string(),
-          }),
+          204: { type: 'null', description: 'No Content' },
+          400: ErrorSchema,
+          401: ErrorSchema,
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
       },
     },
@@ -111,6 +92,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         await fastify.sonarrManager.updateInstance(id, updates)
         reply.status(204)
+        return
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Error updating instance',
@@ -121,53 +103,35 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         })
 
         if (error instanceof Error) {
-          const statusCode = error.message.includes('Authentication')
-            ? 401
-            : error.message.includes('not found')
-              ? 404
-              : error.message.includes('default')
-                ? 400
-                : 500
-
-          // Extract clean error message for user display
-          let userMessage = error.message
-
-          // Clean up error messages
-          userMessage = userMessage
+          // Clean up error message for user display
+          const userMessage = error.message
             .replace(/Sonarr API error: /, '')
             .replace(
               /Failed to initialize Sonarr instance/,
               'Failed to save settings',
             )
 
-          reply
-            .status(statusCode)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({
-              statusCode,
-              error:
-                statusCode === 400
-                  ? 'Bad Request'
-                  : statusCode === 401
-                    ? 'Unauthorized'
-                    : statusCode === 404
-                      ? 'Not Found'
-                      : 'Internal Server Error',
-              message: userMessage,
-            })
-        } else {
-          reply.internalServerError(
-            'An unexpected error occurred while updating the instance',
-          )
+          if (error.message.includes('Authentication')) {
+            return reply.unauthorized(userMessage)
+          }
+          if (error.message.includes('not found')) {
+            return reply.notFound(userMessage)
+          }
+          if (error.message.includes('default')) {
+            return reply.badRequest(userMessage)
+          }
+          return reply.internalServerError(userMessage)
         }
+
+        return reply.internalServerError(
+          'An unexpected error occurred while updating the instance',
+        )
       }
     },
   )
 
   // Delete instance
-  fastify.delete<{
-    Params: { id: number }
-  }>(
+  fastify.delete(
     '/instances/:id',
     {
       schema: {
@@ -177,17 +141,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         params: z.object({ id: z.coerce.number() }),
         tags: ['Sonarr'],
         response: {
-          204: z.void(),
-          400: z.object({
-            statusCode: z.number(),
-            error: z.string(),
-            message: z.string(),
-          }),
-          500: z.object({
-            statusCode: z.number(),
-            error: z.string(),
-            message: z.string(),
-          }),
+          204: { type: 'null', description: 'No Content' },
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
       },
     },
@@ -197,31 +153,23 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         await fastify.sonarrManager.removeInstance(id)
         reply.status(204)
+        return
       } catch (error) {
-        if (error instanceof Error) {
-          const statusCode = error.message.includes('not found') ? 400 : 500
-          const errorType =
-            statusCode === 400 ? 'Bad Request' : 'Internal Server Error'
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to delete Sonarr instance',
+          instanceId: id,
+        })
 
-          reply
-            .status(statusCode)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({
-              statusCode,
-              error: errorType,
-              message: error.message,
-            })
-        } else {
-          reply
-            .status(500)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({
-              statusCode: 500,
-              error: 'Internal Server Error',
-              message:
-                'An unknown error occurred when deleting the Sonarr instance',
-            })
+        if (error instanceof Error) {
+          if (error.message.includes('not found')) {
+            return reply.notFound(error.message)
+          }
+          return reply.internalServerError(error.message)
         }
+
+        return reply.internalServerError(
+          'An unknown error occurred when deleting the Sonarr instance',
+        )
       }
     },
   )

@@ -1,8 +1,8 @@
 import { othersWatchlistSchema } from '@schemas/plex/others-watchlist-token.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
   fastify.route({
     method: 'GET',
     url: '/others-watchlist-token',

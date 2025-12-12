@@ -1,8 +1,8 @@
 import { plexConfigNotificationSchema } from '@schemas/plex/configure-notifications.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
   fastify.route({
     method: 'POST',
     url: '/configure-notifications',
@@ -10,10 +10,6 @@ const plugin: FastifyPluginAsyncZod = async (fastify, _opts) => {
     handler: async (request, reply) => {
       try {
         const { plexToken, plexHost, plexPort, useSsl } = request.body
-
-        if (!plexToken || !plexHost) {
-          return reply.badRequest('Plex token and host are required')
-        }
 
         // Get all Radarr instances
         const radarrInstances = await fastify.radarrManager.getAllInstances()

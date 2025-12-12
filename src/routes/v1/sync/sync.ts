@@ -6,16 +6,11 @@ import {
   SyncInstanceResultSchema,
 } from '@schemas/sync/sync.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Sync a specific instance (radarr or sonarr)
-  fastify.post<{
-    Params: z.infer<typeof InstanceIdParamsSchema>
-    Querystring: z.infer<typeof InstanceTypeQuerySchema>
-    Reply: z.infer<typeof SyncInstanceResultSchema>
-  }>(
+  fastify.post(
     '/instance/:instanceId',
     {
       schema: {
@@ -27,6 +22,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         querystring: InstanceTypeQuerySchema,
         response: {
           200: SyncInstanceResultSchema,
+          404: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Sync'],
@@ -77,9 +73,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Sync all configured instances (both Radarr and Sonarr)
-  fastify.post<{
-    Reply: z.infer<typeof SyncAllInstancesResultSchema>
-  }>(
+  fastify.post(
     '/all',
     {
       schema: {

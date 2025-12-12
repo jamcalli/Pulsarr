@@ -3,14 +3,10 @@ import {
   LoginErrorSchema,
   LoginResponseSchema,
 } from '@schemas/auth/login.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: z.infer<typeof CredentialsSchema>
-    Reply: z.infer<typeof LoginResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/login',
     {
       schema: {
@@ -22,6 +18,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: LoginResponseSchema,
           401: LoginErrorSchema,
+          500: LoginErrorSchema,
         },
         tags: ['Authentication'],
       },
@@ -58,7 +55,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           username: user.username,
           redirectTo,
         }
-      } catch (_error) {
+      } catch (error) {
+        fastify.log.error({ err: error, email }, 'Login failed')
         return reply.internalServerError('Login failed.')
       }
     },

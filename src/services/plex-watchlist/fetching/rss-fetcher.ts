@@ -24,44 +24,53 @@ export function generateStableKey(guids: string[]): string {
 }
 
 /**
+ * Result of fetching Plex watchlist RSS URLs
+ */
+export interface PlexWatchlistUrls {
+  selfRss: string | null
+  friendsRss: string | null
+}
+
+/**
  * Generates RSS feed URLs for the given Plex tokens.
  *
  * @param tokens - Set of Plex authentication tokens
  * @param skipFriendSync - Whether to skip generating friend watchlist RSS feeds
  * @param log - Fastify logger instance
- * @returns Promise resolving to a Set of RSS feed URLs
+ * @returns Promise resolving to an object with selfRss and friendsRss URLs
  */
 export const getPlexWatchlistUrls = async (
   tokens: Set<string>,
   skipFriendSync: boolean,
   log: FastifyBaseLogger,
-): Promise<Set<string>> => {
-  const watchlistsFromTokenIo = await Promise.all(
-    Array.from(tokens).map(async (token) => {
-      const selfWatchlist = await getRssFromPlexToken(token, 'watchlist', log)
-      log.info(
-        `Generated watchlist RSS feed for self: ${selfWatchlist ? 'Success' : 'None'}`,
-      )
-      log.debug(`Self watchlist RSS URL: ${selfWatchlist}`)
-      const friendsWatchlist = skipFriendSync
-        ? null
-        : await getRssFromPlexToken(token, 'friendsWatchlist', log)
-      log.info(
-        `Generated watchlist RSS feed for friends: ${friendsWatchlist ? 'Success' : 'None'}`,
-      )
-      log.debug(`Friends watchlist RSS URL: ${friendsWatchlist}`)
-      return [selfWatchlist, friendsWatchlist].filter(Boolean) as string[]
-    }),
+): Promise<PlexWatchlistUrls> => {
+  // Use the first token (single-token design)
+  const token = tokens.values().next().value as string | undefined
+  if (!token) {
+    log.warn('No Plex token provided')
+    return { selfRss: null, friendsRss: null }
+  }
+
+  const selfRss = await getRssFromPlexToken(token, 'watchlist', log)
+  log.info(
+    `Generated watchlist RSS feed for self: ${selfRss ? 'Success' : 'None'}`,
   )
+  log.debug(`Self watchlist RSS URL: ${selfRss}`)
 
-  const watchlistsFromToken = new Set<string>(watchlistsFromTokenIo.flat())
+  const friendsRss = skipFriendSync
+    ? null
+    : await getRssFromPlexToken(token, 'friendsWatchlist', log)
+  log.info(
+    `Generated watchlist RSS feed for friends: ${friendsRss ? 'Success' : 'None'}`,
+  )
+  log.debug(`Friends watchlist RSS URL: ${friendsRss}`)
 
-  if (watchlistsFromToken.size === 0) {
+  if (!selfRss && !friendsRss) {
     log.warn('Missing RSS URL. Are you an active Plex Pass user?')
     log.warn('Real-time RSS sync disabled')
   }
 
-  return watchlistsFromToken
+  return { selfRss, friendsRss }
 }
 
 /**

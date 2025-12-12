@@ -16,10 +16,14 @@ else
   BASE_PATH=""
 fi
 
+# Read listenPort from environment (default to 3003)
+# listenPort: internal port the server binds to
+# port: external port for webhook URL generation (not used here)
+LISTEN_PORT="${listenPort:-3003}"
+
 # Construct health check URL
-# Note: Always use port 3003 (the internal container port) and 127.0.0.1 (to avoid IPv6 issues)
-# The 'port' env var is for external webhook URLs, not the internal listening port
-HEALTH_URL="http://127.0.0.1:3003${BASE_PATH}/health"
+# Note: Use 127.0.0.1 to avoid IPv6 issues
+HEALTH_URL="http://127.0.0.1:${LISTEN_PORT}${BASE_PATH}/health"
 
 # Perform health check
 wget --no-verbose --tries=1 --spider "$HEALTH_URL" || exit 1

@@ -4,14 +4,10 @@ import {
   ErrorSchema,
 } from '@schemas/radarr/create-tag.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: z.infer<typeof CreateTagBodySchema>
-    Reply: z.infer<typeof CreateTagResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/create-tag',
     {
       schema: {

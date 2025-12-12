@@ -1,16 +1,12 @@
 import {
-  type MetadataRefreshErrorResponse,
   MetadataRefreshErrorResponseSchema,
-  type MetadataRefreshSuccessResponse,
   MetadataRefreshSuccessResponseSchema,
 } from '@schemas/metadata/metadata.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Reply: MetadataRefreshSuccessResponse | MetadataRefreshErrorResponse
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/refresh',
     {
       schema: {

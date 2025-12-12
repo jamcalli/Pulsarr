@@ -5,8 +5,7 @@ import {
 } from '@schemas/plex/discover-servers.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import { USER_AGENT } from '@utils/version.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 // Types for Plex API responses
 interface PlexResourceConnection {
@@ -35,11 +34,8 @@ class PlexApiError extends Error {
   }
 }
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: z.infer<typeof PlexTokenSchema>
-    Reply: z.infer<typeof PlexServerResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/discover-servers',
     {
       schema: {
@@ -54,6 +50,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           403: PlexServerErrorSchema,
           404: PlexServerErrorSchema,
           500: PlexServerErrorSchema,
+          504: PlexServerErrorSchema,
         },
         tags: ['Plex'],
       },
@@ -61,10 +58,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { plexToken } = request.body
-
-        if (!plexToken) {
-          return reply.badRequest('Plex token is required')
-        }
 
         fastify.log.info('Discovering Plex servers using provided token')
 
@@ -74,8 +67,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         url.searchParams.append('includeRelay', '0')
         url.searchParams.append('includeIPv6', '0')
 
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 10_000)
         const response = await fetch(url.toString(), {
           method: 'GET',
+          signal: controller.signal,
           headers: {
             'User-Agent': USER_AGENT,
             Accept: 'application/json',
@@ -84,7 +80,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             'X-Plex-Product': 'Pulsarr',
             'X-Plex-Platform': 'Web',
           },
-        })
+        }).finally(() => clearTimeout(timeout))
 
         if (!response.ok) {
           // Pass along the HTTP status code with the error
@@ -162,6 +158,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         logRouteError(fastify.log, request, err, {
           message: 'Failed to discover Plex servers',
         })
+
+        // Handle timeout/abort errors
+        if (err instanceof Error && err.name === 'AbortError') {
+          return reply.gatewayTimeout(
+            'Request to Plex API timed out after 10 seconds',
+          )
+        }
 
         // Handle Fastify-specific errors
         if (
