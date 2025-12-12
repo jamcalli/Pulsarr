@@ -27,10 +27,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const instanceId = Number.parseInt(request.query.instanceId, 10)
-        if (Number.isNaN(instanceId)) {
-          return reply.badRequest('Invalid instance ID')
-        }
+        const { instanceId } = request.query
 
         const instance =
           await fastify.sonarrManager.getSonarrInstance(instanceId)
