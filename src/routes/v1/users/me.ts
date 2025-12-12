@@ -1,17 +1,10 @@
-import {
-  type MeError,
-  MeErrorSchema,
-  type MeResponse,
-  MeResponseSchema,
-} from '@schemas/users/me.schema.js'
+import { MeErrorSchema, MeResponseSchema } from '@schemas/users/me.schema.js'
 import { fetchPlexAvatar } from '@services/plex-watchlist/index.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Reply: MeResponse | MeError
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/me',
     {
       schema: {

@@ -66,8 +66,11 @@ async function init() {
   )
 
   try {
+    // listenPort: internal port the server binds to (default 3003)
+    // port: external port for webhook URL generation (what Sonarr/Radarr use to reach Pulsarr)
+    // Docker users should use port mapping (e.g., 8080:3003) and set port=8080 for webhooks
     await app.listen({
-      port: app.config.port,
+      port: app.config.listenPort,
       host: '0.0.0.0',
     })
   } catch (err) {

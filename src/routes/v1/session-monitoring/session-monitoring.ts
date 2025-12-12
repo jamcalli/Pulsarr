@@ -10,7 +10,7 @@ import {
 import type { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
 import { serializeRollingShowDates } from '@utils/date-serializer.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 /**
  * Resets a rolling monitored show's monitoring state to its original configuration based on its monitoring type.
@@ -43,14 +43,16 @@ async function resetShowMonitoring(
  *
  * Provides endpoints to retrieve, delete, and reset rolling monitored shows, manually trigger the session monitor, and manage shows inactive for a specified number of days. All routes include request validation, error handling, and structured JSON responses.
  */
-const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
+const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
+  fastify,
+) => {
   // Get all rolling monitored shows
   fastify.get(
     '/rolling-monitored',
     {
       schema: getRollingMonitoredSchema,
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       try {
         const shows = await fastify.db.getRollingMonitoredShows()
 
@@ -75,7 +77,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: runSessionMonitorSchema,
     },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (request, reply) => {
       try {
         if (!fastify.config.plexSessionMonitoring?.enabled) {
           return reply.badRequest('Session monitoring is not enabled')
@@ -103,13 +105,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: deleteRollingMonitoredSchema,
     },
-    async (
-      request: FastifyRequest<{
-        Params: { id: string }
-        Querystring: { reset?: string }
-      }>,
-      reply: FastifyReply,
-    ) => {
+    async (request, reply) => {
       try {
         const { id } = request.params
         const showId = Number.parseInt(id, 10)
@@ -166,12 +162,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: resetRollingMonitoredSchema,
     },
-    async (
-      request: FastifyRequest<{
-        Params: { id: string }
-      }>,
-      reply: FastifyReply,
-    ) => {
+    async (request, reply) => {
       try {
         const { id } = request.params
         const showId = Number.parseInt(id, 10)
@@ -221,12 +212,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: getInactiveRollingMonitoredSchema,
     },
-    async (
-      request: FastifyRequest<{
-        Querystring: { inactivityDays?: number }
-      }>,
-      reply: FastifyReply,
-    ) => {
+    async (request, reply) => {
       try {
         const inactivityDays = request.query.inactivityDays || 7
 
@@ -256,12 +242,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
     {
       schema: resetInactiveShowsSchema,
     },
-    async (
-      request: FastifyRequest<{
-        Body: { inactivityDays?: number }
-      }>,
-      reply: FastifyReply,
-    ) => {
+    async (request, reply) => {
       try {
         const inactivityDays = request.body.inactivityDays || 7
 

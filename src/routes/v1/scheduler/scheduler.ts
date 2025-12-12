@@ -2,21 +2,18 @@ import {
   DeleteSyncDryRunResponseSchema,
   ErrorResponseSchema,
   JobStatusSchema,
-  type ScheduleConfig,
   ScheduleConfigSchema,
   type ScheduleUpdate,
   ScheduleUpdateSchema,
   SuccessResponseSchema,
 } from '@schemas/scheduler/scheduler.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all job schedules
-  fastify.get<{
-    Reply: z.infer<typeof JobStatusSchema>[]
-  }>(
+  fastify.get(
     '/schedules',
     {
       schema: {
@@ -88,12 +85,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Create/update a job schedule
-  fastify.post<{
-    Body: ScheduleConfig
-    Reply:
-      | z.infer<typeof SuccessResponseSchema>
-      | z.infer<typeof ErrorResponseSchema>
-  }>(
+  fastify.post(
     '/schedules',
     {
       schema: {
@@ -406,11 +398,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Dry-run the delete sync job
-  fastify.post<{
-    Reply:
-      | z.infer<typeof DeleteSyncDryRunResponseSchema>
-      | z.infer<typeof ErrorResponseSchema>
-  }>(
+  fastify.post(
     '/schedules/delete-sync/dry-run',
     {
       schema: {

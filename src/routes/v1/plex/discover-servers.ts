@@ -5,8 +5,7 @@ import {
 } from '@schemas/plex/discover-servers.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import { USER_AGENT } from '@utils/version.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 // Types for Plex API responses
 interface PlexResourceConnection {
@@ -35,11 +34,8 @@ class PlexApiError extends Error {
   }
 }
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: z.infer<typeof PlexTokenSchema>
-    Reply: z.infer<typeof PlexServerResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/discover-servers',
     {
       schema: {

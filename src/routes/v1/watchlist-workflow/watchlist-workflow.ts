@@ -4,10 +4,10 @@ import {
   WatchlistWorkflowResponseSchema,
 } from '@schemas/watchlist-workflow/watchlist-workflow.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Start Watchlist Workflow
   fastify.post<{
     Body: { autoStart?: boolean }
@@ -107,9 +107,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Stop Watchlist Workflow
-  fastify.post<{
-    Reply: z.infer<typeof WatchlistWorkflowResponseSchema>
-  }>(
+  fastify.post(
     '/stop',
     {
       schema: {
@@ -157,9 +155,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get Watchlist Workflow Status
-  fastify.get<{
-    Reply: z.infer<typeof WatchlistWorkflowResponseSchema>
-  }>(
+  fastify.get(
     '/status',
     {
       schema: {

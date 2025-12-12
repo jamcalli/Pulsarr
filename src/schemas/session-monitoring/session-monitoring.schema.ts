@@ -1,20 +1,21 @@
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 // Base rolling monitored show schema
 const RollingMonitoredShowSchema = z.object({
   id: z.number(),
   sonarr_series_id: z.number(),
-  tvdb_id: z.string().nullable(),
-  imdb_id: z.string().nullable(),
+  tvdb_id: z.string().nullish(),
+  imdb_id: z.string().nullish(),
   show_title: z.string(),
   monitoring_type: z.enum(['pilotRolling', 'firstSeasonRolling']),
   current_monitored_season: z.number(),
   last_watched_season: z.number(),
   last_watched_episode: z.number(),
-  last_session_date: z.string().nullable(),
+  last_session_date: z.string().nullish(),
   sonarr_instance_id: z.number(),
-  plex_user_id: z.string().nullable(),
-  plex_username: z.string().nullable(),
+  plex_user_id: z.string().nullish(),
+  plex_username: z.string().nullish(),
   created_at: z.string(),
   updated_at: z.string(),
   last_updated_at: z.string(),
@@ -50,9 +51,7 @@ export const getRollingMonitoredSchema = {
       success: z.boolean(),
       shows: z.array(RollingMonitoredShowSchema),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
   },
 }
 
@@ -68,9 +67,7 @@ export const runSessionMonitorSchema = {
       success: z.boolean(),
       result: SessionMonitoringResultSchema,
     }),
-    400: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
   },
 }
 
@@ -84,17 +81,16 @@ export const deleteRollingMonitoredSchema = {
   params: z.object({
     id: z.string(),
   }),
+  querystring: z.object({
+    reset: z.string().optional(),
+  }),
   response: {
     200: z.object({
       success: z.boolean(),
       message: z.string(),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
-    404: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
+    404: ErrorSchema,
   },
 }
 
@@ -113,12 +109,8 @@ export const resetRollingMonitoredSchema = {
       success: z.boolean(),
       message: z.string(),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
-    404: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
+    404: ErrorSchema,
   },
 }
 
@@ -138,9 +130,7 @@ export const resetInactiveShowsSchema = {
       message: z.string(),
       resetCount: z.number(),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
   },
 }
 
@@ -160,9 +150,7 @@ export const getInactiveRollingMonitoredSchema = {
       shows: z.array(RollingMonitoredShowSchema),
       inactivityDays: z.number(),
     }),
-    400: z.object({
-      error: z.string(),
-    }),
+    400: ErrorSchema,
   },
 }
 

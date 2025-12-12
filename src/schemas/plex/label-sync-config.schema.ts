@@ -57,7 +57,7 @@ export const PlexLabelSyncConfigSchema = z
   )
 
 export const PlexLabelSyncConfigResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   config: PlexLabelSyncConfigSchema,
 })
 

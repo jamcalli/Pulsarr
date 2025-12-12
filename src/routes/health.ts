@@ -1,13 +1,8 @@
-import {
-  type HealthCheckResponse,
-  HealthCheckResponseSchema,
-} from '@schemas/health/health.schema.js'
-import type { FastifyPluginAsync } from 'fastify'
+import { HealthCheckResponseSchema } from '@schemas/health/health.schema.js'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Reply: HealthCheckResponse
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/health',
     {
       schema: {

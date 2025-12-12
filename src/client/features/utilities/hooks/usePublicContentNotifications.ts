@@ -7,18 +7,13 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { api } from '@/lib/api'
 import { useConfigStore } from '@/stores/configStore'
-import { discordWebhookStringSchema } from '@/utils/discord-webhook-validation'
 
-// Extract API schema and extend with testing fields
+// Extract API schema (includes URL validation from backend) and extend with testing fields
 const ApiPublicContentNotificationsSchema =
   ConfigUpdateSchema.shape.publicContentNotifications.unwrap()
 
 const publicContentNotificationsSchema =
   ApiPublicContentNotificationsSchema.extend({
-    // Replace simple strings with Discord webhook validation
-    discordWebhookUrls: discordWebhookStringSchema,
-    discordWebhookUrlsMovies: discordWebhookStringSchema,
-    discordWebhookUrlsShows: discordWebhookStringSchema,
     // Hidden fields to track connection testing
     _generalTested: z.boolean().default(false),
     _moviesTested: z.boolean().default(false),
@@ -39,7 +34,7 @@ const publicContentNotificationsSchema =
 
       if (url && url.trim().length > 0 && !tested) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: [urlKey as string],
           message: 'Please test connection before saving',
         })

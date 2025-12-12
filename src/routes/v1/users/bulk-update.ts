@@ -4,16 +4,10 @@ import {
   UserErrorSchema,
 } from '@schemas/users/users.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.patch<{
-    Body: z.infer<typeof BulkUpdateRequestSchema>
-    Reply:
-      | z.infer<typeof BulkUpdateResponseSchema>
-      | z.infer<typeof UserErrorSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.patch(
     '/bulk',
     {
       schema: {

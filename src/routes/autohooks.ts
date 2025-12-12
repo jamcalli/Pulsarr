@@ -1,29 +1,42 @@
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
+import { createTemporaryAdminSession } from '@utils/session.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 
 export default async function (fastify: FastifyInstance) {
-  const publicPaths = [
+  // Public API paths that don't require authentication
+  const publicApiPaths = [
     '/v1/users/login',
     '/v1/users/create-admin',
     '/v1/notifications/webhook',
-    '/health',
   ]
 
   // Compute full public paths with basePath prefix at startup
   const basePath = normalizeBasePath(fastify.config.basePath)
-  const fullPublicPaths = publicPaths.map((path) =>
+  const fullPublicApiPaths = publicApiPaths.map((path) =>
     basePath === '/' ? path : `${basePath}${path}`,
   )
+  // v1Prefix without trailing slash to properly match both /v1 and /v1/...
+  const v1Prefix = basePath === '/' ? '/v1' : `${basePath}/v1`
+
   fastify.log.debug(
-    { basePath, fullPublicPaths },
-    'Computed public paths for authentication bypass',
+    { basePath, fullPublicApiPaths },
+    'Computed public API paths for authentication bypass',
   )
 
   fastify.addHook('onRequest', async (request, reply) => {
-    // Skip authentication for public paths
     const urlWithoutQuery = request.url.split('?')[0]
-    const isPublicPath = fullPublicPaths.some(
+
+    // Skip auth for non-API routes (SPA routes handle their own auth/redirects)
+    // Match both exact /v1 and any /v1/... path to prevent auth bypass
+    const isApiRoute =
+      urlWithoutQuery === v1Prefix || urlWithoutQuery.startsWith(`${v1Prefix}/`)
+    if (!isApiRoute) {
+      return
+    }
+
+    // Skip authentication for public API paths
+    const isPublicPath = fullPublicApiPaths.some(
       (fullPath) =>
         urlWithoutQuery === fullPath ||
         urlWithoutQuery.startsWith(`${fullPath}/`),
@@ -34,8 +47,15 @@ export default async function (fastify: FastifyInstance) {
     }
 
     // Check for API key authentication first (no bypass for API keys)
-    const apiKey = request.headers['x-api-key'] as string
-    if (apiKey) {
+    const apiKeyHeader = request.headers['x-api-key']
+    const apiKey =
+      typeof apiKeyHeader === 'string'
+        ? apiKeyHeader
+        : Array.isArray(apiKeyHeader)
+          ? apiKeyHeader[0]
+          : undefined
+
+    if (apiKey && apiKey.length > 0) {
       try {
         await new Promise<void>((resolve, reject) => {
           fastify.verifyApiKey(request, reply, (err) => {
@@ -68,6 +88,12 @@ export default async function (fastify: FastifyInstance) {
           { ip: request.ip, url: request.url },
           'Bypassing authentication for local address',
         )
+      }
+      // Create temporary admin session for bypassed requests
+      // so handlers can safely access request.session.user
+      // Only set if no existing session to avoid overwriting authenticated users
+      if (!request.session.user) {
+        createTemporaryAdminSession(request)
       }
       return
     }

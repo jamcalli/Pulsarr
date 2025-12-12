@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ConfigUpdateSchema } from '@root/schemas/config/config.schema'
 import {
   Check,
   ExternalLink,
@@ -39,57 +40,60 @@ interface TautulliFormProps {
   isInitialized: boolean
 }
 
-const tautulliFormSchema = z
-  .object({
-    tautulliEnabled: z.boolean(),
-    tautulliUrl: z.string().optional(),
-    tautulliApiKey: z.string().optional(),
-    _connectionTested: z.boolean().optional(),
-    _originalTautulliUrl: z.string().optional(),
-    _originalTautulliApiKey: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    // If Tautulli is enabled, both URL and API key are required
-    if (data.tautulliEnabled) {
-      if (!data.tautulliUrl || data.tautulliUrl.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'URL is required when Tautulli is enabled',
-          path: ['tautulliUrl'],
-        })
-      }
+// Extract Tautulli fields from backend schema (includes URL validation)
+const ApiTautulliSchema = ConfigUpdateSchema.pick({
+  tautulliEnabled: true,
+  tautulliUrl: true,
+  tautulliApiKey: true,
+})
 
-      if (!data.tautulliApiKey || data.tautulliApiKey.trim() === '') {
+const tautulliFormSchema = ApiTautulliSchema.extend({
+  // Form-specific fields for tracking state
+  _connectionTested: z.boolean().optional(),
+  _originalTautulliUrl: z.string().optional(),
+  _originalTautulliApiKey: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // If Tautulli is enabled, both URL and API key are required
+  if (data.tautulliEnabled) {
+    if (!data.tautulliUrl || data.tautulliUrl.trim() === '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'URL is required when Tautulli is enabled',
+        path: ['tautulliUrl'],
+      })
+    }
+
+    if (!data.tautulliApiKey || data.tautulliApiKey.trim() === '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'API key is required when Tautulli is enabled',
+        path: ['tautulliApiKey'],
+      })
+    }
+
+    // If both fields are provided, check if connection has been tested
+    if (data.tautulliUrl && data.tautulliApiKey) {
+      const hasChangedApiSettings =
+        (data._originalTautulliUrl !== undefined &&
+          data._originalTautulliUrl !== data.tautulliUrl) ||
+        (data._originalTautulliApiKey !== undefined &&
+          data._originalTautulliApiKey !== data.tautulliApiKey)
+
+      if (
+        !data._connectionTested &&
+        ((data._originalTautulliUrl === undefined &&
+          data._originalTautulliApiKey === undefined) ||
+          hasChangedApiSettings)
+      ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'API key is required when Tautulli is enabled',
+          code: 'custom',
+          message: 'Please test connection before saving',
           path: ['tautulliApiKey'],
         })
       }
-
-      // If both fields are provided, check if connection has been tested
-      if (data.tautulliUrl && data.tautulliApiKey) {
-        const hasChangedApiSettings =
-          (data._originalTautulliUrl !== undefined &&
-            data._originalTautulliUrl !== data.tautulliUrl) ||
-          (data._originalTautulliApiKey !== undefined &&
-            data._originalTautulliApiKey !== data.tautulliApiKey)
-
-        if (
-          !data._connectionTested &&
-          ((data._originalTautulliUrl === undefined &&
-            data._originalTautulliApiKey === undefined) ||
-            hasChangedApiSettings)
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Please test connection before saving',
-            path: ['tautulliApiKey'],
-          })
-        }
-      }
     }
-  })
+  }
+})
 
 type TautulliFormSchema = z.infer<typeof tautulliFormSchema>
 
@@ -148,8 +152,9 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
       tautulliUrl: '',
       tautulliApiKey: '',
       _connectionTested: false,
-      _originalTautulliUrl: '',
-      _originalTautulliApiKey: '',
+      // Use undefined to indicate "no saved config" for validation logic
+      _originalTautulliUrl: undefined,
+      _originalTautulliApiKey: undefined,
     },
     mode: 'onChange',
   })
@@ -162,8 +167,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         tautulliUrl: config.tautulliUrl || '',
         tautulliApiKey: config.tautulliApiKey || '',
         _connectionTested: hasExistingConfig,
-        _originalTautulliUrl: config.tautulliUrl || '',
-        _originalTautulliApiKey: config.tautulliApiKey || '',
+        // Use undefined when no config exists to match validation logic
+        _originalTautulliUrl: hasExistingConfig
+          ? config.tautulliUrl
+          : undefined,
+        _originalTautulliApiKey: hasExistingConfig
+          ? config.tautulliApiKey
+          : undefined,
       })
       if (hasExistingConfig) {
         setTautulliTestValid(true)
@@ -216,8 +226,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         tautulliUrl: config.tautulliUrl || '',
         tautulliApiKey: config.tautulliApiKey || '',
         _connectionTested: hasExistingConfig,
-        _originalTautulliUrl: config.tautulliUrl || '',
-        _originalTautulliApiKey: config.tautulliApiKey || '',
+        // Use undefined when no config exists to match validation logic
+        _originalTautulliUrl: hasExistingConfig
+          ? config.tautulliUrl
+          : undefined,
+        _originalTautulliApiKey: hasExistingConfig
+          ? config.tautulliApiKey
+          : undefined,
       })
       setTautulliTestValid(hasExistingConfig)
     }
@@ -299,11 +314,11 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
       ])
 
       setTautulliStatus('success')
-      // Reset form with updated original values
+      // Reset form with updated original values (these now become the "saved" state)
       tautulliForm.reset({
         ...data,
-        _originalTautulliUrl: data.tautulliUrl || '',
-        _originalTautulliApiKey: data.tautulliApiKey || '',
+        _originalTautulliUrl: data.tautulliUrl,
+        _originalTautulliApiKey: data.tautulliApiKey,
       })
       toast.success('Tautulli settings have been updated')
 
@@ -342,8 +357,9 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         tautulliUrl: '',
         tautulliApiKey: '',
         _connectionTested: false,
-        _originalTautulliUrl: '',
-        _originalTautulliApiKey: '',
+        // Use undefined to indicate no saved config (matches validation logic)
+        _originalTautulliUrl: undefined,
+        _originalTautulliApiKey: undefined,
       })
       setTautulliTestValid(false)
 

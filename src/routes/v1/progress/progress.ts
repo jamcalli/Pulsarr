@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { on } from 'node:events'
 import { ProgressStreamResponseSchema } from '@schemas/progress/progress.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const progressRoute: FastifyPluginAsync = async (fastify) => {
+const progressRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   fastify.get(
     '/',
     {
