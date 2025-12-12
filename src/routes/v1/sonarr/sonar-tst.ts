@@ -155,6 +155,11 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         reply.status(204)
         return
       } catch (error) {
+        logRouteError(fastify.log, request, error, {
+          message: 'Failed to delete Sonarr instance',
+          instanceId: id,
+        })
+
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
             return reply.notFound(error.message)
