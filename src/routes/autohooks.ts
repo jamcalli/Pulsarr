@@ -1,4 +1,5 @@
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
+import { createTemporaryAdminSession } from '@utils/session.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 
@@ -77,6 +78,9 @@ export default async function (fastify: FastifyInstance) {
           'Bypassing authentication for local address',
         )
       }
+      // Create temporary admin session for bypassed requests
+      // so handlers can safely access request.session.user
+      createTemporaryAdminSession(request)
       return
     }
 
