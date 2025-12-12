@@ -87,6 +87,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         await fastify.radarrManager.updateInstance(id, updates)
         reply.status(204)
+        return
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Error updating instance',
@@ -147,6 +148,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         await fastify.radarrManager.removeInstance(id)
         reply.status(204)
+        return
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {

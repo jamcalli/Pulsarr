@@ -119,6 +119,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         reply.status(204)
+        return
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Failed to revoke API key',

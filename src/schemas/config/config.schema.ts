@@ -61,7 +61,8 @@ const AppriseUrlSchema = z
   .optional()
 
 /**
- * Validates a single URL. Accepts empty strings.
+ * Validates a single URL (any scheme). Accepts empty strings.
+ * Used for services like Tautulli that may use various URL schemes.
  */
 const HttpUrlSchema = z
   .union([z.url({ error: 'Must be a valid URL' }), z.literal('')])

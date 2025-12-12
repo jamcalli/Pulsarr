@@ -152,8 +152,9 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
       tautulliUrl: '',
       tautulliApiKey: '',
       _connectionTested: false,
-      _originalTautulliUrl: '',
-      _originalTautulliApiKey: '',
+      // Use undefined to indicate "no saved config" for validation logic
+      _originalTautulliUrl: undefined,
+      _originalTautulliApiKey: undefined,
     },
     mode: 'onChange',
   })
