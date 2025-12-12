@@ -21,12 +21,29 @@ export default async function spaRoute(fastify: FastifyInstance) {
     '/*',
     {
       preHandler: async (request, reply) => {
-        // Skip API routes and static assets
+        // Normalize request path (strip query + basePath)
+        const rawPath = request.url.split('?')[0] ?? request.url
+        const basePath = normalizeBasePath(fastify.config.basePath)
+        const path =
+          basePath !== '/' && rawPath.startsWith(basePath)
+            ? rawPath.slice(basePath.length) || '/'
+            : rawPath
+
+        // Skip API routes and static assets — ensure we do NOT fall through to SPA HTML
+        const lastSeg = path.split('/').pop() ?? ''
         if (
-          request.url.startsWith('/v1/') ||
-          request.url.includes('.') ||
-          request.url === '/favicon.ico'
+          path.startsWith('/v1/') ||
+          path === '/favicon.ico' ||
+          lastSeg.includes('.')
         ) {
+          reply.callNotFound()
+          return
+        }
+
+        // Only serve SPA for HTML navigations; return 404 for non-HTML (e.g., XHR/fetch)
+        const accept = request.headers.accept ?? ''
+        if (typeof accept === 'string' && !accept.includes('text/html')) {
+          reply.callNotFound()
           return
         }
 
@@ -37,13 +54,12 @@ export default async function spaRoute(fastify: FastifyInstance) {
         )
 
         // When using basePath prefix, request.url includes the prefix
-        const basePath = normalizeBasePath(fastify.config.basePath)
         const createUserPath =
           basePath === '/' ? '/create-user' : `${basePath}/create-user`
         const loginPath = basePath === '/' ? '/login' : `${basePath}/login`
 
-        const isCreateUserPage = request.url === createUserPath
-        const isLoginPage = request.url === loginPath
+        const isCreateUserPage = rawPath === createUserPath
+        const isLoginPage = rawPath === loginPath
 
         // Use the in-memory config to check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
