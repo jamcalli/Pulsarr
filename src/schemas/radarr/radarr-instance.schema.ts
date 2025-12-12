@@ -1,7 +1,4 @@
-import {
-  ErrorSchema,
-  NoContentSchema,
-} from '@root/schemas/common/error.schema.js'
+import { ErrorSchema } from '@root/schemas/common/error.schema.js'
 import { z } from 'zod'
 
 // Base Radarr instance schema for creation (with defaults)
@@ -68,4 +65,4 @@ export type RadarrInstanceCreateResponse = z.infer<
 >
 
 // Re-export shared schemas for route use
-export { ErrorSchema, NoContentSchema }
+export { ErrorSchema }

@@ -5,7 +5,6 @@ import {
   GetApiKeysResponseSchema,
   RevokeApiKeyParamsSchema,
 } from '@schemas/api-keys/api-keys.schema.js'
-import { NoContentSchema } from '@schemas/common/error.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
@@ -103,7 +102,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         description: 'Revoke an API key by ID',
         params: RevokeApiKeyParamsSchema,
         response: {
-          204: NoContentSchema,
+          204: { description: 'No Content' },
           404: ApiKeyErrorSchema,
           500: ApiKeyErrorSchema,
         },

@@ -420,14 +420,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "No content"
-                }
-              }
-            }
+            "description": "No Content"
           },
           "404": {
             "description": "Default Response",
@@ -17674,7 +17667,9 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
             },
             "in": "query",
             "name": "instanceId",
@@ -18126,14 +18121,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "No content"
-                }
-              }
-            }
+            "description": "No Content"
           },
           "400": {
             "description": "Default Response",
@@ -18284,14 +18272,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "No content"
-                }
-              }
-            }
+            "description": "No Content"
           },
           "404": {
             "description": "Default Response",
@@ -18371,7 +18352,9 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
             },
             "in": "query",
             "name": "instanceId",
@@ -18534,7 +18517,9 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
             },
             "in": "query",
             "name": "instanceId",
@@ -21236,7 +21221,9 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
             },
             "in": "query",
             "name": "instanceId",
@@ -21399,7 +21386,9 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
             },
             "in": "query",
             "name": "instanceId",
@@ -21899,14 +21888,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "No content"
-                }
-              }
-            }
+            "description": "No Content"
           },
           "400": {
             "description": "Default Response",
@@ -22057,14 +22039,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "No content"
-                }
-              }
-            }
+            "description": "No Content"
           },
           "404": {
             "description": "Default Response",
@@ -22144,7 +22119,9 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
             },
             "in": "query",
             "name": "instanceId",
