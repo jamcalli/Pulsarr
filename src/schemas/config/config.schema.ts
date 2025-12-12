@@ -61,11 +61,25 @@ const AppriseUrlSchema = z
   .optional()
 
 /**
- * Validates a single URL (any scheme). Accepts empty strings.
- * Used for services like Tautulli that may use various URL schemes.
+ * Validates a single URL restricted to http/https schemes. Accepts empty strings.
+ * Used for services like Tautulli and Plex that require HTTP connections.
+ * Restricts to http/https to mitigate SSRF risk from exotic URL schemes.
  */
 const HttpUrlSchema = z
-  .union([z.url({ error: 'Must be a valid URL' }), z.literal('')])
+  .union([
+    z.string().refine(
+      (s) => {
+        try {
+          const url = new URL(s)
+          return url.protocol === 'http:' || url.protocol === 'https:'
+        } catch {
+          return false
+        }
+      },
+      { message: 'Must be a valid http(s) URL' },
+    ),
+    z.literal(''),
+  ])
   .optional()
 
 const LogLevelEnum = z.enum([
@@ -406,12 +420,7 @@ export const ConfigUpdateSchema = z.object({
   // Plex Playlist Protection
   enablePlexPlaylistProtection: z.boolean().optional(),
   plexProtectionPlaylistName: z.string().optional(),
-  plexServerUrl: z
-    .union([
-      z.url({ error: 'Must be a valid URL (http:// or https://)' }),
-      z.literal(''),
-    ])
-    .optional(),
+  plexServerUrl: HttpUrlSchema,
   // Plex Existence Check - skip downloading if content exists on Plex servers
   // Primary token user: checks ALL accessible servers (owned + shared)
   // Friend/other users: checks ONLY the owned server (no access tokens for shared)
