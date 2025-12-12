@@ -4,6 +4,7 @@ import {
   RemovedTagPrefixSchema,
   TagPrefixSchema,
 } from '@root/schemas/shared/prefix-validation.schema.js'
+import { DISCORD_WEBHOOK_HOSTS } from '@root/types/discord.types.js'
 import safeRegex from 'safe-regex2'
 import { z } from 'zod'
 
@@ -11,6 +12,60 @@ import { z } from 'zod'
 const QUEUE_WAIT_TIME_MAX_MS = 30 * 60 * 1000
 const NEW_EPISODE_THRESHOLD_MAX_MS = 720 * 60 * 60 * 1000
 const UPGRADE_BUFFER_TIME_MAX_MS = 10 * 1000
+
+/**
+ * Validates Discord webhook URL format (comma-separated).
+ * Accepts empty strings and validates each URL in comma-separated list.
+ * Must be https, discord.com/discordapp.com host, and /api/webhooks/ path.
+ */
+const DiscordWebhookUrlSchema = z
+  .string()
+  .refine(
+    (val) => {
+      if (!val || val.trim() === '') return true
+      return val.split(',').every((url) => {
+        const trimmed = url.trim()
+        if (trimmed === '') return true
+        // First check if it's a valid URL
+        if (!z.url().safeParse(trimmed).success) return false
+        // Then check Discord-specific requirements
+        const parsed = new URL(trimmed)
+        return (
+          parsed.protocol === 'https:' &&
+          DISCORD_WEBHOOK_HOSTS.some((host) => host === parsed.hostname) &&
+          parsed.pathname.startsWith('/api/webhooks/')
+        )
+      })
+    },
+    { message: 'Must be valid Discord webhook URL(s) (comma-separated)' },
+  )
+  .optional()
+
+/**
+ * Validates Apprise URL format (comma-separated, flexible protocols).
+ * Accepts empty strings and validates each URL in comma-separated list.
+ */
+const AppriseUrlSchema = z
+  .string()
+  .refine(
+    (val) => {
+      if (!val || val.trim() === '') return true
+      return val.split(',').every((url) => {
+        const trimmed = url.trim()
+        if (trimmed === '') return true
+        return z.url().safeParse(trimmed).success
+      })
+    },
+    { message: 'Must be valid URL(s) (comma-separated)' },
+  )
+  .optional()
+
+/**
+ * Validates a single URL. Accepts empty strings.
+ */
+const HttpUrlSchema = z
+  .union([z.url({ error: 'Must be a valid URL' }), z.literal('')])
+  .optional()
 
 const LogLevelEnum = z.enum([
   'fatal',
@@ -262,35 +317,35 @@ export const ConfigUpdateSchema = z.object({
   rateLimitMax: z.number().optional(),
   queueProcessDelaySeconds: z.number().optional(),
   // Discord Config
-  discordWebhookUrl: z.string().optional(),
+  discordWebhookUrl: DiscordWebhookUrlSchema,
   discordBotToken: z.string().optional(),
   discordClientId: z.string().optional(),
   discordGuildId: z.string().optional(),
   // Apprise Config
   enableApprise: z.boolean().optional(),
-  appriseUrl: z.string().optional(),
-  systemAppriseUrl: z.string().optional(),
+  appriseUrl: AppriseUrlSchema,
+  systemAppriseUrl: AppriseUrlSchema,
   // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
   publicContentNotifications: z
     .object({
       enabled: z.boolean(),
       // Discord webhook URLs for public content announcements (comma-separated)
-      discordWebhookUrls: z.string().optional(),
+      discordWebhookUrls: DiscordWebhookUrlSchema,
       // Movie-specific Discord webhook URLs (comma-separated)
-      discordWebhookUrlsMovies: z.string().optional(),
+      discordWebhookUrlsMovies: DiscordWebhookUrlSchema,
       // Show-specific Discord webhook URLs (comma-separated)
-      discordWebhookUrlsShows: z.string().optional(),
+      discordWebhookUrlsShows: DiscordWebhookUrlSchema,
       // Apprise URLs for public content announcements (comma-separated)
-      appriseUrls: z.string().optional(),
+      appriseUrls: AppriseUrlSchema,
       // Movie-specific Apprise URLs (comma-separated)
-      appriseUrlsMovies: z.string().optional(),
+      appriseUrlsMovies: AppriseUrlSchema,
       // Show-specific Apprise URLs (comma-separated)
-      appriseUrlsShows: z.string().optional(),
+      appriseUrlsShows: AppriseUrlSchema,
     })
     .optional(),
   // Tautulli Config
   tautulliEnabled: z.boolean().optional(),
-  tautulliUrl: z.string().optional(),
+  tautulliUrl: HttpUrlSchema,
   tautulliApiKey: z.string().optional(),
   // General Notifications (stored in milliseconds)
   queueWaitTime: z.coerce
