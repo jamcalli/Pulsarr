@@ -167,8 +167,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         tautulliUrl: config.tautulliUrl || '',
         tautulliApiKey: config.tautulliApiKey || '',
         _connectionTested: hasExistingConfig,
-        _originalTautulliUrl: config.tautulliUrl || '',
-        _originalTautulliApiKey: config.tautulliApiKey || '',
+        // Use undefined when no config exists to match validation logic
+        _originalTautulliUrl: hasExistingConfig
+          ? config.tautulliUrl
+          : undefined,
+        _originalTautulliApiKey: hasExistingConfig
+          ? config.tautulliApiKey
+          : undefined,
       })
       if (hasExistingConfig) {
         setTautulliTestValid(true)
@@ -221,8 +226,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         tautulliUrl: config.tautulliUrl || '',
         tautulliApiKey: config.tautulliApiKey || '',
         _connectionTested: hasExistingConfig,
-        _originalTautulliUrl: config.tautulliUrl || '',
-        _originalTautulliApiKey: config.tautulliApiKey || '',
+        // Use undefined when no config exists to match validation logic
+        _originalTautulliUrl: hasExistingConfig
+          ? config.tautulliUrl
+          : undefined,
+        _originalTautulliApiKey: hasExistingConfig
+          ? config.tautulliApiKey
+          : undefined,
       })
       setTautulliTestValid(hasExistingConfig)
     }
@@ -304,11 +314,11 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
       ])
 
       setTautulliStatus('success')
-      // Reset form with updated original values
+      // Reset form with updated original values (these now become the "saved" state)
       tautulliForm.reset({
         ...data,
-        _originalTautulliUrl: data.tautulliUrl || '',
-        _originalTautulliApiKey: data.tautulliApiKey || '',
+        _originalTautulliUrl: data.tautulliUrl,
+        _originalTautulliApiKey: data.tautulliApiKey,
       })
       toast.success('Tautulli settings have been updated')
 
@@ -347,8 +357,9 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         tautulliUrl: '',
         tautulliApiKey: '',
         _connectionTested: false,
-        _originalTautulliUrl: '',
-        _originalTautulliApiKey: '',
+        // Use undefined to indicate no saved config (matches validation logic)
+        _originalTautulliUrl: undefined,
+        _originalTautulliApiKey: undefined,
       })
       setTautulliTestValid(false)
 
