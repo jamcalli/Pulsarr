@@ -16,7 +16,8 @@ export default async function (fastify: FastifyInstance) {
   const fullPublicApiPaths = publicApiPaths.map((path) =>
     basePath === '/' ? path : `${basePath}${path}`,
   )
-  const v1Prefix = basePath === '/' ? '/v1/' : `${basePath}/v1/`
+  // v1Prefix without trailing slash to properly match both /v1 and /v1/...
+  const v1Prefix = basePath === '/' ? '/v1' : `${basePath}/v1`
 
   fastify.log.debug(
     { basePath, fullPublicApiPaths },
@@ -27,7 +28,10 @@ export default async function (fastify: FastifyInstance) {
     const urlWithoutQuery = request.url.split('?')[0]
 
     // Skip auth for non-API routes (SPA routes handle their own auth/redirects)
-    if (!urlWithoutQuery.startsWith(v1Prefix)) {
+    // Match both exact /v1 and any /v1/... path to prevent auth bypass
+    const isApiRoute =
+      urlWithoutQuery === v1Prefix || urlWithoutQuery.startsWith(`${v1Prefix}/`)
+    if (!isApiRoute) {
       return
     }
 

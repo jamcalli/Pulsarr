@@ -223,9 +223,6 @@ export function usePlexNotifications() {
           minimumLoadingTime,
         ])
 
-        // Clear the timeout since we got a response
-        clearTimeout(timeoutId)
-
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(
@@ -286,7 +283,7 @@ export function usePlexNotifications() {
     } else {
       // No saved config, reset to defaults with current token
       form.reset({
-        plexToken: config?.plexTokens?.[0] || '',
+        plexToken: config?.plexTokens?.[0] ?? '',
         plexHost: '',
         plexPort: 32400,
         useSsl: false,
@@ -323,9 +320,6 @@ export function usePlexNotifications() {
         responsePromise,
         minimumLoadingTime,
       ])
-
-      // Clear the timeout since we got a response
-      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json()
