@@ -84,6 +84,7 @@ export interface Config {
   basePath: string
   baseUrl: string
   port: number
+  listenPort: number
   // Database Config
   dbType: 'sqlite' | 'postgres'
   dbPath: string

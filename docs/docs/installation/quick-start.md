@@ -36,7 +36,7 @@ The `baseUrl` + `port` creates the webhook address for Sonarr/Radarr to reach Pu
 ```plaintext
 # ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (deployment-dependent)
 baseUrl=http://your-server-ip   # See warning above for correct value
-port=3003                       # Port (omit for HTTPS on port 443)
+port=3003                       # External port for webhook URLs (omit for HTTPS on port 443)
 TZ=America/Los_Angeles          # Set to your local timezone
 
 # Logging Configuration
