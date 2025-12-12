@@ -58,10 +58,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       try {
         const { plexToken } = request.body
 
-        if (!plexToken) {
-          return reply.badRequest('Plex token is required')
-        }
-
         fastify.log.info('Discovering Plex servers using provided token')
 
         // Build the request to Plex.tv API

@@ -149,7 +149,12 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             // Defensive: ensure the connection is removed on any exit path
             try {
               logService.removeConnection(connectionId)
-            } catch {}
+            } catch (cleanupError) {
+              fastify.log.debug(
+                { cleanupError, connectionId },
+                'Cleanup error removing log connection',
+              )
+            }
           }
         })(),
       )

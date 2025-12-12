@@ -96,7 +96,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           status_transitions: statusTransitions,
           status_flow: statusFlow,
           notification_stats: notificationStats,
-          instance_content_breakdown: instanceContentBreakdown.instances,
+          instance_content_breakdown: instanceContentBreakdown?.instances,
         }
 
         return response

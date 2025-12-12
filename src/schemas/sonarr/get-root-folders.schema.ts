@@ -6,7 +6,7 @@ export const QuerystringSchema = z.object({
 })
 
 export const InstanceInfoSchema = z.object({
-  id: z.number(),
+  id: z.number().int().positive(),
   name: z.string(),
   baseUrl: z.string(),
 })
