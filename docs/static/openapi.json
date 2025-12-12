@@ -4377,7 +4377,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "config": {
                       "type": "object",
@@ -5749,7 +5752,10 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     },
                     "config": {
                       "type": "object",

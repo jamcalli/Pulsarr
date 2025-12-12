@@ -541,14 +541,14 @@ export const ConfigUpdateSchema = z.object({
     .optional(),
 })
 
-// Response schemas
+// Response schemas - success is always true for 200 responses (errors use ConfigErrorSchema)
 export const ConfigGetResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   config: ConfigFullSchema,
 })
 
 export const ConfigUpdateResponseSchema = z.object({
-  success: z.boolean(),
+  success: z.literal(true),
   config: ConfigFullSchema,
 })
 
