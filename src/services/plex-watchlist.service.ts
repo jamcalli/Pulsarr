@@ -6,7 +6,7 @@ import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.js'
+import type { RssFeedsSuccess } from '@schemas/plex/generate-rss-feeds.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from './plex-label-sync.service.js'
@@ -249,7 +249,7 @@ export class PlexWatchlistService {
     )
   }
 
-  async generateAndSaveRssFeeds(): Promise<RssFeedsResponse> {
+  async generateAndSaveRssFeeds(): Promise<RssFeedsSuccess> {
     return generateAndSaveRssFeeds(this.rssProcessorDeps)
   }
 

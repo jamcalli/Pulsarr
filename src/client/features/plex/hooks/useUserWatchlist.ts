@@ -30,7 +30,7 @@ export function useUserWatchlist() {
         throw new Error(errorData.message || 'Failed to fetch user watchlist')
       }
 
-      const data = (await response.json()) as GetUserWatchlistResponse
+      const data: GetUserWatchlistResponse = await response.json()
       setWatchlistData(data.data)
     } catch (err) {
       const error =
