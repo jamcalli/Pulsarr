@@ -8,7 +8,6 @@ import {
 } from '@schemas/tags/user-tags.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
 import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
-import type { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Create user tags in Sonarr and/or Radarr instances
@@ -285,10 +284,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
   )
   // Remove all user tags from media
-  fastify.post<{
-    Body: { deleteTagDefinitions?: boolean }
-    Reply: z.infer<typeof RemoveTagsResponseSchema>
-  }>(
+  fastify.post(
     '/remove',
     {
       schema: {
