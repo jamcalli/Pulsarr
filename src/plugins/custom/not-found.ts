@@ -21,7 +21,6 @@ async function notFoundHandler(fastify: FastifyInstance) {
             id: request.id,
             method: request.method,
             path: request.url.split('?')[0],
-            route: request.routeOptions?.url,
           },
         },
         'Resource not found',

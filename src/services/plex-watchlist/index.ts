@@ -47,6 +47,7 @@ export {
   getOthersWatchlist,
   getPlexWatchlistUrls,
   getRssFromPlexToken,
+  type PlexWatchlistUrls,
   type RawRssFetchResult,
 } from './fetching/index.js'
 // Notifications module

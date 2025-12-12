@@ -92,10 +92,10 @@ export function usePlexNotifications() {
       // update the form
       if (results.success && results.config) {
         form.reset({
-          plexToken: results.config.plexToken || config?.plexTokens?.[0] || '',
-          plexHost: results.config.plexHost || '',
-          plexPort: results.config.plexPort || 32400,
-          useSsl: results.config.useSsl || false,
+          plexToken: results.config.plexToken ?? config?.plexTokens?.[0] ?? '',
+          plexHost: results.config.plexHost ?? '',
+          plexPort: results.config.plexPort ?? 32400,
+          useSsl: results.config.useSsl ?? false,
         })
       }
     } catch (error) {
@@ -154,10 +154,10 @@ export function usePlexNotifications() {
         if (results.success && results.config) {
           form.reset({
             plexToken:
-              results.config.plexToken || config?.plexTokens?.[0] || '',
-            plexHost: results.config.plexHost || '',
-            plexPort: results.config.plexPort || 32400,
-            useSsl: results.config.useSsl || false,
+              results.config.plexToken ?? config?.plexTokens?.[0] ?? '',
+            plexHost: results.config.plexHost ?? '',
+            plexPort: results.config.plexPort ?? 32400,
+            useSsl: results.config.useSsl ?? false,
           })
         }
       } catch (err) {
@@ -278,10 +278,10 @@ export function usePlexNotifications() {
     if (lastResults && 'config' in lastResults && lastResults.config) {
       form.reset({
         plexToken:
-          lastResults.config.plexToken || config?.plexTokens?.[0] || '',
-        plexHost: lastResults.config.plexHost || '',
-        plexPort: lastResults.config.plexPort || 32400,
-        useSsl: lastResults.config.useSsl || false,
+          lastResults.config.plexToken ?? config?.plexTokens?.[0] ?? '',
+        plexHost: lastResults.config.plexHost ?? '',
+        plexPort: lastResults.config.plexPort ?? 32400,
+        useSsl: lastResults.config.useSsl ?? false,
       })
     } else {
       // No saved config, reset to defaults with current token

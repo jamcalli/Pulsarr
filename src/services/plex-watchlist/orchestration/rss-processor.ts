@@ -47,19 +47,19 @@ export async function generateAndSaveRssFeeds(
   const tokenSet: Set<string> = new Set(tokens)
   const skipFriendSync = config.skipFriendSync || false
 
-  const watchlistUrls = await getPlexWatchlistUrls(
+  const { selfRss, friendsRss } = await getPlexWatchlistUrls(
     tokenSet,
     skipFriendSync,
     logger,
   )
 
-  if (watchlistUrls.size === 0) {
+  if (!selfRss && !friendsRss) {
     throw new Error('Unable to fetch watchlist URLs')
   }
 
   const dbUrls = {
-    selfRss: Array.from(watchlistUrls)[0] || '',
-    friendsRss: Array.from(watchlistUrls)[1] || '',
+    selfRss: selfRss || '',
+    friendsRss: friendsRss || '',
   }
 
   // Persist to database first

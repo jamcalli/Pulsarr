@@ -1,11 +1,8 @@
 import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
 import {
   GetTmdbMetadataParamsSchema,
-  type GetTmdbMetadataQuery,
   GetTmdbMetadataQuerySchema,
-  type TmdbMetadataErrorResponse,
   TmdbMetadataErrorResponseSchema,
-  type TmdbMetadataSuccessResponse,
   TmdbMetadataSuccessResponseSchema,
   type TmdbMovieMetadata,
   TmdbRegionsErrorResponseSchema,
@@ -18,11 +15,7 @@ import { z } from 'zod'
 
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Intelligent TMDB metadata endpoint - accepts GUID format (tmdb:123 or tvdb:456)
-  fastify.get<{
-    Params: { id: string }
-    Querystring: GetTmdbMetadataQuery
-    Reply: TmdbMetadataSuccessResponse | TmdbMetadataErrorResponse
-  }>(
+  fastify.get(
     '/metadata/:id',
     {
       schema: {

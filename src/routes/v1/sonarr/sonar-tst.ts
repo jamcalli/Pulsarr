@@ -162,7 +162,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         tags: ['Sonarr'],
         response: {
           204: NoContentSchema,
-          400: ErrorSchema,
+          404: ErrorSchema,
           500: ErrorSchema,
         },
       },
@@ -176,7 +176,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
-            return reply.badRequest(error.message)
+            return reply.notFound(error.message)
           }
           return reply.internalServerError(error.message)
         }

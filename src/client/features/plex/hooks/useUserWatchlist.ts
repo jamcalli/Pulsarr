@@ -58,7 +58,7 @@ export function useUserWatchlist() {
   }
 
   const refetch = async () => {
-    if (selectedUserId) {
+    if (selectedUserId !== null) {
       await fetchUserWatchlist(selectedUserId)
     }
   }

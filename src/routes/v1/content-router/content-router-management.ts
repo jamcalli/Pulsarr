@@ -339,7 +339,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           root_folder: builtRule.root_folder || null,
           quality_profile: builtRule.quality_profile || null,
           tags: builtRule.tags || [],
-          order: builtRule.order || 50,
+          order: builtRule.order ?? 50,
           enabled: builtRule.enabled !== undefined ? builtRule.enabled : true,
           metadata: null,
           search_on_add: ruleData.search_on_add,
