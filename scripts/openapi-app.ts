@@ -3,6 +3,7 @@ import fastifyAutoload from '@fastify/autoload'
 import FastifyFormBody from '@fastify/formbody'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import fp from 'fastify-plugin'
+import { serializerCompiler, validatorCompiler } from 'fastify-zod-openapi'
 
 // Mock service declarations for OpenAPI generation
 declare module 'fastify' {
@@ -41,6 +42,11 @@ export default async function openapiApp(
   fastify: FastifyInstance,
   opts: FastifyPluginOptions,
 ) {
+  // Set Zod compilers for validation and fast-json-stringify serialization
+  // Must be set before any routes are registered
+  fastify.setValidatorCompiler(validatorCompiler)
+  fastify.setSerializerCompiler(serializerCompiler)
+
   // Basic form body parsing
   fastify.register(FastifyFormBody)
 

@@ -11,14 +11,12 @@ import {
 import { formatRule } from '@utils/content-router-formatter.js'
 import { logRouteError } from '@utils/route-errors.js'
 import { RuleBuilder } from '@utils/rule-builder.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all router rules
-  fastify.get<{
-    Reply: z.infer<typeof ContentRouterRuleListResponseSchema>
-  }>(
+  fastify.get(
     '/rules',
     {
       schema: {
@@ -57,11 +55,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get router rules by type
-  fastify.get<{
-    Params: { type: string }
-    Querystring: { enabledOnly?: boolean }
-    Reply: z.infer<typeof ContentRouterRuleListResponseSchema>
-  }>(
+  fastify.get(
     '/rules/type/:type',
     {
       schema: {
@@ -109,13 +103,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get router rules by target
-  fastify.get<{
-    Querystring: {
-      targetType: 'sonarr' | 'radarr'
-      instanceId: number
-    }
-    Reply: z.infer<typeof ContentRouterRuleListResponseSchema>
-  }>(
+  fastify.get(
     '/rules/target',
     {
       schema: {
@@ -165,10 +153,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get router rule by ID
-  fastify.get<{
-    Params: { id: number }
-    Reply: z.infer<typeof ContentRouterRuleResponseSchema>
-  }>(
+  fastify.get(
     '/rules/:id',
     {
       schema: {
@@ -218,10 +203,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Get router rules by target type
-  fastify.get<{
-    Params: { targetType: 'sonarr' | 'radarr' }
-    Reply: z.infer<typeof ContentRouterRuleListResponseSchema>
-  }>(
+  fastify.get(
     '/rules/target/:targetType',
     {
       schema: {
@@ -270,10 +252,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Create a router rule
-  fastify.post<{
-    Body: z.infer<typeof ContentRouterRuleSchema>
-    Reply: z.infer<typeof ContentRouterRuleResponseSchema>
-  }>(
+  fastify.post(
     '/rules',
     {
       schema: {
@@ -344,7 +323,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           root_folder: builtRule.root_folder || null,
           quality_profile: builtRule.quality_profile || null,
           tags: builtRule.tags || [],
-          order: builtRule.order || 50,
+          order: builtRule.order ?? 50,
           enabled: builtRule.enabled !== undefined ? builtRule.enabled : true,
           metadata: null,
           search_on_add: ruleData.search_on_add,
@@ -380,11 +359,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Update a router rule
-  fastify.put<{
-    Params: { id: number }
-    Body: z.infer<typeof ContentRouterRuleUpdateSchema>
-    Reply: z.infer<typeof ContentRouterRuleResponseSchema>
-  }>(
+  fastify.put(
     '/rules/:id',
     {
       schema: {
@@ -524,10 +499,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Delete a router rule
-  fastify.delete<{
-    Params: { id: number }
-    Reply: z.infer<typeof ContentRouterRuleSuccessSchema>
-  }>(
+  fastify.delete(
     '/rules/:id',
     {
       schema: {
@@ -585,11 +557,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Toggle a router rule
-  fastify.patch<{
-    Params: { id: number }
-    Body: z.infer<typeof ContentRouterRuleToggleSchema>
-    Reply: z.infer<typeof ContentRouterRuleSuccessSchema>
-  }>(
+  fastify.patch(
     '/rules/:id/toggle',
     {
       schema: {

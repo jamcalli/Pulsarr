@@ -52,8 +52,8 @@ export function usePlexWatchlist() {
       }
 
       // Convert responses to their proper types
-      const selfData = (await selfResponse.json()) as SelfWatchlistSuccess
-      const othersData = (await othersResponse.json()) as OthersWatchlistSuccess
+      const selfData: SelfWatchlistSuccess = await selfResponse.json()
+      const othersData: OthersWatchlistSuccess = await othersResponse.json()
 
       if (!selfData || !othersData) {
         throw new Error('Invalid watchlist data received')

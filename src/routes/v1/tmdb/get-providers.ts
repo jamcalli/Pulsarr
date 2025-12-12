@@ -1,16 +1,13 @@
-import type { ErrorResponse } from '@schemas/common/error.schema.js'
 import {
   ProvidersErrorSchema,
   type ProvidersResponse,
   ProvidersResponseSchema,
 } from '@schemas/tmdb/get-providers.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Reply: ProvidersResponse | ErrorResponse
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/providers',
     {
       schema: {

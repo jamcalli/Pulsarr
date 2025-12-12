@@ -9,8 +9,7 @@ import {
   type OperatorInfo,
 } from '@schemas/content-router/evaluator-metadata.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
 // Local type for evaluator metadata with contentType
 interface EvaluatorMetadataWithContentType {
@@ -22,11 +21,9 @@ interface EvaluatorMetadataWithContentType {
   contentType?: 'radarr' | 'sonarr' | 'both'
 }
 
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get router plugin information
-  fastify.get<{
-    Reply: z.infer<typeof ContentRouterPluginsResponseSchema>
-  }>(
+  fastify.get(
     '/plugins',
     {
       schema: {
@@ -66,9 +63,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
    * This information can be used to build dynamic UI elements for
    * creating and editing router rules.
    */
-  fastify.get<{
-    Reply: z.infer<typeof EvaluatorMetadataResponseSchema>
-  }>(
+  fastify.get(
     '/plugins/metadata',
     {
       schema: {

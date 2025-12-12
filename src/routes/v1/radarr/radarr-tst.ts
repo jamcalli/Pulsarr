@@ -1,30 +1,18 @@
+import {
+  ErrorSchema,
+  NoContentSchema,
+  RadarrInstanceCreateResponseSchema,
+  RadarrInstanceListResponseSchema,
+  RadarrInstanceSchema,
+  RadarrInstanceUpdateSchema,
+} from '@schemas/radarr/radarr-instance.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import { z } from 'zod'
 
-// Zod schema for Radarr instance configuration
-const RadarrInstanceSchema = z.object({
-  name: z.string().min(1, { error: 'Name is required' }),
-  baseUrl: z.string().url({ error: 'Invalid base URL' }),
-  apiKey: z.string().min(1, { error: 'API Key is required' }),
-  qualityProfile: z.union([z.string(), z.number()]).nullish(),
-  rootFolder: z.string().nullish(),
-  bypassIgnored: z.boolean().optional().default(false),
-  searchOnAdd: z.boolean().optional().default(true),
-  minimumAvailability: z
-    .enum(['announced', 'inCinemas', 'released'])
-    .optional()
-    .default('released'),
-  tags: z.array(z.string()).optional().default([]),
-  isDefault: z.boolean().optional().default(false),
-  syncedInstances: z.array(z.number()).optional(),
-})
-
-const plugin: FastifyPluginAsync = async (fastify) => {
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // Get all instances
-  fastify.get<{
-    Reply: Array<z.infer<typeof RadarrInstanceSchema> & { id: number }>
-  }>(
+  fastify.get(
     '/instances',
     {
       schema: {
@@ -32,7 +20,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'getRadarrInstances',
         description: 'Retrieve all configured Radarr instances',
         response: {
-          200: z.array(RadarrInstanceSchema.extend({ id: z.number() })),
+          200: RadarrInstanceListResponseSchema,
         },
         tags: ['Radarr'],
       },
@@ -50,10 +38,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Create instance
-  fastify.post<{
-    Body: z.infer<typeof RadarrInstanceSchema>
-    Reply: { id: number }
-  }>(
+  fastify.post(
     '/instances',
     {
       schema: {
@@ -62,7 +47,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         description: 'Create a new Radarr instance configuration',
         body: RadarrInstanceSchema,
         response: {
-          201: z.object({ id: z.number().int().positive() }),
+          201: RadarrInstanceCreateResponseSchema,
         },
         tags: ['Radarr'],
       },
@@ -76,10 +61,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   )
 
   // Update instance
-  fastify.put<{
-    Params: { id: number }
-    Body: Partial<z.infer<typeof RadarrInstanceSchema>>
-  }>(
+  fastify.put(
     '/instances/:id',
     {
       schema: {
@@ -87,15 +69,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'updateRadarrInstance',
         description: 'Update an existing Radarr instance configuration',
         params: z.object({ id: z.coerce.number() }),
-        body: RadarrInstanceSchema.partial(),
+        body: RadarrInstanceUpdateSchema,
         tags: ['Radarr'],
         response: {
-          204: z.void(),
-          400: z.object({
-            statusCode: z.number(),
-            error: z.string(),
-            message: z.string(),
-          }),
+          204: NoContentSchema,
+          400: ErrorSchema,
+          401: ErrorSchema,
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
       },
     },
@@ -106,6 +87,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         await fastify.radarrManager.updateInstance(id, updates)
         reply.status(204)
+        return
       } catch (error) {
         logRouteError(fastify.log, request, error, {
           message: 'Error updating instance',
@@ -116,53 +98,35 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         })
 
         if (error instanceof Error) {
-          const statusCode = error.message.includes('Authentication')
-            ? 401
-            : error.message.includes('not found')
-              ? 404
-              : error.message.includes('default')
-                ? 400
-                : 500
-
-          // Extract clean error message for user display
-          let userMessage = error.message
-
-          // Clean up error messages
-          userMessage = userMessage
+          // Clean up error message for user display
+          const userMessage = error.message
             .replace(/Radarr API error: /, '')
             .replace(
               /Failed to initialize Radarr instance/,
               'Failed to save settings',
             )
 
-          reply
-            .status(statusCode)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({
-              statusCode,
-              error:
-                statusCode === 400
-                  ? 'Bad Request'
-                  : statusCode === 401
-                    ? 'Unauthorized'
-                    : statusCode === 404
-                      ? 'Not Found'
-                      : 'Internal Server Error',
-              message: userMessage,
-            })
-        } else {
-          reply.internalServerError(
-            'An unexpected error occurred while updating the instance',
-          )
+          if (error.message.includes('Authentication')) {
+            return reply.unauthorized(userMessage)
+          }
+          if (error.message.includes('not found')) {
+            return reply.notFound(userMessage)
+          }
+          if (error.message.includes('default')) {
+            return reply.badRequest(userMessage)
+          }
+          return reply.internalServerError(userMessage)
         }
+
+        return reply.internalServerError(
+          'An unexpected error occurred while updating the instance',
+        )
       }
     },
   )
 
   // Delete instance
-  fastify.delete<{
-    Params: { id: number }
-  }>(
+  fastify.delete(
     '/instances/:id',
     {
       schema: {
@@ -172,17 +136,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         params: z.object({ id: z.coerce.number() }),
         tags: ['Radarr'],
         response: {
-          204: z.void(),
-          400: z.object({
-            statusCode: z.number(),
-            error: z.string(),
-            message: z.string(),
-          }),
-          500: z.object({
-            statusCode: z.number(),
-            error: z.string(),
-            message: z.string(),
-          }),
+          204: NoContentSchema,
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
       },
     },
@@ -192,31 +148,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         await fastify.radarrManager.removeInstance(id)
         reply.status(204)
+        return
       } catch (error) {
         if (error instanceof Error) {
-          const statusCode = error.message.includes('not found') ? 400 : 500
-          const errorType =
-            statusCode === 400 ? 'Bad Request' : 'Internal Server Error'
-
-          reply
-            .status(statusCode)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({
-              statusCode,
-              error: errorType,
-              message: error.message,
-            })
-        } else {
-          reply
-            .status(500)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({
-              statusCode: 500,
-              error: 'Internal Server Error',
-              message:
-                'An unknown error occurred when deleting the Radarr instance',
-            })
+          if (error.message.includes('not found')) {
+            return reply.notFound(error.message)
+          }
+          return reply.internalServerError(error.message)
         }
+
+        return reply.internalServerError(
+          'An unknown error occurred when deleting the Radarr instance',
+        )
       }
     },
   )

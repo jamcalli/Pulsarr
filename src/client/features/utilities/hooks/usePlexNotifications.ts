@@ -64,43 +64,43 @@ export function usePlexNotifications() {
   // Function to fetch current notification status
   const fetchCurrentStatus = useCallback(async () => {
     // Don't show loading state for status refresh after delete
+    const controller = new AbortController()
+    const signal = controller.signal
+
+    // Add a timeout to prevent hanging
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+
     try {
-      const controller = new AbortController()
-      const signal = controller.signal
-
-      // Add a timeout to prevent hanging
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-
       const response = await fetch(api('/v1/plex/notification-status'), {
         signal,
       })
 
-      clearTimeout(timeoutId)
-
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(
-          errorData.error || 'Failed to fetch Plex notification status',
+          errorData.message || 'Failed to fetch Plex notification status',
         )
       }
 
-      const results =
-        (await response.json()) as ExtendedPlexNotificationStatusResponse
+      const results: ExtendedPlexNotificationStatusResponse =
+        await response.json()
       setLastResults(results)
 
       // If we have current settings after removal (shouldn't happen, but just in case),
       // update the form
       if (results.success && results.config) {
         form.reset({
-          plexToken: results.config.plexToken || config?.plexTokens?.[0] || '',
-          plexHost: results.config.plexHost || '',
-          plexPort: results.config.plexPort || 32400,
-          useSsl: results.config.useSsl || false,
+          plexToken: results.config.plexToken ?? config?.plexTokens?.[0] ?? '',
+          plexHost: results.config.plexHost ?? '',
+          plexPort: results.config.plexPort ?? 32400,
+          useSsl: results.config.useSsl ?? false,
         })
       }
     } catch (error) {
       // Just log the error, don't show to user since this is a background refresh
       console.error('Error fetching notification status after deletion:', error)
+    } finally {
+      clearTimeout(timeoutId)
     }
   }, [form, config?.plexTokens])
 
@@ -138,12 +138,12 @@ export function usePlexNotifications() {
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(
-            errorData.error || 'Failed to fetch Plex notification status',
+            errorData.message || 'Failed to fetch Plex notification status',
           )
         }
 
-        const results =
-          (await response.json()) as ExtendedPlexNotificationStatusResponse
+        const results: ExtendedPlexNotificationStatusResponse =
+          await response.json()
 
         // Check if the request was aborted before setting state
         if (signal.aborted) return
@@ -154,10 +154,10 @@ export function usePlexNotifications() {
         if (results.success && results.config) {
           form.reset({
             plexToken:
-              results.config.plexToken || config?.plexTokens?.[0] || '',
-            plexHost: results.config.plexHost || '',
-            plexPort: results.config.plexPort || 32400,
-            useSsl: results.config.useSsl || false,
+              results.config.plexToken ?? config?.plexTokens?.[0] ?? '',
+            plexHost: results.config.plexHost ?? '',
+            plexPort: results.config.plexPort ?? 32400,
+            useSsl: results.config.useSsl ?? false,
           })
         }
       } catch (err) {
@@ -223,13 +223,10 @@ export function usePlexNotifications() {
           minimumLoadingTime,
         ])
 
-        // Clear the timeout since we got a response
-        clearTimeout(timeoutId)
-
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(
-            errorData.error || 'Failed to configure Plex notifications',
+            errorData.message || 'Failed to configure Plex notifications',
           )
         }
 
@@ -278,15 +275,15 @@ export function usePlexNotifications() {
     if (lastResults && 'config' in lastResults && lastResults.config) {
       form.reset({
         plexToken:
-          lastResults.config.plexToken || config?.plexTokens?.[0] || '',
-        plexHost: lastResults.config.plexHost || '',
-        plexPort: lastResults.config.plexPort || 32400,
-        useSsl: lastResults.config.useSsl || false,
+          lastResults.config.plexToken ?? config?.plexTokens?.[0] ?? '',
+        plexHost: lastResults.config.plexHost ?? '',
+        plexPort: lastResults.config.plexPort ?? 32400,
+        useSsl: lastResults.config.useSsl ?? false,
       })
     } else {
       // No saved config, reset to defaults with current token
       form.reset({
-        plexToken: config?.plexTokens?.[0] || '',
+        plexToken: config?.plexTokens?.[0] ?? '',
         plexHost: '',
         plexPort: 32400,
         useSsl: false,
@@ -324,13 +321,10 @@ export function usePlexNotifications() {
         minimumLoadingTime,
       ])
 
-      // Clear the timeout since we got a response
-      clearTimeout(timeoutId)
-
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(
-          errorData.error || 'Failed to remove Plex notifications',
+          errorData.message || 'Failed to remove Plex notifications',
         )
       }
 

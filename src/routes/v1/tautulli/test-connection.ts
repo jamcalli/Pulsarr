@@ -1,18 +1,13 @@
 import {
   ErrorSchema,
-  type TestConnectionBody,
   TestConnectionBodySchema,
-  type TestConnectionResponse,
   TestConnectionResponseSchema,
 } from '@root/schemas/tautulli/tautulli.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: TestConnectionBody
-    Reply: TestConnectionResponse
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/test-connection',
     {
       schema: {
@@ -82,6 +77,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: data?.response?.message || 'Connection test failed',
         }
       } catch (error) {
+        // Preserve framework-provided HTTP errors
+        if (error instanceof Error && 'statusCode' in error) {
+          throw error
+        }
+
         logRouteError(fastify.log, request, error, {
           message: 'Failed to test Tautulli connection',
         })

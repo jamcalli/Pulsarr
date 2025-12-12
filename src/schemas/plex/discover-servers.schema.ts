@@ -18,7 +18,7 @@ export const PlexServerSchema = z.object({
 
 // Schema for server discovery response
 export const PlexServerResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string().optional(),
   servers: z.array(PlexServerSchema),
 })

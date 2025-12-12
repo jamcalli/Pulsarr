@@ -103,35 +103,25 @@ export async function initializeWorkflow(
   // Try to generate RSS feeds
   try {
     deps.logger.debug('Generating RSS feeds')
-    const rssFeeds = await deps.plexService.generateAndSaveRssFeeds()
+    await deps.plexService.generateAndSaveRssFeeds()
 
-    if ('error' in rssFeeds) {
-      deps.logger.warn(
-        { error: rssFeeds.error },
-        'Failed to generate RSS feeds, falling back to manual sync',
-      )
-      isEtagFallbackActive = true
-      rssMode = false
-    } else {
-      // Initialize RSS monitoring if feeds were generated successfully
-      deps.logger.debug(
-        'RSS feeds generated successfully, initializing monitoring',
-      )
-      // Initialize RSS ETag poller for efficient HEAD-based change detection
-      rssEtagPoller = new RssEtagPoller(deps.logger)
-      // Initialize RSS feed cache for item diffing and author tracking
-      rssFeedCache = new RssFeedCacheManager(deps.logger)
-      isEtagFallbackActive = false
-      rssMode = true
-    }
-  } catch (rssError) {
-    deps.logger.error(
-      { error: rssError },
-      'Error generating or initializing RSS feeds',
+    // Initialize RSS monitoring if feeds were generated successfully
+    deps.logger.debug(
+      'RSS feeds generated successfully, initializing monitoring',
     )
-    throw new Error('Failed to generate or initialize RSS feeds', {
-      cause: rssError,
-    })
+    // Initialize RSS ETag poller for efficient HEAD-based change detection
+    rssEtagPoller = new RssEtagPoller(deps.logger)
+    // Initialize RSS feed cache for item diffing and author tracking
+    rssFeedCache = new RssFeedCacheManager(deps.logger)
+    isEtagFallbackActive = false
+    rssMode = true
+  } catch (rssError) {
+    deps.logger.warn(
+      { error: rssError },
+      'Failed to generate RSS feeds, falling back to manual sync',
+    )
+    isEtagFallbackActive = true
+    rssMode = false
   }
 
   // Set up periodic reconciliation job regardless of RSS mode

@@ -26,7 +26,7 @@ export const GetUserWatchlistParamsSchema = z.object({
 
 // Success response schema
 export const GetUserWatchlistResponseSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
   data: z.object({
     user: UserInfoSchema,

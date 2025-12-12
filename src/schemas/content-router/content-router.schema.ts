@@ -332,7 +332,7 @@ export const ContentRouterRuleListResponseSchema = z.object({
 })
 
 export const ContentRouterRuleSuccessSchema = z.object({
-  success: z.literal(true),
+  success: z.boolean(),
   message: z.string(),
 })
 

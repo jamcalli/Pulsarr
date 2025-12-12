@@ -3,14 +3,10 @@ import {
   LoginErrorSchema,
   LoginResponseSchema,
 } from '@schemas/auth/login.js'
-import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{
-    Body: z.infer<typeof CredentialsSchema>
-    Reply: z.infer<typeof LoginResponseSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.post(
     '/login',
     {
       schema: {

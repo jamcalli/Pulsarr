@@ -11,7 +11,7 @@ import type {
   TemptRssWatchlistItem,
   WatchlistGroup,
 } from '@root/types/plex.types.js'
-import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.js'
+import type { RssFeedsSuccess } from '@schemas/plex/generate-rss-feeds.schema.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { fetchWatchlistFromRss, getPlexWatchlistUrls } from '../index.js'
@@ -32,33 +32,34 @@ export interface RssProcessorDeps {
  *
  * @param deps - Dependencies for the operation
  * @returns RSS feed response with self and friends URLs
+ * @throws Error if no Plex token is configured or URLs cannot be fetched
  */
 export async function generateAndSaveRssFeeds(
   deps: RssProcessorDeps,
-): Promise<RssFeedsResponse> {
+): Promise<RssFeedsSuccess> {
   const { db, logger, config, fastify } = deps
   const tokens = config.plexTokens
 
   if (tokens.length === 0) {
-    return { error: 'No Plex token configured' }
+    throw new Error('No Plex token configured')
   }
 
   const tokenSet: Set<string> = new Set(tokens)
   const skipFriendSync = config.skipFriendSync || false
 
-  const watchlistUrls = await getPlexWatchlistUrls(
+  const { selfRss, friendsRss } = await getPlexWatchlistUrls(
     tokenSet,
     skipFriendSync,
     logger,
   )
 
-  if (watchlistUrls.size === 0) {
-    return { error: 'Unable to fetch watchlist URLs' }
+  if (!selfRss && !friendsRss) {
+    throw new Error('Unable to fetch watchlist URLs')
   }
 
   const dbUrls = {
-    selfRss: Array.from(watchlistUrls)[0] || '',
-    friendsRss: Array.from(watchlistUrls)[1] || '',
+    selfRss: selfRss || '',
+    friendsRss: friendsRss || '',
   }
 
   // Persist to database first

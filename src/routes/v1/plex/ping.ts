@@ -3,17 +3,15 @@ import {
   PingSuccessSchema,
 } from '@schemas/plex/ping.schema.js'
 import { logRouteError } from '@utils/route-errors.js'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsyncZodOpenApi } from 'fastify-zod-openapi'
 import type { z } from 'zod'
 
 const PING_SUCCESS_RESPONSE: z.infer<typeof PingSuccessSchema> = {
   success: true,
 }
 
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{
-    Reply: z.infer<typeof PingSuccessSchema>
-  }>(
+const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
+  fastify.get(
     '/ping',
     {
       schema: {

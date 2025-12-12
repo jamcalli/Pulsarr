@@ -38,7 +38,8 @@ The `baseUrl` and `port` create the webhook address for Sonarr/Radarr to reach P
 | Variable | Description | Required? | Default |
 |----------|-------------|-----------|---------|
 | `baseUrl` | **CRITICAL**: Webhook address for Sonarr/Radarr to reach Pulsarr. Value depends on deployment (service name, IP, or domain). | Yes | `http://localhost` |
-| `port` | Port where Pulsarr is accessible. Combined with baseUrl for webhook address. Omit if using HTTPS. | Yes | `3003` |
+| `port` | External port for webhook URL generation (what Sonarr/Radarr use to call back). Combined with baseUrl. Omit if using HTTPS on 443. | Yes | `3003` |
+| `listenPort` | Internal port the server binds to. Docker users should use port mapping instead (e.g., `8080:3003`). | No | `3003` |
 | `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
 | `logLevel` | Logging level (silent, error, warn, info, debug, trace) | Recommended | `silent` |
 | `enableConsoleOutput` | Show logs in terminal (default: true) | No | `true` |
@@ -98,8 +99,9 @@ Here is how your .env should look:
 
 ### SQLite Configuration (Default)
 ```env
-baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
-port=3003                       # Port where Pulsarr is accessible
+baseUrl=http://your-server-ip   # External address where Pulsarr can be reached (for webhook URLs)
+port=3003                       # External port for webhook URL generation
+# listenPort=3003               # Internal port (default: 3003, rarely needs changing)
 TZ=America/Los_Angeles          # Set to your local timezone
 
 # ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (see warning above for deployment-specific values)
@@ -126,8 +128,9 @@ dbPath=./data/db/pulsarr.db     # SQLite database path (optional, this is defaul
 
 ### PostgreSQL Configuration
 ```env
-baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
-port=3003                       # Port where Pulsarr is accessible
+baseUrl=http://your-server-ip   # External address where Pulsarr can be reached (for webhook URLs)
+port=3003                       # External port for webhook URL generation
+# listenPort=3003               # Internal port (default: 3003, rarely needs changing)
 TZ=America/Los_Angeles          # Set to your local timezone
 
 # ⚠️  Webhook address for Sonarr/Radarr to reach Pulsarr (see warning above for deployment-specific values)
