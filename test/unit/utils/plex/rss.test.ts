@@ -195,8 +195,8 @@ describe('plex/rss', () => {
       const tokens = new Set(['token1'])
       const result = await getPlexWatchlistUrls(tokens, true, mockLogger)
 
-      expect(result.size).toBe(1)
-      expect(result.has('https://rss.plex.tv/feed/watchlist/abc')).toBe(true)
+      expect(result.selfRss).toBe('https://rss.plex.tv/feed/watchlist/abc')
+      expect(result.friendsRss).toBeNull()
     })
 
     it('should generate RSS URLs for both self and friends when skipFriendSync is false', async () => {
@@ -225,12 +225,11 @@ describe('plex/rss', () => {
       const tokens = new Set(['token1'])
       const result = await getPlexWatchlistUrls(tokens, false, mockLogger)
 
-      expect(result.size).toBe(2)
-      expect(result.has('https://rss.plex.tv/feed/watchlist/abc')).toBe(true)
-      expect(result.has('https://rss.plex.tv/feed/friends/xyz')).toBe(true)
+      expect(result.selfRss).toBe('https://rss.plex.tv/feed/watchlist/abc')
+      expect(result.friendsRss).toBe('https://rss.plex.tv/feed/friends/xyz')
     })
 
-    it('should handle multiple tokens', async () => {
+    it('should use first token only (single-token design)', async () => {
       let callCount = 0
       server.use(
         http.post(
@@ -258,30 +257,23 @@ describe('plex/rss', () => {
       const tokens = new Set(['token1', 'token2'])
       const result = await getPlexWatchlistUrls(tokens, true, mockLogger)
 
-      expect(result.size).toBe(2)
+      // Only first token is used
+      expect(callCount).toBe(1)
+      expect(result.selfRss).toBe('https://rss.plex.tv/feed/watchlist/1')
     })
 
-    it('should filter out null results', async () => {
+    it('should return null for failed RSS fetch', async () => {
       server.use(
-        http.post(
-          'https://discover.provider.plex.tv/rss',
-          async ({ request }) => {
-            const token = request.headers.get('X-Plex-Token')
-            if (token === 'valid-token') {
-              return HttpResponse.json({
-                RSSInfo: [{ url: 'https://rss.plex.tv/feed/watchlist/abc' }],
-              } as PlexApiResponse)
-            }
-            return new HttpResponse(null, { status: 401 })
-          },
-        ),
+        http.post('https://discover.provider.plex.tv/rss', () => {
+          return new HttpResponse(null, { status: 401 })
+        }),
       )
 
-      const tokens = new Set(['valid-token', 'invalid-token'])
+      const tokens = new Set(['invalid-token'])
       const result = await getPlexWatchlistUrls(tokens, true, mockLogger)
 
-      expect(result.size).toBe(1)
-      expect(result.has('https://rss.plex.tv/feed/watchlist/abc')).toBe(true)
+      expect(result.selfRss).toBeNull()
+      expect(result.friendsRss).toBeNull()
     })
 
     it('should log warning when no RSS URLs are generated', async () => {
@@ -294,7 +286,8 @@ describe('plex/rss', () => {
       const tokens = new Set(['invalid-token'])
       const result = await getPlexWatchlistUrls(tokens, true, mockLogger)
 
-      expect(result.size).toBe(0)
+      expect(result.selfRss).toBeNull()
+      expect(result.friendsRss).toBeNull()
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Missing RSS URL. Are you an active Plex Pass user?',
       )
@@ -303,11 +296,12 @@ describe('plex/rss', () => {
       )
     })
 
-    it('should return empty set for empty token set', async () => {
+    it('should return nulls for empty token set', async () => {
       const tokens = new Set<string>()
       const result = await getPlexWatchlistUrls(tokens, true, mockLogger)
 
-      expect(result.size).toBe(0)
+      expect(result.selfRss).toBeNull()
+      expect(result.friendsRss).toBeNull()
     })
   })
 
