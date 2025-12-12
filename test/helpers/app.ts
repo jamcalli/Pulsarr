@@ -1,4 +1,4 @@
-import serviceApp, { options } from '@root/app.js'
+import serviceApp from '@root/app.js'
 import type { FastifyInstance } from 'fastify'
 import Fastify from 'fastify'
 import type { TestContext } from 'vitest'
@@ -16,7 +16,6 @@ export async function build(t?: TestContext): Promise<FastifyInstance> {
   await initializeTestDatabase()
 
   const app = Fastify({
-    ...options,
     logger: false, // Disable logging in tests
   })
 
