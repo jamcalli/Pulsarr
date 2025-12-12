@@ -214,7 +214,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
     },
     async (request, reply) => {
       try {
-        const inactivityDays = request.query.inactivityDays || 7
+        const inactivityDays = request.query.inactivityDays ?? 7
 
         const shows =
           await fastify.db.getInactiveRollingMonitoredShows(inactivityDays)
@@ -227,7 +227,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
       } catch (error) {
         logRouteError(request.log, request, error, {
           message: 'Failed to fetch inactive rolling monitored shows',
-          inactivityDays: request.query.inactivityDays || 7,
+          inactivityDays: request.query.inactivityDays ?? 7,
         })
         return reply.internalServerError(
           'Failed to fetch inactive rolling monitored shows',
@@ -244,11 +244,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
     },
     async (request, reply) => {
       try {
-        const inactivityDays = request.body.inactivityDays || 7
-
-        if (inactivityDays < 1 || inactivityDays > 365) {
-          return reply.badRequest('Inactivity days must be between 1 and 365')
-        }
+        const inactivityDays = request.body.inactivityDays ?? 7
 
         // Get inactive shows before resetting to count them
         const inactiveShows =
@@ -271,7 +267,7 @@ const sessionMonitoringRoutes: FastifyPluginAsyncZodOpenApi = async (
       } catch (error) {
         logRouteError(request.log, request, error, {
           message: 'Failed to reset inactive rolling monitored shows',
-          inactivityDays: request.body.inactivityDays || 7,
+          inactivityDays: request.body.inactivityDays ?? 7,
         })
         return reply.internalServerError(
           'Failed to reset inactive rolling monitored shows',

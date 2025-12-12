@@ -19,6 +19,7 @@ const watchlistRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         params: GetUserWatchlistParamsSchema,
         response: {
           200: GetUserWatchlistResponseSchema,
+          400: GetUserWatchlistErrorSchema,
           404: GetUserWatchlistErrorSchema,
           500: GetUserWatchlistErrorSchema,
         },
