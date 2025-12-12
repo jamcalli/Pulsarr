@@ -1286,7 +1286,9 @@ export async function getAllMovieWatchlistItems(
 /**
  * Inserts multiple watchlist items in bulk and returns their database IDs and keys.
  *
- * Supports conflict resolution: use 'ignore' (default) to skip duplicates or 'merge' to update existing entries. The returned array contains only the successfully inserted or merged items.
+ * Supports conflict resolution: use 'ignore' (default) to skip duplicates or 'merge' to update existing entries.
+ * When using 'merge', only metadata fields (title, type, thumb, guids, genres) are updated - status is never
+ * overwritten to prevent accidental status regression. This is intentional for metadata refresh operations.
  *
  * @param items - The watchlist items to insert, excluding creation and update timestamps
  * @param options - Optional conflict resolution mode: 'ignore' (default) or 'merge'
@@ -1323,9 +1325,11 @@ export async function createWatchlistItems(
       const query = trx('watchlist_items').insert(itemsToInsert)
 
       if (options.onConflict === 'merge') {
+        // Only merge metadata fields - never overwrite status to prevent regression
+        // This is used by metadata refresh which should update posters/guids/genres only
         const results = await query
           .onConflict(['user_id', 'key'])
-          .merge()
+          .merge(['title', 'type', 'thumb', 'guids', 'genres', 'updated_at'])
           .returning(['id', 'key'])
         insertedIds.push(...results)
       } else {
