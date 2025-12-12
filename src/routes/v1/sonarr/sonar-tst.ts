@@ -1,6 +1,5 @@
 import {
   ErrorSchema,
-  NoContentSchema,
   SonarrInstanceCreateResponseSchema,
   SonarrInstanceListResponseSchema,
   SonarrInstanceSchema,
@@ -74,7 +73,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         body: SonarrInstanceUpdateSchema,
         tags: ['Sonarr'],
         response: {
-          204: NoContentSchema,
+          204: { description: 'No Content' },
           400: ErrorSchema,
           401: ErrorSchema,
           404: ErrorSchema,
@@ -138,7 +137,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         params: z.object({ id: z.coerce.number() }),
         tags: ['Sonarr'],
         response: {
-          204: NoContentSchema,
+          204: { description: 'No Content' },
           404: ErrorSchema,
           500: ErrorSchema,
         },

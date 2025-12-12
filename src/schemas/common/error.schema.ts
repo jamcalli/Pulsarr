@@ -9,6 +9,3 @@ export const ErrorSchema = z.object({
 })
 
 export type ErrorResponse = z.infer<typeof ErrorSchema>
-
-// Schema for 204 No Content responses - requires openapi metadata for fastify-zod-openapi
-export const NoContentSchema = z.void().meta({ description: 'No content' })
