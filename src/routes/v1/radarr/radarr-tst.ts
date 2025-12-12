@@ -116,45 +116,29 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         })
 
         if (error instanceof Error) {
-          const statusCode = error.message.includes('Authentication')
-            ? 401
-            : error.message.includes('not found')
-              ? 404
-              : error.message.includes('default')
-                ? 400
-                : 500
-
-          // Extract clean error message for user display
-          let userMessage = error.message
-
-          // Clean up error messages
-          userMessage = userMessage
+          // Clean up error message for user display
+          const userMessage = error.message
             .replace(/Radarr API error: /, '')
             .replace(
               /Failed to initialize Radarr instance/,
               'Failed to save settings',
             )
 
-          reply
-            .status(statusCode)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({
-              statusCode,
-              error:
-                statusCode === 400
-                  ? 'Bad Request'
-                  : statusCode === 401
-                    ? 'Unauthorized'
-                    : statusCode === 404
-                      ? 'Not Found'
-                      : 'Internal Server Error',
-              message: userMessage,
-            })
-        } else {
-          reply.internalServerError(
-            'An unexpected error occurred while updating the instance',
-          )
+          if (error.message.includes('Authentication')) {
+            return reply.unauthorized(userMessage)
+          }
+          if (error.message.includes('not found')) {
+            return reply.notFound(userMessage)
+          }
+          if (error.message.includes('default')) {
+            return reply.badRequest(userMessage)
+          }
+          return reply.internalServerError(userMessage)
         }
+
+        return reply.internalServerError(
+          'An unexpected error occurred while updating the instance',
+        )
       }
     },
   )
@@ -186,29 +170,15 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         reply.status(204)
       } catch (error) {
         if (error instanceof Error) {
-          const statusCode = error.message.includes('not found') ? 400 : 500
-          const errorType =
-            statusCode === 400 ? 'Bad Request' : 'Internal Server Error'
-
-          reply
-            .status(statusCode)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({
-              statusCode,
-              error: errorType,
-              message: error.message,
-            })
-        } else {
-          reply
-            .status(500)
-            .header('Content-Type', 'application/json; charset=utf-8')
-            .send({
-              statusCode: 500,
-              error: 'Internal Server Error',
-              message:
-                'An unknown error occurred when deleting the Radarr instance',
-            })
+          if (error.message.includes('not found')) {
+            return reply.badRequest(error.message)
+          }
+          return reply.internalServerError(error.message)
         }
+
+        return reply.internalServerError(
+          'An unknown error occurred when deleting the Radarr instance',
+        )
       }
     },
   )
