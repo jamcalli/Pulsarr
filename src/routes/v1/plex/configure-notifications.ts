@@ -11,10 +11,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify, _opts) => {
       try {
         const { plexToken, plexHost, plexPort, useSsl } = request.body
 
-        if (!plexToken || !plexHost) {
-          return reply.badRequest('Plex token and host are required')
-        }
-
         // Get all Radarr instances
         const radarrInstances = await fastify.radarrManager.getAllInstances()
         // Get all Sonarr instances
