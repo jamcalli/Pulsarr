@@ -77,11 +77,11 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 // This prevents listener accumulation when keep-alive wins the race
                 const iterationAbort = new AbortController()
 
-                // Abort iteration listener when connection closes
+                // Named handler so we can remove it after each iteration
+                const onConnectionAbort = () => iterationAbort.abort()
                 abortController.signal.addEventListener(
                   'abort',
-                  () => iterationAbort.abort(),
-                  { once: true },
+                  onConnectionAbort,
                 )
 
                 // Race between log event and keep-alive timeout
@@ -97,10 +97,19 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   )
                 })
 
-                const result = await Promise.race([
-                  logPromise,
-                  keepAlivePromise,
-                ])
+                let result: Awaited<typeof logPromise> | 'keepalive'
+                try {
+                  result = await Promise.race([logPromise, keepAlivePromise])
+                } finally {
+                  // Always clean up to prevent listener accumulation
+                  abortController.signal.removeEventListener(
+                    'abort',
+                    onConnectionAbort,
+                  )
+                  if (keepAliveTimer) {
+                    clearTimeout(keepAliveTimer)
+                  }
+                }
 
                 if (result === 'keepalive') {
                   // Abort the once() listener to prevent accumulation
@@ -108,11 +117,6 @@ const logStreamRoute: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   // Send SSE comment as keep-alive (not visible to client as data)
                   yield { comment: 'keep-alive' }
                   continue
-                }
-
-                // Log event won - clear the keep-alive timer
-                if (keepAliveTimer) {
-                  clearTimeout(keepAliveTimer)
                 }
 
                 // Got a log entry
