@@ -28,20 +28,20 @@ export const QuotaFormSchema = z
     if (data.hasMovieQuota) {
       if (!data.movieQuotaType) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Movie quota type is required when movie quota is enabled',
           path: ['movieQuotaType'],
         })
       }
       if (data.movieQuotaLimit == null) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Movie quota limit is required when movie quota is enabled',
           path: ['movieQuotaLimit'],
         })
       } else if (data.movieQuotaLimit < 1) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Must be at least 1',
           path: ['movieQuotaLimit'],
         })
@@ -50,20 +50,20 @@ export const QuotaFormSchema = z
     if (data.hasShowQuota) {
       if (!data.showQuotaType) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Show quota type is required when show quota is enabled',
           path: ['showQuotaType'],
         })
       }
       if (data.showQuotaLimit == null) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Show quota limit is required when show quota is enabled',
           path: ['showQuotaLimit'],
         })
       } else if (data.showQuotaLimit < 1) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Must be at least 1',
           path: ['showQuotaLimit'],
         })

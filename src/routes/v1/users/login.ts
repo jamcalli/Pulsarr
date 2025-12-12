@@ -18,6 +18,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         response: {
           200: LoginResponseSchema,
           401: LoginErrorSchema,
+          500: LoginErrorSchema,
         },
         tags: ['Authentication'],
       },

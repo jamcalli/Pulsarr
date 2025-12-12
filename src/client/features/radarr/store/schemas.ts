@@ -40,7 +40,7 @@ export const baseInstanceSchema = baseObjectSchema.superRefine((data, ctx) => {
       hasChangedApiSettings)
   ) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       message: 'Please test connection before continuing',
       path: ['apiKey'],
     })
@@ -75,7 +75,7 @@ export const initialInstanceSchema = initialObjectSchema.superRefine(
         hasChangedApiSettings)
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Please test connection before continuing',
         path: ['apiKey'],
       })
@@ -99,7 +99,7 @@ export const fullInstanceSchema = fullObjectSchema.superRefine((data, ctx) => {
       hasChangedApiSettings)
   ) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       message: 'Please test connection before continuing',
       path: ['apiKey'],
     })

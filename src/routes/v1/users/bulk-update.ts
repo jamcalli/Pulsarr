@@ -34,7 +34,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         if (isUpdatingNotifications) {
           // Process each user individually to check notification settings
-          const failedIds = []
+          const failedIds: number[] = []
           let updatedCount = 0
 
           for (const userId of userIds) {

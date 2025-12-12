@@ -67,7 +67,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'updateUser',
         description: 'Update an existing user by ID',
         params: z.object({
-          id: z.string(),
+          id: z.coerce.number().int().positive(),
         }),
         body: UpdateUserSchema,
         response: {
@@ -79,7 +79,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const userId = Number.parseInt(request.params.id, 10)
+      const userId = request.params.id
 
       try {
         const existingUser = await fastify.db.getUser(userId)
@@ -137,7 +137,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'getUserById',
         description: 'Retrieve a specific user by their ID',
         params: z.object({
-          id: z.string(),
+          id: z.coerce.number().int().positive(),
         }),
         response: {
           200: CreateUserResponseSchema,
@@ -148,9 +148,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const user = await fastify.db.getUser(
-          Number.parseInt(request.params.id, 10),
-        )
+        const user = await fastify.db.getUser(request.params.id)
         if (!user) {
           return reply.notFound('User not found')
         }
