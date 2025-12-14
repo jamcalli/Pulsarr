@@ -21,11 +21,11 @@ async function sendPublicNotifications(
   allNotificationResults: NotificationResult[],
   log: FastifyBaseLogger,
 ): Promise<void> {
-  if (result.user.notify_discord && fastify.discord) {
+  if (result.user.notify_discord && fastify.notifications?.discordWebhook) {
     try {
       // Collect Discord IDs from all real users for @ mentions
       const userDiscordIds = extractUserDiscordIds(allNotificationResults)
-      await fastify.discord.sendPublicNotification(
+      await fastify.notifications.discordWebhook.sendPublicNotification(
         result.notification,
         userDiscordIds,
       )
@@ -66,7 +66,10 @@ async function sendDiscordNotification(
   log: FastifyBaseLogger,
 ): Promise<void> {
   try {
-    await fastify.discord.sendDirectMessage(discordId, notification)
+    await fastify.notifications.discordBot.sendDirectMessage(
+      discordId,
+      notification,
+    )
   } catch (error) {
     log.error(
       {
@@ -190,7 +193,11 @@ async function sendUserNotifications(
   log: FastifyBaseLogger,
 ): Promise<void> {
   // Send Discord DM
-  if (result.user.notify_discord && result.user.discord_id && fastify.discord) {
+  if (
+    result.user.notify_discord &&
+    result.user.discord_id &&
+    fastify.notifications?.discordBot
+  ) {
     await sendDiscordNotification(
       fastify,
       result.user.discord_id,

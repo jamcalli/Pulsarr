@@ -62,12 +62,13 @@ export async function sendWatchlistNotifications(
     const discordType: 'movie' | 'show' =
       t === 'movie' || t === 'show' ? (t as 'movie' | 'show') : 'movie'
 
-    discordSent = await deps.fastify.discord.sendMediaNotification({
-      username,
-      title: item.title,
-      type: discordType,
-      posterUrl: item.thumb,
-    })
+    discordSent =
+      await deps.fastify.notifications.discordWebhook.sendMediaNotification({
+        username,
+        title: item.title,
+        type: discordType,
+        posterUrl: item.thumb,
+      })
 
     deps.logger.debug(
       { success: discordSent },
