@@ -29,13 +29,11 @@ import { useConfigStore } from '@/stores/configStore'
 const ApiDiscordBotSchema = ConfigUpdateSchema.pick({
   discordBotToken: true,
   discordClientId: true,
-  discordGuildId: true,
 })
 
 const discordBotFormSchema = ApiDiscordBotSchema.extend({
   discordBotToken: z.string().min(1, { error: 'Bot token is required' }),
   discordClientId: z.string().min(1, { error: 'Client ID is required' }),
-  discordGuildId: z.string().min(1, { error: 'Guild ID is required' }),
 })
 
 interface DiscordBotFormProps {
@@ -63,7 +61,6 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
     defaultValues: {
       discordBotToken: '',
       discordClientId: '',
-      discordGuildId: '',
     },
     mode: 'onChange',
   })
@@ -72,11 +69,9 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
     if (config) {
       discordBotForm.setValue('discordBotToken', config.discordBotToken || '')
       discordBotForm.setValue('discordClientId', config.discordClientId || '')
-      discordBotForm.setValue('discordGuildId', config.discordGuildId || '')
       discordBotForm.reset({
         discordBotToken: config.discordBotToken || '',
         discordClientId: config.discordClientId || '',
-        discordGuildId: config.discordGuildId || '',
       })
     }
   }, [config, discordBotForm])
@@ -103,7 +98,6 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
       discordBotForm.reset({
         discordBotToken: config.discordBotToken || '',
         discordClientId: config.discordClientId || '',
-        discordGuildId: config.discordGuildId || '',
       })
       setFormTouched(false)
     }
@@ -122,7 +116,6 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
         updateConfig({
           discordBotToken: data.discordBotToken,
           discordClientId: data.discordClientId,
-          discordGuildId: data.discordGuildId,
         }),
         minimumLoadingTime,
       ])
@@ -157,7 +150,6 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
         updateConfig({
           discordBotToken: '',
           discordClientId: '',
-          discordGuildId: '',
         }),
         minimumLoadingTime,
       ])
@@ -166,7 +158,6 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
       discordBotForm.reset({
         discordBotToken: '',
         discordClientId: '',
-        discordGuildId: '',
       })
       setFormTouched(false)
 
@@ -190,8 +181,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
 
   const hasBotSettings = !!(
     discordBotForm.watch('discordBotToken') ||
-    discordBotForm.watch('discordClientId') ||
-    discordBotForm.watch('discordGuildId')
+    discordBotForm.watch('discordClientId')
   )
 
   return (
@@ -246,85 +236,44 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
             )}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={discordBotForm.control}
-              name="discordClientId"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-1">
-                    <FormLabel className="text-foreground">
-                      Discord Client ID
-                    </FormLabel>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          Client ID from your Discord application's General
-                          Information page.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Enter Discord Client ID"
-                      type="text"
-                      disabled={discordBotStatus === 'loading'}
-                      className="w-full"
-                      onChange={(e) => {
-                        field.onChange(e)
-                        handleFieldChange()
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs mt-1" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={discordBotForm.control}
-              name="discordGuildId"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-1">
-                    <FormLabel className="text-foreground">
-                      Discord Guild ID
-                    </FormLabel>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          Server ID found by enabling Developer Mode and
-                          right-clicking your server.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Enter Discord Guild ID"
-                      type="text"
-                      disabled={discordBotStatus === 'loading'}
-                      className="w-full"
-                      onChange={(e) => {
-                        field.onChange(e)
-                        handleFieldChange()
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs mt-1" />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={discordBotForm.control}
+            name="discordClientId"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center gap-1">
+                  <FormLabel className="text-foreground">
+                    Discord Client ID
+                  </FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Client ID from your Discord application's General
+                        Information page.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="Enter Discord Client ID"
+                    type="text"
+                    disabled={discordBotStatus === 'loading'}
+                    className="w-full"
+                    onChange={(e) => {
+                      field.onChange(e)
+                      handleFieldChange()
+                    }}
+                  />
+                </FormControl>
+                <FormMessage className="text-xs mt-1" />
+              </FormItem>
+            )}
+          />
 
           <div className="flex justify-end gap-2 mt-4">
             {isDirty && (

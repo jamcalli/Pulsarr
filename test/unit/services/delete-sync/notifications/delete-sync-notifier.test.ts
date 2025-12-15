@@ -7,16 +7,16 @@
  */
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type { AppriseNotificationService } from '@services/apprise-notifications.service.js'
 import type { DeleteSyncNotifierDeps } from '@services/delete-sync/notifications/delete-sync-notifier.js'
 import { sendNotificationsIfEnabled } from '@services/delete-sync/notifications/index.js'
-import type { DiscordNotificationService } from '@services/discord-notifications.service.js'
+import type { NotificationService } from '@services/notification.service.js'
+import type { AppriseService } from '@services/notifications/channels/index.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
 describe('delete-sync-notifier', () => {
   let mockLogger: ReturnType<typeof createMockLogger>
-  let mockDiscord: {
+  let mockNotifications: {
     sendDeleteSyncNotification: ReturnType<typeof vi.fn>
   }
   let mockApprise: {
@@ -38,7 +38,7 @@ describe('delete-sync-notifier', () => {
 
   beforeEach(() => {
     mockLogger = createMockLogger()
-    mockDiscord = {
+    mockNotifications = {
       sendDeleteSyncNotification: vi.fn().mockResolvedValue(true),
     }
     mockApprise = {
@@ -46,8 +46,8 @@ describe('delete-sync-notifier', () => {
       sendDeleteSyncNotification: vi.fn().mockResolvedValue(true),
     }
     baseDeps = {
-      discord: mockDiscord as unknown as DiscordNotificationService,
-      apprise: mockApprise as unknown as AppriseNotificationService,
+      notifications: mockNotifications as unknown as NotificationService,
+      apprise: mockApprise as unknown as AppriseService,
       config: {
         deleteSyncNotify: 'all',
         deleteSyncNotifyOnlyOnDeletion: false,
@@ -71,7 +71,9 @@ describe('delete-sync-notifier', () => {
       expect(deps.log.info).toHaveBeenCalledWith(
         'Delete sync notifications disabled, skipping all notifications',
       )
-      expect(mockDiscord.sendDeleteSyncNotification).not.toHaveBeenCalled()
+      expect(
+        mockNotifications.sendDeleteSyncNotification,
+      ).not.toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
     })
 
@@ -89,7 +91,9 @@ describe('delete-sync-notifier', () => {
       expect(deps.log.info).toHaveBeenCalledWith(
         'Delete sync completed with no deletions, skipping notification as per configuration',
       )
-      expect(mockDiscord.sendDeleteSyncNotification).not.toHaveBeenCalled()
+      expect(
+        mockNotifications.sendDeleteSyncNotification,
+      ).not.toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
     })
 
@@ -98,7 +102,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(baseDeps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'all',
@@ -121,7 +125,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'discord-only',
@@ -141,7 +145,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'discord-webhook',
@@ -161,7 +165,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'discord-message',
@@ -181,7 +185,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'discord-both',
@@ -201,7 +205,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'webhook',
@@ -221,7 +225,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'message',
@@ -241,7 +245,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'both',
@@ -261,7 +265,9 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).not.toHaveBeenCalled()
+      expect(
+        mockNotifications.sendDeleteSyncNotification,
+      ).not.toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
@@ -271,7 +277,7 @@ describe('delete-sync-notifier', () => {
     it('should not send Discord notification when discord service is null', async () => {
       const deps = {
         ...baseDeps,
-        discord: null,
+        notifications: null,
       }
       const result = createMockResult()
 
@@ -292,7 +298,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'all',
@@ -305,7 +311,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(baseDeps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         false,
         'all',
@@ -314,14 +320,14 @@ describe('delete-sync-notifier', () => {
     })
 
     it('should handle Discord send errors gracefully', async () => {
-      mockDiscord.sendDeleteSyncNotification.mockRejectedValue(
+      mockNotifications.sendDeleteSyncNotification.mockRejectedValue(
         new Error('Discord send failed'),
       )
       const result = createMockResult()
 
       await sendNotificationsIfEnabled(baseDeps, result, false)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalled()
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalled()
       expect(baseDeps.log.error).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.any(Error),
@@ -348,7 +354,7 @@ describe('delete-sync-notifier', () => {
         'Error sending delete sync Apprise notification:',
       )
       // Should still have sent Discord notification
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalled()
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalled()
     })
 
     it('should pass dryRun flag correctly to notification services', async () => {
@@ -356,7 +362,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(baseDeps, result, true)
 
-      expect(mockDiscord.sendDeleteSyncNotification).toHaveBeenCalledWith(
+      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
         result,
         true,
         'all',

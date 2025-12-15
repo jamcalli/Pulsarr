@@ -904,7 +904,7 @@ export class ApprovalService {
   private async sendBatchedDiscordDMNotification(): Promise<void> {
     try {
       // Check if Discord service is available and running
-      const discordService = this.fastify.discord
+      const discordService = this.fastify.notifications?.discordBot
       if (!discordService || discordService.getBotStatus() !== 'running') {
         this.log.debug(
           'Discord bot not available, skipping batched approval notification',
@@ -1054,7 +1054,7 @@ export class ApprovalService {
    */
   private async sendBatchedDiscordWebhookNotifications(): Promise<void> {
     try {
-      const discordService = this.fastify.discord
+      const discordService = this.fastify.notifications?.discordWebhook
       if (!discordService) {
         this.log.debug(
           'Discord service not available, skipping webhook notifications',
@@ -1105,7 +1105,7 @@ export class ApprovalService {
    */
   private async sendBatchedAppriseNotifications(): Promise<void> {
     try {
-      const appriseService = this.fastify.apprise
+      const appriseService = this.fastify.notifications?.apprise
       if (!appriseService || !appriseService.isEnabled()) {
         this.log.debug('Apprise service not available, skipping notifications')
         return
@@ -1154,7 +1154,7 @@ export class ApprovalService {
     totalPending: number,
   ): Promise<void> {
     try {
-      const discordService = this.fastify.discord
+      const discordService = this.fastify.notifications?.discordWebhook
       if (!discordService) return
 
       // Get poster image from watchlist item
@@ -1229,7 +1229,7 @@ export class ApprovalService {
     totalPending: number,
   ): Promise<void> {
     try {
-      const appriseService = this.fastify.apprise
+      const appriseService = this.fastify.notifications?.apprise
       if (!appriseService) return
 
       // Get poster image from watchlist item (same pattern as Discord)

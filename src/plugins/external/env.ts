@@ -164,10 +164,6 @@ const schema = {
       type: 'string',
       default: '',
     },
-    discordGuildId: {
-      type: 'string',
-      default: '',
-    },
     enableApprise: {
       type: 'boolean',
       default: false,
