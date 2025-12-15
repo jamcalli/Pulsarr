@@ -89,14 +89,14 @@ export class TautulliService {
     const searchParams = new URLSearchParams({
       apikey: this.config.apiKey,
       cmd,
-      ...Object.entries(params).reduce(
+      ...Object.entries(params).reduce<Record<string, string>>(
         (acc, [key, value]) => {
           if (value !== undefined && value !== null) {
             acc[key] = String(value)
           }
           return acc
         },
-        {} as Record<string, string>,
+        {},
       ),
     })
 
