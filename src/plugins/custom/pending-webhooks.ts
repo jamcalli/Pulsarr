@@ -43,12 +43,6 @@ export default fp(
   },
   {
     name: 'pending-webhooks',
-    dependencies: [
-      'database',
-      'scheduler',
-      'discord-notification-service',
-      'apprise-notification-service',
-      'tautulli',
-    ],
+    dependencies: ['database', 'scheduler', 'notification-service'],
   },
 )

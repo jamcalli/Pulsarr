@@ -1,11 +1,11 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type { AppriseNotificationService } from '@services/apprise-notifications.service.js'
 import type { NotificationService } from '@services/notification.service.js'
+import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 export interface DeleteSyncNotifierDeps {
   notifications: NotificationService | null
-  apprise: AppriseNotificationService | null
+  apprise: AppriseService | null
   config: {
     deleteSyncNotify: string | null
     deleteSyncNotifyOnlyOnDeletion: boolean

@@ -2,14 +2,17 @@
  * Notification Service
  *
  * Thin orchestrator that owns notification channels.
- * Owns Discord (bot + webhook), Tautulli, and future channels.
+ * Owns Discord (bot + webhook), Tautulli, Apprise, and future channels.
  */
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { SystemNotification } from '@root/types/discord.types.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { DiscordWebhookService } from './notifications/channels/index.js'
+import {
+  AppriseService,
+  DiscordWebhookService,
+} from './notifications/channels/index.js'
 import {
   type BotStatus,
   DiscordBotService,
@@ -28,6 +31,7 @@ export class NotificationService {
   private readonly _discordBot: DiscordBotService
   private readonly _discordWebhook: DiscordWebhookService
   private readonly _tautulli: TautulliService
+  private readonly _apprise: AppriseService
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -42,6 +46,9 @@ export class NotificationService {
 
     // Create Tautulli service
     this._tautulli = new TautulliService(this.log, this.fastify)
+
+    // Create Apprise service
+    this._apprise = new AppriseService(this.log, this.fastify)
   }
 
   /**
@@ -63,6 +70,13 @@ export class NotificationService {
    */
   get tautulli(): TautulliService {
     return this._tautulli
+  }
+
+  /**
+   * Apprise service accessor for Apprise notifications.
+   */
+  get apprise(): AppriseService {
+    return this._apprise
   }
 
   /**
@@ -109,6 +123,12 @@ export class NotificationService {
     } catch (error) {
       this.log.error({ error }, 'Failed to initialize Tautulli service')
     }
+
+    // Initialize Apprise (fire-and-forget to avoid blocking startup)
+    // The initialization includes a 5-second delay to allow Apprise container to fully start
+    this._apprise.initialize().catch((error) => {
+      this.log.error({ error }, 'Unexpected error in Apprise initialization')
+    })
   }
 
   /**
