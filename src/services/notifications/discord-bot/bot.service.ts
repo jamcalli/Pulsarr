@@ -15,7 +15,6 @@ import { Client, GatewayIntentBits } from 'discord.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { sendDirectMessage } from '../channels/discord-dm.js'
 import {
-  addCommand,
   type Command,
   createCommandRegistry,
   registerCommandsWithDiscord,
@@ -43,11 +42,9 @@ export class DiscordBotService {
     this.log = createServiceLogger(baseLog, 'DISCORD')
     this.log.debug('Initializing Discord bot service')
 
-    // Initialize command registry
     this.commands = createCommandRegistry({
       log: this.log,
       fastify: this.fastify,
-      config: this.botConfig,
     })
   }
 
@@ -168,19 +165,30 @@ export class DiscordBotService {
   }
 
   /**
+   * Check if Discord bot config is present.
+   */
+  get hasBotConfig(): boolean {
+    const required = ['discordBotToken', 'discordClientId'] as const
+    return required.every((key) => Boolean(this.config[key]))
+  }
+
+  /**
    * Adds a new command to the registry.
+   * If the bot is running, re-registers commands with Discord.
    */
   addCommand(command: Command): void {
-    addCommand(
-      this.commands,
-      command,
-      {
+    this.log.info({ command: command.data.name }, 'Adding new command')
+    this.commands.set(command.data.name, command)
+
+    // Only re-register with Discord if bot is running (which means config is valid)
+    if (this.botStatus === 'running') {
+      this.log.debug('Registering new command with Discord')
+      void registerCommandsWithDiscord(this.commands, {
         log: this.log,
         fastify: this.fastify,
         config: this.botConfig,
-      },
-      this.botStatus === 'running',
-    )
+      })
+    }
   }
 
   /**
