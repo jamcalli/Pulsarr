@@ -114,6 +114,26 @@ export async function getUser(
 }
 
 /**
+ * Retrieve a user by their Discord ID.
+ *
+ * @param discordId - The Discord user ID to search for
+ * @returns The matched User, or `undefined` if no user has this Discord ID linked
+ */
+export async function getUserByDiscordId(
+  this: DatabaseService,
+  discordId: string,
+): Promise<User | undefined> {
+  const row = await this.knex('users')
+    .where({ discord_id: discordId })
+    .andWhere('id', '>', 0)
+    .first()
+
+  if (!row) return undefined
+
+  return mapRowToUser(row)
+}
+
+/**
  * Update a user's record with the given partial user fields.
  *
  * This will set the `updated_at` timestamp on success. The function refuses to
