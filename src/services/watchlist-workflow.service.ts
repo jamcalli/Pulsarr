@@ -27,6 +27,7 @@ import type {
   EtagUserInfo,
   Item,
   TokenWatchlistItem,
+  UserMapEntry,
 } from '@root/types/plex.types.js'
 import type { RssCacheInfo } from '@services/plex-watchlist/index.js'
 import {
@@ -119,11 +120,11 @@ export class WatchlistWorkflowService {
   private readonly STATUS_SYNC_DEBOUNCE_MS = 60 * 1000
 
   /**
-   * In-memory cache mapping Plex user UUIDs (watchlistId) to database user IDs.
+   * In-memory cache mapping Plex user UUIDs (watchlistId) to user info.
    * Used for RSS author field lookups. Friends only - self-RSS is always primary user.
    * Populated during friend sync operations.
    */
-  private plexUuidCache: Map<string, number> = new Map()
+  private plexUuidCache: Map<string, UserMapEntry> = new Map()
 
   /**
    * Queue for routing attempts that fail due to instance unavailability.
@@ -606,7 +607,7 @@ export class WatchlistWorkflowService {
         isPrimary: boolean
         watchlistId?: string
       }) => this.syncSingleFriend(userInfo),
-      updatePlexUuidCache: (userMap: Map<string, number>) =>
+      updatePlexUuidCache: (userMap: Map<string, UserMapEntry>) =>
         this.updatePlexUuidCache(userMap),
       updateAutoApprovalUserAttribution: () =>
         this.updateAutoApprovalUserAttribution(),
@@ -694,7 +695,7 @@ export class WatchlistWorkflowService {
         isPrimary: boolean
         watchlistId?: string
       }) => this.syncSingleFriend(userInfo),
-      updatePlexUuidCache: (userMap: Map<string, number>) =>
+      updatePlexUuidCache: (userMap: Map<string, UserMapEntry>) =>
         this.updatePlexUuidCache(userMap),
     }
   }
@@ -702,7 +703,7 @@ export class WatchlistWorkflowService {
   /**
    * Updates the in-memory UUID cache from a userMap.
    */
-  private updatePlexUuidCache(userMap: Map<string, number>): void {
+  private updatePlexUuidCache(userMap: Map<string, UserMapEntry>): void {
     this.plexUuidCache = updatePlexUuidCache(userMap, this.uuidCacheDeps)
   }
 

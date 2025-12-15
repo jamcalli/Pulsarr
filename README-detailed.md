@@ -552,7 +552,6 @@ queueProcessDelaySeconds=60            # Queue processing delay in seconds
 discordWebhookUrl=https://discord.com/api/webhooks/xxxx/xxxx  # Webhook URL(s), separate multiple with commas
 discordBotToken=xxxx.xxxx.xxxx                                # Bot token
 discordClientId=xxxxxxxxxxxx                                  # Client ID
-discordGuildId=xxxxxxxxxxxx                                   # Server ID
 
 # Apprise Configuration
 appriseUrl=http://x.x.x.x:8000         # URL for the Apprise server (e.g., http://apprise:8000 for Docker networking)

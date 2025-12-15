@@ -19,7 +19,6 @@ import type { Knex } from 'knex'
  * - discordWebhookUrl: string
  * - discordBotToken: string
  * - discordClientId: string
- * - discordGuildId: string
  * - queueWaitTime: integer (default: 120000)
  * - newEpisodeThreshold: integer (default: 172800000)
  * - upgradeBufferTime: integer (default: 2000)
@@ -94,7 +93,6 @@ export const SEED_CONFIGS = [
     discordWebhookUrl: null,
     discordBotToken: null,
     discordClientId: null,
-    discordGuildId: null,
     queueWaitTime: 120000,
     newEpisodeThreshold: 172800000,
     upgradeBufferTime: 2000,

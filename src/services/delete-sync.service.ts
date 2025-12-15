@@ -372,8 +372,8 @@ export class DeleteSyncService {
       // Step 11: Send notifications about results if enabled
       await sendNotificationsIfEnabled(
         {
-          discord: this.fastify.discord,
-          apprise: this.fastify.apprise,
+          notifications: this.fastify.notifications ?? null,
+          apprise: this.fastify.notifications?.apprise ?? null,
           config: {
             deleteSyncNotify: this.config.deleteSyncNotify || null,
             deleteSyncNotifyOnlyOnDeletion:
@@ -430,8 +430,8 @@ export class DeleteSyncService {
     // Send notification about the safety trigger if enabled
     sendNotificationsIfEnabled(
       {
-        discord: this.fastify.discord,
-        apprise: this.fastify.apprise,
+        notifications: this.fastify.notifications ?? null,
+        apprise: this.fastify.notifications?.apprise ?? null,
         config: {
           deleteSyncNotify: this.config.deleteSyncNotify || null,
           deleteSyncNotifyOnlyOnDeletion:

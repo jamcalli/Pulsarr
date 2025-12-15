@@ -161,7 +161,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           // Initialize if just enabled
           if (safeConfigUpdate.tautulliEnabled === true) {
             try {
-              await fastify.tautulli.initialize()
+              await fastify.notifications.tautulli.initialize()
             } catch (error) {
               fastify.log.error(
                 { error },

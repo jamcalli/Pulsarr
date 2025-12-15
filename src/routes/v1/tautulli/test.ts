@@ -33,7 +33,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         }
 
         // Test by calling arnold endpoint (Tautulli's test endpoint)
-        const isConnected = await fastify.tautulli.testConnection()
+        const isConnected =
+          await fastify.notifications.tautulli.testConnection()
 
         if (isConnected) {
           return {

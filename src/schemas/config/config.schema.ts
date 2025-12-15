@@ -179,7 +179,6 @@ export const ConfigFullSchema = z.object({
   discordWebhookUrl: z.string().optional(),
   discordBotToken: z.string().optional(),
   discordClientId: z.string().optional(),
-  discordGuildId: z.string().optional(),
   // Apprise Config (merged from runtime in route handler)
   enableApprise: z.boolean(),
   appriseUrl: z.string(),
@@ -336,7 +335,6 @@ export const ConfigUpdateSchema = z
     discordWebhookUrl: DiscordWebhookUrlSchema,
     discordBotToken: z.string().optional(),
     discordClientId: z.string().optional(),
-    discordGuildId: z.string().optional(),
     // Apprise Config (enableApprise/appriseUrl are runtime-only; not writable via API)
     systemAppriseUrl: AppriseUrlSchema,
     // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
