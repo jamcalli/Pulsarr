@@ -14,8 +14,8 @@ export { AppriseService, type AppriseStatus } from './apprise.service.js'
 export { type DiscordDmDeps, sendDirectMessage } from './discord-dm.js'
 export {
   type DiscordWebhookDeps,
-  sendMediaNotification,
-  sendPublicNotification,
+  sendMediaNotification as sendDiscordWebhookMediaNotification,
+  sendPublicNotification as sendDiscordWebhookPublicNotification,
   sendWebhookNotification,
   validateWebhook,
 } from './discord-webhook.js'
