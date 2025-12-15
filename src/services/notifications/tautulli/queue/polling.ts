@@ -193,6 +193,10 @@ async function processSingleNotification(
     } else {
       // Log failures but keep in queue for retry
       const failed = results.filter((r) => !r.success)
+      // Remove successfully notified users to prevent duplicates on retry
+      notification.interestedUsers = notification.interestedUsers.filter((u) =>
+        failed.some((f) => f.username === u.username),
+      )
       log.warn(
         {
           title: notification.title,
