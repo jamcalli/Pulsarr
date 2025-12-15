@@ -27,8 +27,8 @@ describe('Notification Integration Tests', () => {
       await app.ready()
 
       // Now mock the Discord method after the service is initialized
-      if (app.notifications?.bot) {
-        app.notifications.bot.sendDirectMessage = sendDirectMessageSpy
+      if (app.notifications?.discordBot) {
+        app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
       }
 
       // Call processContentNotifications which triggers the full chain
@@ -83,8 +83,8 @@ describe('Notification Integration Tests', () => {
       await app.ready()
 
       const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
-      if (app.notifications?.bot) {
-        app.notifications.bot.sendDirectMessage = sendDirectMessageSpy
+      if (app.notifications?.discordBot) {
+        app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
       }
 
       const result = await processContentNotifications(
@@ -116,8 +116,8 @@ describe('Notification Integration Tests', () => {
       const app = await build(ctx)
       await app.ready()
 
-      if (app.notifications?.bot) {
-        app.notifications.bot.sendDirectMessage = vi
+      if (app.notifications?.discordBot) {
+        app.notifications.discordBot.sendDirectMessage = vi
           .fn()
           .mockResolvedValue(undefined)
       }
@@ -147,8 +147,8 @@ describe('Notification Integration Tests', () => {
       const app = await build(ctx)
       await app.ready()
 
-      if (app.notifications?.bot) {
-        app.notifications.bot.sendDirectMessage = vi
+      if (app.notifications?.discordBot) {
+        app.notifications.discordBot.sendDirectMessage = vi
           .fn()
           .mockResolvedValue(undefined)
       }

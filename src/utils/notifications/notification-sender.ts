@@ -37,9 +37,14 @@ async function sendPublicNotifications(
     }
   }
 
-  if (result.user.notify_apprise && fastify.apprise?.isEnabled()) {
+  if (
+    result.user.notify_apprise &&
+    fastify.notifications?.apprise?.isEnabled()
+  ) {
     try {
-      await fastify.apprise.sendPublicNotification(result.notification)
+      await fastify.notifications.apprise.sendPublicNotification(
+        result.notification,
+      )
     } catch (error) {
       log.error(
         { error, userId: result.user.id },
@@ -97,7 +102,10 @@ async function sendAppriseNotification(
   log: FastifyBaseLogger,
 ): Promise<void> {
   try {
-    await fastify.apprise.sendMediaNotification(user, notification)
+    await fastify.notifications.apprise.sendMediaNotification(
+      user,
+      notification,
+    )
   } catch (error) {
     log.error({ error, userId: user.id }, 'Failed to send Apprise notification')
   }
@@ -208,7 +216,10 @@ async function sendUserNotifications(
   }
 
   // Send Apprise notification
-  if (result.user.notify_apprise && fastify.apprise?.isEnabled()) {
+  if (
+    result.user.notify_apprise &&
+    fastify.notifications?.apprise?.isEnabled()
+  ) {
     await sendAppriseNotification(
       fastify,
       result.user,

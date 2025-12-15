@@ -1105,7 +1105,7 @@ export class ApprovalService {
    */
   private async sendBatchedAppriseNotifications(): Promise<void> {
     try {
-      const appriseService = this.fastify.apprise
+      const appriseService = this.fastify.notifications?.apprise
       if (!appriseService || !appriseService.isEnabled()) {
         this.log.debug('Apprise service not available, skipping notifications')
         return
@@ -1229,7 +1229,7 @@ export class ApprovalService {
     totalPending: number,
   ): Promise<void> {
     try {
-      const appriseService = this.fastify.apprise
+      const appriseService = this.fastify.notifications?.apprise
       if (!appriseService) return
 
       // Get poster image from watchlist item (same pattern as Discord)

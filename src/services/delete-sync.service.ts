@@ -373,7 +373,7 @@ export class DeleteSyncService {
       await sendNotificationsIfEnabled(
         {
           notifications: this.fastify.notifications ?? null,
-          apprise: this.fastify.apprise,
+          apprise: this.fastify.notifications?.apprise ?? null,
           config: {
             deleteSyncNotify: this.config.deleteSyncNotify || null,
             deleteSyncNotifyOnlyOnDeletion:
@@ -431,7 +431,7 @@ export class DeleteSyncService {
     sendNotificationsIfEnabled(
       {
         notifications: this.fastify.notifications ?? null,
-        apprise: this.fastify.apprise,
+        apprise: this.fastify.notifications?.apprise ?? null,
         config: {
           deleteSyncNotify: this.config.deleteSyncNotify || null,
           deleteSyncNotifyOnlyOnDeletion:

@@ -88,18 +88,22 @@ export async function sendWatchlistNotifications(
   }
 
   // Send Apprise notification
-  if (deps.fastify.apprise?.isEnabled()) {
+  if (deps.fastify.notifications?.apprise?.isEnabled()) {
     try {
       appriseSent =
-        await deps.fastify.apprise.sendWatchlistAdditionNotification({
-          title: item.title,
-          type:
-            typeof item.type === 'string' ? item.type.toLowerCase() : 'unknown',
-          addedBy: {
-            name: username,
+        await deps.fastify.notifications.apprise.sendWatchlistAdditionNotification(
+          {
+            title: item.title,
+            type:
+              typeof item.type === 'string'
+                ? item.type.toLowerCase()
+                : 'unknown',
+            addedBy: {
+              name: username,
+            },
+            posterUrl: item.thumb,
           },
-          posterUrl: item.thumb,
-        })
+        )
 
       deps.logger.debug(
         { success: appriseSent },

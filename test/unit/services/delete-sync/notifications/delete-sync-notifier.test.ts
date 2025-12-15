@@ -7,10 +7,10 @@
  */
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type { AppriseNotificationService } from '@services/apprise-notifications.service.js'
 import type { DeleteSyncNotifierDeps } from '@services/delete-sync/notifications/delete-sync-notifier.js'
 import { sendNotificationsIfEnabled } from '@services/delete-sync/notifications/index.js'
 import type { NotificationService } from '@services/notification.service.js'
+import type { AppriseService } from '@services/notifications/channels/index.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
@@ -47,7 +47,7 @@ describe('delete-sync-notifier', () => {
     }
     baseDeps = {
       notifications: mockNotifications as unknown as NotificationService,
-      apprise: mockApprise as unknown as AppriseNotificationService,
+      apprise: mockApprise as unknown as AppriseService,
       config: {
         deleteSyncNotify: 'all',
         deleteSyncNotifyOnlyOnDeletion: false,
