@@ -338,8 +338,10 @@ export async function handleApprovalAction(
     }
 
     // Show next approval after a short delay
-    setTimeout(async () => {
-      await showNextApprovalAfterAction(interaction, currentIndex, deps)
+    setTimeout(() => {
+      showNextApprovalAfterAction(interaction, currentIndex, deps).catch(
+        (err) => deps.log.error({ err }, 'Failed to show next approval'),
+      )
     }, 1500)
   } catch (error) {
     log.error({ error, approvalId, action }, 'Error processing approval action')
