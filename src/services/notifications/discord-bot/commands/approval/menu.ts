@@ -34,13 +34,12 @@ export async function showApprovalMainMenu(
 
   try {
     // Get counts for display
-    const [pendingApprovals, allApprovals] = await Promise.all([
+    const [pendingApprovals, totalCount] = await Promise.all([
       db.getPendingApprovalRequests(),
-      db.getApprovalHistory(), // Get all for total count
+      db.getApprovalHistoryCount(),
     ])
 
     const pendingCount = pendingApprovals.length
-    const totalCount = allApprovals.length
 
     const menuEmbed = createMainMenuEmbed(pendingCount, totalCount)
     const menuActionRow = createMainMenuActionRow(pendingCount, totalCount)
