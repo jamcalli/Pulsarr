@@ -81,8 +81,7 @@ In your Pulsarr web interface:
 1. Navigate to the Discord settings section
 2. Enter the Bot Token (from step 6 above)
 3. Enter the Client ID (found in the "General Information" tab of your Discord application)
-4. Enter the Guild ID (your Discord server ID - enable Developer Mode in Discord settings, then right-click your server and "Copy ID")
-5. Click the 'Start' button next to the Discord Bot Settings header
+4. Click the 'Start' button next to the Discord Bot Settings header
 
 ## Discord Commands
 
@@ -126,8 +125,7 @@ If your bot isn't responding to commands:
 1. Verify the bot token is correct
 2. Ensure the Message Content Intent is enabled
 3. Check that the bot has the necessary permissions in your server
-4. Confirm the Guild ID is correct
-5. Look at the Pulsarr logs for any discord-related errors
+4. Look at the Pulsarr logs for any discord-related errors
 
 ### Users Not Receiving Notifications
 
