@@ -6,15 +6,6 @@
  */
 
 import {
-  handleApprovalButtons,
-  showApprovalAtIndex,
-} from '@root/utils/discord-commands/approval-command.js'
-import {
-  handleNotificationButtons,
-  handlePlexUsernameModal,
-  handleProfileEditModal,
-} from '@root/utils/discord-commands/notifications-command.js'
-import {
   type ButtonInteraction,
   type Client,
   Events,
@@ -24,6 +15,15 @@ import {
 } from 'discord.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { Command } from './command-registry.js'
+import {
+  handleApprovalButtons,
+  showApprovalAtIndex,
+} from './commands/approval/approval-command.js'
+import {
+  handleNotificationButtons,
+  handlePlexUsernameModal,
+  handleProfileEditModal,
+} from './commands/notifications/notifications-command.js'
 
 export interface EventRouterDeps {
   log: FastifyBaseLogger
@@ -132,11 +132,15 @@ async function handleButtonInteraction(
   log.debug({ buttonId: interaction.customId }, 'Handling button interaction')
 
   if (interaction.customId.startsWith('approval_')) {
-    await handleApprovalButtons(interaction, { fastify, log })
+    await handleApprovalButtons(interaction, {
+      db: fastify.db,
+      approvalService: fastify.approvalService,
+      log,
+    })
   } else if (interaction.customId.startsWith('review_approvals_')) {
     await handleReviewApprovalsButton(interaction, { fastify, log })
   } else {
-    await handleNotificationButtons(interaction, { fastify, log })
+    await handleNotificationButtons(interaction, { db: fastify.db, log })
   }
 }
 
@@ -155,10 +159,10 @@ async function handleModalSubmit(
 
   switch (interaction.customId) {
     case 'plexUsernameModal':
-      await handlePlexUsernameModal(interaction, { fastify, log })
+      await handlePlexUsernameModal(interaction, { db: fastify.db, log })
       break
     case 'editProfileModal':
-      await handleProfileEditModal(interaction, { fastify, log })
+      await handleProfileEditModal(interaction, { db: fastify.db, log })
       break
     default:
       log.warn({ modalId: interaction.customId }, 'Unknown modal submission')
@@ -208,8 +212,11 @@ async function handleReviewApprovalsButton(
       interaction,
       0,
       pendingApprovals,
-      fastify,
-      log,
+      {
+        db: fastify.db,
+        approvalService: fastify.approvalService,
+        log,
+      },
       true,
     )
   } catch (error) {

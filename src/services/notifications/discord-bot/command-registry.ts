@@ -5,8 +5,6 @@
  * Commands are registered globally for DM support.
  */
 
-import { approvalCommand } from '@root/utils/discord-commands/approval-command.js'
-import { notificationsCommand } from '@root/utils/discord-commands/notifications-command.js'
 import {
   type ChatInputCommandInteraction,
   REST,
@@ -14,6 +12,8 @@ import {
   type SlashCommandBuilder,
 } from 'discord.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import { approvalCommand } from './commands/approval/approval-command.js'
+import { notificationsCommand } from './commands/notifications/notifications-command.js'
 
 type CommandHandler = (
   interaction: ChatInputCommandInteraction,
@@ -54,7 +54,7 @@ export function createCommandRegistry(
           'Executing notifications command',
         )
         await notificationsCommand.execute(interaction, {
-          fastify,
+          db: fastify.db,
           log,
         })
       },
@@ -68,7 +68,8 @@ export function createCommandRegistry(
           'Executing approvals command',
         )
         await approvalCommand.execute(interaction, {
-          fastify,
+          db: fastify.db,
+          approvalService: fastify.approvalService,
           log,
         })
       },
