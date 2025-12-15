@@ -24,9 +24,12 @@ export interface Command {
   execute: CommandHandler
 }
 
-export interface CommandRegistryDeps {
+export interface CommandRegistryCreateDeps {
   log: FastifyBaseLogger
   fastify: FastifyInstance
+}
+
+export interface CommandRegistryDeps extends CommandRegistryCreateDeps {
   config: {
     discordBotToken: string
     discordClientId: string
@@ -37,7 +40,7 @@ export interface CommandRegistryDeps {
  * Creates and initializes the command registry with default commands.
  */
 export function createCommandRegistry(
-  deps: CommandRegistryDeps,
+  deps: CommandRegistryCreateDeps,
 ): Map<string, Command> {
   const { log, fastify } = deps
   const commands = new Map<string, Command>()
@@ -112,26 +115,5 @@ export async function registerCommandsWithDiscord(
   } catch (error) {
     log.error({ error }, 'Failed to register global commands')
     return false
-  }
-}
-
-/**
- * Adds a new command to the registry.
- * If the bot is running, re-registers all commands.
- */
-export function addCommand(
-  commands: Map<string, Command>,
-  command: Command,
-  deps: CommandRegistryDeps,
-  isRunning: boolean,
-): void {
-  const { log } = deps
-
-  log.info({ command: command.data.name }, 'Adding new command')
-  commands.set(command.data.name, command)
-
-  if (isRunning) {
-    log.debug('Registering new command with Discord')
-    void registerCommandsWithDiscord(commands, deps)
   }
 }
