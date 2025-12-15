@@ -9,8 +9,8 @@ export {
   type DiscordDmDeps,
   type DiscordWebhookDeps,
   sendDirectMessage,
-  sendMediaNotification,
-  sendPublicNotification,
+  sendDiscordWebhookMediaNotification,
+  sendDiscordWebhookPublicNotification,
   sendWebhookNotification,
   validateWebhook,
 } from './channels/index.js'
