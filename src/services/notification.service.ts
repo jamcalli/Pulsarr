@@ -2,7 +2,7 @@
  * Notification Service
  *
  * Thin orchestrator that owns notification channels.
- * Phase 2: Discord only. Later phases add Apprise, Tautulli, native webhooks.
+ * Owns Discord (bot + webhook), Tautulli, and future channels.
  */
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
@@ -14,6 +14,7 @@ import {
   type BotStatus,
   DiscordBotService,
 } from './notifications/discord-bot/index.js'
+import { TautulliService } from './notifications/tautulli/index.js'
 import { createDeleteSyncEmbed } from './notifications/templates/discord-embeds.js'
 
 /**
@@ -26,6 +27,7 @@ export class NotificationService {
   private readonly log: FastifyBaseLogger
   private readonly _discordBot: DiscordBotService
   private readonly _discordWebhook: DiscordWebhookService
+  private readonly _tautulli: TautulliService
 
   constructor(
     readonly baseLog: FastifyBaseLogger,
@@ -37,6 +39,9 @@ export class NotificationService {
     // Create Discord services
     this._discordBot = new DiscordBotService(this.log, this.fastify)
     this._discordWebhook = new DiscordWebhookService(this.log, this.fastify)
+
+    // Create Tautulli service
+    this._tautulli = new TautulliService(this.log, this.fastify)
   }
 
   /**
@@ -51,6 +56,13 @@ export class NotificationService {
    */
   get discordWebhook(): DiscordWebhookService {
     return this._discordWebhook
+  }
+
+  /**
+   * Tautulli service accessor for mobile push notifications.
+   */
+  get tautulli(): TautulliService {
+    return this._tautulli
   }
 
   /**
@@ -74,6 +86,7 @@ export class NotificationService {
    * Called from plugin onReady hook.
    */
   async initialize(): Promise<void> {
+    // Initialize Discord bot if configured
     if (this.hasBotConfig) {
       this.log.info('Discord bot configuration found, attempting auto-start')
       try {
@@ -89,6 +102,13 @@ export class NotificationService {
         'Discord bot configuration incomplete, bot features will require manual initialization',
       )
     }
+
+    // Initialize Tautulli if configured
+    try {
+      await this._tautulli.initialize()
+    } catch (error) {
+      this.log.error({ error }, 'Failed to initialize Tautulli service')
+    }
   }
 
   /**
@@ -96,10 +116,14 @@ export class NotificationService {
    * Called from plugin onClose hook.
    */
   async shutdown(): Promise<void> {
+    // Shutdown Discord bot
     if (this._discordBot.getBotStatus() === 'running') {
       this.log.info('Stopping Discord bot during shutdown')
       await this._discordBot.stopBot()
     }
+
+    // Shutdown Tautulli
+    await this._tautulli.shutdown()
   }
 
   /**

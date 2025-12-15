@@ -144,7 +144,7 @@ async function sendTautulliNotification(
       }
       const itemId = rawId
 
-      const sent = await fastify.tautulli.sendMediaNotification(
+      const sent = await fastify.notifications.tautulli.sendMediaNotification(
         user,
         notification,
         itemId,
@@ -218,7 +218,10 @@ async function sendUserNotifications(
   }
 
   // Send Tautulli notification
-  if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
+  if (
+    result.user.notify_tautulli &&
+    fastify.notifications?.tautulli?.isEnabled()
+  ) {
     await sendTautulliNotification(
       fastify,
       result.user,
