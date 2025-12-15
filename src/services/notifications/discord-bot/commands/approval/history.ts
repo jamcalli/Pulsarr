@@ -437,6 +437,20 @@ export async function showItemDetail(
             .setStyle(ButtonStyle.Danger),
         )
         break
+
+      default:
+        log.warn(
+          { status: approval.status, approvalId },
+          'Unexpected approval status in item detail',
+        )
+        actionRow.addComponents(
+          new ButtonBuilder()
+            .setCustomId(
+              `approval_delete_confirm_${approvalId}_${returnPage}_${returnFilter}`,
+            )
+            .setLabel('🗑️ Delete')
+            .setStyle(ButtonStyle.Danger),
+        )
     }
 
     if (actionRow.components.length > 0) {

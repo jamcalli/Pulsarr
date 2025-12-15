@@ -4,24 +4,24 @@
  * Helper functions for ETag-based change detection.
  */
 
-import type { EtagUserInfo } from '@root/types/plex.types.js'
+import type { EtagUserInfo, UserMapEntry } from '@root/types/plex.types.js'
 
 /**
  * Build EtagUserInfo array from the userMap returned by checkFriendChanges.
  * Needs to include watchlistId for each friend.
  *
- * @param userMap - Map of watchlistId (UUID) to userId
+ * @param userMap - Map of watchlistId (UUID) to user info
  * @returns Array of EtagUserInfo for friends
  */
 export function buildEtagUserInfoFromMap(
-  userMap: Map<string, number>,
+  userMap: Map<string, UserMapEntry>,
 ): EtagUserInfo[] {
   const friends: EtagUserInfo[] = []
 
-  for (const [watchlistId, userId] of userMap) {
+  for (const [watchlistId, { userId, username }] of userMap) {
     friends.push({
       userId,
-      username: '', // We don't have username here, but EtagPoller uses watchlistId
+      username,
       watchlistId,
       isPrimary: false,
     })
