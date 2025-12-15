@@ -111,15 +111,26 @@ export async function handleNotificationButtons(
         if (updatedUser) {
           await showSettingsForm(interaction, updatedUser, deps)
         }
+      } else {
+        await interaction.followUp({
+          content:
+            '❌ Failed to update notification preference. Please try again.',
+          flags: MessageFlags.Ephemeral,
+        })
       }
       break
     }
 
     case 'toggleApprise': {
       await interaction.deferUpdate()
+      const newAppriseState = !user.notify_apprise
+      log.info(
+        { userId: user.id, enabled: newAppriseState },
+        'Updating Apprise notification preference',
+      )
       const appriseUpdated = await updateUser(
         user.id,
-        { notify_apprise: !user.notify_apprise },
+        { notify_apprise: newAppriseState },
         deps,
       )
       if (appriseUpdated) {
@@ -127,6 +138,12 @@ export async function handleNotificationButtons(
         if (updatedUser) {
           await showSettingsForm(interaction, updatedUser, deps)
         }
+      } else {
+        await interaction.followUp({
+          content:
+            '❌ Failed to update notification preference. Please try again.',
+          flags: MessageFlags.Ephemeral,
+        })
       }
       break
     }
@@ -148,6 +165,12 @@ export async function handleNotificationButtons(
         if (updatedUser) {
           await showSettingsForm(interaction, updatedUser, deps)
         }
+      } else {
+        await interaction.followUp({
+          content:
+            '❌ Failed to update notification preference. Please try again.',
+          flags: MessageFlags.Ephemeral,
+        })
       }
       break
     }

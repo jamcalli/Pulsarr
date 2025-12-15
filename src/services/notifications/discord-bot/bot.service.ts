@@ -117,7 +117,6 @@ export class DiscordBotService {
       })
 
       await this.botClient.login(this.botConfig.discordBotToken)
-      this.botStatus = 'running'
       this.log.info('Discord bot started successfully')
       return true
     } catch (error) {

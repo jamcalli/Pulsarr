@@ -46,6 +46,7 @@ export async function showApprovalHistory(
 
   try {
     const pageSize = 5 // Reduced to fit button limits
+    const fetchSize = pageSize + 1 // Fetch one extra to detect if more pages exist
     const offset = page * pageSize
 
     // Map filter to database status
@@ -70,13 +71,14 @@ export async function showApprovalHistory(
         status = undefined // 'all'
     }
 
-    // Get paginated history
+    // Get paginated history (fetch one extra to detect more pages)
     const approvals = await db.getApprovalHistory(
       undefined, // userId - get all users
       status,
-      pageSize,
+      fetchSize,
       offset,
     )
+    const hasMorePages = approvals.length > pageSize
 
     if (approvals.length === 0 && page === 0) {
       await interaction.editReply({
@@ -196,7 +198,7 @@ export async function showApprovalHistory(
       )
     }
 
-    if (approvals.length === pageSize) {
+    if (hasMorePages) {
       navRow.addComponents(
         new ButtonBuilder()
           .setCustomId(`approval_history_page_${page + 1}_${filter}`)
