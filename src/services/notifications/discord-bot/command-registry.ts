@@ -30,7 +30,6 @@ export interface CommandRegistryDeps {
   config: {
     discordBotToken: string
     discordClientId: string
-    discordGuildId: string
   }
 }
 
@@ -102,20 +101,6 @@ export async function registerCommandsWithDiscord(
     const commandsData = Array.from(commands.values()).map((cmd) =>
       cmd.data.toJSON(),
     )
-
-    // Clear old guild commands first (cleanup from previous registration method)
-    try {
-      await rest.put(
-        Routes.applicationGuildCommands(
-          config.discordClientId,
-          config.discordGuildId,
-        ),
-        { body: [] },
-      )
-      log.debug('Cleared old guild-specific commands')
-    } catch (error) {
-      log.warn({ error }, 'Failed to clear old guild commands (may not exist)')
-    }
 
     // Register commands globally for DM support
     await rest.put(Routes.applicationCommands(config.discordClientId), {

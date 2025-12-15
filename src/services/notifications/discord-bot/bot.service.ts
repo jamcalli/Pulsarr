@@ -56,11 +56,7 @@ export class DiscordBotService {
   }
 
   private get botConfig() {
-    const required = [
-      'discordBotToken',
-      'discordClientId',
-      'discordGuildId',
-    ] as const
+    const required = ['discordBotToken', 'discordClientId'] as const
 
     const missing = required.filter((key) => !this.config[key])
     if (missing.length > 0) {
@@ -74,7 +70,6 @@ export class DiscordBotService {
     return {
       discordBotToken: this.config.discordBotToken,
       discordClientId: this.config.discordClientId,
-      discordGuildId: this.config.discordGuildId,
     }
   }
 

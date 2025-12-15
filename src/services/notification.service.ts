@@ -65,11 +65,7 @@ export class NotificationService {
    * Check if Discord bot config is present.
    */
   get hasBotConfig(): boolean {
-    const required = [
-      'discordBotToken',
-      'discordClientId',
-      'discordGuildId',
-    ] as const
+    const required = ['discordBotToken', 'discordClientId'] as const
     return required.every((key) => Boolean(this.fastify.config[key]))
   }
 

@@ -68,7 +68,6 @@ pendingWebhookCleanupInterval=60       # Cleanup interval for old notifications 
 discordWebhookUrl=https://discord.com/api/webhooks/xxxx/xxxx  # Webhook URL(s), separate multiple with commas
 discordBotToken=xxxx.xxxx.xxxx                                # Bot token
 discordClientId=xxxxxxxxxxxx                                  # Client ID
-discordGuildId=xxxxxxxxxxxx                                   # Server ID
 
 # Apprise Configuration
 appriseUrl=http://x.x.x.x:8000         # URL for the Apprise server (e.g., http://apprise:8000 for Docker networking)
@@ -247,7 +246,7 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 - `rateLimitMax` - Rate limiting
 
 ### External Integrations
-- `discordWebhookUrl`, `discordBotToken`, `discordClientId`, `discordGuildId` - Discord
+- `discordWebhookUrl`, `discordBotToken`, `discordClientId` - Discord
 - `appriseUrl`, `enableApprise`, `systemAppriseUrl` - Apprise notifications
 - `tautulliEnabled`, `tautulliUrl`, `tautulliApiKey` - Tautulli integration
 - `tmdbApiKey` - TMDB API Read Access Token for movie/TV metadata features
