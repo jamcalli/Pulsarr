@@ -374,6 +374,14 @@ export class TautulliService {
     }
 
     const tautulliUser = await this.db.getUser(user.id)
+    const notifierId = tautulliUser?.tautulli_notifier_id
+    if (!notifierId) {
+      this.log.warn(
+        { userId: user.id, username: user.name },
+        'User has no Tautulli notifier configured, skipping notification',
+      )
+      return false
+    }
 
     let mediaType: 'movie' | 'show' | 'episode' = notification.type
     if (notification.type === 'show' && notification.episodeDetails) {
@@ -390,7 +398,7 @@ export class TautulliService {
         {
           userId: user.id,
           username: user.name,
-          notifierId: tautulliUser?.tautulli_notifier_id || 0,
+          notifierId,
         },
       ],
       {

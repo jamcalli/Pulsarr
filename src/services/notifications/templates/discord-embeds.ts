@@ -218,7 +218,11 @@ export function createDeleteSyncEmbed(
   if (results.movies.deleted > 0) {
     const movieList = results.movies.items
       .slice(0, 10)
-      .map((item) => `• ${item.title}`)
+      .map((item) => {
+        const title =
+          item.title.length > 90 ? `${item.title.slice(0, 87)}...` : item.title
+        return `• ${title}`
+      })
       .join('\n')
 
     const protectedInfo =
@@ -256,7 +260,11 @@ export function createDeleteSyncEmbed(
   if (results.shows.deleted > 0) {
     const showList = results.shows.items
       .slice(0, 10)
-      .map((item) => `• ${item.title}`)
+      .map((item) => {
+        const title =
+          item.title.length > 90 ? `${item.title.slice(0, 87)}...` : item.title
+        return `• ${title}`
+      })
       .join('\n')
 
     const protectedInfo =

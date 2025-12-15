@@ -360,8 +360,8 @@ export function createItemMatcher(deps: ItemMatcherDeps): FindMatchingItemFn {
                     episodeRatingKey: item.rating_key,
                     grandparentPlexKey,
                     watchlistItemKey: notification.watchlistItemKey,
-                    season: item.season,
-                    episode: item.episode,
+                    season: itemSeason,
+                    episode: itemEpisode,
                   },
                   'Found matching episode by grandparent Plex key',
                 )
@@ -389,8 +389,8 @@ export function createItemMatcher(deps: ItemMatcherDeps): FindMatchingItemFn {
                     title: notification.title,
                     episodeTitle: item.title,
                     episodeRatingKey: item.rating_key,
-                    season: item.season,
-                    episode: item.episode,
+                    season: itemSeason,
+                    episode: itemEpisode,
                   },
                   'Found matching episode by grandparent GUID',
                 )
