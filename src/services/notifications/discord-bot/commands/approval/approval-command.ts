@@ -57,7 +57,9 @@ export const approvalCommand = {
       const errorMessage =
         error instanceof Error ? error.message : 'An unknown error occurred'
 
-      if (interaction.replied) {
+      if (interaction.deferred && !interaction.replied) {
+        await interaction.editReply({ content: `❌ Error: ${errorMessage}` })
+      } else if (interaction.replied) {
         await interaction.followUp({
           content: `❌ Error: ${errorMessage}`,
           flags: MessageFlags.Ephemeral,
