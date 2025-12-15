@@ -166,6 +166,10 @@ async function handleModalSubmit(
       break
     default:
       log.warn({ modalId: interaction.customId }, 'Unknown modal submission')
+      await interaction.reply({
+        content: 'This form is no longer valid. Please try again.',
+        flags: MessageFlags.Ephemeral,
+      })
   }
 }
 
