@@ -46,11 +46,13 @@ export default fp(
 
     fastify.decorate('notifications', notifications)
     emitDiscordStatus(fastify, notifications)
+    emitTautulliStatus(fastify, notifications)
 
     // Status polling for UI updates
     const statusInterval = setInterval(() => {
       if (fastify.progress.hasActiveConnections()) {
         emitDiscordStatus(fastify, notifications)
+        emitTautulliStatus(fastify, notifications)
       }
     }, 1000)
 
@@ -91,5 +93,25 @@ function emitDiscordStatus(
     phase: 'info',
     progress: 100,
     message: `Discord bot status: ${status}`,
+  })
+}
+
+function emitTautulliStatus(
+  fastify: FastifyInstance,
+  notifications: NotificationService,
+) {
+  if (!fastify.progress.hasActiveConnections()) {
+    return
+  }
+
+  const status = notifications.tautulli.getStatus()
+  const operationId = `tautulli-status-${Date.now()}`
+
+  fastify.progress.emit({
+    operationId,
+    type: 'system',
+    phase: 'info',
+    progress: 100,
+    message: `Tautulli status: ${status}`,
   })
 }
