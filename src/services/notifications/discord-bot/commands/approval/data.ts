@@ -22,9 +22,8 @@ export async function getUserByDiscordId(
   deps: DataDeps,
 ): Promise<User | null> {
   try {
-    const users = await deps.db.getAllUsers()
-    const user = users.find((u) => u.discord_id === discordId)
-    return user || null
+    const user = await deps.db.getUserByDiscordId(discordId)
+    return user ?? null
   } catch (error) {
     deps.log.error({ error, discordId }, 'Error getting user by Discord ID')
     return null

@@ -24,13 +24,12 @@ async function getUser(
   deps: HandlerDeps,
 ): Promise<User | null> {
   try {
-    const users = await deps.db.getAllUsers()
-    const user = users.find((u) => u.discord_id === discordId)
+    const user = await deps.db.getUserByDiscordId(discordId)
     deps.log.debug(
       { discordId, found: !!user },
       'Looking up user by Discord ID',
     )
-    return user || null
+    return user ?? null
   } catch (error) {
     deps.log.error({ error, discordId }, 'Error getting user')
     return null

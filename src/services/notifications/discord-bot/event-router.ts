@@ -180,8 +180,7 @@ async function handleReviewApprovalsButton(
 
   try {
     // Check if user is primary admin
-    const users = await fastify.db.getAllUsers()
-    const user = users.find((u) => u.discord_id === interaction.user.id)
+    const user = await fastify.db.getUserByDiscordId(interaction.user.id)
 
     if (!user?.is_primary_token) {
       await interaction.reply({
