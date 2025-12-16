@@ -4435,9 +4435,6 @@
                         "discordClientId": {
                           "type": "string"
                         },
-                        "discordGuildId": {
-                          "type": "string"
-                        },
                         "enableApprise": {
                           "type": "boolean"
                         },
@@ -5180,9 +5177,6 @@
                   "discordClientId": {
                     "type": "string"
                   },
-                  "discordGuildId": {
-                    "type": "string"
-                  },
                   "systemAppriseUrl": {
                     "type": "string"
                   },
@@ -5801,9 +5795,6 @@
                           "type": "string"
                         },
                         "discordClientId": {
-                          "type": "string"
-                        },
-                        "discordGuildId": {
                           "type": "string"
                         },
                         "enableApprise": {
