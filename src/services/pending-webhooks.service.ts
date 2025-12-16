@@ -1,6 +1,5 @@
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
-import { processContentNotifications } from '@root/utils/notifications/index.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
@@ -198,14 +197,9 @@ export class PendingWebhooksService {
                   await this.fastify.db.getWatchlistItemsByGuid(webhook.guid)
 
                 // Process notifications (separate from label sync)
-                await processContentNotifications(
-                  this.fastify,
-                  mediaInfo,
-                  false,
-                  {
-                    logger: this.log,
-                  },
-                )
+                await this.fastify.notifications.sendMediaAvailable(mediaInfo, {
+                  isBulkRelease: false,
+                })
 
                 if (watchlistItems.length > 0) {
                   // Also trigger label sync for the content now that we found watchlist items
@@ -279,12 +273,10 @@ export class PendingWebhooksService {
                     await this.fastify.db.getWatchlistItemsByGuid(webhook.guid)
 
                   // Process notifications (separate from label sync)
-                  await processContentNotifications(
-                    this.fastify,
+                  await this.fastify.notifications.sendMediaAvailable(
                     mediaInfo,
-                    payload.episodes.length > 1,
                     {
-                      logger: this.log,
+                      isBulkRelease: payload.episodes.length > 1,
                     },
                   )
 
