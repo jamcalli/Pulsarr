@@ -87,8 +87,7 @@ export function createCommandRegistry(
 }
 
 /**
- * Registers commands with Discord API (globally for DM support).
- * Also clears legacy guild-specific commands.
+ * Registers commands with Discord API globally for DM support.
  */
 export async function registerCommandsWithDiscord(
   commands: Map<string, Command>,
