@@ -140,7 +140,10 @@ async function handleButtonInteraction(
   } else if (interaction.customId.startsWith('review_approvals_')) {
     await handleReviewApprovalsButton(interaction, { fastify, log })
   } else {
-    await handleNotificationButtons(interaction, { db: fastify.db, logger: log })
+    await handleNotificationButtons(interaction, {
+      db: fastify.db,
+      logger: log,
+    })
   }
 }
 
@@ -159,7 +162,10 @@ async function handleModalSubmit(
 
   switch (interaction.customId) {
     case 'plexUsernameModal':
-      await handlePlexUsernameModal(interaction, { db: fastify.db, logger: log })
+      await handlePlexUsernameModal(interaction, {
+        db: fastify.db,
+        logger: log,
+      })
       break
     case 'editProfileModal':
       await handleProfileEditModal(interaction, { db: fastify.db, logger: log })

@@ -1,50 +1,60 @@
 /**
- * Notification Sender Module
+ * Watchlist Added Notification Orchestration
  *
- * Handles sending watchlist notifications via Discord and Apprise,
- * and recording notification history in the database.
+ * Handles sending notifications when a user adds content to their watchlist.
+ * This notifies admins via Discord webhook and/or Apprise about new watchlist additions.
  */
 
 import type { Friend } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
-import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { getUserCanSync } from '../users/permissions.js'
+import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
+import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
+import { getUserCanSync } from '@services/plex-watchlist/users/permissions.js'
+import type { FastifyBaseLogger } from 'fastify'
 
-export interface NotificationDeps {
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface WatchlistAddedDeps {
   db: DatabaseService
   logger: FastifyBaseLogger
-  fastify: FastifyInstance
+  discordWebhook: DiscordWebhookService
+  apprise: AppriseService
 }
 
-export interface WatchlistItemNotification {
+export interface WatchlistItemInfo {
   id?: number | string
   title: string
   type: string
   thumb?: string
 }
 
+// ============================================================================
+// Main Orchestration Function
+// ============================================================================
+
 /**
- * Sends watchlist notifications to a user via Discord and Apprise.
+ * Sends watchlist addition notifications via Discord webhook and Apprise.
  * Records the notification in the database if any notification method succeeds.
  *
- * @param user - User to notify (must include userId)
- * @param item - Watchlist item details
  * @param deps - Service dependencies
+ * @param user - User who added the item (must include userId)
+ * @param item - Watchlist item details
  * @returns Promise resolving to boolean indicating if any notifications were sent
  */
-export async function sendWatchlistNotifications(
+export async function sendWatchlistAdded(
+  deps: WatchlistAddedDeps,
   user: Friend & { userId: number },
-  item: WatchlistItemNotification,
-  deps: NotificationDeps,
+  item: WatchlistItemInfo,
 ): Promise<boolean> {
+  const { db, logger, discordWebhook, apprise } = deps
+
   // Check if user has sync enabled before sending any notifications
-  const canSync = await getUserCanSync(user.userId, {
-    db: deps.db,
-    logger: deps.logger,
-  })
+  const canSync = await getUserCanSync(user.userId, { db, logger })
   if (!canSync) {
     const name = user.username ?? 'Unknown User'
-    deps.logger.debug(
+    logger.debug(
       { userId: user.userId },
       `Skipping notification for user ${name} (ID: ${user.userId}) - sync disabled`,
     )
@@ -55,27 +65,26 @@ export async function sendWatchlistNotifications(
   let discordSent = false
   let appriseSent = false
 
-  // Send Discord notification
+  // Send Discord webhook notification
   try {
     // Runtime type guard to ensure valid Discord type (case-insensitive)
     const t = typeof item.type === 'string' ? item.type.toLowerCase() : ''
     const discordType: 'movie' | 'show' =
       t === 'movie' || t === 'show' ? (t as 'movie' | 'show') : 'movie'
 
-    discordSent =
-      await deps.fastify.notifications.discordWebhook.sendMediaNotification({
-        username,
-        title: item.title,
-        type: discordType,
-        posterUrl: item.thumb,
-      })
+    discordSent = await discordWebhook.sendMediaNotification({
+      username,
+      title: item.title,
+      type: discordType,
+      posterUrl: item.thumb,
+    })
 
-    deps.logger.debug(
+    logger.debug(
       { success: discordSent },
       `Notified Discord admin endpoints that ${username} added "${item.title}"`,
     )
   } catch (error) {
-    deps.logger.error(
+    logger.error(
       {
         error,
         username,
@@ -87,30 +96,25 @@ export async function sendWatchlistNotifications(
     )
   }
 
-  // Send Apprise notification
-  if (deps.fastify.notifications?.apprise?.isEnabled()) {
+  // Send Apprise notification if enabled
+  if (apprise.isEnabled()) {
     try {
-      appriseSent =
-        await deps.fastify.notifications.apprise.sendWatchlistAdditionNotification(
-          {
-            title: item.title,
-            type:
-              typeof item.type === 'string'
-                ? item.type.toLowerCase()
-                : 'unknown',
-            addedBy: {
-              name: username,
-            },
-            posterUrl: item.thumb,
-          },
-        )
+      appriseSent = await apprise.sendWatchlistAdditionNotification({
+        title: item.title,
+        type:
+          typeof item.type === 'string' ? item.type.toLowerCase() : 'unknown',
+        addedBy: {
+          name: username,
+        },
+        posterUrl: item.thumb,
+      })
 
-      deps.logger.debug(
+      logger.debug(
         { success: appriseSent },
         `Notified Apprise admin endpoints that ${username} added "${item.title}"`,
       )
     } catch (error) {
-      deps.logger.error(
+      logger.error(
         {
           error,
           username,
@@ -129,7 +133,7 @@ export async function sendWatchlistNotifications(
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
     try {
-      await deps.db.createNotificationRecord({
+      await db.createNotificationRecord({
         watchlist_item_id:
           itemId !== undefined && !Number.isNaN(itemId) ? itemId : null,
         user_id: user.userId,
@@ -141,7 +145,7 @@ export async function sendWatchlistNotifications(
         sent_to_webhook: true,
       })
     } catch (error) {
-      deps.logger.error(
+      logger.error(
         { error, userId: user.userId, title: item.title },
         'Failed to record notification history',
       )
