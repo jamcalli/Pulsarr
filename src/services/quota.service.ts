@@ -541,4 +541,91 @@ export class QuotaService {
       return false
     }
   }
+
+  /**
+   * Atomically attempts to consume one quota unit for a user.
+   *
+   * This method should be called BEFORE routing to prevent race conditions
+   * where multiple concurrent requests all pass the quota check.
+   *
+   * Unlike recordUsage(), this method:
+   * - Checks AND records in a single atomic transaction
+   * - Returns immediately if quota would be exceeded
+   * - Uses database-level locking for PostgreSQL
+   *
+   * @param userId - User ID
+   * @param contentType - Content type (movie or show)
+   * @returns Object with consumed flag, current usage, quota limit, and bypass status
+   */
+  async tryConsumeQuota(
+    userId: number,
+    contentType: 'movie' | 'show',
+  ): Promise<{
+    consumed: boolean
+    currentUsage: number
+    quotaLimit: number
+    quotaType: string
+    hasQuota: boolean
+    userBypassEnabled: boolean
+  }> {
+    try {
+      // Get user's quota configuration
+      const userQuota = await this.fastify.db.getUserQuota(userId, contentType)
+
+      if (!userQuota) {
+        // No quota configured - always allow
+        return {
+          consumed: false, // Nothing to consume
+          currentUsage: 0,
+          quotaLimit: 0,
+          quotaType: 'none',
+          hasQuota: false,
+          userBypassEnabled: false,
+        }
+      }
+
+      // If user has bypass enabled, skip quota consumption but signal bypass
+      if (userQuota.bypassApproval) {
+        return {
+          consumed: false, // Bypassed, no need to track
+          currentUsage: 0,
+          quotaLimit: userQuota.quotaLimit,
+          quotaType: userQuota.quotaType,
+          hasQuota: true,
+          userBypassEnabled: true, // Signal that user has bypass enabled
+        }
+      }
+
+      // Attempt atomic consumption
+      const result = await this.fastify.db.tryConsumeQuota(
+        userId,
+        contentType,
+        userQuota.quotaType,
+        userQuota.quotaLimit,
+      )
+
+      return {
+        consumed: result.consumed,
+        currentUsage: result.currentUsage,
+        quotaLimit: userQuota.quotaLimit,
+        quotaType: userQuota.quotaType,
+        hasQuota: true,
+        userBypassEnabled: false,
+      }
+    } catch (error) {
+      this.log.error(
+        { error, userId, contentType },
+        'Error in tryConsumeQuota - falling back to allow',
+      )
+      // On error, allow routing to proceed (fail-open for availability)
+      return {
+        consumed: false,
+        currentUsage: 0,
+        quotaLimit: 0,
+        quotaType: 'error',
+        hasQuota: false,
+        userBypassEnabled: false,
+      }
+    }
+  }
 }
