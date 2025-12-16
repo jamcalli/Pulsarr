@@ -260,7 +260,7 @@ export function createSuccessEmbed(
 
   return new EmbedBuilder()
     .setTitle(`${emoji} ${actionText}`)
-    .setDescription(`**${contentTitle}** has been ${action}d`)
+    .setDescription(`**${contentTitle}** has been ${actionText.toLowerCase()}`)
     .setColor(action === 'approve' ? 0x57f287 : 0xed4245)
     .setTimestamp()
 }

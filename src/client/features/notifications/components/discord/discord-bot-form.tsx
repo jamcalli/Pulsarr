@@ -41,7 +41,7 @@ interface DiscordBotFormProps {
 }
 
 /****
- * Renders a form for configuring Discord bot integration, enabling users to set, update, or clear the bot token, client ID, and guild ID with schema-based validation and real-time feedback.
+ * Renders a form for configuring Discord bot integration, enabling users to set, update, or clear the bot token and client ID with schema-based validation and real-time feedback.
  *
  * The form synchronizes with a global configuration store, provides contextual tooltips, and displays toast notifications for successful or failed updates. Users can submit changes, reset the form to current settings, or clear all Discord bot configuration values with confirmation.
  *
