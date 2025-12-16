@@ -10,7 +10,7 @@ export interface DeleteSyncNotifierDeps {
     deleteSyncNotify: string | null
     deleteSyncNotifyOnlyOnDeletion: boolean
   }
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /**
@@ -22,18 +22,20 @@ export async function sendNotificationsIfEnabled(
   result: DeleteSyncResult,
   dryRun: boolean,
 ): Promise<void> {
-  const { notifications, apprise, config, log } = deps
+  const { notifications, apprise, config, logger } = deps
   const notifySetting = config.deleteSyncNotify || 'none'
 
   // Skip all notifications if set to none
   if (notifySetting === 'none') {
-    log.info('Delete sync notifications disabled, skipping all notifications')
+    logger.info(
+      'Delete sync notifications disabled, skipping all notifications',
+    )
     return
   }
 
   // Check if we should only notify when items were actually deleted
   if (config.deleteSyncNotifyOnlyOnDeletion && result.total.deleted === 0) {
-    log.info(
+    logger.info(
       'Delete sync completed with no deletions, skipping notification as per configuration',
     )
     return
@@ -66,7 +68,7 @@ export async function sendNotificationsIfEnabled(
         notifySetting,
       )
     } catch (notifyError) {
-      log.error(
+      logger.error(
         {
           error:
             notifyError instanceof Error
@@ -83,7 +85,7 @@ export async function sendNotificationsIfEnabled(
     try {
       await apprise.sendDeleteSyncNotification(result, dryRun)
     } catch (notifyError) {
-      log.error(
+      logger.error(
         {
           error:
             notifyError instanceof Error

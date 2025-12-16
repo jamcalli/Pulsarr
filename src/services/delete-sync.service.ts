@@ -364,7 +364,7 @@ export class DeleteSyncService {
           config: {
             deleteSyncCleanupApprovals: this.config.deleteSyncCleanupApprovals,
           },
-          log: this.log,
+          logger: this.log,
         },
         dryRun,
       )
@@ -379,7 +379,7 @@ export class DeleteSyncService {
             deleteSyncNotifyOnlyOnDeletion:
               this.config.deleteSyncNotifyOnlyOnDeletion,
           },
-          log: this.log,
+          logger: this.log,
         },
         result,
         dryRun,
@@ -437,7 +437,7 @@ export class DeleteSyncService {
           deleteSyncNotifyOnlyOnDeletion:
             this.config.deleteSyncNotifyOnlyOnDeletion,
         },
-        log: this.log,
+        logger: this.log,
       },
       result,
       dryRun,

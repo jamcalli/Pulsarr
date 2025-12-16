@@ -37,7 +37,7 @@ describe('approval-cleanup', () => {
       deletedMovieGuids: new Set(),
       deletedShowGuids: new Set(),
       config: { deleteSyncCleanupApprovals: true },
-      log: mockLogger,
+      logger: mockLogger,
     }
   })
 

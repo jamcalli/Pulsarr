@@ -15,7 +15,7 @@ import { showSettingsForm } from './settings-form.js'
 
 export interface HandlerDeps {
   db: DatabaseService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 // Database Operations
@@ -25,13 +25,13 @@ async function getUser(
 ): Promise<User | null> {
   try {
     const user = await deps.db.getUserByDiscordId(discordId)
-    deps.log.debug(
+    deps.logger.debug(
       { discordId, found: !!user },
       'Looking up user by Discord ID',
     )
     return user ?? null
   } catch (error) {
-    deps.log.error({ error, discordId }, 'Error getting user')
+    deps.logger.error({ error, discordId }, 'Error getting user')
     return null
   }
 }
@@ -43,10 +43,10 @@ async function updateUser(
 ): Promise<boolean> {
   try {
     await deps.db.updateUser(userId, updateData)
-    deps.log.debug({ userId, updateData }, 'User updated successfully')
+    deps.logger.debug({ userId, updateData }, 'User updated successfully')
     return true
   } catch (error) {
-    deps.log.error({ error, userId, updateData }, 'Error updating user')
+    deps.logger.error({ error, userId, updateData }, 'Error updating user')
     return false
   }
 }
@@ -61,7 +61,7 @@ export async function handleNotificationButtons(
   interaction: ButtonInteraction,
   deps: HandlerDeps,
 ): Promise<void> {
-  const { log } = deps
+  const { logger } = deps
   const cache = SettingsCache.getInstance()
 
   // Check if this is a dynamic retry button (they start with retryPlexLink_)
@@ -71,7 +71,7 @@ export async function handleNotificationButtons(
   }
 
   if (!cache.has(interaction.user.id)) {
-    log.debug(
+    logger.debug(
       { userId: interaction.user.id },
       'Session expired, requiring new command',
     )
@@ -85,7 +85,7 @@ export async function handleNotificationButtons(
 
   const user = await getUser(interaction.user.id, deps)
   if (!user) {
-    log.debug(
+    logger.debug(
       { userId: interaction.user.id },
       'No user found, showing Plex link modal',
     )
@@ -97,7 +97,7 @@ export async function handleNotificationButtons(
     case 'toggleDiscord': {
       await interaction.deferUpdate()
       const newDiscordState = !user.notify_discord
-      log.info(
+      logger.info(
         { userId: user.id, enabled: newDiscordState },
         'Updating Discord notification preference',
       )
@@ -124,7 +124,7 @@ export async function handleNotificationButtons(
     case 'toggleApprise': {
       await interaction.deferUpdate()
       const newAppriseState = !user.notify_apprise
-      log.info(
+      logger.info(
         { userId: user.id, enabled: newAppriseState },
         'Updating Apprise notification preference',
       )
@@ -151,7 +151,7 @@ export async function handleNotificationButtons(
     case 'toggleTautulli': {
       await interaction.deferUpdate()
       const newTautulliState = !user.notify_tautulli
-      log.info(
+      logger.info(
         { userId: user.id, enabled: newTautulliState },
         'Updating Tautulli notification preference',
       )
@@ -187,12 +187,12 @@ export async function handleNotificationButtons(
         components: [],
       })
       cache.delete(interaction.user.id)
-      log.debug({ userId: interaction.user.id }, 'Settings session closed')
+      logger.debug({ userId: interaction.user.id }, 'Settings session closed')
       break
     }
 
     default:
-      log.warn(
+      logger.warn(
         { customId: interaction.customId },
         'Unhandled button interaction',
       )

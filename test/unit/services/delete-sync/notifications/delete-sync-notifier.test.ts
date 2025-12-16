@@ -52,7 +52,7 @@ describe('delete-sync-notifier', () => {
         deleteSyncNotify: 'all',
         deleteSyncNotifyOnlyOnDeletion: false,
       },
-      log: mockLogger,
+      logger: mockLogger,
     }
   })
 
@@ -68,7 +68,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, createMockResult(), false)
 
-      expect(deps.log.info).toHaveBeenCalledWith(
+      expect(deps.logger.info).toHaveBeenCalledWith(
         'Delete sync notifications disabled, skipping all notifications',
       )
       expect(
@@ -88,7 +88,7 @@ describe('delete-sync-notifier', () => {
 
       await sendNotificationsIfEnabled(deps, createMockResult(0), false)
 
-      expect(deps.log.info).toHaveBeenCalledWith(
+      expect(deps.logger.info).toHaveBeenCalledWith(
         'Delete sync completed with no deletions, skipping notification as per configuration',
       )
       expect(
@@ -328,7 +328,7 @@ describe('delete-sync-notifier', () => {
       await sendNotificationsIfEnabled(baseDeps, result, false)
 
       expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalled()
-      expect(baseDeps.log.error).toHaveBeenCalledWith(
+      expect(baseDeps.logger.error).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.any(Error),
         }),
@@ -347,7 +347,7 @@ describe('delete-sync-notifier', () => {
       await sendNotificationsIfEnabled(baseDeps, result, false)
 
       expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalled()
-      expect(baseDeps.log.error).toHaveBeenCalledWith(
+      expect(baseDeps.logger.error).toHaveBeenCalledWith(
         expect.objectContaining({
           error: expect.any(Error),
         }),
