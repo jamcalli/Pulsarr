@@ -258,5 +258,27 @@ declare module '@services/database.service.js' {
         bypassApproval?: boolean
       },
     ): Promise<{ processedCount: number; failedIds: number[] }>
+
+    /**
+     * Atomically attempts to consume one quota unit for a user.
+     * Uses database-level locking to prevent race conditions in concurrent scenarios.
+     *
+     * For PostgreSQL: Uses FOR UPDATE on user_quotas row to serialize access.
+     * For SQLite: Relies on write serialization within the transaction.
+     *
+     * @param userId - User ID
+     * @param contentType - Content type (movie or show)
+     * @param quotaType - Type of quota (daily, weekly_rolling, monthly)
+     * @param quotaLimit - Maximum allowed usage
+     * @param requestDate - Date to record usage for (default: current date)
+     * @returns Promise resolving to consumption result with current usage count
+     */
+    tryConsumeQuota(
+      userId: number,
+      contentType: 'movie' | 'show',
+      quotaType: QuotaType,
+      quotaLimit: number,
+      requestDate?: Date,
+    ): Promise<{ consumed: boolean; currentUsage: number }>
   }
 }

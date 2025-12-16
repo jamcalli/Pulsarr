@@ -206,12 +206,12 @@ export class ContentRouterService {
     item: ContentItem,
     key: string,
     options: {
-      userId?: number
+      userId: number
       userName?: string
       syncing?: boolean
       syncTargetInstanceId?: number
       forcedInstanceId?: number
-    } = {},
+    },
   ): Promise<{ routedInstances: number[] }> {
     const contentType = item.type
     const routedInstances: number[] = []
@@ -232,9 +232,7 @@ export class ContentRouterService {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             key,
-            // RSS workflow uses userId=0 for temporary keys during initial content grab
-            // These are filtered out by updateWatchlistItem() before database insertion
-            options.userId || 0,
+            options.userId,
             options.forcedInstanceId,
             options.syncing,
           )
@@ -242,9 +240,7 @@ export class ContentRouterService {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             key,
-            // RSS workflow uses userId=0 for temporary keys during initial content grab
-            // These are filtered out by updateWatchlistItem() before database insertion
-            options.userId || 0,
+            options.userId,
             options.forcedInstanceId,
             options.syncing,
           )
@@ -271,11 +267,23 @@ export class ContentRouterService {
           [],
           actualRouting,
         )
-        if (options.userId && options.userId > 0 && !options.syncing) {
-          await this.fastify.quotaService.recordUsage(
+
+        // Record quota usage for forced routing (unless user has bypass enabled)
+        if (options.userId > 0 && !options.syncing) {
+          const userQuota = await this.fastify.db.getUserQuota(
             options.userId,
             contentType,
           )
+          if (userQuota && !userQuota.bypassApproval) {
+            await this.fastify.quotaService.recordUsage(
+              options.userId,
+              contentType,
+            )
+          } else if (userQuota?.bypassApproval) {
+            this.log.debug(
+              `Skipping quota recording for forced routing of "${item.title}" - user has bypass enabled`,
+            )
+          }
         }
         return { routedInstances }
       } catch (error) {
@@ -307,6 +315,19 @@ export class ContentRouterService {
     // Check if any enabled rules exist to avoid unnecessary enrichment
     const hasAnyRules = allRouterRules.some((rule) => rule.enabled)
 
+    // For sync operations: check if any rules specifically TARGET the sync target instance
+    // This determines if the sync target is governed by router rules or just uses syncedInstances config
+    const targetType = contentType === 'movie' ? 'radarr' : 'sonarr'
+    const hasRulesTargetingSyncInstance =
+      options.syncing && options.syncTargetInstanceId !== undefined
+        ? allRouterRules.some(
+            (rule) =>
+              rule.enabled &&
+              rule.target_type === targetType &&
+              rule.target_instance_id === options.syncTargetInstanceId,
+          )
+        : false
+
     // If no rules exist and we're not in a special routing scenario,
     // skip directly to default routing
     if (!hasAnyRules) {
@@ -322,9 +343,7 @@ export class ContentRouterService {
             await this.fastify.radarrManager.routeItemToRadarr(
               item as RadarrItem,
               key,
-              // RSS workflow uses userId=0 for temporary keys during initial content grab
-              // These are filtered out by updateWatchlistItem() before database insertion
-              options.userId || 0,
+              options.userId,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -332,9 +351,7 @@ export class ContentRouterService {
             await this.fastify.sonarrManager.routeItemToSonarr(
               item as SonarrItem,
               key,
-              // RSS workflow uses userId=0 for temporary keys during initial content grab
-              // These are filtered out by updateWatchlistItem() before database insertion
-              options.userId || 0,
+              options.userId,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -351,148 +368,228 @@ export class ContentRouterService {
       }
 
       // Check for approval requirements before default routing
-      if (options.userId) {
-        const context: RoutingContext = {
-          userId: options.userId,
-          userName: options.userName,
-          itemKey: key,
-          contentType,
-          syncing: options.syncing,
-          syncTargetInstanceId: options.syncTargetInstanceId,
+      const context: RoutingContext = {
+        userId: options.userId,
+        userName: options.userName,
+        itemKey: key,
+        contentType,
+        syncing: options.syncing,
+        syncTargetInstanceId: options.syncTargetInstanceId,
+      }
+
+      try {
+        // Check if there's already an approval request for this user/content
+        const contentKey = context.itemKey || item.guids[0] || ''
+
+        this.log.debug(
+          `Checking for existing approval request: userId=${context.userId}, contentKey=${contentKey} (plex key: ${context.itemKey})`,
+        )
+
+        const existingResult = await this.checkExistingApprovalRequest(
+          context.userId,
+          contentKey,
+          item,
+          context,
+        )
+
+        if (existingResult) {
+          return existingResult
         }
 
-        try {
-          // Check if there's already an approval request for this user/content
-          if (context.userId) {
-            // Use the same content key logic as ApprovalService: Plex key for user association
-            const contentKey = context.itemKey || item.guids[0] || ''
+        // Get all default routing decisions that would be made (default + synced instances)
+        const defaultRoutingDecisions =
+          await this.getDefaultRoutingDecisions(contentType)
 
-            this.log.debug(
-              `Checking for existing approval request: userId=${context.userId}, contentKey=${contentKey} (plex key: ${context.itemKey})`,
-            )
-
-            const existingResult = await this.checkExistingApprovalRequest(
-              context.userId,
-              contentKey,
-              item,
-              context,
-            )
-
-            if (existingResult) {
-              return existingResult
-            }
-          }
-
-          // Get all default routing decisions that would be made (default + synced instances)
-          const defaultRoutingDecisions =
-            await this.getDefaultRoutingDecisions(contentType)
-
-          if (defaultRoutingDecisions.length === 0) {
-            this.log.warn(
-              `No default instance available for ${contentType}, skipping approval check`,
-            )
-            // Continue to normal default routing which will handle the error
-          } else {
-            const approvalResult = await this.checkApprovalRequirements(
-              item,
-              context,
-              defaultRoutingDecisions,
-            )
-
-            if (approvalResult.required) {
-              this.log.info(
-                `Approval required for default routing of "${item.title}" by user ${context.userName || context.userId}: ${approvalResult.reason}`,
-              )
-
-              // Create approval request for default routing with actual routing decision
-              if (context.userId) {
-                this.log.debug(
-                  `Creating approval request with userId=${context.userId}, item.title="${item.title}", item.guids=${JSON.stringify(item.guids)}, context.itemKey=${context.itemKey}`,
-                )
-                const approvalRequest =
-                  await this.fastify.approvalService.createApprovalRequest(
-                    {
-                      id: context.userId,
-                      name: context.userName || `User ${context.userId}`,
-                    },
-                    item,
-                    {
-                      action: 'require_approval',
-                      approval: {
-                        reason: approvalResult.reason || 'Approval required',
-                        triggeredBy: approvalResult.trigger || 'manual_flag',
-                        data: approvalResult.data || {},
-                        proposedRouting:
-                          await this.createProposedRoutingDecision(
-                            defaultRoutingDecisions,
-                            contentType,
-                          ),
-                      },
-                    },
-                    approvalResult.trigger || 'manual_flag',
-                    approvalResult.reason,
-                    undefined,
-                    context.itemKey,
-                  )
-
-                // Auto-approve if bypass is enabled
-                if (approvalResult.data?.autoApprove) {
-                  this.log.info(
-                    `Auto-approving request ${approvalRequest.id} for user ${context.userId} due to bypass setting`,
-                  )
-
-                  // First approve the request
-                  const approvedRequest = await this.fastify.db.approveRequest(
-                    approvalRequest.id,
-                    context.userId,
-                    'Auto-approved (bypass enabled)',
-                  )
-
-                  if (approvedRequest) {
-                    // Then process the approved request
-                    await this.fastify.approvalService.processApprovedRequest(
-                      approvedRequest,
-                    )
-                  }
-
-                  // Avoid double-routing; processApprovedRequest already routed
-                  const instanceIds = defaultRoutingDecisions.map(
-                    (d) => d.instanceId,
-                  )
-                  return { routedInstances: instanceIds }
-                }
-              }
-
-              // Return empty - content will not be routed until approved
-              return { routedInstances: [] }
-            }
-          }
-        } catch (error) {
-          this.log.error(
-            { error },
-            `Error checking approval requirements for default routing of "${item.title}"`,
+        if (defaultRoutingDecisions.length === 0) {
+          this.log.warn(
+            `No default instance available for ${contentType}, skipping approval check`,
           )
-          // Log the full error details for debugging
-          if (error instanceof Error) {
-            this.log.error({ error }, `Error details: ${error.message}`)
-            this.log.error({ error }, `Error stack: ${error.stack}`)
+          // Continue to normal default routing which will handle the error
+        } else {
+          const approvalResult = await this.checkApprovalRequirements(
+            item,
+            context,
+            defaultRoutingDecisions,
+          )
+
+          if (approvalResult.required) {
+            this.log.info(
+              `Approval required for default routing of "${item.title}" by user ${context.userName || context.userId}: ${approvalResult.reason}`,
+            )
+
+            // Create approval request for default routing with actual routing decision
+            this.log.debug(
+              `Creating approval request with userId=${context.userId}, item.title="${item.title}", item.guids=${JSON.stringify(item.guids)}, context.itemKey=${context.itemKey}`,
+            )
+            await this.fastify.approvalService.createApprovalRequest(
+              {
+                id: context.userId,
+                name: context.userName || `User ${context.userId}`,
+              },
+              item,
+              {
+                action: 'require_approval',
+                approval: {
+                  reason: approvalResult.reason || 'Approval required',
+                  triggeredBy: approvalResult.trigger || 'manual_flag',
+                  data: approvalResult.data || {},
+                  proposedRouting: await this.createProposedRoutingDecision(
+                    defaultRoutingDecisions,
+                    contentType,
+                  ),
+                },
+              },
+              approvalResult.trigger || 'manual_flag',
+              approvalResult.reason,
+              undefined,
+              context.itemKey,
+            )
+
+            // Return empty - content will not be routed until approved
+            return { routedInstances: [] }
           }
-          // On error, continue with normal default routing
         }
+      } catch (error) {
+        this.log.error(
+          { error },
+          `Error checking approval requirements for default routing of "${item.title}"`,
+        )
+        // Log the full error details for debugging
+        if (error instanceof Error) {
+          this.log.error({ error }, `Error details: ${error.message}`)
+          this.log.error({ error }, `Error stack: ${error.stack}`)
+        }
+        // On error, continue with normal default routing
       }
 
       // Otherwise use default routing
       this.log.info(
         `No routing rules exist, using default routing for "${item.title}"`,
       )
+
+      // Atomic quota enforcement for default routing path (prevents race conditions)
+      // Only for non-sync operations
+      if (!options.syncing && options.userId > 0) {
+        const quotaResult = await this.fastify.quotaService.tryConsumeQuota(
+          options.userId,
+          contentType,
+        )
+
+        // If user has quota configured and consumption failed (exceeded)
+        if (quotaResult.hasQuota && !quotaResult.consumed) {
+          const wouldBeUsage = quotaResult.currentUsage + 1
+          const shouldAutoApprove = quotaResult.userBypassEnabled
+
+          this.log.info(
+            `Quota exceeded for "${item.title}" by user ${options.userName || options.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
+          )
+
+          // Auto-approve if user has bypass enabled - route and create auto_approved record
+          if (shouldAutoApprove) {
+            this.log.info(
+              `User ${options.userId} has quota bypass enabled, auto-approving quota-exceeded item "${item.title}"`,
+            )
+
+            // Route content via default routing (skip quota recording since bypassed)
+            const bypassRoutedInstances = await this.routeUsingDefault(
+              item,
+              key,
+              contentType,
+              options.userId,
+              options.syncing,
+              /* recordQuota */ false, // Skip quota - user has bypass enabled
+            )
+
+            // Create auto-approval record for audit trail (matches normal auto-approval flow)
+            if (bypassRoutedInstances.length > 0) {
+              const bypassContext: RoutingContext = {
+                userId: options.userId,
+                userName: options.userName,
+                itemKey: key,
+                contentType,
+                syncing: options.syncing,
+                syncTargetInstanceId: options.syncTargetInstanceId,
+              }
+
+              const actualRouting = await this.getActualRoutingFromInstance(
+                bypassRoutedInstances[0],
+                contentType,
+              )
+
+              await this.createAutoApprovalRecord(
+                item,
+                bypassContext,
+                bypassRoutedInstances,
+                [],
+                actualRouting,
+              )
+            }
+
+            return { routedInstances: bypassRoutedInstances }
+          }
+
+          // No bypass - create pending approval request
+          const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
+
+          // Get default routing decisions to include in approval request
+          const defaultRoutingDecisions =
+            await this.getDefaultRoutingDecisions(contentType)
+
+          const approvalRequest =
+            await this.fastify.approvalService.createApprovalRequest(
+              {
+                id: options.userId,
+                name: options.userName || `User ${options.userId}`,
+              },
+              item,
+              {
+                action: 'require_approval',
+                approval: {
+                  reason: approvalReasonText,
+                  triggeredBy: 'quota_exceeded',
+                  data: {
+                    quotaType: quotaResult.quotaType as
+                      | 'daily'
+                      | 'weekly_rolling'
+                      | 'monthly',
+                    quotaUsage: wouldBeUsage,
+                    quotaLimit: quotaResult.quotaLimit,
+                  },
+                  proposedRouting: await this.createProposedRoutingDecision(
+                    defaultRoutingDecisions,
+                    contentType,
+                  ),
+                },
+              },
+              'quota_exceeded',
+              approvalReasonText,
+              undefined,
+              key,
+            )
+
+          this.log.info(
+            `Created approval request ${approvalRequest.id} for quota-exceeded item "${item.title}"`,
+          )
+
+          // Return empty - content will not be routed until approved
+          return { routedInstances: [] }
+        }
+
+        // Quota consumed successfully - continue to routing
+        if (quotaResult.consumed) {
+          this.log.debug(
+            `Quota consumed for user ${options.userId}: ${quotaResult.currentUsage}/${quotaResult.quotaLimit} for ${contentType}`,
+          )
+        }
+      }
+
       const defaultRoutedInstances = await this.routeUsingDefault(
         item,
         key,
         contentType,
-        // RSS workflow uses userId=0 for temporary keys during initial content grab
-        // These are filtered out by updateWatchlistItem() before database insertion
-        options.userId || 0,
+        options.userId,
         options.syncing,
+        /* recordQuota */ false, // Quota already consumed atomically above
       )
 
       // Create auto-approval record for default routing
@@ -600,10 +697,21 @@ export class ContentRouterService {
 
     // Step 3: Handle case where no evaluator returned any decisions
     if (allDecisions.length === 0) {
-      // 3a: If syncing with target instance, use that as fallback
+      // 3a: If syncing with target instance
       if (options.syncing && options.syncTargetInstanceId !== undefined) {
+        // Only block sync if rules specifically TARGET this sync instance and none matched
+        // If no rules target this instance, it relies on syncedInstances config - proceed with sync
+        if (hasRulesTargetingSyncInstance) {
+          this.log.info(
+            `No routing decisions for "${item.title}" during sync - router rules targeting instance ${options.syncTargetInstanceId} exist but didn't match. Sync prevented by router rules.`,
+          )
+          // Return empty - router rules prevented sync to this instance
+          return { routedInstances }
+        }
+
+        // No rules specifically target the sync instance - it uses syncedInstances config
         this.log.info(
-          `No routing decisions returned for "${item.title}" during sync, using sync target instance ${options.syncTargetInstanceId}`,
+          `No router rules target instance ${options.syncTargetInstanceId} for ${contentType}, proceeding with sync for "${item.title}"`,
         )
 
         try {
@@ -611,9 +719,7 @@ export class ContentRouterService {
             await this.fastify.radarrManager.routeItemToRadarr(
               item as RadarrItem,
               key,
-              // RSS workflow uses userId=0 for temporary keys during initial content grab
-              // These are filtered out by updateWatchlistItem() before database insertion
-              options.userId || 0,
+              options.userId,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -621,9 +727,7 @@ export class ContentRouterService {
             await this.fastify.sonarrManager.routeItemToSonarr(
               item as SonarrItem,
               key,
-              // RSS workflow uses userId=0 for temporary keys during initial content grab
-              // These are filtered out by updateWatchlistItem() before database insertion
-              options.userId || 0,
+              options.userId,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -645,67 +749,144 @@ export class ContentRouterService {
           `No matching routing rules for "${item.title}", using default routing`,
         )
 
-        // Check for approval requirements before default routing
-        if (options.userId) {
-          const context: RoutingContext = {
-            userId: options.userId,
-            userName: options.userName,
-            itemKey: key,
-            contentType,
-            syncing: options.syncing,
-            syncTargetInstanceId: options.syncTargetInstanceId,
+        const fallbackContext: RoutingContext = {
+          userId: options.userId,
+          userName: options.userName,
+          itemKey: key,
+          contentType,
+          syncing: options.syncing,
+          syncTargetInstanceId: options.syncTargetInstanceId,
+        }
+
+        try {
+          // FIRST: Check if there's already an approval request for this user/content
+          // This prevents previously rejected items from being re-routed
+          const contentKey = fallbackContext.itemKey || item.guids[0] || ''
+
+          const existingResult = await this.checkExistingApprovalRequest(
+            fallbackContext.userId,
+            contentKey,
+            item,
+            fallbackContext,
+          )
+
+          if (existingResult) {
+            return existingResult
           }
 
-          try {
-            // FIRST: Check if there's already an approval request for this user/content
-            // This prevents previously rejected items from being re-routed
-            if (context.userId) {
-              const contentKey = context.itemKey || item.guids[0] || ''
+          // SECOND: Check if new approval is required based on router rules
+          // Get all default routing decisions that would be made
+          const defaultRoutingDecisions =
+            await this.getDefaultRoutingDecisions(contentType)
 
-              const existingResult = await this.checkExistingApprovalRequest(
-                context.userId,
-                contentKey,
-                item,
-                context,
+          if (defaultRoutingDecisions.length > 0) {
+            const approvalResult = await this.checkApprovalRequirements(
+              item,
+              fallbackContext,
+              defaultRoutingDecisions,
+            )
+
+            if (approvalResult.required) {
+              this.log.info(
+                `Approval required for default routing of "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId}: ${approvalResult.reason}`,
               )
 
-              if (existingResult) {
-                return existingResult
-              }
-            }
-
-            // SECOND: Check if new approval is required based on router rules
-            // Get all default routing decisions that would be made
-            const defaultRoutingDecisions =
-              await this.getDefaultRoutingDecisions(contentType)
-
-            if (defaultRoutingDecisions.length > 0) {
-              const approvalResult = await this.checkApprovalRequirements(
-                item,
-                context,
-                defaultRoutingDecisions,
-              )
-
-              if (approvalResult.required) {
-                this.log.info(
-                  `Approval required for default routing of "${item.title}" by user ${context.userName || context.userId}: ${approvalResult.reason}`,
+              // Create approval request for default routing
+              const approvalRequest =
+                await this.fastify.approvalService.createApprovalRequest(
+                  {
+                    id: fallbackContext.userId,
+                    name:
+                      fallbackContext.userName ||
+                      `User ${fallbackContext.userId}`,
+                  },
+                  item,
+                  {
+                    action: 'require_approval',
+                    approval: {
+                      reason: approvalResult.reason || 'Approval required',
+                      triggeredBy: approvalResult.trigger || 'manual_flag',
+                      data: approvalResult.data || {},
+                      proposedRouting: await this.createProposedRoutingDecision(
+                        defaultRoutingDecisions,
+                        contentType,
+                      ),
+                    },
+                  },
+                  approvalResult.trigger || 'manual_flag',
+                  approvalResult.reason,
+                  undefined,
+                  fallbackContext.itemKey,
                 )
 
-                // Create approval request for default routing
-                if (context.userId) {
-                  const approvalRequest =
+              if (approvalRequest) {
+                this.log.info(
+                  `New approval request created for "${item.title}" by user ${fallbackContext.userId}`,
+                )
+              }
+
+              // Return empty - content will not be routed until approved
+              return { routedInstances: [] }
+            }
+
+            // THIRD: Atomic quota enforcement for fallback default routing
+            // Only for non-sync operations
+            if (!options.syncing && fallbackContext.userId > 0) {
+              const quotasBypassedByRule =
+                approvalResult.data?.quotasBypassedByRule ?? false
+
+              // If router rule says bypass quotas, skip quota consumption entirely
+              if (quotasBypassedByRule) {
+                this.log.debug(
+                  `Skipping quota consumption for "${item.title}" - router rule bypasses quotas`,
+                )
+                // Fall through to normal default routing without consuming quota
+              } else {
+                const quotaResult =
+                  await this.fastify.quotaService.tryConsumeQuota(
+                    fallbackContext.userId,
+                    contentType,
+                  )
+
+                // If user has quota configured and consumption failed (exceeded)
+                if (quotaResult.hasQuota && !quotaResult.consumed) {
+                  const wouldBeUsage = quotaResult.currentUsage + 1
+
+                  // Check if user has bypass enabled (allows auto-approve when exceeded)
+                  if (quotaResult.userBypassEnabled) {
+                    this.log.info(
+                      `Auto-approving quota-exceeded item "${item.title}" for user ${fallbackContext.userId} due to user bypass setting`,
+                    )
+                    // Fall through to normal default routing without consuming quota
+                  } else {
+                    // No bypass - create pending approval request
+                    this.log.info(
+                      `Quota exceeded for "${item.title}" by user ${fallbackContext.userName || fallbackContext.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
+                    )
+
+                    const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
+
                     await this.fastify.approvalService.createApprovalRequest(
                       {
-                        id: context.userId,
-                        name: context.userName || `User ${context.userId}`,
+                        id: fallbackContext.userId,
+                        name:
+                          fallbackContext.userName ||
+                          `User ${fallbackContext.userId}`,
                       },
                       item,
                       {
                         action: 'require_approval',
                         approval: {
-                          reason: approvalResult.reason || 'Approval required',
-                          triggeredBy: approvalResult.trigger || 'manual_flag',
-                          data: approvalResult.data || {},
+                          reason: approvalReasonText,
+                          triggeredBy: 'quota_exceeded',
+                          data: {
+                            quotaType: quotaResult.quotaType as
+                              | 'daily'
+                              | 'weekly_rolling'
+                              | 'monthly',
+                            quotaUsage: wouldBeUsage,
+                            quotaLimit: quotaResult.quotaLimit,
+                          },
                           proposedRouting:
                             await this.createProposedRoutingDecision(
                               defaultRoutingDecisions,
@@ -713,48 +894,53 @@ export class ContentRouterService {
                             ),
                         },
                       },
-                      approvalResult.trigger || 'manual_flag',
-                      approvalResult.reason,
+                      'quota_exceeded',
+                      approvalReasonText,
                       undefined,
-                      context.itemKey,
+                      fallbackContext.itemKey,
                     )
 
-                  if (approvalRequest) {
                     this.log.info(
-                      `New approval request created for "${item.title}" by user ${context.userId}`,
+                      `Created approval request for quota-exceeded item "${item.title}"`,
                     )
+
+                    // Return empty - content will not be routed until approved
+                    return { routedInstances: [] }
                   }
                 }
 
-                // Return empty - content will not be routed until approved
-                return { routedInstances: [] }
+                // Quota consumed successfully - continue to routing
+                if (quotaResult.consumed) {
+                  this.log.debug(
+                    `Quota consumed for user ${fallbackContext.userId}: ${quotaResult.currentUsage}/${quotaResult.quotaLimit} for ${contentType}`,
+                  )
+                }
               }
             }
-          } catch (error) {
-            this.log.error(
-              { error },
-              `Error checking approval requirements for default routing of "${item.title}"`,
-            )
-            // Continue with normal routing on error
           }
+        } catch (error) {
+          this.log.error(
+            { error },
+            `Error checking approval requirements for default routing of "${item.title}"`,
+          )
+          // Continue with normal routing on error
         }
 
         // Default routing will handle routing to default instance and any synced instances
+        // Quota already consumed atomically above (or bypassed/no quota configured)
         const defaultRoutedInstances = await this.routeUsingDefault(
           item,
           key,
           contentType,
-          // RSS workflow uses userId=0 for temporary keys during initial content grab
-          // These are filtered out by updateWatchlistItem() before database insertion
-          options.userId || 0,
+          options.userId,
           options.syncing,
-          /* recordQuota */ false,
+          /* recordQuota */ false, // Quota already handled above
         )
         routedInstances.push(...defaultRoutedInstances)
 
         // Create auto-approval record for fallback default routing
         if (defaultRoutedInstances.length > 0) {
-          const context: RoutingContext = {
+          const fallbackRecordContext: RoutingContext = {
             userId: options.userId,
             userName: options.userName,
             itemKey: key,
@@ -771,7 +957,7 @@ export class ContentRouterService {
 
           await this.createAutoApprovalRecord(
             item,
-            context,
+            fallbackRecordContext,
             defaultRoutedInstances,
             [],
             actualRouting,
@@ -784,22 +970,26 @@ export class ContentRouterService {
 
     // Step 4: Check for approval requirements before processing routing decisions
 
-    // If we have routing decisions and user context, check if approval is required
-    if (allDecisions.length > 0 && context.userId) {
+    // If we have routing decisions, check if approval is required
+    if (allDecisions.length > 0) {
       try {
-        // FIRST: Check if there's already an approval request for this user/content
-        // This prevents previously rejected items from being re-routed
-        const contentKey = context.itemKey || enrichedItem.guids[0] || ''
+        // Skip approval checks entirely for sync operations
+        // Sync is internal data movement and should not interact with approval system
+        if (!options.syncing) {
+          // FIRST: Check if there's already an approval request for this user/content
+          // This prevents previously rejected items from being re-routed
+          const contentKey = context.itemKey || enrichedItem.guids[0] || ''
 
-        const existingResult = await this.checkExistingApprovalRequest(
-          context.userId,
-          contentKey,
-          enrichedItem,
-          context,
-        )
+          const existingResult = await this.checkExistingApprovalRequest(
+            context.userId,
+            contentKey,
+            enrichedItem,
+            context,
+          )
 
-        if (existingResult) {
-          return existingResult
+          if (existingResult) {
+            return existingResult
+          }
         }
 
         // SECOND: Sort decisions by priority for approval checking
@@ -820,7 +1010,7 @@ export class ContentRouterService {
           // Store the approval request with the highest priority routing decision
           const primaryDecision = allDecisions[0] // Already sorted by priority
 
-          const approvalRequest =
+          const _approvalRequest =
             await this.fastify.approvalService.createApprovalRequest(
               {
                 id: context.userId,
@@ -857,33 +1047,111 @@ export class ContentRouterService {
               context.itemKey,
             )
 
-          // Auto-approve if bypass is enabled
-          if (approvalResult.data?.autoApprove) {
-            this.log.info(
-              `Auto-approving request ${approvalRequest.id} for user ${context.userId} due to bypass setting`,
-            )
-
-            // First approve the request
-            const approvedRequest = await this.fastify.db.approveRequest(
-              approvalRequest.id,
-              context.userId,
-              'Auto-approved (bypass enabled)',
-            )
-
-            if (approvedRequest) {
-              // Then process the approved request
-              await this.fastify.approvalService.processApprovedRequest(
-                approvedRequest,
-              )
-            }
-
-            // Continue with normal routing flow since it's been auto-approved
-            const routedInstanceIds = allDecisions.map((d) => d.instanceId)
-            return { routedInstances: routedInstanceIds }
-          }
-
           // Return empty - content will not be routed until approved
           return { routedInstances: [] }
+        }
+
+        // PRIORITY 3: Atomic quota consumption (prevents race conditions)
+        // Only for non-sync operations
+        if (!options.syncing && context.userId > 0) {
+          const quotasBypassedByRule =
+            approvalResult.data?.quotasBypassedByRule ?? false
+
+          // If router rule says bypass quotas, skip quota consumption entirely
+          if (quotasBypassedByRule) {
+            this.log.debug(
+              `Skipping quota consumption for "${enrichedItem.title}" - router rule bypasses quotas`,
+            )
+            // Fall through to normal routing without consuming quota
+          } else {
+            // Try to atomically consume quota (check + record in single transaction)
+            const quotaResult = await this.fastify.quotaService.tryConsumeQuota(
+              context.userId,
+              contentType,
+            )
+
+            // If user has quota configured and consumption failed (exceeded)
+            if (quotaResult.hasQuota && !quotaResult.consumed) {
+              const wouldBeUsage = quotaResult.currentUsage + 1
+
+              // Check if user has bypass enabled (allows auto-approve when exceeded)
+              if (quotaResult.userBypassEnabled) {
+                this.log.info(
+                  `Auto-approving quota-exceeded item "${enrichedItem.title}" for user ${context.userId} due to user bypass setting`,
+                )
+                // Fall through to normal routing without consuming quota
+              } else {
+                // No bypass - create pending approval request
+                this.log.info(
+                  `Quota exceeded for "${enrichedItem.title}" by user ${context.userName || context.userId}: ${quotaResult.quotaType} (${wouldBeUsage}/${quotaResult.quotaLimit})`,
+                )
+
+                const approvalReasonText = `${quotaResult.quotaType} quota exceeded (${wouldBeUsage}/${quotaResult.quotaLimit})`
+                const primaryDecision = allDecisions[0]
+
+                const approvalRequest =
+                  await this.fastify.approvalService.createApprovalRequest(
+                    {
+                      id: context.userId,
+                      name: context.userName || `User ${context.userId}`,
+                    },
+                    enrichedItem,
+                    {
+                      action: 'require_approval',
+                      approval: {
+                        reason: approvalReasonText,
+                        triggeredBy: 'quota_exceeded',
+                        data: {
+                          quotaType: quotaResult.quotaType as
+                            | 'daily'
+                            | 'weekly_rolling'
+                            | 'monthly',
+                          quotaUsage: wouldBeUsage,
+                          quotaLimit: quotaResult.quotaLimit,
+                        },
+                        proposedRouting: primaryDecision
+                          ? {
+                              instanceId: primaryDecision.instanceId,
+                              instanceType:
+                                enrichedItem.type === 'movie'
+                                  ? 'radarr'
+                                  : 'sonarr',
+                              qualityProfile: primaryDecision.qualityProfile,
+                              rootFolder: primaryDecision.rootFolder,
+                              tags: primaryDecision.tags,
+                              priority: primaryDecision.priority,
+                              searchOnAdd: primaryDecision.searchOnAdd,
+                              seasonMonitoring:
+                                primaryDecision.seasonMonitoring,
+                              seriesType: primaryDecision.seriesType,
+                              minimumAvailability:
+                                primaryDecision.minimumAvailability,
+                            }
+                          : undefined,
+                      },
+                    },
+                    'quota_exceeded',
+                    approvalReasonText,
+                    undefined,
+                    context.itemKey,
+                  )
+
+                this.log.info(
+                  `Created approval request ${approvalRequest.id} for quota-exceeded item "${enrichedItem.title}"`,
+                )
+
+                // Return empty - content will not be routed until approved
+                return { routedInstances: [] }
+              }
+            }
+
+            // Quota consumed successfully (or no quota configured) - continue to routing
+            if (quotaResult.consumed) {
+              this.log.debug(
+                `Quota consumed for user ${context.userId}: ${quotaResult.currentUsage}/${quotaResult.quotaLimit} for ${contentType}`,
+              )
+            }
+          }
         }
       } catch (error) {
         this.log.error(
@@ -894,7 +1162,87 @@ export class ContentRouterService {
       }
     }
 
-    // Step 5: Process decisions from evaluators (normal routing path)
+    // Step 5: Process decisions from evaluators
+
+    // SYNC OPERATION HANDLING: Filter decisions to only sync target
+    // Sync should only route to the sync target instance, not to all matched instances
+    // This ensures sync respects router rules without routing elsewhere
+    if (options.syncing && options.syncTargetInstanceId !== undefined) {
+      // Find if any decision targets the sync instance
+      const syncTargetDecision = allDecisions.find(
+        (d) => d.instanceId === options.syncTargetInstanceId,
+      )
+
+      if (syncTargetDecision) {
+        // Decision exists for sync target - route to it using the decision's settings
+        this.log.info(
+          `Sync: Router rules allow "${item.title}" to instance ${options.syncTargetInstanceId}`,
+        )
+
+        try {
+          if (contentType === 'movie') {
+            const rootFolder =
+              syncTargetDecision.rootFolder === null
+                ? undefined
+                : syncTargetDecision.rootFolder
+
+            await this.fastify.radarrManager.routeItemToRadarr(
+              item as RadarrItem,
+              key,
+              options.userId,
+              options.syncTargetInstanceId,
+              options.syncing,
+              rootFolder,
+              syncTargetDecision.qualityProfile,
+              syncTargetDecision.tags,
+              syncTargetDecision.searchOnAdd,
+              syncTargetDecision.minimumAvailability,
+            )
+          } else {
+            const rootFolder =
+              syncTargetDecision.rootFolder === null
+                ? undefined
+                : syncTargetDecision.rootFolder
+
+            await this.fastify.sonarrManager.routeItemToSonarr(
+              item as SonarrItem,
+              key,
+              options.userId,
+              options.syncTargetInstanceId,
+              options.syncing,
+              rootFolder,
+              syncTargetDecision.qualityProfile,
+              syncTargetDecision.tags,
+              syncTargetDecision.searchOnAdd,
+              syncTargetDecision.seasonMonitoring,
+              syncTargetDecision.seriesType,
+            )
+          }
+          routedInstances.push(options.syncTargetInstanceId)
+        } catch (error) {
+          this.log.error(
+            { error },
+            `Error syncing "${item.title}" to instance ${options.syncTargetInstanceId}`,
+          )
+        }
+
+        return { routedInstances }
+      }
+
+      // Decisions exist but none target sync instance - rules route this content elsewhere
+      if (allDecisions.length > 0) {
+        this.log.info(
+          `Sync blocked: Router rules route "${item.title}" to other instances (${allDecisions.map((d) => d.instanceId).join(', ')}), not to sync target ${options.syncTargetInstanceId}`,
+        )
+        return { routedInstances: [] }
+      }
+
+      // No decisions at all - this case is handled by Step 3 fallback above
+      // (shouldn't reach here, but safety return)
+      return { routedInstances }
+    }
+
+    // NORMAL ROUTING PATH (non-sync operations)
 
     // Sort decisions by priority if not already sorted from approval check
     if (allDecisions.length > 0) {
@@ -948,9 +1296,7 @@ export class ContentRouterService {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             key,
-            // RSS workflow uses userId=0 for temporary keys during initial content grab
-            // These are filtered out by updateWatchlistItem() before database insertion
-            options.userId || 0,
+            options.userId,
             decision.instanceId,
             options.syncing,
             rootFolder,
@@ -1003,9 +1349,7 @@ export class ContentRouterService {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             key,
-            // RSS workflow uses userId=0 for temporary keys during initial content grab
-            // These are filtered out by updateWatchlistItem() before database insertion
-            options.userId || 0,
+            options.userId,
             decision.instanceId,
             options.syncing,
             rootFolder,
@@ -1081,24 +1425,9 @@ export class ContentRouterService {
       `Successfully routed "${item.title}" to ${routeCount} instances`,
     )
 
-    // Record quota usage if user has quotas enabled and routing was successful
-    // Only count once per content item regardless of how many instances it was routed to
-    if (
-      options.userId &&
-      options.userId > 0 &&
-      !options.syncing &&
-      routedInstances.length > 0
-    ) {
-      const recorded = await this.fastify.quotaService.recordUsage(
-        options.userId,
-        contentType,
-      )
-      if (recorded) {
-        this.log.info(
-          `Recorded quota usage for user ${options.userId}: ${item.title}`,
-        )
-      }
-    }
+    // NOTE: Quota usage is now recorded BEFORE routing via tryConsumeQuota()
+    // in the atomic quota consumption section above. This prevents race conditions
+    // where concurrent items could all pass the quota check before any recorded usage.
 
     // Create auto-approval record for tracking all successful content additions
     if (routedInstances.length > 0) {
@@ -1445,13 +1774,7 @@ export class ContentRouterService {
 
       // Record quota usage if enabled and routing was successful
       // Only count once per content item regardless of how many instances it was routed to
-      if (
-        recordQuota &&
-        userId &&
-        userId > 0 &&
-        !syncing &&
-        routedInstances.length > 0
-      ) {
+      if (recordQuota && userId > 0 && !syncing && routedInstances.length > 0) {
         const recorded = await this.fastify.quotaService.recordUsage(
           userId,
           contentType,
@@ -1533,6 +1856,11 @@ export class ContentRouterService {
     trigger?: ApprovalTrigger
     data?: ApprovalData
   }> {
+    // Sync operations never require approval - they're internal data movement
+    if (context.syncing) {
+      return { required: false }
+    }
+
     if (!context.userId) {
       return { required: false }
     }
@@ -1575,6 +1903,8 @@ export class ContentRouterService {
                     ruleId: rule.id,
                     criteriaType: 'router_rule',
                     criteriaValue: rule.name,
+                    // Include bypass flag so processApprovedRequest can skip quota recording
+                    quotasBypassedByRule,
                   },
                 }
               } else {
@@ -1612,47 +1942,13 @@ export class ContentRouterService {
         }
       }
 
-      // PRIORITY 3: Quota exceeded (resource management)
-      const userQuota = await this.fastify.db.getUserQuota(
-        context.userId,
-        item.type,
-      )
-      const userBypassesQuotas = userQuota?.bypassApproval || false
-
-      const quotaStatus = await this.fastify.quotaService.getUserQuotaStatus(
-        context.userId,
-        item.type,
-      )
-
-      if (quotaStatus) {
-        // Check if adding this item would exceed quota (predictive check)
-        const wouldExceedAfterAddition =
-          quotaStatus.currentUsage + 1 > quotaStatus.quotaLimit
-
-        if (wouldExceedAfterAddition) {
-          // Determine if this should be auto-approved due to bypass settings
-          const shouldAutoApprove = quotasBypassedByRule || userBypassesQuotas
-
-          // Show the "would-be" usage count (current + 1)
-          const wouldBeUsage = quotaStatus.currentUsage + 1
-
-          return {
-            required: true,
-            reason: shouldAutoApprove
-              ? `${quotaStatus.quotaType} quota would be exceeded (auto-approved due to bypass)`
-              : `${quotaStatus.quotaType} quota exceeded (${wouldBeUsage}/${quotaStatus.quotaLimit})`,
-            trigger: 'quota_exceeded',
-            data: {
-              quotaType: quotaStatus.quotaType,
-              quotaUsage: wouldBeUsage,
-              quotaLimit: quotaStatus.quotaLimit,
-              autoApprove: shouldAutoApprove,
-            },
-          }
-        }
+      // NOTE: Quota checking is handled AFTER this method returns
+      // via tryConsumeQuota() for atomic check+consume behavior.
+      // We pass the bypass flag here so caller can use it.
+      return {
+        required: false,
+        data: { quotasBypassedByRule },
       }
-
-      return { required: false }
     } catch (error) {
       this.log.error({ error }, 'Error checking approval requirements')
       return { required: false }
