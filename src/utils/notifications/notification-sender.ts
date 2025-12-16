@@ -21,11 +21,11 @@ async function sendPublicNotifications(
   allNotificationResults: NotificationResult[],
   log: FastifyBaseLogger,
 ): Promise<void> {
-  if (result.user.notify_discord && fastify.discord) {
+  if (result.user.notify_discord && fastify.notifications?.discordWebhook) {
     try {
       // Collect Discord IDs from all real users for @ mentions
       const userDiscordIds = extractUserDiscordIds(allNotificationResults)
-      await fastify.discord.sendPublicNotification(
+      await fastify.notifications.discordWebhook.sendPublicNotification(
         result.notification,
         userDiscordIds,
       )
@@ -37,9 +37,14 @@ async function sendPublicNotifications(
     }
   }
 
-  if (result.user.notify_apprise && fastify.apprise?.isEnabled()) {
+  if (
+    result.user.notify_apprise &&
+    fastify.notifications?.apprise?.isEnabled()
+  ) {
     try {
-      await fastify.apprise.sendPublicNotification(result.notification)
+      await fastify.notifications.apprise.sendPublicNotification(
+        result.notification,
+      )
     } catch (error) {
       log.error(
         { error, userId: result.user.id },
@@ -66,7 +71,10 @@ async function sendDiscordNotification(
   log: FastifyBaseLogger,
 ): Promise<void> {
   try {
-    await fastify.discord.sendDirectMessage(discordId, notification)
+    await fastify.notifications.discordBot.sendDirectMessage(
+      discordId,
+      notification,
+    )
   } catch (error) {
     log.error(
       {
@@ -94,7 +102,10 @@ async function sendAppriseNotification(
   log: FastifyBaseLogger,
 ): Promise<void> {
   try {
-    await fastify.apprise.sendMediaNotification(user, notification)
+    await fastify.notifications.apprise.sendMediaNotification(
+      user,
+      notification,
+    )
   } catch (error) {
     log.error({ error, userId: user.id }, 'Failed to send Apprise notification')
   }
@@ -141,7 +152,7 @@ async function sendTautulliNotification(
       }
       const itemId = rawId
 
-      const sent = await fastify.tautulli.sendMediaNotification(
+      const sent = await fastify.notifications.tautulli.sendMediaNotification(
         user,
         notification,
         itemId,
@@ -190,7 +201,11 @@ async function sendUserNotifications(
   log: FastifyBaseLogger,
 ): Promise<void> {
   // Send Discord DM
-  if (result.user.notify_discord && result.user.discord_id && fastify.discord) {
+  if (
+    result.user.notify_discord &&
+    result.user.discord_id &&
+    fastify.notifications?.discordBot
+  ) {
     await sendDiscordNotification(
       fastify,
       result.user.discord_id,
@@ -201,7 +216,10 @@ async function sendUserNotifications(
   }
 
   // Send Apprise notification
-  if (result.user.notify_apprise && fastify.apprise?.isEnabled()) {
+  if (
+    result.user.notify_apprise &&
+    fastify.notifications?.apprise?.isEnabled()
+  ) {
     await sendAppriseNotification(
       fastify,
       result.user,
@@ -211,7 +229,10 @@ async function sendUserNotifications(
   }
 
   // Send Tautulli notification
-  if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
+  if (
+    result.user.notify_tautulli &&
+    fastify.notifications?.tautulli?.isEnabled()
+  ) {
     await sendTautulliNotification(
       fastify,
       result.user,

@@ -306,6 +306,7 @@ export async function enrichItemMetadata(
 
           if (tvdbId || tmdbId || imdbId) {
             const isAnimeContent = await fastify.anime.isAnime(
+              'movie',
               tvdbId,
               tmdbId,
               imdbId,
@@ -448,6 +449,7 @@ export async function enrichItemMetadata(
 
           if (tvdbId || tmdbId || imdbId) {
             const isAnimeContent = await fastify.anime.isAnime(
+              'show',
               tvdbId,
               tmdbId,
               imdbId,

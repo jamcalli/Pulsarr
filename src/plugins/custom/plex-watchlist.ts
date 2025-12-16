@@ -26,7 +26,7 @@ export default fp(
     dependencies: [
       'config',
       'database',
-      'discord-notification-service',
+      'notification-service',
       'quota',
       'plex-label-sync',
     ],

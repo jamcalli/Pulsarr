@@ -6,7 +6,11 @@
  */
 
 import type { Config } from '@root/types/config.types.js'
-import type { EtagPollResult, Item } from '@root/types/plex.types.js'
+import type {
+  EtagPollResult,
+  Item,
+  UserMapEntry,
+} from '@root/types/plex.types.js'
 import type { ContentRouterService } from '@services/content-router.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { DeferredRoutingQueue } from '@services/deferred-routing-queue.service.js'
@@ -163,7 +167,7 @@ export interface FriendHandlerDeps extends ReconcilerDeps {
     watchlistId?: string
   }) => Promise<{ brandNewItems: Item[]; linkedItems: Item[] }>
   /** Bound callback for updating UUID cache */
-  updatePlexUuidCache: (userMap: Map<string, number>) => void
+  updatePlexUuidCache: (userMap: Map<string, UserMapEntry>) => void
   plexLabelSyncService?: PlexLabelSyncService
 }
 
@@ -204,7 +208,7 @@ export interface StaggeredPollerDeps extends BaseDeps {
     watchlistId?: string
   }) => Promise<{ brandNewItems: Item[]; linkedItems: Item[] }>
   /** Bound callback for updating UUID cache */
-  updatePlexUuidCache: (userMap: Map<string, number>) => void
+  updatePlexUuidCache: (userMap: Map<string, UserMapEntry>) => void
   /** Bound callback for updating approval attribution */
   updateAutoApprovalUserAttribution: () => Promise<void>
   /** Bound callback for scheduling debounced status sync */

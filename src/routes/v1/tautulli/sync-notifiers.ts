@@ -32,7 +32,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
-        await fastify.tautulli.syncUserNotifiers()
+        await fastify.notifications.tautulli.syncUserNotifiers()
 
         // Get users with Tautulli enabled to count them
         const allUsers = await fastify.db.getAllUsers()

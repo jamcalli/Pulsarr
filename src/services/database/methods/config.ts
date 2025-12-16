@@ -125,7 +125,6 @@ export async function getConfig(
     discordWebhookUrl: config.discordWebhookUrl || undefined,
     discordBotToken: config.discordBotToken || undefined,
     discordClientId: config.discordClientId || undefined,
-    discordGuildId: config.discordGuildId || undefined,
     // Handle app configuration
     baseUrl: config.baseUrl || undefined,
     // Handle timing defaults
@@ -315,7 +314,6 @@ export async function createConfig(
       discordWebhookUrl: config.discordWebhookUrl,
       discordBotToken: config.discordBotToken,
       discordClientId: config.discordClientId,
-      discordGuildId: config.discordGuildId,
       // User Tagging fields
       tagUsersInSonarr: config.tagUsersInSonarr ?? false,
       tagUsersInRadarr: config.tagUsersInRadarr ?? false,
@@ -435,7 +433,6 @@ const ALLOWED_COLUMNS = new Set([
   'discordWebhookUrl',
   'discordBotToken',
   'discordClientId',
-  'discordGuildId',
 
   // Apprise notifications
   'enableApprise',

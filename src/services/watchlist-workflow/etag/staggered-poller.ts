@@ -10,6 +10,7 @@ import type {
   EtagUserInfo,
   Item,
   TokenWatchlistItem,
+  UserMapEntry,
 } from '@root/types/plex.types.js'
 import { processItemsForUser } from '@services/plex-watchlist/index.js'
 import {
@@ -143,9 +144,12 @@ export async function handleStaggeredPollResult(
  * @returns Updated friends list and updated cache
  */
 export async function refreshFriendsForStaggeredPolling(
-  plexUuidCache: Map<string, number>,
+  plexUuidCache: Map<string, UserMapEntry>,
   deps: StaggeredPollerDeps,
-): Promise<{ friends: EtagUserInfo[]; updatedCache: Map<string, number> }> {
+): Promise<{
+  friends: EtagUserInfo[]
+  updatedCache: Map<string, UserMapEntry>
+}> {
   let currentCache = plexUuidCache
 
   try {
@@ -261,8 +265,8 @@ export async function refreshFriendsForStaggeredPolling(
       }
 
       // Remove from UUID cache
-      for (const [uuid, userId] of currentCache.entries()) {
-        if (userId === removed.userId) {
+      for (const [uuid, entry] of currentCache.entries()) {
+        if (entry.userId === removed.userId) {
           currentCache.delete(uuid)
           break
         }

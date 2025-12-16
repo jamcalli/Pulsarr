@@ -21,6 +21,13 @@ declare module '@services/database.service.js' {
     getUser(identifier: number | string): Promise<User | undefined>
 
     /**
+     * Retrieves a user by their Discord ID
+     * @param discordId - Discord user ID
+     * @returns Promise resolving to the user if found, undefined otherwise
+     */
+    getUserByDiscordId(discordId: string): Promise<User | undefined>
+
+    /**
      * Updates a user's information
      * @param id - ID of the user to update
      * @param data - Partial user data to update

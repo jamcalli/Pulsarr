@@ -5,7 +5,12 @@
  */
 
 import type { Config } from '@root/types/config.types.js'
-import type { EtagUserInfo, Friend, Item } from '@root/types/plex.types.js'
+import type {
+  EtagUserInfo,
+  Friend,
+  Item,
+  UserMapEntry,
+} from '@root/types/plex.types.js'
 import {
   categorizeItems,
   extractKeysAndRelationships,
@@ -190,7 +195,7 @@ export async function processFriendChanges(
   params: {
     added: EtagUserInfo[]
     removed: EtagUserInfo[]
-    userMap: Map<string, number>
+    userMap: Map<string, UserMapEntry>
     mode: 'full' | 'etag'
   },
   deps: FriendHandlerDeps,

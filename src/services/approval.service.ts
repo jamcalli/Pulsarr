@@ -448,11 +448,29 @@ export class ApprovalService {
           )
         }
 
-        // Record quota usage after successful routing
-        await this.fastify.quotaService.recordUsage(
+        // Check if quota should be bypassed (router rule bypass or user bypass setting)
+        const quotasBypassedByRule =
+          routerDecision.approval?.data?.quotasBypassedByRule === true
+        const userQuota = await this.fastify.db.getUserQuota(
           request.userId,
           request.contentType,
         )
+        const userBypassEnabled = userQuota?.bypassApproval === true
+
+        // Record quota usage after successful routing (unless bypassed)
+        if (quotasBypassedByRule || userBypassEnabled) {
+          const bypassReason = quotasBypassedByRule
+            ? 'router rule bypass'
+            : 'user bypass setting'
+          this.log.debug(
+            `Skipping quota recording for request ${request.id} due to ${bypassReason}`,
+          )
+        } else {
+          await this.fastify.quotaService.recordUsage(
+            request.userId,
+            request.contentType,
+          )
+        }
 
         this.log.info(
           `Successfully routed approved request ${request.id} for user ${request.userId}: ${request.contentTitle} to ${instanceType} instance ${instanceId}`,
@@ -904,7 +922,7 @@ export class ApprovalService {
   private async sendBatchedDiscordDMNotification(): Promise<void> {
     try {
       // Check if Discord service is available and running
-      const discordService = this.fastify.discord
+      const discordService = this.fastify.notifications?.discordBot
       if (!discordService || discordService.getBotStatus() !== 'running') {
         this.log.debug(
           'Discord bot not available, skipping batched approval notification',
@@ -1054,7 +1072,7 @@ export class ApprovalService {
    */
   private async sendBatchedDiscordWebhookNotifications(): Promise<void> {
     try {
-      const discordService = this.fastify.discord
+      const discordService = this.fastify.notifications?.discordWebhook
       if (!discordService) {
         this.log.debug(
           'Discord service not available, skipping webhook notifications',
@@ -1105,7 +1123,7 @@ export class ApprovalService {
    */
   private async sendBatchedAppriseNotifications(): Promise<void> {
     try {
-      const appriseService = this.fastify.apprise
+      const appriseService = this.fastify.notifications?.apprise
       if (!appriseService || !appriseService.isEnabled()) {
         this.log.debug('Apprise service not available, skipping notifications')
         return
@@ -1154,7 +1172,7 @@ export class ApprovalService {
     totalPending: number,
   ): Promise<void> {
     try {
-      const discordService = this.fastify.discord
+      const discordService = this.fastify.notifications?.discordWebhook
       if (!discordService) return
 
       // Get poster image from watchlist item
@@ -1229,7 +1247,7 @@ export class ApprovalService {
     totalPending: number,
   ): Promise<void> {
     try {
-      const appriseService = this.fastify.apprise
+      const appriseService = this.fastify.notifications?.apprise
       if (!appriseService) return
 
       // Get poster image from watchlist item (same pattern as Discord)

@@ -6,7 +6,11 @@
  */
 
 import type { Config } from '@root/types/config.types.js'
-import type { EtagUserInfo, Friend } from '@root/types/plex.types.js'
+import type {
+  EtagUserInfo,
+  Friend,
+  UserMapEntry,
+} from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { createDefaultQuotasForUser } from './token-users.js'
@@ -28,8 +32,8 @@ export interface FriendUsersDeps {
 export async function ensureFriendUsers(
   friends: Set<[Friend, string]>,
   deps: FriendUsersDeps,
-): Promise<{ userMap: Map<string, number>; added: EtagUserInfo[] }> {
-  const userMap = new Map<string, number>()
+): Promise<{ userMap: Map<string, UserMapEntry>; added: EtagUserInfo[] }> {
+  const userMap = new Map<string, UserMapEntry>()
   const added: EtagUserInfo[] = []
 
   await Promise.all(
@@ -58,7 +62,10 @@ export async function ensureFriendUsers(
       }
 
       if (!user.id) throw new Error(`No ID for user ${friend.username}`)
-      userMap.set(friend.watchlistId, user.id)
+      userMap.set(friend.watchlistId, {
+        userId: user.id,
+        username: friend.username,
+      })
 
       // Track newly added users for ETag baseline establishment
       if (isNewUser) {

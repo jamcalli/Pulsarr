@@ -70,7 +70,7 @@ export default fp(
       'radarr-manager',
       'database',
       'config',
-      'discord-notification-service',
+      'notification-service',
       'plex-watchlist',
       'plex-server',
       'approval',

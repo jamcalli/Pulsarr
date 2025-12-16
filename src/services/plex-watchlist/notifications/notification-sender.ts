@@ -62,12 +62,13 @@ export async function sendWatchlistNotifications(
     const discordType: 'movie' | 'show' =
       t === 'movie' || t === 'show' ? (t as 'movie' | 'show') : 'movie'
 
-    discordSent = await deps.fastify.discord.sendMediaNotification({
-      username,
-      title: item.title,
-      type: discordType,
-      posterUrl: item.thumb,
-    })
+    discordSent =
+      await deps.fastify.notifications.discordWebhook.sendMediaNotification({
+        username,
+        title: item.title,
+        type: discordType,
+        posterUrl: item.thumb,
+      })
 
     deps.logger.debug(
       { success: discordSent },
@@ -87,18 +88,22 @@ export async function sendWatchlistNotifications(
   }
 
   // Send Apprise notification
-  if (deps.fastify.apprise?.isEnabled()) {
+  if (deps.fastify.notifications?.apprise?.isEnabled()) {
     try {
       appriseSent =
-        await deps.fastify.apprise.sendWatchlistAdditionNotification({
-          title: item.title,
-          type:
-            typeof item.type === 'string' ? item.type.toLowerCase() : 'unknown',
-          addedBy: {
-            name: username,
+        await deps.fastify.notifications.apprise.sendWatchlistAdditionNotification(
+          {
+            title: item.title,
+            type:
+              typeof item.type === 'string'
+                ? item.type.toLowerCase()
+                : 'unknown',
+            addedBy: {
+              name: username,
+            },
+            posterUrl: item.thumb,
           },
-          posterUrl: item.thumb,
-        })
+        )
 
       deps.logger.debug(
         { success: appriseSent },

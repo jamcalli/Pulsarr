@@ -25,18 +25,38 @@ export class AnimeService {
   }
 
   /**
-   * Check if any external IDs indicate anime content
+   * Check if any external IDs indicate anime content.
+   *
+   * IMPORTANT: TMDB has separate ID namespaces for movies and TV shows.
+   * The anime-lists XML provides `tmdbid` for movies and `tmdbtv` for TV.
+   * We must check the appropriate source based on content type to avoid
+   * false positives (e.g., movie ID 23122 != TV ID 23122).
+   *
+   * @param contentType - Whether this is a movie or show
+   * @param tvdbId - TVDB ID (only checked for shows - anime-lists uses series IDs)
+   * @param tmdbId - TMDB ID (checked against tmdb_movie or tmdb_tv based on content type)
+   * @param imdbId - IMDB ID (safe for both - single namespace)
    */
   async isAnime(
+    contentType: 'movie' | 'show',
     tvdbId?: string,
     tmdbId?: string,
     imdbId?: string,
   ): Promise<boolean> {
     const ids: Array<{ externalId: string; source: string }> = []
 
-    if (tvdbId) ids.push({ externalId: tvdbId, source: 'tvdb' })
-    if (tmdbId) ids.push({ externalId: tmdbId, source: 'tmdb' })
+    // IMDB uses a single namespace for all content types - safe to check for both
     if (imdbId) ids.push({ externalId: imdbId, source: 'imdb' })
+
+    if (contentType === 'movie') {
+      // Movies: only check tmdb_movie source
+      // Skip TVDB - anime-lists tvdbid is primarily for TV series
+      if (tmdbId) ids.push({ externalId: tmdbId, source: 'tmdb_movie' })
+    } else {
+      // Shows: check tmdb_tv and tvdb sources
+      if (tmdbId) ids.push({ externalId: tmdbId, source: 'tmdb_tv' })
+      if (tvdbId) ids.push({ externalId: tvdbId, source: 'tvdb' })
+    }
 
     if (ids.length === 0) return false
 
@@ -68,10 +88,15 @@ export class AnimeService {
 
       // Log breakdown by source
       const tvdbCount = animeIds.filter((id) => id.source === 'tvdb').length
-      const tmdbCount = animeIds.filter((id) => id.source === 'tmdb').length
+      const tmdbMovieCount = animeIds.filter(
+        (id) => id.source === 'tmdb_movie',
+      ).length
+      const tmdbTvCount = animeIds.filter(
+        (id) => id.source === 'tmdb_tv',
+      ).length
       const imdbCount = animeIds.filter((id) => id.source === 'imdb').length
       this.log.info(
-        `Breakdown: ${tvdbCount} TVDB IDs, ${tmdbCount} TMDB IDs, ${imdbCount} IMDb IDs`,
+        `Breakdown: ${tvdbCount} TVDB, ${tmdbMovieCount} TMDB Movie, ${tmdbTvCount} TMDB TV, ${imdbCount} IMDb`,
       )
 
       if (animeIds.length === 0) {
@@ -132,7 +157,8 @@ export class AnimeService {
 
         // Extract IDs from anime element attributes
         const tvdbId = anime.tvdbid?.toString().trim()
-        const tmdbId = (anime.tmdbid ?? anime.tmdbtv)?.toString().trim()
+        const tmdbMovieId = anime.tmdbid?.toString().trim()
+        const tmdbTvId = anime.tmdbtv?.toString().trim()
         const imdbId = anime.imdbid?.toString().trim()
 
         // Add TVDB ID if present and numeric
@@ -143,11 +169,23 @@ export class AnimeService {
           })
         }
 
-        // Add TMDB ID if present and numeric
-        if (tmdbId && tmdbId !== '' && !Number.isNaN(Number(tmdbId))) {
+        // Add TMDB Movie ID if present and numeric
+        if (
+          tmdbMovieId &&
+          tmdbMovieId !== '' &&
+          !Number.isNaN(Number(tmdbMovieId))
+        ) {
           animeIds.push({
-            external_id: tmdbId,
-            source: 'tmdb',
+            external_id: tmdbMovieId,
+            source: 'tmdb_movie',
+          })
+        }
+
+        // Add TMDB TV ID if present and numeric
+        if (tmdbTvId && tmdbTvId !== '' && !Number.isNaN(Number(tmdbTvId))) {
+          animeIds.push({
+            external_id: tmdbTvId,
+            source: 'tmdb_tv',
           })
         }
 
