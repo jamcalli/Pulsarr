@@ -50,12 +50,6 @@ export {
   type PlexWatchlistUrls,
   type RawRssFetchResult,
 } from './fetching/index.js'
-// Notifications module
-export {
-  type NotificationDeps,
-  sendWatchlistNotifications,
-  type WatchlistItemNotification,
-} from './notifications/notification-sender.js'
 // Orchestration module
 export {
   type ItemProcessorDeps,

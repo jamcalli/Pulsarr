@@ -33,7 +33,6 @@ import {
   extractGuidsFromWatchlistItems,
   fetchWatchlistItems,
 } from '@services/delete-sync/data-fetching/index.js'
-import { sendNotificationsIfEnabled } from '@services/delete-sync/notifications/index.js'
 import {
   executeTagBasedDeletion,
   executeWatchlistDeletion,
@@ -370,20 +369,12 @@ export class DeleteSyncService {
       )
 
       // Step 11: Send notifications about results if enabled
-      await sendNotificationsIfEnabled(
-        {
-          notifications: this.fastify.notifications ?? null,
-          apprise: this.fastify.notifications?.apprise ?? null,
-          config: {
-            deleteSyncNotify: this.config.deleteSyncNotify || null,
-            deleteSyncNotifyOnlyOnDeletion:
-              this.config.deleteSyncNotifyOnlyOnDeletion,
-          },
-          logger: this.log,
-        },
-        result,
-        dryRun,
-      )
+      if (this.fastify.notifications) {
+        await this.fastify.notifications.sendDeleteSyncNotification(
+          result,
+          dryRun,
+        )
+      }
 
       return result
     } catch (error) {
@@ -428,22 +419,13 @@ export class DeleteSyncService {
     )
 
     // Send notification about the safety trigger if enabled
-    sendNotificationsIfEnabled(
-      {
-        notifications: this.fastify.notifications ?? null,
-        apprise: this.fastify.notifications?.apprise ?? null,
-        config: {
-          deleteSyncNotify: this.config.deleteSyncNotify || null,
-          deleteSyncNotifyOnlyOnDeletion:
-            this.config.deleteSyncNotifyOnlyOnDeletion,
-        },
-        logger: this.log,
-      },
-      result,
-      dryRun,
-    ).catch((error) => {
-      this.logError('Error sending delete sync notification:', error)
-    })
+    if (this.fastify.notifications) {
+      this.fastify.notifications
+        .sendDeleteSyncNotification(result, dryRun)
+        .catch((error) => {
+          this.logError('Error sending delete sync notification:', error)
+        })
+    }
 
     return result
   }

@@ -1,29 +1,39 @@
 /**
- * Unit tests for delete-sync-notifier module
+ * Unit tests for delete-sync orchestration module
  *
  * Tests notification sending for delete sync operations including Discord
- * and Apprise notifications. Verifies proper handling of notification
- * preferences, dry run mode, and error recovery.
+ * (webhook and DM) and Apprise notifications. Verifies proper handling of
+ * notification preferences, dry run mode, and error recovery.
  */
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type { DeleteSyncNotifierDeps } from '@services/delete-sync/notifications/delete-sync-notifier.js'
-import { sendNotificationsIfEnabled } from '@services/delete-sync/notifications/index.js'
-import type { NotificationService } from '@services/notification.service.js'
-import type { AppriseService } from '@services/notifications/channels/index.js'
+import type { DatabaseService } from '@services/database.service.js'
+import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
+import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
+import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
+import {
+  type DeleteSyncDeps,
+  sendDeleteSyncCompleted,
+} from '@services/notifications/orchestration/delete-sync.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
 
-describe('delete-sync-notifier', () => {
+describe('delete-sync orchestration', () => {
   let mockLogger: ReturnType<typeof createMockLogger>
-  let mockNotifications: {
-    sendDeleteSyncNotification: ReturnType<typeof vi.fn>
+  let mockDiscordBot: {
+    sendDirectMessage: ReturnType<typeof vi.fn>
+  }
+  let mockDiscordWebhook: {
+    sendNotification: ReturnType<typeof vi.fn>
   }
   let mockApprise: {
     isEnabled: ReturnType<typeof vi.fn>
     sendDeleteSyncNotification: ReturnType<typeof vi.fn>
   }
-  let baseDeps: DeleteSyncNotifierDeps
+  let mockDb: {
+    getAllUsers: ReturnType<typeof vi.fn>
+  }
+  let baseDeps: DeleteSyncDeps
 
   /**
    * Helper to create mock DeleteSyncResult
@@ -38,42 +48,64 @@ describe('delete-sync-notifier', () => {
 
   beforeEach(() => {
     mockLogger = createMockLogger()
-    mockNotifications = {
-      sendDeleteSyncNotification: vi.fn().mockResolvedValue(true),
+    mockDiscordBot = {
+      sendDirectMessage: vi.fn().mockResolvedValue(true),
+    }
+    mockDiscordWebhook = {
+      sendNotification: vi.fn().mockResolvedValue(true),
     }
     mockApprise = {
       isEnabled: vi.fn().mockReturnValue(true),
       sendDeleteSyncNotification: vi.fn().mockResolvedValue(true),
     }
+    mockDb = {
+      getAllUsers: vi
+        .fn()
+        .mockResolvedValue([
+          {
+            id: 1,
+            name: 'Admin',
+            is_primary_token: true,
+            discord_id: '123456',
+          },
+        ]),
+    }
     baseDeps = {
-      notifications: mockNotifications as unknown as NotificationService,
+      db: mockDb as unknown as DatabaseService,
+      logger: mockLogger,
+      discordBot: mockDiscordBot as unknown as DiscordBotService,
+      discordWebhook: mockDiscordWebhook as unknown as DiscordWebhookService,
       apprise: mockApprise as unknown as AppriseService,
       config: {
         deleteSyncNotify: 'all',
         deleteSyncNotifyOnlyOnDeletion: false,
+        discordWebhookUrl: 'https://discord.com/webhook/test',
       },
-      logger: mockLogger,
     }
   })
 
-  describe('sendNotificationsIfEnabled', () => {
+  describe('sendDeleteSyncCompleted', () => {
     it('should skip all notifications when deleteSyncNotify is "none"', async () => {
       const deps = {
         ...baseDeps,
         config: {
+          ...baseDeps.config,
           deleteSyncNotify: 'none',
-          deleteSyncNotifyOnlyOnDeletion: false,
         },
       }
 
-      await sendNotificationsIfEnabled(deps, createMockResult(), false)
+      const result = await sendDeleteSyncCompleted(
+        deps,
+        createMockResult(),
+        false,
+      )
 
-      expect(deps.logger.info).toHaveBeenCalledWith(
+      expect(result).toBe(false)
+      expect(mockLogger.info).toHaveBeenCalledWith(
         'Delete sync notifications disabled, skipping all notifications',
       )
-      expect(
-        mockNotifications.sendDeleteSyncNotification,
-      ).not.toHaveBeenCalled()
+      expect(mockDiscordWebhook.sendNotification).not.toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).not.toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
     })
 
@@ -81,294 +113,238 @@ describe('delete-sync-notifier', () => {
       const deps = {
         ...baseDeps,
         config: {
+          ...baseDeps.config,
           deleteSyncNotify: 'all',
           deleteSyncNotifyOnlyOnDeletion: true,
         },
       }
 
-      await sendNotificationsIfEnabled(deps, createMockResult(0), false)
+      const result = await sendDeleteSyncCompleted(
+        deps,
+        createMockResult(0),
+        false,
+      )
 
-      expect(deps.logger.info).toHaveBeenCalledWith(
+      expect(result).toBe(false)
+      expect(mockLogger.info).toHaveBeenCalledWith(
         'Delete sync completed with no deletions, skipping notification as per configuration',
       )
-      expect(
-        mockNotifications.sendDeleteSyncNotification,
-      ).not.toHaveBeenCalled()
+      expect(mockDiscordWebhook.sendNotification).not.toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).not.toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
     })
 
-    it('should send Discord notification for "all" setting', async () => {
-      const result = createMockResult()
+    it('should send all notifications for "all" setting', async () => {
+      const syncResult = createMockResult()
 
-      await sendNotificationsIfEnabled(baseDeps, result, false)
+      const result = await sendDeleteSyncCompleted(baseDeps, syncResult, false)
 
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'all',
-      )
+      expect(result).toBe(true)
+      expect(mockDiscordWebhook.sendNotification).toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
+        syncResult,
         false,
       )
     })
 
-    it('should send Discord-only notification for "discord-only" setting', async () => {
+    it('should send webhook-only for "discord-webhook" setting', async () => {
       const deps = {
         ...baseDeps,
         config: {
-          deleteSyncNotify: 'discord-only',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-      }
-      const result = createMockResult()
-
-      await sendNotificationsIfEnabled(deps, result, false)
-
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'discord-only',
-      )
-      expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
-    })
-
-    it('should send Discord notification for "discord-webhook" setting', async () => {
-      const deps = {
-        ...baseDeps,
-        config: {
+          ...baseDeps.config,
           deleteSyncNotify: 'discord-webhook',
-          deleteSyncNotifyOnlyOnDeletion: false,
         },
       }
-      const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, false)
+      await sendDeleteSyncCompleted(deps, createMockResult(), false)
 
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'discord-webhook',
-      )
+      expect(mockDiscordWebhook.sendNotification).toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).not.toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
     })
 
-    it('should send Discord notification for "discord-message" setting', async () => {
+    it('should send DM-only for "discord-message" setting', async () => {
       const deps = {
         ...baseDeps,
         config: {
+          ...baseDeps.config,
           deleteSyncNotify: 'discord-message',
-          deleteSyncNotifyOnlyOnDeletion: false,
         },
       }
-      const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, false)
+      await sendDeleteSyncCompleted(deps, createMockResult(), false)
 
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'discord-message',
-      )
+      expect(mockDiscordWebhook.sendNotification).not.toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
     })
 
-    it('should send Discord notification for "discord-both" setting', async () => {
+    it('should send both Discord channels for "discord-both" setting', async () => {
       const deps = {
         ...baseDeps,
         config: {
+          ...baseDeps.config,
           deleteSyncNotify: 'discord-both',
-          deleteSyncNotifyOnlyOnDeletion: false,
         },
       }
-      const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, false)
+      await sendDeleteSyncCompleted(deps, createMockResult(), false)
 
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'discord-both',
-      )
+      expect(mockDiscordWebhook.sendNotification).toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).toHaveBeenCalled()
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
     })
 
-    it('should send Discord notification for legacy "webhook" setting', async () => {
+    it('should send Apprise-only for "apprise-only" setting', async () => {
       const deps = {
         ...baseDeps,
         config: {
-          deleteSyncNotify: 'webhook',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-      }
-      const result = createMockResult()
-
-      await sendNotificationsIfEnabled(deps, result, false)
-
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'webhook',
-      )
-      expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
-    })
-
-    it('should send Discord notification for legacy "message" setting', async () => {
-      const deps = {
-        ...baseDeps,
-        config: {
-          deleteSyncNotify: 'message',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-      }
-      const result = createMockResult()
-
-      await sendNotificationsIfEnabled(deps, result, false)
-
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'message',
-      )
-      expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
-    })
-
-    it('should send Discord notification for legacy "both" setting', async () => {
-      const deps = {
-        ...baseDeps,
-        config: {
-          deleteSyncNotify: 'both',
-          deleteSyncNotifyOnlyOnDeletion: false,
-        },
-      }
-      const result = createMockResult()
-
-      await sendNotificationsIfEnabled(deps, result, false)
-
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'both',
-      )
-      expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
-    })
-
-    it('should send Apprise-only notification for "apprise-only" setting', async () => {
-      const deps = {
-        ...baseDeps,
-        config: {
+          ...baseDeps.config,
           deleteSyncNotify: 'apprise-only',
-          deleteSyncNotifyOnlyOnDeletion: false,
         },
       }
-      const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, false)
+      await sendDeleteSyncCompleted(deps, createMockResult(), false)
 
-      expect(
-        mockNotifications.sendDeleteSyncNotification,
-      ).not.toHaveBeenCalled()
-      expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
+      expect(mockDiscordWebhook.sendNotification).not.toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).not.toHaveBeenCalled()
+      expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalled()
+    })
+
+    it('should handle legacy "webhook" setting', async () => {
+      const deps = {
+        ...baseDeps,
+        config: {
+          ...baseDeps.config,
+          deleteSyncNotify: 'webhook',
+        },
+      }
+
+      await sendDeleteSyncCompleted(deps, createMockResult(), false)
+
+      expect(mockDiscordWebhook.sendNotification).toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).not.toHaveBeenCalled()
+    })
+
+    it('should handle legacy "message" setting', async () => {
+      const deps = {
+        ...baseDeps,
+        config: {
+          ...baseDeps.config,
+          deleteSyncNotify: 'message',
+        },
+      }
+
+      await sendDeleteSyncCompleted(deps, createMockResult(), false)
+
+      expect(mockDiscordWebhook.sendNotification).not.toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).toHaveBeenCalled()
+    })
+
+    it('should handle legacy "both" setting', async () => {
+      const deps = {
+        ...baseDeps,
+        config: {
+          ...baseDeps.config,
+          deleteSyncNotify: 'both',
+        },
+      }
+
+      await sendDeleteSyncCompleted(deps, createMockResult(), false)
+
+      expect(mockDiscordWebhook.sendNotification).toHaveBeenCalled()
+      expect(mockDiscordBot.sendDirectMessage).toHaveBeenCalled()
+    })
+
+    it('should not send webhook when URL is not configured', async () => {
+      const deps = {
+        ...baseDeps,
+        config: {
+          ...baseDeps.config,
+          deleteSyncNotify: 'discord-webhook',
+          discordWebhookUrl: undefined,
+        },
+      }
+
+      await sendDeleteSyncCompleted(deps, createMockResult(), false)
+
+      expect(mockDiscordWebhook.sendNotification).not.toHaveBeenCalled()
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Discord webhook URL not configured, cannot send webhook notification',
       )
     })
 
-    it('should not send Discord notification when discord service is null', async () => {
+    it('should not send DM when admin user has no Discord ID', async () => {
+      mockDb.getAllUsers.mockResolvedValue([
+        { id: 1, name: 'Admin', is_primary_token: true, discord_id: null },
+      ])
       const deps = {
         ...baseDeps,
-        notifications: null,
+        config: {
+          ...baseDeps.config,
+          deleteSyncNotify: 'discord-message',
+        },
       }
-      const result = createMockResult()
 
-      await sendNotificationsIfEnabled(deps, result, false)
+      await sendDeleteSyncCompleted(deps, createMockResult(), false)
 
-      expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-      )
-    })
-
-    it('should not send Apprise notification when apprise service is null', async () => {
-      const deps = {
-        ...baseDeps,
-        apprise: null,
-      }
-      const result = createMockResult()
-
-      await sendNotificationsIfEnabled(deps, result, false)
-
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'all',
-      )
+      expect(mockDiscordBot.sendDirectMessage).not.toHaveBeenCalled()
     })
 
     it('should not send Apprise notification when apprise service is disabled', async () => {
       mockApprise.isEnabled.mockReturnValue(false)
-      const result = createMockResult()
 
-      await sendNotificationsIfEnabled(baseDeps, result, false)
+      await sendDeleteSyncCompleted(baseDeps, createMockResult(), false)
 
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        false,
-        'all',
-      )
       expect(mockApprise.sendDeleteSyncNotification).not.toHaveBeenCalled()
     })
 
-    it('should handle Discord send errors gracefully', async () => {
-      mockNotifications.sendDeleteSyncNotification.mockRejectedValue(
-        new Error('Discord send failed'),
+    it('should handle webhook send errors gracefully', async () => {
+      mockDiscordWebhook.sendNotification.mockRejectedValue(
+        new Error('Webhook send failed'),
       )
-      const result = createMockResult()
 
-      await sendNotificationsIfEnabled(baseDeps, result, false)
-
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalled()
-      expect(baseDeps.logger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.any(Error),
-        }),
-        'Error sending delete sync Discord notification:',
+      const result = await sendDeleteSyncCompleted(
+        baseDeps,
+        createMockResult(),
+        false,
       )
-      // Should still send Apprise notification
-      expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalled()
+
+      // Should still succeed because other channels worked
+      expect(result).toBe(true)
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ error: expect.any(Error) }),
+        'Error sending delete sync webhook notification',
+      )
     })
 
     it('should handle Apprise send errors gracefully', async () => {
       mockApprise.sendDeleteSyncNotification.mockRejectedValue(
         new Error('Apprise send failed'),
       )
-      const result = createMockResult()
 
-      await sendNotificationsIfEnabled(baseDeps, result, false)
-
-      expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalled()
-      expect(baseDeps.logger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.any(Error),
-        }),
-        'Error sending delete sync Apprise notification:',
+      const result = await sendDeleteSyncCompleted(
+        baseDeps,
+        createMockResult(),
+        false,
       )
-      // Should still have sent Discord notification
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalled()
+
+      // Should still succeed because other channels worked
+      expect(result).toBe(true)
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ error: expect.any(Error) }),
+        'Error sending delete sync Apprise notification',
+      )
     })
 
-    it('should pass dryRun flag correctly to notification services', async () => {
-      const result = createMockResult()
+    it('should pass dryRun flag to Apprise service', async () => {
+      const syncResult = createMockResult()
 
-      await sendNotificationsIfEnabled(baseDeps, result, true)
+      await sendDeleteSyncCompleted(baseDeps, syncResult, true)
 
-      expect(mockNotifications.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
-        true,
-        'all',
-      )
       expect(mockApprise.sendDeleteSyncNotification).toHaveBeenCalledWith(
-        result,
+        syncResult,
         true,
       )
     })

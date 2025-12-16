@@ -18,10 +18,6 @@ import {
   pingPlex,
 } from './plex-watchlist/index.js'
 import {
-  type NotificationDeps,
-  sendWatchlistNotifications,
-} from './plex-watchlist/notifications/notification-sender.js'
-import {
   type ItemProcessorDeps,
   linkExistingItems,
   processAndSaveNewItems,
@@ -74,15 +70,6 @@ export class PlexWatchlistService {
   private get userDeps(): FriendUsersDeps {
     return {
       config: this.config,
-      db: this.dbService,
-      logger: this.log,
-      fastify: this.fastify,
-    }
-  }
-
-  /** Gets the dependencies object for notification operations */
-  private get notificationDeps(): NotificationDeps {
-    return {
       db: this.dbService,
       logger: this.log,
       fastify: this.fastify,
@@ -153,7 +140,11 @@ export class PlexWatchlistService {
       thumb?: string
     },
   ): Promise<boolean> {
-    return sendWatchlistNotifications(user, item, this.notificationDeps)
+    if (!this.fastify.notifications) {
+      this.log.warn('Notification service not available')
+      return false
+    }
+    return this.fastify.notifications.sendWatchlistAdded(user, item)
   }
 
   async pingPlex(): Promise<boolean> {
