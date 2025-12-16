@@ -8,7 +8,7 @@ export const ANIME_LIST_URL =
 /**
  * Supported external ID sources for anime detection
  */
-export const ANIME_SOURCES = ['tvdb', 'tmdb', 'imdb'] as const
+export const ANIME_SOURCES = ['tvdb', 'tmdb_movie', 'tmdb_tv', 'imdb'] as const
 
 export type AnimeSource = (typeof ANIME_SOURCES)[number]
 
