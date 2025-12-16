@@ -22,7 +22,7 @@ import {
 export interface HandlerDeps {
   db: DatabaseService
   approvalService: ApprovalService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /**
@@ -34,7 +34,7 @@ export async function handleApprovalButtons(
   interaction: ButtonInteraction,
   deps: HandlerDeps,
 ): Promise<void> {
-  const { log } = deps
+  const { logger } = deps
 
   if (!interaction.customId.startsWith('approval_')) {
     return
@@ -133,7 +133,7 @@ export async function handleApprovalButtons(
         })
     }
   } catch (error) {
-    log.error(
+    logger.error(
       { error, approvalId, currentIndex, action },
       'Error handling approval button',
     )
