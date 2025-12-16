@@ -210,90 +210,10 @@ export class ContentRouterService {
       userName?: string
       syncing?: boolean
       syncTargetInstanceId?: number
-      forcedInstanceId?: number
     },
   ): Promise<{ routedInstances: number[] }> {
     const contentType = item.type
     const routedInstances: number[] = []
-
-    // Step 1: Handle forced routing if specified
-    // Skip forced routing during sync operations with target instance to respect routing rules
-    if (
-      options.forcedInstanceId !== undefined &&
-      !(options.syncing && options.syncTargetInstanceId !== undefined)
-    ) {
-      this.log.info(
-        `Forced routing of "${item.title}" to instance ID ${options.forcedInstanceId}`,
-      )
-
-      try {
-        // Route directly to the forced instance based on content type
-        if (contentType === 'movie') {
-          await this.fastify.radarrManager.routeItemToRadarr(
-            item as RadarrItem,
-            key,
-            options.userId,
-            options.forcedInstanceId,
-            options.syncing,
-          )
-        } else {
-          await this.fastify.sonarrManager.routeItemToSonarr(
-            item as SonarrItem,
-            key,
-            options.userId,
-            options.forcedInstanceId,
-            options.syncing,
-          )
-        }
-        routedInstances.push(options.forcedInstanceId)
-
-        // Auto-approval tracking + quota for forced routing
-        const context: RoutingContext = {
-          userId: options.userId,
-          userName: options.userName,
-          itemKey: key,
-          contentType,
-          syncing: options.syncing,
-          syncTargetInstanceId: options.syncTargetInstanceId,
-        }
-        const actualRouting = await this.getActualRoutingFromInstance(
-          options.forcedInstanceId,
-          contentType,
-        )
-        await this.createAutoApprovalRecord(
-          item,
-          context,
-          [options.forcedInstanceId],
-          [],
-          actualRouting,
-        )
-
-        // Record quota usage for forced routing (unless user has bypass enabled)
-        if (options.userId > 0 && !options.syncing) {
-          const userQuota = await this.fastify.db.getUserQuota(
-            options.userId,
-            contentType,
-          )
-          if (userQuota && !userQuota.bypassApproval) {
-            await this.fastify.quotaService.recordUsage(
-              options.userId,
-              contentType,
-            )
-          } else if (userQuota?.bypassApproval) {
-            this.log.debug(
-              `Skipping quota recording for forced routing of "${item.title}" - user has bypass enabled`,
-            )
-          }
-        }
-        return { routedInstances }
-      } catch (error) {
-        this.log.error(
-          { error },
-          `Error force-routing "${item.title}" to instance ${options.forcedInstanceId}`,
-        )
-        throw error
-      }
-    }
 
     this.log.info(
       `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,

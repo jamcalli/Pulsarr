@@ -564,7 +564,7 @@ export class QuotaService {
     consumed: boolean
     currentUsage: number
     quotaLimit: number
-    quotaType: string
+    quotaType: QuotaType | 'none' | 'error'
     hasQuota: boolean
     userBypassEnabled: boolean
   }> {
