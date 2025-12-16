@@ -78,7 +78,9 @@ export async function getRecentlyAdded(
   count: number,
   deps: MetadataFetcherDeps,
 ): Promise<RecentlyAddedItem[]> {
-  const { apiCall, log } = deps
+  const { apiCall, log, isActive } = deps
+
+  if (!isActive()) return []
 
   try {
     const response = await apiCall<{

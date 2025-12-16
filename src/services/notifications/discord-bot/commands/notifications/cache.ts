@@ -17,7 +17,8 @@ export class SettingsCache {
   private readonly SESSION_TIMEOUT = 15 * 60 * 1000 // 15 minutes
 
   private constructor() {
-    setInterval(() => this.cleanup(), 5 * 60 * 1000)
+    const cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000)
+    cleanupInterval.unref() // Don't keep process alive for cleanup
   }
 
   static getInstance(): SettingsCache {
