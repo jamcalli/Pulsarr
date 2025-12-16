@@ -448,11 +448,29 @@ export class ApprovalService {
           )
         }
 
-        // Record quota usage after successful routing
-        await this.fastify.quotaService.recordUsage(
+        // Check if quota should be bypassed (router rule bypass or user bypass setting)
+        const quotasBypassedByRule =
+          routerDecision.approval?.data?.quotasBypassedByRule === true
+        const userQuota = await this.fastify.db.getUserQuota(
           request.userId,
           request.contentType,
         )
+        const userBypassEnabled = userQuota?.bypassApproval === true
+
+        // Record quota usage after successful routing (unless bypassed)
+        if (quotasBypassedByRule || userBypassEnabled) {
+          const bypassReason = quotasBypassedByRule
+            ? 'router rule bypass'
+            : 'user bypass setting'
+          this.log.debug(
+            `Skipping quota recording for request ${request.id} due to ${bypassReason}`,
+          )
+        } else {
+          await this.fastify.quotaService.recordUsage(
+            request.userId,
+            request.contentType,
+          )
+        }
 
         this.log.info(
           `Successfully routed approved request ${request.id} for user ${request.userId}: ${request.contentTitle} to ${instanceType} instance ${instanceId}`,
