@@ -190,5 +190,11 @@ export async function handleNotificationButtons(
       log.debug({ userId: interaction.user.id }, 'Settings session closed')
       break
     }
+
+    default:
+      log.warn(
+        { customId: interaction.customId },
+        'Unhandled button interaction',
+      )
   }
 }

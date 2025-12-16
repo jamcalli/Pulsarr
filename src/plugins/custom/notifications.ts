@@ -58,17 +58,14 @@ export default fp(
       }
     }, 1000)
 
-    fastify.addHook('onClose', () => {
-      clearInterval(statusInterval)
-    })
-
     // Initialize on ready
     fastify.addHook('onReady', async () => {
       await notifications.initialize()
     })
 
-    // Shutdown on close
+    // Cleanup on close
     fastify.addHook('onClose', async () => {
+      clearInterval(statusInterval)
       await notifications.shutdown()
     })
   },

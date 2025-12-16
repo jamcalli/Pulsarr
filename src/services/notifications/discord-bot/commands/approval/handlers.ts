@@ -141,7 +141,7 @@ export async function handleApprovalButtons(
     const errorMessage =
       error instanceof Error ? error.message : 'An unknown error occurred'
 
-    if (interaction.replied) {
+    if (interaction.replied || interaction.deferred) {
       await interaction.followUp({
         content: `❌ Error: ${errorMessage}`,
         flags: MessageFlags.Ephemeral,

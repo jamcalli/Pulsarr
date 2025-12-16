@@ -574,6 +574,7 @@ export class TautulliService {
       notified_at: string
     }>
   > {
+    // TODO: Implement notification history retrieval from database
     return []
   }
 

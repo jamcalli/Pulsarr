@@ -225,8 +225,13 @@ async function handleReviewApprovalsButton(
   } catch (error) {
     log.error({ error }, 'Error handling review approvals button')
 
-    if (!interaction.replied) {
+    if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
+        content: '❌ Error starting approval review',
+        flags: MessageFlags.Ephemeral,
+      })
+    } else {
+      await interaction.followUp({
         content: '❌ Error starting approval review',
         flags: MessageFlags.Ephemeral,
       })
