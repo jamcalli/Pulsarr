@@ -1,33 +1,8 @@
 import type { NotificationType } from '@root/types/notification.types.js'
-import type {
-  NotificationResult,
-  SonarrEpisodeSchema,
-} from '@root/types/sonarr.types.js'
 import type { Knex } from 'knex'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
-    // NOTIFICATION PROCESSING
-    /**
-     * Processes notifications for media availability
-     * @param mediaInfo - Information about the media item
-     * @param isBulkRelease - Whether this is a bulk release (e.g., full season)
-     * @param instanceId - Optional instance ID for junction table updates
-     * @param instanceType - Optional instance type for junction table updates
-     * @returns Promise resolving to array of notification results
-     */
-    processNotifications(
-      mediaInfo: {
-        type: 'movie' | 'show'
-        guid: string
-        title: string
-        episodes?: SonarrEpisodeSchema[]
-      },
-      isBulkRelease: boolean,
-      instanceId?: number,
-      instanceType?: 'sonarr' | 'radarr',
-    ): Promise<NotificationResult[]>
-
     /**
      * Creates a notification record in the database
      * @param notification - Notification data to create

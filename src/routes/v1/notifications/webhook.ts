@@ -4,10 +4,7 @@ import {
   WebhookQuerySchema,
   WebhookResponseSchema,
 } from '@root/schemas/notifications/webhook.schema.js'
-import {
-  isWebhookProcessable,
-  processContentNotifications,
-} from '@root/utils/notifications/index.js'
+import { isWebhookProcessable } from '@root/utils/notifications/index.js'
 import {
   checkForUpgrade,
   isEpisodeAlreadyQueued,
@@ -242,7 +239,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
             'Processing movie download',
           )
 
-          await processContentNotifications(fastify, mediaInfo, false, {
+          await fastify.notifications.sendMediaAvailable(mediaInfo, {
+            isBulkRelease: false,
             sequential: true,
             instanceId: instance?.id,
             instanceType: 'radarr',
@@ -351,7 +349,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                   'Processing recent episode download',
                 )
 
-                await processContentNotifications(fastify, mediaInfo, false, {
+                await fastify.notifications.sendMediaAvailable(mediaInfo, {
+                  isBulkRelease: false,
                   sequential: true,
                   instanceId: instance?.id,
                   instanceType: 'sonarr',
@@ -542,16 +541,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
                 episodes: recentEpisodes,
               }
 
-              await processContentNotifications(
-                fastify,
-                mediaInfo,
-                recentEpisodes.length > 1,
-                {
-                  sequential: true,
-                  instanceId: instance?.id,
-                  instanceType: 'sonarr',
-                },
-              )
+              await fastify.notifications.sendMediaAvailable(mediaInfo, {
+                isBulkRelease: recentEpisodes.length > 1,
+                sequential: true,
+                instanceId: instance?.id,
+                instanceType: 'sonarr',
+              })
             }
 
             const nonRecentEpisodes = body.episodes.filter(

@@ -7,6 +7,7 @@
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type { SystemNotification } from '@root/types/discord.types.js'
+import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
@@ -17,6 +18,7 @@ import {
   type BotStatus,
   DiscordBotService,
 } from './notifications/discord-bot/index.js'
+import { sendMediaAvailable } from './notifications/orchestration/media-available.js'
 import { TautulliService } from './notifications/tautulli/index.js'
 import { createDeleteSyncEmbed } from './notifications/templates/discord-embeds.js'
 
@@ -308,5 +310,48 @@ export class NotificationService {
       this.log.error({ error }, 'Error sending delete sync notification')
       return false
     }
+  }
+
+  /**
+   * Sends media available notifications to all relevant users and public channels.
+   *
+   * Orchestration method that:
+   * 1. Looks up all users who watchlisted this content
+   * 2. Checks each user's notification preferences
+   * 3. Creates notification records in the database
+   * 4. Dispatches to all enabled channels (Discord, Apprise, Tautulli)
+   * 5. Handles public channel notifications if configured
+   *
+   * @param mediaInfo - Information about the available media
+   * @param options - Processing options
+   * @returns Promise resolving to matched count
+   */
+  async sendMediaAvailable(
+    mediaInfo: {
+      type: 'movie' | 'show'
+      guid: string
+      title: string
+      episodes?: SonarrEpisodeSchema[]
+    },
+    options: {
+      isBulkRelease: boolean
+      instanceId?: number
+      instanceType?: 'sonarr' | 'radarr'
+      sequential?: boolean
+    },
+  ): Promise<{ matchedCount: number }> {
+    return sendMediaAvailable(
+      {
+        db: this.fastify.db,
+        config: this.fastify.config,
+        logger: this.log,
+        discordBot: this._discordBot,
+        discordWebhook: this._discordWebhook,
+        tautulli: this._tautulli,
+        apprise: this._apprise,
+      },
+      mediaInfo,
+      options,
+    )
   }
 }

@@ -1,5 +1,4 @@
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
-import { processContentNotifications } from '@root/utils/notifications/index.js'
 import type { FastifyInstance } from 'fastify'
 import { isRecentEpisode } from './episode-checker.js'
 import { queuePendingWebhook } from './pending-webhook.js'
@@ -180,13 +179,11 @@ export async function processQueuedWebhooks(
   }
 
   try {
-    // Process notifications using centralized function
-    const { matchedCount } = await processContentNotifications(
-      fastify,
+    // Process notifications using unified notification service
+    const { matchedCount } = await fastify.notifications.sendMediaAvailable(
       mediaInfo,
-      isBulkRelease,
       {
-        logger: fastify.log,
+        isBulkRelease,
         instanceId: seasonQueue.instanceId ?? undefined,
         instanceType: 'sonarr',
       },
