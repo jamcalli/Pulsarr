@@ -1184,7 +1184,7 @@ export class StatusService {
         return false
       }
 
-      // Use the content router with syncTargetInstanceId instead of forcedInstanceId
+      // Use the content router with syncTargetInstanceId to respect routing rules during sync
       // to respect routing rules during sync operations
       const routingResult = await this.fastify.contentRouter.routeContent(
         matchingMovie,
@@ -1533,7 +1533,7 @@ export class StatusService {
         return false
       }
 
-      // Use the content router with syncTargetInstanceId instead of forcedInstanceId
+      // Use the content router with syncTargetInstanceId to respect routing rules during sync
       // to respect routing rules during sync operations
       const routingResult = await this.fastify.contentRouter.routeContent(
         matchingSeries,
