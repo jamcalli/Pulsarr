@@ -99,6 +99,8 @@ export interface ApprovalData {
   criteriaValue?: string
   ruleId?: number
   autoApprove?: boolean
+  // Flag indicating a router rule bypasses user quotas
+  quotasBypassedByRule?: boolean
 }
 
 // Service types

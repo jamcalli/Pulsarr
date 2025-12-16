@@ -4,6 +4,7 @@ import type {
   FriendChangesResult,
   RssWatchlistResults,
   TokenWatchlistItem,
+  UserMapEntry,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
 import type { RssFeedsSuccess } from '@schemas/plex/generate-rss-feeds.schema.js'
@@ -338,14 +339,14 @@ export class PlexWatchlistService {
     const friendsWithIds = new Set(
       Array.from(friendsResult.friends)
         .map(([friend, token]) => {
-          const userId = userMap.get(friend.watchlistId)
-          if (!userId) {
+          const userEntry = userMap.get(friend.watchlistId)
+          if (!userEntry) {
             this.log.warn(
               `No user ID found for friend with watchlist ID: ${friend.watchlistId}`,
             )
             return null
           }
-          return [{ ...friend, userId }, token] as [
+          return [{ ...friend, userId: userEntry.userId }, token] as [
             Friend & { userId: number },
             string,
           ]
@@ -430,7 +431,7 @@ export class PlexWatchlistService {
    */
   private async ensureFriendUsers(
     friends: Set<[Friend, string]>,
-  ): Promise<{ userMap: Map<string, number>; added: EtagUserInfo[] }> {
+  ): Promise<{ userMap: Map<string, UserMapEntry>; added: EtagUserInfo[] }> {
     return ensureFriendUsers(friends, this.userDeps)
   }
 

@@ -5,6 +5,7 @@
  * Used by RSS friend processing to resolve author UUIDs to user IDs.
  */
 
+import type { UserMapEntry } from '@root/types/plex.types.js'
 import type { UuidCacheDeps } from '../types.js'
 
 /**
@@ -18,28 +19,28 @@ import type { UuidCacheDeps } from '../types.js'
  */
 export async function lookupUserByUuid(
   uuid: string,
-  cache: Map<string, number>,
+  cache: Map<string, UserMapEntry>,
   deps: UuidCacheDeps,
-): Promise<{ userId: number | null; cache: Map<string, number> }> {
+): Promise<{ userId: number | null; cache: Map<string, UserMapEntry> }> {
   // Fast path: cache hit
-  const cachedUserId = cache.get(uuid)
-  if (cachedUserId !== undefined) {
-    return { userId: cachedUserId, cache }
+  const cachedEntry = cache.get(uuid)
+  if (cachedEntry !== undefined) {
+    return { userId: cachedEntry.userId, cache }
   }
 
   // Slow path: unknown UUID, refresh cache and retry
   deps.logger.info({ uuid }, 'Unknown UUID in friends RSS, refreshing cache')
   const updatedCache = await refreshPlexUuidCache(cache, deps)
 
-  const userIdAfterRefresh = updatedCache.get(uuid)
-  if (!userIdAfterRefresh) {
+  const entryAfterRefresh = updatedCache.get(uuid)
+  if (!entryAfterRefresh) {
     deps.logger.info(
       { uuid },
       'RSS author not found in friends list - skipping',
     )
   }
 
-  return { userId: userIdAfterRefresh ?? null, cache: updatedCache }
+  return { userId: entryAfterRefresh?.userId ?? null, cache: updatedCache }
 }
 
 /**
@@ -50,9 +51,9 @@ export async function lookupUserByUuid(
  * @returns Updated cache map
  */
 export async function refreshPlexUuidCache(
-  currentCache: Map<string, number>,
+  currentCache: Map<string, UserMapEntry>,
   deps: UuidCacheDeps,
-): Promise<Map<string, number>> {
+): Promise<Map<string, UserMapEntry>> {
   try {
     const friendChanges = await deps.plexService.checkFriendChanges()
     const newCache = updatePlexUuidCache(friendChanges.userMap, deps)
@@ -69,14 +70,14 @@ export async function refreshPlexUuidCache(
  * Update the UUID cache with a fresh userMap.
  * Called whenever friend sync operations return a fresh userMap.
  *
- * @param userMap - Map of Plex UUID (watchlistId) to database user ID
+ * @param userMap - Map of Plex UUID (watchlistId) to user info
  * @param deps - Service dependencies
  * @returns New cache map
  */
 export function updatePlexUuidCache(
-  userMap: Map<string, number>,
+  userMap: Map<string, UserMapEntry>,
   deps: UuidCacheDeps,
-): Map<string, number> {
+): Map<string, UserMapEntry> {
   const newCache = new Map(userMap)
   deps.logger.debug({ cacheSize: newCache.size }, 'Updated Plex UUID cache')
   return newCache

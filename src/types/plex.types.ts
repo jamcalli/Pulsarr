@@ -245,12 +245,18 @@ export interface EtagUserInfo {
   isPrimary: boolean
 }
 
+/** Entry in the user map containing userId and username */
+export interface UserMapEntry {
+  userId: number
+  username: string
+}
+
 /** Result of friend change detection */
 export interface FriendChangesResult {
   /** Newly added friends with their info */
   added: EtagUserInfo[]
   /** Removed friends with their info */
   removed: EtagUserInfo[]
-  /** Map of watchlistId to userId for all current friends */
-  userMap: Map<string, number>
+  /** Map of watchlistId to user info for all current friends */
+  userMap: Map<string, UserMapEntry>
 }

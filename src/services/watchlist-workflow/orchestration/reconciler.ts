@@ -5,7 +5,11 @@
  * Handles both full sync and lightweight ETag-based change detection.
  */
 
-import type { EtagUserInfo, Item } from '@root/types/plex.types.js'
+import type {
+  EtagUserInfo,
+  Item,
+  UserMapEntry,
+} from '@root/types/plex.types.js'
 import { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
 import { buildEtagUserInfoFromMap } from '../etag/index.js'
 import { checkInstanceHealth } from '../routing/index.js'
@@ -43,7 +47,7 @@ export interface ReconcileDeps extends ReconcilerDeps {
     linkedItems: Item[]
   }>
   /** Callback for updating UUID cache */
-  updatePlexUuidCache: (userMap: Map<string, number>) => void
+  updatePlexUuidCache: (userMap: Map<string, UserMapEntry>) => void
 }
 
 /**

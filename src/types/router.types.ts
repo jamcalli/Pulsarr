@@ -44,7 +44,7 @@ export interface RouterRule {
 }
 
 export interface RoutingContext {
-  userId?: number
+  userId: number
   userName?: string
   contentType: 'movie' | 'show'
   itemKey: string

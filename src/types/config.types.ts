@@ -106,7 +106,6 @@ export interface Config {
   discordWebhookUrl: string
   discordBotToken: string
   discordClientId: string
-  discordGuildId: string
   // Apprise Config
   enableApprise: boolean
   appriseUrl: string

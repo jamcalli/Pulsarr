@@ -44,8 +44,10 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          discord: {
-            sendDirectMessage: sendDirectMessageSpy,
+          notifications: {
+            discordBot: {
+              sendDirectMessage: sendDirectMessageSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -86,8 +88,10 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          discord: {
-            sendDirectMessage: sendDirectMessageSpy,
+          notifications: {
+            discordBot: {
+              sendDirectMessage: sendDirectMessageSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -125,8 +129,10 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          discord: {
-            sendDirectMessage: sendDirectMessageSpy,
+          notifications: {
+            discordBot: {
+              sendDirectMessage: sendDirectMessageSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -170,8 +176,10 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: mockLogger,
-          discord: {
-            sendDirectMessage: sendDirectMessageSpy,
+          notifications: {
+            discordBot: {
+              sendDirectMessage: sendDirectMessageSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -222,9 +230,11 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          apprise: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendMediaNotification: sendMediaNotificationSpy,
+          notifications: {
+            apprise: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendMediaNotification: sendMediaNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -265,9 +275,11 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          apprise: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendMediaNotification: sendMediaNotificationSpy,
+          notifications: {
+            apprise: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendMediaNotification: sendMediaNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -308,9 +320,11 @@ describe('notification-sender', () => {
             error: vi.fn(),
             debug: vi.fn(),
           },
-          apprise: {
-            isEnabled: vi.fn().mockReturnValue(false), // Not enabled
-            sendMediaNotification: sendMediaNotificationSpy,
+          notifications: {
+            apprise: {
+              isEnabled: vi.fn().mockReturnValue(false), // Not enabled
+              sendMediaNotification: sendMediaNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -354,9 +368,11 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: mockLogger,
-          apprise: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendMediaNotification: sendMediaNotificationSpy,
+          notifications: {
+            apprise: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendMediaNotification: sendMediaNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -404,9 +420,11 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          tautulli: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendMediaNotification: sendMediaNotificationSpy,
+          notifications: {
+            tautulli: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendMediaNotification: sendMediaNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -450,9 +468,11 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          tautulli: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendMediaNotification: sendMediaNotificationSpy,
+          notifications: {
+            tautulli: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendMediaNotification: sendMediaNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -493,9 +513,11 @@ describe('notification-sender', () => {
             error: vi.fn(),
             debug: vi.fn(),
           },
-          tautulli: {
-            isEnabled: vi.fn().mockReturnValue(false), // Not enabled
-            sendMediaNotification: sendMediaNotificationSpy,
+          notifications: {
+            tautulli: {
+              isEnabled: vi.fn().mockReturnValue(false), // Not enabled
+              sendMediaNotification: sendMediaNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -537,9 +559,11 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: mockLogger,
-          tautulli: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendMediaNotification: sendMediaNotificationSpy,
+          notifications: {
+            tautulli: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendMediaNotification: sendMediaNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -596,9 +620,11 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: mockLogger,
-          tautulli: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendMediaNotification: sendMediaNotificationSpy,
+          notifications: {
+            tautulli: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendMediaNotification: sendMediaNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -647,8 +673,10 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          discord: {
-            sendPublicNotification: sendPublicNotificationSpy,
+          notifications: {
+            discordWebhook: {
+              sendPublicNotification: sendPublicNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -705,9 +733,11 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          apprise: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendPublicNotification: sendPublicNotificationSpy,
+          notifications: {
+            apprise: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendPublicNotification: sendPublicNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -751,8 +781,10 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: mockLogger,
-          discord: {
-            sendPublicNotification: sendPublicNotificationSpy,
+          notifications: {
+            discordWebhook: {
+              sendPublicNotification: sendPublicNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -804,9 +836,11 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: mockLogger,
-          apprise: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendPublicNotification: sendPublicNotificationSpy,
+          notifications: {
+            apprise: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendPublicNotification: sendPublicNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -856,16 +890,18 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: createMockLogger(),
-          discord: {
-            sendDirectMessage: sendDirectMessageSpy,
-          },
-          apprise: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendMediaNotification: sendAppriseNotificationSpy,
-          },
-          tautulli: {
-            isEnabled: vi.fn().mockReturnValue(true),
-            sendMediaNotification: sendTautulliNotificationSpy,
+          notifications: {
+            discordBot: {
+              sendDirectMessage: sendDirectMessageSpy,
+            },
+            apprise: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendMediaNotification: sendAppriseNotificationSpy,
+            },
+            tautulli: {
+              isEnabled: vi.fn().mockReturnValue(true),
+              sendMediaNotification: sendTautulliNotificationSpy,
+            },
           },
         } as unknown as FastifyInstance
 
@@ -913,8 +949,10 @@ describe('notification-sender', () => {
 
         const mockFastify = {
           log: defaultLogger,
-          discord: {
-            sendDirectMessage: sendDirectMessageSpy,
+          notifications: {
+            discordBot: {
+              sendDirectMessage: sendDirectMessageSpy,
+            },
           },
         } as unknown as FastifyInstance
 

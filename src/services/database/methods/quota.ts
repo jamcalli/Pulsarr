@@ -974,3 +974,76 @@ export async function bulkUpdateQuotas(
   )
   return { processedCount, failedIds }
 }
+
+/**
+ * Atomically attempts to consume one quota unit for a user.
+ *
+ * Uses database-level locking to prevent race conditions when multiple items
+ * are processed concurrently. The check and insert happen within a single
+ * transaction, ensuring that concurrent requests cannot both pass the quota
+ * check before either records usage.
+ *
+ * For PostgreSQL: Uses SELECT ... FOR UPDATE on user_quotas row to serialize
+ * access per user/content-type combination.
+ *
+ * For SQLite: Relies on database-level write serialization within the transaction.
+ *
+ * @param userId - User ID
+ * @param contentType - Content type (movie or show)
+ * @param quotaType - Type of quota (daily, weekly_rolling, monthly)
+ * @param quotaLimit - Maximum allowed usage for the period
+ * @param requestDate - Date to record usage for (default: current date)
+ * @returns Object with consumed flag and current usage count (after consumption if successful)
+ */
+export async function tryConsumeQuota(
+  this: DatabaseService,
+  userId: number,
+  contentType: 'movie' | 'show',
+  quotaType: QuotaType,
+  quotaLimit: number,
+  requestDate: Date = new Date(),
+): Promise<{ consumed: boolean; currentUsage: number }> {
+  const dateString = this.getLocalDateString(requestDate)
+  const dateRange = await getDateRange.call(this, quotaType)
+
+  return await this.knex.transaction(async (trx) => {
+    // For PostgreSQL, lock the user_quotas row to serialize quota operations
+    // This prevents race conditions where multiple concurrent requests
+    // could all read the same usage count and all proceed
+    if (this.isPostgres) {
+      await trx('user_quotas')
+        .where('user_id', userId)
+        .where('content_type', contentType)
+        .forUpdate()
+        .first()
+    }
+
+    // Count current usage within the transaction
+    const result = await trx('quota_usage')
+      .where('user_id', userId)
+      .where('content_type', contentType)
+      .where('request_date', '>=', dateRange.start)
+      .where('request_date', '<=', dateRange.end)
+      .count('* as count')
+      .first()
+
+    const currentUsage = Number.parseInt(result?.count as string, 10) || 0
+
+    // Check if already at or over limit
+    if (currentUsage >= quotaLimit) {
+      // Cannot consume - at or over quota
+      return { consumed: false, currentUsage }
+    }
+
+    // Under limit - insert usage record atomically
+    await trx('quota_usage').insert({
+      user_id: userId,
+      content_type: contentType,
+      request_date: dateString,
+      created_at: this.timestamp,
+    })
+
+    // Return success with updated usage count
+    return { consumed: true, currentUsage: currentUsage + 1 }
+  })
+}

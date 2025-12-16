@@ -1,11 +1,11 @@
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type { AppriseNotificationService } from '@services/apprise-notifications.service.js'
-import type { DiscordNotificationService } from '@services/discord-notifications.service.js'
+import type { NotificationService } from '@services/notification.service.js'
+import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { FastifyBaseLogger } from 'fastify'
 
 export interface DeleteSyncNotifierDeps {
-  discord: DiscordNotificationService | null
-  apprise: AppriseNotificationService | null
+  notifications: NotificationService | null
+  apprise: AppriseService | null
   config: {
     deleteSyncNotify: string | null
     deleteSyncNotifyOnlyOnDeletion: boolean
@@ -22,7 +22,7 @@ export async function sendNotificationsIfEnabled(
   result: DeleteSyncResult,
   dryRun: boolean,
 ): Promise<void> {
-  const { discord, apprise, config, log } = deps
+  const { notifications, apprise, config, log } = deps
   const notifySetting = config.deleteSyncNotify || 'none'
 
   // Skip all notifications if set to none
@@ -57,10 +57,14 @@ export async function sendNotificationsIfEnabled(
   const sendApprise = ['all', 'apprise-only'].includes(notifySetting)
 
   // Discord notification logic
-  if (sendDiscord && discord) {
+  if (sendDiscord && notifications) {
     try {
       // Pass notification preference to control webhook vs DM
-      await discord.sendDeleteSyncNotification(result, dryRun, notifySetting)
+      await notifications.sendDeleteSyncNotification(
+        result,
+        dryRun,
+        notifySetting,
+      )
     } catch (notifyError) {
       log.error(
         {

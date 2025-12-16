@@ -29,7 +29,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const status = fastify.discord.getBotStatus()
+        const status = fastify.notifications.discordBot.getBotStatus()
 
         if (status !== 'stopped') {
           return reply.badRequest(
@@ -37,7 +37,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
-        const result = await fastify.discord.startBot()
+        const result = await fastify.notifications.discordBot.startBot()
 
         if (!result) {
           return reply.internalServerError('Failed to start Discord bot')
@@ -81,7 +81,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const status = fastify.discord.getBotStatus()
+        const status = fastify.notifications.discordBot.getBotStatus()
 
         if (status !== 'running' && status !== 'starting') {
           return reply.badRequest(
@@ -89,7 +89,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
-        const result = await fastify.discord.stopBot()
+        const result = await fastify.notifications.discordBot.stopBot()
 
         if (!result) {
           return reply.internalServerError('Failed to stop Discord bot')
@@ -168,7 +168,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         // Validate each URL
         const results = await Promise.all(
           uniqueUrls.map(async (url) => {
-            const result = await fastify.discord.validateWebhook(url)
+            const result =
+              await fastify.notifications.discordWebhook.validateWebhook(url)
             return { url, ...result }
           }),
         )
