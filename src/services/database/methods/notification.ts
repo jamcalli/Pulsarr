@@ -23,7 +23,6 @@ export async function createNotificationRecord(
     episode_number?: number
     sent_to_discord: boolean
     sent_to_apprise: boolean
-    sent_to_webhook?: boolean
     sent_to_tautulli?: boolean
     notification_status?: string
   },
@@ -40,7 +39,6 @@ export async function createNotificationRecord(
         ? null
         : notification.episode_number,
     notification_status: notification.notification_status || 'active',
-    sent_to_webhook: notification.sent_to_webhook || false,
     created_at: this.timestamp,
   }
 
@@ -69,31 +67,6 @@ export async function createNotificationRecord(
     this.log.error({ error }, 'Error creating notification record:')
     throw error
   }
-}
-
-/**
- * Retrieves an existing webhook notification for a user, notification type, and content title.
- *
- * @param userId - The user's ID
- * @param type - The notification type
- * @param title - The content title
- * @returns The notification ID if a matching webhook notification exists, otherwise undefined
- */
-export async function getExistingWebhookNotification(
-  this: DatabaseService,
-  userId: number,
-  type: NotificationType,
-  title: string,
-): Promise<{ id: number } | undefined> {
-  return await this.knex('notifications')
-    .where({
-      user_id: userId,
-      type,
-      title,
-      sent_to_webhook: true,
-    })
-    .select('id')
-    .first()
 }
 
 /**

@@ -142,7 +142,6 @@ export async function sendWatchlistAdded(
         message: `New ${item.type} added to watchlist`,
         sent_to_discord: discordSent,
         sent_to_apprise: appriseSent,
-        sent_to_webhook: true,
       })
     } catch (error) {
       logger.error(
