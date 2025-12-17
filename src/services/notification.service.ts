@@ -19,6 +19,8 @@ import {
   DiscordBotService,
 } from './notifications/discord-bot/index.js'
 import {
+  type ApprovalRequest as ApprovalRequestNotification,
+  sendApprovalBatch,
   sendDeleteSyncCompleted,
   sendMediaAvailable,
   sendWatchlistAdded,
@@ -207,6 +209,34 @@ export class NotificationService {
       },
       user,
       item,
+    )
+  }
+
+  /**
+   * Sends approval batch notifications to configured channels.
+   * Called by ApprovalService after its debounce timer fires.
+   *
+   * @param queuedRequests - Approval requests to notify about
+   * @param totalPending - Total pending approval count
+   * @returns Promise resolving to number of channels that sent successfully
+   */
+  async sendApprovalBatch(
+    queuedRequests: ApprovalRequestNotification[],
+    totalPending: number,
+  ): Promise<number> {
+    return sendApprovalBatch(
+      {
+        db: this.fastify.db,
+        logger: this.log,
+        discordBot: this._discordBot,
+        discordWebhook: this._discordWebhook,
+        apprise: this._apprise,
+        config: {
+          approvalNotify: this.fastify.config.approvalNotify || 'none',
+        },
+      },
+      queuedRequests,
+      totalPending,
     )
   }
 
