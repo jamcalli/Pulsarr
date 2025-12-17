@@ -1,16 +1,37 @@
 /**
  * Approval Notification Orchestration
  *
- * Provides utilities for approval notification configuration and channel routing.
- * The ApprovalService handles batching/debouncing and uses these utilities for
- * determining which channels to notify.
+ * Handles sending notifications about approval requests to admin channels.
+ * Supports Discord (webhook and/or DM) and Apprise based on configuration.
+ *
+ * ApprovalService owns WHEN to send (debouncing, batching queue).
+ * This module owns HOW to send (channel routing, embeds, delivery).
  */
 
-import type { DiscordEmbed } from '@root/types/discord.types.js'
+import type {
+  DiscordEmbed,
+  SystemNotification,
+} from '@root/types/discord.types.js'
+import type { DatabaseService } from '@services/database.service.js'
+import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
+import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
+import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
+import type { FastifyBaseLogger } from 'fastify'
 
 // ============================================================================
 // Types
 // ============================================================================
+
+export interface ApprovalBatchDeps {
+  db: DatabaseService
+  logger: FastifyBaseLogger
+  discordBot: DiscordBotService
+  discordWebhook: DiscordWebhookService
+  apprise: AppriseService
+  config: {
+    approvalNotify: string | null
+  }
+}
 
 export interface ApprovalRequest {
   id: number
@@ -62,7 +83,7 @@ export function getApprovalNotificationChannels(
 }
 
 // ============================================================================
-// Embed Builders
+// Helper Functions
 // ============================================================================
 
 /**
@@ -84,7 +105,7 @@ export function formatTriggerReason(
 }
 
 /**
- * Creates a Discord embed for a single approval request.
+ * Creates a Discord embed for a single approval request (webhook).
  */
 export function createApprovalWebhookEmbed(
   request: ApprovalRequest,
@@ -254,4 +275,253 @@ export function createAppriseApprovalPayload(
     ],
     posterUrl,
   }
+}
+
+// ============================================================================
+// Delivery Functions
+// ============================================================================
+
+/**
+ * Sends batched Discord DM notification to primary admin.
+ */
+async function sendDiscordDM(
+  deps: ApprovalBatchDeps,
+  queuedRequests: ApprovalRequest[],
+  totalPending: number,
+): Promise<boolean> {
+  const { db, logger, discordBot } = deps
+
+  try {
+    // Check if Discord bot is available and running
+    if (discordBot.getBotStatus() !== 'running') {
+      logger.debug(
+        'Discord bot not available, skipping batched approval notification',
+      )
+      return false
+    }
+
+    // Get primary admin user
+    const primaryUser = await db.getPrimaryUser()
+    if (!primaryUser?.discord_id) {
+      logger.debug(
+        'Primary user has no Discord ID, skipping batched approval notification',
+      )
+      return false
+    }
+
+    // Build notification content
+    const isMultiple = queuedRequests.length > 1
+    const title = isMultiple
+      ? `${queuedRequests.length} New Approval Requests`
+      : 'New Approval Request'
+
+    const embedFields = createBatchedDMFields(queuedRequests, totalPending)
+
+    const systemNotification: SystemNotification = {
+      type: 'system',
+      username: 'Approval System',
+      title,
+      embedFields,
+      actionButton: {
+        label: 'Review Approvals',
+        customId: `review_approvals_${Date.now()}`,
+        style: 'Primary',
+      },
+    }
+
+    const sent = await discordBot.sendDirectMessage(
+      primaryUser.discord_id,
+      systemNotification,
+    )
+
+    if (sent) {
+      logger.info(
+        {
+          queueSize: queuedRequests.length,
+          adminDiscordId: primaryUser.discord_id,
+          totalPending,
+        },
+        'Sent batched Discord DM notification for approval requests',
+      )
+    }
+
+    return sent
+  } catch (error) {
+    logger.error({ error }, 'Error sending batched Discord DM notification')
+    return false
+  }
+}
+
+/**
+ * Sends individual Discord webhook notifications for each approval request.
+ */
+async function sendDiscordWebhooks(
+  deps: ApprovalBatchDeps,
+  queuedRequests: ApprovalRequest[],
+  totalPending: number,
+): Promise<boolean> {
+  const { db, logger, discordWebhook } = deps
+
+  try {
+    let sentCount = 0
+
+    for (const request of queuedRequests) {
+      // Get poster image from watchlist item
+      let posterUrl: string | undefined
+      try {
+        const watchlistItems = await db.getWatchlistItemsByKeys([
+          request.contentKey,
+        ])
+        if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
+          posterUrl = watchlistItems[0].thumb
+        }
+      } catch (_error) {
+        logger.debug('Could not fetch poster for approval notification')
+      }
+
+      const embed = createApprovalWebhookEmbed(request, totalPending, posterUrl)
+
+      const payload = {
+        embeds: [embed],
+        username: 'Pulsarr Approvals',
+        avatar_url:
+          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+      }
+
+      const sent = await discordWebhook.sendNotification(payload)
+      if (sent) sentCount++
+    }
+
+    if (sentCount > 0) {
+      logger.info(
+        { count: sentCount },
+        'Sent Discord webhook notifications for approval requests',
+      )
+    }
+
+    return sentCount > 0
+  } catch (error) {
+    logger.error({ error }, 'Error sending Discord webhook notifications')
+    return false
+  }
+}
+
+/**
+ * Sends individual Apprise notifications for each approval request.
+ */
+async function sendAppriseNotifications(
+  deps: ApprovalBatchDeps,
+  queuedRequests: ApprovalRequest[],
+  totalPending: number,
+): Promise<boolean> {
+  const { db, logger, apprise } = deps
+
+  try {
+    if (!apprise.isEnabled()) {
+      logger.debug('Apprise not enabled, skipping notifications')
+      return false
+    }
+
+    let sentCount = 0
+
+    for (const request of queuedRequests) {
+      // Get poster image from watchlist item
+      let posterUrl: string | undefined
+      try {
+        const watchlistItems = await db.getWatchlistItemsByKeys([
+          request.contentKey,
+        ])
+        if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
+          posterUrl = watchlistItems[0].thumb
+        }
+      } catch (_error) {
+        logger.debug('Could not fetch poster for Apprise approval notification')
+      }
+
+      const payload = createAppriseApprovalPayload(
+        request,
+        totalPending,
+        posterUrl,
+      )
+
+      const sent = await apprise.sendSystemNotification(payload)
+      if (sent) sentCount++
+    }
+
+    if (sentCount > 0) {
+      logger.info(
+        { count: sentCount },
+        'Sent Apprise notifications for approval requests',
+      )
+    }
+
+    return sentCount > 0
+  } catch (error) {
+    logger.error({ error }, 'Error sending Apprise notifications')
+    return false
+  }
+}
+
+// ============================================================================
+// Main Orchestration Function
+// ============================================================================
+
+/**
+ * Sends approval batch notifications to configured channels.
+ * Called by ApprovalService after debounce timer fires.
+ *
+ * @param deps - Service dependencies
+ * @param queuedRequests - Approval requests to notify about
+ * @param totalPending - Total pending approval count
+ * @returns Promise resolving to number of channels that sent successfully
+ */
+export async function sendApprovalBatch(
+  deps: ApprovalBatchDeps,
+  queuedRequests: ApprovalRequest[],
+  totalPending: number,
+): Promise<number> {
+  const { logger, config } = deps
+  const notifySetting = config.approvalNotify || 'none'
+
+  // Skip all notifications if disabled
+  if (notifySetting === 'none') {
+    logger.debug('Approval notifications disabled, skipping')
+    return 0
+  }
+
+  if (queuedRequests.length === 0) {
+    logger.debug('No queued requests to notify about')
+    return 0
+  }
+
+  const { sendWebhook, sendDM, sendApprise } =
+    getApprovalNotificationChannels(notifySetting)
+
+  logger.debug(
+    `Will attempt to send approval notifications: Webhook=${sendWebhook}, DM=${sendDM}, Apprise=${sendApprise}`,
+  )
+
+  // Send to all configured channels in parallel
+  const promises: Promise<boolean>[] = []
+
+  if (sendDM) {
+    promises.push(sendDiscordDM(deps, queuedRequests, totalPending))
+  }
+
+  if (sendWebhook) {
+    promises.push(sendDiscordWebhooks(deps, queuedRequests, totalPending))
+  }
+
+  if (sendApprise) {
+    promises.push(sendAppriseNotifications(deps, queuedRequests, totalPending))
+  }
+
+  const results = await Promise.all(promises)
+  const successCount = results.filter(Boolean).length
+
+  logger.info(
+    `Approval notification attempt complete: ${successCount} channels sent successfully`,
+  )
+
+  return successCount
 }

@@ -59,16 +59,14 @@ describe('delete-sync orchestration', () => {
       sendDeleteSyncNotification: vi.fn().mockResolvedValue(true),
     }
     mockDb = {
-      getAllUsers: vi
-        .fn()
-        .mockResolvedValue([
-          {
-            id: 1,
-            name: 'Admin',
-            is_primary_token: true,
-            discord_id: '123456',
-          },
-        ]),
+      getAllUsers: vi.fn().mockResolvedValue([
+        {
+          id: 1,
+          name: 'Admin',
+          is_primary_token: true,
+          discord_id: '123456',
+        },
+      ]),
     }
     baseDeps = {
       db: mockDb as unknown as DatabaseService,

@@ -5,6 +5,7 @@
  */
 
 export {
+  type ApprovalBatchDeps,
   type ApprovalNotificationChannels,
   type ApprovalRequest,
   createAppriseApprovalPayload,
@@ -12,6 +13,7 @@ export {
   createBatchedDMFields,
   formatTriggerReason,
   getApprovalNotificationChannels,
+  sendApprovalBatch,
 } from './approval.js'
 
 export {
