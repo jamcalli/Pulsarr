@@ -21,8 +21,6 @@
  * - ~5-minute cycle time (faster for small user counts due to buffer)
  * - Users polled sequentially with even distribution
  * - ±10% jitter to prevent synchronization drift
- *
- * @see fixes/rss-etag-hybrid-approach.md for full documentation
  */
 
 import type { Config } from '@root/types/config.types.js'

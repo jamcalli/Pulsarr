@@ -957,29 +957,6 @@ export async function getAllGuidsMapped(
 }
 
 /**
- * Retrieves distinct active notifications of a specified type that have been sent to a webhook for a given user.
- *
- * @param userId - The ID of the user.
- * @param type - The notification type to filter by.
- * @returns An array of objects containing notification titles.
- */
-export async function getNotificationsForUser(
-  this: DatabaseService,
-  userId: number,
-  type: string,
-): Promise<Array<{ title: string }>> {
-  return await this.knex('notifications')
-    .where({
-      user_id: userId,
-      type: type,
-      sent_to_webhook: true,
-      notification_status: 'active',
-    })
-    .select('title')
-    .distinct()
-}
-
-/**
  * Retrieves watchlist items with their GUIDs, optionally filtered by type.
  *
  * @param types - Optional array of types to filter items (e.g., ['movie', 'show'])
@@ -1007,11 +984,11 @@ export async function getAllGuidsFromWatchlist(
 }
 
 /**
- * Checks which of the specified titles have had 'watchlist_add' webhook notifications sent for a user.
+ * Checks which of the specified titles have had 'watchlist_add' notifications sent for a user.
  *
  * @param userId - The user ID to check notifications for
- * @param titles - Array of titles to check for existing webhook notifications
- * @returns A map where each title is mapped to true if a webhook notification exists, or false otherwise
+ * @param titles - Array of titles to check for existing notifications
+ * @returns A map where each title is mapped to true if a notification exists, or false otherwise
  */
 export async function checkExistingWebhooks(
   this: DatabaseService,
@@ -1026,7 +1003,6 @@ export async function checkExistingWebhooks(
     .where({
       user_id: userId,
       type: 'watchlist_add',
-      sent_to_webhook: true,
     })
     .whereIn('title', titles)
     .select('title')

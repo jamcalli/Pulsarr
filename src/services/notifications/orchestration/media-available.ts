@@ -383,7 +383,6 @@ async function buildNotificationResults(
             title: notificationTitle,
             sent_to_discord: Boolean(user.notify_discord),
             sent_to_apprise: Boolean(user.notify_apprise),
-            sent_to_webhook: false,
             sent_to_tautulli: Boolean(user.notify_tautulli),
           },
           trx,
@@ -400,7 +399,6 @@ async function buildNotificationResults(
             season_number: seasonNumber,
             sent_to_discord: Boolean(user.notify_discord),
             sent_to_apprise: Boolean(user.notify_apprise),
-            sent_to_webhook: false,
             sent_to_tautulli: Boolean(user.notify_tautulli),
           },
           trx,
@@ -431,7 +429,6 @@ async function buildNotificationResults(
             episode_number: episode.episodeNumber,
             sent_to_discord: Boolean(user.notify_discord),
             sent_to_apprise: Boolean(user.notify_apprise),
-            sent_to_webhook: false,
             sent_to_tautulli: Boolean(user.notify_tautulli),
           },
           trx,
@@ -540,7 +537,6 @@ async function buildNotificationResults(
           title: notificationTitle,
           sent_to_discord: hasDiscordUrls,
           sent_to_apprise: hasAppriseUrls,
-          sent_to_webhook: false,
           sent_to_tautulli: false,
         })
       } else if (contentType === 'season') {
@@ -552,7 +548,6 @@ async function buildNotificationResults(
           season_number: seasonNumber,
           sent_to_discord: hasDiscordUrls,
           sent_to_apprise: hasAppriseUrls,
-          sent_to_webhook: false,
           sent_to_tautulli: false,
         })
       } else if (
@@ -571,7 +566,6 @@ async function buildNotificationResults(
           episode_number: episode.episodeNumber,
           sent_to_discord: hasDiscordUrls,
           sent_to_apprise: hasAppriseUrls,
-          sent_to_webhook: false,
           sent_to_tautulli: false,
         })
       }

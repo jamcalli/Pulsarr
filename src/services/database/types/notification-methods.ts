@@ -20,25 +20,11 @@ declare module '@services/database.service.js' {
         episode_number?: number
         sent_to_discord: boolean
         sent_to_apprise: boolean
-        sent_to_webhook?: boolean
         sent_to_tautulli?: boolean
         notification_status?: string
       },
       trx?: Knex.Transaction,
     ): Promise<number | null>
-
-    /**
-     * Checks for existing webhook notification
-     * @param userId - ID of the user who would receive the notification
-     * @param type - Type of notification to check for
-     * @param title - Title of the content item
-     * @returns Promise resolving to the notification if found, undefined otherwise
-     */
-    getExistingWebhookNotification(
-      userId: number,
-      type: NotificationType,
-      title: string,
-    ): Promise<{ id: number } | undefined>
 
     /**
      * Resets notification status for content items

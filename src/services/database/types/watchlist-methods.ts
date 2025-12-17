@@ -102,18 +102,6 @@ declare module '@services/database.service.js' {
     getAllGuidsMapped(this: DatabaseService): Promise<string[]>
 
     /**
-     * Gets notifications for a specific user and type
-     * @param userId - ID of the user
-     * @param type - Type of notification to fetch
-     * @returns Promise resolving to array of notifications
-     */
-    getNotificationsForUser(
-      this: DatabaseService,
-      userId: number,
-      type: string,
-    ): Promise<Array<{ title: string }>>
-
-    /**
      * Gets all watchlist items with their GUIDs for type-based filtering
      * @param types - Optional array of types to filter by (e.g., ['movie', 'show'])
      * @returns Promise resolving to array of items with their guids

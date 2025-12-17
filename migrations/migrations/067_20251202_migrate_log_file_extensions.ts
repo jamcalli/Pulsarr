@@ -110,8 +110,6 @@ async function revertHistoryFile(historyPath: string): Promise<boolean> {
  * - Correct file extensions for compressed files
  * - Standard tools (zcat, zless, zgrep) work automatically
  * - Proper log rotation pruning with maxFiles
- *
- * @see fixes/log-rotation-missing-gz-extension.md
  */
 export async function up(_knex: Knex): Promise<void> {
   const logDir = resolve(projectRoot, 'data', 'logs')
