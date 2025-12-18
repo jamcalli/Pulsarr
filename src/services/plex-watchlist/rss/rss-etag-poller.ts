@@ -7,8 +7,6 @@
  *
  * When a change is detected, the existing ETag reconciliation flow handles
  * identifying WHO changed and WHAT was added via discover/GraphQL APIs.
- *
- * @see fixes/rss-etag-polling-plan.md for full documentation
  */
 
 import { USER_AGENT } from '@utils/version.js'

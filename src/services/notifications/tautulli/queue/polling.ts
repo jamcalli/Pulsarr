@@ -24,7 +24,7 @@ export interface PollingState {
 }
 
 export interface PollingDeps {
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
   isActive: () => boolean
   pendingNotifications: Map<string, PendingNotification>
   findMatchingItem: FindMatchingItemFn
@@ -53,7 +53,7 @@ export function startPolling(state: PollingState, deps: PollingDeps): void {
     return
   }
 
-  deps.log.debug('Starting Tautulli notification polling')
+  deps.logger.debug('Starting Tautulli notification polling')
 
   // Process immediately
   void processPendingNotifications(state, deps)
@@ -67,11 +67,14 @@ export function startPolling(state: PollingState, deps: PollingDeps): void {
 /**
  * Stop the polling mechanism
  */
-export function stopPolling(state: PollingState, log: FastifyBaseLogger): void {
+export function stopPolling(
+  state: PollingState,
+  logger: FastifyBaseLogger,
+): void {
   if (state.pollInterval) {
     clearInterval(state.pollInterval)
     state.pollInterval = null
-    log.debug('Stopped Tautulli notification polling')
+    logger.debug('Stopped Tautulli notification polling')
   }
 }
 
@@ -82,23 +85,23 @@ export async function processPendingNotifications(
   state: PollingState,
   deps: PollingDeps,
 ): Promise<void> {
-  const { log, isActive, pendingNotifications, getRecentlyAdded } = deps
+  const { logger, isActive, pendingNotifications, getRecentlyAdded } = deps
 
   if (!isActive()) {
-    log.debug('Tautulli disabled during polling; stopping')
-    stopPolling(state, log)
+    logger.debug('Tautulli disabled during polling; stopping')
+    stopPolling(state, logger)
     return
   }
 
   if (state.isPolling) {
-    log.debug('Polling already in progress, skipping')
+    logger.debug('Polling already in progress, skipping')
     return
   }
 
   if (pendingNotifications.size === 0) {
     // Stop polling if no pending notifications
     if (state.pollInterval) {
-      stopPolling(state, log)
+      stopPolling(state, logger)
     }
     return
   }
@@ -111,7 +114,7 @@ export async function processPendingNotifications(
     const recentItems = await getRecentlyAdded(100)
 
     if (!recentItems || recentItems.length === 0) {
-      log.debug('No recently added items found in Tautulli')
+      logger.debug('No recently added items found in Tautulli')
       return
     }
 
@@ -119,8 +122,10 @@ export async function processPendingNotifications(
     for (const [key, notification] of pendingNotifications) {
       // Check if service was disabled during processing
       if (!isActive()) {
-        log.debug('Tautulli disabled during notification processing; stopping')
-        stopPolling(state, log)
+        logger.debug(
+          'Tautulli disabled during notification processing; stopping',
+        )
+        stopPolling(state, logger)
         return
       }
       await processSingleNotification(
@@ -133,12 +138,12 @@ export async function processPendingNotifications(
     }
 
     // Clean up expired notifications
-    cleanupExpiredNotifications(pendingNotifications, log)
+    cleanupExpiredNotifications(pendingNotifications, logger)
   } catch (error) {
-    log.error({ error }, 'Error processing pending notifications')
+    logger.error({ error }, 'Error processing pending notifications')
   } finally {
     const duration = Date.now() - startTime
-    log.debug(
+    logger.debug(
       {
         duration,
         pendingCount: pendingNotifications.size,
@@ -159,7 +164,7 @@ async function processSingleNotification(
   pendingNotifications: Map<string, PendingNotification>,
   deps: PollingDeps,
 ): Promise<void> {
-  const { log, findMatchingItem } = deps
+  const { logger, findMatchingItem } = deps
 
   notification.attempts++
 
@@ -167,7 +172,7 @@ async function processSingleNotification(
   const matchingItem = await findMatchingItem(notification, recentItems)
 
   if (matchingItem) {
-    log.info(
+    logger.info(
       {
         title: notification.title,
         ratingKey: matchingItem.rating_key,
@@ -186,7 +191,7 @@ async function processSingleNotification(
     // If all notifications sent successfully, remove from queue
     if (results.every((r) => r.success)) {
       pendingNotifications.delete(key)
-      log.info(
+      logger.info(
         { title: notification.title, users: results.length },
         'Successfully sent all Tautulli notifications',
       )
@@ -197,7 +202,7 @@ async function processSingleNotification(
       notification.interestedUsers = notification.interestedUsers.filter((u) =>
         failed.some((f) => f.username === u.username),
       )
-      log.warn(
+      logger.warn(
         {
           title: notification.title,
           failedUsers: failed.map((r) => r.username),
@@ -206,7 +211,7 @@ async function processSingleNotification(
       )
     }
   } else if (notification.attempts >= notification.maxAttempts) {
-    log.warn(
+    logger.warn(
       {
         title: notification.title,
         guid: notification.guid,
@@ -216,7 +221,7 @@ async function processSingleNotification(
     )
     pendingNotifications.delete(key)
   } else {
-    log.debug(
+    logger.debug(
       {
         title: notification.title,
         guid: notification.guid,
@@ -236,7 +241,7 @@ async function sendNotificationsForItem(
   item: RecentlyAddedItem,
   deps: PollingDeps,
 ): Promise<Array<{ username: string; success: boolean }>> {
-  const { log, sendTautulliNotification } = deps
+  const { logger, sendTautulliNotification } = deps
   const results: Array<{ username: string; success: boolean }> = []
 
   for (const user of notification.interestedUsers) {
@@ -248,7 +253,7 @@ async function sendNotificationsForItem(
 
       results.push({ username: user.username, success })
     } catch (error) {
-      log.error(
+      logger.error(
         { error, user: user.username, title: notification.title },
         'Error sending Tautulli notification to user',
       )

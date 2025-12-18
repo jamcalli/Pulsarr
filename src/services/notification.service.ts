@@ -6,7 +6,8 @@
  */
 
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type { SystemNotification } from '@root/types/discord.types.js'
+import type { Friend } from '@root/types/plex.types.js'
+import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
@@ -17,8 +18,15 @@ import {
   type BotStatus,
   DiscordBotService,
 } from './notifications/discord-bot/index.js'
+import {
+  type ApprovalRequest as ApprovalRequestNotification,
+  sendApprovalBatch,
+  sendDeleteSyncCompleted,
+  sendMediaAvailable,
+  sendWatchlistAdded,
+  type WatchlistItemInfo,
+} from './notifications/orchestration/index.js'
 import { TautulliService } from './notifications/tautulli/index.js'
-import { createDeleteSyncEmbed } from './notifications/templates/discord-embeds.js'
 
 /**
  * Notification Service
@@ -147,166 +155,131 @@ export class NotificationService {
   }
 
   /**
-   * Sends a delete sync notification via webhook and/or DM.
-   * Orchestration method that coordinates both channels.
+   * Sends a delete sync notification via webhook, DM, and/or Apprise.
+   * Orchestration method that coordinates all channels based on configuration.
+   *
+   * @param results - Delete sync operation results
+   * @param dryRun - Whether this was a dry run
+   * @param notifyOption - Override for notification setting (uses config default if not provided)
+   * @returns Promise resolving to boolean indicating if any notifications were sent
    */
   async sendDeleteSyncNotification(
     results: DeleteSyncResult,
     dryRun: boolean,
     notifyOption?: string,
   ): Promise<boolean> {
-    try {
-      const notifySetting =
-        notifyOption || this.fastify.config.deleteSyncNotify || 'none'
+    return sendDeleteSyncCompleted(
+      {
+        db: this.fastify.db,
+        logger: this.log,
+        discordBot: this._discordBot,
+        discordWebhook: this._discordWebhook,
+        apprise: this._apprise,
+        config: {
+          deleteSyncNotify:
+            notifyOption || this.fastify.config.deleteSyncNotify || 'none',
+          deleteSyncNotifyOnlyOnDeletion:
+            this.fastify.config.deleteSyncNotifyOnlyOnDeletion || false,
+          discordWebhookUrl: this.fastify.config.discordWebhookUrl,
+        },
+      },
+      results,
+      dryRun,
+    )
+  }
 
-      this.log.info(`Delete sync notification setting: "${notifySetting}"`)
+  /**
+   * Sends watchlist addition notifications to admin channels.
+   * Notifies admins via Discord webhook and/or Apprise when a user adds content.
+   *
+   * @param user - User who added the item
+   * @param item - Watchlist item details
+   * @returns Promise resolving to boolean indicating if any notifications were sent
+   */
+  async sendWatchlistAdded(
+    user: Friend & { userId: number },
+    item: WatchlistItemInfo,
+  ): Promise<boolean> {
+    return sendWatchlistAdded(
+      {
+        db: this.fastify.db,
+        logger: this.log,
+        discordWebhook: this._discordWebhook,
+        apprise: this._apprise,
+      },
+      user,
+      item,
+    )
+  }
 
-      if (notifySetting === 'none') {
-        this.log.debug('Delete sync notifications disabled, skipping')
-        return false
-      }
+  /**
+   * Sends approval batch notifications to configured channels.
+   * Called by ApprovalService after its debounce timer fires.
+   *
+   * @param queuedRequests - Approval requests to notify about
+   * @param totalPending - Total pending approval count
+   * @returns Promise resolving to number of channels that sent successfully
+   */
+  async sendApprovalBatch(
+    queuedRequests: ApprovalRequestNotification[],
+    totalPending: number,
+  ): Promise<number> {
+    return sendApprovalBatch(
+      {
+        db: this.fastify.db,
+        logger: this.log,
+        discordBot: this._discordBot,
+        discordWebhook: this._discordWebhook,
+        apprise: this._apprise,
+        config: {
+          approvalNotify: this.fastify.config.approvalNotify || 'none',
+        },
+      },
+      queuedRequests,
+      totalPending,
+    )
+  }
 
-      const embed = createDeleteSyncEmbed(results, dryRun)
-
-      let successCount = 0
-
-      const sendWebhook = [
-        'all',
-        'discord-only',
-        'webhook-only',
-        'discord-webhook',
-        'discord-both',
-        'webhook',
-        'both',
-      ].includes(notifySetting)
-
-      const sendDM = [
-        'all',
-        'discord-only',
-        'dm-only',
-        'discord-message',
-        'discord-both',
-        'message',
-        'both',
-      ].includes(notifySetting)
-
-      this.log.debug(
-        `Will attempt to send notifications: Webhook=${sendWebhook}, DM=${sendDM}`,
-      )
-
-      // Send webhook notification
-      if (sendWebhook) {
-        if (!this.fastify.config.discordWebhookUrl) {
-          this.log.warn(
-            'Discord webhook URL not configured, cannot send webhook notification',
-          )
-        } else {
-          try {
-            const payload = {
-              embeds: [embed],
-              username: 'Pulsarr Delete Sync',
-              avatar_url:
-                'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
-            }
-
-            this.log.debug('Attempting to send webhook notification')
-            const webhookSent =
-              await this._discordWebhook.sendNotification(payload)
-            if (webhookSent) {
-              successCount++
-              this.log.info(
-                'Delete sync webhook notification sent successfully',
-              )
-            } else {
-              this.log.warn('Failed to send delete sync webhook notification')
-            }
-          } catch (webhookError) {
-            this.log.error(
-              { error: webhookError },
-              'Error sending webhook notification',
-            )
-          }
-        }
-      }
-
-      // Send DM notification
-      if (sendDM) {
-        try {
-          const users = await this.fastify.db.getAllUsers()
-          const adminUser = users.find((user) => user.is_primary_token)
-
-          const hasDeletedContent = results.total.deleted > 0
-          const hasSkippedContent = results.total.skipped > 0
-          const shouldNotify =
-            dryRun ||
-            hasDeletedContent ||
-            hasSkippedContent ||
-            results.safetyTriggered
-
-          if (!shouldNotify) {
-            this.log.info('Skipping DM notification as no activity to report')
-          } else if (!adminUser) {
-            this.log.warn(
-              'Admin user not found - skipping delete sync DM notification',
-            )
-          } else if (!adminUser.discord_id) {
-            this.log.warn(
-              `Admin user ${adminUser.name} has no Discord ID - skipping delete sync DM notification`,
-            )
-          } else {
-            try {
-              const systemNotification: SystemNotification = {
-                type: 'system',
-                username: adminUser.name,
-                title: embed.title || 'Delete Sync Results',
-                embedFields: embed.fields || [],
-                safetyTriggered: results.safetyTriggered,
-              }
-
-              this.log.debug(
-                `Attempting to send DM to admin ${adminUser.name} (${adminUser.discord_id})`,
-              )
-              const dmSent = await this._discordBot.sendDirectMessage(
-                adminUser.discord_id,
-                systemNotification,
-              )
-
-              if (dmSent) {
-                successCount++
-                this.log.info(
-                  `Sent delete sync DM notification to admin ${adminUser.name}`,
-                )
-              } else {
-                this.log.warn(
-                  `Failed to send DM to admin ${adminUser.name} (${adminUser.discord_id})`,
-                )
-              }
-            } catch (dmError) {
-              this.log.error(
-                {
-                  error: dmError,
-                  admin: adminUser.name,
-                  discordId: adminUser.discord_id,
-                },
-                'Failed to send delete sync DM notification to admin',
-              )
-            }
-          }
-        } catch (userError) {
-          this.log.error(
-            { error: userError },
-            'Error retrieving users for DM notifications',
-          )
-        }
-      }
-
-      this.log.info(
-        `Notification attempt complete: ${successCount} messages sent successfully`,
-      )
-      return successCount > 0
-    } catch (error) {
-      this.log.error({ error }, 'Error sending delete sync notification')
-      return false
-    }
+  /**
+   * Sends media available notifications to all relevant users and public channels.
+   *
+   * Orchestration method that:
+   * 1. Looks up all users who watchlisted this content
+   * 2. Checks each user's notification preferences
+   * 3. Creates notification records in the database
+   * 4. Dispatches to all enabled channels (Discord, Apprise, Tautulli)
+   * 5. Handles public channel notifications if configured
+   *
+   * @param mediaInfo - Information about the available media
+   * @param options - Processing options
+   * @returns Promise resolving to matched count
+   */
+  async sendMediaAvailable(
+    mediaInfo: {
+      type: 'movie' | 'show'
+      guid: string
+      title: string
+      episodes?: SonarrEpisodeSchema[]
+    },
+    options: {
+      isBulkRelease: boolean
+      instanceId?: number
+      instanceType?: 'sonarr' | 'radarr'
+      sequential?: boolean
+    },
+  ): Promise<{ matchedCount: number }> {
+    return sendMediaAvailable(
+      {
+        db: this.fastify.db,
+        config: this.fastify.config,
+        logger: this.log,
+        discordBot: this._discordBot,
+        discordWebhook: this._discordWebhook,
+        tautulli: this._tautulli,
+        apprise: this._apprise,
+      },
+      mediaInfo,
+      options,
+    )
   }
 }

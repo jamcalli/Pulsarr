@@ -11,24 +11,14 @@
  * - Max 50 items per cache (RSS feed limit)
  */
 
-import type { RssWatchlistItem } from '@root/types/plex.types.js'
+import type {
+  CachedRssItem,
+  RssDiffResult,
+  RssWatchlistItem,
+} from '@root/types/plex.types.js'
 import { normalizeGenre, parseGenres } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { fetchRawRssFeed, generateStableKey } from '../fetching/rss-fetcher.js'
-
-/**
- * Cached RSS item with stable key for diffing
- */
-export interface CachedRssItem {
-  stableKey: string
-  title: string
-  type: 'movie' | 'show'
-  guids: string[]
-  thumb?: string
-  genres: string[]
-  /** Plex user UUID who added this item */
-  author: string
-}
 
 /**
  * Individual feed cache state
@@ -37,32 +27,6 @@ interface FeedCache {
   etag: string | null
   lastFetch: number
   items: Map<string, CachedRssItem>
-}
-
-/**
- * Result of diffing a feed against its cache
- */
-export interface RssDiffResult {
-  feed: 'self' | 'friends'
-  /** Whether the feed content changed */
-  changed: boolean
-  /** New items not previously in this cache */
-  newItems: CachedRssItem[]
-  /** Total items in current feed */
-  totalItems: number
-  /** Auth error flag */
-  authError?: boolean
-  /** Not found flag */
-  notFound?: boolean
-}
-
-/**
- * Configuration for RSS feed cache
- */
-export interface RssFeedCacheConfig {
-  selfUrl: string
-  friendsUrl: string
-  token: string
 }
 
 /**

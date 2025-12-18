@@ -57,7 +57,7 @@ export function createCommandRegistry(
         )
         await notificationsCommand.execute(interaction, {
           db: fastify.db,
-          log,
+          logger: log,
         })
       },
     })
@@ -72,7 +72,7 @@ export function createCommandRegistry(
         await approvalCommand.execute(interaction, {
           db: fastify.db,
           approvalService: fastify.approvalService,
-          log,
+          logger: log,
         })
       },
     })

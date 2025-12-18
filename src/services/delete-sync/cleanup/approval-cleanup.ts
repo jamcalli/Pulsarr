@@ -10,7 +10,7 @@ export interface ApprovalCleanupDeps {
   config: {
     deleteSyncCleanupApprovals: boolean
   }
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /**
@@ -27,7 +27,7 @@ export async function cleanupApprovalRequestsForDeletedContent(
     deletedMovieGuids,
     deletedShowGuids,
     config,
-    log,
+    logger,
   } = deps
 
   if (!config.deleteSyncCleanupApprovals || dryRun) {
@@ -39,7 +39,7 @@ export async function cleanupApprovalRequestsForDeletedContent(
 
     // Clean up movie approval requests
     if (deletedMovieGuids.size > 0) {
-      log.info(
+      logger.info(
         `Cleaning up movie approval requests for content with ${deletedMovieGuids.size} deleted GUIDs`,
       )
       const movieApprovals = await db.getApprovalRequestsByGuids(
@@ -53,7 +53,7 @@ export async function cleanupApprovalRequestsForDeletedContent(
           await approvalService.deleteApprovalRequest(approval.id)
           totalCleaned++
         } catch (error) {
-          log.error(
+          logger.error(
             {
               error,
               approvalId: approval.id,
@@ -64,12 +64,12 @@ export async function cleanupApprovalRequestsForDeletedContent(
         }
       }
 
-      log.info(`Cleaned up ${movieApprovals.length} movie approval records`)
+      logger.info(`Cleaned up ${movieApprovals.length} movie approval records`)
     }
 
     // Clean up show approval requests
     if (deletedShowGuids.size > 0) {
-      log.info(
+      logger.info(
         `Cleaning up show approval requests for content with ${deletedShowGuids.size} deleted GUIDs`,
       )
       const showApprovals = await db.getApprovalRequestsByGuids(
@@ -83,7 +83,7 @@ export async function cleanupApprovalRequestsForDeletedContent(
           await approvalService.deleteApprovalRequest(approval.id)
           totalCleaned++
         } catch (error) {
-          log.error(
+          logger.error(
             {
               error,
               approvalId: approval.id,
@@ -94,14 +94,14 @@ export async function cleanupApprovalRequestsForDeletedContent(
         }
       }
 
-      log.info(`Cleaned up ${showApprovals.length} show approval records`)
+      logger.info(`Cleaned up ${showApprovals.length} show approval records`)
     }
 
     if (totalCleaned > 0) {
-      log.info(`Total approval requests cleaned up: ${totalCleaned}`)
+      logger.info(`Total approval requests cleaned up: ${totalCleaned}`)
     }
   } catch (cleanupError) {
-    log.error(
+    logger.error(
       { error: cleanupError },
       'Error cleaning up approval requests for deleted content',
     )
