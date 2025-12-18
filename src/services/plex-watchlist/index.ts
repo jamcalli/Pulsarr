@@ -15,12 +15,7 @@ export {
 } from './api/index.js'
 
 // Cache layer
-export {
-  type CachedRssItem,
-  type RssDiffResult,
-  type RssFeedCacheConfig,
-  RssFeedCacheManager,
-} from './cache/index.js'
+export { RssFeedCacheManager } from './cache/index.js'
 
 // Enrichment/processing
 export {
@@ -47,8 +42,6 @@ export {
   getOthersWatchlist,
   getPlexWatchlistUrls,
   getRssFromPlexToken,
-  type PlexWatchlistUrls,
-  type RawRssFetchResult,
 } from './fetching/index.js'
 // Orchestration module
 export {

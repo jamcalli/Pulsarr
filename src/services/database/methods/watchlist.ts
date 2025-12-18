@@ -214,12 +214,11 @@ async function performJunctionMonotonicUpdate(
 /**
  * Update a single watchlist item (by user and key) with provided changes.
  *
- * Runs inside a transaction. No-ops and early-returns for temporary RSS keys (prefixes
- * "selfRSS_" or "friendsRSS_") or when the item does not exist. Status updates are
- * applied monotonically (regressions are prevented) and, when progressed, a status
- * history row is inserted (non-fatal on failure). Main item fields are updated with
- * monotonic constraints, and Radarr/Sonarr junctions are created, deleted, or adjusted
- * as requested:
+ * Runs inside a transaction (or uses an externally provided one). No-ops and early-returns
+ * when the item does not exist. Status updates are applied monotonically (regressions are
+ * prevented) and, when progressed, a status history row is inserted (non-fatal on failure).
+ * Main item fields are updated with monotonic constraints, and Radarr/Sonarr junctions are
+ * created, deleted, or adjusted as requested:
  * - Passing `{ radarr_instance_id: null }` or `{ sonarr_instance_id: null }` deletes all
  *   corresponding associations for the item.
  * - Providing an instance id will create the junction if missing or set that instance as
@@ -235,19 +234,17 @@ async function performJunctionMonotonicUpdate(
  * @param key - Item key unique to the user identifying the watchlist item
  * @param updates - Partial fields to apply; may include `status`, `radarr_instance_id`,
  *                  `sonarr_instance_id`, and `syncing` among other watchlist fields
+ * @param externalTrx - Optional external transaction; if provided, operations run within
+ *                      this transaction instead of creating a new one
  */
 export async function updateWatchlistItem(
   this: DatabaseService,
   userId: number,
   key: string,
   updates: WatchlistItemUpdate,
+  externalTrx?: Knex.Transaction,
 ): Promise<void> {
-  if (key.startsWith('selfRSS_') || key.startsWith('friendsRSS_')) {
-    this.log.debug(`Skipping temporary RSS key: ${key}`)
-    return
-  }
-
-  await this.knex.transaction(async (trx) => {
+  const executeUpdate = async (trx: Knex.Transaction) => {
     const item = await trx('watchlist_items')
       .where({ user_id: userId, key })
       .first()
@@ -404,7 +401,13 @@ export async function updateWatchlistItem(
         }
       }
     }
-  })
+  }
+
+  if (externalTrx) {
+    await executeUpdate(externalTrx)
+  } else {
+    await this.knex.transaction(executeUpdate)
+  }
 }
 
 /**

@@ -6,9 +6,8 @@
  */
 
 import type { Config } from '@root/types/config.types.js'
-import type { Item } from '@root/types/plex.types.js'
+import type { CachedRssItem, Item } from '@root/types/plex.types.js'
 import {
-  type CachedRssItem,
   lookupByGuid,
   selectPrimaryGuid,
 } from '@services/plex-watchlist/index.js'
