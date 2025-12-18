@@ -123,30 +123,6 @@ export class PlexWatchlistService {
     }
   }
 
-  /**
-   * Sends watchlist notifications to a user via Discord and Apprise.
-   * Records the notification in the database if any notification method succeeds.
-   *
-   * @param user - User to notify (must include userId)
-   * @param item - Watchlist item details
-   * @returns Promise resolving to boolean indicating if any notifications were sent
-   */
-  async sendWatchlistNotifications(
-    user: Friend & { userId: number },
-    item: {
-      id?: number | string
-      title: string
-      type: string
-      thumb?: string
-    },
-  ): Promise<boolean> {
-    if (!this.fastify.notifications) {
-      this.log.warn('Notification service not available')
-      return false
-    }
-    return this.fastify.notifications.sendWatchlistAdded(user, item)
-  }
-
   async pingPlex(): Promise<boolean> {
     const tokens = this.config.plexTokens
 

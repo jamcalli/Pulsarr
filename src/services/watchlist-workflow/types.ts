@@ -14,6 +14,7 @@ import type {
 import type { ContentRouterService } from '@services/content-router.service.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { DeferredRoutingQueue } from '@services/deferred-routing-queue.service.js'
+import type { NotificationService } from '@services/notification.service.js'
 import type { PlexLabelSyncService } from '@services/plex-label-sync.service.js'
 import type { PlexServerService } from '@services/plex-server.service.js'
 import type { EtagPoller } from '@services/plex-watchlist/etag/etag-poller.js'
@@ -60,6 +61,7 @@ export interface ContentRoutingDeps extends BaseDeps {
   radarrManager: RadarrManagerService
   plexServerService: PlexServerService
   plexService: PlexWatchlistService
+  notifications: NotificationService
 }
 
 /**
