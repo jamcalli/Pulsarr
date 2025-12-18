@@ -1,4 +1,4 @@
-FROM node:24.11.1-alpine@sha256:682368d8253e0c3364b803956085c456a612d738bd635926d73fa24db3ce53d7 AS builder
+FROM node:24.12.0-alpine@sha256:c921b97d4b74f51744057454b306b418cf693865e73b8100559189605f6955b8 AS builder
 
 WORKDIR /app
 
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
 # Prune dev dependencies to produce production node_modules for runtime image
 RUN npm prune --omit=dev && mkdir -p ${CACHE_DIR}
 
-FROM node:24.11.1-alpine@sha256:682368d8253e0c3364b803956085c456a612d738bd635926d73fa24db3ce53d7
+FROM node:24.12.0-alpine@sha256:c921b97d4b74f51744057454b306b418cf693865e73b8100559189605f6955b8
 
 WORKDIR /app
 
