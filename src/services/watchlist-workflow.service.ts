@@ -627,6 +627,7 @@ export class WatchlistWorkflowService {
       radarrManager: this.radarrManager,
       plexServerService: this.fastify.plexServerService,
       plexService: this.plexService,
+      notifications: this.fastify.notifications,
     }
   }
 

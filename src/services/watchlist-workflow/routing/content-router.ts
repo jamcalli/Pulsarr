@@ -192,7 +192,7 @@ async function sendRoutingNotification(
   ])
 
   if (!existingNotifications.get(tempItem.title)) {
-    await deps.plexService.sendWatchlistNotifications(
+    await deps.notifications.sendWatchlistAdded(
       {
         userId,
         username: userName,
