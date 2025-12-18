@@ -160,8 +160,8 @@ export function createBatchedDMFields(
       inline: false,
     },
     {
-      name: '',
-      value: '',
+      name: '\u200b',
+      value: '\u200b',
       inline: false,
     },
   ]
@@ -359,26 +359,15 @@ async function sendDiscordWebhooks(
   deps: ApprovalBatchDeps,
   queuedRequests: ApprovalRequest[],
   totalPending: number,
+  posterMap: Map<string, string>,
 ): Promise<boolean> {
-  const { db, logger, discordWebhook } = deps
+  const { logger, discordWebhook } = deps
 
   try {
     let sentCount = 0
 
     for (const request of queuedRequests) {
-      // Get poster image from watchlist item
-      let posterUrl: string | undefined
-      try {
-        const watchlistItems = await db.getWatchlistItemsByKeys([
-          request.contentKey,
-        ])
-        if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
-          posterUrl = watchlistItems[0].thumb
-        }
-      } catch (_error) {
-        logger.debug('Could not fetch poster for approval notification')
-      }
-
+      const posterUrl = posterMap.get(request.contentKey)
       const embed = createApprovalWebhookEmbed(request, totalPending, posterUrl)
 
       const payload = {
@@ -413,8 +402,9 @@ async function sendAppriseNotifications(
   deps: ApprovalBatchDeps,
   queuedRequests: ApprovalRequest[],
   totalPending: number,
+  posterMap: Map<string, string>,
 ): Promise<boolean> {
-  const { db, logger, apprise } = deps
+  const { logger, apprise } = deps
 
   try {
     if (!apprise.isEnabled()) {
@@ -425,19 +415,7 @@ async function sendAppriseNotifications(
     let sentCount = 0
 
     for (const request of queuedRequests) {
-      // Get poster image from watchlist item
-      let posterUrl: string | undefined
-      try {
-        const watchlistItems = await db.getWatchlistItemsByKeys([
-          request.contentKey,
-        ])
-        if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
-          posterUrl = watchlistItems[0].thumb
-        }
-      } catch (_error) {
-        logger.debug('Could not fetch poster for Apprise approval notification')
-      }
-
+      const posterUrl = posterMap.get(request.contentKey)
       const payload = createAppriseApprovalPayload(
         request,
         totalPending,
@@ -463,6 +441,39 @@ async function sendAppriseNotifications(
 }
 
 // ============================================================================
+// Poster Fetching Helper
+// ============================================================================
+
+/**
+ * Batch fetches poster URLs for all approval requests.
+ * Returns a map of contentKey to posterUrl to avoid N+1 queries.
+ */
+async function fetchPosterUrls(
+  db: DatabaseService,
+  logger: FastifyBaseLogger,
+  queuedRequests: ApprovalRequest[],
+): Promise<Map<string, string>> {
+  const posterMap = new Map<string, string>()
+  const contentKeys = queuedRequests.map((r) => r.contentKey)
+
+  try {
+    const watchlistItems = await db.getWatchlistItemsByKeys(contentKeys)
+    for (const item of watchlistItems) {
+      if (item.thumb) {
+        posterMap.set(item.key, item.thumb)
+      }
+    }
+  } catch (error) {
+    logger.debug(
+      { error },
+      'Could not batch fetch posters for approval notifications',
+    )
+  }
+
+  return posterMap
+}
+
+// ============================================================================
 // Main Orchestration Function
 // ============================================================================
 
@@ -480,7 +491,7 @@ export async function sendApprovalBatch(
   queuedRequests: ApprovalRequest[],
   totalPending: number,
 ): Promise<number> {
-  const { logger, config } = deps
+  const { db, logger, config } = deps
   const notifySetting = config.approvalNotify || 'none'
 
   // Skip all notifications if disabled
@@ -501,6 +512,9 @@ export async function sendApprovalBatch(
     `Will attempt to send approval notifications: Webhook=${sendWebhook}, DM=${sendDM}, Apprise=${sendApprise}`,
   )
 
+  // Batch fetch posters once to avoid N+1 queries
+  const posterMap = await fetchPosterUrls(db, logger, queuedRequests)
+
   // Send to all configured channels in parallel
   const promises: Promise<boolean>[] = []
 
@@ -509,11 +523,15 @@ export async function sendApprovalBatch(
   }
 
   if (sendWebhook) {
-    promises.push(sendDiscordWebhooks(deps, queuedRequests, totalPending))
+    promises.push(
+      sendDiscordWebhooks(deps, queuedRequests, totalPending, posterMap),
+    )
   }
 
   if (sendApprise) {
-    promises.push(sendAppriseNotifications(deps, queuedRequests, totalPending))
+    promises.push(
+      sendAppriseNotifications(deps, queuedRequests, totalPending, posterMap),
+    )
   }
 
   const results = await Promise.all(promises)
