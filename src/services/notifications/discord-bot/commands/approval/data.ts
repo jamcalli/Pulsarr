@@ -11,7 +11,7 @@ import type { FastifyBaseLogger } from 'fastify'
 
 export interface DataDeps {
   db: DatabaseService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /**
@@ -25,7 +25,7 @@ export async function getUserByDiscordId(
     const user = await deps.db.getUserByDiscordId(discordId)
     return user ?? null
   } catch (error) {
-    deps.log.error({ error, discordId }, 'Error getting user by Discord ID')
+    deps.logger.error({ error, discordId }, 'Error getting user by Discord ID')
     return null
   }
 }
@@ -41,7 +41,7 @@ export async function checkUserIsPrimary(
     const user = await getUserByDiscordId(discordUserId, deps)
     return user?.is_primary_token === true
   } catch (error) {
-    deps.log.error(
+    deps.logger.error(
       { error, discordUserId },
       'Error checking primary user status',
     )
@@ -69,7 +69,7 @@ export async function getAdminUserFromDiscord(
       name: user.name,
     }
   } catch (error) {
-    deps.log.error(
+    deps.logger.error(
       { error, discordUserId },
       'Error getting admin user from Discord',
     )

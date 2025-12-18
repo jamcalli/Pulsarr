@@ -6,6 +6,7 @@ import type {
   WatchlistItemUpdate,
   WatchlistStatus,
 } from '@root/types/watchlist-status.types.js'
+import type { Knex } from 'knex'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -15,6 +16,7 @@ declare module '@services/database.service.js' {
      * @param userId - ID of the user who owns the watchlist item
      * @param key - Unique key of the watchlist item
      * @param updates - Fields to update on the watchlist item
+     * @param trx - Optional transaction to use for the update
      * @returns Promise resolving to void when complete
      */
     updateWatchlistItem(
@@ -22,6 +24,7 @@ declare module '@services/database.service.js' {
       userId: number,
       key: string,
       updates: WatchlistItemUpdate,
+      trx?: Knex.Transaction,
     ): Promise<void>
 
     /**
@@ -100,18 +103,6 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to array of lowercase GUIDs
      */
     getAllGuidsMapped(this: DatabaseService): Promise<string[]>
-
-    /**
-     * Gets notifications for a specific user and type
-     * @param userId - ID of the user
-     * @param type - Type of notification to fetch
-     * @returns Promise resolving to array of notifications
-     */
-    getNotificationsForUser(
-      this: DatabaseService,
-      userId: number,
-      type: string,
-    ): Promise<Array<{ title: string }>>
 
     /**
      * Gets all watchlist items with their GUIDs for type-based filtering

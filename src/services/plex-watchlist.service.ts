@@ -18,10 +18,6 @@ import {
   pingPlex,
 } from './plex-watchlist/index.js'
 import {
-  type NotificationDeps,
-  sendWatchlistNotifications,
-} from './plex-watchlist/notifications/notification-sender.js'
-import {
   type ItemProcessorDeps,
   linkExistingItems,
   processAndSaveNewItems,
@@ -80,15 +76,6 @@ export class PlexWatchlistService {
     }
   }
 
-  /** Gets the dependencies object for notification operations */
-  private get notificationDeps(): NotificationDeps {
-    return {
-      db: this.dbService,
-      logger: this.log,
-      fastify: this.fastify,
-    }
-  }
-
   /** Gets the dependencies object for item categorization operations */
   private get categorizerDeps(): ItemCategorizerDeps {
     return {
@@ -134,26 +121,6 @@ export class PlexWatchlistService {
       config: this.config,
       fastify: this.fastify,
     }
-  }
-
-  /**
-   * Sends watchlist notifications to a user via Discord and Apprise.
-   * Records the notification in the database if any notification method succeeds.
-   *
-   * @param user - User to notify (must include userId)
-   * @param item - Watchlist item details
-   * @returns Promise resolving to boolean indicating if any notifications were sent
-   */
-  async sendWatchlistNotifications(
-    user: Friend & { userId: number },
-    item: {
-      id?: number | string
-      title: string
-      type: string
-      thumb?: string
-    },
-  ): Promise<boolean> {
-    return sendWatchlistNotifications(user, item, this.notificationDeps)
   }
 
   async pingPlex(): Promise<boolean> {

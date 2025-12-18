@@ -16,7 +16,7 @@ import { showSettingsForm } from './settings-form.js'
 
 export interface NotificationCommandDeps {
   db: DatabaseService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 // Database Operations
@@ -26,13 +26,13 @@ async function getUser(
 ): Promise<User | null> {
   try {
     const user = await deps.db.getUserByDiscordId(discordId)
-    deps.log.debug(
+    deps.logger.debug(
       { discordId, found: !!user },
       'Looking up user by Discord ID',
     )
     return user ?? null
   } catch (error) {
-    deps.log.error({ error, discordId }, 'Error getting user')
+    deps.logger.error({ error, discordId }, 'Error getting user')
     return null
   }
 }
@@ -46,9 +46,9 @@ export const notificationsCommand = {
     interaction: ChatInputCommandInteraction,
     deps: NotificationCommandDeps,
   ): Promise<void> {
-    const { log } = deps
+    const { logger } = deps
 
-    log.info(
+    logger.info(
       { userId: interaction.user.id },
       'User accessed notification settings',
     )
@@ -56,7 +56,7 @@ export const notificationsCommand = {
       const user = await getUser(interaction.user.id, deps)
 
       if (!user) {
-        log.debug(
+        logger.debug(
           { userId: interaction.user.id },
           'No linked user found, showing Plex link modal',
         )
@@ -66,7 +66,7 @@ export const notificationsCommand = {
 
       await showSettingsForm(interaction, user, deps)
     } catch (error) {
-      log.error(
+      logger.error(
         { error, userId: interaction.user.id },
         'Error in notifications command',
       )

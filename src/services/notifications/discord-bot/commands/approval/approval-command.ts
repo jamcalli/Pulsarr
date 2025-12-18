@@ -16,7 +16,7 @@ import { showApprovalMainMenu } from './menu.js'
 export interface ApprovalCommandDeps {
   db: DatabaseService
   approvalService: ApprovalService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 export const approvalCommand = {
@@ -28,13 +28,13 @@ export const approvalCommand = {
     interaction: ChatInputCommandInteraction,
     deps: ApprovalCommandDeps,
   ): Promise<void> {
-    const { db, log } = deps
+    const { db, logger } = deps
 
     try {
       // Check if user is primary admin
       const isPrimary = await checkUserIsPrimary(interaction.user.id, {
         db,
-        log,
+        logger,
       })
       if (!isPrimary) {
         await interaction.reply({
@@ -44,15 +44,15 @@ export const approvalCommand = {
         return
       }
 
-      log.debug(
+      logger.debug(
         { userId: interaction.user.id },
         'Primary admin accessed approval command',
       )
 
       // Show the main approval management menu
-      await showApprovalMainMenu(interaction, { db, log })
+      await showApprovalMainMenu(interaction, { db, logger })
     } catch (error) {
-      log.error({ error }, 'Error in approval command')
+      logger.error({ error }, 'Error in approval command')
 
       const errorMessage =
         error instanceof Error ? error.message : 'An unknown error occurred'

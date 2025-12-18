@@ -15,7 +15,7 @@ import { showApprovalAtIndex } from './review-flow.js'
 
 export interface MenuDeps {
   db: DatabaseService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /** Extended deps for handleMenuAction which may delegate to review flow */
@@ -30,7 +30,7 @@ export async function showApprovalMainMenu(
   interaction: ChatInputCommandInteraction | ButtonInteraction,
   deps: MenuDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   try {
     // Get counts for display
@@ -58,7 +58,7 @@ export async function showApprovalMainMenu(
       })
     }
 
-    log.debug(
+    logger.debug(
       {
         userId: interaction.user.id,
         pendingCount,
@@ -67,7 +67,7 @@ export async function showApprovalMainMenu(
       'Showed approval management menu',
     )
   } catch (error) {
-    log.error({ error }, 'Error showing approval main menu')
+    logger.error({ error }, 'Error showing approval main menu')
     throw error
   }
 }
@@ -80,7 +80,7 @@ export async function handleMenuAction(
   menuAction: string,
   deps: MenuActionDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   await interaction.deferUpdate()
 
@@ -124,7 +124,7 @@ export async function handleMenuAction(
         await interaction.editReply('❌ Unknown menu action')
     }
   } catch (error) {
-    log.error({ error, menuAction }, 'Error handling menu action')
+    logger.error({ error, menuAction }, 'Error handling menu action')
     await interaction.editReply('❌ Error processing menu action')
   }
 }

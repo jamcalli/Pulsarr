@@ -30,7 +30,7 @@ interface UserRow {
  * @param row - The UserRow database record to convert
  * @returns The corresponding User object with normalized fields
  */
-function mapRowToUser(row: UserRow): User {
+export function mapRowToUser(row: UserRow): User {
   return {
     id: row.id,
     name: row.name,

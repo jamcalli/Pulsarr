@@ -352,7 +352,6 @@ describe('plex/rss', () => {
 
       const result = await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/watchlist/abc',
-        'selfRSS',
         1,
         mockLogger,
       )
@@ -372,7 +371,7 @@ describe('plex/rss', () => {
       expect(items[1].type).toBe('SHOW')
     })
 
-    it('should handle friendsRSS prefix', async () => {
+    it('should generate stable keys from GUIDs', async () => {
       const mockRssResponse: RssResponse = {
         title: 'Watchlist',
         description: 'Test watchlist',
@@ -385,7 +384,7 @@ describe('plex/rss', () => {
             description: 'Test',
             category: 'movie',
             credits: [],
-            guids: ['tmdb://11111'],
+            guids: ['tmdb://11111', 'imdb://tt9999999'],
           },
         ],
       }
@@ -398,13 +397,13 @@ describe('plex/rss', () => {
 
       const result = await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/friends/xyz',
-        'friendsRSS',
         2,
         mockLogger,
       )
 
       const items = Array.from(result)
-      expect(items[0].key).toMatch(/^friendsRSS_/)
+      // Key should be stable and based on GUIDs (sorted, normalized, joined)
+      expect(items[0].key).toBe('imdb:tt9999999|tmdb:11111')
       expect(items[0].user_id).toBe(2)
     })
 
@@ -434,7 +433,6 @@ describe('plex/rss', () => {
 
       const result = await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/test',
-        'selfRSS',
         1,
         mockLogger,
       )
@@ -474,7 +472,6 @@ describe('plex/rss', () => {
 
       const result = await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/test',
-        'selfRSS',
         1,
         mockLogger,
       )
@@ -511,7 +508,6 @@ describe('plex/rss', () => {
 
       const result = await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/test',
-        'selfRSS',
         1,
         mockLogger,
       )
@@ -525,29 +521,7 @@ describe('plex/rss', () => {
       expect(items[0].guids).not.toContain('   ')
     })
 
-    it('should return empty set when API responds with 500', async () => {
-      server.use(
-        http.get('https://rss.plex.tv/feed/test', () => {
-          return new HttpResponse(null, { status: 500 })
-        }),
-      )
-
-      const result = await fetchWatchlistFromRss(
-        'https://rss.plex.tv/feed/test',
-        'selfRSS',
-        1,
-        mockLogger,
-      )
-
-      expect(result.size).toBe(0)
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'https://github.com/nylonee/watchlistarr/issues/161',
-        ),
-      )
-    })
-
-    it('should return empty set when API responds with non-500 error', async () => {
+    it('should return empty set when API responds with error', async () => {
       server.use(
         http.get('https://rss.plex.tv/feed/test', () => {
           return new HttpResponse(null, {
@@ -559,7 +533,6 @@ describe('plex/rss', () => {
 
       const result = await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/test',
-        'selfRSS',
         1,
         mockLogger,
       )
@@ -579,7 +552,6 @@ describe('plex/rss', () => {
 
       const result = await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/test',
-        'selfRSS',
         1,
         mockLogger,
       )
@@ -627,7 +599,6 @@ describe('plex/rss', () => {
 
       const result = await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/test',
-        'selfRSS',
         1,
         mockLogger,
       )
@@ -650,7 +621,6 @@ describe('plex/rss', () => {
 
       const result = await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/test',
-        'selfRSS',
         1,
         mockLogger,
       )
@@ -674,7 +644,6 @@ describe('plex/rss', () => {
 
       await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/test',
-        'selfRSS',
         1,
         mockLogger,
       )
@@ -726,7 +695,6 @@ describe('plex/rss', () => {
 
       await fetchWatchlistFromRss(
         'https://rss.plex.tv/feed/test',
-        'selfRSS',
         1,
         mockLogger,
       )
