@@ -103,17 +103,42 @@ export async function sendWebhookNotification(
     const results = await Promise.all(
       webhookUrls.map(async (webhookUrl, endpointIndex) => {
         const endpoint = endpointFingerprint(webhookUrl)
-        const controller = new AbortController()
         const timeoutMs = 10000
-        const timeout = setTimeout(() => controller.abort(), timeoutMs)
         const startedAt = Date.now()
+
+        const doFetch = async (): Promise<Response> => {
+          const controller = new AbortController()
+          const timeout = setTimeout(() => controller.abort(), timeoutMs)
+          try {
+            return await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: controller.signal,
+            })
+          } finally {
+            clearTimeout(timeout)
+          }
+        }
+
         try {
-          const response = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: controller.signal,
-          })
+          let response = await doFetch()
+
+          // Handle rate limiting with retry
+          if (response.status === 429) {
+            const retryAfter = response.headers.get('Retry-After')
+            const waitMs = retryAfter
+              ? Math.ceil(Number.parseFloat(retryAfter) * 1000)
+              : 1000
+
+            log.warn(
+              { endpoint, retryAfterMs: waitMs },
+              'Discord rate limited, waiting before retry',
+            )
+
+            await new Promise((r) => setTimeout(r, waitMs))
+            response = await doFetch()
+          }
 
           const durationMs = Date.now() - startedAt
           if (!response.ok) {
@@ -146,8 +171,6 @@ export async function sendWebhookNotification(
             'Error sending to one Discord webhook endpoint',
           )
           return false
-        } finally {
-          clearTimeout(timeout)
         }
       }),
     )
