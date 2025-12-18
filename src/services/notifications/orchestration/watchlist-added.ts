@@ -101,8 +101,7 @@ export async function sendWatchlistAdded(
     try {
       appriseSent = await apprise.sendWatchlistAdditionNotification({
         title: item.title,
-        type:
-          typeof item.type === 'string' ? item.type.toLowerCase() : 'unknown',
+        type: typeof item.type === 'string' ? item.type.toLowerCase() : 'movie',
         addedBy: {
           name: username,
         },

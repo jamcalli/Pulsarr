@@ -5,7 +5,7 @@
  * Handles user notifications, public notifications, and all delivery channels.
  */
 
-import type { Config, User } from '@root/types/config.types.js'
+import type { Config } from '@root/types/config.types.js'
 import type { MediaNotification } from '@root/types/discord.types.js'
 import type { NotificationType } from '@root/types/notification.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
@@ -13,6 +13,7 @@ import type {
   NotificationResult,
   SonarrEpisodeSchema,
 } from '@root/types/sonarr.types.js'
+import { mapRowToUser } from '@services/database/methods/users.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
@@ -292,34 +293,17 @@ async function buildNotificationResults(
   deps: MediaAvailableDeps,
   mediaInfo: MediaInfo,
   options: MediaAvailableOptions,
-): Promise<NotificationResult[]> {
+): Promise<{
+  notifications: NotificationResult[]
+  watchlistItems: TokenWatchlistItem[]
+}> {
   const watchlistItems = await deps.db.getWatchlistItemsByGuid(mediaInfo.guid)
   const notifications: NotificationResult[] = []
 
   const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
   const userRows = await deps.db.knex('users').whereIn('id', userIds)
 
-  const userMap = new Map(
-    userRows.map((row) => [
-      row.id,
-      {
-        id: row.id,
-        name: row.name,
-        apprise: row.apprise,
-        alias: row.alias,
-        discord_id: row.discord_id,
-        notify_apprise: Boolean(row.notify_apprise),
-        notify_discord: Boolean(row.notify_discord),
-        notify_tautulli: Boolean(row.notify_tautulli),
-        tautulli_notifier_id: row.tautulli_notifier_id,
-        can_sync: Boolean(row.can_sync),
-        requires_approval: Boolean(row.requires_approval),
-        is_primary_token: Boolean(row.is_primary_token),
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-      } satisfies User,
-    ]),
-  )
+  const userMap = new Map(userRows.map((row) => [row.id, mapRowToUser(row)]))
 
   for (const item of watchlistItems) {
     const user = userMap.get(item.user_id)
@@ -466,7 +450,7 @@ async function buildNotificationResults(
       mediaInfo,
       options.isBulkRelease,
     )
-    if (!notificationTypeInfo) return notifications
+    if (!notificationTypeInfo) return { notifications, watchlistItems }
 
     const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
 
@@ -588,7 +572,7 @@ async function buildNotificationResults(
     }
   }
 
-  return notifications
+  return { notifications, watchlistItems }
 }
 
 // ============================================================================
@@ -615,17 +599,12 @@ export async function sendMediaAvailable(
   mediaInfo: MediaInfo,
   options: MediaAvailableOptions,
 ): Promise<{ matchedCount: number }> {
-  const notificationResults = await buildNotificationResults(
-    deps,
-    mediaInfo,
-    options,
-  )
+  const { notifications: notificationResults, watchlistItems: matchingItems } =
+    await buildNotificationResults(deps, mediaInfo, options)
 
   if (notificationResults.length === 0) {
     return { matchedCount: 0 }
   }
-
-  const matchingItems = await deps.db.getWatchlistItemsByGuid(mediaInfo.guid)
 
   const itemByUserId = new Map<number, TokenWatchlistItem>()
   for (const item of matchingItems) {
