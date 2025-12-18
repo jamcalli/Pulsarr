@@ -318,7 +318,7 @@ async function buildNotificationResults(
     )
     if (!notificationTypeInfo) continue
 
-    const { contentType, seasonNumber, episodeNumber: _ } = notificationTypeInfo
+    const { contentType, seasonNumber } = notificationTypeInfo
 
     const notificationTitle = mediaInfo.title || item.title
     const notification: MediaNotification = {
@@ -352,10 +352,12 @@ async function buildNotificationResults(
       updateData.sonarr_instance_id = options.instanceId
     }
 
-    await deps.db.updateWatchlistItem(item.user_id, item.key, updateData)
-
+    // Both operations must be atomic: if notification record creation fails,
+    // we must not leave the watchlist item marked as 'notified'
     let notificationCreated = false
     await deps.db.knex.transaction(async (trx) => {
+      await deps.db.updateWatchlistItem(item.user_id, item.key, updateData, trx)
+
       let notificationResult = null
 
       if (contentType === 'movie') {

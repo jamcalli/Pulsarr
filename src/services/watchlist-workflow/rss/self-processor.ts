@@ -5,11 +5,12 @@
  * Enriches items, saves to DB, and routes to Sonarr/Radarr.
  */
 
-import type { Item, TokenWatchlistItem } from '@root/types/plex.types.js'
-import {
-  type CachedRssItem,
-  processItemsForUser,
-} from '@services/plex-watchlist/index.js'
+import type {
+  CachedRssItem,
+  Item,
+  TokenWatchlistItem,
+} from '@root/types/plex.types.js'
+import { processItemsForUser } from '@services/plex-watchlist/index.js'
 import {
   checkInstanceHealth,
   queueForDeferredRouting,

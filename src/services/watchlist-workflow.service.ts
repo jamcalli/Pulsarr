@@ -23,6 +23,7 @@
  */
 
 import type {
+  CachedRssItem,
   EtagPollResult,
   EtagUserInfo,
   Item,
@@ -31,7 +32,6 @@ import type {
 } from '@root/types/plex.types.js'
 import type { RssCacheInfo } from '@services/plex-watchlist/index.js'
 import {
-  type CachedRssItem,
   EtagPoller,
   handleLinkedItemsForLabelSync,
   type ItemCategorizerDeps,

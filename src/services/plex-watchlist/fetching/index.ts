@@ -10,8 +10,6 @@ export {
   generateStableKey,
   getPlexWatchlistUrls,
   getRssFromPlexToken,
-  type PlexWatchlistUrls,
-  type RawRssFetchResult,
 } from './rss-fetcher.js'
 
 // Watchlist fetching
