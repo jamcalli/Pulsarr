@@ -1,5 +1,5 @@
 import type { WebhookEndpoint } from '@root/schemas/webhooks/webhook-endpoints.schema'
-import { Eye, EyeOff, Pencil, Trash2 } from 'lucide-react'
+import { Check, Eye, EyeOff, Loader2, Pencil, Send, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,14 +17,20 @@ interface WebhookEndpointCardProps {
   endpoint: WebhookEndpoint
   onEdit: () => void
   onDelete: () => void
+  onTest: () => void
   isDeleting?: boolean
+  isTesting?: boolean
+  connectionTested?: boolean
 }
 
 export function WebhookEndpointCard({
   endpoint,
   onEdit,
   onDelete,
+  onTest,
   isDeleting = false,
+  isTesting = false,
+  connectionTested = false,
 }: WebhookEndpointCardProps) {
   const [showAuthValue, setShowAuthValue] = useState(false)
 
@@ -77,15 +83,42 @@ export function WebhookEndpointCard({
         </div>
       </div>
 
-      {/* URL display */}
+      {/* URL display with test button */}
       <div className="mb-3">
         <span className="text-xs text-foreground mb-1 block">URL</span>
-        <Input
-          type="text"
-          value={endpoint.url}
-          readOnly
-          className="font-mono text-sm cursor-default"
-        />
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            value={endpoint.url}
+            readOnly
+            className="font-mono text-sm cursor-default"
+          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  onClick={onTest}
+                  disabled={isTesting}
+                  size="icon"
+                  variant="noShadow"
+                  className="shrink-0"
+                >
+                  {isTesting ? (
+                    <Loader2 className="animate-spin" />
+                  ) : connectionTested ? (
+                    <Check className="text-black" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Send test webhook</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       {/* Auth header (if configured) */}
