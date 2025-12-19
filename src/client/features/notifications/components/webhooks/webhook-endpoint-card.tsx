@@ -1,5 +1,4 @@
 import type { WebhookEndpoint } from '@root/schemas/webhooks/webhook-endpoints.schema'
-import type { WEBHOOK_EVENT_TYPES } from '@root/types/webhook-endpoint.types'
 import { Eye, EyeOff, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -11,20 +10,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { EVENT_TYPE_LABELS } from '@/features/notifications/constants/webhook-events'
 import { cn } from '@/lib/utils'
-
-// Human-readable labels for event types
-const EVENT_TYPE_LABELS: Record<(typeof WEBHOOK_EVENT_TYPES)[number], string> =
-  {
-    'media.available': 'Media Available',
-    'watchlist.added': 'Watchlist Added',
-    'watchlist.removed': 'Watchlist Removed',
-    'approval.created': 'Approval Created',
-    'approval.resolved': 'Approval Resolved',
-    'approval.auto': 'Auto Approved',
-    'delete_sync.completed': 'Delete Sync Complete',
-    'user.created': 'User Created',
-  }
 
 interface WebhookEndpointCardProps {
   endpoint: WebhookEndpoint

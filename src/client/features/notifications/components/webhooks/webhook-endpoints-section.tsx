@@ -1,7 +1,6 @@
 import { Webhook } from 'lucide-react'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { WebhookEndpointCard } from '@/features/notifications/components/webhooks/webhook-endpoint-card'
 import { WebhookEndpointDeleteModal } from '@/features/notifications/components/webhooks/webhook-endpoint-delete-modal'
@@ -66,6 +65,7 @@ export function WebhookEndpointsSection({
   }, [isInitialized, hasLoaded, fetchEndpoints])
 
   const endpointToDelete = endpoints.find((ep) => ep.id === deleteEndpointId)
+  const hasEndpoints = endpoints.length > 0
 
   return (
     <div className="space-y-4">
@@ -78,32 +78,22 @@ export function WebhookEndpointsSection({
         </p>
       </div>
 
-      {/* Add New Webhook */}
-      <div>
-        <h3 className="font-medium text-sm text-foreground mb-2">
-          Add New Webhook
-        </h3>
-        <Button
-          onClick={openCreateModal}
-          variant="blue"
-          className="flex items-center gap-2"
-        >
-          <Webhook className="h-4 w-4" />
-          Add Webhook Endpoint
-        </Button>
-      </div>
-
-      {/* Separator */}
-      {endpoints.length > 0 && <Separator />}
-
-      {/* Existing Webhooks */}
+      {/* Content */}
       {loading.fetch && !hasLoaded ? (
         <WebhookEndpointsSkeleton />
-      ) : endpoints.length > 0 ? (
-        <div>
-          <h3 className="font-medium text-sm text-foreground mb-2">
-            Existing Webhooks ({endpoints.length})
-          </h3>
+      ) : hasEndpoints ? (
+        <>
+          {/* Button at top when endpoints exist */}
+          <Button
+            onClick={openCreateModal}
+            variant="blue"
+            className="flex items-center gap-2"
+          >
+            <Webhook className="h-4 w-4" />
+            Add Webhook Endpoint
+          </Button>
+
+          {/* Endpoint cards */}
           <div className="space-y-3">
             {endpoints.map((endpoint) => (
               <WebhookEndpointCard
@@ -115,14 +105,19 @@ export function WebhookEndpointsSection({
               />
             ))}
           </div>
-        </div>
+        </>
       ) : hasLoaded ? (
+        /* Empty state - centered button */
         <div className="text-center py-8 text-foreground">
-          <Webhook className="h-8 w-8 mx-auto mb-2 opacity-50 text-foreground" />
-          <p>No webhook endpoints created yet</p>
-          <p className="text-sm">
-            Create your first webhook endpoint above to get started
-          </p>
+          <p>No webhook endpoints configured</p>
+          <Button
+            onClick={openCreateModal}
+            variant="blue"
+            className="mt-4 flex items-center gap-2 mx-auto"
+          >
+            <Webhook className="h-4 w-4" />
+            Add Webhook Endpoint
+          </Button>
         </div>
       ) : null}
 
