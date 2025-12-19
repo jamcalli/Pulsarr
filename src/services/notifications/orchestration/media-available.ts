@@ -301,6 +301,12 @@ async function buildNotificationResults(
   notifications: NotificationResult[]
   watchlistItems: TokenWatchlistItem[]
   hasNativeWebhooks: boolean
+  /** Shared enrichment data for all channels */
+  enrichment: {
+    posterUrl: string | undefined
+    guids: string[]
+    episodeDetails: MediaNotification['episodeDetails']
+  }
 }> {
   // Check if native webhooks are configured for this event type
   const hasNativeWebhooks = await hasWebhooksForEvent('media.available', {
@@ -309,6 +315,51 @@ async function buildNotificationResults(
   })
 
   const watchlistItems = await deps.db.getWatchlistItemsByGuid(mediaInfo.guid)
+
+  // Extract shared enrichment data once
+  const posterUrl = watchlistItems.find((item) => item.thumb)?.thumb
+  const guidsSet = new Set<string>()
+  for (const item of watchlistItems) {
+    if (item.guids) {
+      const itemGuids = Array.isArray(item.guids)
+        ? item.guids
+        : typeof item.guids === 'string'
+          ? item.guids.split(',').map((g) => g.trim())
+          : []
+      for (const guid of itemGuids) {
+        if (guid) guidsSet.add(guid)
+      }
+    }
+  }
+  const guids = Array.from(guidsSet)
+
+  // Pre-compute episode details for shows
+  let episodeDetails: MediaNotification['episodeDetails']
+  const notificationTypeInfo = determineNotificationType(
+    mediaInfo,
+    options.isBulkRelease,
+  )
+  if (notificationTypeInfo) {
+    const { contentType, seasonNumber } = notificationTypeInfo
+    if (contentType === 'season' && seasonNumber !== undefined) {
+      episodeDetails = { seasonNumber }
+    } else if (
+      contentType === 'episode' &&
+      mediaInfo.episodes &&
+      mediaInfo.episodes.length > 0
+    ) {
+      const episode = mediaInfo.episodes[0]
+      episodeDetails = {
+        title: episode.title,
+        ...(episode.overview && { overview: episode.overview }),
+        seasonNumber: episode.seasonNumber,
+        episodeNumber: episode.episodeNumber,
+        airDateUtc: episode.airDateUtc,
+      }
+    }
+  }
+
+  const enrichment = { posterUrl, guids, episodeDetails }
   const notifications: NotificationResult[] = []
 
   const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
@@ -323,10 +374,6 @@ async function buildNotificationResults(
     if (!user.notify_discord && !user.notify_apprise && !user.notify_tautulli)
       continue
 
-    const notificationTypeInfo = determineNotificationType(
-      mediaInfo,
-      options.isBulkRelease,
-    )
     if (!notificationTypeInfo) continue
 
     const { contentType, seasonNumber } = notificationTypeInfo
@@ -336,7 +383,8 @@ async function buildNotificationResults(
       type: mediaInfo.type,
       title: notificationTitle,
       username: user.name,
-      posterUrl: item.thumb || undefined,
+      posterUrl: enrichment.posterUrl,
+      episodeDetails: enrichment.episodeDetails,
     }
 
     const userId =
@@ -386,8 +434,6 @@ async function buildNotificationResults(
           trx,
         )
       } else if (contentType === 'season') {
-        notification.episodeDetails = { seasonNumber: seasonNumber }
-
         notificationResult = await deps.db.createNotificationRecord(
           {
             watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
@@ -408,14 +454,6 @@ async function buildNotificationResults(
         mediaInfo.episodes.length > 0
       ) {
         const episode = mediaInfo.episodes[0]
-
-        notification.episodeDetails = {
-          title: episode.title,
-          ...(episode.overview && { overview: episode.overview }),
-          seasonNumber: episode.seasonNumber,
-          episodeNumber: episode.episodeNumber,
-          airDateUtc: episode.airDateUtc,
-        }
 
         notificationResult = await deps.db.createNotificationRecord(
           {
@@ -467,7 +505,7 @@ async function buildNotificationResults(
       options.isBulkRelease,
     )
     if (!notificationTypeInfo)
-      return { notifications, watchlistItems, hasNativeWebhooks }
+      return { notifications, watchlistItems, hasNativeWebhooks, enrichment }
 
     const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
 
@@ -592,7 +630,7 @@ async function buildNotificationResults(
     }
   }
 
-  return { notifications, watchlistItems, hasNativeWebhooks }
+  return { notifications, watchlistItems, hasNativeWebhooks, enrichment }
 }
 
 // ============================================================================
@@ -623,6 +661,7 @@ export async function sendMediaAvailable(
     notifications: notificationResults,
     watchlistItems: matchingItems,
     hasNativeWebhooks,
+    enrichment,
   } = await buildNotificationResults(deps, mediaInfo, options)
 
   if (notificationResults.length === 0) {
@@ -661,68 +700,27 @@ export async function sendMediaAvailable(
     )
   }
 
-  // Dispatch native webhooks if configured
+  // Dispatch native webhooks if configured (uses shared enrichment data)
   if (hasNativeWebhooks) {
-    const notificationTypeInfo = determineNotificationType(
-      mediaInfo,
-      options.isBulkRelease,
+    await dispatchWebhooks(
+      'media.available',
+      {
+        mediaType: mediaInfo.type,
+        title: mediaInfo.title,
+        guids: enrichment.guids,
+        posterUrl: enrichment.posterUrl,
+        episodeDetails: enrichment.episodeDetails,
+        isBulkRelease: options.isBulkRelease,
+        instanceType: options.instanceType,
+        instanceId: options.instanceId,
+        watchlistedBy: notificationResults.map((result) => ({
+          userId: result.user.id,
+          username: result.user.name,
+          alias: result.user.alias ?? undefined,
+        })),
+      },
+      { db: deps.db, log: deps.logger },
     )
-    if (notificationTypeInfo) {
-      // Get posterUrl from first matching item with a thumb
-      const posterUrl = matchingItems.find((item) => item.thumb)?.thumb
-
-      // Collect unique guids from matching items
-      const guidsSet = new Set<string>()
-      for (const item of matchingItems) {
-        if (item.guids) {
-          const itemGuids = Array.isArray(item.guids)
-            ? item.guids
-            : typeof item.guids === 'string'
-              ? item.guids.split(',').map((g) => g.trim())
-              : []
-          for (const guid of itemGuids) {
-            if (guid) guidsSet.add(guid)
-          }
-        }
-      }
-
-      await dispatchWebhooks(
-        'media.available',
-        {
-          mediaType: mediaInfo.type,
-          title: mediaInfo.title,
-          guids: Array.from(guidsSet),
-          posterUrl,
-          episodeDetails:
-            notificationTypeInfo.seasonNumber !== undefined
-              ? {
-                  seasonNumber: notificationTypeInfo.seasonNumber,
-                  ...(notificationTypeInfo.episodeNumber !== undefined && {
-                    episodeNumber: notificationTypeInfo.episodeNumber,
-                  }),
-                  ...(mediaInfo.episodes?.[0]?.title && {
-                    title: mediaInfo.episodes[0].title,
-                  }),
-                  ...(mediaInfo.episodes?.[0]?.overview && {
-                    overview: mediaInfo.episodes[0].overview,
-                  }),
-                  ...(mediaInfo.episodes?.[0]?.airDateUtc && {
-                    airDateUtc: mediaInfo.episodes[0].airDateUtc,
-                  }),
-                }
-              : undefined,
-          isBulkRelease: options.isBulkRelease,
-          instanceType: options.instanceType,
-          instanceId: options.instanceId,
-          watchlistedBy: notificationResults.map((result) => ({
-            userId: result.user.id,
-            username: result.user.name,
-            alias: result.user.alias ?? undefined,
-          })),
-        },
-        { db: deps.db, log: deps.logger },
-      )
-    }
   }
 
   return { matchedCount: matchingItems.length }
