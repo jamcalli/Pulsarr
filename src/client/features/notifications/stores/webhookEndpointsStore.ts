@@ -25,6 +25,7 @@ export interface WebhookEndpointsState {
     update: Record<number, boolean>
     delete: Record<number, boolean>
     test: boolean
+    testById: Record<number, boolean>
   }
   error: {
     fetch: string | null
@@ -48,6 +49,7 @@ export interface WebhookEndpointsState {
     data: TestWebhookEndpoint,
     name?: string,
   ) => Promise<WebhookTestResponse>
+  testExistingEndpoint: (id: number) => Promise<WebhookTestResponse>
   resetErrors: () => void
 }
 
@@ -115,6 +117,7 @@ export const useWebhookEndpointsStore = create<WebhookEndpointsState>()(
       update: {},
       delete: {},
       test: false,
+      testById: {},
     },
     error: {
       fetch: null,
@@ -415,6 +418,67 @@ export const useWebhookEndpointsStore = create<WebhookEndpointsState>()(
           },
         }))
         // Return a failed result instead of throwing
+        return {
+          success: false,
+          responseTime: 0,
+          error: err instanceof Error ? err.message : 'Test failed',
+        }
+      }
+    },
+
+    testExistingEndpoint: async (id: number): Promise<WebhookTestResponse> => {
+      set((state) => ({
+        ...state,
+        loading: {
+          ...state.loading,
+          testById: { ...state.loading.testById, [id]: true },
+        },
+        error: { ...state.error, test: null },
+      }))
+
+      try {
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        const [response] = await Promise.all([
+          fetch(api(`/v1/webhooks/endpoints/${id}/test`), {
+            method: 'POST',
+          }),
+          minimumLoadingTime,
+        ])
+
+        const result = await handleApiResponse<WebhookTestResponse>(
+          response,
+          WebhookTestResponseSchema,
+          'Failed to test webhook endpoint',
+        )
+
+        set((state) => ({
+          ...state,
+          loading: {
+            ...state.loading,
+            testById: { ...state.loading.testById, [id]: false },
+          },
+        }))
+
+        return result
+      } catch (err) {
+        console.error('Error testing webhook endpoint:', err)
+        set((state) => ({
+          ...state,
+          loading: {
+            ...state.loading,
+            testById: { ...state.loading.testById, [id]: false },
+          },
+          error: {
+            ...state.error,
+            test:
+              err instanceof Error
+                ? err.message
+                : 'Failed to test webhook endpoint',
+          },
+        }))
         return {
           success: false,
           responseTime: 0,

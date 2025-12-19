@@ -44,6 +44,7 @@ export function WebhookEndpointsSection({
     fetchEndpoints,
     form,
     connectionTested,
+    testedEndpoints,
     saveStatus,
     editingEndpoint,
     isModalOpen,
@@ -52,6 +53,7 @@ export function WebhookEndpointsSection({
     openEditModal,
     closeModal,
     handleTest,
+    handleTestExisting,
     handleSubmit,
     handleDelete,
     openDeleteModal,
@@ -101,7 +103,10 @@ export function WebhookEndpointsSection({
                 endpoint={endpoint}
                 onEdit={() => openEditModal(endpoint)}
                 onDelete={() => openDeleteModal(endpoint.id)}
+                onTest={() => handleTestExisting(endpoint.id)}
                 isDeleting={loading.delete[endpoint.id]}
+                isTesting={loading.testById[endpoint.id]}
+                connectionTested={testedEndpoints[endpoint.id]}
               />
             ))}
           </div>

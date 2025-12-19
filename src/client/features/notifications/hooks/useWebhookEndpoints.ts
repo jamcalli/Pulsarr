@@ -62,6 +62,9 @@ export function useWebhookEndpoints() {
     useState<WebhookEndpoint | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [connectionTested, setConnectionTested] = useState(false)
+  const [testedEndpoints, setTestedEndpoints] = useState<
+    Record<number, boolean>
+  >({})
   const [deleteEndpointId, setDeleteEndpointId] = useState<number | null>(null)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'success'>(
     'idle',
@@ -272,6 +275,26 @@ export function useWebhookEndpoints() {
     setDeleteEndpointId(null)
   }, [])
 
+  const handleTestExisting = useCallback(
+    async (id: number) => {
+      const result = await store.testExistingEndpoint(id)
+
+      if (result.success) {
+        toast.success(`Connection successful (${result.responseTime}ms)`)
+        setTestedEndpoints((prev) => ({ ...prev, [id]: true }))
+        // Reset after 3 seconds
+        setTimeout(() => {
+          setTestedEndpoints((prev) => ({ ...prev, [id]: false }))
+        }, 3000)
+      } else {
+        toast.error(result.error || 'Connection test failed')
+      }
+
+      return result
+    },
+    [store],
+  )
+
   return {
     // Store state
     endpoints: store.endpoints,
@@ -285,6 +308,7 @@ export function useWebhookEndpoints() {
     // Form
     form,
     connectionTested,
+    testedEndpoints,
     saveStatus,
 
     // Modal state
@@ -297,6 +321,7 @@ export function useWebhookEndpoints() {
     openEditModal,
     closeModal,
     handleTest,
+    handleTestExisting,
     handleSubmit,
     handleDelete,
     openDeleteModal,
