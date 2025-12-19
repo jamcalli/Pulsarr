@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 /**
  * Displays a skeleton loader for the notifications settings page, providing placeholder elements for all notification sections during data loading.
  *
- * Sections are ordered alphabetically: Apprise, Discord, General, Public Content, Tautulli.
+ * Sections are ordered alphabetically: Apprise, Discord, General, Native Webhooks, Public Content, Tautulli.
  */
 export function NotificationsSkeleton() {
   const navigate = useNavigate()
@@ -14,6 +14,7 @@ export function NotificationsSkeleton() {
   const appriseId = 'apprise-notifications'
   const discordId = 'discord-notifications'
   const generalId = 'general-notifications'
+  const nativeWebhooksId = 'native-webhooks'
   const publicContentId = 'public-content-notifications'
   const tautulliId = 'tautulli-notifications'
 
@@ -183,6 +184,53 @@ export function NotificationsSkeleton() {
             </div>
             <div className="flex justify-end">
               <Skeleton className="h-9 w-28" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Native Webhooks Section */}
+      <div id={nativeWebhooksId}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">
+            Native Webhooks
+          </h2>
+        </div>
+        <div className="grid gap-4 mt-4">
+          <div className="space-y-4">
+            <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
+              <p>
+                Configure webhook endpoints to receive notifications for Pulsarr
+                events. Webhooks send JSON payloads to your specified URLs when
+                events occur.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <Skeleton className="h-9 w-32" /> {/* Add Webhook button */}
+            </div>
+            {/* Placeholder endpoint cards */}
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-2 w-2 rounded-full" />
+                      <Skeleton className="h-5 w-32" />
+                    </div>
+                    <div className="flex gap-1">
+                      <Skeleton className="h-8 w-8" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-64" />
+                  <div className="flex gap-1">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-5 w-20" />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

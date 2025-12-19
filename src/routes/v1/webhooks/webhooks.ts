@@ -33,7 +33,7 @@ const EVENT_TYPE_DESCRIPTIONS: Record<WebhookEventType, string> = {
 const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
   // List all webhook endpoints
   fastify.get(
-    '/webhooks/endpoints',
+    '/endpoints',
     {
       schema: {
         summary: 'List webhook endpoints',
@@ -75,7 +75,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Get single webhook endpoint
   fastify.get(
-    '/webhooks/endpoints/:id',
+    '/endpoints/:id',
     {
       schema: {
         summary: 'Get webhook endpoint',
@@ -125,7 +125,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Create webhook endpoint
   fastify.post(
-    '/webhooks/endpoints',
+    '/endpoints',
     {
       schema: {
         summary: 'Create webhook endpoint',
@@ -170,7 +170,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Update webhook endpoint
   fastify.put(
-    '/webhooks/endpoints/:id',
+    '/endpoints/:id',
     {
       schema: {
         summary: 'Update webhook endpoint',
@@ -222,7 +222,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Delete webhook endpoint
   fastify.delete(
-    '/webhooks/endpoints/:id',
+    '/endpoints/:id',
     {
       schema: {
         summary: 'Delete webhook endpoint',
@@ -262,7 +262,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Test webhook endpoint (before saving)
   fastify.post(
-    '/webhooks/endpoints/test',
+    '/endpoints/test',
     {
       schema: {
         summary: 'Test webhook endpoint',
@@ -304,7 +304,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // Test existing webhook endpoint
   fastify.post(
-    '/webhooks/endpoints/:id/test',
+    '/endpoints/:id/test',
     {
       schema: {
         summary: 'Test existing webhook endpoint',
@@ -354,7 +354,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
   // List available event types
   fastify.get(
-    '/webhooks/event-types',
+    '/event-types',
     {
       schema: {
         summary: 'List webhook event types',

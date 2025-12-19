@@ -6,6 +6,7 @@ import { DiscordWebhookForm } from '@/features/notifications/components/discord/
 import { GeneralSettingsForm } from '@/features/notifications/components/general/general-settings-form'
 import { PublicContentForm } from '@/features/notifications/components/public-content/public-content-form'
 import { TautulliForm } from '@/features/notifications/components/tautulli/tautulli-form'
+import { WebhookEndpointsSection } from '@/features/notifications/components/webhooks/webhook-endpoints-section'
 
 interface NotificationsSectionProps {
   isInitialized: boolean
@@ -14,7 +15,7 @@ interface NotificationsSectionProps {
 /**
  * Displays a sectioned interface for configuring notification settings.
  *
- * Sections are ordered alphabetically: Apprise, Discord, General, Public Content, Tautulli.
+ * Sections are ordered alphabetically: Apprise, Discord, General, Native Webhooks, Public Content, Tautulli.
  * Each section contains labeled forms for its respective notification integration, separated by visual dividers.
  *
  * @param isInitialized - Indicates whether the notification forms should be initialized.
@@ -28,6 +29,7 @@ export function NotificationsSection({
   const appriseId = 'apprise-notifications'
   const discordId = 'discord-notifications'
   const generalId = 'general-notifications'
+  const nativeWebhooksId = 'native-webhooks'
   const publicContentId = 'public-content-notifications'
   const tautulliId = 'tautulli-notifications'
 
@@ -92,6 +94,20 @@ export function NotificationsSection({
         </div>
         <div className="grid gap-4 mt-4">
           <GeneralSettingsForm isInitialized={isInitialized} />
+        </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Native Webhooks Section */}
+      <div id={nativeWebhooksId}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">
+            Native Webhooks
+          </h2>
+        </div>
+        <div className="grid gap-4 mt-4">
+          <WebhookEndpointsSection isInitialized={isInitialized} />
         </div>
       </div>
 
