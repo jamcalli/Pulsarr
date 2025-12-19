@@ -10,6 +10,7 @@ import type { SystemNotification } from '@root/types/discord.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
+import { dispatchWebhooks } from '@services/notifications/channels/native-webhook.js'
 import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
 import { createDeleteSyncEmbed } from '@services/notifications/templates/discord-embeds.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -279,6 +280,44 @@ export async function sendDeleteSyncCompleted(
 
   logger.info(
     `Delete sync notification attempt complete: ${successCount} messages sent successfully`,
+  )
+
+  // Dispatch native webhooks (fire-and-forget)
+  // This runs regardless of other notification channel settings
+  void dispatchWebhooks(
+    'delete_sync.completed',
+    {
+      dryRun,
+      total: {
+        processed: results.total.processed,
+        deleted: results.total.deleted,
+        skipped: results.total.skipped,
+        protected: results.total.protected,
+      },
+      movies: {
+        deleted: results.movies.deleted,
+        skipped: results.movies.skipped,
+        protected: results.movies.protected,
+        items: results.movies.items.map((item) => ({
+          title: item.title,
+          guid: item.guid,
+          instance: item.instance,
+        })),
+      },
+      shows: {
+        deleted: results.shows.deleted,
+        skipped: results.shows.skipped,
+        protected: results.shows.protected,
+        items: results.shows.items.map((item) => ({
+          title: item.title,
+          guid: item.guid,
+          instance: item.instance,
+        })),
+      },
+      safetyTriggered: results.safetyTriggered,
+      safetyMessage: results.safetyMessage,
+    },
+    { db: deps.db, log: logger },
   )
 
   return successCount > 0

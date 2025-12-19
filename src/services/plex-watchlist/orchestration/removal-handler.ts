@@ -12,7 +12,7 @@ import type {
 } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import { parseGuids } from '@utils/guid-handler.js'
-import type { FastifyBaseLogger } from 'fastify'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexLabelSyncService } from '../../plex-label-sync.service.js'
 
 /**
@@ -22,6 +22,7 @@ export interface RemovalHandlerDeps {
   db: DatabaseService
   logger: FastifyBaseLogger
   plexLabelSyncService?: PlexLabelSyncService
+  fastify?: FastifyInstance
 }
 
 /**
@@ -29,12 +30,14 @@ export interface RemovalHandlerDeps {
  * Cleans up labels if label sync is enabled, then deletes from database.
  *
  * @param userId - The user whose items were removed
+ * @param username - The username of the user
  * @param currentKeys - Keys of items currently in the database
  * @param fetchedKeys - Keys of items currently in the user's watchlist
  * @param deps - Dependencies for database and label sync
  */
 export async function handleRemovedItems(
   userId: number,
+  username: string,
   currentKeys: Set<string>,
   fetchedKeys: Set<string>,
   deps: RemovalHandlerDeps,
@@ -50,30 +53,40 @@ export async function handleRemovedItems(
       `Detected ${removedKeys.length} removed items for user ${userId}`,
     )
 
-    // Get the watchlist items that will be deleted for label cleanup
-    if (plexLabelSyncService) {
-      try {
-        const itemsToDelete = await db.getWatchlistItemsByKeys(removedKeys)
-        // Filter to only items belonging to this user
-        const userItemsToDelete = itemsToDelete.filter(
-          (item) => item.user_id === userId,
-        )
+    // Get the watchlist items that will be deleted for label cleanup and webhook dispatch
+    const itemsToDelete = await db.getWatchlistItemsByKeys(removedKeys)
+    // Filter to only items belonging to this user
+    const userItemsToDelete = itemsToDelete.filter(
+      (item) => item.user_id === userId,
+    )
 
-        if (userItemsToDelete.length > 0) {
-          const labelCleanupItems = userItemsToDelete.map((item) => ({
-            id: item.id,
-            title: item.title,
-            key: item.key,
-            user_id: item.user_id,
-            guids: parseGuids(item.guids),
-            contentType: (item.type === 'show' ? 'show' : 'movie') as
-              | 'movie'
-              | 'show',
-          }))
-          await plexLabelSyncService.cleanupLabelsForWatchlistItems(
-            labelCleanupItems,
-          )
-        }
+    // Send native webhook notifications for each removed item (fire-and-forget)
+    if (deps.fastify?.notifications) {
+      for (const item of userItemsToDelete) {
+        void deps.fastify.notifications.sendWatchlistRemoved(
+          userId,
+          username,
+          item,
+        )
+      }
+    }
+
+    // Handle label sync cleanup if enabled
+    if (plexLabelSyncService && userItemsToDelete.length > 0) {
+      try {
+        const labelCleanupItems = userItemsToDelete.map((item) => ({
+          id: item.id,
+          title: item.title,
+          key: item.key,
+          user_id: item.user_id,
+          guids: parseGuids(item.guids),
+          contentType: (item.type === 'show' ? 'show' : 'movie') as
+            | 'movie'
+            | 'show',
+        }))
+        await plexLabelSyncService.cleanupLabelsForWatchlistItems(
+          labelCleanupItems,
+        )
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error))
         logger.error(
@@ -224,6 +237,12 @@ export async function checkForRemovedItems(
     const currentKeys = new Set(currentItems.map((item) => item.key))
     const fetchedKeys = new Set(Array.from(items).map((item) => item.id))
 
-    await handleRemovedItems(user.userId, currentKeys, fetchedKeys, deps)
+    await handleRemovedItems(
+      user.userId,
+      user.username,
+      currentKeys,
+      fetchedKeys,
+      deps,
+    )
   }
 }

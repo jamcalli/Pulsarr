@@ -24,6 +24,7 @@ export async function createNotificationRecord(
     sent_to_discord: boolean
     sent_to_apprise: boolean
     sent_to_tautulli?: boolean
+    sent_to_native_webhook?: boolean
     notification_status?: string
   },
   trx?: Knex.Transaction,
@@ -165,6 +166,7 @@ export async function getNotificationStats(
     { channel: 'discord', column: 'sent_to_discord' },
     { channel: 'apprise', column: 'sent_to_apprise' },
     { channel: 'tautulli', column: 'sent_to_tautulli' },
+    { channel: 'native_webhook', column: 'sent_to_native_webhook' },
   ]
 
   const byChannelQuery = Promise.all(

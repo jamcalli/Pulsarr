@@ -33,6 +33,7 @@ export default fp(
     name: 'content-router',
     dependencies: [
       'database',
+      'notification-service',
       'sonarr-manager',
       'radarr-manager',
       'quota',

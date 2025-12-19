@@ -20,3 +20,8 @@ export {
   validateWebhook,
 } from './discord-webhook.js'
 export { DiscordWebhookService } from './discord-webhook.service.js'
+export {
+  dispatchWebhooks,
+  type NativeWebhookDeps,
+  testWebhookEndpoint,
+} from './native-webhook.js'

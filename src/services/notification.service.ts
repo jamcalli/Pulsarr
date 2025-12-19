@@ -5,14 +5,22 @@
  * Owns Discord (bot + webhook), Tautulli, Apprise, and future channels.
  */
 
+import type { ApprovalRequest } from '@root/types/approval.types.js'
+import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type { Friend } from '@root/types/plex.types.js'
+import type { Friend, Item as WatchlistItem } from '@root/types/plex.types.js'
 import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
+import type {
+  WebhookDispatchResult,
+  WebhookEventType,
+} from '@root/types/webhook-endpoint.types.js'
+import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   AppriseService,
   DiscordWebhookService,
+  dispatchWebhooks,
 } from './notifications/channels/index.js'
 import {
   type BotStatus,
@@ -194,11 +202,23 @@ export class NotificationService {
    *
    * @param user - User who added the item
    * @param item - Watchlist item details
+   * @param routingDetails - Optional routing information from the content router
    * @returns Promise resolving to boolean indicating if any notifications were sent
    */
   async sendWatchlistAdded(
     user: Friend & { userId: number },
     item: WatchlistItemInfo,
+    routingDetails?: {
+      instanceId: number
+      instanceType: 'radarr' | 'sonarr'
+      qualityProfile?: number | string | null
+      rootFolder?: string | null
+      tags?: string[]
+      searchOnAdd?: boolean | null
+      minimumAvailability?: string | null
+      seasonMonitoring?: string | null
+      seriesType?: string | null
+    },
   ): Promise<boolean> {
     return sendWatchlistAdded(
       {
@@ -209,6 +229,7 @@ export class NotificationService {
       },
       user,
       item,
+      routingDetails,
     )
   }
 
@@ -281,5 +302,282 @@ export class NotificationService {
       mediaInfo,
       options,
     )
+  }
+
+  /**
+   * Dispatches a native webhook event to all configured endpoints.
+   *
+   * This is a fire-and-forget method - errors are logged but not thrown.
+   * Use this for events that should trigger external webhooks without
+   * blocking the main operation.
+   *
+   * @param eventType - The type of event being dispatched
+   * @param data - The event payload data
+   * @returns Promise resolving to dispatch result with statistics
+   */
+  async sendNativeWebhook<T>(
+    eventType: WebhookEventType,
+    data: T,
+  ): Promise<WebhookDispatchResult> {
+    return dispatchWebhooks(eventType, data, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+  }
+
+  // ==========================================================================
+  // New Event Methods (Native Webhook Only for Now)
+  // ==========================================================================
+
+  /**
+   * Sends approval resolved notification when an admin approves or rejects a request.
+   *
+   * @param request - The approval request that was resolved
+   * @param resolution - Whether it was approved or denied
+   * @param resolvedBy - User ID of the admin who resolved it
+   * @param notes - Optional notes from the admin
+   * @returns Promise resolving to boolean indicating if notification was sent
+   */
+  async sendApprovalResolved(
+    request: ApprovalRequest,
+    resolution: 'approved' | 'denied',
+    resolvedBy: number,
+    notes?: string,
+  ): Promise<boolean> {
+    const payload = {
+      approvalId: request.id,
+      // Map internal 'denied' status to 'rejected' for webhook payload
+      status: resolution === 'denied' ? 'rejected' : resolution,
+      content: {
+        title: request.contentTitle,
+        type: request.contentType,
+        key: request.contentKey,
+        guids: request.contentGuids,
+      },
+      requestedBy: {
+        userId: request.userId,
+        username: request.userName,
+      },
+      resolvedBy: {
+        userId: resolvedBy,
+      },
+      approvalNotes: notes,
+      triggeredBy: request.triggeredBy,
+      createdAt: request.createdAt,
+      resolvedAt: request.updatedAt,
+    }
+
+    const result = await dispatchWebhooks('approval.resolved', payload, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+
+    // Create notification record
+    if (result.succeeded > 0) {
+      try {
+        await this.fastify.db.createNotificationRecord({
+          watchlist_item_id: null,
+          user_id: request.userId,
+          type: 'approval_resolved',
+          title: request.contentTitle,
+          message: `Approval ${resolution}: ${request.contentTitle}`,
+          sent_to_discord: false,
+          sent_to_apprise: false,
+          sent_to_native_webhook: true,
+        })
+      } catch (error) {
+        this.log.error(
+          { error, requestId: request.id },
+          'Failed to record approval resolved notification',
+        )
+      }
+    }
+
+    return result.succeeded > 0
+  }
+
+  /**
+   * Sends auto-approval notification when content is auto-approved.
+   * Called from ContentRouterService.createAutoApprovalRecord() with full routing context.
+   *
+   * @param request - The approval request that was auto-approved
+   * @param routing - The routing configuration that was applied
+   * @param reason - Reason for auto-approval
+   * @returns Promise resolving to boolean indicating if notification was sent
+   */
+  async sendApprovalAuto(
+    request: ApprovalRequest,
+    routing: {
+      instanceType: 'radarr' | 'sonarr'
+      instanceId: number
+      qualityProfile: number | string | null
+      rootFolder: string | null
+      tags: string[]
+    },
+    reason: string,
+  ): Promise<boolean> {
+    const payload = {
+      approvalId: request.id,
+      content: {
+        title: request.contentTitle,
+        type: request.contentType,
+        key: request.contentKey,
+        guids: request.contentGuids,
+      },
+      user: {
+        userId: request.userId,
+        username: request.userName,
+      },
+      routing: {
+        instanceType: routing.instanceType,
+        instanceId: routing.instanceId,
+        qualityProfile: routing.qualityProfile,
+        rootFolder: routing.rootFolder,
+        tags: routing.tags,
+      },
+      reason,
+    }
+
+    const result = await dispatchWebhooks('approval.auto', payload, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+
+    // Create notification record
+    if (result.succeeded > 0) {
+      try {
+        await this.fastify.db.createNotificationRecord({
+          watchlist_item_id: null,
+          user_id: request.userId,
+          type: 'approval_auto',
+          title: request.contentTitle,
+          message: `Auto-approved: ${request.contentTitle}`,
+          sent_to_discord: false,
+          sent_to_apprise: false,
+          sent_to_native_webhook: true,
+        })
+      } catch (error) {
+        this.log.error(
+          { error, requestId: request.id },
+          'Failed to record auto-approval notification',
+        )
+      }
+    }
+
+    return result.succeeded > 0
+  }
+
+  /**
+   * Sends watchlist removed notification when a user removes content from their watchlist.
+   *
+   * @param userId - The user who removed the item
+   * @param username - The username of the user
+   * @param item - The watchlist item that was removed
+   * @returns Promise resolving to boolean indicating if notification was sent
+   */
+  async sendWatchlistRemoved(
+    userId: number,
+    username: string,
+    item: WatchlistItem & { id: number },
+  ): Promise<boolean> {
+    const guids =
+      typeof item.guids === 'string' ? parseGuids(item.guids) : item.guids
+
+    const payload = {
+      watchlistItemId: item.id,
+      content: {
+        title: item.title,
+        type: item.type === 'show' ? 'show' : 'movie',
+        key: item.key,
+        guids,
+      },
+      removedBy: {
+        userId,
+        username,
+      },
+    }
+
+    const result = await dispatchWebhooks('watchlist.removed', payload, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+
+    // Create notification record
+    if (result.succeeded > 0) {
+      try {
+        await this.fastify.db.createNotificationRecord({
+          watchlist_item_id: item.id,
+          user_id: userId,
+          type: 'watchlist_removed',
+          title: item.title,
+          message: `Removed from watchlist: ${item.title}`,
+          sent_to_discord: false,
+          sent_to_apprise: false,
+          sent_to_native_webhook: true,
+        })
+      } catch (error) {
+        this.log.error(
+          { error, userId, title: item.title },
+          'Failed to record watchlist removed notification',
+        )
+      }
+    }
+
+    return result.succeeded > 0
+  }
+
+  /**
+   * Sends user created notification when a new user is added.
+   *
+   * @param user - The user that was created
+   * @returns Promise resolving to boolean indicating if notification was sent
+   */
+  async sendUserCreated(user: User): Promise<boolean> {
+    const payload = {
+      user: {
+        id: user.id,
+        name: user.name,
+        alias: user.alias ?? null,
+        discordId: user.discord_id ?? null,
+        apprise: user.apprise ?? null,
+      },
+      settings: {
+        canSync: user.can_sync ?? true,
+        requiresApproval: user.requires_approval ?? false,
+        notifyDiscord: user.notify_discord ?? false,
+        notifyApprise: user.notify_apprise ?? false,
+        notifyTautulli: user.notify_tautulli ?? false,
+        tautulliNotifierId: user.tautulli_notifier_id ?? null,
+      },
+      createdAt: user.created_at ?? new Date().toISOString(),
+    }
+
+    const result = await dispatchWebhooks('user.created', payload, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+
+    // Create notification record
+    if (result.succeeded > 0) {
+      try {
+        await this.fastify.db.createNotificationRecord({
+          watchlist_item_id: null,
+          user_id: user.id,
+          type: 'user_created',
+          title: user.name,
+          message: `New user created: ${user.name}`,
+          sent_to_discord: false,
+          sent_to_apprise: false,
+          sent_to_native_webhook: true,
+        })
+      } catch (error) {
+        this.log.error(
+          { error, userId: user.id },
+          'Failed to record user created notification',
+        )
+      }
+    }
+
+    return result.succeeded > 0
   }
 }
