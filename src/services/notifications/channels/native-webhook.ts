@@ -15,6 +15,7 @@ import type {
 import type { DatabaseService } from '@services/database.service.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
+import pLimit from 'p-limit'
 
 export interface NativeWebhookDeps {
   db: DatabaseService
@@ -99,8 +100,12 @@ export async function dispatchWebhooks<T>(
     data,
   }
 
+  // Limit concurrent webhook requests to prevent resource exhaustion
+  const limit = pLimit(5)
   const results = await Promise.allSettled(
-    endpoints.map((endpoint) => sendToEndpoint(endpoint, payload, deps.log)),
+    endpoints.map((endpoint) =>
+      limit(() => sendToEndpoint(endpoint, payload, deps.log)),
+    ),
   )
 
   const endpointResults = results.map((result, index) => {
