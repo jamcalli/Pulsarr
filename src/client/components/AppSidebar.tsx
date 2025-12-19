@@ -101,8 +101,12 @@ const data = {
           url: '/notifications#discord-notifications',
         },
         {
-          title: 'General Notifications',
+          title: 'General Settings',
           url: '/notifications#general-notifications',
+        },
+        {
+          title: 'Public Content Notifications',
+          url: '/notifications#public-content-notifications',
         },
         {
           title: 'Tautulli Notifications',
@@ -187,10 +191,6 @@ const data = {
         {
           title: 'Plex Session Monitoring',
           url: '/utilities/plex-session-monitoring',
-        },
-        {
-          title: 'Public Content Notifications',
-          url: '/utilities/public-content-notifications',
         },
         {
           title: 'User Tags',
