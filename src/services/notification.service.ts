@@ -538,17 +538,9 @@ export class NotificationService {
         id: user.id,
         name: user.name,
         alias: user.alias ?? null,
-        discordId: user.discord_id ?? null,
-        apprise: user.apprise ?? null,
       },
-      settings: {
-        canSync: user.can_sync ?? true,
-        requiresApproval: user.requires_approval ?? false,
-        notifyDiscord: user.notify_discord ?? false,
-        notifyApprise: user.notify_apprise ?? false,
-        notifyTautulli: user.notify_tautulli ?? false,
-        tautulliNotifierId: user.tautulli_notifier_id ?? null,
-      },
+      canSync: user.can_sync ?? true,
+      requiresApproval: user.requires_approval ?? false,
       createdAt: user.created_at ?? new Date().toISOString(),
     }
 
