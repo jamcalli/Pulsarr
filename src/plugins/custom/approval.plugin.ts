@@ -64,7 +64,7 @@ const approvalPlugin: FastifyPluginAsync = async (fastify) => {
 
 export default fp(approvalPlugin, {
   name: 'approval',
-  dependencies: ['database', 'quota', 'scheduler'],
+  dependencies: ['database', 'notification-service', 'quota', 'scheduler'],
 })
 
 // Add type definitions

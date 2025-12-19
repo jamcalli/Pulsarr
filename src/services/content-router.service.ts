@@ -211,7 +211,20 @@ export class ContentRouterService {
       syncing?: boolean
       syncTargetInstanceId?: number
     },
-  ): Promise<{ routedInstances: number[] }> {
+  ): Promise<{
+    routedInstances: number[]
+    routingDetails?: {
+      instanceId: number
+      instanceType: 'radarr' | 'sonarr'
+      qualityProfile?: number | string | null
+      rootFolder?: string | null
+      tags?: string[]
+      searchOnAdd?: boolean | null
+      minimumAvailability?: string | null
+      seasonMonitoring?: string | null
+      seriesType?: string | null
+    }
+  }> {
     const contentType = item.type
     const routedInstances: number[] = []
 
@@ -421,6 +434,9 @@ export class ContentRouterService {
             )
 
             // Create auto-approval record for audit trail (matches normal auto-approval flow)
+            let bypassActualRouting:
+              | Awaited<ReturnType<typeof this.getActualRoutingFromInstance>>
+              | undefined
             if (bypassRoutedInstances.length > 0) {
               const bypassContext: RoutingContext = {
                 userId: options.userId,
@@ -431,7 +447,7 @@ export class ContentRouterService {
                 syncTargetInstanceId: options.syncTargetInstanceId,
               }
 
-              const actualRouting = await this.getActualRoutingFromInstance(
+              bypassActualRouting = await this.getActualRoutingFromInstance(
                 bypassRoutedInstances[0],
                 contentType,
               )
@@ -441,11 +457,14 @@ export class ContentRouterService {
                 bypassContext,
                 bypassRoutedInstances,
                 [],
-                actualRouting,
+                bypassActualRouting,
               )
             }
 
-            return { routedInstances: bypassRoutedInstances }
+            return {
+              routedInstances: bypassRoutedInstances,
+              routingDetails: bypassActualRouting,
+            }
           }
 
           // No bypass - create pending approval request
@@ -513,6 +532,9 @@ export class ContentRouterService {
       )
 
       // Create auto-approval record for default routing
+      let defaultActualRouting:
+        | Awaited<ReturnType<typeof this.getActualRoutingFromInstance>>
+        | undefined
       if (defaultRoutedInstances.length > 0) {
         const context: RoutingContext = {
           userId: options.userId,
@@ -524,7 +546,7 @@ export class ContentRouterService {
         }
 
         // Get actual routing information from the primary instance that was routed to
-        const actualRouting = await this.getActualRoutingFromInstance(
+        defaultActualRouting = await this.getActualRoutingFromInstance(
           defaultRoutedInstances[0],
           contentType,
         )
@@ -534,11 +556,14 @@ export class ContentRouterService {
           context,
           defaultRoutedInstances,
           [],
-          actualRouting,
+          defaultActualRouting,
         )
       }
 
-      return { routedInstances: defaultRoutedInstances }
+      return {
+        routedInstances: defaultRoutedInstances,
+        routingDetails: defaultActualRouting,
+      }
     }
 
     // Prepare context for evaluators with all the information they need
@@ -859,6 +884,9 @@ export class ContentRouterService {
         routedInstances.push(...defaultRoutedInstances)
 
         // Create auto-approval record for fallback default routing
+        let fallbackActualRouting:
+          | Awaited<ReturnType<typeof this.getActualRoutingFromInstance>>
+          | undefined
         if (defaultRoutedInstances.length > 0) {
           const fallbackRecordContext: RoutingContext = {
             userId: options.userId,
@@ -870,7 +898,7 @@ export class ContentRouterService {
           }
 
           // Get actual routing information from the primary instance that was routed to
-          const actualRouting = await this.getActualRoutingFromInstance(
+          fallbackActualRouting = await this.getActualRoutingFromInstance(
             defaultRoutedInstances[0],
             contentType,
           )
@@ -880,9 +908,10 @@ export class ContentRouterService {
             fallbackRecordContext,
             defaultRoutedInstances,
             [],
-            actualRouting,
+            fallbackActualRouting,
           )
         }
+        return { routedInstances, routingDetails: fallbackActualRouting }
       }
 
       return { routedInstances }
@@ -1360,7 +1389,7 @@ export class ContentRouterService {
       )
     }
 
-    return { routedInstances }
+    return { routedInstances, routingDetails: firstActualRouting }
   }
 
   /**
@@ -2326,6 +2355,21 @@ export class ContentRouterService {
           metadata,
         })
       }
+
+      // Send native webhook notification for auto-approval (fire-and-forget)
+      if (updatedRequest && proposedRouting) {
+        void this.fastify.notifications.sendApprovalAuto(
+          updatedRequest,
+          {
+            instanceType: proposedRouting.instanceType,
+            instanceId: proposedRouting.instanceId,
+            qualityProfile: proposedRouting.qualityProfile ?? null,
+            rootFolder: proposedRouting.rootFolder ?? null,
+            tags: proposedRouting.tags ?? [],
+          },
+          'Auto-approved (no approval required)',
+        )
+      }
     } catch (error) {
       // Log error but don't fail the routing operation
       this.log.error(
@@ -2342,7 +2386,20 @@ export class ContentRouterService {
     approvedRequest: ApprovalRequest,
     item: ContentItem,
     context: RoutingContext,
-  ): Promise<{ routedInstances: number[] }> {
+  ): Promise<{
+    routedInstances: number[]
+    routingDetails?: {
+      instanceId: number
+      instanceType: 'radarr' | 'sonarr'
+      qualityProfile?: number | string | null
+      rootFolder?: string | null
+      tags?: string[]
+      searchOnAdd?: boolean | null
+      minimumAvailability?: string | null
+      seasonMonitoring?: string | null
+      seriesType?: string | null
+    }
+  }> {
     try {
       const proposedRouting =
         approvedRequest.proposedRouterDecision?.approval?.proposedRouting
@@ -2410,7 +2467,21 @@ export class ContentRouterService {
         }
       }
 
-      return { routedInstances }
+      // Build routing details from the approved routing
+      const routingDetails = {
+        instanceId: proposedRouting.instanceId,
+        instanceType:
+          approvedRequest.contentType === 'movie' ? 'radarr' : 'sonarr',
+        qualityProfile: proposedRouting.qualityProfile,
+        rootFolder: proposedRouting.rootFolder,
+        tags: proposedRouting.tags,
+        searchOnAdd: proposedRouting.searchOnAdd,
+        minimumAvailability: proposedRouting.minimumAvailability,
+        seasonMonitoring: proposedRouting.seasonMonitoring,
+        seriesType: proposedRouting.seriesType,
+      } as const
+
+      return { routedInstances, routingDetails }
     } catch (error) {
       this.log.error({ error }, 'Error routing using approved decision')
       return { routedInstances: [] }

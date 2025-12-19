@@ -178,6 +178,21 @@ async function checkMovieExistsViaApi(
 }
 
 /**
+ * Routing details from the content router
+ */
+interface RoutingDetails {
+  instanceId: number
+  instanceType: 'radarr' | 'sonarr'
+  qualityProfile?: number | string | null
+  rootFolder?: string | null
+  tags?: string[]
+  searchOnAdd?: boolean | null
+  minimumAvailability?: string | null
+  seasonMonitoring?: string | null
+  seriesType?: string | null
+}
+
+/**
  * Send notification for routed content
  */
 async function sendRoutingNotification(
@@ -185,6 +200,7 @@ async function sendRoutingNotification(
   userId: number,
   userName: string,
   contentType: 'show' | 'movie',
+  routingDetails: RoutingDetails | undefined,
   deps: ContentRoutingDeps,
 ): Promise<void> {
   const existingNotifications = await deps.db.checkExistingWebhooks(userId, [
@@ -202,7 +218,10 @@ async function sendRoutingNotification(
         title: tempItem.title,
         type: contentType,
         thumb: tempItem.thumb,
+        key: tempItem.key,
+        guids: tempItem.guids,
       },
+      routingDetails,
     )
   } else {
     deps.logger.debug(
@@ -327,19 +346,23 @@ export async function routeShow(
   }
 
   // Route content
-  const { routedInstances } = await deps.contentRouter.routeContent(
-    sonarrItem,
-    tempItem.key,
-    {
+  const { routedInstances, routingDetails } =
+    await deps.contentRouter.routeContent(sonarrItem, tempItem.key, {
       userId,
       userName,
       syncing: false,
-    },
-  )
+    })
 
   // Send notification if routed
   if (routedInstances.length > 0 && userName) {
-    await sendRoutingNotification(tempItem, userId, userName, 'show', deps)
+    await sendRoutingNotification(
+      tempItem,
+      userId,
+      userName,
+      'show',
+      routingDetails,
+      deps,
+    )
   }
 
   return { routed: routedInstances.length > 0 }
@@ -461,19 +484,23 @@ export async function routeMovie(
   }
 
   // Route content
-  const { routedInstances } = await deps.contentRouter.routeContent(
-    radarrItem,
-    tempItem.key,
-    {
+  const { routedInstances, routingDetails } =
+    await deps.contentRouter.routeContent(radarrItem, tempItem.key, {
       userId,
       userName,
       syncing: false,
-    },
-  )
+    })
 
   // Send notification if routed
   if (routedInstances.length > 0 && userName) {
-    await sendRoutingNotification(tempItem, userId, userName, 'movie', deps)
+    await sendRoutingNotification(
+      tempItem,
+      userId,
+      userName,
+      'movie',
+      routingDetails,
+      deps,
+    )
   }
 
   return { routed: routedInstances.length > 0 }

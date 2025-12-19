@@ -9,6 +9,7 @@ import type { Friend } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
+import { dispatchWebhooks } from '@services/notifications/channels/native-webhook.js'
 import { getUserCanSync } from '@services/plex-watchlist/users/permissions.js'
 import type { FastifyBaseLogger } from 'fastify'
 
@@ -28,6 +29,20 @@ export interface WatchlistItemInfo {
   title: string
   type: string
   thumb?: string
+  key?: string
+  guids?: string | string[]
+}
+
+export interface RoutingDetails {
+  instanceId: number
+  instanceType: 'radarr' | 'sonarr'
+  qualityProfile?: number | string | null
+  rootFolder?: string | null
+  tags?: string[]
+  searchOnAdd?: boolean | null
+  minimumAvailability?: string | null
+  seasonMonitoring?: string | null
+  seriesType?: string | null
 }
 
 // ============================================================================
@@ -41,12 +56,14 @@ export interface WatchlistItemInfo {
  * @param deps - Service dependencies
  * @param user - User who added the item (must include userId)
  * @param item - Watchlist item details
+ * @param routingDetails - Optional routing information from the content router
  * @returns Promise resolving to boolean indicating if any notifications were sent
  */
 export async function sendWatchlistAdded(
   deps: WatchlistAddedDeps,
   user: Friend & { userId: number },
   item: WatchlistItemInfo,
+  routingDetails?: RoutingDetails,
 ): Promise<boolean> {
   const { db, logger, discordWebhook, apprise } = deps
 
@@ -126,8 +143,60 @@ export async function sendWatchlistAdded(
     }
   }
 
-  // Record notification if either method succeeded
-  if (discordSent || appriseSent) {
+  // Normalize guids to array format
+  const guidsArray = Array.isArray(item.guids)
+    ? item.guids
+    : item.guids
+      ? [item.guids]
+      : []
+
+  // Build routedTo array from routing details
+  const routedTo = routingDetails
+    ? [
+        {
+          instanceId: routingDetails.instanceId,
+          instanceType: routingDetails.instanceType,
+          qualityProfile: routingDetails.qualityProfile ?? undefined,
+          rootFolder: routingDetails.rootFolder ?? undefined,
+          tags: routingDetails.tags ?? [],
+          searchOnAdd: routingDetails.searchOnAdd ?? undefined,
+          ...(routingDetails.instanceType === 'radarr' && {
+            minimumAvailability:
+              routingDetails.minimumAvailability ?? undefined,
+          }),
+          ...(routingDetails.instanceType === 'sonarr' && {
+            seasonMonitoring: routingDetails.seasonMonitoring ?? undefined,
+            seriesType: routingDetails.seriesType ?? undefined,
+          }),
+        },
+      ]
+    : []
+
+  // Dispatch native webhooks
+  const webhookResult = await dispatchWebhooks(
+    'watchlist.added',
+    {
+      addedBy: {
+        userId: user.userId,
+        username,
+      },
+      content: {
+        title: item.title,
+        type: (item.type?.toLowerCase() === 'show' ? 'show' : 'movie') as
+          | 'movie'
+          | 'show',
+        thumb: item.thumb,
+        key: item.key,
+        guids: guidsArray,
+      },
+      routedTo,
+    },
+    { db, log: logger },
+  )
+  const webhookSent = webhookResult.succeeded > 0
+
+  // Record notification if any method succeeded
+  if (discordSent || appriseSent || webhookSent) {
     const itemId =
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
@@ -141,6 +210,7 @@ export async function sendWatchlistAdded(
         message: `New ${item.type} added to watchlist`,
         sent_to_discord: discordSent,
         sent_to_apprise: appriseSent,
+        sent_to_native_webhook: webhookSent,
       })
     } catch (error) {
       logger.error(

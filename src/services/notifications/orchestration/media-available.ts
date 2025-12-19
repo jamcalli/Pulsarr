@@ -17,6 +17,10 @@ import { mapRowToUser } from '@services/database/methods/users.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
+import {
+  dispatchWebhooks,
+  hasWebhooksForEvent,
+} from '@services/notifications/channels/native-webhook.js'
 import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
 import type { TautulliService } from '@services/notifications/tautulli/tautulli.service.js'
 import type { FastifyBaseLogger } from 'fastify'
@@ -296,7 +300,14 @@ async function buildNotificationResults(
 ): Promise<{
   notifications: NotificationResult[]
   watchlistItems: TokenWatchlistItem[]
+  hasNativeWebhooks: boolean
 }> {
+  // Check if native webhooks are configured for this event type
+  const hasNativeWebhooks = await hasWebhooksForEvent('media.available', {
+    db: deps.db,
+    log: deps.logger,
+  })
+
   const watchlistItems = await deps.db.getWatchlistItemsByGuid(mediaInfo.guid)
   const notifications: NotificationResult[] = []
 
@@ -370,6 +381,7 @@ async function buildNotificationResults(
             sent_to_discord: Boolean(user.notify_discord),
             sent_to_apprise: Boolean(user.notify_apprise),
             sent_to_tautulli: Boolean(user.notify_tautulli),
+            sent_to_native_webhook: hasNativeWebhooks,
           },
           trx,
         )
@@ -386,6 +398,7 @@ async function buildNotificationResults(
             sent_to_discord: Boolean(user.notify_discord),
             sent_to_apprise: Boolean(user.notify_apprise),
             sent_to_tautulli: Boolean(user.notify_tautulli),
+            sent_to_native_webhook: hasNativeWebhooks,
           },
           trx,
         )
@@ -416,6 +429,7 @@ async function buildNotificationResults(
             sent_to_discord: Boolean(user.notify_discord),
             sent_to_apprise: Boolean(user.notify_apprise),
             sent_to_tautulli: Boolean(user.notify_tautulli),
+            sent_to_native_webhook: hasNativeWebhooks,
           },
           trx,
         )
@@ -452,7 +466,8 @@ async function buildNotificationResults(
       mediaInfo,
       options.isBulkRelease,
     )
-    if (!notificationTypeInfo) return { notifications, watchlistItems }
+    if (!notificationTypeInfo)
+      return { notifications, watchlistItems, hasNativeWebhooks }
 
     const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
 
@@ -524,6 +539,7 @@ async function buildNotificationResults(
           sent_to_discord: hasDiscordUrls,
           sent_to_apprise: hasAppriseUrls,
           sent_to_tautulli: false,
+          sent_to_native_webhook: hasNativeWebhooks,
         })
       } else if (contentType === 'season') {
         await deps.db.createNotificationRecord({
@@ -535,6 +551,7 @@ async function buildNotificationResults(
           sent_to_discord: hasDiscordUrls,
           sent_to_apprise: hasAppriseUrls,
           sent_to_tautulli: false,
+          sent_to_native_webhook: hasNativeWebhooks,
         })
       } else if (
         contentType === 'episode' &&
@@ -553,6 +570,7 @@ async function buildNotificationResults(
           sent_to_discord: hasDiscordUrls,
           sent_to_apprise: hasAppriseUrls,
           sent_to_tautulli: false,
+          sent_to_native_webhook: hasNativeWebhooks,
         })
       }
 
@@ -574,7 +592,7 @@ async function buildNotificationResults(
     }
   }
 
-  return { notifications, watchlistItems }
+  return { notifications, watchlistItems, hasNativeWebhooks }
 }
 
 // ============================================================================
@@ -601,8 +619,11 @@ export async function sendMediaAvailable(
   mediaInfo: MediaInfo,
   options: MediaAvailableOptions,
 ): Promise<{ matchedCount: number }> {
-  const { notifications: notificationResults, watchlistItems: matchingItems } =
-    await buildNotificationResults(deps, mediaInfo, options)
+  const {
+    notifications: notificationResults,
+    watchlistItems: matchingItems,
+    hasNativeWebhooks,
+  } = await buildNotificationResults(deps, mediaInfo, options)
 
   if (notificationResults.length === 0) {
     return { matchedCount: 0 }
@@ -638,6 +659,70 @@ export async function sendMediaAvailable(
         ),
       ),
     )
+  }
+
+  // Dispatch native webhooks if configured
+  if (hasNativeWebhooks) {
+    const notificationTypeInfo = determineNotificationType(
+      mediaInfo,
+      options.isBulkRelease,
+    )
+    if (notificationTypeInfo) {
+      // Get posterUrl from first matching item with a thumb
+      const posterUrl = matchingItems.find((item) => item.thumb)?.thumb
+
+      // Collect unique guids from matching items
+      const guidsSet = new Set<string>()
+      for (const item of matchingItems) {
+        if (item.guids) {
+          const itemGuids = Array.isArray(item.guids)
+            ? item.guids
+            : typeof item.guids === 'string'
+              ? item.guids.split(',').map((g) => g.trim())
+              : []
+          for (const guid of itemGuids) {
+            if (guid) guidsSet.add(guid)
+          }
+        }
+      }
+
+      await dispatchWebhooks(
+        'media.available',
+        {
+          mediaType: mediaInfo.type,
+          title: mediaInfo.title,
+          guids: Array.from(guidsSet),
+          posterUrl,
+          episodeDetails:
+            notificationTypeInfo.seasonNumber !== undefined
+              ? {
+                  seasonNumber: notificationTypeInfo.seasonNumber,
+                  ...(notificationTypeInfo.episodeNumber !== undefined && {
+                    episodeNumber: notificationTypeInfo.episodeNumber,
+                  }),
+                  ...(mediaInfo.episodes?.[0]?.title && {
+                    title: mediaInfo.episodes[0].title,
+                  }),
+                  ...(mediaInfo.episodes?.[0]?.overview && {
+                    overview: mediaInfo.episodes[0].overview,
+                  }),
+                  ...(mediaInfo.episodes?.[0]?.airDateUtc && {
+                    airDateUtc: mediaInfo.episodes[0].airDateUtc,
+                  }),
+                }
+              : undefined,
+          isBulkRelease: options.isBulkRelease,
+          instanceType: options.instanceType,
+          instanceId: options.instanceId,
+          watchlistedBy: notificationResults.map((result) => ({
+            userId: result.user.id,
+            username: result.user.name,
+            alias: result.user.alias ?? undefined,
+          })),
+        },
+        { db: deps.db, log: deps.logger },
+      )
+    }
   }
 
   return { matchedCount: matchingItems.length }

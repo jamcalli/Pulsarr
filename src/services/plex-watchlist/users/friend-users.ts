@@ -57,6 +57,9 @@ export async function ensureFriendUsers(
           is_primary_token: false,
         })
 
+        // Send native webhook notification for user creation (fire-and-forget)
+        void deps.fastify.notifications.sendUserCreated(user)
+
         // Create default quotas for the new user
         await createDefaultQuotasForUser(user.id, deps)
       }
