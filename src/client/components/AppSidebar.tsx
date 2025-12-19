@@ -105,6 +105,10 @@ const data = {
           url: '/notifications#general-notifications',
         },
         {
+          title: 'Native Webhooks',
+          url: '/notifications#native-webhooks',
+        },
+        {
           title: 'Public Content Notifications',
           url: '/notifications#public-content-notifications',
         },
