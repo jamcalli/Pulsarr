@@ -156,6 +156,10 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           name: 'Watchlist Workflow',
           description: 'Watchlist processing workflow endpoints',
         },
+        {
+          name: 'Webhooks',
+          description: 'Native webhook endpoint management',
+        },
       ],
       components: {
         securitySchemes: {
