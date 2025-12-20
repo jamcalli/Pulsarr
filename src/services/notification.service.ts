@@ -5,6 +5,10 @@
  * Owns Discord (bot + webhook), Tautulli, Apprise, and future channels.
  */
 
+import {
+  buildRoutingPayload,
+  type WebhookPayloadMap,
+} from '@root/schemas/webhooks/webhook-payloads.schema.js'
 import type { ApprovalRequest } from '@root/types/approval.types.js'
 import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
@@ -314,12 +318,12 @@ export class NotificationService {
    * blocking the main operation.
    *
    * @param eventType - The type of event being dispatched
-   * @param data - The event payload data
+   * @param data - The event payload data (must match WebhookPayloadMap[eventType])
    * @returns Promise resolving to dispatch result with statistics
    */
-  async sendNativeWebhook<T>(
-    eventType: WebhookEventType,
-    data: T,
+  async sendNativeWebhook<T extends WebhookEventType>(
+    eventType: T,
+    data: WebhookPayloadMap[T],
   ): Promise<WebhookDispatchResult> {
     return dispatchWebhooks(eventType, data, {
       db: this.fastify.db,
@@ -352,10 +356,18 @@ export class NotificationService {
         ? request.proposedRouterDecision?.approval?.proposedRouting
         : undefined
 
+    // Map internal 'denied' status to 'rejected' for webhook payload
+    const status =
+      resolution === 'denied' ? ('rejected' as const) : ('approved' as const)
+
+    // Build routing with discriminated union based on instanceType
+    const routing = proposedRouting
+      ? buildRoutingPayload(proposedRouting)
+      : undefined
+
     const payload = {
       approvalId: request.id,
-      // Map internal 'denied' status to 'rejected' for webhook payload
-      status: resolution === 'denied' ? 'rejected' : resolution,
+      status,
       content: {
         title: request.contentTitle,
         type: request.contentType,
@@ -373,20 +385,7 @@ export class NotificationService {
       triggeredBy: request.triggeredBy,
       createdAt: request.createdAt,
       resolvedAt: request.updatedAt,
-      routing: proposedRouting
-        ? {
-            instanceType: proposedRouting.instanceType,
-            instanceId: proposedRouting.instanceId,
-            qualityProfile: proposedRouting.qualityProfile ?? null,
-            rootFolder: proposedRouting.rootFolder ?? null,
-            tags: proposedRouting.tags ?? [],
-            searchOnAdd: proposedRouting.searchOnAdd ?? null,
-            minimumAvailability: proposedRouting.minimumAvailability ?? null,
-            seasonMonitoring: proposedRouting.seasonMonitoring ?? null,
-            seriesType: proposedRouting.seriesType ?? null,
-            syncedInstances: proposedRouting.syncedInstances,
-          }
-        : undefined,
+      routing,
     }
 
     const result = await dispatchWebhooks('approval.resolved', payload, {
@@ -455,18 +454,7 @@ export class NotificationService {
         userId: request.userId,
         username: request.userName,
       },
-      routing: {
-        instanceType: routing.instanceType,
-        instanceId: routing.instanceId,
-        qualityProfile: routing.qualityProfile,
-        rootFolder: routing.rootFolder,
-        tags: routing.tags,
-        searchOnAdd: routing.searchOnAdd ?? null,
-        minimumAvailability: routing.minimumAvailability ?? null,
-        seasonMonitoring: routing.seasonMonitoring ?? null,
-        seriesType: routing.seriesType ?? null,
-        syncedInstances: routing.syncedInstances,
-      },
+      routing: buildRoutingPayload(routing),
       reason,
     }
 
@@ -513,13 +501,17 @@ export class NotificationService {
     item: WatchlistItem & { id: number },
   ): Promise<boolean> {
     const guids =
-      typeof item.guids === 'string' ? parseGuids(item.guids) : item.guids
+      typeof item.guids === 'string'
+        ? parseGuids(item.guids)
+        : (item.guids ?? [])
+    const contentType =
+      item.type === 'show' ? ('show' as const) : ('movie' as const)
 
     const payload = {
       watchlistItemId: item.id,
       content: {
         title: item.title,
-        type: item.type === 'show' ? 'show' : 'movie',
+        type: contentType,
         key: item.key,
         guids,
       },

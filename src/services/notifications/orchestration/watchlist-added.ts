@@ -5,6 +5,7 @@
  * This notifies admins via Discord webhook and/or Apprise about new watchlist additions.
  */
 
+import { buildRoutedToItem } from '@root/schemas/webhooks/webhook-payloads.schema.js'
 import type { Friend } from '@root/types/plex.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
@@ -152,25 +153,13 @@ export async function sendWatchlistAdded(
       ? [item.guids]
       : []
 
-  // Build routedTo array from routing details
+  // Build routedTo array from routing details using helper for discriminated union
   const routedTo =
-    routingDetails?.map((detail) => ({
-      instanceId: detail.instanceId,
-      instanceType: detail.instanceType,
-      qualityProfile: detail.qualityProfile ?? undefined,
-      rootFolder: detail.rootFolder ?? undefined,
-      tags: detail.tags ?? [],
-      searchOnAdd: detail.searchOnAdd ?? undefined,
-      ruleId: detail.ruleId,
-      ruleName: detail.ruleName,
-      ...(detail.instanceType === 'radarr' && {
-        minimumAvailability: detail.minimumAvailability ?? undefined,
-      }),
-      ...(detail.instanceType === 'sonarr' && {
-        seasonMonitoring: detail.seasonMonitoring ?? undefined,
-        seriesType: detail.seriesType ?? undefined,
-      }),
-    })) ?? []
+    routingDetails?.map((detail) => buildRoutedToItem(detail)) ?? []
+
+  // Determine content type with proper literal type
+  const contentType =
+    item.type?.toLowerCase() === 'show' ? ('show' as const) : ('movie' as const)
 
   // Dispatch native webhooks
   const webhookResult = await dispatchWebhooks(
@@ -182,11 +171,9 @@ export async function sendWatchlistAdded(
       },
       content: {
         title: item.title,
-        type: (item.type?.toLowerCase() === 'show' ? 'show' : 'movie') as
-          | 'movie'
-          | 'show',
+        type: contentType,
         thumb: item.thumb,
-        key: item.key,
+        key: item.key ?? '',
         guids: guidsArray,
       },
       routedTo,

@@ -702,6 +702,18 @@ export async function sendMediaAvailable(
 
   // Dispatch native webhooks if configured (uses shared enrichment data)
   if (hasNativeWebhooks) {
+    // Only include episodeDetails if seasonNumber is present (required by schema)
+    const episodeDetails =
+      enrichment.episodeDetails?.seasonNumber !== undefined
+        ? {
+            seasonNumber: enrichment.episodeDetails.seasonNumber,
+            episodeNumber: enrichment.episodeDetails.episodeNumber,
+            title: enrichment.episodeDetails.title,
+            overview: enrichment.episodeDetails.overview,
+            airDateUtc: enrichment.episodeDetails.airDateUtc,
+          }
+        : undefined
+
     await dispatchWebhooks(
       'media.available',
       {
@@ -709,7 +721,7 @@ export async function sendMediaAvailable(
         title: mediaInfo.title,
         guids: enrichment.guids,
         posterUrl: enrichment.posterUrl,
-        episodeDetails: enrichment.episodeDetails,
+        episodeDetails,
         isBulkRelease: options.isBulkRelease,
         instanceType: options.instanceType,
         instanceId: options.instanceId,
