@@ -43,6 +43,8 @@ export interface RoutingDetails {
   minimumAvailability?: string | null
   seasonMonitoring?: string | null
   seriesType?: string | null
+  ruleId?: number
+  ruleName?: string
 }
 
 // ============================================================================
@@ -63,7 +65,7 @@ export async function sendWatchlistAdded(
   deps: WatchlistAddedDeps,
   user: Friend & { userId: number },
   item: WatchlistItemInfo,
-  routingDetails?: RoutingDetails,
+  routingDetails?: RoutingDetails[],
 ): Promise<boolean> {
   const { db, logger, discordWebhook, apprise } = deps
 
@@ -151,26 +153,24 @@ export async function sendWatchlistAdded(
       : []
 
   // Build routedTo array from routing details
-  const routedTo = routingDetails
-    ? [
-        {
-          instanceId: routingDetails.instanceId,
-          instanceType: routingDetails.instanceType,
-          qualityProfile: routingDetails.qualityProfile ?? undefined,
-          rootFolder: routingDetails.rootFolder ?? undefined,
-          tags: routingDetails.tags ?? [],
-          searchOnAdd: routingDetails.searchOnAdd ?? undefined,
-          ...(routingDetails.instanceType === 'radarr' && {
-            minimumAvailability:
-              routingDetails.minimumAvailability ?? undefined,
-          }),
-          ...(routingDetails.instanceType === 'sonarr' && {
-            seasonMonitoring: routingDetails.seasonMonitoring ?? undefined,
-            seriesType: routingDetails.seriesType ?? undefined,
-          }),
-        },
-      ]
-    : []
+  const routedTo =
+    routingDetails?.map((detail) => ({
+      instanceId: detail.instanceId,
+      instanceType: detail.instanceType,
+      qualityProfile: detail.qualityProfile ?? undefined,
+      rootFolder: detail.rootFolder ?? undefined,
+      tags: detail.tags ?? [],
+      searchOnAdd: detail.searchOnAdd ?? undefined,
+      ruleId: detail.ruleId,
+      ruleName: detail.ruleName,
+      ...(detail.instanceType === 'radarr' && {
+        minimumAvailability: detail.minimumAvailability ?? undefined,
+      }),
+      ...(detail.instanceType === 'sonarr' && {
+        seasonMonitoring: detail.seasonMonitoring ?? undefined,
+        seriesType: detail.seriesType ?? undefined,
+      }),
+    })) ?? []
 
   // Dispatch native webhooks
   const webhookResult = await dispatchWebhooks(

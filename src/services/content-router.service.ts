@@ -213,7 +213,7 @@ export class ContentRouterService {
     },
   ): Promise<{
     routedInstances: number[]
-    routingDetails?: {
+    routingDetails: Array<{
       instanceId: number
       instanceType: 'radarr' | 'sonarr'
       qualityProfile?: number | string | null
@@ -223,7 +223,9 @@ export class ContentRouterService {
       minimumAvailability?: string | null
       seasonMonitoring?: string | null
       seriesType?: string | null
-    }
+      ruleId?: number
+      ruleName?: string
+    }>
   }> {
     const contentType = item.type
     const routedInstances: number[] = []
@@ -297,7 +299,7 @@ export class ContentRouterService {
           )
           throw error
         }
-        return { routedInstances }
+        return { routedInstances, routingDetails: [] }
       }
 
       // Check for approval requirements before default routing
@@ -379,7 +381,7 @@ export class ContentRouterService {
             )
 
             // Return empty - content will not be routed until approved
-            return { routedInstances: [] }
+            return { routedInstances: [], routingDetails: [] }
           }
         }
       } catch (error) {
@@ -463,7 +465,7 @@ export class ContentRouterService {
 
             return {
               routedInstances: bypassRoutedInstances,
-              routingDetails: bypassActualRouting,
+              routingDetails: bypassActualRouting ? [bypassActualRouting] : [],
             }
           }
 
@@ -511,7 +513,7 @@ export class ContentRouterService {
           )
 
           // Return empty - content will not be routed until approved
-          return { routedInstances: [] }
+          return { routedInstances: [], routingDetails: [] }
         }
 
         // Quota consumed successfully - continue to routing
@@ -562,7 +564,7 @@ export class ContentRouterService {
 
       return {
         routedInstances: defaultRoutedInstances,
-        routingDetails: defaultActualRouting,
+        routingDetails: defaultActualRouting ? [defaultActualRouting] : [],
       }
     }
 
@@ -651,7 +653,7 @@ export class ContentRouterService {
             `No routing decisions for "${item.title}" during sync - router rules targeting instance ${options.syncTargetInstanceId} exist but didn't match. Sync prevented by router rules.`,
           )
           // Return empty - router rules prevented sync to this instance
-          return { routedInstances }
+          return { routedInstances, routingDetails: [] }
         }
 
         // No rules specifically target the sync instance - it uses syncedInstances config
@@ -771,7 +773,7 @@ export class ContentRouterService {
               }
 
               // Return empty - content will not be routed until approved
-              return { routedInstances: [] }
+              return { routedInstances: [], routingDetails: [] }
             }
 
             // THIRD: Atomic quota enforcement for fallback default routing
@@ -850,7 +852,7 @@ export class ContentRouterService {
                     )
 
                     // Return empty - content will not be routed until approved
-                    return { routedInstances: [] }
+                    return { routedInstances: [], routingDetails: [] }
                   }
                 }
 
@@ -911,10 +913,13 @@ export class ContentRouterService {
             fallbackActualRouting,
           )
         }
-        return { routedInstances, routingDetails: fallbackActualRouting }
+        return {
+          routedInstances,
+          routingDetails: fallbackActualRouting ? [fallbackActualRouting] : [],
+        }
       }
 
-      return { routedInstances }
+      return { routedInstances, routingDetails: [] }
     }
 
     // Step 4: Check for approval requirements before processing routing decisions
@@ -997,7 +1002,7 @@ export class ContentRouterService {
             )
 
           // Return empty - content will not be routed until approved
-          return { routedInstances: [] }
+          return { routedInstances: [], routingDetails: [] }
         }
 
         // PRIORITY 3: Atomic quota consumption (prevents race conditions)
@@ -1090,7 +1095,7 @@ export class ContentRouterService {
                 )
 
                 // Return empty - content will not be routed until approved
-                return { routedInstances: [] }
+                return { routedInstances: [], routingDetails: [] }
               }
             }
 
@@ -1175,7 +1180,7 @@ export class ContentRouterService {
           )
         }
 
-        return { routedInstances }
+        return { routedInstances, routingDetails: [] }
       }
 
       // Decisions exist but none target sync instance - rules route this content elsewhere
@@ -1183,12 +1188,12 @@ export class ContentRouterService {
         this.log.info(
           `Sync blocked: Router rules route "${item.title}" to other instances (${allDecisions.map((d) => d.instanceId).join(', ')}), not to sync target ${options.syncTargetInstanceId}`,
         )
-        return { routedInstances: [] }
+        return { routedInstances: [], routingDetails: [] }
       }
 
       // No decisions at all - this case is handled by Step 3 fallback above
       // (shouldn't reach here, but safety return)
-      return { routedInstances }
+      return { routedInstances, routingDetails: [] }
     }
 
     // NORMAL ROUTING PATH (non-sync operations)
@@ -1199,19 +1204,19 @@ export class ContentRouterService {
     }
 
     let routeCount = 0
-    let firstActualRouting:
-      | {
-          instanceId: number
-          instanceType: 'radarr' | 'sonarr'
-          qualityProfile?: number | string | null
-          rootFolder?: string | null
-          tags?: string[]
-          searchOnAdd?: boolean | null
-          minimumAvailability?: string | null
-          seasonMonitoring?: string | null
-          seriesType?: string | null
-        }
-      | undefined
+    const allActualRoutings: Array<{
+      instanceId: number
+      instanceType: 'radarr' | 'sonarr'
+      qualityProfile?: number | string | null
+      rootFolder?: string | null
+      tags?: string[]
+      searchOnAdd?: boolean | null
+      minimumAvailability?: string | null
+      seasonMonitoring?: string | null
+      seriesType?: string | null
+      ruleId?: number
+      ruleName?: string
+    }> = []
 
     // Process each decision in priority order
     for (const decision of allDecisions) {
@@ -1255,40 +1260,39 @@ export class ContentRouterService {
             decision.minimumAvailability,
           )
 
-          // Capture the ACTUAL routing parameters that were sent (first success only)
-          if (!firstActualRouting) {
-            // Get the Radarr instance to resolve actual values
-            const radarrInstance = await this.fastify.db.getRadarrInstance(
-              decision.instanceId,
-            )
-            if (radarrInstance) {
-              // Resolve values using the same logic as RadarrManagerService
-              const targetRootFolder =
-                rootFolder || radarrInstance.rootFolder || undefined
-              const qpSource =
-                decision.qualityProfile ?? radarrInstance.qualityProfile
-              const targetQualityProfileId =
-                qpSource == null ? undefined : parseQualityProfileId(qpSource)
-              const targetTags = [
-                ...new Set(decision.tags ?? radarrInstance.tags ?? []),
-              ]
-              const targetSearchOnAdd =
-                decision.searchOnAdd ?? radarrInstance.searchOnAdd ?? true
-              const targetMinimumAvailability =
-                decision.minimumAvailability ??
-                radarrInstance.minimumAvailability ??
-                'released'
+          // Capture the ACTUAL routing parameters that were sent
+          const radarrInstance = await this.fastify.db.getRadarrInstance(
+            decision.instanceId,
+          )
+          if (radarrInstance) {
+            // Resolve values using the same logic as RadarrManagerService
+            const targetRootFolder =
+              rootFolder || radarrInstance.rootFolder || undefined
+            const qpSource =
+              decision.qualityProfile ?? radarrInstance.qualityProfile
+            const targetQualityProfileId =
+              qpSource == null ? undefined : parseQualityProfileId(qpSource)
+            const targetTags = [
+              ...new Set(decision.tags ?? radarrInstance.tags ?? []),
+            ]
+            const targetSearchOnAdd =
+              decision.searchOnAdd ?? radarrInstance.searchOnAdd ?? true
+            const targetMinimumAvailability =
+              decision.minimumAvailability ??
+              radarrInstance.minimumAvailability ??
+              'released'
 
-              firstActualRouting = {
-                instanceId: decision.instanceId,
-                instanceType: 'radarr',
-                qualityProfile: targetQualityProfileId?.toString(),
-                rootFolder: targetRootFolder,
-                tags: targetTags,
-                searchOnAdd: targetSearchOnAdd,
-                minimumAvailability: targetMinimumAvailability,
-              }
-            }
+            allActualRoutings.push({
+              instanceId: decision.instanceId,
+              instanceType: 'radarr',
+              qualityProfile: targetQualityProfileId?.toString(),
+              rootFolder: targetRootFolder,
+              tags: targetTags,
+              searchOnAdd: targetSearchOnAdd,
+              minimumAvailability: targetMinimumAvailability,
+              ruleId: decision.ruleId,
+              ruleName: decision.ruleName,
+            })
           }
         } else {
           // Convert rootFolder from string|null|undefined to string|undefined
@@ -1309,43 +1313,42 @@ export class ContentRouterService {
             decision.seriesType,
           )
 
-          // Capture the ACTUAL routing parameters that were sent (first success only)
-          if (!firstActualRouting) {
-            // Get the Sonarr instance to resolve actual values
-            const sonarrInstance = await this.fastify.db.getSonarrInstance(
-              decision.instanceId,
-            )
-            if (sonarrInstance) {
-              // Resolve values using the same logic as SonarrManagerService
-              const targetRootFolder =
-                rootFolder || sonarrInstance.rootFolder || undefined
-              const qpSource =
-                decision.qualityProfile ?? sonarrInstance.qualityProfile
-              const targetQualityProfileId =
-                qpSource == null ? undefined : parseQualityProfileId(qpSource)
-              const targetTags = [
-                ...new Set(decision.tags ?? sonarrInstance.tags ?? []),
-              ]
-              const targetSearchOnAdd =
-                decision.searchOnAdd ?? sonarrInstance.searchOnAdd ?? true
-              const targetSeasonMonitoring =
-                decision.seasonMonitoring ??
-                sonarrInstance.seasonMonitoring ??
-                'all'
-              const targetSeriesType =
-                decision.seriesType ?? sonarrInstance.seriesType ?? 'standard'
+          // Capture the ACTUAL routing parameters that were sent
+          const sonarrInstance = await this.fastify.db.getSonarrInstance(
+            decision.instanceId,
+          )
+          if (sonarrInstance) {
+            // Resolve values using the same logic as SonarrManagerService
+            const targetRootFolder =
+              rootFolder || sonarrInstance.rootFolder || undefined
+            const qpSource =
+              decision.qualityProfile ?? sonarrInstance.qualityProfile
+            const targetQualityProfileId =
+              qpSource == null ? undefined : parseQualityProfileId(qpSource)
+            const targetTags = [
+              ...new Set(decision.tags ?? sonarrInstance.tags ?? []),
+            ]
+            const targetSearchOnAdd =
+              decision.searchOnAdd ?? sonarrInstance.searchOnAdd ?? true
+            const targetSeasonMonitoring =
+              decision.seasonMonitoring ??
+              sonarrInstance.seasonMonitoring ??
+              'all'
+            const targetSeriesType =
+              decision.seriesType ?? sonarrInstance.seriesType ?? 'standard'
 
-              firstActualRouting = {
-                instanceId: decision.instanceId,
-                instanceType: 'sonarr',
-                qualityProfile: targetQualityProfileId?.toString(),
-                rootFolder: targetRootFolder,
-                tags: targetTags,
-                searchOnAdd: targetSearchOnAdd,
-                seasonMonitoring: targetSeasonMonitoring,
-                seriesType: targetSeriesType,
-              }
-            }
+            allActualRoutings.push({
+              instanceId: decision.instanceId,
+              instanceType: 'sonarr',
+              qualityProfile: targetQualityProfileId?.toString(),
+              rootFolder: targetRootFolder,
+              tags: targetTags,
+              searchOnAdd: targetSearchOnAdd,
+              seasonMonitoring: targetSeasonMonitoring,
+              seriesType: targetSeriesType,
+              ruleId: decision.ruleId,
+              ruleName: decision.ruleName,
+            })
           }
         }
         routeCount++
@@ -1385,11 +1388,11 @@ export class ContentRouterService {
         context,
         routedInstances,
         allDecisions,
-        firstActualRouting,
+        allActualRoutings[0], // Pass first routing for auto-approval record
       )
     }
 
-    return { routedInstances, routingDetails: firstActualRouting }
+    return { routedInstances, routingDetails: allActualRoutings }
   }
 
   /**
@@ -1401,7 +1404,22 @@ export class ContentRouterService {
     contentKey: string,
     item: ContentItem,
     context: RoutingContext,
-  ): Promise<{ routedInstances: number[] } | null> {
+  ): Promise<{
+    routedInstances: number[]
+    routingDetails: Array<{
+      instanceId: number
+      instanceType: 'radarr' | 'sonarr'
+      qualityProfile?: number | string | null
+      rootFolder?: string | null
+      tags?: string[]
+      searchOnAdd?: boolean | null
+      minimumAvailability?: string | null
+      seasonMonitoring?: string | null
+      seriesType?: string | null
+      ruleId?: number
+      ruleName?: string
+    }>
+  } | null> {
     const existingRequest = await this.fastify.db.getApprovalRequestByContent(
       userId,
       contentKey,
@@ -1416,7 +1434,7 @@ export class ContentRouterService {
         this.log.info(
           `Pending approval request already exists for "${item.title}" by user ${context.userName || context.userId}`,
         )
-        return { routedInstances: [] }
+        return { routedInstances: [], routingDetails: [] }
 
       case 'approved':
         this.log.info(
@@ -1432,7 +1450,7 @@ export class ContentRouterService {
         this.log.info(
           `Content "${item.title}" was previously rejected for user ${context.userName || context.userId}, skipping routing`,
         )
-        return { routedInstances: [] }
+        return { routedInstances: [], routingDetails: [] }
 
       case 'expired':
         // Allow reprocessing of expired requests
@@ -1445,7 +1463,7 @@ export class ContentRouterService {
         this.log.info(
           `Existing approval request found with status "${existingRequest.status}" for "${item.title}" by user ${context.userName || context.userId}, skipping routing`,
         )
-        return { routedInstances: [] }
+        return { routedInstances: [], routingDetails: [] }
     }
   }
 
@@ -2366,6 +2384,11 @@ export class ContentRouterService {
             qualityProfile: proposedRouting.qualityProfile ?? null,
             rootFolder: proposedRouting.rootFolder ?? null,
             tags: proposedRouting.tags ?? [],
+            searchOnAdd: proposedRouting.searchOnAdd ?? null,
+            minimumAvailability: proposedRouting.minimumAvailability ?? null,
+            seasonMonitoring: proposedRouting.seasonMonitoring ?? null,
+            seriesType: proposedRouting.seriesType ?? null,
+            syncedInstances: proposedRouting.syncedInstances,
           },
           'Auto-approved (no approval required)',
         )
@@ -2388,7 +2411,7 @@ export class ContentRouterService {
     context: RoutingContext,
   ): Promise<{
     routedInstances: number[]
-    routingDetails?: {
+    routingDetails: Array<{
       instanceId: number
       instanceType: 'radarr' | 'sonarr'
       qualityProfile?: number | string | null
@@ -2398,7 +2421,9 @@ export class ContentRouterService {
       minimumAvailability?: string | null
       seasonMonitoring?: string | null
       seriesType?: string | null
-    }
+      ruleId?: number
+      ruleName?: string
+    }>
   }> {
     try {
       const proposedRouting =
@@ -2409,7 +2434,7 @@ export class ContentRouterService {
           { approvedRequest },
           'Approved request has invalid routing decision',
         )
-        return { routedInstances: [] }
+        return { routedInstances: [], routingDetails: [] }
       }
 
       const routedInstances: number[] = []
@@ -2468,23 +2493,28 @@ export class ContentRouterService {
       }
 
       // Build routing details from the approved routing
-      const routingDetails = {
-        instanceId: proposedRouting.instanceId,
-        instanceType:
-          approvedRequest.contentType === 'movie' ? 'radarr' : 'sonarr',
-        qualityProfile: proposedRouting.qualityProfile,
-        rootFolder: proposedRouting.rootFolder,
-        tags: proposedRouting.tags,
-        searchOnAdd: proposedRouting.searchOnAdd,
-        minimumAvailability: proposedRouting.minimumAvailability,
-        seasonMonitoring: proposedRouting.seasonMonitoring,
-        seriesType: proposedRouting.seriesType,
-      } as const
+      const routingDetails = [
+        {
+          instanceId: proposedRouting.instanceId,
+          instanceType: (approvedRequest.contentType === 'movie'
+            ? 'radarr'
+            : 'sonarr') as 'radarr' | 'sonarr',
+          qualityProfile: proposedRouting.qualityProfile,
+          rootFolder: proposedRouting.rootFolder,
+          tags: proposedRouting.tags,
+          searchOnAdd: proposedRouting.searchOnAdd,
+          minimumAvailability: proposedRouting.minimumAvailability,
+          seasonMonitoring: proposedRouting.seasonMonitoring,
+          seriesType: proposedRouting.seriesType,
+          ruleId: approvedRequest.routerRuleId,
+          ruleName: undefined, // Rule name not stored in approval request
+        },
+      ]
 
       return { routedInstances, routingDetails }
     } catch (error) {
       this.log.error({ error }, 'Error routing using approved decision')
-      return { routedInstances: [] }
+      return { routedInstances: [], routingDetails: [] }
     }
   }
 

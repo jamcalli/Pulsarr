@@ -43,6 +43,23 @@ export interface ApprovalRequest {
   userName: string | null
   triggeredBy: string
   approvalReason: string | null
+  // Router decision containing proposed routing (if approval was triggered by routing rules)
+  proposedRouterDecision?: {
+    approval?: {
+      proposedRouting?: {
+        instanceId: number
+        instanceType: 'radarr' | 'sonarr'
+        qualityProfile?: number | string | null
+        rootFolder?: string | null
+        tags?: string[]
+        searchOnAdd?: boolean | null
+        minimumAvailability?: string | null
+        seasonMonitoring?: string | null
+        seriesType?: 'standard' | 'anime' | 'daily' | null
+        syncedInstances?: number[]
+      }
+    }
+  }
 }
 
 export interface ApprovalNotificationChannels {
@@ -546,6 +563,8 @@ export async function sendApprovalBatch(
   // This runs regardless of other notification channel settings
   for (const request of queuedRequests) {
     const posterUrl = posterMap.get(request.contentKey)
+    const proposedRouting =
+      request.proposedRouterDecision?.approval?.proposedRouting
     void dispatchWebhooks(
       'approval.created',
       {
@@ -563,6 +582,20 @@ export async function sendApprovalBatch(
         triggeredBy: request.triggeredBy,
         approvalReason: request.approvalReason,
         pendingCount: totalPending,
+        proposedRouting: proposedRouting
+          ? {
+              instanceType: proposedRouting.instanceType,
+              instanceId: proposedRouting.instanceId,
+              qualityProfile: proposedRouting.qualityProfile ?? null,
+              rootFolder: proposedRouting.rootFolder ?? null,
+              tags: proposedRouting.tags ?? [],
+              searchOnAdd: proposedRouting.searchOnAdd ?? null,
+              minimumAvailability: proposedRouting.minimumAvailability ?? null,
+              seasonMonitoring: proposedRouting.seasonMonitoring ?? null,
+              seriesType: proposedRouting.seriesType ?? null,
+              syncedInstances: proposedRouting.syncedInstances,
+            }
+          : undefined,
       },
       { db, log: logger },
     )

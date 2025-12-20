@@ -190,6 +190,8 @@ interface RoutingDetails {
   minimumAvailability?: string | null
   seasonMonitoring?: string | null
   seriesType?: string | null
+  ruleId?: number
+  ruleName?: string
 }
 
 /**
@@ -200,7 +202,7 @@ async function sendRoutingNotification(
   userId: number,
   userName: string,
   contentType: 'show' | 'movie',
-  routingDetails: RoutingDetails | undefined,
+  routingDetails: RoutingDetails[],
   deps: ContentRoutingDeps,
 ): Promise<void> {
   const existingNotifications = await deps.db.checkExistingWebhooks(userId, [

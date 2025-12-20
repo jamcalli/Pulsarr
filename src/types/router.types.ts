@@ -69,6 +69,10 @@ export interface RoutingDecision {
   seriesType?: 'standard' | 'anime' | 'daily' | null // For Sonarr: series type
   minimumAvailability?: 'announced' | 'inCinemas' | 'released' // For Radarr: minimum availability setting
   /**
+   * ID of the router rule that produced this decision
+   */
+  ruleId?: number
+  /**
    * Name of the router rule that produced this decision (for logging)
    */
   ruleName?: string
