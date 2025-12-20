@@ -208,7 +208,7 @@ export class NotificationService {
   async sendWatchlistAdded(
     user: Friend & { userId: number },
     item: WatchlistItemInfo,
-    routingDetails?: {
+    routingDetails?: Array<{
       instanceId: number
       instanceType: 'radarr' | 'sonarr'
       qualityProfile?: number | string | null
@@ -218,7 +218,9 @@ export class NotificationService {
       minimumAvailability?: string | null
       seasonMonitoring?: string | null
       seriesType?: string | null
-    },
+      ruleId?: number
+      ruleName?: string
+    }>,
   ): Promise<boolean> {
     return sendWatchlistAdded(
       {
@@ -344,6 +346,12 @@ export class NotificationService {
     resolvedBy: number,
     notes?: string,
   ): Promise<boolean> {
+    // Include routing info only when approved (not for rejections)
+    const proposedRouting =
+      resolution === 'approved'
+        ? request.proposedRouterDecision?.approval?.proposedRouting
+        : undefined
+
     const payload = {
       approvalId: request.id,
       // Map internal 'denied' status to 'rejected' for webhook payload
@@ -365,6 +373,20 @@ export class NotificationService {
       triggeredBy: request.triggeredBy,
       createdAt: request.createdAt,
       resolvedAt: request.updatedAt,
+      routing: proposedRouting
+        ? {
+            instanceType: proposedRouting.instanceType,
+            instanceId: proposedRouting.instanceId,
+            qualityProfile: proposedRouting.qualityProfile ?? null,
+            rootFolder: proposedRouting.rootFolder ?? null,
+            tags: proposedRouting.tags ?? [],
+            searchOnAdd: proposedRouting.searchOnAdd ?? null,
+            minimumAvailability: proposedRouting.minimumAvailability ?? null,
+            seasonMonitoring: proposedRouting.seasonMonitoring ?? null,
+            seriesType: proposedRouting.seriesType ?? null,
+            syncedInstances: proposedRouting.syncedInstances,
+          }
+        : undefined,
     }
 
     const result = await dispatchWebhooks('approval.resolved', payload, {
@@ -413,6 +435,11 @@ export class NotificationService {
       qualityProfile: number | string | null
       rootFolder: string | null
       tags: string[]
+      searchOnAdd?: boolean | null
+      minimumAvailability?: string | null
+      seasonMonitoring?: string | null
+      seriesType?: 'standard' | 'anime' | 'daily' | null
+      syncedInstances?: number[]
     },
     reason: string,
   ): Promise<boolean> {
@@ -434,6 +461,11 @@ export class NotificationService {
         qualityProfile: routing.qualityProfile,
         rootFolder: routing.rootFolder,
         tags: routing.tags,
+        searchOnAdd: routing.searchOnAdd ?? null,
+        minimumAvailability: routing.minimumAvailability ?? null,
+        seasonMonitoring: routing.seasonMonitoring ?? null,
+        seriesType: routing.seriesType ?? null,
+        syncedInstances: routing.syncedInstances,
       },
       reason,
     }

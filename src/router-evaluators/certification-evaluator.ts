@@ -234,6 +234,7 @@ export default function createCertificationEvaluator(
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
+        ruleId: rule.id,
         ruleName: rule.name,
       }))
     },
