@@ -8,6 +8,7 @@
  * This module owns HOW to send (channel routing, embeds, delivery).
  */
 
+import { buildRoutingPayload } from '@root/schemas/webhooks/webhook-payloads.schema.js'
 import type {
   DiscordEmbed,
   SystemNotification,
@@ -41,7 +42,11 @@ export interface ApprovalRequest {
   contentKey: string
   userId: number
   userName: string | null
-  triggeredBy: string
+  triggeredBy:
+    | 'quota_exceeded'
+    | 'router_rule'
+    | 'manual_flag'
+    | 'content_criteria'
   approvalReason: string | null
   // Router decision containing proposed routing (if approval was triggered by routing rules)
   proposedRouterDecision?: {
@@ -583,18 +588,7 @@ export async function sendApprovalBatch(
         approvalReason: request.approvalReason,
         pendingCount: totalPending,
         proposedRouting: proposedRouting
-          ? {
-              instanceType: proposedRouting.instanceType,
-              instanceId: proposedRouting.instanceId,
-              qualityProfile: proposedRouting.qualityProfile ?? null,
-              rootFolder: proposedRouting.rootFolder ?? null,
-              tags: proposedRouting.tags ?? [],
-              searchOnAdd: proposedRouting.searchOnAdd ?? null,
-              minimumAvailability: proposedRouting.minimumAvailability ?? null,
-              seasonMonitoring: proposedRouting.seasonMonitoring ?? null,
-              seriesType: proposedRouting.seriesType ?? null,
-              syncedInstances: proposedRouting.syncedInstances,
-            }
+          ? buildRoutingPayload(proposedRouting)
           : undefined,
       },
       { db, log: logger },

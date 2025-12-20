@@ -3,8 +3,16 @@
  *
  * Dispatches notifications to user-configured webhook endpoints.
  * Supports custom authentication headers and multiple event types.
+ *
+ * Uses typed dispatch with Zod validation to ensure payload correctness:
+ * - Compile-time: TypeScript enforces correct payload shape per event type
+ * - Runtime: Zod validates payload before dispatch (safety net)
  */
 
+import {
+  WEBHOOK_PAYLOAD_SCHEMAS,
+  type WebhookPayloadMap,
+} from '@root/schemas/webhooks/webhook-payloads.schema.js'
 import type {
   TestWebhookResult,
   WebhookDispatchResult,
@@ -78,14 +86,17 @@ async function sendToEndpoint(
 /**
  * Dispatches a webhook event to all enabled endpoints subscribed to that event type.
  *
+ * Uses typed generic constraint to enforce correct payload shape per event type
+ * at compile time. Also performs runtime validation as a safety net.
+ *
  * @param eventType - The type of event being dispatched
- * @param data - The event payload data
+ * @param data - The event payload data (must match WebhookPayloadMap[eventType])
  * @param deps - Dependencies (database, logger)
  * @returns Result containing dispatch statistics and per-endpoint results
  */
-export async function dispatchWebhooks<T>(
-  eventType: WebhookEventType,
-  data: T,
+export async function dispatchWebhooks<T extends WebhookEventType>(
+  eventType: T,
+  data: WebhookPayloadMap[T],
   deps: NativeWebhookDeps,
 ): Promise<WebhookDispatchResult> {
   const endpoints = await deps.db.getWebhookEndpointsForEvent(eventType)
@@ -94,10 +105,22 @@ export async function dispatchWebhooks<T>(
     return { dispatched: 0, succeeded: 0, failed: 0, results: [] }
   }
 
-  const payload: WebhookPayloadEnvelope<T> = {
+  // Runtime validation as safety net (compile-time types should catch most issues)
+  const schema = WEBHOOK_PAYLOAD_SCHEMAS[eventType]
+  const parseResult = schema.safeParse(data)
+  if (!parseResult.success) {
+    deps.log.error(
+      { eventType, error: parseResult.error.message },
+      'Webhook payload validation failed - this indicates a bug in the calling code',
+    )
+    return { dispatched: 0, succeeded: 0, failed: 0, results: [] }
+  }
+  const validatedData = parseResult.data
+
+  const payload: WebhookPayloadEnvelope<WebhookPayloadMap[T]> = {
     event: eventType,
     timestamp: new Date().toISOString(),
-    data,
+    data: validatedData,
   }
 
   // Limit concurrent webhook requests to prevent resource exhaustion
