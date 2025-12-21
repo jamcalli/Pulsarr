@@ -17,6 +17,20 @@ export const WEBHOOK_EVENT_TYPES = [
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number]
 
 /**
+ * Human-readable labels for webhook event types
+ */
+export const EVENT_TYPE_LABELS: Record<WebhookEventType, string> = {
+  'media.available': 'Media Available',
+  'watchlist.added': 'Watchlist Added',
+  'watchlist.removed': 'Watchlist Removed',
+  'approval.created': 'Approval Created',
+  'approval.resolved': 'Approval Resolved',
+  'approval.auto': 'Auto Approved',
+  'delete_sync.completed': 'Delete Sync Complete',
+  'user.created': 'User Created',
+}
+
+/**
  * Webhook endpoint (parsed from database)
  */
 export interface WebhookEndpoint {

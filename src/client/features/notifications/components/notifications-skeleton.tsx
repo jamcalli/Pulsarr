@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
@@ -9,8 +9,6 @@ import { api } from '@/lib/api'
  * Sections are ordered alphabetically: Apprise, Discord, General, Native Webhooks, Public Content, Tautulli.
  */
 export function NotificationsSkeleton() {
-  const navigate = useNavigate()
-
   // Use fixed IDs to preserve deep-linking (alphabetically ordered)
   const appriseId = 'apprise-notifications'
   const discordId = 'discord-notifications'
@@ -25,21 +23,19 @@ export function NotificationsSkeleton() {
       <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
         <p>
           Some features have their own notification settings. Configure{' '}
-          <button
-            type="button"
-            onClick={() => navigate('/approvals/settings')}
-            className="text-blue-400 hover:text-blue-500 cursor-pointer"
+          <Link
+            to="/approvals/settings"
+            className="text-blue-400 hover:text-blue-500"
           >
             Approval Notifications
-          </button>{' '}
+          </Link>{' '}
           and{' '}
-          <button
-            type="button"
-            onClick={() => navigate('/utilities/delete-sync')}
-            className="text-blue-400 hover:text-blue-500 cursor-pointer"
+          <Link
+            to="/utilities/delete-sync"
+            className="text-blue-400 hover:text-blue-500"
           >
             Delete Sync Notifications
-          </button>{' '}
+          </Link>{' '}
           in their respective settings pages.
         </p>
       </div>

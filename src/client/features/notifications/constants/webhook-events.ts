@@ -1,21 +1,9 @@
-import { WEBHOOK_EVENT_TYPES } from '@root/types/webhook-endpoint.types'
+import {
+  EVENT_TYPE_LABELS,
+  WEBHOOK_EVENT_TYPES,
+} from '@root/types/webhook-endpoint.types'
 
-/**
- * Human-readable labels for webhook event types
- */
-export const EVENT_TYPE_LABELS: Record<
-  (typeof WEBHOOK_EVENT_TYPES)[number],
-  string
-> = {
-  'media.available': 'Media Available',
-  'watchlist.added': 'Watchlist Added',
-  'watchlist.removed': 'Watchlist Removed',
-  'approval.created': 'Approval Created',
-  'approval.resolved': 'Approval Resolved',
-  'approval.auto': 'Auto Approved',
-  'delete_sync.completed': 'Delete Sync Complete',
-  'user.created': 'User Created',
-}
+export { EVENT_TYPE_LABELS }
 
 /**
  * Options for the event type multi-select component
