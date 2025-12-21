@@ -1,5 +1,8 @@
 import fastifySwagger from '@fastify/swagger'
-import { WEBHOOK_EVENT_TYPES } from '@root/types/webhook-endpoint.types.js'
+import {
+  EVENT_TYPE_LABELS,
+  WEBHOOK_EVENT_TYPES,
+} from '@root/types/webhook-endpoint.types.js'
 import apiReference from '@scalar/fastify-api-reference'
 import { WEBHOOK_PAYLOAD_REGISTRY } from '@schemas/webhooks/webhook-payloads.schema.js'
 import { normalizeBasePath } from '@utils/url.js'
@@ -11,18 +14,6 @@ import {
   fastifyZodOpenApiTransformObject,
 } from 'fastify-zod-openapi'
 import { createSchema } from 'zod-openapi'
-
-/** Human-readable labels for webhook event types */
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  'media.available': 'Media Available',
-  'watchlist.added': 'Watchlist Added',
-  'watchlist.removed': 'Watchlist Removed',
-  'approval.created': 'Approval Created',
-  'approval.resolved': 'Approval Resolved',
-  'approval.auto': 'Auto Approved',
-  'delete_sync.completed': 'Delete Sync Complete',
-  'user.created': 'User Created',
-}
 
 /**
  * Builds the OpenAPI webhooks section from the payload registry.

@@ -517,24 +517,8 @@ async function buildNotificationResults(
       type: mediaInfo.type,
       title: notificationTitle,
       username: 'Public Content',
-      posterUrl: referenceItem?.thumb || undefined,
-    }
-
-    if (contentType === 'season' && seasonNumber !== undefined) {
-      notification.episodeDetails = { seasonNumber }
-    } else if (
-      contentType === 'episode' &&
-      mediaInfo.episodes &&
-      mediaInfo.episodes.length > 0
-    ) {
-      const episode = mediaInfo.episodes[0]
-      notification.episodeDetails = {
-        title: episode.title,
-        ...(episode.overview && { overview: episode.overview }),
-        seasonNumber: episode.seasonNumber,
-        episodeNumber: episode.episodeNumber,
-        airDateUtc: episode.airDateUtc,
-      }
+      posterUrl: enrichment.posterUrl,
+      episodeDetails: enrichment.episodeDetails,
     }
 
     const existingPublicNotification = await deps.db
