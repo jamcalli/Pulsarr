@@ -4435,9 +4435,6 @@
                         "discordClientId": {
                           "type": "string"
                         },
-                        "discordGuildId": {
-                          "type": "string"
-                        },
                         "enableApprise": {
                           "type": "boolean"
                         },
@@ -5180,9 +5177,6 @@
                   "discordClientId": {
                     "type": "string"
                   },
-                  "discordGuildId": {
-                    "type": "string"
-                  },
                   "systemAppriseUrl": {
                     "type": "string"
                   },
@@ -5801,9 +5795,6 @@
                           "type": "string"
                         },
                         "discordClientId": {
-                          "type": "string"
-                        },
-                        "discordGuildId": {
                           "type": "string"
                         },
                         "enableApprise": {
@@ -31567,6 +31558,1118 @@
           }
         }
       }
+    },
+    "/v1/webhooks/endpoints": {
+      "get": {
+        "operationId": "listWebhookEndpoints",
+        "summary": "List webhook endpoints",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Retrieve all configured webhook endpoints",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "authHeaderName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "authHeaderValue": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "eventTypes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "media.available",
+                                "watchlist.added",
+                                "watchlist.removed",
+                                "approval.created",
+                                "approval.resolved",
+                                "approval.auto",
+                                "delete_sync.completed",
+                                "user.created"
+                              ]
+                            }
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "url",
+                          "authHeaderName",
+                          "authHeaderValue",
+                          "eventTypes",
+                          "enabled",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createWebhookEndpoint",
+        "summary": "Create webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Create a new webhook endpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "authHeaderName": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "authHeaderValue": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "eventTypes": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "media.available",
+                        "watchlist.added",
+                        "watchlist.removed",
+                        "approval.created",
+                        "approval.resolved",
+                        "approval.auto",
+                        "delete_sync.completed",
+                        "user.created"
+                      ]
+                    }
+                  },
+                  "enabled": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name",
+                  "url",
+                  "eventTypes"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "authHeaderName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "authHeaderValue": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "eventTypes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "media.available",
+                              "watchlist.added",
+                              "watchlist.removed",
+                              "approval.created",
+                              "approval.resolved",
+                              "approval.auto",
+                              "delete_sync.completed",
+                              "user.created"
+                            ]
+                          }
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "url",
+                        "authHeaderName",
+                        "authHeaderValue",
+                        "eventTypes",
+                        "enabled",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/endpoints/{id}": {
+      "get": {
+        "operationId": "getWebhookEndpoint",
+        "summary": "Get webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Retrieve a single webhook endpoint by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "authHeaderName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "authHeaderValue": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "eventTypes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "media.available",
+                              "watchlist.added",
+                              "watchlist.removed",
+                              "approval.created",
+                              "approval.resolved",
+                              "approval.auto",
+                              "delete_sync.completed",
+                              "user.created"
+                            ]
+                          }
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "url",
+                        "authHeaderName",
+                        "authHeaderValue",
+                        "eventTypes",
+                        "enabled",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateWebhookEndpoint",
+        "summary": "Update webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Update an existing webhook endpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "authHeaderName": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "authHeaderValue": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "eventTypes": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "media.available",
+                        "watchlist.added",
+                        "watchlist.removed",
+                        "approval.created",
+                        "approval.resolved",
+                        "approval.auto",
+                        "delete_sync.completed",
+                        "user.created"
+                      ]
+                    }
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "authHeaderName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "authHeaderValue": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "eventTypes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "media.available",
+                              "watchlist.added",
+                              "watchlist.removed",
+                              "approval.created",
+                              "approval.resolved",
+                              "approval.auto",
+                              "delete_sync.completed",
+                              "user.created"
+                            ]
+                          }
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "url",
+                        "authHeaderName",
+                        "authHeaderValue",
+                        "eventTypes",
+                        "enabled",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteWebhookEndpoint",
+        "summary": "Delete webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Delete a webhook endpoint",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/endpoints/test": {
+      "post": {
+        "operationId": "testWebhookEndpoint",
+        "summary": "Test webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Test a webhook endpoint by sending a test payload (use before saving)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "authHeaderName": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "authHeaderValue": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "responseTime": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "responseTime"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/endpoints/{id}/test": {
+      "post": {
+        "operationId": "testExistingWebhookEndpoint",
+        "summary": "Test existing webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Test an existing webhook endpoint by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "responseTime": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "responseTime"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/event-types": {
+      "get": {
+        "operationId": "listWebhookEventTypes",
+        "summary": "List webhook event types",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "List all available webhook event types with descriptions",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "media.available",
+                              "watchlist.added",
+                              "watchlist.removed",
+                              "approval.created",
+                              "approval.resolved",
+                              "approval.auto",
+                              "delete_sync.completed",
+                              "user.created"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "description"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "servers": [
@@ -31709,6 +32812,1711 @@
     {
       "name": "Watchlist Workflow",
       "description": "Watchlist processing workflow endpoints"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Native webhook endpoint management"
+    },
+    {
+      "name": "Webhook Payloads",
+      "description": "Outgoing webhook payload schemas sent to configured endpoints"
     }
-  ]
+  ],
+  "webhooks": {
+    "media.available": {
+      "post": {
+        "tags": [
+          "Webhook Payloads"
+        ],
+        "summary": "Media Available",
+        "description": "Fired when content becomes available to watch",
+        "operationId": "webhookMediaAvailable",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediaType": {
+                    "type": "string",
+                    "enum": [
+                      "movie",
+                      "show"
+                    ]
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "guids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "posterUrl": {
+                    "type": "string"
+                  },
+                  "episodeDetails": {
+                    "type": "object",
+                    "properties": {
+                      "seasonNumber": {
+                        "type": "number"
+                      },
+                      "episodeNumber": {
+                        "type": "number"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "overview": {
+                        "type": "string"
+                      },
+                      "airDateUtc": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "seasonNumber"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "isBulkRelease": {
+                    "type": "boolean"
+                  },
+                  "instanceType": {
+                    "type": "string",
+                    "enum": [
+                      "radarr",
+                      "sonarr"
+                    ]
+                  },
+                  "instanceId": {
+                    "type": "number"
+                  },
+                  "watchlistedBy": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "number"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "alias": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "userId",
+                        "username"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "mediaType",
+                  "title",
+                  "guids",
+                  "isBulkRelease",
+                  "watchlistedBy"
+                ],
+                "additionalProperties": false
+              },
+              "example": {
+                "mediaType": "movie",
+                "title": "Dune: Part Two",
+                "guids": [
+                  "imdb:tt15239678",
+                  "tmdb:693134"
+                ],
+                "posterUrl": "https://image.tmdb.org/t/p/w500/czembW0Rk1Ke7lCJGahbOhdCvlq.jpg",
+                "isBulkRelease": false,
+                "instanceType": "radarr",
+                "instanceId": 1,
+                "watchlistedBy": [
+                  {
+                    "userId": 1,
+                    "username": "john_doe",
+                    "alias": "John"
+                  },
+                  {
+                    "userId": 2,
+                    "username": "jane_smith"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received successfully"
+          }
+        }
+      }
+    },
+    "watchlist.added": {
+      "post": {
+        "tags": [
+          "Webhook Payloads"
+        ],
+        "summary": "Watchlist Added",
+        "description": "Fired when a user adds content to their Plex watchlist",
+        "operationId": "webhookWatchlistAdded",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "addedBy": {
+                    "type": "object",
+                    "properties": {
+                      "userId": {
+                        "type": "number"
+                      },
+                      "username": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "userId",
+                      "username"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "content": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "movie",
+                          "show"
+                        ]
+                      },
+                      "thumb": {
+                        "type": "string"
+                      },
+                      "key": {
+                        "type": "string"
+                      },
+                      "guids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "type",
+                      "key",
+                      "guids"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "routedTo": {
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "instanceId": {
+                              "type": "number"
+                            },
+                            "instanceType": {
+                              "type": "string",
+                              "const": "radarr"
+                            },
+                            "qualityProfile": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "rootFolder": {
+                              "type": "string"
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "searchOnAdd": {
+                              "type": "boolean"
+                            },
+                            "ruleId": {
+                              "type": "number"
+                            },
+                            "ruleName": {
+                              "type": "string"
+                            },
+                            "minimumAvailability": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "instanceId",
+                            "instanceType"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "instanceId": {
+                              "type": "number"
+                            },
+                            "instanceType": {
+                              "type": "string",
+                              "const": "sonarr"
+                            },
+                            "qualityProfile": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string"
+                                }
+                              ]
+                            },
+                            "rootFolder": {
+                              "type": "string"
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "searchOnAdd": {
+                              "type": "boolean"
+                            },
+                            "ruleId": {
+                              "type": "number"
+                            },
+                            "ruleName": {
+                              "type": "string"
+                            },
+                            "seasonMonitoring": {
+                              "type": "string"
+                            },
+                            "seriesType": {
+                              "type": "string",
+                              "enum": [
+                                "standard",
+                                "anime",
+                                "daily"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "instanceId",
+                            "instanceType"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ],
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "addedBy",
+                  "content",
+                  "routedTo"
+                ],
+                "additionalProperties": false
+              },
+              "example": {
+                "addedBy": {
+                  "userId": 1,
+                  "username": "john_doe"
+                },
+                "content": {
+                  "title": "Dune: Part Two",
+                  "type": "movie",
+                  "thumb": "https://metadata-static.plex.tv/poster.jpg",
+                  "key": "5d7768388718ba001e31563d",
+                  "guids": [
+                    "imdb:tt15239678",
+                    "tmdb:693134"
+                  ]
+                },
+                "routedTo": [
+                  {
+                    "instanceId": 1,
+                    "instanceType": "radarr",
+                    "qualityProfile": "1080p",
+                    "rootFolder": "/movies",
+                    "tags": [
+                      "plex-user"
+                    ],
+                    "searchOnAdd": true,
+                    "minimumAvailability": "released"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received successfully"
+          }
+        }
+      }
+    },
+    "watchlist.removed": {
+      "post": {
+        "tags": [
+          "Webhook Payloads"
+        ],
+        "summary": "Watchlist Removed",
+        "description": "Fired when a user removes content from their watchlist",
+        "operationId": "webhookWatchlistRemoved",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "watchlistItemId": {
+                    "type": "number"
+                  },
+                  "content": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "movie",
+                          "show"
+                        ]
+                      },
+                      "key": {
+                        "type": "string"
+                      },
+                      "guids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "type",
+                      "key",
+                      "guids"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "removedBy": {
+                    "type": "object",
+                    "properties": {
+                      "userId": {
+                        "type": "number"
+                      },
+                      "username": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "userId",
+                      "username"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "watchlistItemId",
+                  "content",
+                  "removedBy"
+                ],
+                "additionalProperties": false
+              },
+              "example": {
+                "watchlistItemId": 123,
+                "content": {
+                  "title": "Dune: Part Two",
+                  "type": "movie",
+                  "key": "5d7768388718ba001e31563d",
+                  "guids": [
+                    "imdb:tt15239678",
+                    "tmdb:693134"
+                  ]
+                },
+                "removedBy": {
+                  "userId": 1,
+                  "username": "john_doe"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received successfully"
+          }
+        }
+      }
+    },
+    "approval.created": {
+      "post": {
+        "tags": [
+          "Webhook Payloads"
+        ],
+        "summary": "Approval Created",
+        "description": "Fired when a new approval request is submitted",
+        "operationId": "webhookApprovalCreated",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "approvalId": {
+                    "type": "number"
+                  },
+                  "content": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "movie",
+                          "show"
+                        ]
+                      },
+                      "key": {
+                        "type": "string"
+                      },
+                      "posterUrl": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "type",
+                      "key"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "requestedBy": {
+                    "type": "object",
+                    "properties": {
+                      "userId": {
+                        "type": "number"
+                      },
+                      "username": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "userId",
+                      "username"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "triggeredBy": {
+                    "type": "string",
+                    "enum": [
+                      "quota_exceeded",
+                      "router_rule",
+                      "manual_flag",
+                      "content_criteria"
+                    ]
+                  },
+                  "approvalReason": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pendingCount": {
+                    "type": "number"
+                  },
+                  "proposedRouting": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "instanceId": {
+                            "type": "number"
+                          },
+                          "qualityProfile": {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "rootFolder": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "searchOnAdd": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "syncedInstances": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "instanceType": {
+                            "type": "string",
+                            "const": "radarr"
+                          },
+                          "minimumAvailability": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "instanceId",
+                          "qualityProfile",
+                          "rootFolder",
+                          "tags",
+                          "searchOnAdd",
+                          "instanceType",
+                          "minimumAvailability"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "instanceId": {
+                            "type": "number"
+                          },
+                          "qualityProfile": {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "rootFolder": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "searchOnAdd": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "syncedInstances": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "instanceType": {
+                            "type": "string",
+                            "const": "sonarr"
+                          },
+                          "seasonMonitoring": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "seriesType": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "standard",
+                                  "anime",
+                                  "daily"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "instanceId",
+                          "qualityProfile",
+                          "rootFolder",
+                          "tags",
+                          "searchOnAdd",
+                          "instanceType",
+                          "seasonMonitoring",
+                          "seriesType"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "approvalId",
+                  "content",
+                  "requestedBy",
+                  "triggeredBy",
+                  "approvalReason",
+                  "pendingCount"
+                ],
+                "additionalProperties": false
+              },
+              "example": {
+                "approvalId": 42,
+                "content": {
+                  "title": "The Batman",
+                  "type": "movie",
+                  "key": "5d7768388718ba001e31abc",
+                  "posterUrl": "https://image.tmdb.org/t/p/w500/poster.jpg"
+                },
+                "requestedBy": {
+                  "userId": 1,
+                  "username": "john_doe"
+                },
+                "triggeredBy": "quota_exceeded",
+                "approvalReason": "User has exceeded monthly movie quota (5/5)",
+                "pendingCount": 3,
+                "proposedRouting": {
+                  "instanceType": "radarr",
+                  "instanceId": 1,
+                  "qualityProfile": "1080p",
+                  "rootFolder": "/movies",
+                  "tags": [
+                    "plex-user"
+                  ],
+                  "searchOnAdd": true,
+                  "minimumAvailability": "released"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received successfully"
+          }
+        }
+      }
+    },
+    "approval.resolved": {
+      "post": {
+        "tags": [
+          "Webhook Payloads"
+        ],
+        "summary": "Approval Resolved",
+        "description": "Fired when an approval is approved or rejected",
+        "operationId": "webhookApprovalResolved",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "approvalId": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "rejected"
+                    ]
+                  },
+                  "content": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "movie",
+                          "show"
+                        ]
+                      },
+                      "key": {
+                        "type": "string"
+                      },
+                      "guids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "type",
+                      "key",
+                      "guids"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "requestedBy": {
+                    "type": "object",
+                    "properties": {
+                      "userId": {
+                        "type": "number"
+                      },
+                      "username": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "userId",
+                      "username"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "resolvedBy": {
+                    "type": "object",
+                    "properties": {
+                      "userId": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "userId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "approvalNotes": {
+                    "type": "string"
+                  },
+                  "triggeredBy": {
+                    "type": "string",
+                    "enum": [
+                      "quota_exceeded",
+                      "router_rule",
+                      "manual_flag",
+                      "content_criteria"
+                    ]
+                  },
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "resolvedAt": {
+                    "type": "string"
+                  },
+                  "routing": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "instanceId": {
+                            "type": "number"
+                          },
+                          "qualityProfile": {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "rootFolder": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "searchOnAdd": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "syncedInstances": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "instanceType": {
+                            "type": "string",
+                            "const": "radarr"
+                          },
+                          "minimumAvailability": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "instanceId",
+                          "qualityProfile",
+                          "rootFolder",
+                          "tags",
+                          "searchOnAdd",
+                          "instanceType",
+                          "minimumAvailability"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "instanceId": {
+                            "type": "number"
+                          },
+                          "qualityProfile": {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "rootFolder": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "searchOnAdd": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "syncedInstances": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "instanceType": {
+                            "type": "string",
+                            "const": "sonarr"
+                          },
+                          "seasonMonitoring": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "seriesType": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "standard",
+                                  "anime",
+                                  "daily"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "instanceId",
+                          "qualityProfile",
+                          "rootFolder",
+                          "tags",
+                          "searchOnAdd",
+                          "instanceType",
+                          "seasonMonitoring",
+                          "seriesType"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "approvalId",
+                  "status",
+                  "content",
+                  "requestedBy",
+                  "resolvedBy",
+                  "triggeredBy",
+                  "createdAt",
+                  "resolvedAt"
+                ],
+                "additionalProperties": false
+              },
+              "example": {
+                "approvalId": 42,
+                "status": "approved",
+                "content": {
+                  "title": "The Batman",
+                  "type": "movie",
+                  "key": "5d7768388718ba001e31abc",
+                  "guids": [
+                    "imdb:tt1877830",
+                    "tmdb:414906"
+                  ]
+                },
+                "requestedBy": {
+                  "userId": 1,
+                  "username": "john_doe"
+                },
+                "resolvedBy": {
+                  "userId": 99
+                },
+                "approvalNotes": "Approved - great movie choice!",
+                "triggeredBy": "quota_exceeded",
+                "createdAt": "2024-12-20T10:00:00.000Z",
+                "resolvedAt": "2024-12-20T10:30:00.000Z",
+                "routing": {
+                  "instanceType": "radarr",
+                  "instanceId": 1,
+                  "qualityProfile": "1080p",
+                  "rootFolder": "/movies",
+                  "tags": [
+                    "plex-user"
+                  ],
+                  "searchOnAdd": true,
+                  "minimumAvailability": "released"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received successfully"
+          }
+        }
+      }
+    },
+    "approval.auto": {
+      "post": {
+        "tags": [
+          "Webhook Payloads"
+        ],
+        "summary": "Auto Approved",
+        "description": "Fired when content is auto-approved",
+        "operationId": "webhookApprovalAuto",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "approvalId": {
+                    "type": "number"
+                  },
+                  "content": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "movie",
+                          "show"
+                        ]
+                      },
+                      "key": {
+                        "type": "string"
+                      },
+                      "guids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "type",
+                      "key",
+                      "guids"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "user": {
+                    "type": "object",
+                    "properties": {
+                      "userId": {
+                        "type": "number"
+                      },
+                      "username": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "userId",
+                      "username"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "routing": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "instanceId": {
+                            "type": "number"
+                          },
+                          "qualityProfile": {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "rootFolder": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "searchOnAdd": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "syncedInstances": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "instanceType": {
+                            "type": "string",
+                            "const": "radarr"
+                          },
+                          "minimumAvailability": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "instanceId",
+                          "qualityProfile",
+                          "rootFolder",
+                          "tags",
+                          "searchOnAdd",
+                          "instanceType",
+                          "minimumAvailability"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "instanceId": {
+                            "type": "number"
+                          },
+                          "qualityProfile": {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "rootFolder": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "searchOnAdd": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "syncedInstances": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "instanceType": {
+                            "type": "string",
+                            "const": "sonarr"
+                          },
+                          "seasonMonitoring": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "seriesType": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "standard",
+                                  "anime",
+                                  "daily"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "instanceId",
+                          "qualityProfile",
+                          "rootFolder",
+                          "tags",
+                          "searchOnAdd",
+                          "instanceType",
+                          "seasonMonitoring",
+                          "seriesType"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ],
+                    "type": "object"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "approvalId",
+                  "content",
+                  "user",
+                  "routing",
+                  "reason"
+                ],
+                "additionalProperties": false
+              },
+              "example": {
+                "approvalId": 43,
+                "content": {
+                  "title": "Breaking Bad",
+                  "type": "show",
+                  "key": "5d7768388718ba001e31def",
+                  "guids": [
+                    "imdb:tt0903747",
+                    "tmdb:1396",
+                    "tvdb:81189"
+                  ]
+                },
+                "user": {
+                  "userId": 1,
+                  "username": "john_doe"
+                },
+                "routing": {
+                  "instanceType": "sonarr",
+                  "instanceId": 1,
+                  "qualityProfile": "1080p",
+                  "rootFolder": "/shows",
+                  "tags": [
+                    "plex-user"
+                  ],
+                  "searchOnAdd": true,
+                  "seasonMonitoring": "all",
+                  "seriesType": "standard"
+                },
+                "reason": "Auto-approved (no approval required)"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received successfully"
+          }
+        }
+      }
+    },
+    "delete_sync.completed": {
+      "post": {
+        "tags": [
+          "Webhook Payloads"
+        ],
+        "summary": "Delete Sync Completed",
+        "description": "Fired when a delete sync job finishes",
+        "operationId": "webhookDeleteSyncCompleted",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dryRun": {
+                    "type": "boolean"
+                  },
+                  "total": {
+                    "type": "object",
+                    "properties": {
+                      "processed": {
+                        "type": "number"
+                      },
+                      "deleted": {
+                        "type": "number"
+                      },
+                      "skipped": {
+                        "type": "number"
+                      },
+                      "protected": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "processed",
+                      "deleted",
+                      "skipped"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "movies": {
+                    "type": "object",
+                    "properties": {
+                      "deleted": {
+                        "type": "number"
+                      },
+                      "skipped": {
+                        "type": "number"
+                      },
+                      "protected": {
+                        "type": "number"
+                      },
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "title": {
+                              "type": "string"
+                            },
+                            "guid": {
+                              "type": "string"
+                            },
+                            "instance": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "guid",
+                            "instance"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "deleted",
+                      "skipped",
+                      "items"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "shows": {
+                    "type": "object",
+                    "properties": {
+                      "deleted": {
+                        "type": "number"
+                      },
+                      "skipped": {
+                        "type": "number"
+                      },
+                      "protected": {
+                        "type": "number"
+                      },
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "title": {
+                              "type": "string"
+                            },
+                            "guid": {
+                              "type": "string"
+                            },
+                            "instance": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "guid",
+                            "instance"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "deleted",
+                      "skipped",
+                      "items"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "safetyTriggered": {
+                    "type": "boolean"
+                  },
+                  "safetyMessage": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "dryRun",
+                  "total",
+                  "movies",
+                  "shows"
+                ],
+                "additionalProperties": false
+              },
+              "example": {
+                "dryRun": false,
+                "total": {
+                  "processed": 150,
+                  "deleted": 12,
+                  "skipped": 138,
+                  "protected": 5
+                },
+                "movies": {
+                  "deleted": 8,
+                  "skipped": 92,
+                  "protected": 3,
+                  "items": [
+                    {
+                      "title": "Old Movie",
+                      "guid": "imdb:tt0000001",
+                      "instance": "Radarr"
+                    },
+                    {
+                      "title": "Another Movie",
+                      "guid": "imdb:tt0000002",
+                      "instance": "Radarr"
+                    }
+                  ]
+                },
+                "shows": {
+                  "deleted": 4,
+                  "skipped": 46,
+                  "protected": 2,
+                  "items": [
+                    {
+                      "title": "Cancelled Show",
+                      "guid": "tvdb:12345",
+                      "instance": "Sonarr"
+                    }
+                  ]
+                },
+                "safetyTriggered": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received successfully"
+          }
+        }
+      }
+    },
+    "user.created": {
+      "post": {
+        "tags": [
+          "Webhook Payloads"
+        ],
+        "summary": "User Created",
+        "description": "Fired when a new user is added",
+        "operationId": "webhookUserCreated",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "number"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "alias": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "alias"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "canSync": {
+                    "type": "boolean"
+                  },
+                  "requiresApproval": {
+                    "type": "boolean"
+                  },
+                  "createdAt": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user",
+                  "canSync",
+                  "requiresApproval",
+                  "createdAt"
+                ],
+                "additionalProperties": false
+              },
+              "example": {
+                "user": {
+                  "id": 42,
+                  "name": "new_user",
+                  "alias": "New User"
+                },
+                "canSync": true,
+                "requiresApproval": false,
+                "createdAt": "2024-12-20T10:30:00.000Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received successfully"
+          }
+        }
+      }
+    }
+  }
 }
