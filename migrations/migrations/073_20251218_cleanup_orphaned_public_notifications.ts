@@ -9,22 +9,44 @@ import type { Knex } from 'knex'
  * 2. Deduplication blocking re-notification if content was re-added
  *
  * This migration retroactively cleans up any public notifications where
- * no users currently have the content in their watchlist.
+ * no users currently have the content in their watchlist, with type matching:
+ * - Movie notifications match watchlist_items.type = 'movie'
+ * - Episode/season notifications match watchlist_items.type = 'show'
  */
 export async function up(knex: Knex): Promise<void> {
-  // Delete public notifications where no user has the content watchlisted
-  const result = await knex('notifications')
+  // Delete orphaned movie notifications
+  const movieResult = await knex('notifications')
+    .where({
+      user_id: null,
+      watchlist_item_id: null,
+      notification_status: 'active',
+      type: 'movie',
+    })
+    .whereNotIn(
+      'title',
+      knex('watchlist_items').where('type', 'movie').distinct('title'),
+    )
+    .del()
+
+  // Delete orphaned show notifications (episode/season)
+  const showResult = await knex('notifications')
     .where({
       user_id: null,
       watchlist_item_id: null,
       notification_status: 'active',
     })
-    .whereNotIn('title', knex('watchlist_items').distinct('title'))
+    .whereIn('type', ['episode', 'season'])
+    .whereNotIn(
+      'title',
+      knex('watchlist_items').where('type', 'show').distinct('title'),
+    )
     .del()
 
-  if (result > 0) {
-    // Log is not available in migrations, but Knex will show the delete count
-    console.log(`Cleaned up ${result} orphaned public notification(s)`)
+  const total = movieResult + showResult
+  if (total > 0) {
+    console.log(
+      `Cleaned up ${total} orphaned public notification(s) (${movieResult} movies, ${showResult} shows)`,
+    )
   }
 }
 
