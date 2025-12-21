@@ -78,6 +78,24 @@ export interface RoutingDecision {
   ruleName?: string
 }
 
+/**
+ * Routing details for notification payloads.
+ * Simplified version of RoutingDecision with instance type for external consumers.
+ */
+export interface RoutingDetails {
+  instanceId: number
+  instanceType: 'radarr' | 'sonarr'
+  qualityProfile?: number | string | null
+  rootFolder?: string | null
+  tags?: string[]
+  searchOnAdd?: boolean | null
+  minimumAvailability?: string | null
+  seasonMonitoring?: string | null
+  seriesType?: string | null
+  ruleId?: number
+  ruleName?: string
+}
+
 // Condition system types
 export type LogicalOperator = 'AND' | 'OR'
 export type ComparisonOperator =
