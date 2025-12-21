@@ -20,7 +20,7 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   'approval.created': 'Approval Created',
   'approval.resolved': 'Approval Resolved',
   'approval.auto': 'Auto Approved',
-  'delete_sync.completed': 'Delete Sync Completed',
+  'delete_sync.completed': 'Delete Sync Complete',
   'user.created': 'User Created',
 }
 
