@@ -1,0 +1,71 @@
+---
+id: delete-webhook-endpoint
+title: "Delete webhook endpoint"
+description: "Delete a webhook endpoint"
+sidebar_label: "Delete webhook endpoint"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVktv2zgQ/ivEnFpAXjnb7kU3o8nB2ByMpPsAAh9ocmKxkUiVHCY1BP33xZCSH41SoJce9mSZM/PNgx8/sgfXoZdknF1rqEBjg4T/4K527unG6s4ZS1AAyX2A6gFGS4BtARqD8qbjWKjgOkUKKV6yi8BTdCe9bJHQM0YPQdXYSqh6oEOHUIGN7Q49DAUYhuok1VCAlS0bjYYCPH6NxqOGinzEYcsroXM2YGCc35dL/vm+okcZGxJ3oycUoJwltMS+susao1Ln5ZfAATOFud0XVKkDz3Mik9OFqBSGcOa4c65BabmFFkOQezwzBvLG7mEYzvt4OKKcQrYFSK0N1ySbzVnKR9kEHAZG+Lj8+EtbJUkxfHIaZ/dLXRqmTgtA752ftbw5nwJaY2/R7qmG6urVtE6FjGmnJD83vz9+MVX+X/NL+al2J61Ix5szQvl8VY6HP5TT6Q9lb/QABQT0z5MARN9ABX3nHTnlmqEqy752gYaq75wndr/cn08xkGvFfcKAAp6lN3LX5BFPMPyNNrbcbU3UQZF+Rq1KGwzVZLnE/1yjmGBEDKgFOaFc20bLG4/ixVAtqEaR2+B94IIzkyboxinZpOU5fDawpAnnxXojpNYeQxDuMeFuYhOk92f4PIlL/A/L5Yf50p0n4ax4qY2qj1AmCB+tzdIzFNPY00yqsjy46Bdd9l0YG0hahb8p175KsfGmlf4wjf8noKrZkq+NR0UjnFglFRTv0oi5k/ffZajK8jjZecDbyTwLtmXyqegNHRL7ZGf+xMMqMmkftpwrYAjG2ePSWcQ9n/PMs/O449nLizDeXDVKnQg63l3/Llab9SI7XJa82qzFEx6EjFSjpVFeRAzG7sUxTIyAQ3FZ4xvplXNPBk/pxy15lfw+Yy12kqk+W0KGCunSMvbRpZyGGoadCLbarGf70k7FFi1lvEfnj5RcCCk2DX4TL5JU3ZhAwljCvT+53jvLntJqcSd1rp6FI8P/fZWPRqBWJh0eOx1fHzNvj4vy+pOs//DBMk6X8BuVXSNNutgTI/tR7R7g+QoKmPSOxXRSPCigMppVJ0vEA/Q9T/ov3wwDL3+N6JmK25OQJWJqE/hbj3r7g9rf3Y3K/l68Ve1EEHtIetlE/gcFPOEhP6qGLYtY5hdnzwY+QB2dhby6/Ph0HO+A65vbm883MAz/ARCCkcE=
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete webhook endpoint"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/webhooks/endpoints/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete a webhook endpoint
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

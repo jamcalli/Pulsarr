@@ -1,0 +1,71 @@
+---
+id: webhook-watchlist-removed
+title: "Watchlist Removed"
+description: "Fired when a user removes content from their watchlist"
+sidebar_label: "Watchlist Removed"
+hide_title: true
+hide_table_of_contents: true
+api: eJyVVttu4zYQ/RVinlpAru24Sbx68+62gNE+CMmiWyAwClocW0wkUuXFXsHQvy+Gulh2lA32yTaHPHN4ZubQJ3B8byF+gq+4zbR+YQmvcs2FhU0EAm1qZOmkVhDDn9KgYMcMFePMWzTMYKEPaFmqlUPl2M7ogrkMpWFH7tIsl9ZBBLpEwwlkLSCGY5Poa7fhIYAIiMDg/x6t+6hFBfEp/KSUEDvjMYI2C4V4WeYyDZjTZ0vsTmDTDAtO31xVIsSgt8+YUv7SEAMn0VK0Z7Z2WBCj/oDyxRYN1BepfgzmpMtxsM06I9WeIJqF60AEqHxBehf6IBEisJk+wqaO4AWrUaC9l8IOItwYXkEE0mFhR07UdTSQ7qml2BJq0nSgmwi4EJJk5HkyuNiO5xYDTqjNx+p9Jagh3lCTQooXYzpdcW1BBkfeoXh1/rq250oO7/LutfEbL8qmrq+6ZX6zuOyPpgPgs1cYs4Qbx74cdad33Nc5lBduxf393XKxXN7Pl1s+m81xMb+9W4i+JPETyEJsY+fmtzeLD3f3S4KilbsPi/ni99AqF2XphJ8PhYZnnan/hEbqh0YlW2plm1rdzGb0cTnenQEYTFEeUDDr0xSt3fk8r0KlCnSZphHGQyNpyV12nmhqZjQHNHSLE3iTQwyn0minU53X8XR6yrR1dXwqtXE1XPvLJ2+dLthjwIAIDtxIvs0byh0Mfe9GKHOuhCh8tHa14z53EHeRS/wvGbIOhvxLMKdZqovCK/ISZEfpMrIv1lyDWpcIN1J10LlOeR6Wx/ApQBVg2rB1wrgQBq1lehdwE59bbswAn5S4xF/MZotx6to4phU7ZjLNeihpmfFKdZPfyR40iafTSnszKZu9E6ms4yrF31JdvEqRGFlwU3Xy/wRUPEr5szSYuhaOrUIrsV+CxHSTX68yxNNpr+w44N9deBRsQ82XeiNdFbqPl/IvrFaeGvRpQ7ksWiu16pcGJx7p6Wj6bHjubLlhkTyXiGTIRWjQdtT+nayS9aTZcEl5lazZC1aMe5ehcu2LxbyVas/6Y6wFrKNLjm+kT7V+CY7Spm9L8ir5Y4M12XJq9VEKDZQNw03P6MP5Af7jBxY4GzXA/oUbNb4+2ttcu/Kmn80u/GzwYEi108PE3SiskvVoBYROfYHKNTffadMPz4RxluT47fxvhUnlcG/OWx+1op1cCfbARaMzWVwD/88c6vo79Hw3Aw==
+sidebar_class_name: "event api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Watchlist Removed"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"event"}
+  path={"webhook"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Fired when a user removes content from their watchlist
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"watchlistItemId":{"type":"number"},"content":{"type":"object","properties":{"title":{"type":"string"},"type":{"type":"string","enum":["movie","show"]},"key":{"type":"string"},"guids":{"type":"array","items":{"type":"string"}}},"required":["title","type","key","guids"],"additionalProperties":false},"removedBy":{"type":"object","properties":{"userId":{"type":"number"},"username":{"type":"string"}},"required":["userId","username"],"additionalProperties":false}},"required":["watchlistItemId","content","removedBy"],"additionalProperties":false},"example":{"watchlistItemId":123,"content":{"title":"Dune: Part Two","type":"movie","key":"5d7768388718ba001e31563d","guids":["imdb:tt15239678","tmdb:693134"]},"removedBy":{"userId":1,"username":"john_doe"}}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Webhook received successfully"}}}
+>
+  
+</StatusCodes>
+
+
+      

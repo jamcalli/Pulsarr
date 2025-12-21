@@ -59,7 +59,9 @@ export function NotificationCharts() {
 
     const byChannel =
       notificationStats.by_channel?.map((item) => ({
-        name: item.channel.charAt(0).toUpperCase() + item.channel.slice(1),
+        name: item.channel
+          .replaceAll('_', ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase()),
         value: item.count,
       })) || []
 
@@ -82,7 +84,9 @@ export function NotificationCharts() {
       notificationStats.by_channel.forEach((item, index) => {
         const key = item.channel
         config[key] = {
-          label: item.channel.charAt(0).toUpperCase() + item.channel.slice(1),
+          label: item.channel
+            .replaceAll('_', ' ')
+            .replace(/\b\w/g, (l) => l.toUpperCase()),
           color: `hsl(var(--chart-${(index % 5) + 1}))`,
         }
       })

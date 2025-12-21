@@ -24,9 +24,6 @@ const NewUserDefaultsPage = lazy(
 const PlexSessionMonitoringPage = lazy(
   () => import('@/features/utilities/pages/plex-session-monitoring'),
 )
-const PublicContentNotificationsPage = lazy(
-  () => import('@/features/utilities/pages/public-content-notifications'),
-)
 const UserTagsPage = lazy(() => import('@/features/utilities/pages/user-tags'))
 const PlexLabelsPage = lazy(
   () => import('@/features/utilities/pages/plex-labels'),
@@ -241,16 +238,6 @@ export const router = createBrowserRouter(
                 <AuthenticatedLayout>
                   <Suspense fallback={<LoadingFallback />}>
                     <PlexSessionMonitoringPage />
-                  </Suspense>
-                </AuthenticatedLayout>
-              ),
-            },
-            {
-              path: 'public-content-notifications',
-              element: (
-                <AuthenticatedLayout>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <PublicContentNotificationsPage />
                   </Suspense>
                 </AuthenticatedLayout>
               ),

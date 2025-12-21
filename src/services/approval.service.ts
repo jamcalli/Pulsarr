@@ -306,6 +306,14 @@ export class ApprovalService {
             approvalNotes: `Auto-approved: Content already added to system by another user's request`,
           })
 
+          // Send native webhook notification for cross-user fulfillment (fire-and-forget)
+          void this.fastify.notifications.sendApprovalResolved(
+            matchingRequest,
+            'approved',
+            approvedBy,
+            'Content already added to system by another user request',
+          )
+
           this.log.info(
             `Auto-approved request ${matchingRequest.id} for user ${matchingRequest.userId}: ${matchingRequest.contentTitle} (content already available)`,
           )
@@ -550,6 +558,14 @@ export class ApprovalService {
                     approvedRequest.userName,
                   )
 
+                  // Send native webhook notification for expiration-based approval (fire-and-forget)
+                  void this.fastify.notifications.sendApprovalResolved(
+                    approvedRequest,
+                    'approved',
+                    0, // System user
+                    'Request expired with auto-approval enabled',
+                  )
+
                   // Process the approved request (route to Radarr/Sonarr)
                   const processResult =
                     await this.processApprovedRequest(approvedRequest)
@@ -652,6 +668,14 @@ export class ApprovalService {
       if (result) {
         // Emit SSE event for approved request
         this.emitApprovalEvent('approved', result, result.userName)
+
+        // Send native webhook notification (fire-and-forget)
+        void this.fastify.notifications.sendApprovalResolved(
+          result,
+          'approved',
+          approvedBy,
+          notes,
+        )
       }
 
       return result
@@ -679,6 +703,14 @@ export class ApprovalService {
       if (result) {
         // Emit SSE event for rejected request
         this.emitApprovalEvent('rejected', result, result.userName)
+
+        // Send native webhook notification (fire-and-forget)
+        void this.fastify.notifications.sendApprovalResolved(
+          result,
+          'denied',
+          rejectedBy,
+          reason,
+        )
       }
 
       return result

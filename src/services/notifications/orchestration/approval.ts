@@ -8,6 +8,7 @@
  * This module owns HOW to send (channel routing, embeds, delivery).
  */
 
+import { buildRoutingPayload } from '@root/schemas/webhooks/webhook-payloads.schema.js'
 import type {
   DiscordEmbed,
   SystemNotification,
@@ -15,6 +16,7 @@ import type {
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
+import { dispatchWebhooks } from '@services/notifications/channels/native-webhook.js'
 import type { DiscordBotService } from '@services/notifications/discord-bot/bot.service.js'
 import type { FastifyBaseLogger } from 'fastify'
 
@@ -40,8 +42,29 @@ export interface ApprovalRequest {
   contentKey: string
   userId: number
   userName: string | null
-  triggeredBy: string
+  triggeredBy:
+    | 'quota_exceeded'
+    | 'router_rule'
+    | 'manual_flag'
+    | 'content_criteria'
   approvalReason: string | null
+  // Router decision containing proposed routing (if approval was triggered by routing rules)
+  proposedRouterDecision?: {
+    approval?: {
+      proposedRouting?: {
+        instanceId: number
+        instanceType: 'radarr' | 'sonarr'
+        qualityProfile?: number | string | null
+        rootFolder?: string | null
+        tags?: string[]
+        searchOnAdd?: boolean | null
+        minimumAvailability?: string | null
+        seasonMonitoring?: string | null
+        seriesType?: 'standard' | 'anime' | 'daily' | null
+        syncedInstances?: number[]
+      }
+    }
+  }
 }
 
 export interface ApprovalNotificationChannels {
@@ -540,6 +563,37 @@ export async function sendApprovalBatch(
   logger.info(
     `Approval notification attempt complete: ${successCount} channels sent successfully`,
   )
+
+  // Dispatch native webhooks for each approval request (fire-and-forget)
+  // This runs regardless of other notification channel settings
+  for (const request of queuedRequests) {
+    const posterUrl = posterMap.get(request.contentKey)
+    const proposedRouting =
+      request.proposedRouterDecision?.approval?.proposedRouting
+    void dispatchWebhooks(
+      'approval.created',
+      {
+        approvalId: request.id,
+        content: {
+          title: request.contentTitle,
+          type: request.contentType,
+          key: request.contentKey,
+          posterUrl,
+        },
+        requestedBy: {
+          userId: request.userId,
+          username: request.userName,
+        },
+        triggeredBy: request.triggeredBy,
+        approvalReason: request.approvalReason,
+        pendingCount: totalPending,
+        proposedRouting: proposedRouting
+          ? buildRoutingPayload(proposedRouting)
+          : undefined,
+      },
+      { db, log: logger },
+    )
+  }
 
   return successCount
 }
