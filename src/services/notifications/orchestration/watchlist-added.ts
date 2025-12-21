@@ -7,6 +7,7 @@
 
 import { buildRoutedToItem } from '@root/schemas/webhooks/webhook-payloads.schema.js'
 import type { Friend } from '@root/types/plex.types.js'
+import type { RoutingDetails } from '@root/types/router.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
@@ -32,20 +33,6 @@ export interface WatchlistItemInfo {
   thumb?: string
   key?: string
   guids?: string | string[]
-}
-
-export interface RoutingDetails {
-  instanceId: number
-  instanceType: 'radarr' | 'sonarr'
-  qualityProfile?: number | string | null
-  rootFolder?: string | null
-  tags?: string[]
-  searchOnAdd?: boolean | null
-  minimumAvailability?: string | null
-  seasonMonitoring?: string | null
-  seriesType?: string | null
-  ruleId?: number
-  ruleName?: string
 }
 
 // ============================================================================

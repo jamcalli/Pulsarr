@@ -8,7 +8,10 @@
 
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
-import type { RoutingContext } from '@root/types/router.types.js'
+import type {
+  RoutingContext,
+  RoutingDetails,
+} from '@root/types/router.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import {
   extractTmdbId,
@@ -175,23 +178,6 @@ async function checkMovieExistsViaApi(
     }
   }
   return { exists: false, anyChecked }
-}
-
-/**
- * Routing details from the content router
- */
-interface RoutingDetails {
-  instanceId: number
-  instanceType: 'radarr' | 'sonarr'
-  qualityProfile?: number | string | null
-  rootFolder?: string | null
-  tags?: string[]
-  searchOnAdd?: boolean | null
-  minimumAvailability?: string | null
-  seasonMonitoring?: string | null
-  seriesType?: string | null
-  ruleId?: number
-  ruleName?: string
 }
 
 /**
