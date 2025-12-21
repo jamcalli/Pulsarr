@@ -726,11 +726,13 @@ export async function sendMediaAvailable(
           isBulkRelease: options.isBulkRelease,
           instanceType: options.instanceType,
           instanceId: options.instanceId,
-          watchlistedBy: notificationResults.map((result) => ({
-            userId: result.user.id,
-            username: result.user.name,
-            alias: result.user.alias ?? undefined,
-          })),
+          watchlistedBy: notificationResults
+            .filter((result) => result.user.id !== -1)
+            .map((result) => ({
+              userId: result.user.id,
+              username: result.user.name,
+              alias: result.user.alias ?? undefined,
+            })),
         },
         { db: deps.db, log: deps.logger },
       )
