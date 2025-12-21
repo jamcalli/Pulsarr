@@ -44,6 +44,7 @@ const sidebars: SidebarsConfig = {
         'notifications/discord',
         'notifications/apprise',
         'notifications/tautulli',
+        'notifications/native-webhooks',
       ],
     },
     {
