@@ -76,7 +76,15 @@ export function WebhookEndpointsSection({
         <p>
           Configure webhook endpoints to receive notifications for Pulsarr
           events. Webhooks send JSON payloads to your specified URLs when events
-          occur.
+          occur.{' '}
+          <a
+            href="/api/docs#tag/webhook-payloads"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline"
+          >
+            View payload schemas →
+          </a>
         </p>
       </div>
 

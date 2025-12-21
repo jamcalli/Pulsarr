@@ -1,5 +1,7 @@
 import fastifySwagger from '@fastify/swagger'
+import { WEBHOOK_EVENT_TYPES } from '@root/types/webhook-endpoint.types.js'
 import apiReference from '@scalar/fastify-api-reference'
+import { WEBHOOK_PAYLOAD_REGISTRY } from '@schemas/webhooks/webhook-payloads.schema.js'
 import { normalizeBasePath } from '@utils/url.js'
 import type { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
@@ -8,6 +10,60 @@ import {
   fastifyZodOpenApiTransform,
   fastifyZodOpenApiTransformObject,
 } from 'fastify-zod-openapi'
+import { createSchema } from 'zod-openapi'
+
+/** Human-readable labels for webhook event types */
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  'media.available': 'Media Available',
+  'watchlist.added': 'Watchlist Added',
+  'watchlist.removed': 'Watchlist Removed',
+  'approval.created': 'Approval Created',
+  'approval.resolved': 'Approval Resolved',
+  'approval.auto': 'Auto Approved',
+  'delete_sync.completed': 'Delete Sync Completed',
+  'user.created': 'User Created',
+}
+
+/**
+ * Builds the OpenAPI webhooks section from the payload registry.
+ * Converts Zod schemas to OpenAPI schemas and includes examples.
+ */
+function buildWebhooksSpec(): Record<string, unknown> {
+  const webhooks: Record<string, unknown> = {}
+
+  for (const eventType of WEBHOOK_EVENT_TYPES) {
+    const entry = WEBHOOK_PAYLOAD_REGISTRY[eventType]
+    const { schema: jsonSchema } = createSchema(entry.schema)
+
+    webhooks[eventType] = {
+      post: {
+        tags: ['Webhook Payloads'],
+        summary: EVENT_TYPE_LABELS[eventType] ?? eventType,
+        description: entry.description,
+        operationId: `webhook${eventType
+          .split(/[._]/)
+          .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+          .join('')}`,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: jsonSchema,
+              example: entry.example,
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Webhook received successfully',
+          },
+        },
+      },
+    }
+  }
+
+  return webhooks
+}
 
 const createOpenapiConfig = (fastify: FastifyInstance) => {
   const urlObject = new URL(fastify.config.baseUrl)
@@ -160,6 +216,11 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           name: 'Webhooks',
           description: 'Native webhook endpoint management',
         },
+        {
+          name: 'Webhook Payloads',
+          description:
+            'Outgoing webhook payload schemas sent to configured endpoints',
+        },
       ],
       components: {
         securitySchemes: {
@@ -185,7 +246,18 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
     hideUntagged: true,
     exposeRoute: true,
     transform: fastifyZodOpenApiTransform,
-    transformObject: fastifyZodOpenApiTransformObject,
+    transformObject: (
+      args: Parameters<typeof fastifyZodOpenApiTransformObject>[0],
+    ) => {
+      // Run the default transform first
+      const result = fastifyZodOpenApiTransformObject(args)
+
+      // Inject webhooks section into the OpenAPI spec
+      // We're using OpenAPI mode so result will have OpenAPI structure
+      ;(result as Record<string, unknown>).webhooks = buildWebhooksSpec()
+
+      return result
+    },
   }
 }
 

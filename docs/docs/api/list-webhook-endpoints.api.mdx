@@ -1,0 +1,63 @@
+---
+id: list-webhook-endpoints
+title: "List webhook endpoints"
+description: "Retrieve all configured webhook endpoints"
+sidebar_label: "List webhook endpoints"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vk1vIzcM/SsCTy0wziRd9DI3Y3fRGg0KI0m3BQyjkCXao41GmpUoZw1j/nvB+bDH8Syye+nJY5F8pMinJx3B1xgkGe8WGgqwJtLfuCm9f/7odO2NowgZkNxFKFbQmyKsM9AYVTA1h0IBD0jB4B6FtFYo77ZmlwJq8dJFCByhBYy1dxEjFEf45faWfy7RPuBWJkviofeEDJR3hI7YV9a1NaotOv8cOeAIUZVYSf6iQ41QgN98RkWQQR14i2S6dDEphTGOHDfeW5QOMkCXKihWFBKumwy0pDGgDEEeIANDWMW3Exk98nGp2mCAJgMnKxwZIgXjdmxIwV6vZ7D1oZIEBaRg2E0mKn9HqTH82SO5ZK3cWISCC8+ukc8hn6RN3xeDe3T0dKgxfkcHTsX2DYQKtZE3ci9NlyWDF0mqZHLdSK1RX6wErPy+XZN1Hfxe2hsVUNLlUsDo7Ss3mcgDM9Ei4b/x4NSN8lXN/9gvRQwnqHXD23Jcj56YfpNB7zmn6fnU+pvWhjn9JZnA0CsefT/obqxXU7ueyUXHz3WOixqXsM5Aam34BEi7HPFuK23E5nVBA+l7Tr8Z3WTw6/98LElSiu+9xslToy4NI56G4MOkpcIY5W4iKoPKuHt0OyqhuLtq1bmQPu2Q5Az5dv/a/FR6ltQdttuVnA7y/V3eS2LMx5oYMewxsMgeOymAYx08eeVtU+T5sfSRmuJY+0ANvBbf9ymSr8RjiwEZ7GUwTKC2tQMMfw8HtCSqIWt/ei1vBwvFYLnEfypRDDAiRdSCvFC+qpLjgaN4MVQKKlF02+D+c8EdgwZo65W07fIUPhv4zAgfxGIppNYBYxR+2+Iuk40yhBE+d+IS/93t7bvp0n0g4Z14KY0qT1AmipCc6w5wkw1tb3tS5PnBpzCrO9+ZcZGkU8jycpViGUwlw2Fo/w9AFZMlfzABFfVwYt4eXfFT22Leyc+vMhR5fursNOD9YJ4EWzP5VAqGDi37ZG3+wMM8MV9Xa84VMUbj3WlpFPHI57vj2TjufGW0i3xncCFlq3iDOBbwz2y+XMw6h8uS58uFeMaDYJ1ER72siBSN24lTmOgBm+yyxm+kV94/Gzyn70dylfyxw5ptJFN9soQOKrbSb9zWtzkN8Y0KA8Hmy8XkvrRXqUJHHd7WhxMlZ0KKpcWv4nQ5CuMId+Hs+ugde0qnxYPUXfUsHB38p7vuaESqZKu//U7vGWrqKXZR3fGs5j/0nuubTfiV8tpK40bvmU73VrC/4zt/eD7yDTfErwetWMHxyC3/K9im4eUvCQNzcn1WtI6SA5GYrs944L4qhTW10tc+ca4vI2btSZN/+/gETfMfyLvVTg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List webhook endpoints"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/webhooks/endpoints"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve all configured webhook endpoints
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean","enum":[true]},"data":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"url":{"type":"string","format":"uri"},"authHeaderName":{"nullable":true,"type":"string"},"authHeaderValue":{"nullable":true,"type":"string"},"eventTypes":{"type":"array","items":{"type":"string","enum":["media.available","watchlist.added","watchlist.removed","approval.created","approval.resolved","approval.auto","delete_sync.completed","user.created"]}},"enabled":{"type":"boolean"},"createdAt":{"type":"string"},"updatedAt":{"type":"string"}},"required":["id","name","url","authHeaderName","authHeaderValue","eventTypes","enabled","createdAt","updatedAt"],"additionalProperties":false}}},"required":["success","data"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
