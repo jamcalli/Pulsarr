@@ -1382,15 +1382,20 @@ export async function deleteWatchlistItems(
 
         totalDeleted += deleteCount
 
-        // Check if any other users still have this content watchlisted
+        // Check if any other users still have this content watchlisted (same type)
         // If not, clean up public notifications to allow re-notification if re-added
         const remaining = await trx('watchlist_items')
           .where('title', item.title)
+          .where('type', item.type)
           .whereNot('user_id', numericUserId)
           .first()
 
         if (!remaining) {
           // No users have this content anymore - clean up public notifications
+          // Match notification type: movie -> 'movie', show -> 'episode'/'season'
+          const notificationTypes =
+            item.type === 'movie' ? ['movie'] : ['episode', 'season']
+
           const publicDeleted = await trx('notifications')
             .where({
               user_id: null,
@@ -1398,6 +1403,7 @@ export async function deleteWatchlistItems(
               title: item.title,
               notification_status: 'active',
             })
+            .whereIn('type', notificationTypes)
             .del()
 
           if (publicDeleted > 0) {
