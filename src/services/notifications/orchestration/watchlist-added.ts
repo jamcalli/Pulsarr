@@ -162,25 +162,38 @@ export async function sendWatchlistAdded(
     item.type?.toLowerCase() === 'show' ? ('show' as const) : ('movie' as const)
 
   // Dispatch native webhooks
-  const webhookResult = await dispatchWebhooks(
-    'watchlist.added',
-    {
-      addedBy: {
-        userId: user.userId,
+  let webhookSent = false
+  try {
+    const webhookResult = await dispatchWebhooks(
+      'watchlist.added',
+      {
+        addedBy: {
+          userId: user.userId,
+          username,
+        },
+        content: {
+          title: item.title,
+          type: contentType,
+          thumb: item.thumb,
+          key: item.key ?? '',
+          guids: guidsArray,
+        },
+        routedTo,
+      },
+      { db, log: logger },
+    )
+    webhookSent = webhookResult.succeeded > 0
+  } catch (error) {
+    logger.error(
+      {
+        error,
         username,
-      },
-      content: {
         title: item.title,
-        type: contentType,
-        thumb: item.thumb,
-        key: item.key ?? '',
-        guids: guidsArray,
+        userId: user.userId,
       },
-      routedTo,
-    },
-    { db, log: logger },
-  )
-  const webhookSent = webhookResult.succeeded > 0
+      'Error dispatching native webhooks',
+    )
+  }
 
   // Record notification if any method succeeded
   if (discordSent || appriseSent || webhookSent) {

@@ -714,25 +714,32 @@ export async function sendMediaAvailable(
           }
         : undefined
 
-    await dispatchWebhooks(
-      'media.available',
-      {
-        mediaType: mediaInfo.type,
-        title: mediaInfo.title,
-        guids: enrichment.guids,
-        posterUrl: enrichment.posterUrl,
-        episodeDetails,
-        isBulkRelease: options.isBulkRelease,
-        instanceType: options.instanceType,
-        instanceId: options.instanceId,
-        watchlistedBy: notificationResults.map((result) => ({
-          userId: result.user.id,
-          username: result.user.name,
-          alias: result.user.alias ?? undefined,
-        })),
-      },
-      { db: deps.db, log: deps.logger },
-    )
+    try {
+      await dispatchWebhooks(
+        'media.available',
+        {
+          mediaType: mediaInfo.type,
+          title: mediaInfo.title,
+          guids: enrichment.guids,
+          posterUrl: enrichment.posterUrl,
+          episodeDetails,
+          isBulkRelease: options.isBulkRelease,
+          instanceType: options.instanceType,
+          instanceId: options.instanceId,
+          watchlistedBy: notificationResults.map((result) => ({
+            userId: result.user.id,
+            username: result.user.name,
+            alias: result.user.alias ?? undefined,
+          })),
+        },
+        { db: deps.db, log: deps.logger },
+      )
+    } catch (error) {
+      deps.logger.error(
+        { error, title: mediaInfo.title, type: mediaInfo.type },
+        'Error dispatching native webhooks for media available',
+      )
+    }
   }
 
   return { matchedCount: matchingItems.length }
