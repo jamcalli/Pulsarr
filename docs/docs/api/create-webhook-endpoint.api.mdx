@@ -1,0 +1,71 @@
+---
+id: create-webhook-endpoint
+title: "Create webhook endpoint"
+description: "Create a new webhook endpoint"
+sidebar_label: "Create webhook endpoint"
+hide_title: true
+hide_table_of_contents: true
+api: eJztV0uP2zYQ/ivEnFpAXnub5qKbmwSo0aA1dtO0wMIoxtLYYlYiFT7sNQz/92BISZZsbTdFix6K7mUtcubjcOabB4+gazLopFaLHFLIDKGj32hdaP34TuW1lspBAg63FtIHaHYsrBLIyWZG1qwLKbwJmgKFor3YRzFBZwRDnz1Z94POD5AeIdPKkXL8E+u6lFmwYfrJMtgRbFZQhfzLHWqCFPT6E2WMUxu22EmyvKuwop6UdUaqLSRQSfWe1NYVkN4mUOFT9zWbnRLwprzWOiWA3hU/EuZkfn4O+BLqrPIRS/+SzuugQztS7sOhjneopFo4qmwwtdFFY/AACci4cY1JylcckIpyiTe4Q1niuiRIYI8uK0pp3Q3mOeWDFUOV3oU1rGujd1jexIgPlgxZXV6IoXcaOOYlOfrDHlR2k+mq5i+W85ZMB7U68R0V25Oz7Tlt0JcOUmc8dVdca10SKmBhJoc0LP0QQxpDNPDU6jSUZLCwYGutbHTld7PbeGCfmW/j8eKukYTkn2Kf9VlGth+f9lJdgNjK1SmBHN1XAMq8J6N8tSbDtBxn+XM8TmCjTYUOUvBGjtNa+TLyZRiTsUzoaP2izpDW/0UmX1I3aQpmPnfj8anzZ3cvaC/58AH3L6J2HZOBx8929o3qm7BKAPNcMtOxXPZ4t8HS0qU9Lbcb6r6kzOrfz2b/avY5dN6+0TmNJk023OjR1BhtRncqsha3LzaUK1edDWmObQ85Q36N/17/77+/4b9wvis0jzG1tuG+yOfBdHc7bSYSO21HEma2JbMjw4PNMZZSONZGO53p8pROp8dCW3dKj7U27gRXA4+3TlfiPmBAAjs0khMw+LaF4d9tgSucqyEJ/5r5qWmL7c4Q/0NBooUR3lIunBaZriqvOOIk9tIVwhUk4jU4AGzwoONCqTMsi+iOa3ze4JojtBGLpcA8N2St0JuAu/SlRWN6+OyJIf6r2ezVuOnaOKGV2BcyKzooaYXxSsUCeEpatwefpNPpQXszqaPsRCrrUGXE5fnqiKWRFZpD6/6/AJWOmvxWGspcAyfmofaJb4KL+SbfXpyQTqedZ8cB37fbo2ArJl/mjXSHwD6s5U90mHvm68OKz7JkrdSqW+pp3HOCR5719c4tNyxyz2VDitAx2uaSwu+T+XIxiQJDk+fLhXikg+A+Q8o1dUV4K9VWdGqiATwlQxufOT7T+lHS+fgmJFeH30esyRqZ6qMmRCgbWicXu7vzk+LdE3ILPz8JzpUnBq37vJyFxnaakac3o/Qmm+tJZdWbEZqpVKqNDi6Rjq2Clv/z5WLU7bnOfEXKxetutOkyZiJQLEt6Et3sI6RytDVn0XutWBJVLu4wj87luhbhP97GzLWuQtVzUPNgG3mqDczrPdVefOM1BHD05KZ1iVL1ZtRYix9gd8tzXPuMZM+19XjV1q8HOB6ZBr+a8nTi5c+eDOfJ6lxlY5q05OYUeqQDmxiNnXCwQlGOkbzqk5xiUYPTs3Z/KrvqtZblL/cfIIF1846tQpcEg3t+4+IeUoAEdHBeyNCwdoQS1daH3ggRk/++AIt1Y4Q=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create webhook endpoint"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/webhooks/endpoints"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create a new webhook endpoint
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1,"maxLength":100},"url":{"type":"string"},"authHeaderName":{"type":"string","maxLength":100},"authHeaderValue":{"type":"string","maxLength":500},"eventTypes":{"minItems":1,"type":"array","items":{"type":"string","enum":["media.available","watchlist.added","watchlist.removed","approval.created","approval.resolved","approval.auto","delete_sync.completed","user.created"]}},"enabled":{"default":true,"type":"boolean"}},"required":["name","url","eventTypes"]}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean","enum":[true]},"data":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"url":{"type":"string","format":"uri"},"authHeaderName":{"nullable":true,"type":"string"},"authHeaderValue":{"nullable":true,"type":"string"},"eventTypes":{"type":"array","items":{"type":"string","enum":["media.available","watchlist.added","watchlist.removed","approval.created","approval.resolved","approval.auto","delete_sync.completed","user.created"]}},"enabled":{"type":"boolean"},"createdAt":{"type":"string"},"updatedAt":{"type":"string"}},"required":["id","name","url","authHeaderName","authHeaderValue","eventTypes","enabled","createdAt","updatedAt"],"additionalProperties":false}},"required":["success","data"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

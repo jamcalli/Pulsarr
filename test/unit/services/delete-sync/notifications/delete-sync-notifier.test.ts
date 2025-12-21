@@ -32,6 +32,7 @@ describe('delete-sync orchestration', () => {
   }
   let mockDb: {
     getAllUsers: ReturnType<typeof vi.fn>
+    getWebhookEndpointsForEvent: ReturnType<typeof vi.fn>
   }
   let baseDeps: DeleteSyncDeps
 
@@ -67,6 +68,7 @@ describe('delete-sync orchestration', () => {
           discord_id: '123456',
         },
       ]),
+      getWebhookEndpointsForEvent: vi.fn().mockResolvedValue([]),
     }
     baseDeps = {
       db: mockDb as unknown as DatabaseService,
