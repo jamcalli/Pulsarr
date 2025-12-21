@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { api } from '@/lib/api'
 
 /**
  * Displays a skeleton loader for the notifications settings page, providing placeholder elements for all notification sections during data loading.
@@ -206,7 +207,7 @@ export function NotificationsSkeleton() {
                 events. Webhooks send JSON payloads to your specified URLs when
                 events occur.{' '}
                 <a
-                  href="/api/docs#tag/webhook-payloads"
+                  href={api('/api/docs#tag/webhook-payloads')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:underline"
