@@ -6,6 +6,7 @@ import { WebhookEndpointCard } from '@/features/notifications/components/webhook
 import { WebhookEndpointDeleteModal } from '@/features/notifications/components/webhooks/webhook-endpoint-delete-modal'
 import { WebhookEndpointModal } from '@/features/notifications/components/webhooks/webhook-endpoint-modal'
 import { useWebhookEndpoints } from '@/features/notifications/hooks/useWebhookEndpoints'
+import { api } from '@/lib/api'
 
 interface WebhookEndpointsSectionProps {
   isInitialized: boolean
@@ -78,7 +79,7 @@ export function WebhookEndpointsSection({
           events. Webhooks send JSON payloads to your specified URLs when events
           occur.{' '}
           <a
-            href="/api/docs#tag/webhook-payloads"
+            href={api('/api/docs#tag/webhook-payloads')}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500 hover:underline"
