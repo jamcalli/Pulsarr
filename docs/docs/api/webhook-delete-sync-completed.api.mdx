@@ -1,0 +1,71 @@
+---
+id: webhook-delete-sync-completed
+title: "Delete Sync Complete"
+description: "Fired when a delete sync job finishes"
+sidebar_label: "Delete Sync Complete"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVktv4zYQ/ivEnLqAXD+SFFvd3GwLBO2iRrxoFwhyoMmxxYQiVXJkr2D4vxfUy5SjbNrDAj3UF0si55vXx294BOI7D+kD/ImbzNpntuKVtlx6eExAohdOFaSsgRR+UQ4lO2RoGGcSNRIyXxnBnuyGbZVRPkMPCdgCHQ82dxJSODS4H+r968qIW5sX4VlCAg7/KtHTT1ZWkB7r1+AEUnIlJiCsITQUlnhRaCVq2OmTD/EcwYsMcx6eqCoQUrCbJxQECRQuBEEKfViVrrovTbRvY61GbuCUAFni+m2IwlmB3ofQ+q2mzDfoAkhTjPE1/6yK4pW1wllCMW55SqJyPEQBnN2dwR8T4FKqUB2uV1HkW649nhLI7b7N5I1SfYNMElCEeeycO8crePn9laBIkcZomyenzC4A70olRxeU8cSNGLO6KGwD3kJFhm+U9BLmZU+69N7sjc/s4f/W/Ddbw7dI1Sendjt0gwpGEtJs+oje890/yKpVo056+rPZEeHNoPALDwoaK1u9FIlZJFfzm1kkUPNFRJb51fsBPW4GQtHbvI9MflwMLK56ojz0XIDftWQfA0zXuhRULjcp0az+zeNepnDPJXeBi2eEpbGUofsqymIc5TE+UH0K11EK1z8MUliMpXAbULVGydaZPZwjoL3cpPPF1fXN0PvamrP3S850rKx54AtrfFPgxWzWBBkP2W4MOxSo9iiZL0Vo5bbUuqq5lCNlNgSD+zAbEyg4ZedBG3iEbo+uyah0GlI4hoStsPqUTqfHzHo6pcfCOjrB5ZS/LT3ZnK1rDEhgz53iG92PwRomPKMp88DnjKiApP5rLw1bXmqCtFsZ4n/KkHUwrPQoGVkmbJ6XJsx3ZAdFGaMMWZNGOGEh4KZUHbS2guv68xh+WDA8R2Ydu1sxLqVD75nd1rirUnvuXIQfKjHEv5rNrsZDt46YNeyQKZH1UMozVxrTHPfA5KbsdU3S6bSypZsUzd5JR5vvhc1fuFg5lXNXdeX/F1DpaMgflENBLRxb1lRi39UlDpm8u/CQTqd9ZccBf+uWR8EeA/lE6RRVNft4oX7FalkGgj48Bl8evVfW9J8ii3W4zjU8i+3Oo6n+WB+8EC5yWRM0NBpS+DxZru4mzYZhyMvVHXvGivGSMjTU3iJZ6ZXZsd6MtYDhBMcxvuJeWPtca1Prvm3JC+frBmuy4YHqoyE0UL4+3OFqe3++FP/8Uuqbm/GY0sc6P4sEbzbQu9m4yH/FYEwg29nWC2P/HoliN//GJflbO7xU4aZuF7N6cC3Z2uhGA93RXq7uRhklrShzNNR0cmtdLwYTxtlK4xd24CQyrTwxZQh37ry1mReMG8nawZVAkOwG/o85nE5/Ay4KtZ0=
+sidebar_class_name: "event api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete Sync Complete"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"event"}
+  path={"webhook"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Fired when a delete sync job finishes
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"dryRun":{"type":"boolean"},"total":{"type":"object","properties":{"processed":{"type":"number"},"deleted":{"type":"number"},"skipped":{"type":"number"},"protected":{"type":"number"}},"required":["processed","deleted","skipped"],"additionalProperties":false},"movies":{"type":"object","properties":{"deleted":{"type":"number"},"skipped":{"type":"number"},"protected":{"type":"number"},"items":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"guid":{"type":"string"},"instance":{"type":"string"}},"required":["title","guid","instance"],"additionalProperties":false}}},"required":["deleted","skipped","items"],"additionalProperties":false},"shows":{"type":"object","properties":{"deleted":{"type":"number"},"skipped":{"type":"number"},"protected":{"type":"number"},"items":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"guid":{"type":"string"},"instance":{"type":"string"}},"required":["title","guid","instance"],"additionalProperties":false}}},"required":["deleted","skipped","items"],"additionalProperties":false},"safetyTriggered":{"type":"boolean"},"safetyMessage":{"type":"string"}},"required":["dryRun","total","movies","shows"],"additionalProperties":false},"example":{"dryRun":false,"total":{"processed":150,"deleted":12,"skipped":138,"protected":5},"movies":{"deleted":8,"skipped":92,"protected":3,"items":[{"title":"Old Movie","guid":"imdb:tt0000001","instance":"Radarr"},{"title":"Another Movie","guid":"imdb:tt0000002","instance":"Radarr"}]},"shows":{"deleted":4,"skipped":46,"protected":2,"items":[{"title":"Cancelled Show","guid":"tvdb:12345","instance":"Sonarr"}]},"safetyTriggered":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Webhook received successfully"}}}
+>
+  
+</StatusCodes>
+
+
+      

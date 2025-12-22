@@ -135,12 +135,15 @@ async function handleButtonInteraction(
     await handleApprovalButtons(interaction, {
       db: fastify.db,
       approvalService: fastify.approvalService,
-      log,
+      logger: log,
     })
   } else if (interaction.customId.startsWith('review_approvals_')) {
     await handleReviewApprovalsButton(interaction, { fastify, log })
   } else {
-    await handleNotificationButtons(interaction, { db: fastify.db, log })
+    await handleNotificationButtons(interaction, {
+      db: fastify.db,
+      logger: log,
+    })
   }
 }
 
@@ -159,10 +162,13 @@ async function handleModalSubmit(
 
   switch (interaction.customId) {
     case 'plexUsernameModal':
-      await handlePlexUsernameModal(interaction, { db: fastify.db, log })
+      await handlePlexUsernameModal(interaction, {
+        db: fastify.db,
+        logger: log,
+      })
       break
     case 'editProfileModal':
-      await handleProfileEditModal(interaction, { db: fastify.db, log })
+      await handleProfileEditModal(interaction, { db: fastify.db, logger: log })
       break
     default:
       log.warn({ modalId: interaction.customId }, 'Unknown modal submission')
@@ -218,7 +224,7 @@ async function handleReviewApprovalsButton(
       {
         db: fastify.db,
         approvalService: fastify.approvalService,
-        log,
+        logger: log,
       },
       true,
     )

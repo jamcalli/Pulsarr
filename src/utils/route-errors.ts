@@ -1,4 +1,4 @@
-import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyBaseLogger, FastifyRequest } from 'fastify'
 
 interface RouteErrorContext {
   /** The error that occurred */
@@ -93,53 +93,4 @@ export function logRouteError(
     default:
       logger.error(baseContext, message)
   }
-}
-
-/**
- * Helper for service instance routes (Radarr/Sonarr)
- * Automatically extracts instanceId from route params
- *
- * @example
- * ```typescript
- * logServiceError(fastify.log, request, err, 'radarr', 'Failed to fetch tags')
- * ```
- */
-export function logServiceError(
-  logger: FastifyBaseLogger,
-  request: FastifyRequest,
-  error: unknown,
-  serviceName: 'radarr' | 'sonarr' | 'tautulli',
-  message?: string,
-): void {
-  const params = request.params as { instanceId?: string }
-  const query = request.query as { instanceId?: string }
-  const instanceId = params?.instanceId ?? query?.instanceId
-
-  logRouteError(logger, request, error, {
-    message: message || `Error in ${serviceName} service operation`,
-    context: {
-      instanceId,
-      service: serviceName,
-    },
-  })
-}
-
-/**
- * Quick helper for common internal server errors
- * Logs the error and sends a 500 response
- */
-export function handleRouteError(
-  logger: FastifyBaseLogger,
-  request: FastifyRequest,
-  reply: FastifyReply,
-  error: unknown,
-  publicMessage: string,
-  logMessage?: string,
-): void {
-  logRouteError(logger, request, error, { message: logMessage })
-
-  reply.status(500).send({
-    success: false,
-    message: publicMessage,
-  })
 }

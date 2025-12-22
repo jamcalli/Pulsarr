@@ -1,10 +1,17 @@
 import type {
   Item,
   PlexApiResponse,
+  PlexWatchlistUrls,
+  RawRssFetchResult,
   RssResponse,
   RssWatchlistItem,
 } from '@root/types/plex.types.js'
-import { normalizeGenre, normalizeGuid } from '@utils/guid-handler.js'
+import {
+  normalizeGenre,
+  normalizeGuid,
+  parseGenres,
+  parseGuids,
+} from '@utils/guid-handler.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS } from '../api/helpers.js'
@@ -21,14 +28,6 @@ export function generateStableKey(guids: string[]): string {
 
   // Deduplicate after normalization to keep keys stable
   return Array.from(new Set(normalized)).sort().join('|')
-}
-
-/**
- * Result of fetching Plex watchlist RSS URLs
- */
-export interface PlexWatchlistUrls {
-  selfRss: string | null
-  friendsRss: string | null
 }
 
 /**
@@ -124,14 +123,12 @@ export const getRssFromPlexToken = async (
  * Fetches and parses a watchlist from a Plex RSS feed.
  *
  * @param url - The RSS feed URL
- * @param prefix - Prefix for item keys ('selfRSS' or 'friendsRSS')
  * @param userId - Internal user ID
  * @param log - Fastify logger instance
  * @returns Promise resolving to a Set of Items from the RSS feed
  */
 export const fetchWatchlistFromRss = async (
   url: string,
-  prefix: 'selfRSS' | 'friendsRSS',
   userId: number,
   log: FastifyBaseLogger,
 ): Promise<Set<Item>> => {
@@ -150,12 +147,6 @@ export const fetchWatchlistFromRss = async (
     })
 
     if (!response.ok) {
-      if (response.status === 500) {
-        log.debug(
-          'Unable to fetch watchlist from Plex, see https://github.com/nylonee/watchlistarr/issues/161',
-        )
-        return items
-      }
       log.warn(`Unable to fetch watchlist from Plex: ${response.statusText}`)
       return items
     }
@@ -166,22 +157,16 @@ export const fetchWatchlistFromRss = async (
     if (json?.items && Array.isArray(json.items)) {
       for (const metadata of json.items) {
         try {
+          const normalizedGuids = parseGuids(metadata.guids)
+
           const item: Item = {
             title: metadata.title || 'Unknown Title',
-            key: `${prefix}_${Math.random().toString(36).substring(2, 15)}`,
+            // Use stable key from GUIDs - replaced with real Plex ratingKey during enrichment
+            key: generateStableKey(normalizedGuids) || metadata.title || '',
             type: (metadata.category || 'unknown').toUpperCase(),
             thumb: metadata.thumbnail?.url || '',
-            guids: (metadata.guids ?? [])
-              .filter(
-                (guid): guid is string =>
-                  typeof guid === 'string' && guid.trim().length > 0,
-              )
-              .map((guid) => normalizeGuid(guid)),
-            genres: (Array.isArray(metadata.keywords) ? metadata.keywords : [])
-              .filter(
-                (genre): genre is string =>
-                  typeof genre === 'string' && genre.trim().length > 0,
-              )
+            guids: normalizedGuids,
+            genres: parseGenres(metadata.keywords)
               .map(normalizeGenre)
               .filter(Boolean),
             user_id: userId,
@@ -201,20 +186,6 @@ export const fetchWatchlistFromRss = async (
 
   log.debug(`Successfully processed ${items.size} items from RSS feed`)
   return items
-}
-
-/**
- * Result of fetching raw RSS feed content
- */
-export interface RawRssFetchResult {
-  success: boolean
-  items: RssWatchlistItem[]
-  etag: string | null
-  /** Explicit flag for HTTP 304 Not Modified response */
-  notModified?: boolean
-  authError?: boolean
-  notFound?: boolean
-  error?: string
 }
 
 /**

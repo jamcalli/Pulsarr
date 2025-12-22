@@ -23,7 +23,7 @@ import {
 
 export interface HistoryDeps {
   db: DatabaseService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /**
@@ -42,7 +42,7 @@ export async function showApprovalHistory(
   filter: string,
   deps: HistoryDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   try {
     const pageSize = 5 // Reduced to fit button limits
@@ -224,7 +224,7 @@ export async function showApprovalHistory(
       components: actionRows,
     })
   } catch (error) {
-    log.error({ error, page, filter }, 'Error showing approval history')
+    logger.error({ error, page, filter }, 'Error showing approval history')
     await interaction.editReply('❌ Error loading approval history')
   }
 }
@@ -237,7 +237,7 @@ export async function handleHistoryAction(
   parts: string[],
   deps: HistoryDeps,
 ): Promise<void> {
-  const { log } = deps
+  const { logger } = deps
 
   await interaction.deferUpdate()
 
@@ -253,7 +253,7 @@ export async function handleHistoryAction(
       await showApprovalHistory(interaction, page, filter, deps)
     }
   } catch (error) {
-    log.error({ error, parts }, 'Error handling history action')
+    logger.error({ error, parts }, 'Error handling history action')
     await interaction.editReply('❌ Error processing history action')
   }
 }
@@ -266,7 +266,7 @@ export async function handleItemAction(
   parts: string[],
   deps: HistoryDeps,
 ): Promise<void> {
-  const { log } = deps
+  const { logger } = deps
 
   await interaction.deferUpdate()
 
@@ -288,7 +288,7 @@ export async function handleItemAction(
       deps,
     )
   } catch (error) {
-    log.error({ error, parts }, 'Error handling item action')
+    logger.error({ error, parts }, 'Error handling item action')
     await interaction.editReply('❌ Error processing item action')
   }
 }
@@ -309,7 +309,7 @@ export async function showItemDetail(
   returnFilter: string,
   deps: HistoryDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   try {
     const approval = await db.getApprovalRequest(approvalId)
@@ -439,7 +439,7 @@ export async function showItemDetail(
         break
 
       default:
-        log.warn(
+        logger.warn(
           { status: approval.status, approvalId },
           'Unexpected approval status in item detail',
         )
@@ -476,7 +476,7 @@ export async function showItemDetail(
       components: actionRows,
     })
 
-    log.debug(
+    logger.debug(
       {
         userId: interaction.user.id,
         approvalId,
@@ -485,7 +485,7 @@ export async function showItemDetail(
       'Showed individual approval item detail',
     )
   } catch (error) {
-    log.error({ error, approvalId }, 'Error showing item detail')
+    logger.error({ error, approvalId }, 'Error showing item detail')
     await interaction.editReply('❌ Error loading item details')
   }
 }

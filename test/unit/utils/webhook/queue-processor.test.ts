@@ -1,13 +1,8 @@
-import { processContentNotifications } from '@root/utils/notifications/index.js'
 import { processQueuedWebhooks } from '@utils/webhook/queue-processor.js'
 import { webhookQueue } from '@utils/webhook/queue-state.js'
 import type { FastifyInstance } from 'fastify'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../mocks/logger.js'
-
-vi.mock('@root/utils/notifications/index.js', () => ({
-  processContentNotifications: vi.fn(),
-}))
 
 vi.mock('@utils/webhook/pending-webhook.js', () => ({
   queuePendingWebhook: vi.fn().mockResolvedValue(undefined),
@@ -19,19 +14,20 @@ vi.mock('@utils/webhook/episode-checker.js', () => ({
 
 describe('queue-processor', () => {
   let mockFastify: FastifyInstance
-  const mockProcessContentNotifications = vi.mocked(processContentNotifications)
+  let mockSendMediaAvailable: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
+    mockSendMediaAvailable = vi.fn().mockResolvedValue({ matchedCount: 1 })
+
     mockFastify = {
       config: {
         newEpisodeThreshold: 7 * 24 * 60 * 60 * 1000,
       },
       log: createMockLogger(),
+      notifications: {
+        sendMediaAvailable: mockSendMediaAvailable,
+      },
     } as unknown as FastifyInstance
-
-    mockProcessContentNotifications.mockResolvedValue({
-      matchedCount: 1,
-    })
   })
 
   afterEach(() => {
@@ -49,7 +45,7 @@ describe('queue-processor', () => {
         { tvdbId: '12345', seasonNumber: 1 },
         'Attempted to process non-existent queue',
       )
-      expect(mockProcessContentNotifications).not.toHaveBeenCalled()
+      expect(mockSendMediaAvailable).not.toHaveBeenCalled()
     })
 
     it('should log warning and cleanup when season queue does not exist', async () => {
@@ -161,7 +157,7 @@ describe('queue-processor', () => {
         { tvdbId: '12345', seasonNumber: 1 },
         'Season already notified and no recent episodes, clearing queue',
       )
-      expect(mockProcessContentNotifications).not.toHaveBeenCalled()
+      expect(mockSendMediaAvailable).not.toHaveBeenCalled()
       expect(webhookQueue['12345']).toBeUndefined()
     })
 
@@ -195,7 +191,7 @@ describe('queue-processor', () => {
 
       await processQueuedWebhooks('12345', 1, mockFastify)
 
-      expect(mockProcessContentNotifications).toHaveBeenCalled()
+      expect(mockSendMediaAvailable).toHaveBeenCalled()
     })
 
     it('should mark season as notified', async () => {
@@ -263,8 +259,7 @@ describe('queue-processor', () => {
 
       await processQueuedWebhooks('12345', 1, mockFastify)
 
-      expect(mockProcessContentNotifications).toHaveBeenCalledWith(
-        mockFastify,
+      expect(mockSendMediaAvailable).toHaveBeenCalledWith(
         {
           type: 'show',
           guid: 'tvdb:12345',
@@ -278,9 +273,8 @@ describe('queue-processor', () => {
             },
           ],
         },
-        false, // isBulkRelease
         {
-          logger: mockFastify.log,
+          isBulkRelease: false,
           instanceId: 123,
           instanceType: 'sonarr',
         },
@@ -323,16 +317,16 @@ describe('queue-processor', () => {
 
       await processQueuedWebhooks('12345', 1, mockFastify)
 
-      expect(mockProcessContentNotifications).toHaveBeenCalledWith(
-        mockFastify,
+      expect(mockSendMediaAvailable).toHaveBeenCalledWith(
         expect.objectContaining({
           episodes: expect.arrayContaining([
             expect.objectContaining({ episodeNumber: 1 }),
             expect.objectContaining({ episodeNumber: 2 }),
           ]),
         }),
-        true, // isBulkRelease
-        expect.anything(),
+        expect.objectContaining({
+          isBulkRelease: true,
+        }),
       )
     })
 
@@ -344,7 +338,7 @@ describe('queue-processor', () => {
         '@utils/webhook/pending-webhook.js'
       )
       vi.mocked(isRecentEpisode).mockReturnValue(true)
-      mockProcessContentNotifications.mockResolvedValue({
+      mockSendMediaAvailable.mockResolvedValue({
         matchedCount: 0,
       })
 
@@ -406,7 +400,7 @@ describe('queue-processor', () => {
         '@utils/webhook/pending-webhook.js'
       )
       vi.mocked(isRecentEpisode).mockReturnValue(true)
-      mockProcessContentNotifications.mockResolvedValue({
+      mockSendMediaAvailable.mockResolvedValue({
         matchedCount: 2,
       })
 
@@ -589,7 +583,7 @@ describe('queue-processor', () => {
       )
       vi.mocked(isRecentEpisode).mockReturnValue(true)
       const error = new Error('Processing failed')
-      mockProcessContentNotifications.mockRejectedValue(error)
+      mockSendMediaAvailable.mockRejectedValue(error)
 
       webhookQueue['12345'] = {
         title: 'Test Show',
@@ -705,9 +699,7 @@ describe('queue-processor', () => {
 
       await processQueuedWebhooks('12345', 1, mockFastify)
 
-      expect(mockProcessContentNotifications).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
+      expect(mockSendMediaAvailable).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           instanceId: undefined,

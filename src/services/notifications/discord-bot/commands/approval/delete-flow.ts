@@ -19,7 +19,7 @@ import { createBackToMenuButton } from './embeds.js'
 export interface DeleteFlowDeps {
   db: DatabaseService
   approvalService: ApprovalService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /**
@@ -30,7 +30,7 @@ export async function handleDeleteAction(
   parts: string[],
   deps: DeleteFlowDeps,
 ): Promise<void> {
-  const { log } = deps
+  const { logger } = deps
 
   await interaction.deferUpdate()
 
@@ -67,7 +67,7 @@ export async function handleDeleteAction(
       )
     }
   } catch (error) {
-    log.error({ error, parts }, 'Error handling delete action')
+    logger.error({ error, parts }, 'Error handling delete action')
     await interaction.editReply('❌ Error processing delete action')
   }
 }
@@ -82,7 +82,7 @@ async function showDeleteConfirmation(
   returnFilter: string,
   deps: DeleteFlowDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   try {
     const approval = await db.getApprovalRequest(approvalId)
@@ -134,7 +134,7 @@ async function showDeleteConfirmation(
       components: [confirmRow],
     })
 
-    log.debug(
+    logger.debug(
       {
         userId: interaction.user.id,
         approvalId,
@@ -142,7 +142,7 @@ async function showDeleteConfirmation(
       'Showed delete confirmation for approval request',
     )
   } catch (error) {
-    log.error({ error, approvalId }, 'Error showing delete confirmation')
+    logger.error({ error, approvalId }, 'Error showing delete confirmation')
     await interaction.editReply('❌ Error loading delete confirmation')
   }
 }
@@ -157,7 +157,7 @@ async function executeDelete(
   returnFilter: string,
   deps: DeleteFlowDeps,
 ): Promise<void> {
-  const { db, approvalService, log } = deps
+  const { db, approvalService, logger } = deps
 
   try {
     // Get approval details before deletion for logging
@@ -209,7 +209,7 @@ async function executeDelete(
       components: [backRow],
     })
 
-    log.info(
+    logger.info(
       {
         userId: interaction.user.id,
         approvalId,
@@ -219,7 +219,7 @@ async function executeDelete(
       'Successfully deleted approval request',
     )
   } catch (error) {
-    log.error({ error, approvalId }, 'Error executing delete')
+    logger.error({ error, approvalId }, 'Error executing delete')
     await interaction.editReply('❌ Error deleting approval request')
   }
 }

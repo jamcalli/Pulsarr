@@ -126,11 +126,10 @@ async function processRssWatchlist(
   source: 'self' | 'friends',
   logger: FastifyBaseLogger,
 ): Promise<{ total: number; users: WatchlistGroup[] }> {
-  const sourceLabel = source === 'self' ? 'selfRSS' : 'friendsRSS'
   const watchlistId = source
   const username = source === 'self' ? 'Self Watchlist' : 'Friends Watchlist'
 
-  const items = await fetchWatchlistFromRss(rssUrl, sourceLabel, 1, logger)
+  const items = await fetchWatchlistFromRss(rssUrl, 1, logger)
 
   const watchlistGroup: WatchlistGroup = {
     user: {

@@ -1,12 +1,9 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { HttpUrlSchema } from '@root/schemas/common/url.schema.js'
 import { z } from 'zod'
 
 export const TestConnectionBodySchema = z.object({
-  baseUrl: z
-    .string()
-    .trim()
-    .pipe(z.url({ error: 'Invalid URL format' }))
-    .transform((s) => s.replace(/\/+$/, '')),
+  baseUrl: HttpUrlSchema.transform((s) => s.replace(/\/+$/, '')),
   apiKey: z.string().trim().min(1, { error: 'API key is required' }),
 })
 

@@ -26,7 +26,7 @@ import {
 export interface ReviewFlowDeps {
   db: DatabaseService
   approvalService: ApprovalService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /**
@@ -39,7 +39,7 @@ export async function showApprovalAtIndex(
   deps: ReviewFlowDeps,
   ephemeral = false,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   const approval = allApprovals[currentIndex]
   if (!approval) {
@@ -51,7 +51,7 @@ export async function showApprovalAtIndex(
   }
 
   // Get poster URL from watchlist items
-  const posterUrl = await getPosterUrl(approval.contentKey, { db, log })
+  const posterUrl = await getPosterUrl(approval.contentKey, { db, logger })
 
   const embed = createApprovalEmbed(
     approval,
@@ -80,7 +80,7 @@ export async function showApprovalAtIndex(
       })
     }
 
-    log.debug(
+    logger.debug(
       {
         userId: interaction.user.id,
         approvalId: approval.id,
@@ -90,7 +90,7 @@ export async function showApprovalAtIndex(
       'Showed approval with navigation',
     )
   } catch (error) {
-    log.error(
+    logger.error(
       { error, approvalId: approval.id, currentIndex },
       'Error showing approval message',
     )
@@ -107,7 +107,7 @@ export async function handleNavigationAction(
   currentIndex: number,
   deps: ReviewFlowDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   await interaction.deferUpdate()
 
@@ -136,7 +136,10 @@ export async function handleNavigationAction(
 
     await showApprovalAtIndex(interaction, newIndex, pendingApprovals, deps)
   } catch (error) {
-    log.error({ error, direction, currentIndex }, 'Error handling navigation')
+    logger.error(
+      { error, direction, currentIndex },
+      'Error handling navigation',
+    )
     await interaction.editReply('❌ Error navigating approvals')
   }
 }
@@ -150,7 +153,7 @@ async function showLoadingState(
   currentIndex: number,
   deps: ReviewFlowDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   try {
     // Get the current approval info
@@ -166,7 +169,7 @@ async function showLoadingState(
       return
     }
 
-    const posterUrl = await getPosterUrl(approval.contentKey, { db, log })
+    const posterUrl = await getPosterUrl(approval.contentKey, { db, logger })
     const embed = createApprovalEmbed(
       approval,
       currentIndex,
@@ -211,7 +214,7 @@ async function showNextApprovalAfterAction(
   currentIndex: number,
   deps: ReviewFlowDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   try {
     // Get fresh list of pending approvals
@@ -233,7 +236,7 @@ async function showNextApprovalAfterAction(
     const nextIndex = Math.min(currentIndex, pendingApprovals.length - 1)
     await showApprovalAtIndex(interaction, nextIndex, pendingApprovals, deps)
   } catch (error) {
-    log.error({ error, currentIndex }, 'Error showing next approval')
+    logger.error({ error, currentIndex }, 'Error showing next approval')
     await interaction.editReply('❌ Error loading next approval')
   }
 }
@@ -248,7 +251,7 @@ export async function handleApprovalAction(
   action: 'approve' | 'reject',
   deps: ReviewFlowDeps,
 ): Promise<void> {
-  const { db, approvalService, log } = deps
+  const { db, approvalService, logger } = deps
 
   // Show loading state immediately
   await showLoadingState(interaction, action, currentIndex, deps)
@@ -275,7 +278,7 @@ export async function handleApprovalAction(
     // Get the admin user ID from Discord user
     const adminUser = await getAdminUserFromDiscord(interaction.user.id, {
       db,
-      log,
+      logger,
     })
     if (!adminUser) {
       await interaction.editReply('❌ Could not identify admin user')
@@ -340,11 +343,14 @@ export async function handleApprovalAction(
     // Show next approval after a short delay
     setTimeout(() => {
       showNextApprovalAfterAction(interaction, currentIndex, deps).catch(
-        (err) => deps.log.error({ err }, 'Failed to show next approval'),
+        (err) => deps.logger.error({ err }, 'Failed to show next approval'),
       )
     }, 1500)
   } catch (error) {
-    log.error({ error, approvalId, action }, 'Error processing approval action')
+    logger.error(
+      { error, approvalId, action },
+      'Error processing approval action',
+    )
     await interaction.editReply(
       `❌ Error processing ${action}: ${error instanceof Error ? error.message : 'Unknown error'}`,
     )
@@ -360,7 +366,7 @@ export async function handleApprovalDetails(
   currentIndex: number,
   deps: ReviewFlowDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   await interaction.deferUpdate()
 
@@ -384,7 +390,7 @@ export async function handleApprovalDetails(
       components: [actionRow],
     })
   } catch (error) {
-    log.error({ error, approvalId }, 'Error showing approval details')
+    logger.error({ error, approvalId }, 'Error showing approval details')
     await interaction.editReply({
       content: '❌ Error loading approval details',
       embeds: [],
@@ -402,7 +408,7 @@ export async function handleApprovalBack(
   currentIndex: number,
   deps: ReviewFlowDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
 
   await interaction.deferUpdate()
 
@@ -429,7 +435,10 @@ export async function handleApprovalBack(
     // Restore the original approval message with navigation
     await showApprovalAtIndex(interaction, indexToShow, pendingApprovals, deps)
   } catch (error) {
-    log.error({ error, approvalId, currentIndex }, 'Error handling back button')
+    logger.error(
+      { error, approvalId, currentIndex },
+      'Error handling back button',
+    )
     await interaction.editReply({
       content: '❌ Error restoring approval view',
       embeds: [],

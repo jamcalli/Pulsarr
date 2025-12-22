@@ -74,6 +74,7 @@ import './database/types/session-methods.js'
 import './database/types/user-methods.js'
 import './database/types/watchlist-methods.js'
 import './database/types/webhook-methods.js'
+import './database/types/webhook-endpoint-methods.js'
 import './database/types/api-key-methods.js'
 import './database/types/imdb-methods.js'
 import * as analyticsMethods from './database/methods/analytics.js'
@@ -95,6 +96,7 @@ import * as sonarrInstanceMethods from './database/methods/sonarr-instance.js'
 import * as userMethods from './database/methods/users.js'
 import * as watchlistMethods from './database/methods/watchlist.js'
 import * as webhookMethods from './database/methods/webhook.js'
+import * as webhookEndpointMethods from './database/methods/webhook-endpoints.js'
 
 export class DatabaseService {
   public readonly knex: Knex
@@ -223,6 +225,7 @@ export class DatabaseService {
       sonarrInstanceMethods,
       userMethods,
       watchlistMethods,
+      webhookEndpointMethods,
       webhookMethods,
       imdbMethods,
     ]

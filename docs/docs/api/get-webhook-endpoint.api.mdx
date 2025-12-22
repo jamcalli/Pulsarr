@@ -1,0 +1,71 @@
+---
+id: get-webhook-endpoint
+title: "Get webhook endpoint"
+description: "Retrieve a single webhook endpoint by ID"
+sidebar_label: "Get webhook endpoint"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVlFv2zgM/isCnzbAqdvb7sVvwTrsghsOQdvbHRAEB8ViY6225ElUOiPwfz9QthOncbfuZQ97ciKSH6mPFMk92BqdJG3NQkEGW6R/cFNY+/DeqNpqQ5AAya2HbAW9xMM6AYU+d7pmQ8jgBslp3KGQwmuzLVE8droCexixacTiGhKopZMVEjqG3IPPC6wkZHugpkbIwIRqgw7aBDQj15IKSMDIioVaQQIOvwTtUEFGLmC75hNfW+PRM85vl5f8OQ3wGu9lKEnc9JqQQG4NoSHWlXVd6jyykH72bDARmN18xpzpqB1zRrpz50Oeo/cjxY21JUoDCaAJFWQrDnPdJqAkvQBQq0k2OgYOAk9Omy0Lgisnz2Wg4g+UCt1fvakJZSk3JXbEJd8y+STL8DIb3KGhu6bGMQXSOdlAApqw8ufRHZiBCpWWF3IndeclgUdJeVFqTxdSKVQnJw4ru4tnsq6d3cnyInco6fTIobflEzUZyAJXbYmE//nG5Be5rWr+x3rBoztArVu+luF41ERa2wR6zTlNJ6RWz0rbcfmuunqOme3yeJa185ycMH6McxzUOIR1AlIpzaUty+Wo0O5l6fFpPEMx97X6PWM2f3v59qc+N5IU/DurcPKV5KeCUZk6Z92kpELv5XbCKoFKm49otlRAdnVG1TGQ3u3g5Aj5Ev5+/8nt6tfiL/qnwvazK84Xdgfp7irtZ5BPhyHk071WLSTg0e2GCRT7J+xrZ8nmtmyzNN0X1lOb7WvrqIWnw+5d8GQrcRsxIIGddJofYeR3gOHfQ5MriGpI4qefnTG7kA2SU/y7AsUAI4JHJciK3FZVMJx1FI+aCkEFiu4anAQOuCujAbq0uSzj8RQ+C7jvCOvEYimkUg69F/Y+4i5D6aVzI3xm4hT/zeXlm+nQrSNhjXgsdF4coLQXLhjTNcE2GWiPnGRp2tjgZnWnO9PGkzQ5cos+c7F0upKuGej/AahsMuRr7TCnHk7MY/8TryLFfJPXTzxkaXpgdhrw4yCeBFtz8eXBaWpi9cla/4nNPHDRrtbsy6P32prD0cjilh95V2dju+PYjYfQr05FnBrH5enf2Xy5mHUKpyHPlwvxgI3gWYOG+t4iAu9y4mAmesA2OY3xGfe5tQ8aj+77lJw5v+2wZhvJpT4ZQgfl4/jU5t5Gn5p4K4GhwObLxeS9lM1DhYY6vHvrDiU5E1IsS/wqDguG0IZw646qt9awpjRK3EjVRc+No4P/dNU9DU+VjE24v+kHpLP992ls+2ND/5HtuWea8CuldSm1GW2AXedbwe6Kl6ZhV+cVoe9+kECmFXegrl2sYL9n1v92Zdvy8ZeAjstyfWxqsUiV9v02FBvvN67y6qZv8a/Fc9EOxWKa2DvjngmQwAM23Ybf8q7c1xp77wT8mGoamZxNQX4ph2Hw4f0dtO3/bV53yg==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get webhook endpoint"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/webhooks/endpoints/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve a single webhook endpoint by ID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean","enum":[true]},"data":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"url":{"type":"string"},"authHeaderName":{"nullable":true,"type":"string"},"authHeaderValue":{"nullable":true,"type":"string"},"eventTypes":{"type":"array","items":{"type":"string","enum":["media.available","watchlist.added","watchlist.removed","approval.created","approval.resolved","approval.auto","delete_sync.completed","user.created"]}},"enabled":{"type":"boolean"},"createdAt":{"type":"string"},"updatedAt":{"type":"string"}},"required":["id","name","url","authHeaderName","authHeaderValue","eventTypes","enabled","createdAt","updatedAt"],"additionalProperties":false}},"required":["success","data"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
