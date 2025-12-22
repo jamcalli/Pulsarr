@@ -104,6 +104,7 @@
     "@radix-ui/react-toast": "^1.2.11",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@scalar/fastify-api-reference": "^1.34.2",
+    "@tanstack/react-query": "^5.90.12",
     "@tanstack/react-table": "^8.21.3",
     "@vitejs/plugin-react": "^5.0.0",
     "better-sqlite3": "^12.0.0",

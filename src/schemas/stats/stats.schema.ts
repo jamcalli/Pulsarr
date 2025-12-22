@@ -13,6 +13,7 @@ export const ContentStatSchema = z.object({
   thumb: z.string().nullable(),
   guids: z.array(z.string()).optional(),
   content_type: z.enum(['movie', 'show']).optional(),
+  users: z.array(z.string()).optional(),
 })
 
 export const UserStatSchema = z.object({
@@ -104,7 +105,13 @@ export const LimitQuerySchema = z.object({
 })
 
 export const ActivityQuerySchema = z.object({
-  days: z.coerce.number().int().positive().default(30),
+  days: z.coerce.number().int().nonnegative().default(30), // 0 = all time
+})
+
+export const ContentStatsQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().default(10),
+  offset: z.coerce.number().int().nonnegative().default(0),
+  days: z.coerce.number().int().nonnegative().default(0), // 0 = all time
 })
 
 export const InstanceContentItemSchema = z.object({

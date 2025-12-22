@@ -10,21 +10,43 @@ declare module '@services/database.service.js' {
 
     /**
      * Gets the most watchlisted TV shows
-     * @param limit - Maximum number of shows to return (default: 10)
-     * @returns Promise resolving to array of shows with title, count, and thumbnail
+     * @param options - Query options (limit, offset, days)
+     * @returns Promise resolving to array of shows with title, count, thumbnail, and users
      */
-    getMostWatchlistedShows(
-      limit?: number,
-    ): Promise<{ title: string; count: number; thumb: string | null }[]>
+    getMostWatchlistedShows(options?: {
+      limit?: number
+      offset?: number
+      days?: number
+    }): Promise<
+      {
+        title: string
+        count: number
+        thumb: string | null
+        guids: string[]
+        content_type: 'show'
+        users: string[]
+      }[]
+    >
 
     /**
      * Gets the most watchlisted movies
-     * @param limit - Maximum number of movies to return (default: 10)
-     * @returns Promise resolving to array of movies with title, count, and thumbnail
+     * @param options - Query options (limit, offset, days)
+     * @returns Promise resolving to array of movies with title, count, thumbnail, and users
      */
-    getMostWatchlistedMovies(
-      limit?: number,
-    ): Promise<{ title: string; count: number; thumb: string | null }[]>
+    getMostWatchlistedMovies(options?: {
+      limit?: number
+      offset?: number
+      days?: number
+    }): Promise<
+      {
+        title: string
+        count: number
+        thumb: string | null
+        guids: string[]
+        content_type: 'movie'
+        users: string[]
+      }[]
+    >
 
     /**
      * Gets users with the most watchlist items
@@ -75,9 +97,10 @@ declare module '@services/database.service.js' {
 
     /**
      * Gets average time from grabbed to notified status
+     * @param days - Number of days to look back (default: 30)
      * @returns Promise resolving to array of average time metrics by content type
      */
-    getAverageTimeFromGrabbedToNotified(): Promise<
+    getAverageTimeFromGrabbedToNotified(days?: number): Promise<
       Array<{
         content_type: string
         avg_days: number
@@ -89,9 +112,10 @@ declare module '@services/database.service.js' {
 
     /**
      * Gets detailed metrics on status transitions
+     * @param days - Number of days to look back (default: 30)
      * @returns Promise resolving to array of detailed status transition metrics
      */
-    getDetailedStatusTransitionMetrics(): Promise<
+    getDetailedStatusTransitionMetrics(days?: number): Promise<
       Array<{
         from_status: string
         to_status: string
@@ -105,9 +129,10 @@ declare module '@services/database.service.js' {
 
     /**
      * Gets average time from watchlist addition to notification
+     * @param days - Number of days to look back (default: 30)
      * @returns Promise resolving to array of time-to-availability metrics by content type
      */
-    getAverageTimeToAvailability(): Promise<
+    getAverageTimeToAvailability(days?: number): Promise<
       Array<{
         content_type: string
         avg_days: number
@@ -119,9 +144,10 @@ declare module '@services/database.service.js' {
 
     /**
      * Gets status flow data for visualization
+     * @param days - Number of days to look back (default: 30)
      * @returns Promise resolving to array of status flow data points
      */
-    getStatusFlowData(): Promise<
+    getStatusFlowData(days?: number): Promise<
       Array<{
         from_status: string
         to_status: string
