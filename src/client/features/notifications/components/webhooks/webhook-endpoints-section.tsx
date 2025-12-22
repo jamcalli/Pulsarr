@@ -1,8 +1,8 @@
 import { Webhook } from 'lucide-react'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { WebhookEndpointCard } from '@/features/notifications/components/webhooks/webhook-endpoint-card'
+import { WebhookEndpointCardSkeleton } from '@/features/notifications/components/webhooks/webhook-endpoint-card-skeleton'
 import { WebhookEndpointDeleteModal } from '@/features/notifications/components/webhooks/webhook-endpoint-delete-modal'
 import { WebhookEndpointModal } from '@/features/notifications/components/webhooks/webhook-endpoint-modal'
 import { useWebhookEndpoints } from '@/features/notifications/hooks/useWebhookEndpoints'
@@ -16,20 +16,7 @@ function WebhookEndpointsSkeleton() {
   return (
     <div className="space-y-3">
       {[1, 2].map((i) => (
-        <div key={i} className="p-4 border-2 border-border rounded-md bg-card">
-          <div className="flex justify-between items-center mb-3">
-            <Skeleton className="h-5 w-32" />
-            <div className="flex gap-2">
-              <Skeleton className="h-10 w-10" />
-              <Skeleton className="h-10 w-10" />
-            </div>
-          </div>
-          <Skeleton className="h-10 w-full mb-3" />
-          <div className="flex gap-1">
-            <Skeleton className="h-6 w-24" />
-            <Skeleton className="h-6 w-20" />
-          </div>
-        </div>
+        <WebhookEndpointCardSkeleton key={i} />
       ))}
     </div>
   )
