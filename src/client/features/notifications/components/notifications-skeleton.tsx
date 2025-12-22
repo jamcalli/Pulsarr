@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -207,10 +208,11 @@ export function NotificationsSkeleton() {
                   href={api('/api/docs#tag/webhook-payloads')}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
+                  className="text-blue-400 hover:text-blue-500 inline-flex items-center gap-1"
                 >
-                  View payload schemas →
-                </a>
+                  Click here <ExternalLink className="h-3 w-3" />
+                </a>{' '}
+                for payload schemas.
               </p>
             </div>
             <div className="flex justify-end">

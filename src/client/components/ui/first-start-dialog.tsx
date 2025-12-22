@@ -1,4 +1,4 @@
-import { AlertTriangle, ExternalLink, Play } from 'lucide-react'
+import { AlertTriangle, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,12 +37,8 @@ function ChecklistItem({
       <div className="flex-1">
         <span className="font-semibold">{title}</span>
         <span> - {description} </span>
-        <Link
-          to={link}
-          className="inline-flex items-center gap-1 text-main hover:underline"
-        >
+        <Link to={link} className="text-blue-400 hover:text-blue-500">
           {linkText}
-          <ExternalLink className="h-3 w-3" />
         </Link>
       </div>
     </li>
@@ -105,18 +101,16 @@ export function FirstStartDialog({
                 </span>
                 <Link
                   to="/sonarr/content-router"
-                  className="inline-flex items-center gap-1 text-main hover:underline"
+                  className="text-blue-400 hover:text-blue-500"
                 >
                   Sonarr Rules
-                  <ExternalLink className="h-3 w-3" />
                 </Link>
                 <span> / </span>
                 <Link
                   to="/radarr/content-router"
-                  className="inline-flex items-center gap-1 text-main hover:underline"
+                  className="text-blue-400 hover:text-blue-500"
                 >
                   Radarr Rules
-                  <ExternalLink className="h-3 w-3" />
                 </Link>
               </div>
             </li>
