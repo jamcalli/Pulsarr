@@ -1,0 +1,71 @@
+---
+id: update-webhook-endpoint
+title: "Update webhook endpoint"
+description: "Update an existing webhook endpoint"
+sidebar_label: "Update webhook endpoint"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlV0tv2zgQ/ivEnFpAjp1te9EtmxbYYIuFkbTdBQJjMRYnFhuJVPlwYhj674shJUuO1dei6GHXF9vk8JvhzDcP7sE0ZNEro68k5BAaiZ7+pHVpzP0bLRujtIcMPG4c5LfQ7ThYZSDJFVY1fBZyeB9PCtSCHpXzSm/EQxIWNOBY+hTI+V+N3EG+h8JoT9rzT2yaShXRkvlHx5B7cEVJNfIvv2sIcjDrj1QwTmPZbq/I8a7GmkZSzlulN5BBrfRb0htfQn6eQY2Ph3+LRZtBsNXpqTYDDL78jVCS/aMD1qGqcF0R5N4Gyk4VPYUeID5gFb4X41XEoC1p/27XpDvWSl95ql28SncWrcUdZKDSxqkDSIeaw1aTVHiGW1TJhAwe0BdlpZw/QylJHq1Yqs02rmHTWLPF6qywhP54yZIz1RMxDN4AM6MiT3+7nS7OClM3/I/lgiN7gFq1fEfN9siR7WtjKkINLX8SYZRlCfZam0GDFmvyZJmPExTRoV6T5TAqpmWDvoSsYwgoCSeQK15xjdEuOfqXxYK/jtn9mu4wVF5cd5KQ/SjuulAU5NyEBw7hYzNXbQYS/TcAKjnpjekc+YFZ8G9Yf8Ly/wOxM+gkL/x0QGIlnd49yojbxOcY2RTHk6idxuTI44OdY6PGJqwyQCkVUxur5Yhod1g5empPT+aOq187zMdfLl7+1HTz6IO7NJIms6Q43hjR1FpjJ3dqcg43X+0/J64aDOnU9koGyG/x36ufXK7+W/6L+n1pePZpQrwuN4wc5tvzeTe/uHk/wLj5XskWMnBkt30HivUT9o013hSmavP5fF8a59t83xjrW3g6KV0G500tbiIGZLBFqzgJo397GP7dF7nS+way+NUNXjG6kPc7x/jvShI9jAiOpPBGFKaug+aok3hQvhS+JJGuwUFggxONeujKFFjF5Sl83uC6I4wVV0uBUlpyTpi7iLsMlUNrR/jsiWP8F4vFi2nTjfXCaPFQqqI8QCknbNA6FcE2690efZLP5zsT7KxJsjOlnUddEJfoExVLq2q0u9793wGVT5r8WlkqfAcnLmL9E8+ii/kmz59oyOfzg2enAd/225NgKyZfEazyu8g+bNTvtLsITNrbFety5Jwy+rA0OnHDSZ54Nj43tN24CN3oVMauMQxPf80ullezJHBs8sXyStzTTnCvIe272iKC41fA4ZjoANvs2MbPqC+MuVc0qO9CcqL8JmHN1shUnzQhQbnYPrngXQ+vkDePyG18eEUM1ScF7fD36Tw0tdONPaM5ZTTdnE4rq9Gc0I23St+Z6BLl2Sro+X+xvJp0uzRFqEn7dN07Yw8ZMxMolhU9isP8I5T2tLGD6I3RLIlaimuUyblc1xL8h/OUuc7XqEcO6l56E6+7I/NGr7tvfBx2NPD06OdNhUqPxtNUlm9he84TXf8KZf91pRkyyJVkl6Zadgv7PVPiva3alpc/BbKcM6uh4sYMksp1IYhd4Qu3eHbd9Z/n4nPW9kzWu1jYExsgg3vapedHy4N8lwisPW1cJh0zZsro4Emj5vxOJ7g2NP6LsqtRb1u+fwcZrLtndx27NFh84OcQPiQbTbxyrA5xbQ8V6k2IvRkSJH/+AXVDoSQ=
+sidebar_class_name: "put api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update webhook endpoint"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/v1/webhooks/endpoints/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update an existing webhook endpoint
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1,"maxLength":100},"url":{"type":"string"},"authHeaderName":{"nullable":true,"type":"string","maxLength":100},"authHeaderValue":{"nullable":true,"type":"string","maxLength":500},"eventTypes":{"minItems":1,"type":"array","items":{"type":"string","enum":["media.available","watchlist.added","watchlist.removed","approval.created","approval.resolved","approval.auto","delete_sync.completed","user.created"]}},"enabled":{"type":"boolean"}}}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean","enum":[true]},"data":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"url":{"type":"string"},"authHeaderName":{"nullable":true,"type":"string"},"authHeaderValue":{"nullable":true,"type":"string"},"eventTypes":{"type":"array","items":{"type":"string","enum":["media.available","watchlist.added","watchlist.removed","approval.created","approval.resolved","approval.auto","delete_sync.completed","user.created"]}},"enabled":{"type":"boolean"},"createdAt":{"type":"string"},"updatedAt":{"type":"string"}},"required":["id","name","url","authHeaderName","authHeaderValue","eventTypes","enabled","createdAt","updatedAt"],"additionalProperties":false}},"required":["success","data"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

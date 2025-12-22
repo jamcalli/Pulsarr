@@ -187,7 +187,7 @@ export class TautulliService {
 
   private startPollingInternal(): void {
     startPolling(this.pollingState, {
-      log: this.log,
+      logger: this.log,
       isActive: () => this.isActive,
       pendingNotifications: this.pendingNotifications,
       findMatchingItem: this.findMatchingItem,

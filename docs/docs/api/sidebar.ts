@@ -1050,6 +1050,122 @@ const sidebar: SidebarsConfig = {
         },
       ],
     },
+    {
+      type: "category",
+      label: "Webhooks",
+      link: {
+        type: "doc",
+        id: "api/webhooks",
+      },
+      items: [
+        {
+          type: "doc",
+          id: "api/list-webhook-endpoints",
+          label: "List webhook endpoints",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/create-webhook-endpoint",
+          label: "Create webhook endpoint",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/get-webhook-endpoint",
+          label: "Get webhook endpoint",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "api/update-webhook-endpoint",
+          label: "Update webhook endpoint",
+          className: "api-method put",
+        },
+        {
+          type: "doc",
+          id: "api/delete-webhook-endpoint",
+          label: "Delete webhook endpoint",
+          className: "api-method delete",
+        },
+        {
+          type: "doc",
+          id: "api/test-webhook-endpoint",
+          label: "Test webhook endpoint",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/test-existing-webhook-endpoint",
+          label: "Test existing webhook endpoint",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "api/list-webhook-event-types",
+          label: "List webhook event types",
+          className: "api-method get",
+        },
+      ],
+    },
+    {
+      type: "category",
+      label: "Webhook Payloads",
+      link: {
+        type: "doc",
+        id: "api/webhook-payloads",
+      },
+      items: [
+        {
+          type: "doc",
+          id: "api/webhook-media-available",
+          label: "Media Available",
+          className: "api-method event",
+        },
+        {
+          type: "doc",
+          id: "api/webhook-watchlist-added",
+          label: "Watchlist Added",
+          className: "api-method event",
+        },
+        {
+          type: "doc",
+          id: "api/webhook-watchlist-removed",
+          label: "Watchlist Removed",
+          className: "api-method event",
+        },
+        {
+          type: "doc",
+          id: "api/webhook-approval-created",
+          label: "Approval Created",
+          className: "api-method event",
+        },
+        {
+          type: "doc",
+          id: "api/webhook-approval-resolved",
+          label: "Approval Resolved",
+          className: "api-method event",
+        },
+        {
+          type: "doc",
+          id: "api/webhook-approval-auto",
+          label: "Auto Approved",
+          className: "api-method event",
+        },
+        {
+          type: "doc",
+          id: "api/webhook-delete-sync-completed",
+          label: "Delete Sync Complete",
+          className: "api-method event",
+        },
+        {
+          type: "doc",
+          id: "api/webhook-user-created",
+          label: "User Created",
+          className: "api-method event",
+        },
+      ],
+    },
   ],
 };
 

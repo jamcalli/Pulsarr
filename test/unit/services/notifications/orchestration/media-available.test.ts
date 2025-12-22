@@ -1,27 +1,46 @@
-import type { TokenWatchlistItem } from '@root/types/plex.types.js'
-import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
+import type {
+  NotificationResult,
+  SonarrEpisodeSchema,
+} from '@root/types/sonarr.types.js'
 import {
-  createNotificationObject,
-  createPublicContentNotification,
   determineNotificationType,
   extractUserDiscordIds,
   getPublicContentNotificationFlags,
-} from '@utils/notifications/notification-builder.js'
+} from '@services/notifications/orchestration/media-available.js'
 import { describe, expect, it } from 'vitest'
 
-describe('notification-builder', () => {
+function createTestNotification(
+  userId: number,
+  discordId: string | null,
+): NotificationResult {
+  return {
+    user: {
+      id: userId,
+      name: `user${userId}`,
+      apprise: null,
+      alias: null,
+      discord_id: discordId,
+      notify_apprise: false,
+      notify_discord: true,
+      notify_tautulli: false,
+      tautulli_notifier_id: null,
+      can_sync: true,
+    },
+    notification: {
+      type: 'movie',
+      title: 'Test',
+      username: `user${userId}`,
+    },
+  }
+}
+
+describe('media-available helpers', () => {
   describe('extractUserDiscordIds', () => {
     it('should extract unique Discord IDs from notifications', () => {
       const notifications = [
-        {
-          user: { id: 1, discord_id: 'user1' },
-        },
-        {
-          user: { id: 2, discord_id: 'user2' },
-        },
-        {
-          user: { id: 3, discord_id: 'user1' }, // duplicate
-        },
+        createTestNotification(1, 'user1'),
+        createTestNotification(2, 'user2'),
+        createTestNotification(3, 'user1'), // duplicate
       ]
 
       const result = extractUserDiscordIds(notifications)
@@ -32,12 +51,8 @@ describe('notification-builder', () => {
 
     it('should exclude virtual user with ID -1', () => {
       const notifications = [
-        {
-          user: { id: -1, discord_id: 'virtual' },
-        },
-        {
-          user: { id: 1, discord_id: 'user1' },
-        },
+        createTestNotification(-1, 'virtual'),
+        createTestNotification(1, 'user1'),
       ]
 
       const result = extractUserDiscordIds(notifications)
@@ -48,12 +63,8 @@ describe('notification-builder', () => {
 
     it('should exclude users with null discord_id', () => {
       const notifications = [
-        {
-          user: { id: 1, discord_id: null },
-        },
-        {
-          user: { id: 2, discord_id: 'user2' },
-        },
+        createTestNotification(1, null),
+        createTestNotification(2, 'user2'),
       ]
 
       const result = extractUserDiscordIds(notifications)
@@ -63,15 +74,9 @@ describe('notification-builder', () => {
 
     it('should exclude users with empty discord_id', () => {
       const notifications = [
-        {
-          user: { id: 1, discord_id: '' },
-        },
-        {
-          user: { id: 2, discord_id: '   ' },
-        },
-        {
-          user: { id: 3, discord_id: 'user3' },
-        },
+        createTestNotification(1, ''),
+        createTestNotification(2, '   '),
+        createTestNotification(3, 'user3'),
       ]
 
       const result = extractUserDiscordIds(notifications)
@@ -81,12 +86,8 @@ describe('notification-builder', () => {
 
     it('should return empty array when no valid Discord IDs', () => {
       const notifications = [
-        {
-          user: { id: 1, discord_id: null },
-        },
-        {
-          user: { id: -1, discord_id: 'virtual' },
-        },
+        createTestNotification(1, null),
+        createTestNotification(-1, 'virtual'),
       ]
 
       const result = extractUserDiscordIds(notifications)
@@ -102,15 +103,9 @@ describe('notification-builder', () => {
 
     it('should handle multiple duplicates correctly', () => {
       const notifications = [
-        {
-          user: { id: 1, discord_id: 'user1' },
-        },
-        {
-          user: { id: 2, discord_id: 'user1' },
-        },
-        {
-          user: { id: 3, discord_id: 'user1' },
-        },
+        createTestNotification(1, 'user1'),
+        createTestNotification(2, 'user1'),
+        createTestNotification(3, 'user1'),
       ]
 
       const result = extractUserDiscordIds(notifications)
@@ -232,128 +227,6 @@ describe('notification-builder', () => {
         contentType: 'season',
         seasonNumber: 2,
         episodeNumber: undefined,
-      })
-    })
-  })
-
-  describe('createNotificationObject', () => {
-    const mockReferenceItem: TokenWatchlistItem = {
-      id: '123',
-      key: '123',
-      title: 'Fallback Title',
-      type: 'movie',
-      thumb: 'https://example.com/thumb.jpg',
-      guids: ['tmdb:12345'],
-      genres: ['Action'],
-      user_id: 1,
-      status: 'pending',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-    }
-
-    it('should create notification object with media title', () => {
-      const mediaInfo = {
-        type: 'movie' as const,
-        guid: 'tmdb:12345',
-        title: 'Test Movie',
-      }
-
-      const result = createNotificationObject(
-        mediaInfo,
-        mockReferenceItem,
-        'testuser',
-      )
-
-      expect(result).toEqual({
-        type: 'movie',
-        title: 'Test Movie',
-        username: 'testuser',
-        posterUrl: 'https://example.com/thumb.jpg',
-      })
-    })
-
-    it('should use media title even when empty string', () => {
-      const mediaInfo = {
-        type: 'movie' as const,
-        guid: 'tmdb:12345',
-        title: '',
-      }
-
-      const result = createNotificationObject(
-        mediaInfo,
-        mockReferenceItem,
-        'testuser',
-      )
-
-      // ?? operator doesn't treat empty string as nullish, so it keeps the empty string
-      expect(result.title).toBe('')
-    })
-
-    it('should omit posterUrl when thumb is null', () => {
-      const itemWithoutThumb: TokenWatchlistItem = {
-        ...mockReferenceItem,
-        thumb: null as unknown as string,
-      }
-
-      const mediaInfo = {
-        type: 'show' as const,
-        guid: 'tvdb:12345',
-        title: 'Test Show',
-      }
-
-      const result = createNotificationObject(
-        mediaInfo,
-        itemWithoutThumb,
-        'testuser',
-      )
-
-      expect(result).toEqual({
-        type: 'show',
-        title: 'Test Show',
-        username: 'testuser',
-        posterUrl: undefined,
-      })
-    })
-
-    it('should omit posterUrl when thumb is empty string', () => {
-      const itemWithEmptyThumb: TokenWatchlistItem = {
-        ...mockReferenceItem,
-        thumb: '',
-      }
-
-      const mediaInfo = {
-        type: 'movie' as const,
-        guid: 'tmdb:12345',
-        title: 'Test Movie',
-      }
-
-      const result = createNotificationObject(
-        mediaInfo,
-        itemWithEmptyThumb,
-        'testuser',
-      )
-
-      expect(result.posterUrl).toBeUndefined()
-    })
-
-    it('should handle show type correctly', () => {
-      const mediaInfo = {
-        type: 'show' as const,
-        guid: 'tvdb:12345',
-        title: 'Test Show',
-      }
-
-      const result = createNotificationObject(
-        mediaInfo,
-        mockReferenceItem,
-        'showfan',
-      )
-
-      expect(result).toEqual({
-        type: 'show',
-        title: 'Test Show',
-        username: 'showfan',
-        posterUrl: 'https://example.com/thumb.jpg',
       })
     })
   })
@@ -481,120 +354,6 @@ describe('notification-builder', () => {
         hasDiscordUrls: false,
         hasAppriseUrls: false,
       })
-    })
-  })
-
-  describe('createPublicContentNotification', () => {
-    const mockNotification = {
-      type: 'movie' as const,
-      title: 'Test Movie',
-      username: 'Public Content',
-      posterUrl: 'https://example.com/poster.jpg',
-    }
-
-    it('should create public notification with virtual user ID -1', () => {
-      const result = createPublicContentNotification(
-        mockNotification,
-        true,
-        true,
-      )
-
-      expect(result.user.id).toBe(-1)
-      expect(result.user.name).toBe('Public Content')
-    })
-
-    it('should enable Discord when hasDiscordUrls is true', () => {
-      const result = createPublicContentNotification(
-        mockNotification,
-        true,
-        false,
-      )
-
-      expect(result.user.notify_discord).toBe(true)
-      expect(result.user.notify_apprise).toBe(false)
-    })
-
-    it('should enable Apprise when hasAppriseUrls is true', () => {
-      const result = createPublicContentNotification(
-        mockNotification,
-        false,
-        true,
-      )
-
-      expect(result.user.notify_discord).toBe(false)
-      expect(result.user.notify_apprise).toBe(true)
-    })
-
-    it('should enable both when both flags are true', () => {
-      const result = createPublicContentNotification(
-        mockNotification,
-        true,
-        true,
-      )
-
-      expect(result.user.notify_discord).toBe(true)
-      expect(result.user.notify_apprise).toBe(true)
-    })
-
-    it('should disable Tautulli for public notifications', () => {
-      const result = createPublicContentNotification(
-        mockNotification,
-        true,
-        true,
-      )
-
-      expect(result.user.notify_tautulli).toBe(false)
-      expect(result.user.tautulli_notifier_id).toBeNull()
-    })
-
-    it('should set can_sync to false', () => {
-      const result = createPublicContentNotification(
-        mockNotification,
-        true,
-        true,
-      )
-
-      expect(result.user.can_sync).toBe(false)
-    })
-
-    it('should include the notification payload', () => {
-      const result = createPublicContentNotification(
-        mockNotification,
-        true,
-        true,
-      )
-
-      expect(result.notification).toEqual(mockNotification)
-    })
-
-    it('should set all personal fields to null', () => {
-      const result = createPublicContentNotification(
-        mockNotification,
-        true,
-        true,
-      )
-
-      expect(result.user.apprise).toBeNull()
-      expect(result.user.alias).toBeNull()
-      expect(result.user.discord_id).toBeNull()
-    })
-
-    it('should work with show notifications', () => {
-      const showNotification = {
-        type: 'show' as const,
-        title: 'Test Show',
-        username: 'Public Content',
-        posterUrl: 'https://example.com/show.jpg',
-      }
-
-      const result = createPublicContentNotification(
-        showNotification,
-        true,
-        false,
-      )
-
-      expect(result.notification.type).toBe('show')
-      expect(result.notification.title).toBe('Test Show')
     })
   })
 })

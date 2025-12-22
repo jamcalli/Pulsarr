@@ -23,7 +23,7 @@ import { createActionRows, createNotificationsEmbed } from './settings-form.js'
 
 export interface ModalDeps {
   db: DatabaseService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /**
@@ -88,13 +88,13 @@ async function getUser(
 ): Promise<User | null> {
   try {
     const user = await deps.db.getUserByDiscordId(discordId)
-    deps.log.debug(
+    deps.logger.debug(
       { discordId, found: !!user },
       'Looking up user by Discord ID',
     )
     return user ?? null
   } catch (error) {
-    deps.log.error({ error, discordId }, 'Error getting user')
+    deps.logger.error({ error, discordId }, 'Error getting user')
     return null
   }
 }
@@ -106,10 +106,10 @@ async function updateUser(
 ): Promise<boolean> {
   try {
     await deps.db.updateUser(userId, updateData)
-    deps.log.debug({ userId, updateData }, 'User updated successfully')
+    deps.logger.debug({ userId, updateData }, 'User updated successfully')
     return true
   } catch (error) {
-    deps.log.error({ error, userId, updateData }, 'Error updating user')
+    deps.logger.error({ error, userId, updateData }, 'Error updating user')
     return false
   }
 }
@@ -121,7 +121,7 @@ export async function handlePlexUsernameModal(
   interaction: ModalSubmitInteraction,
   deps: ModalDeps,
 ): Promise<void> {
-  const { db, log } = deps
+  const { db, logger } = deps
   const plexUsername = interaction.fields
     .getTextInputValue('plexUsername')
     .trim()
@@ -129,7 +129,7 @@ export async function handlePlexUsernameModal(
   await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
   try {
-    log.info(
+    logger.info(
       { userId: interaction.user.id },
       'Attempting to link Discord account with Plex',
     )
@@ -139,7 +139,7 @@ export async function handlePlexUsernameModal(
     )
 
     if (!matchingUser) {
-      log.warn(
+      logger.warn(
         { plexUsername, userId: interaction.user.id },
         'Failed to find matching Plex account',
       )
@@ -180,7 +180,7 @@ export async function handlePlexUsernameModal(
             await interaction.deleteReply()
             await buttonInteraction.showModal(createPlexLinkModal())
           } catch (error) {
-            log.error(
+            logger.error(
               { error, userId: buttonInteraction.user.id },
               'Error handling retry button',
             )
@@ -200,7 +200,7 @@ export async function handlePlexUsernameModal(
       matchingUser.discord_id &&
       matchingUser.discord_id !== interaction.user.id
     ) {
-      log.warn(
+      logger.warn(
         {
           plexUsername,
           userId: interaction.user.id,
@@ -248,7 +248,7 @@ export async function handlePlexUsernameModal(
             await interaction.deleteReply()
             await buttonInteraction.showModal(createPlexLinkModal())
           } catch (error) {
-            log.error(
+            logger.error(
               { error, userId: buttonInteraction.user.id },
               'Error handling retry button',
             )
@@ -264,7 +264,7 @@ export async function handlePlexUsernameModal(
       return
     }
 
-    log.info(
+    logger.info(
       { plexUsername, userId: interaction.user.id },
       'Successfully linked Discord account to Plex user',
     )
@@ -283,7 +283,7 @@ export async function handlePlexUsernameModal(
       await interaction.editReply(messagePayload)
     }
   } catch (error) {
-    log.error(
+    logger.error(
       { error, plexUsername, userId: interaction.user.id },
       'Error processing Plex username',
     )
@@ -300,16 +300,19 @@ export async function handleProfileEditModal(
   interaction: ModalSubmitInteraction,
   deps: ModalDeps,
 ): Promise<void> {
-  const { log } = deps
+  const { logger } = deps
   const alias = interaction.fields.getTextInputValue('alias')
   const apprise = interaction.fields.getTextInputValue('apprise')
 
-  log.info({ userId: interaction.user.id }, 'Processing profile update request')
+  logger.info(
+    { userId: interaction.user.id },
+    'Processing profile update request',
+  )
 
   try {
     const user = await getUser(interaction.user.id, deps)
     if (!user) {
-      log.warn(
+      logger.warn(
         { userId: interaction.user.id },
         'Attempted to edit profile for non-existent user',
       )
@@ -321,7 +324,7 @@ export async function handleProfileEditModal(
       return
     }
 
-    log.debug({ userId: user.id, alias, apprise }, 'Updating user profile')
+    logger.debug({ userId: user.id, alias, apprise }, 'Updating user profile')
 
     await interaction.deferUpdate()
 
@@ -342,12 +345,15 @@ export async function handleProfileEditModal(
           components: createActionRows(updatedUser),
         }
         await interaction.editReply(messagePayload)
-        log.debug({ userId: updatedUser.id }, 'Profile settings form updated')
+        logger.debug(
+          { userId: updatedUser.id },
+          'Profile settings form updated',
+        )
         return
       }
     }
 
-    log.error(
+    logger.error(
       { userId: user.id },
       'Failed to update or retrieve user after profile edit',
     )
@@ -356,7 +362,7 @@ export async function handleProfileEditModal(
       flags: MessageFlags.Ephemeral,
     })
   } catch (error) {
-    log.error(
+    logger.error(
       { error, userId: interaction.user.id },
       'Error in profile edit modal handler',
     )

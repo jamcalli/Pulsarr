@@ -164,10 +164,17 @@ export async function ensureTokenUsers(
           // Now set as primary using the database service method
           await deps.db.setPrimaryUser(user.id)
 
+          // Reload to get updated data with is_primary_token = true
+          const updatedUser = await deps.db.getUser(user.id)
+          if (updatedUser) {
+            // Send native webhook notification for user creation (fire-and-forget)
+            void deps.fastify.notifications.sendUserCreated(updatedUser)
+          }
+
           // Create default quotas for the new user
           await createDefaultQuotasForUser(user.id, deps)
 
-          // Reload to get updated data
+          // Reload to get final data
           user = await deps.db.getUser(user.id)
         } else {
           // Create regular non-primary user
@@ -185,6 +192,9 @@ export async function ensureTokenUsers(
               deps.config.newUserDefaultRequiresApproval ?? false,
             is_primary_token: false,
           })
+
+          // Send native webhook notification for user creation (fire-and-forget)
+          void deps.fastify.notifications.sendUserCreated(user)
 
           // Create default quotas for the new user
           await createDefaultQuotasForUser(user.id, deps)

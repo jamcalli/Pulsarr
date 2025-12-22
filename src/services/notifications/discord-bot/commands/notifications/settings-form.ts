@@ -21,7 +21,7 @@ import { SettingsCache } from './cache.js'
 
 export interface FormDeps {
   db: DatabaseService
-  log: FastifyBaseLogger
+  logger: FastifyBaseLogger
 }
 
 /**
@@ -116,7 +116,7 @@ export async function showSettingsForm(
   user: User,
   deps: FormDeps,
 ): Promise<void> {
-  const { log } = deps
+  const { logger } = deps
   const cache = SettingsCache.getInstance()
   const messagePayload = {
     embeds: [createNotificationsEmbed(user)],
@@ -130,13 +130,13 @@ export async function showSettingsForm(
         flags: MessageFlags.Ephemeral,
       })
       cache.set(interaction.user.id, interaction.id)
-      log.debug({ userId: interaction.user.id }, 'New settings form shown')
+      logger.debug({ userId: interaction.user.id }, 'New settings form shown')
     } else {
       await interaction.editReply(messagePayload)
-      log.debug({ userId: interaction.user.id }, 'Settings form updated')
+      logger.debug({ userId: interaction.user.id }, 'Settings form updated')
     }
   } catch (error) {
-    log.error(
+    logger.error(
       { error, userId: interaction.user.id },
       'Error showing settings form',
     )

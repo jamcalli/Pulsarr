@@ -177,6 +177,62 @@ export interface RssResponse {
 }
 
 // ============================================================================
+// RSS Feed Types
+// ============================================================================
+
+/** Result of fetching Plex watchlist RSS URLs */
+export interface PlexWatchlistUrls {
+  selfRss: string | null
+  friendsRss: string | null
+}
+
+/** Result of fetching raw RSS feed content */
+export interface RawRssFetchResult {
+  success: boolean
+  items: RssWatchlistItem[]
+  etag: string | null
+  /** Explicit flag for HTTP 304 Not Modified response */
+  notModified?: boolean
+  authError?: boolean
+  notFound?: boolean
+  error?: string
+}
+
+/** Cached RSS item with stable key for diffing */
+export interface CachedRssItem {
+  stableKey: string
+  title: string
+  type: 'movie' | 'show'
+  guids: string[]
+  thumb?: string
+  genres: string[]
+  /** Plex user UUID who added this item */
+  author: string
+}
+
+/** Result of diffing a feed against its cache */
+export interface RssDiffResult {
+  feed: 'self' | 'friends'
+  /** Whether the feed content changed */
+  changed: boolean
+  /** New items not previously in this cache */
+  newItems: CachedRssItem[]
+  /** Total items in current feed */
+  totalItems: number
+  /** Auth error flag */
+  authError?: boolean
+  /** Not found flag */
+  notFound?: boolean
+}
+
+/** Configuration for RSS feed cache */
+export interface RssFeedCacheConfig {
+  selfUrl: string
+  friendsUrl: string
+  token: string
+}
+
+// ============================================================================
 // ETag Polling Types
 // ============================================================================
 

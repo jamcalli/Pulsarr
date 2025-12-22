@@ -1,0 +1,71 @@
+---
+id: webhook-user-created
+title: "User Created"
+description: "Fired when a new user is added"
+sidebar_label: "User Created"
+hide_title: true
+hide_table_of_contents: true
+api: eJyVVduO2zYQ/RVinlpAjrXePOnNTVrASJAIcXpBF0ZBU+MVsxSp8mJHMPTvxZCyJe8qWPRJFw7PmTk8MzyD548Oigf4E/e1MU+s5J0yvHKwy6BCJ6xsvTQaCvhNWqzYqUbNONN4YsGhZdIxXlVYQQamRcspeFNBAacE+LtD+84i9zHE4r8Bnf/FVB0U5/hJqFB4GzADYbRH7WmJt62SIsItvzlK4AxO1NhwevNdi1CA2X9D4SGD1hK5l+holRJ7PUpWkxgdmj1a6DPQvMHJgvNW6kda4EryuJHr7vMBioeXMRM4paDf9X02qfGBKAeCC9wuA15Vksrkqpzkd+DKYZ+B4HrbaTHJaG+MQq5hxHbrtrXmyNV8lEjyr/1MWc8SjMqNpDMMU7hXk8fvvGkVTs+EVH+7usgMGk//DKSDvvAJT4xcA9Pqkz9e1huZbkqEVb56u7hbLVb517u8uM+LPH+T5/nf0PepXNca7ZIHVnlOj1ujX1rBokB5xIq5IAQ6dwhKdVGyBn1tyOR4JLtm0HJfj56HDBzaI1oXXRKsggLOrTXeCKP6Yrk818b5vji3xvoennfau+C8adg2YkAGR24l36uU8gWG3lGHho6t9r6FLD6Gxj3woEiMYeUW/2uN7AJDXVwxb5gwTRM0tRyyk/Q18zWyVAadBCWcpLpAKyO4ir/n8GmBzpgZyzYlzQiLzjFziLhlUI5bO8EnJW7x7/P8fj51Yz0zmp1qKeorlHTMBq2Tq6kVk+xRk2K57EywizbFLqR2nmuBb4RpXlCUVjbcdhf5/wdUMZvye2lR+AGOraOV2E9RYqrk52cMxXJ5VXYe8ONleRZsR+YTwUrfRffxVn7Abh3IoA874nLonDT6+muyY0sTNvlsuu86NtJPyEBSIjXyKhp0aOa/Futys0gBtymvyw17wo7x4GvUfhjsLDipH9l1GxsA++w2xx/QC2OeJI70w5G8IN8mrMWek9VnU0hQLjY33TZfxnvq1/kZll9ph1E6DrDxynh1fA3X3mR6jZulPphYu/REDxejr8vNrL6VEaFB7VNdB2OvrbFgnJUKv7MT96JW0nkmtcdHO4ZujaZIriv2hVdJRRpgCf6PO+j7/wCLbtX0
+sidebar_class_name: "event api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"User Created"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"event"}
+  path={"webhook"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Fired when a new user is added
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"user":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"alias":{"anyOf":[{"type":"string"},{"type":"null"}]}},"required":["id","name","alias"],"additionalProperties":false},"canSync":{"type":"boolean"},"requiresApproval":{"type":"boolean"},"createdAt":{"type":"string"}},"required":["user","canSync","requiresApproval","createdAt"],"additionalProperties":false},"example":{"user":{"id":42,"name":"new_user","alias":"New User"},"canSync":true,"requiresApproval":false,"createdAt":"2024-12-20T10:30:00.000Z"}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Webhook received successfully"}}}
+>
+  
+</StatusCodes>
+
+
+      

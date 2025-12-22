@@ -5,20 +5,40 @@
  * Owns Discord (bot + webhook), Tautulli, Apprise, and future channels.
  */
 
+import {
+  buildRoutingPayload,
+  type WebhookPayloadMap,
+} from '@root/schemas/webhooks/webhook-payloads.schema.js'
+import type { ApprovalRequest } from '@root/types/approval.types.js'
+import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-import type { SystemNotification } from '@root/types/discord.types.js'
+import type { Friend, Item as WatchlistItem } from '@root/types/plex.types.js'
+import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
+import type {
+  WebhookDispatchResult,
+  WebhookEventType,
+} from '@root/types/webhook-endpoint.types.js'
+import { parseGuids } from '@utils/guid-handler.js'
 import { createServiceLogger } from '@utils/logger.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import {
   AppriseService,
   DiscordWebhookService,
+  dispatchWebhooks,
 } from './notifications/channels/index.js'
 import {
   type BotStatus,
   DiscordBotService,
 } from './notifications/discord-bot/index.js'
+import {
+  type ApprovalRequest as ApprovalRequestNotification,
+  sendApprovalBatch,
+  sendDeleteSyncCompleted,
+  sendMediaAvailable,
+  sendWatchlistAdded,
+  type WatchlistItemInfo,
+} from './notifications/orchestration/index.js'
 import { TautulliService } from './notifications/tautulli/index.js'
-import { createDeleteSyncEmbed } from './notifications/templates/discord-embeds.js'
 
 /**
  * Notification Service
@@ -147,166 +167,433 @@ export class NotificationService {
   }
 
   /**
-   * Sends a delete sync notification via webhook and/or DM.
-   * Orchestration method that coordinates both channels.
+   * Sends a delete sync notification via webhook, DM, and/or Apprise.
+   * Orchestration method that coordinates all channels based on configuration.
+   *
+   * @param results - Delete sync operation results
+   * @param dryRun - Whether this was a dry run
+   * @param notifyOption - Override for notification setting (uses config default if not provided)
+   * @returns Promise resolving to boolean indicating if any notifications were sent
    */
   async sendDeleteSyncNotification(
     results: DeleteSyncResult,
     dryRun: boolean,
     notifyOption?: string,
   ): Promise<boolean> {
-    try {
-      const notifySetting =
-        notifyOption || this.fastify.config.deleteSyncNotify || 'none'
+    return sendDeleteSyncCompleted(
+      {
+        db: this.fastify.db,
+        logger: this.log,
+        discordBot: this._discordBot,
+        discordWebhook: this._discordWebhook,
+        apprise: this._apprise,
+        config: {
+          deleteSyncNotify:
+            notifyOption || this.fastify.config.deleteSyncNotify || 'none',
+          deleteSyncNotifyOnlyOnDeletion:
+            this.fastify.config.deleteSyncNotifyOnlyOnDeletion || false,
+          discordWebhookUrl: this.fastify.config.discordWebhookUrl,
+        },
+      },
+      results,
+      dryRun,
+    )
+  }
 
-      this.log.info(`Delete sync notification setting: "${notifySetting}"`)
+  /**
+   * Sends watchlist addition notifications to admin channels.
+   * Notifies admins via Discord webhook and/or Apprise when a user adds content.
+   *
+   * @param user - User who added the item
+   * @param item - Watchlist item details
+   * @param routingDetails - Optional routing information from the content router
+   * @returns Promise resolving to boolean indicating if any notifications were sent
+   */
+  async sendWatchlistAdded(
+    user: Friend & { userId: number },
+    item: WatchlistItemInfo,
+    routingDetails?: Array<{
+      instanceId: number
+      instanceType: 'radarr' | 'sonarr'
+      qualityProfile?: number | string | null
+      rootFolder?: string | null
+      tags?: string[]
+      searchOnAdd?: boolean | null
+      minimumAvailability?: string | null
+      seasonMonitoring?: string | null
+      seriesType?: string | null
+      ruleId?: number
+      ruleName?: string
+    }>,
+  ): Promise<boolean> {
+    return sendWatchlistAdded(
+      {
+        db: this.fastify.db,
+        logger: this.log,
+        discordWebhook: this._discordWebhook,
+        apprise: this._apprise,
+      },
+      user,
+      item,
+      routingDetails,
+    )
+  }
 
-      if (notifySetting === 'none') {
-        this.log.debug('Delete sync notifications disabled, skipping')
-        return false
-      }
+  /**
+   * Sends approval batch notifications to configured channels.
+   * Called by ApprovalService after its debounce timer fires.
+   *
+   * @param queuedRequests - Approval requests to notify about
+   * @param totalPending - Total pending approval count
+   * @returns Promise resolving to number of channels that sent successfully
+   */
+  async sendApprovalBatch(
+    queuedRequests: ApprovalRequestNotification[],
+    totalPending: number,
+  ): Promise<number> {
+    return sendApprovalBatch(
+      {
+        db: this.fastify.db,
+        logger: this.log,
+        discordBot: this._discordBot,
+        discordWebhook: this._discordWebhook,
+        apprise: this._apprise,
+        config: {
+          approvalNotify: this.fastify.config.approvalNotify || 'none',
+        },
+      },
+      queuedRequests,
+      totalPending,
+    )
+  }
 
-      const embed = createDeleteSyncEmbed(results, dryRun)
+  /**
+   * Sends media available notifications to all relevant users and public channels.
+   *
+   * Orchestration method that:
+   * 1. Looks up all users who watchlisted this content
+   * 2. Checks each user's notification preferences
+   * 3. Creates notification records in the database
+   * 4. Dispatches to all enabled channels (Discord, Apprise, Tautulli)
+   * 5. Handles public channel notifications if configured
+   *
+   * @param mediaInfo - Information about the available media
+   * @param options - Processing options
+   * @returns Promise resolving to matched count
+   */
+  async sendMediaAvailable(
+    mediaInfo: {
+      type: 'movie' | 'show'
+      guid: string
+      title: string
+      episodes?: SonarrEpisodeSchema[]
+    },
+    options: {
+      isBulkRelease: boolean
+      instanceId?: number
+      instanceType?: 'sonarr' | 'radarr'
+      sequential?: boolean
+    },
+  ): Promise<{ matchedCount: number }> {
+    return sendMediaAvailable(
+      {
+        db: this.fastify.db,
+        config: this.fastify.config,
+        logger: this.log,
+        discordBot: this._discordBot,
+        discordWebhook: this._discordWebhook,
+        tautulli: this._tautulli,
+        apprise: this._apprise,
+      },
+      mediaInfo,
+      options,
+    )
+  }
 
-      let successCount = 0
+  /**
+   * Dispatches a native webhook event to all configured endpoints.
+   *
+   * This is a fire-and-forget method - errors are logged but not thrown.
+   * Use this for events that should trigger external webhooks without
+   * blocking the main operation.
+   *
+   * @param eventType - The type of event being dispatched
+   * @param data - The event payload data (must match WebhookPayloadMap[eventType])
+   * @returns Promise resolving to dispatch result with statistics
+   */
+  async sendNativeWebhook<T extends WebhookEventType>(
+    eventType: T,
+    data: WebhookPayloadMap[T],
+  ): Promise<WebhookDispatchResult> {
+    return dispatchWebhooks(eventType, data, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+  }
 
-      const sendWebhook = [
-        'all',
-        'discord-only',
-        'webhook-only',
-        'discord-webhook',
-        'discord-both',
-        'webhook',
-        'both',
-      ].includes(notifySetting)
+  // ==========================================================================
+  // New Event Methods (Native Webhook Only for Now)
+  // ==========================================================================
 
-      const sendDM = [
-        'all',
-        'discord-only',
-        'dm-only',
-        'discord-message',
-        'discord-both',
-        'message',
-        'both',
-      ].includes(notifySetting)
+  /**
+   * Sends approval resolved notification when an admin approves or rejects a request.
+   *
+   * @param request - The approval request that was resolved
+   * @param resolution - Whether it was approved or denied
+   * @param resolvedBy - User ID of the admin who resolved it
+   * @param notes - Optional notes from the admin
+   * @returns Promise resolving to boolean indicating if notification was sent
+   */
+  async sendApprovalResolved(
+    request: ApprovalRequest,
+    resolution: 'approved' | 'denied',
+    resolvedBy: number,
+    notes?: string,
+  ): Promise<boolean> {
+    // Include routing info only when approved (not for rejections)
+    const proposedRouting =
+      resolution === 'approved'
+        ? request.proposedRouterDecision?.approval?.proposedRouting
+        : undefined
 
-      this.log.debug(
-        `Will attempt to send notifications: Webhook=${sendWebhook}, DM=${sendDM}`,
-      )
+    // Map internal 'denied' status to 'rejected' for webhook payload
+    const status =
+      resolution === 'denied' ? ('rejected' as const) : ('approved' as const)
 
-      // Send webhook notification
-      if (sendWebhook) {
-        if (!this.fastify.config.discordWebhookUrl) {
-          this.log.warn(
-            'Discord webhook URL not configured, cannot send webhook notification',
-          )
-        } else {
-          try {
-            const payload = {
-              embeds: [embed],
-              username: 'Pulsarr Delete Sync',
-              avatar_url:
-                'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
-            }
+    // Build routing with discriminated union based on instanceType
+    const routing = proposedRouting
+      ? buildRoutingPayload(proposedRouting)
+      : undefined
 
-            this.log.debug('Attempting to send webhook notification')
-            const webhookSent =
-              await this._discordWebhook.sendNotification(payload)
-            if (webhookSent) {
-              successCount++
-              this.log.info(
-                'Delete sync webhook notification sent successfully',
-              )
-            } else {
-              this.log.warn('Failed to send delete sync webhook notification')
-            }
-          } catch (webhookError) {
-            this.log.error(
-              { error: webhookError },
-              'Error sending webhook notification',
-            )
-          }
-        }
-      }
-
-      // Send DM notification
-      if (sendDM) {
-        try {
-          const users = await this.fastify.db.getAllUsers()
-          const adminUser = users.find((user) => user.is_primary_token)
-
-          const hasDeletedContent = results.total.deleted > 0
-          const hasSkippedContent = results.total.skipped > 0
-          const shouldNotify =
-            dryRun ||
-            hasDeletedContent ||
-            hasSkippedContent ||
-            results.safetyTriggered
-
-          if (!shouldNotify) {
-            this.log.info('Skipping DM notification as no activity to report')
-          } else if (!adminUser) {
-            this.log.warn(
-              'Admin user not found - skipping delete sync DM notification',
-            )
-          } else if (!adminUser.discord_id) {
-            this.log.warn(
-              `Admin user ${adminUser.name} has no Discord ID - skipping delete sync DM notification`,
-            )
-          } else {
-            try {
-              const systemNotification: SystemNotification = {
-                type: 'system',
-                username: adminUser.name,
-                title: embed.title || 'Delete Sync Results',
-                embedFields: embed.fields || [],
-                safetyTriggered: results.safetyTriggered,
-              }
-
-              this.log.debug(
-                `Attempting to send DM to admin ${adminUser.name} (${adminUser.discord_id})`,
-              )
-              const dmSent = await this._discordBot.sendDirectMessage(
-                adminUser.discord_id,
-                systemNotification,
-              )
-
-              if (dmSent) {
-                successCount++
-                this.log.info(
-                  `Sent delete sync DM notification to admin ${adminUser.name}`,
-                )
-              } else {
-                this.log.warn(
-                  `Failed to send DM to admin ${adminUser.name} (${adminUser.discord_id})`,
-                )
-              }
-            } catch (dmError) {
-              this.log.error(
-                {
-                  error: dmError,
-                  admin: adminUser.name,
-                  discordId: adminUser.discord_id,
-                },
-                'Failed to send delete sync DM notification to admin',
-              )
-            }
-          }
-        } catch (userError) {
-          this.log.error(
-            { error: userError },
-            'Error retrieving users for DM notifications',
-          )
-        }
-      }
-
-      this.log.info(
-        `Notification attempt complete: ${successCount} messages sent successfully`,
-      )
-      return successCount > 0
-    } catch (error) {
-      this.log.error({ error }, 'Error sending delete sync notification')
-      return false
+    const payload = {
+      approvalId: request.id,
+      status,
+      content: {
+        title: request.contentTitle,
+        type: request.contentType,
+        key: request.contentKey,
+        guids: request.contentGuids,
+      },
+      requestedBy: {
+        userId: request.userId,
+        username: request.userName,
+      },
+      resolvedBy: {
+        userId: resolvedBy,
+      },
+      approvalNotes: notes,
+      triggeredBy: request.triggeredBy,
+      createdAt: request.createdAt,
+      resolvedAt: request.updatedAt,
+      routing,
     }
+
+    const result = await dispatchWebhooks('approval.resolved', payload, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+
+    // Create notification record
+    if (result.succeeded > 0) {
+      try {
+        await this.fastify.db.createNotificationRecord({
+          watchlist_item_id: null,
+          user_id: request.userId,
+          type: 'approval_resolved',
+          title: request.contentTitle,
+          message: `Approval ${resolution}: ${request.contentTitle}`,
+          sent_to_discord: false,
+          sent_to_apprise: false,
+          sent_to_native_webhook: true,
+        })
+      } catch (error) {
+        this.log.error(
+          { error, requestId: request.id },
+          'Failed to record approval resolved notification',
+        )
+      }
+    }
+
+    return result.succeeded > 0
+  }
+
+  /**
+   * Sends auto-approval notification when content is auto-approved.
+   * Called from ContentRouterService.createAutoApprovalRecord() with full routing context.
+   *
+   * @param request - The approval request that was auto-approved
+   * @param routing - The routing configuration that was applied
+   * @param reason - Reason for auto-approval
+   * @returns Promise resolving to boolean indicating if notification was sent
+   */
+  async sendApprovalAuto(
+    request: ApprovalRequest,
+    routing: {
+      instanceType: 'radarr' | 'sonarr'
+      instanceId: number
+      qualityProfile: number | string | null
+      rootFolder: string | null
+      tags: string[]
+      searchOnAdd?: boolean | null
+      minimumAvailability?: string | null
+      seasonMonitoring?: string | null
+      seriesType?: 'standard' | 'anime' | 'daily' | null
+      syncedInstances?: number[]
+    },
+    reason: string,
+  ): Promise<boolean> {
+    const payload = {
+      approvalId: request.id,
+      content: {
+        title: request.contentTitle,
+        type: request.contentType,
+        key: request.contentKey,
+        guids: request.contentGuids,
+      },
+      user: {
+        userId: request.userId,
+        username: request.userName,
+      },
+      routing: buildRoutingPayload(routing),
+      reason,
+    }
+
+    const result = await dispatchWebhooks('approval.auto', payload, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+
+    // Create notification record
+    if (result.succeeded > 0) {
+      try {
+        await this.fastify.db.createNotificationRecord({
+          watchlist_item_id: null,
+          user_id: request.userId,
+          type: 'approval_auto',
+          title: request.contentTitle,
+          message: `Auto-approved: ${request.contentTitle}`,
+          sent_to_discord: false,
+          sent_to_apprise: false,
+          sent_to_native_webhook: true,
+        })
+      } catch (error) {
+        this.log.error(
+          { error, requestId: request.id },
+          'Failed to record auto-approval notification',
+        )
+      }
+    }
+
+    return result.succeeded > 0
+  }
+
+  /**
+   * Sends watchlist removed notification when a user removes content from their watchlist.
+   *
+   * @param userId - The user who removed the item
+   * @param username - The username of the user
+   * @param item - The watchlist item that was removed
+   * @returns Promise resolving to boolean indicating if notification was sent
+   */
+  async sendWatchlistRemoved(
+    userId: number,
+    username: string,
+    item: WatchlistItem & { id: number },
+  ): Promise<boolean> {
+    const guids =
+      typeof item.guids === 'string'
+        ? parseGuids(item.guids)
+        : (item.guids ?? [])
+    const contentType =
+      item.type === 'show' ? ('show' as const) : ('movie' as const)
+
+    const payload = {
+      watchlistItemId: item.id,
+      content: {
+        title: item.title,
+        type: contentType,
+        key: item.key,
+        guids,
+      },
+      removedBy: {
+        userId,
+        username,
+      },
+    }
+
+    const result = await dispatchWebhooks('watchlist.removed', payload, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+
+    // Create notification record
+    if (result.succeeded > 0) {
+      try {
+        await this.fastify.db.createNotificationRecord({
+          watchlist_item_id: item.id,
+          user_id: userId,
+          type: 'watchlist_removed',
+          title: item.title,
+          message: `Removed from watchlist: ${item.title}`,
+          sent_to_discord: false,
+          sent_to_apprise: false,
+          sent_to_native_webhook: true,
+        })
+      } catch (error) {
+        this.log.error(
+          { error, userId, title: item.title },
+          'Failed to record watchlist removed notification',
+        )
+      }
+    }
+
+    return result.succeeded > 0
+  }
+
+  /**
+   * Sends user created notification when a new user is added.
+   *
+   * @param user - The user that was created
+   * @returns Promise resolving to boolean indicating if notification was sent
+   */
+  async sendUserCreated(user: User): Promise<boolean> {
+    const payload = {
+      user: {
+        id: user.id,
+        name: user.name,
+        alias: user.alias ?? null,
+      },
+      canSync: user.can_sync ?? true,
+      requiresApproval: user.requires_approval ?? false,
+      createdAt: user.created_at ?? new Date().toISOString(),
+    }
+
+    const result = await dispatchWebhooks('user.created', payload, {
+      db: this.fastify.db,
+      log: this.log,
+    })
+
+    // Create notification record
+    if (result.succeeded > 0) {
+      try {
+        await this.fastify.db.createNotificationRecord({
+          watchlist_item_id: null,
+          user_id: user.id,
+          type: 'user_created',
+          title: user.name,
+          message: `New user created: ${user.name}`,
+          sent_to_discord: false,
+          sent_to_apprise: false,
+          sent_to_native_webhook: true,
+        })
+      } catch (error) {
+        this.log.error(
+          { error, userId: user.id },
+          'Failed to record user created notification',
+        )
+      }
+    }
+
+    return result.succeeded > 0
   }
 }

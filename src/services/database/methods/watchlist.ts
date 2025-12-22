@@ -214,12 +214,11 @@ async function performJunctionMonotonicUpdate(
 /**
  * Update a single watchlist item (by user and key) with provided changes.
  *
- * Runs inside a transaction. No-ops and early-returns for temporary RSS keys (prefixes
- * "selfRSS_" or "friendsRSS_") or when the item does not exist. Status updates are
- * applied monotonically (regressions are prevented) and, when progressed, a status
- * history row is inserted (non-fatal on failure). Main item fields are updated with
- * monotonic constraints, and Radarr/Sonarr junctions are created, deleted, or adjusted
- * as requested:
+ * Runs inside a transaction (or uses an externally provided one). No-ops and early-returns
+ * when the item does not exist. Status updates are applied monotonically (regressions are
+ * prevented) and, when progressed, a status history row is inserted (non-fatal on failure).
+ * Main item fields are updated with monotonic constraints, and Radarr/Sonarr junctions are
+ * created, deleted, or adjusted as requested:
  * - Passing `{ radarr_instance_id: null }` or `{ sonarr_instance_id: null }` deletes all
  *   corresponding associations for the item.
  * - Providing an instance id will create the junction if missing or set that instance as
@@ -235,19 +234,17 @@ async function performJunctionMonotonicUpdate(
  * @param key - Item key unique to the user identifying the watchlist item
  * @param updates - Partial fields to apply; may include `status`, `radarr_instance_id`,
  *                  `sonarr_instance_id`, and `syncing` among other watchlist fields
+ * @param externalTrx - Optional external transaction; if provided, operations run within
+ *                      this transaction instead of creating a new one
  */
 export async function updateWatchlistItem(
   this: DatabaseService,
   userId: number,
   key: string,
   updates: WatchlistItemUpdate,
+  externalTrx?: Knex.Transaction,
 ): Promise<void> {
-  if (key.startsWith('selfRSS_') || key.startsWith('friendsRSS_')) {
-    this.log.debug(`Skipping temporary RSS key: ${key}`)
-    return
-  }
-
-  await this.knex.transaction(async (trx) => {
+  const executeUpdate = async (trx: Knex.Transaction) => {
     const item = await trx('watchlist_items')
       .where({ user_id: userId, key })
       .first()
@@ -404,7 +401,13 @@ export async function updateWatchlistItem(
         }
       }
     }
-  })
+  }
+
+  if (externalTrx) {
+    await executeUpdate(externalTrx)
+  } else {
+    await this.knex.transaction(executeUpdate)
+  }
 }
 
 /**
@@ -957,29 +960,6 @@ export async function getAllGuidsMapped(
 }
 
 /**
- * Retrieves distinct active notifications of a specified type that have been sent to a webhook for a given user.
- *
- * @param userId - The ID of the user.
- * @param type - The notification type to filter by.
- * @returns An array of objects containing notification titles.
- */
-export async function getNotificationsForUser(
-  this: DatabaseService,
-  userId: number,
-  type: string,
-): Promise<Array<{ title: string }>> {
-  return await this.knex('notifications')
-    .where({
-      user_id: userId,
-      type: type,
-      sent_to_webhook: true,
-      notification_status: 'active',
-    })
-    .select('title')
-    .distinct()
-}
-
-/**
  * Retrieves watchlist items with their GUIDs, optionally filtered by type.
  *
  * @param types - Optional array of types to filter items (e.g., ['movie', 'show'])
@@ -1007,11 +987,11 @@ export async function getAllGuidsFromWatchlist(
 }
 
 /**
- * Checks which of the specified titles have had 'watchlist_add' webhook notifications sent for a user.
+ * Checks which of the specified titles have had 'watchlist_add' notifications sent for a user.
  *
  * @param userId - The user ID to check notifications for
- * @param titles - Array of titles to check for existing webhook notifications
- * @returns A map where each title is mapped to true if a webhook notification exists, or false otherwise
+ * @param titles - Array of titles to check for existing notifications
+ * @returns A map where each title is mapped to true if a notification exists, or false otherwise
  */
 export async function checkExistingWebhooks(
   this: DatabaseService,
@@ -1026,7 +1006,6 @@ export async function checkExistingWebhooks(
     .where({
       user_id: userId,
       type: 'watchlist_add',
-      sent_to_webhook: true,
     })
     .whereIn('title', titles)
     .select('title')
@@ -1402,6 +1381,37 @@ export async function deleteWatchlistItems(
         const deleteCount = await query.del()
 
         totalDeleted += deleteCount
+
+        // Check if any other users still have this content watchlisted (same type)
+        // If not, clean up public notifications to allow re-notification if re-added
+        const remaining = await trx('watchlist_items')
+          .where('title', item.title)
+          .where('type', item.type)
+          .whereNot('user_id', numericUserId)
+          .first()
+
+        if (!remaining) {
+          // No users have this content anymore - clean up public notifications
+          // Match notification type: movie -> 'movie', show -> 'episode'/'season'
+          const notificationTypes =
+            item.type === 'movie' ? ['movie'] : ['episode', 'season']
+
+          const publicDeleted = await trx('notifications')
+            .where({
+              user_id: null,
+              watchlist_item_id: null,
+              title: item.title,
+              notification_status: 'active',
+            })
+            .whereIn('type', notificationTypes)
+            .del()
+
+          if (publicDeleted > 0) {
+            this.log.debug(
+              `Deleted ${publicDeleted} orphaned public notification(s) for "${item.title}" (no users have this content watchlisted)`,
+            )
+          }
+        }
       }
 
       if (totalDeleted > 0) {
