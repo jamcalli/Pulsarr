@@ -1155,7 +1155,7 @@ const sidebar: SidebarsConfig = {
         {
           type: "doc",
           id: "api/webhook-delete-sync-completed",
-          label: "Delete Sync Completed",
+          label: "Delete Sync Complete",
           className: "api-method event",
         },
         {

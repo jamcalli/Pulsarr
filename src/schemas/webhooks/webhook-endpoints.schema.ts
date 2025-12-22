@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { HttpUrlSchema } from '@root/schemas/common/url.schema.js'
 import { WEBHOOK_EVENT_TYPES } from '@root/types/webhook-endpoint.types.js'
 import { z } from 'zod'
 
@@ -9,7 +10,7 @@ export const WebhookEventTypeSchema = z.enum(WEBHOOK_EVENT_TYPES)
 export const WebhookEndpointSchema = z.object({
   id: z.number(),
   name: z.string(),
-  url: z.string().pipe(z.url()),
+  url: HttpUrlSchema,
   authHeaderName: z.string().nullable(),
   authHeaderValue: z.string().nullable(),
   eventTypes: z.array(WebhookEventTypeSchema),
@@ -25,10 +26,7 @@ export const CreateWebhookEndpointSchema = z.object({
     .trim()
     .min(1, { error: 'Name is required' })
     .max(100, { error: 'Name must be at most 100 characters' }),
-  url: z
-    .string()
-    .trim()
-    .pipe(z.url({ error: 'Must be a valid URL' })),
+  url: HttpUrlSchema,
   authHeaderName: z
     .string()
     .trim()
@@ -52,11 +50,7 @@ export const UpdateWebhookEndpointSchema = z.object({
     .min(1, { error: 'Name is required' })
     .max(100, { error: 'Name must be at most 100 characters' })
     .optional(),
-  url: z
-    .string()
-    .trim()
-    .pipe(z.url({ error: 'Must be a valid URL' }))
-    .optional(),
+  url: HttpUrlSchema.optional(),
   authHeaderName: z
     .string()
     .trim()
@@ -77,10 +71,7 @@ export const UpdateWebhookEndpointSchema = z.object({
 
 // Test webhook endpoint request schema
 export const TestWebhookEndpointSchema = z.object({
-  url: z
-    .string()
-    .trim()
-    .pipe(z.url({ error: 'Must be a valid URL' })),
+  url: HttpUrlSchema,
   authHeaderName: z
     .string()
     .trim()
