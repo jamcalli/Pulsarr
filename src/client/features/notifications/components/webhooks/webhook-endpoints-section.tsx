@@ -1,4 +1,4 @@
-import { Webhook } from 'lucide-react'
+import { ExternalLink, Webhook } from 'lucide-react'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { WebhookEndpointCard } from '@/features/notifications/components/webhooks/webhook-endpoint-card'
@@ -69,10 +69,11 @@ export function WebhookEndpointsSection({
             href={api('/api/docs#tag/webhook-payloads')}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:underline"
+            className="text-blue-400 hover:text-blue-500 inline-flex items-center gap-1"
           >
-            View payload schemas →
-          </a>
+            Click here <ExternalLink className="h-3 w-3" />
+          </a>{' '}
+          for payload schemas.
         </p>
       </div>
 
