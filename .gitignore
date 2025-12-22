@@ -1,6 +1,8 @@
 # Logs
 *.log
 *.log.gz
+data/logs/*
+!data/logs/.gitkeep
 
 # Dependency directories
 node_modules/
