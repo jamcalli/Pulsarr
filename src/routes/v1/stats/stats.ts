@@ -3,6 +3,7 @@ import {
   ActivityStatsSchema,
   AvailabilityTimeSchema,
   ContentStatSchema,
+  ContentStatsQuerySchema,
   DashboardStatsSchema,
   ErrorSchema,
   GenreStatSchema,
@@ -55,15 +56,15 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           instanceContentBreakdown,
         ] = await Promise.all([
           fastify.db.getTopGenres(limit),
-          fastify.db.getMostWatchlistedShows(limit),
-          fastify.db.getMostWatchlistedMovies(limit),
+          fastify.db.getMostWatchlistedShows({ limit, days }),
+          fastify.db.getMostWatchlistedMovies({ limit, days }),
           fastify.db.getUsersWithMostWatchlistItems(limit),
           fastify.db.getWatchlistStatusDistribution(),
           fastify.db.getContentTypeDistribution(),
           fastify.db.getRecentActivityStats(days),
           fastify.db.getInstanceActivityStats(),
-          fastify.db.getAverageTimeToAvailability(),
-          fastify.db.getAverageTimeFromGrabbedToNotified(),
+          fastify.db.getAverageTimeToAvailability(days),
+          fastify.db.getAverageTimeFromGrabbedToNotified(days),
           fastify.db.getNotificationStats(days),
           fastify.db.getInstanceContentBreakdown(),
         ])
@@ -73,8 +74,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         try {
           statusTransitions =
-            await fastify.db.getDetailedStatusTransitionMetrics()
-          statusFlow = await fastify.db.getStatusFlowData()
+            await fastify.db.getDetailedStatusTransitionMetrics(days)
+          statusFlow = await fastify.db.getStatusFlowData(days)
         } catch (err) {
           fastify.log.warn(
             { error: err },
@@ -177,8 +178,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       schema: {
         summary: 'Get most watched shows',
         operationId: 'getMostWatchedShows',
-        description: 'Retrieve the most watchlisted TV shows',
-        querystring: LimitQuerySchema,
+        description:
+          'Retrieve the most watchlisted TV shows with optional date filtering and pagination',
+        querystring: ContentStatsQuerySchema,
         response: {
           200: z.array(ContentStatSchema),
           400: ErrorSchema,
@@ -189,8 +191,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { limit } = request.query
-        const shows = await fastify.db.getMostWatchlistedShows(limit)
+        const { limit, offset, days } = request.query
+        const shows = await fastify.db.getMostWatchlistedShows({
+          limit,
+          offset,
+          days,
+        })
         return shows
       } catch (err) {
         logRouteError(fastify.log, request, err, {
@@ -208,8 +214,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       schema: {
         summary: 'Get most watched movies',
         operationId: 'getMostWatchedMovies',
-        description: 'Retrieve the most watchlisted movies',
-        querystring: LimitQuerySchema,
+        description:
+          'Retrieve the most watchlisted movies with optional date filtering and pagination',
+        querystring: ContentStatsQuerySchema,
         response: {
           200: z.array(ContentStatSchema),
           400: ErrorSchema,
@@ -220,8 +227,12 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { limit } = request.query
-        const movies = await fastify.db.getMostWatchlistedMovies(limit)
+        const { limit, offset, days } = request.query
+        const movies = await fastify.db.getMostWatchlistedMovies({
+          limit,
+          offset,
+          days,
+        })
         return movies
       } catch (err) {
         logRouteError(fastify.log, request, err, {

@@ -142,21 +142,30 @@ export async function getNotificationStats(
   by_channel: { channel: string; count: number }[]
   by_user: { user_name: string; count: number }[]
 }> {
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - days)
-  const cutoffDateStr = cutoffDate.toISOString()
+  const isAllTime = days === 0
 
   this.log.debug(
-    `Gathering notification statistics for past ${days} days (since ${cutoffDateStr})`,
+    `Gathering notification statistics ${isAllTime ? '(all time)' : `for past ${days} days`}`,
   )
 
-  const totalQuery = this.knex('notifications')
-    .where('created_at', '>=', cutoffDateStr)
-    .count('* as count')
-    .first()
+  let cutoffDateStr: string | undefined
+  if (!isAllTime) {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    cutoffDateStr = cutoffDate.toISOString()
+  }
 
-  const byTypeQuery = this.knex('notifications')
-    .where('created_at', '>=', cutoffDateStr)
+  let totalQuery = this.knex('notifications')
+  if (!isAllTime && cutoffDateStr) {
+    totalQuery = totalQuery.where('created_at', '>=', cutoffDateStr)
+  }
+  const totalResult = totalQuery.count('* as count').first()
+
+  let byTypeQuery = this.knex('notifications')
+  if (!isAllTime && cutoffDateStr) {
+    byTypeQuery = byTypeQuery.where('created_at', '>=', cutoffDateStr)
+  }
+  const byTypeResult = byTypeQuery
     .select('type')
     .count('* as count')
     .groupBy('type')
@@ -171,11 +180,11 @@ export async function getNotificationStats(
 
   const byChannelQuery = Promise.all(
     channelQueries.map(async ({ channel, column }) => {
-      const result = await this.knex('notifications')
-        .count('* as count')
-        .where('created_at', '>=', cutoffDateStr)
-        .where(column, true)
-        .first()
+      let query = this.knex('notifications').count('* as count')
+      if (!isAllTime && cutoffDateStr) {
+        query = query.where('created_at', '>=', cutoffDateStr)
+      }
+      const result = await query.where(column, true).first()
 
       return {
         channel,
@@ -184,19 +193,30 @@ export async function getNotificationStats(
     }),
   )
 
-  const byUserQuery = this.knex('notifications')
-    .join('users', 'notifications.user_id', '=', 'users.id')
-    .where('notifications.created_at', '>=', cutoffDateStr)
+  let byUserQuery = this.knex('notifications').join(
+    'users',
+    'notifications.user_id',
+    '=',
+    'users.id',
+  )
+  if (!isAllTime && cutoffDateStr) {
+    byUserQuery = byUserQuery.where(
+      'notifications.created_at',
+      '>=',
+      cutoffDateStr,
+    )
+  }
+  const byUserResult = byUserQuery
     .select('users.name as user_name')
     .count('notifications.id as count')
     .groupBy('users.id')
     .orderBy('count', 'desc')
 
   const [total, byType, byChannel, byUser] = await Promise.all([
-    totalQuery,
-    byTypeQuery,
+    totalResult,
+    byTypeResult,
     byChannelQuery,
-    byUserQuery,
+    byUserResult,
   ])
 
   const stats = {
