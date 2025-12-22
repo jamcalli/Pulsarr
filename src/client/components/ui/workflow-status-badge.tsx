@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { FirstStartDialog } from '@/components/ui/first-start-dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -31,6 +32,7 @@ export function WatchlistStatusBadge() {
   const [currentAction, setCurrentAction] = useState<'start' | 'stop' | null>(
     null,
   )
+  const [showFirstStartDialog, setShowFirstStartDialog] = useState(false)
   const config = useConfigStore((state) => state.config)
 
   const { mutate: startWorkflow, isPending: isStarting } = useStartWorkflow()
@@ -71,6 +73,25 @@ export function WatchlistStatusBadge() {
     }
   }
 
+  const doStartWorkflow = () => {
+    setCurrentAction('start')
+    startWorkflow(
+      { autoStart },
+      {
+        onSuccess: (data) => {
+          const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
+          toast.success(`${data.message}${autoStartMsg}`)
+        },
+        onError: (error) => {
+          toast.error(
+            error.message ||
+              'Failed to start Watchlist workflow. Please check your configuration.',
+          )
+        },
+      },
+    )
+  }
+
   const handleToggle = () => {
     if (status === 'running') {
       setCurrentAction('stop')
@@ -79,29 +100,23 @@ export function WatchlistStatusBadge() {
           toast.success('Watchlist workflow has been stopped successfully')
         },
         onError: (error) => {
-          toast.error(
-            error.message || 'Failed to stop Watchlist workflow',
-          )
+          toast.error(error.message || 'Failed to stop Watchlist workflow')
         },
       })
     } else {
-      setCurrentAction('start')
-      startWorkflow(
-        { autoStart },
-        {
-          onSuccess: (data) => {
-            const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
-            toast.success(`${data.message}${autoStartMsg}`)
-          },
-          onError: (error) => {
-            toast.error(
-              error.message ||
-                'Failed to start Watchlist workflow. Please check your configuration.',
-            )
-          },
-        },
-      )
+      // Show first-start dialog if auto-start was not previously enabled
+      // This indicates it's likely the first time starting the workflow
+      if (!config?._isReady) {
+        setShowFirstStartDialog(true)
+      } else {
+        doStartWorkflow()
+      }
     }
+  }
+
+  const handleFirstStartConfirm = () => {
+    setShowFirstStartDialog(false)
+    doStartWorkflow()
   }
 
   // Don't allow toggling while in a transition state
@@ -185,6 +200,12 @@ export function WatchlistStatusBadge() {
           </Tooltip>
         </TooltipProvider>
       )}
+
+      <FirstStartDialog
+        open={showFirstStartDialog}
+        onOpenChange={setShowFirstStartDialog}
+        onConfirm={handleFirstStartConfirm}
+      />
     </div>
   )
 }
