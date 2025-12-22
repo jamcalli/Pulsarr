@@ -1,4 +1,5 @@
 import { ErrorSchema } from '@root/schemas/common/error.schema.js'
+import { HttpUrlOptionalSchema } from '@root/schemas/common/url.schema.js'
 import { PlexLabelSyncConfigSchema } from '@root/schemas/plex/label-sync-config.schema.js'
 import {
   RemovedTagPrefixSchema,
@@ -58,28 +59,6 @@ const AppriseUrlSchema = z
     },
     { message: 'Must be valid URL(s) (comma-separated)' },
   )
-  .optional()
-
-/**
- * Validates a single URL restricted to http/https schemes. Accepts empty strings.
- * Used for services like Tautulli and Plex that require HTTP connections.
- * Restricts to http/https to mitigate SSRF risk from exotic URL schemes.
- */
-const HttpUrlSchema = z
-  .union([
-    z.string().refine(
-      (s) => {
-        try {
-          const url = new URL(s)
-          return url.protocol === 'http:' || url.protocol === 'https:'
-        } catch {
-          return false
-        }
-      },
-      { message: 'Must be a valid http(s) URL' },
-    ),
-    z.literal(''),
-  ])
   .optional()
 
 const LogLevelEnum = z.enum([
@@ -357,7 +336,7 @@ export const ConfigUpdateSchema = z
       .optional(),
     // Tautulli Config
     tautulliEnabled: z.boolean().optional(),
-    tautulliUrl: HttpUrlSchema,
+    tautulliUrl: HttpUrlOptionalSchema,
     tautulliApiKey: z.string().optional(),
     // General Notifications (stored in milliseconds)
     queueWaitTime: z.coerce
@@ -419,7 +398,7 @@ export const ConfigUpdateSchema = z
     // Plex Playlist Protection
     enablePlexPlaylistProtection: z.boolean().optional(),
     plexProtectionPlaylistName: z.string().optional(),
-    plexServerUrl: HttpUrlSchema,
+    plexServerUrl: HttpUrlOptionalSchema,
     // Plex Existence Check - skip downloading if content exists on Plex servers
     // Primary token user: checks ALL accessible servers (owned + shared)
     // Friend/other users: checks ONLY the owned server (no access tokens for shared)

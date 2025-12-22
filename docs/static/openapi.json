@@ -31593,8 +31593,7 @@
                             "type": "string"
                           },
                           "url": {
-                            "type": "string",
-                            "format": "uri"
+                            "type": "string"
                           },
                           "authHeaderName": {
                             "nullable": true,
@@ -31773,8 +31772,7 @@
                           "type": "string"
                         },
                         "url": {
-                          "type": "string",
-                          "format": "uri"
+                          "type": "string"
                         },
                         "authHeaderName": {
                           "nullable": true,
@@ -31942,8 +31940,7 @@
                           "type": "string"
                         },
                         "url": {
-                          "type": "string",
-                          "format": "uri"
+                          "type": "string"
                         },
                         "authHeaderName": {
                           "nullable": true,
@@ -32159,8 +32156,7 @@
                           "type": "string"
                         },
                         "url": {
-                          "type": "string",
-                          "format": "uri"
+                          "type": "string"
                         },
                         "authHeaderName": {
                           "nullable": true,
@@ -34252,7 +34248,7 @@
         "tags": [
           "Webhook Payloads"
         ],
-        "summary": "Delete Sync Completed",
+        "summary": "Delete Sync Complete",
         "description": "Fired when a delete sync job finishes",
         "operationId": "webhookDeleteSyncCompleted",
         "requestBody": {

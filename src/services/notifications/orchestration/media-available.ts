@@ -500,10 +500,7 @@ async function buildNotificationResults(
     deps.config.publicContentNotifications?.enabled &&
     watchlistItems.length > 0
   ) {
-    const notificationTypeInfo = determineNotificationType(
-      mediaInfo,
-      options.isBulkRelease,
-    )
+    // Reuse notificationTypeInfo computed earlier (line 338)
     if (!notificationTypeInfo)
       return { notifications, watchlistItems, hasNativeWebhooks, enrichment }
 

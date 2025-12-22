@@ -65,14 +65,7 @@ async function handleApiResponse<T>(
       const errorData = await response.json()
       errorMessage = errorData.message || errorData.error || errorMessage
     } catch {
-      try {
-        const textError = await response.text()
-        if (textError) {
-          errorMessage = textError
-        }
-      } catch {
-        // Use default error message if both JSON and text extraction fail
-      }
+      // Use default error message if JSON parsing fails
     }
     throw new Error(errorMessage)
   }
@@ -155,14 +148,13 @@ export const useWebhookEndpointsStore = create<WebhookEndpointsState>()(
           'Failed to fetch webhook endpoints',
         )
 
-        if (data.success) {
-          set((state) => ({
-            ...state,
-            endpoints: data.data,
-            hasLoaded: true,
-            loading: { ...state.loading, fetch: false },
-          }))
-        }
+        // Schema validates success: z.literal(true), so if we get here it's guaranteed true
+        set((state) => ({
+          ...state,
+          endpoints: data.data,
+          hasLoaded: true,
+          loading: { ...state.loading, fetch: false },
+        }))
       } catch (err) {
         console.error('Error fetching webhook endpoints:', err)
         set((state) => ({
