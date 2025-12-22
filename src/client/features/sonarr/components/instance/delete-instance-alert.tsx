@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -48,22 +47,20 @@ export function DeleteInstanceAlert({
               : `Are you sure you want to remove ${instanceName}? This action cannot be undone.`}
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button
-              variant="clear"
-              onClick={() => {
-                onConfirm()
-                onOpenChange(false)
-              }}
-            >
-              {isLastInstance ? 'Clear' : 'Remove'}
-            </Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={() => {
+              onConfirm()
+              onOpenChange(false)
+            }}
+          >
+            {isLastInstance ? 'Clear' : 'Remove'}
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

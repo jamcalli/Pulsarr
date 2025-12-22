@@ -102,6 +102,13 @@
       ]
     },
     {
+      "description": "Group TanStack packages (React Query, React Table)",
+      "groupName": "TanStack",
+      "matchPackageNames": [
+        "/^@tanstack//"
+      ]
+    },
+    {
       "description": "Group Tailwind ecosystem",
       "groupName": "Tailwind CSS",
       "matchPackageNames": [
@@ -319,6 +326,19 @@
       "minimumReleaseAge": "2 days"
     },
     {
+      "description": "Auto-merge patch updates for TanStack",
+      "groupName": "TanStack",
+      "matchPackageNames": [
+        "/^@tanstack//"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "2 days"
+    },
+    {
       "description": "Auto-merge patch updates for Fastify ecosystem",
       "groupName": "Fastify ecosystem",
       "matchPackageNames": [
@@ -395,6 +415,7 @@
        "!tailwind-merge",
        "!class-variance-authority",
        "!tw-animate-css",
+       "!/^@tanstack//",
        "!node",
        "!recharts"
      ]
