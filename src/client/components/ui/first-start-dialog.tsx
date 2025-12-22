@@ -128,24 +128,23 @@ export function FirstStartDialog({
             />
           </ul>
 
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-md mb-4">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-md">
             <p className="text-yellow-800 dark:text-yellow-200 text-sm">
               <span className="font-bold">Note:</span> The first sync may route
               many items from your users' watchlists to Sonarr/Radarr. Ensure
               your settings are correct before proceeding.
             </p>
           </div>
-
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button variant="default" onClick={onConfirm}>
-              <Play className="h-4 w-4 mr-1 fill-current" />
-              Start Workflow
-            </Button>
-          </CredenzaFooter>
         </CredenzaBody>
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button variant="default" onClick={onConfirm}>
+            <Play className="h-4 w-4 mr-1 fill-current" />
+            Start Workflow
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

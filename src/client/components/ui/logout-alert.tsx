@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -69,14 +68,12 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
             You will be redirected to the login screen. Your current session will be lost.
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant='neutral'>Cancel</Button>
-            </CredenzaClose>
-            <Button onClick={handleLogout}>Confirm</Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant='neutral'>Cancel</Button>
+          </CredenzaClose>
+          <Button onClick={handleLogout}>Confirm</Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   );
