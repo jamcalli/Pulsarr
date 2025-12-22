@@ -315,8 +315,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'getAvailabilityStats',
         description:
           'Retrieve average time from adding to availability statistics',
+        querystring: ActivityQuerySchema,
         response: {
           200: z.array(AvailabilityTimeSchema),
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -324,7 +326,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const availability = await fastify.db.getAverageTimeToAvailability()
+        const { days } = request.query
+        const availability = await fastify.db.getAverageTimeToAvailability(days)
         return availability
       } catch (err) {
         logRouteError(fastify.log, request, err, {
@@ -346,8 +349,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         operationId: 'getGrabbedToNotifiedStats',
         description:
           'Retrieve average time from grabbed to notified statistics',
+        querystring: ActivityQuerySchema,
         response: {
           200: z.array(GrabbedToNotifiedTimeSchema),
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -355,7 +360,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const times = await fastify.db.getAverageTimeFromGrabbedToNotified()
+        const { days } = request.query
+        const times = await fastify.db.getAverageTimeFromGrabbedToNotified(days)
         return times
       } catch (err) {
         logRouteError(fastify.log, request, err, {
@@ -376,8 +382,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get status transition metrics',
         operationId: 'getStatusTransitions',
         description: 'Retrieve detailed status transition time metrics',
+        querystring: ActivityQuerySchema,
         response: {
           200: z.array(StatusTransitionTimeSchema),
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -385,8 +393,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
+        const { days } = request.query
         const transitions =
-          await fastify.db.getDetailedStatusTransitionMetrics()
+          await fastify.db.getDetailedStatusTransitionMetrics(days)
         return transitions
       } catch (err) {
         logRouteError(fastify.log, request, err, {
@@ -407,8 +416,10 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
         summary: 'Get status flow data',
         operationId: 'getStatusFlow',
         description: 'Retrieve status flow data for visualization',
+        querystring: ActivityQuerySchema,
         response: {
           200: z.array(StatusFlowDataSchema),
+          400: ErrorSchema,
           500: ErrorSchema,
         },
         tags: ['Statistics'],
@@ -416,7 +427,8 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const flowData = await fastify.db.getStatusFlowData()
+        const { days } = request.query
+        const flowData = await fastify.db.getStatusFlowData(days)
         return flowData
       } catch (err) {
         logRouteError(fastify.log, request, err, {
