@@ -199,20 +199,13 @@ export const useWebhookEndpointsStore = create<WebhookEndpointsState>()(
           'Failed to create webhook endpoint',
         )
 
-        if (result.success) {
-          set((state) => ({
-            ...state,
-            endpoints: [...state.endpoints, result.data],
-            loading: { ...state.loading, create: false },
-          }))
-          return result.data
-        }
-
+        // Schema validates success: z.literal(true), so if we get here it's guaranteed true
         set((state) => ({
           ...state,
+          endpoints: [...state.endpoints, result.data],
           loading: { ...state.loading, create: false },
         }))
-        return null
+        return result.data
       } catch (err) {
         console.error('Error creating webhook endpoint:', err)
         set((state) => ({
@@ -260,28 +253,18 @@ export const useWebhookEndpointsStore = create<WebhookEndpointsState>()(
           'Failed to update webhook endpoint',
         )
 
-        if (result.success) {
-          set((state) => ({
-            ...state,
-            endpoints: state.endpoints.map((ep) =>
-              ep.id === id ? result.data : ep,
-            ),
-            loading: {
-              ...state.loading,
-              update: { ...state.loading.update, [id]: false },
-            },
-          }))
-          return result.data
-        }
-
+        // Schema validates success: z.literal(true), so if we get here it's guaranteed true
         set((state) => ({
           ...state,
+          endpoints: state.endpoints.map((ep) =>
+            ep.id === id ? result.data : ep,
+          ),
           loading: {
             ...state.loading,
             update: { ...state.loading.update, [id]: false },
           },
         }))
-        return null
+        return result.data
       } catch (err) {
         console.error('Error updating webhook endpoint:', err)
         set((state) => ({
@@ -324,12 +307,12 @@ export const useWebhookEndpointsStore = create<WebhookEndpointsState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(
-            errorData.message || 'Failed to delete webhook endpoint',
-          )
-        }
+        // DELETE returns 204, so pass null schema
+        await handleApiResponse(
+          response,
+          null,
+          'Failed to delete webhook endpoint',
+        )
 
         set((state) => ({
           ...state,
