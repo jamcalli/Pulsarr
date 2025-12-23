@@ -12,16 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useApprovals } from '@/features/approvals/hooks/useApprovals'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 
 /**
- * Renders interactive filter controls for approval requests, supporting both quick and advanced filtering by status, content type, trigger type, and user ID.
+ * Renders interactive filter controls for approval requests.
  *
- * Synchronizes filter state with a global approvals store, applies or clears filters, and displays badges for active filters. Disables controls during loading to prevent concurrent actions.
+ * Updates the store's currentQuery which triggers automatic re-fetch via React Query.
  */
 export default function ApprovalFilters() {
-  const { currentQuery, setQuery, fetchApprovalRequests, approvalsLoading } =
-    useApprovalsStore()
+  const { currentQuery, setQuery } = useApprovalsStore()
+  const { isLoading: approvalsLoading } = useApprovals()
 
   const [localFilters, setLocalFilters] = useState({
     status: currentQuery.status || '',
@@ -47,8 +48,8 @@ export default function ApprovalFilters() {
     setLocalFilters((prev) => ({ ...prev, [key]: value }))
   }
 
-  const applyFilters = async () => {
-    const newQuery: GetApprovalRequestsQuery = {
+  const applyFilters = () => {
+    const newQuery: Partial<GetApprovalRequestsQuery> = {
       ...currentQuery,
       offset: 0, // Reset to first page
     }
@@ -61,10 +62,14 @@ export default function ApprovalFilters() {
         | 'rejected'
         | 'expired'
         | 'auto_approved'
+    } else {
+      newQuery.status = undefined
     }
 
     if (localFilters.contentType) {
       newQuery.contentType = localFilters.contentType as 'movie' | 'show'
+    } else {
+      newQuery.contentType = undefined
     }
 
     if (localFilters.triggeredBy) {
@@ -73,6 +78,8 @@ export default function ApprovalFilters() {
         | 'router_rule'
         | 'manual_flag'
         | 'content_criteria'
+    } else {
+      newQuery.triggeredBy = undefined
     }
 
     if (localFilters.userId) {
@@ -80,13 +87,15 @@ export default function ApprovalFilters() {
       if (!Number.isNaN(parsedUserId) && parsedUserId > 0) {
         newQuery.userId = parsedUserId
       }
+    } else {
+      newQuery.userId = undefined
     }
 
+    // Update store - React Query will auto re-fetch
     setQuery(newQuery)
-    await fetchApprovalRequests(newQuery)
   }
 
-  const clearFilters = async () => {
+  const clearFilters = () => {
     setLocalFilters({
       status: '',
       contentType: '',
@@ -94,13 +103,11 @@ export default function ApprovalFilters() {
       userId: '',
     })
 
-    const clearedQuery = {
-      limit: currentQuery.limit || 20,
+    // Reset to default query - React Query will auto re-fetch
+    setQuery({
+      limit: currentQuery.limit || 50000,
       offset: 0,
-    }
-
-    setQuery(clearedQuery)
-    await fetchApprovalRequests(clearedQuery)
+    })
   }
 
   const hasActiveFilters = Object.values(localFilters).some(
@@ -116,7 +123,7 @@ export default function ApprovalFilters() {
     { label: 'TV Shows', key: 'contentType', value: 'show' },
   ]
 
-  const handleQuickFilter = async (key: string, value: string) => {
+  const handleQuickFilter = (key: string, value: string) => {
     // Toggle the filter - if it's already selected, clear it
     const currentValue = localFilters[key as keyof typeof localFilters]
     const newValue = currentValue === value ? '' : value
@@ -124,7 +131,7 @@ export default function ApprovalFilters() {
     const newFilters = { ...localFilters, [key]: newValue }
     setLocalFilters(newFilters)
 
-    const newQuery: GetApprovalRequestsQuery = {
+    const newQuery: Partial<GetApprovalRequestsQuery> = {
       ...currentQuery,
       offset: 0,
     }
@@ -164,8 +171,8 @@ export default function ApprovalFilters() {
       }
     }
 
+    // Update store - React Query will auto re-fetch
     setQuery(newQuery)
-    await fetchApprovalRequests(newQuery)
   }
 
   return (

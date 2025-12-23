@@ -45,7 +45,12 @@ import {
 } from '@/components/ui/tooltip'
 import { ApprovalRadarrRoutingCard } from '@/features/approvals/components/approval-radarr-routing-card'
 import { ApprovalSonarrRoutingCard } from '@/features/approvals/components/approval-sonarr-routing-card'
-import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
+import {
+  useApproveRequest,
+  useDeleteApproval,
+  useRejectRequest,
+  useUpdateApproval,
+} from '@/features/approvals/hooks/useApprovalMutations'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -53,7 +58,6 @@ interface ApprovalActionsModalProps {
   request: ApprovalRequestResponse
   open: boolean
   onOpenChange: (open: boolean) => void
-  onUpdate?: () => Promise<void>
 }
 
 /**
@@ -69,14 +73,12 @@ interface ApprovalActionsModalProps {
  * @param request - The ApprovalRequestResponse to show and act on.
  * @param open - Whether the modal/drawer is open.
  * @param onOpenChange - Callback invoked with the new open state to control visibility.
- * @param onUpdate - Optional callback invoked after a successful approve/reject/delete or routing save to allow the parent to refresh data.
  * @returns A React element containing the approval actions modal UI.
  */
 export default function ApprovalActionsModal({
   request,
   open,
   onOpenChange,
-  onUpdate,
 }: ApprovalActionsModalProps) {
   // Simple fade transition instead of 3D flip to preserve scrolling
   const transitionStyles = `
@@ -117,12 +119,13 @@ export default function ApprovalActionsModal({
   const [editRoutingMode, setEditRoutingMode] = useState(false)
   const [showMediaDetails, setShowMediaDetails] = useState(false)
   const submitSectionRef = useRef<HTMLDivElement>(null)
-  const {
-    approveRequest,
-    rejectRequest,
-    deleteApprovalRequest,
-    updateApprovalRequest,
-  } = useApprovalsStore()
+
+  // Mutation hooks
+  const approveRequest = useApproveRequest()
+  const rejectRequest = useRejectRequest()
+  const deleteApproval = useDeleteApproval()
+  const updateApproval = useUpdateApproval()
+
   const users = useConfigStore((state) => state.users)
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isDesktop = !isMobile
@@ -172,10 +175,10 @@ export default function ApprovalActionsModal({
   const handleApprove = async () => {
     try {
       await withMinLoadingDuration(async () => {
-        await approveRequest(request.id, notes.trim() || undefined)
-        if (onUpdate) {
-          await onUpdate()
-        }
+        await approveRequest.mutateAsync({
+          id: request.id,
+          notes: notes.trim() || undefined,
+        })
       }, setApproveStatus)
 
       // Close modal after success state
@@ -219,10 +222,10 @@ export default function ApprovalActionsModal({
   const handleReject = async () => {
     try {
       await withMinLoadingDuration(async () => {
-        await rejectRequest(request.id, notes.trim() || undefined)
-        if (onUpdate) {
-          await onUpdate()
-        }
+        await rejectRequest.mutateAsync({
+          id: request.id,
+          reason: notes.trim() || undefined,
+        })
       }, setRejectStatus)
 
       // Close modal after success state
@@ -265,10 +268,7 @@ export default function ApprovalActionsModal({
   const handleDelete = async () => {
     try {
       await withMinLoadingDuration(async () => {
-        await deleteApprovalRequest(request.id)
-        if (onUpdate) {
-          await onUpdate()
-        }
+        await deleteApproval.mutateAsync(request.id)
       }, setDeleteStatus)
 
       // Close modal after success state
@@ -311,23 +311,23 @@ export default function ApprovalActionsModal({
     }
 
     // Update only the routing without changing status
-    await updateApprovalRequest(request.id, {
-      proposedRouterDecision: {
-        ...updatedRequest.proposedRouterDecision,
-        approval: {
-          ...updatedRequest.proposedRouterDecision.approval,
-          data: updatedRequest.proposedRouterDecision.approval?.data || {},
-          reason: updatedRequest.proposedRouterDecision.approval?.reason || '',
-          triggeredBy:
-            updatedRequest.proposedRouterDecision.approval?.triggeredBy ||
-            request.triggeredBy,
+    await updateApproval.mutateAsync({
+      id: request.id,
+      updates: {
+        proposedRouterDecision: {
+          ...updatedRequest.proposedRouterDecision,
+          approval: {
+            ...updatedRequest.proposedRouterDecision.approval,
+            data: updatedRequest.proposedRouterDecision.approval?.data || {},
+            reason:
+              updatedRequest.proposedRouterDecision.approval?.reason || '',
+            triggeredBy:
+              updatedRequest.proposedRouterDecision.approval?.triggeredBy ||
+              request.triggeredBy,
+          },
         },
       },
     })
-
-    if (onUpdate) {
-      await onUpdate()
-    }
 
     // Don't exit edit mode here - let the routing card handle the timing
     // The routing card will call onCancel after its success state completes
