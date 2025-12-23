@@ -45,8 +45,8 @@ export function PublicContentClearAlert({
           </CredenzaClose>
           <Button
             variant="clear"
-            onClick={() => {
-              onConfirm()
+            onClick={async () => {
+              await onConfirm()
               onOpenChange(false)
             }}
           >

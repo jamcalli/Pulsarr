@@ -1,4 +1,4 @@
-import { AlertTriangle, Play } from 'lucide-react'
+import { AlertTriangle, Loader2, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +15,8 @@ import {
 interface FirstStartDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  onConfirm: () => Promise<void>
+  isSubmitting?: boolean
 }
 
 interface ChecklistItemProps {
@@ -56,6 +57,7 @@ export function FirstStartDialog({
   open,
   onOpenChange,
   onConfirm,
+  isSubmitting = false,
 }: FirstStartDialogProps) {
   return (
     <Credenza open={open} onOpenChange={onOpenChange}>
@@ -134,9 +136,25 @@ export function FirstStartDialog({
           <CredenzaClose asChild>
             <Button variant="neutral">Cancel</Button>
           </CredenzaClose>
-          <Button variant="default" onClick={onConfirm}>
-            <Play className="h-4 w-4 mr-1 fill-current" />
-            Start Workflow
+          <Button
+            variant="default"
+            onClick={async () => {
+              await onConfirm()
+              onOpenChange(false)
+            }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                Starting...
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4 mr-1 fill-current" />
+                Start Workflow
+              </>
+            )}
           </Button>
         </CredenzaFooter>
       </CredenzaContent>
