@@ -6,6 +6,11 @@ import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
 interface MediaCardProps {
@@ -56,12 +61,37 @@ export function MediaCard({
                 </div>
               )}
             </AspectRatio>
-            <Badge
-              variant="neutral"
-              className="absolute top-0 right-0 rounded-bl-md rounded-br-none rounded-tr-md rounded-tl-none"
-            >
-              {item.count} {item.count === 1 ? 'watchlist' : 'watchlists'}
-            </Badge>
+            {item.users && item.users.length > 0 ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Badge
+                    variant="neutral"
+                    className="absolute top-0 right-0 rounded-bl-md rounded-br-none rounded-tr-md rounded-tl-none cursor-pointer"
+                  >
+                    {item.count} {item.count === 1 ? 'watchlist' : 'watchlists'}
+                  </Badge>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="bottom"
+                  align="end"
+                  className="w-auto min-w-[120px] p-2 bg-secondary-background"
+                >
+                  <p className="text-xs font-medium mb-1">Watchlisted by:</p>
+                  <ul className="text-xs space-y-0.5">
+                    {item.users.map((user) => (
+                      <li key={user}>{user}</li>
+                    ))}
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Badge
+                variant="neutral"
+                className="absolute top-0 right-0 rounded-bl-md rounded-br-none rounded-tr-md rounded-tl-none"
+              >
+                {item.count} {item.count === 1 ? 'watchlist' : 'watchlists'}
+              </Badge>
+            )}
             {hasGuids && (
               <Button
                 variant="neutralnoShadow"

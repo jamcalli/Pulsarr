@@ -205,7 +205,7 @@ export function ApprovalActionDialogs({
             </CredenzaDescription>
           </CredenzaHeader>
           <CredenzaBody>
-            <div className="grid gap-4 mb-6">
+            <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label
                   htmlFor={approveNotesId}
@@ -223,35 +223,35 @@ export function ApprovalActionDialogs({
                 />
               </div>
             </div>
-            <CredenzaFooter>
-              <CredenzaClose asChild>
-                <Button variant="neutral" disabled={approveStatus !== 'idle'}>
-                  Cancel
-                </Button>
-              </CredenzaClose>
-              <Button
-                onClick={() => {
-                  handleApprove()
-                }}
-                disabled={approveStatus !== 'idle'}
-                className="min-w-[100px] flex items-center justify-center gap-2"
-              >
-                {approveStatus === 'loading' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Approving...
-                  </>
-                ) : approveStatus === 'success' ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Approved
-                  </>
-                ) : (
-                  'Approve'
-                )}
-              </Button>
-            </CredenzaFooter>
           </CredenzaBody>
+          <CredenzaFooter>
+            <CredenzaClose asChild>
+              <Button variant="neutral" disabled={approveStatus !== 'idle'}>
+                Cancel
+              </Button>
+            </CredenzaClose>
+            <Button
+              onClick={() => {
+                handleApprove()
+              }}
+              disabled={approveStatus !== 'idle'}
+              className="min-w-[100px] flex items-center justify-center gap-2"
+            >
+              {approveStatus === 'loading' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Approving...
+                </>
+              ) : approveStatus === 'success' ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Approved
+                </>
+              ) : (
+                'Approve'
+              )}
+            </Button>
+          </CredenzaFooter>
         </CredenzaContent>
       </Credenza>
 
@@ -279,7 +279,7 @@ export function ApprovalActionDialogs({
             </CredenzaDescription>
           </CredenzaHeader>
           <CredenzaBody>
-            <div className="grid gap-4 mb-6">
+            <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label
                   htmlFor={rejectReasonId}
@@ -297,36 +297,36 @@ export function ApprovalActionDialogs({
                 />
               </div>
             </div>
-            <CredenzaFooter>
-              <CredenzaClose asChild>
-                <Button variant="neutral" disabled={rejectStatus !== 'idle'}>
-                  Cancel
-                </Button>
-              </CredenzaClose>
-              <Button
-                variant="clear"
-                onClick={() => {
-                  handleReject()
-                }}
-                disabled={rejectStatus !== 'idle'}
-                className="min-w-[100px] flex items-center justify-center gap-2"
-              >
-                {rejectStatus === 'loading' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Rejecting...
-                  </>
-                ) : rejectStatus === 'success' ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Rejected
-                  </>
-                ) : (
-                  'Reject'
-                )}
-              </Button>
-            </CredenzaFooter>
           </CredenzaBody>
+          <CredenzaFooter>
+            <CredenzaClose asChild>
+              <Button variant="neutral" disabled={rejectStatus !== 'idle'}>
+                Cancel
+              </Button>
+            </CredenzaClose>
+            <Button
+              variant="clear"
+              onClick={() => {
+                handleReject()
+              }}
+              disabled={rejectStatus !== 'idle'}
+              className="min-w-[100px] flex items-center justify-center gap-2"
+            >
+              {rejectStatus === 'loading' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Rejecting...
+                </>
+              ) : rejectStatus === 'success' ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Rejected
+                </>
+              ) : (
+                'Reject'
+              )}
+            </Button>
+          </CredenzaFooter>
         </CredenzaContent>
       </Credenza>
 
@@ -353,37 +353,35 @@ export function ApprovalActionDialogs({
               )}
             </CredenzaDescription>
           </CredenzaHeader>
-          <CredenzaBody>
-            <CredenzaFooter>
-              <CredenzaClose asChild>
-                <Button variant="neutral" disabled={deleteStatus !== 'idle'}>
-                  Cancel
-                </Button>
-              </CredenzaClose>
-              <Button
-                variant="clear"
-                onClick={() => {
-                  handleDelete()
-                }}
-                disabled={deleteStatus !== 'idle'}
-                className="min-w-[100px] flex items-center justify-center gap-2"
-              >
-                {deleteStatus === 'loading' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : deleteStatus === 'success' ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Deleted
-                  </>
-                ) : (
-                  'Delete'
-                )}
+          <CredenzaFooter>
+            <CredenzaClose asChild>
+              <Button variant="neutral" disabled={deleteStatus !== 'idle'}>
+                Cancel
               </Button>
-            </CredenzaFooter>
-          </CredenzaBody>
+            </CredenzaClose>
+            <Button
+              variant="clear"
+              onClick={() => {
+                handleDelete()
+              }}
+              disabled={deleteStatus !== 'idle'}
+              className="min-w-[100px] flex items-center justify-center gap-2"
+            >
+              {deleteStatus === 'loading' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : deleteStatus === 'success' ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Deleted
+                </>
+              ) : (
+                'Delete'
+              )}
+            </Button>
+          </CredenzaFooter>
         </CredenzaContent>
       </Credenza>
     </>

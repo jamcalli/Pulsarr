@@ -2,7 +2,6 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -54,26 +53,24 @@ export function BulkResetInactiveAlert({
             be lost.
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral" disabled={isLoading}>
-                Cancel
-              </Button>
-            </CredenzaClose>
-            <Button
-              variant="default"
-              onClick={() => {
-                onConfirm()
-              }}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Reset {inactiveCount} Show{inactiveCount !== 1 ? 's' : ''}
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral" disabled={isLoading}>
+              Cancel
             </Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+          </CredenzaClose>
+          <Button
+            variant="default"
+            onClick={() => {
+              onConfirm()
+            }}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Reset {inactiveCount} Show{inactiveCount !== 1 ? 's' : ''}
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

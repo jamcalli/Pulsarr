@@ -56,7 +56,7 @@ export function DeleteSyncConfirmationModal({
           <CredenzaDescription>{description}</CredenzaDescription>
         </CredenzaHeader>
         <CredenzaBody>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-md mb-4">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-md">
             <p className="text-yellow-800 dark:text-yellow-200 text-sm">
               This action may cause{' '}
               <span className="font-bold">irreversible removal</span> of items
@@ -65,25 +65,25 @@ export function DeleteSyncConfirmationModal({
               settings.
             </p>
           </div>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button
-              variant="clear"
-              onClick={() => {
-                onConfirm()
-              }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting
-                ? 'Processing...'
-                : mode === 'enable'
-                  ? 'Enable'
-                  : 'Run Now'}
-            </Button>
-          </CredenzaFooter>
         </CredenzaBody>
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={() => {
+              onConfirm()
+            }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? 'Processing...'
+              : mode === 'enable'
+                ? 'Enable'
+                : 'Run Now'}
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

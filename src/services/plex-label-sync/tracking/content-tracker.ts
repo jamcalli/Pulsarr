@@ -13,6 +13,7 @@ import type {
 } from '@services/database/methods/plex-label-tracking.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { FastifyBaseLogger } from 'fastify'
+import { includesLabelIgnoreCase } from '../label-operations/label-validator.js'
 
 export interface ContentTrackerDeps {
   db: DatabaseService
@@ -68,20 +69,20 @@ export async function updateTrackingForContent(
       // Determine which tracking records should exist
       const desiredTracking = new Set<string>()
 
-      // Track user labels with their specific watchlist IDs
+      // Track user labels with their specific watchlist IDs (case-insensitive)
       for (const user of content.users) {
         const userLabel = `${deps.config.labelPrefix}:${user.username}`
-        if (finalUserLabels.includes(userLabel)) {
+        if (includesLabelIgnoreCase(finalUserLabels, userLabel)) {
           desiredTracking.add(
             `${user.watchlist_id}:${plexItem.ratingKey}:${userLabel}`,
           )
         }
       }
 
-      // Track tag labels per user to align with per-user tracking records
+      // Track tag labels per user to align with per-user tracking records (case-insensitive)
       if (finalTagLabels.length > 0 && content.users.length > 0) {
         for (const tagLabel of finalTagLabels) {
-          if (allFinalLabels.includes(tagLabel)) {
+          if (includesLabelIgnoreCase(allFinalLabels, tagLabel)) {
             for (const u of content.users) {
               desiredTracking.add(
                 `${u.watchlist_id}:${plexItem.ratingKey}:${tagLabel}`,
@@ -169,8 +170,8 @@ export async function updateTrackingForContent(
         // Build complete label array for this user (user label + all tag labels)
         const userLabelsForContent: string[] = []
 
-        // Add user label if it should be applied
-        if (finalUserLabels.includes(userLabel)) {
+        // Add user label if it should be applied (case-insensitive)
+        if (includesLabelIgnoreCase(finalUserLabels, userLabel)) {
           userLabelsForContent.push(userLabel)
         }
 

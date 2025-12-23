@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -13,7 +12,7 @@ import {
 interface ApiKeysDeleteConfirmationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  onConfirm: () => Promise<void>
   isSubmitting: boolean
   apiKeyName: string
 }
@@ -45,23 +44,24 @@ export function ApiKeysDeleteConfirmationModal({
             access.
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button
-              variant="clear"
-              onClick={() => {
-                onConfirm()
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={async () => {
+              try {
+                await onConfirm()
+              } finally {
                 onOpenChange(false)
-              }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Revoking...' : 'Revoke'}
-            </Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+              }
+            }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Revoking...' : 'Revoke'}
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

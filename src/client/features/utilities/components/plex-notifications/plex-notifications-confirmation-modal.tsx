@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -13,7 +12,7 @@ import {
 interface PlexNotificationsConfirmationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  onConfirm: () => Promise<void>
   isSubmitting?: boolean
 }
 
@@ -41,23 +40,24 @@ export function PlexNotificationsConfirmationModal({
             this functionality.
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button
-              variant="clear"
-              onClick={() => {
-                onConfirm()
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={async () => {
+              try {
+                await onConfirm()
+              } finally {
                 onOpenChange(false)
-              }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Processing...' : 'Remove'}
-            </Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+              }
+            }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Processing...' : 'Remove'}
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

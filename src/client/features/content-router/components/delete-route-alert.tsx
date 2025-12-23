@@ -1,7 +1,7 @@
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -13,9 +13,10 @@ import {
 interface DeleteRouteAlertProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => Promise<void>
+  onConfirm: () => void
   routeName: string
   routeType?: string
+  isDeleting?: boolean
 }
 
 /**
@@ -31,6 +32,7 @@ export function DeleteRouteAlert({
   onConfirm,
   routeName,
   routeType = 'routing rule',
+  isDeleting = false,
 }: DeleteRouteAlertProps) {
   return (
     <Credenza open={open} onOpenChange={onOpenChange}>
@@ -43,21 +45,24 @@ export function DeleteRouteAlert({
             {`Are you sure you want to remove the ${routeType} "${routeName}"? This action cannot be undone.`}
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button
-              variant="clear"
-              onClick={() => {
-                onConfirm()
-              }}
-            >
-              Remove
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral" disabled={isDeleting}>
+              Cancel
             </Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={() => {
+              onConfirm()
+            }}
+            disabled={isDeleting}
+            className="flex items-center gap-2"
+          >
+            {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Remove
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )
