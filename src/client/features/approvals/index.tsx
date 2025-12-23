@@ -204,6 +204,7 @@ export default function ApprovalsPage() {
           <ApprovalStatsHeader stats={null} loading={true} />
           <ApprovalTable
             data={[]}
+            total={0}
             onApprove={() => {}}
             onReject={() => {}}
             onView={() => {}}
@@ -229,6 +230,7 @@ export default function ApprovalsPage() {
         <ApprovalTable
           ref={tableRef}
           data={approvalsData?.approvalRequests ?? []}
+          total={approvalsData?.total ?? 0}
           onApprove={openActionsModal}
           onReject={openActionsModal}
           onView={openActionsModal}

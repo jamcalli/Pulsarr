@@ -169,8 +169,15 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { status, userId, contentType, triggeredBy, limit, offset } =
-          request.query
+        const {
+          status,
+          userId,
+          contentType,
+          triggeredBy,
+          search,
+          limit,
+          offset,
+        } = request.query
 
         // Get approval requests with all filters
         const requests = await fastify.db.getApprovalHistory(
@@ -180,6 +187,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           offset,
           contentType,
           triggeredBy,
+          search,
         )
 
         // Get the total count with the same filters but without pagination
@@ -188,6 +196,7 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           status,
           contentType,
           triggeredBy,
+          search,
         )
 
         return {

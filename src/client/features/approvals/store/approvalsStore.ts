@@ -1,21 +1,50 @@
-import type {
-  ApprovalRequestResponse,
-  GetApprovalRequestsQuery,
-} from '@root/schemas/approval/approval.schema'
+import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+
+/**
+ * Approval status type for filter UI (matches backend schema)
+ */
+type ApprovalStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'expired'
+  | 'auto_approved'
+
+/**
+ * Filter state for approval requests.
+ * These filters are sent to the server for server-side filtering.
+ */
+interface ApprovalFilters {
+  status: ApprovalStatus[]
+  contentType: ('movie' | 'show')[]
+  triggeredBy: (
+    | 'quota_exceeded'
+    | 'router_rule'
+    | 'manual_flag'
+    | 'content_criteria'
+  )[]
+  search: string
+}
 
 /**
  * UI-only state for the approvals feature.
  *
  * Data fetching is handled by React Query hooks (useApprovals, useApprovalStats).
- * This store only holds UI state: filters, selections, and modal visibility.
+ * This store only holds UI state: filters, pagination, selections, and modal visibility.
  */
 interface ApprovalsUIState {
-  // Query filters - displayed in filter UI, used by useApprovals hook
-  currentQuery: Partial<GetApprovalRequestsQuery>
-  setQuery: (query: Partial<GetApprovalRequestsQuery>) => void
-  resetQuery: () => void
+  // Server-side filters
+  filters: ApprovalFilters
+  setFilters: (filters: Partial<ApprovalFilters>) => void
+  resetFilters: () => void
+
+  // Server-side pagination
+  pageIndex: number
+  pageSize: number
+  setPageIndex: (index: number) => void
+  setPageSize: (size: number) => void
 
   // Individual action modal state
   selectedRequest: ApprovalRequestResponse | null
@@ -43,20 +72,35 @@ interface ApprovalsUIState {
   closeBulkModal: () => void
 }
 
-const DEFAULT_QUERY: Partial<GetApprovalRequestsQuery> = {
-  limit: 50000,
-  offset: 0,
+const DEFAULT_FILTERS: ApprovalFilters = {
+  status: [],
+  contentType: [],
+  triggeredBy: [],
+  search: '',
 }
+
+const DEFAULT_PAGE_SIZE = 20
 
 export const useApprovalsStore = create<ApprovalsUIState>()(
   devtools((set) => ({
-    // Query filters
-    currentQuery: DEFAULT_QUERY,
-    setQuery: (query) =>
+    // Server-side filters
+    filters: DEFAULT_FILTERS,
+    setFilters: (newFilters) =>
       set((state) => ({
-        currentQuery: { ...state.currentQuery, ...query },
+        filters: { ...state.filters, ...newFilters },
+        pageIndex: 0, // Reset to first page when filters change
       })),
-    resetQuery: () => set({ currentQuery: DEFAULT_QUERY }),
+    resetFilters: () =>
+      set({
+        filters: DEFAULT_FILTERS,
+        pageIndex: 0,
+      }),
+
+    // Server-side pagination
+    pageIndex: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+    setPageIndex: (index) => set({ pageIndex: index }),
+    setPageSize: (size) => set({ pageSize: size, pageIndex: 0 }),
 
     // Individual action modal
     selectedRequest: null,

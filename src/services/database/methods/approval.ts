@@ -249,18 +249,27 @@ export async function getPendingApprovalRequests(
 }
 
 /**
- * Retrieves approval requests filtered by optional user, status, content type, and trigger source, with pagination support.
+ * Retrieves approval requests filtered by optional user, status, content type, trigger source,
+ * and search term, with pagination support.
  *
+ * @param userId - Optional user ID to filter by
+ * @param status - Optional status filter (single value or array for multi-select)
+ * @param limit - Maximum number of results (default: 50)
+ * @param offset - Number of results to skip (default: 0)
+ * @param contentType - Optional content type filter ('movie' or 'show')
+ * @param triggeredBy - Optional trigger source filter
+ * @param search - Optional search term for content title (case-insensitive partial match)
  * @returns An array of approval requests matching the specified filters.
  */
 export async function getApprovalHistory(
   this: DatabaseService,
   userId?: number,
-  status?: ApprovalStatus,
+  status?: ApprovalStatus | ApprovalStatus[],
   limit = 50,
   offset = 0,
   contentType?: 'movie' | 'show',
   triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+  search?: string,
 ): Promise<ApprovalRequest[]> {
   let query = this.knex('approval_requests')
     .select('approval_requests.*', 'users.name as user_name')
@@ -271,7 +280,11 @@ export async function getApprovalHistory(
   }
 
   if (status) {
-    query = query.where('approval_requests.status', status)
+    if (Array.isArray(status)) {
+      query = query.whereIn('approval_requests.status', status)
+    } else {
+      query = query.where('approval_requests.status', status)
+    }
   }
 
   if (contentType) {
@@ -280,6 +293,20 @@ export async function getApprovalHistory(
 
   if (triggeredBy) {
     query = query.where('approval_requests.triggered_by', triggeredBy)
+  }
+
+  if (search) {
+    // Case-insensitive partial match on content_title
+    if (this.isPostgres) {
+      query = query.whereRaw('approval_requests.content_title ILIKE ?', [
+        `%${search}%`,
+      ])
+    } else {
+      // SQLite uses LIKE which is case-insensitive by default for ASCII
+      query = query.whereRaw('approval_requests.content_title LIKE ?', [
+        `%${search}%`,
+      ])
+    }
   }
 
   const rows = await query
@@ -294,17 +321,19 @@ export async function getApprovalHistory(
  * Counts approval requests that match the given optional filters.
  *
  * @param userId - Filter by user ID
- * @param status - Filter by approval status
+ * @param status - Filter by approval status (single value or array for multi-select)
  * @param contentType - Filter by content type ('movie' or 'show')
  * @param triggeredBy - Filter by trigger source
+ * @param search - Optional search term for content title (case-insensitive partial match)
  * @returns The number of approval requests matching the filters
  */
 export async function getApprovalHistoryCount(
   this: DatabaseService,
   userId?: number,
-  status?: ApprovalStatus,
+  status?: ApprovalStatus | ApprovalStatus[],
   contentType?: 'movie' | 'show',
   triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+  search?: string,
 ): Promise<number> {
   let query = this.knex('approval_requests')
 
@@ -313,7 +342,11 @@ export async function getApprovalHistoryCount(
   }
 
   if (status) {
-    query = query.where('approval_requests.status', status)
+    if (Array.isArray(status)) {
+      query = query.whereIn('approval_requests.status', status)
+    } else {
+      query = query.where('approval_requests.status', status)
+    }
   }
 
   if (contentType) {
@@ -322,6 +355,19 @@ export async function getApprovalHistoryCount(
 
   if (triggeredBy) {
     query = query.where('approval_requests.triggered_by', triggeredBy)
+  }
+
+  if (search) {
+    // Case-insensitive partial match on content_title
+    if (this.isPostgres) {
+      query = query.whereRaw('approval_requests.content_title ILIKE ?', [
+        `%${search}%`,
+      ])
+    } else {
+      query = query.whereRaw('approval_requests.content_title LIKE ?', [
+        `%${search}%`,
+      ])
+    }
   }
 
   const result = await query.count('* as count').first()
