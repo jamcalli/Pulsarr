@@ -15,7 +15,11 @@ import {
 } from '@/components/ui/credenza'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
+import {
+  useApproveRequest,
+  useDeleteApproval,
+  useRejectRequest,
+} from '@/features/approvals/hooks/useApprovalMutations'
 
 interface ApprovalActionDialogsProps {
   selectedRequest: ApprovalRequestResponse | null
@@ -25,23 +29,12 @@ interface ApprovalActionDialogsProps {
   onApproveDialogClose: () => void
   onRejectDialogClose: () => void
   onDeleteDialogClose: () => void
-  onActionComplete: () => Promise<void>
 }
 
 /**
- * Renders modal dialogs for approving, rejecting, or deleting an approval request, providing user input fields, loading and success feedback, and error notifications.
+ * Renders modal dialogs for approving, rejecting, or deleting an approval request.
  *
- * Displays the appropriate dialog based on the open state props, allowing users to approve with optional notes, reject with an optional reason, or permanently delete a request. Manages asynchronous actions with enforced minimum loading durations and cleans up pending timeouts on unmount.
- *
- * @param selectedRequest - The approval request currently selected for action, or null if none is selected.
- * @param approveDialogOpen - Whether the approve dialog is open.
- * @param rejectDialogOpen - Whether the reject dialog is open.
- * @param deleteDialogOpen - Whether the delete dialog is open.
- * @param onApproveDialogClose - Callback to close the approve dialog.
- * @param onRejectDialogClose - Callback to close the reject dialog.
- * @param onDeleteDialogClose - Callback to close the delete dialog.
- * @param onActionComplete - Async callback invoked after an action completes.
- * @returns The rendered approval action dialogs as React elements.
+ * Uses React Query mutation hooks for actions with automatic cache invalidation.
  */
 export function ApprovalActionDialogs({
   selectedRequest,
@@ -51,7 +44,6 @@ export function ApprovalActionDialogs({
   onApproveDialogClose,
   onRejectDialogClose,
   onDeleteDialogClose,
-  onActionComplete,
 }: ApprovalActionDialogsProps) {
   const [approveNotes, setApproveNotes] = useState('')
   const [rejectReason, setRejectReason] = useState('')
@@ -64,8 +56,11 @@ export function ApprovalActionDialogs({
   const [deleteStatus, setDeleteStatus] = useState<
     'idle' | 'loading' | 'success'
   >('idle')
-  const { approveRequest, rejectRequest, deleteApprovalRequest } =
-    useApprovalsStore()
+
+  // Mutation hooks
+  const approveRequest = useApproveRequest()
+  const rejectRequest = useRejectRequest()
+  const deleteApproval = useDeleteApproval()
 
   const approveNotesId = useId()
   const rejectReasonId = useId()
@@ -76,7 +71,6 @@ export function ApprovalActionDialogs({
   // Clean up timeouts on component unmount
   useEffect(() => {
     return () => {
-      // Clear all pending timeouts on unmount
       timeoutIdsRef.current.forEach(clearTimeout)
     }
   }, [])
@@ -119,11 +113,10 @@ export function ApprovalActionDialogs({
 
     try {
       await withMinLoadingDuration(async () => {
-        await approveRequest(
-          selectedRequest.id,
-          approveNotes.trim() || undefined,
-        )
-        await onActionComplete()
+        await approveRequest.mutateAsync({
+          id: selectedRequest.id,
+          notes: approveNotes.trim() || undefined,
+        })
       }, setApproveStatus)
 
       setApproveNotes('')
@@ -142,11 +135,10 @@ export function ApprovalActionDialogs({
 
     try {
       await withMinLoadingDuration(async () => {
-        await rejectRequest(
-          selectedRequest.id,
-          rejectReason.trim() || undefined,
-        )
-        await onActionComplete()
+        await rejectRequest.mutateAsync({
+          id: selectedRequest.id,
+          reason: rejectReason.trim() || undefined,
+        })
       }, setRejectStatus)
 
       setRejectReason('')
@@ -165,8 +157,7 @@ export function ApprovalActionDialogs({
 
     try {
       await withMinLoadingDuration(async () => {
-        await deleteApprovalRequest(selectedRequest.id)
-        await onActionComplete()
+        await deleteApproval.mutateAsync(selectedRequest.id)
       }, setDeleteStatus)
 
       onDeleteDialogClose()
