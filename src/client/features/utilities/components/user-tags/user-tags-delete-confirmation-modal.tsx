@@ -39,8 +39,8 @@ export function UserTagsDeleteConfirmationModal({
   const [deleteTagDefinitions, setDeleteTagDefinitions] = useState(false)
   const deleteDefinitionsId = useId()
 
-  const handleConfirm = () => {
-    onConfirm(deleteTagDefinitions)
+  const handleConfirm = async () => {
+    await onConfirm(deleteTagDefinitions)
     onOpenChange(false)
   }
 

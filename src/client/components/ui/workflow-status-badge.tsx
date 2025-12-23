@@ -35,7 +35,11 @@ export function WatchlistStatusBadge() {
   const [showFirstStartDialog, setShowFirstStartDialog] = useState(false)
   const config = useConfigStore((state) => state.config)
 
-  const { mutate: startWorkflow, isPending: isStarting } = useStartWorkflow()
+  const {
+    mutate: startWorkflow,
+    mutateAsync: startWorkflowAsync,
+    isPending: isStarting,
+  } = useStartWorkflow()
   const { mutate: stopWorkflow, isPending: isStopping } = useStopWorkflow()
 
   const isPending = isStarting || isStopping
@@ -114,9 +118,19 @@ export function WatchlistStatusBadge() {
     }
   }
 
-  const handleFirstStartConfirm = () => {
-    setShowFirstStartDialog(false)
-    doStartWorkflow()
+  const handleFirstStartConfirm = async () => {
+    setCurrentAction('start')
+    try {
+      const data = await startWorkflowAsync({ autoStart })
+      const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
+      toast.success(`${data.message}${autoStartMsg}`)
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to start Watchlist workflow. Please check your configuration.',
+      )
+    }
   }
 
   // Don't allow toggling while in a transition state
@@ -205,6 +219,7 @@ export function WatchlistStatusBadge() {
         open={showFirstStartDialog}
         onOpenChange={setShowFirstStartDialog}
         onConfirm={handleFirstStartConfirm}
+        isSubmitting={isStarting}
       />
     </div>
   )

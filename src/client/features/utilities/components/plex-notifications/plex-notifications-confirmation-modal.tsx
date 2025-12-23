@@ -12,7 +12,7 @@ import {
 interface PlexNotificationsConfirmationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  onConfirm: () => Promise<void>
   isSubmitting?: boolean
 }
 
@@ -46,8 +46,8 @@ export function PlexNotificationsConfirmationModal({
           </CredenzaClose>
           <Button
             variant="clear"
-            onClick={() => {
-              onConfirm()
+            onClick={async () => {
+              await onConfirm()
               onOpenChange(false)
             }}
             disabled={isSubmitting}

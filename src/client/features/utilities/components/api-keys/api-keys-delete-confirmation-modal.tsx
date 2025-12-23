@@ -12,7 +12,7 @@ import {
 interface ApiKeysDeleteConfirmationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  onConfirm: () => Promise<void>
   isSubmitting: boolean
   apiKeyName: string
 }
@@ -50,8 +50,8 @@ export function ApiKeysDeleteConfirmationModal({
           </CredenzaClose>
           <Button
             variant="clear"
-            onClick={() => {
-              onConfirm()
+            onClick={async () => {
+              await onConfirm()
               onOpenChange(false)
             }}
             disabled={isSubmitting}

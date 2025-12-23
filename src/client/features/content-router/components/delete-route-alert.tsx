@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
@@ -12,9 +13,10 @@ import {
 interface DeleteRouteAlertProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => Promise<void>
+  onConfirm: () => void
   routeName: string
   routeType?: string
+  isDeleting?: boolean
 }
 
 /**
@@ -30,6 +32,7 @@ export function DeleteRouteAlert({
   onConfirm,
   routeName,
   routeType = 'routing rule',
+  isDeleting = false,
 }: DeleteRouteAlertProps) {
   return (
     <Credenza open={open} onOpenChange={onOpenChange}>
@@ -44,14 +47,19 @@ export function DeleteRouteAlert({
         </CredenzaHeader>
         <CredenzaFooter>
           <CredenzaClose asChild>
-            <Button variant="neutral">Cancel</Button>
+            <Button variant="neutral" disabled={isDeleting}>
+              Cancel
+            </Button>
           </CredenzaClose>
           <Button
             variant="clear"
             onClick={() => {
               onConfirm()
             }}
+            disabled={isDeleting}
+            className="flex items-center gap-2"
           >
+            {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
             Remove
           </Button>
         </CredenzaFooter>
