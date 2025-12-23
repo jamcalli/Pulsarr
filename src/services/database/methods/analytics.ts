@@ -87,14 +87,17 @@ export async function getTopGenres(
 }
 
 /**
- * Retrieves the most frequently watchlisted shows, returning their titles, watchlist counts, thumbnails, and GUIDs.
+ * Retrieves the most frequently watchlisted shows, returning their titles, watchlist counts, thumbnails, GUIDs, and users.
  *
- * @param limit - Maximum number of shows to return (default: 10)
- * @returns An array of objects containing the show title, count of watchlist entries, thumbnail, GUIDs, and content type
+ * @param options - Query options
+ * @param options.limit - Maximum number of shows to return (default: 10)
+ * @param options.offset - Number of results to skip for pagination (default: 0)
+ * @param options.days - Filter to shows added within this many days (0 = all time, default: 0)
+ * @returns An array of objects containing the show title, count, thumbnail, GUIDs, content type, and user names
  */
 export async function getMostWatchlistedShows(
   this: DatabaseService,
-  limit = 10,
+  options: { limit?: number; offset?: number; days?: number } = {},
 ): Promise<
   {
     title: string
@@ -102,18 +105,39 @@ export async function getMostWatchlistedShows(
     thumb: string | null
     guids: string[]
     content_type: 'show'
+    users: string[]
   }[]
 > {
-  const results = await this.knex('watchlist_items')
-    .where('type', 'show')
-    .select('title', 'guids')
-    .select(this.knex.raw('MIN(thumb) as thumb'))
+  const { limit = 10, offset = 0, days = 0 } = options
+  const isAllTime = days === 0
+
+  let query = this.knex('watchlist_items').where('type', 'show')
+
+  if (!isAllTime) {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    query = query.where('added', '>=', cutoffDate)
+  }
+
+  // Use GROUP_CONCAT (SQLite) or STRING_AGG (PostgreSQL) to aggregate user names
+  const userAggregation = this.isPostgres
+    ? this.knex.raw("STRING_AGG(DISTINCT u.name, '||') as user_names")
+    : this.knex.raw("GROUP_CONCAT(DISTINCT u.name, '||') as user_names")
+
+  const results = await query
+    .leftJoin('users as u', 'watchlist_items.user_id', 'u.id')
+    .select('watchlist_items.title', 'watchlist_items.guids')
+    .select(this.knex.raw('MIN(watchlist_items.thumb) as thumb'))
+    .select(userAggregation)
     .count('* as count')
-    .groupBy('title', 'guids')
+    .groupBy('watchlist_items.title', 'watchlist_items.guids')
     .orderBy('count', 'desc')
     .limit(limit)
+    .offset(offset)
 
-  this.log.debug(`Retrieved ${results.length} most watchlisted shows`)
+  this.log.debug(
+    `Retrieved ${results.length} most watchlisted shows ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
+  )
 
   return results.map((row) => ({
     title: String(row.title),
@@ -121,18 +145,24 @@ export async function getMostWatchlistedShows(
     thumb: row.thumb ? String(row.thumb) : null,
     guids: this.safeJsonParse(row.guids as string, [], 'watchlist_item.guids'),
     content_type: 'show' as const,
+    users: row.user_names
+      ? String(row.user_names).split('||').filter(Boolean)
+      : [],
   }))
 }
 
 /**
- * Retrieves the most frequently watchlisted movies, returning their titles, watchlist counts, thumbnails, and GUIDs.
+ * Retrieves the most frequently watchlisted movies, returning their titles, watchlist counts, thumbnails, GUIDs, and users.
  *
- * @param limit - Maximum number of movies to return (default: 10)
- * @returns Array of objects containing movie title, count, thumbnail, GUIDs, and content type
+ * @param options - Query options
+ * @param options.limit - Maximum number of movies to return (default: 10)
+ * @param options.offset - Number of results to skip for pagination (default: 0)
+ * @param options.days - Filter to movies added within this many days (0 = all time, default: 0)
+ * @returns Array of objects containing movie title, count, thumbnail, GUIDs, content type, and user names
  */
 export async function getMostWatchlistedMovies(
   this: DatabaseService,
-  limit = 10,
+  options: { limit?: number; offset?: number; days?: number } = {},
 ): Promise<
   {
     title: string
@@ -140,18 +170,39 @@ export async function getMostWatchlistedMovies(
     thumb: string | null
     guids: string[]
     content_type: 'movie'
+    users: string[]
   }[]
 > {
-  const results = await this.knex('watchlist_items')
-    .where('type', 'movie')
-    .select('title', 'guids')
-    .select(this.knex.raw('MIN(thumb) as thumb'))
+  const { limit = 10, offset = 0, days = 0 } = options
+  const isAllTime = days === 0
+
+  let query = this.knex('watchlist_items').where('type', 'movie')
+
+  if (!isAllTime) {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    query = query.where('added', '>=', cutoffDate)
+  }
+
+  // Use GROUP_CONCAT (SQLite) or STRING_AGG (PostgreSQL) to aggregate user names
+  const userAggregation = this.isPostgres
+    ? this.knex.raw("STRING_AGG(DISTINCT u.name, '||') as user_names")
+    : this.knex.raw("GROUP_CONCAT(DISTINCT u.name, '||') as user_names")
+
+  const results = await query
+    .leftJoin('users as u', 'watchlist_items.user_id', 'u.id')
+    .select('watchlist_items.title', 'watchlist_items.guids')
+    .select(this.knex.raw('MIN(watchlist_items.thumb) as thumb'))
+    .select(userAggregation)
     .count('* as count')
-    .groupBy('title', 'guids')
+    .groupBy('watchlist_items.title', 'watchlist_items.guids')
     .orderBy('count', 'desc')
     .limit(limit)
+    .offset(offset)
 
-  this.log.debug(`Retrieved ${results.length} most watchlisted movies`)
+  this.log.debug(
+    `Retrieved ${results.length} most watchlisted movies ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
+  )
 
   return results.map((row) => ({
     title: String(row.title),
@@ -159,6 +210,9 @@ export async function getMostWatchlistedMovies(
     thumb: row.thumb ? String(row.thumb) : null,
     guids: this.safeJsonParse(row.guids as string, [], 'watchlist_item.guids'),
     content_type: 'movie' as const,
+    users: row.user_names
+      ? String(row.user_names).split('||').filter(Boolean)
+      : [],
   }))
 }
 
@@ -286,7 +340,7 @@ export async function getContentTypeDistribution(
 /**
  * Retrieves counts of new watchlist items, status changes, and notifications sent within the past specified number of days.
  *
- * @param days - Number of days to look back for activity statistics (default: 30)
+ * @param days - Number of days to look back for activity statistics (default: 30, 0 = all time)
  * @returns An object containing counts for new watchlist items, status changes, and notifications sent
  */
 export async function getRecentActivityStats(
@@ -297,27 +351,33 @@ export async function getRecentActivityStats(
   status_changes: number
   notifications_sent: number
 }> {
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - days)
+  const isAllTime = days === 0
 
   this.log.debug(
-    `Calculating recent activity stats for period since ${cutoffDate.toISOString()}`,
+    `Calculating recent activity stats ${isAllTime ? '(all time)' : `for last ${days} days`}`,
   )
 
-  const newItems = await this.knex('watchlist_items')
-    .where('added', '>=', cutoffDate)
-    .count('* as count')
-    .first()
+  let newItemsQuery = this.knex('watchlist_items')
+  let statusChangesQuery = this.knex('watchlist_status_history')
+  let notificationsQuery = this.knex('notifications')
 
-  const statusChanges = await this.knex('watchlist_status_history')
-    .where('timestamp', '>=', cutoffDate)
-    .count('* as count')
-    .first()
+  if (!isAllTime) {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    newItemsQuery = newItemsQuery.where('added', '>=', cutoffDate)
+    statusChangesQuery = statusChangesQuery.where('timestamp', '>=', cutoffDate)
+    notificationsQuery = notificationsQuery.where(
+      'created_at',
+      '>=',
+      cutoffDate,
+    )
+  }
 
-  const notifications = await this.knex('notifications')
-    .where('created_at', '>=', cutoffDate)
-    .count('* as count')
-    .first()
+  const [newItems, statusChanges, notifications] = await Promise.all([
+    newItemsQuery.count('* as count').first(),
+    statusChangesQuery.count('* as count').first(),
+    notificationsQuery.count('* as count').first(),
+  ])
 
   const stats = {
     new_watchlist_items: Number(newItems?.count || 0),
@@ -402,10 +462,12 @@ export async function getInstanceActivityStats(this: DatabaseService): Promise<
  *
  * Only includes content types with at least 2 valid samples, excluding negative or excessively large time differences (over 365 days).
  *
+ * @param days - Number of days to look back for notifications (default: 30)
  * @returns An array of objects containing the content type, average days, minimum days, maximum days, and sample count.
  */
 export async function getAverageTimeFromGrabbedToNotified(
   this: DatabaseService,
+  days = 30,
 ): Promise<
   {
     content_type: string
@@ -416,7 +478,26 @@ export async function getAverageTimeFromGrabbedToNotified(
   }[]
 > {
   try {
-    this.log.debug('Calculating average time from grabbed to notified status')
+    const isAllTime = days === 0
+
+    this.log.debug(
+      `Calculating average time from grabbed to notified status ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
+    )
+
+    let cutoffDate: Date | undefined
+    if (!isAllTime) {
+      cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - days)
+    }
+
+    // Build notified subquery - conditionally apply date filter
+    const notifiedSubquery = this.knex('watchlist_status_history')
+      .select('watchlist_item_id')
+      .min('timestamp as first_notified')
+      .where('status', 'notified')
+    if (!isAllTime && cutoffDate) {
+      notifiedSubquery.where('timestamp', '>=', cutoffDate)
+    }
 
     // Include both grabbed->notified AND requested->notified transitions
     const grabbedToNotified = await this.knex('watchlist_items as wi')
@@ -436,12 +517,7 @@ export async function getAverageTimeFromGrabbedToNotified(
         'grabbed.watchlist_item_id',
       )
       .innerJoin(
-        this.knex('watchlist_status_history')
-          .select('watchlist_item_id')
-          .min('timestamp as first_notified')
-          .where('status', 'notified')
-          .groupBy('watchlist_item_id')
-          .as('notified'),
+        notifiedSubquery.clone().groupBy('watchlist_item_id').as('notified'),
         'wi.id',
         'notified.watchlist_item_id',
       )
@@ -449,6 +525,15 @@ export async function getAverageTimeFromGrabbedToNotified(
       .andWhere(
         this.knex.raw('notified.first_notified > grabbed.first_grabbed'),
       )
+
+    // Build notified subquery for requested->notified (reuse the same pattern)
+    const notifiedSubquery2 = this.knex('watchlist_status_history')
+      .select('watchlist_item_id')
+      .min('timestamp as first_notified')
+      .where('status', 'notified')
+    if (!isAllTime && cutoffDate) {
+      notifiedSubquery2.where('timestamp', '>=', cutoffDate)
+    }
 
     // Also get requested->notified transitions where no grabbed status exists
     const requestedToNotified = await this.knex('watchlist_items as wi')
@@ -468,12 +553,7 @@ export async function getAverageTimeFromGrabbedToNotified(
         'requested.watchlist_item_id',
       )
       .innerJoin(
-        this.knex('watchlist_status_history')
-          .select('watchlist_item_id')
-          .min('timestamp as first_notified')
-          .where('status', 'notified')
-          .groupBy('watchlist_item_id')
-          .as('notified'),
+        notifiedSubquery2.clone().groupBy('watchlist_item_id').as('notified'),
         'wi.id',
         'notified.watchlist_item_id',
       )
@@ -561,10 +641,12 @@ export async function getAverageTimeFromGrabbedToNotified(
  *
  * For each unique (from_status, to_status, content_type) combination, applies robust outlier filtering and includes only transitions with at least two valid samples. Results are sorted by sample count in descending order.
  *
+ * @param days - Number of days to look back for transitions (default: 30)
  * @returns An array of objects with transition details and time statistics.
  */
 export async function getDetailedStatusTransitionMetrics(
   this: DatabaseService,
+  days = 30,
 ): Promise<
   {
     from_status: string
@@ -577,10 +659,20 @@ export async function getDetailedStatusTransitionMetrics(
   }[]
 > {
   try {
-    this.log.debug('Calculating detailed status transition metrics')
+    const isAllTime = days === 0
+
+    this.log.debug(
+      `Calculating detailed status transition metrics ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
+    )
+
+    let cutoffDate: Date | undefined
+    if (!isAllTime) {
+      cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - days)
+    }
 
     // Step 1: Get all direct status transitions using Knex
-    const transitionsQuery = this.knex('watchlist_status_history as h1')
+    let transitionsQuery = this.knex('watchlist_status_history as h1')
       .select(
         'h1.status as from_status',
         'h2.status as to_status',
@@ -599,6 +691,14 @@ export async function getDetailedStatusTransitionMetrics(
         )
       })
       .join('watchlist_items as w', 'h1.watchlist_item_id', 'w.id')
+    if (!isAllTime && cutoffDate) {
+      transitionsQuery = transitionsQuery.where(
+        'h2.timestamp',
+        '>=',
+        cutoffDate,
+      )
+    }
+    transitionsQuery = transitionsQuery
       .whereRaw('h1.status != h2.status')
       .whereRaw(`${this.getDateDiffSQL('h2.timestamp', 'h1.timestamp')} >= 0`)
       .whereRaw(`${this.getDateDiffSQL('h2.timestamp', 'h1.timestamp')} < 1`)
@@ -753,10 +853,12 @@ export async function getDetailedStatusTransitionMetrics(
  *
  * Only includes movies that have reached 'available' status and shows that have reached 'ended' status. Returns an array of metrics for each content type.
  *
+ * @param days - Number of days to look back for notifications (default: 30)
  * @returns Array of objects containing content type, average days, minimum days, maximum days, and count of items.
  */
 export async function getAverageTimeToAvailability(
   this: DatabaseService,
+  days = 30,
 ): Promise<
   {
     content_type: string
@@ -775,13 +877,27 @@ export async function getAverageTimeToAvailability(
     count: number
   }
 
-  this.log.debug('Calculating average time from addition to availability')
+  const isAllTime = days === 0
+
+  this.log.debug(
+    `Calculating average time from addition to availability ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
+  )
+
+  let cutoffISO: string | undefined
+  if (!isAllTime) {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    cutoffISO = cutoffDate.toISOString()
+  }
 
   // Execute raw SQL query with CTEs for first add and first notification timestamps
   const availabilityDateDiffFunction = this.getDateDiffSQL(
     'n.first_notification',
     this.isPostgres ? 'a.added::timestamp' : 'a.added',
   )
+
+  // Build date filter clause conditionally
+  const dateFilterClause = isAllTime ? '' : `AND h.timestamp >= '${cutoffISO}'`
 
   const results = await this.knex.raw<AvailabilityStatsRow[]>(`
     WITH first_added AS (
@@ -794,12 +910,13 @@ export async function getAverageTimeToAvailability(
       WHERE w.added IS NOT NULL
     ),
     first_notified AS (
-      -- Get first notification timestamp for each item
+      -- Get first notification timestamp for each item within the time period
       SELECT
         h.watchlist_item_id,
         MIN(h.timestamp) AS first_notification
       FROM watchlist_status_history h
       WHERE h.status = 'notified'
+      ${dateFilterClause}
       GROUP BY h.watchlist_item_id
     )
     -- Join and calculate statistics on the time difference
@@ -811,15 +928,15 @@ export async function getAverageTimeToAvailability(
       COUNT(*) AS count
     FROM first_added a
     JOIN first_notified n ON a.id = n.watchlist_item_id
-    WHERE 
+    WHERE
       -- Filter to only include items that have reached availability
       (a.content_type = 'movie' AND EXISTS (
-        SELECT 1 FROM watchlist_items w 
+        SELECT 1 FROM watchlist_items w
         WHERE w.id = a.id AND w.movie_status = 'available'
       ))
-      OR 
+      OR
       (a.content_type = 'show' AND EXISTS (
-        SELECT 1 FROM watchlist_items w 
+        SELECT 1 FROM watchlist_items w
         WHERE w.id = a.id AND w.series_status = 'ended'
       ))
     GROUP BY a.content_type
@@ -850,9 +967,13 @@ export async function getAverageTimeToAvailability(
  *
  * Returns an array of objects representing each unique status transition (from_status to to_status) per content type, including the count of transitions and the average number of days between them. Suitable for generating status flow diagrams such as Sankey charts.
  *
+ * @param days - Number of days to look back for transitions (default: 30)
  * @returns Array of status transition data points, each containing from_status, to_status, content_type, count, and avg_days.
  */
-export async function getStatusFlowData(this: DatabaseService): Promise<
+export async function getStatusFlowData(
+  this: DatabaseService,
+  days = 30,
+): Promise<
   {
     from_status: string
     to_status: string
@@ -862,7 +983,18 @@ export async function getStatusFlowData(this: DatabaseService): Promise<
   }[]
 > {
   try {
-    this.log.debug('Retrieving status flow data for visualization')
+    const isAllTime = days === 0
+
+    this.log.debug(
+      `Retrieving status flow data for visualization ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
+    )
+
+    let cutoffISO: string | undefined
+    if (!isAllTime) {
+      const cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - days)
+      cutoffISO = cutoffDate.toISOString()
+    }
 
     // Define type for the raw SQL query result
     type StatusFlowRow = {
@@ -879,10 +1011,15 @@ export async function getStatusFlowData(this: DatabaseService): Promise<
       'h1.timestamp',
     )
 
+    // Build date filter clause conditionally
+    const dateFilterClause = isAllTime
+      ? ''
+      : `AND h2.timestamp >= '${cutoffISO}'`
+
     const results = await this.knex.raw<StatusFlowRow[]>(`
     WITH status_transitions AS (
       -- For each item, find all pairs of consecutive status changes
-      SELECT 
+      SELECT
         h1.status AS from_status,
         h2.status AS to_status,
         w.type AS content_type,
@@ -891,6 +1028,7 @@ export async function getStatusFlowData(this: DatabaseService): Promise<
       JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
       JOIN watchlist_items w ON h1.watchlist_item_id = w.id
       WHERE h1.status != h2.status
+      ${dateFilterClause}
       -- Ensure there are no intermediate status changes
       AND NOT EXISTS (
         SELECT 1 FROM watchlist_status_history h3
@@ -899,7 +1037,7 @@ export async function getStatusFlowData(this: DatabaseService): Promise<
       )
     )
     -- Aggregate to get counts and average times for each transition type
-    SELECT 
+    SELECT
       from_status,
       to_status,
       content_type,

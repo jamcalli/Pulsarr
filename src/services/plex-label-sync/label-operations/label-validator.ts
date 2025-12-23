@@ -144,3 +144,37 @@ export function filterAndFormatTagsAsLabels(
     .filter((tag) => !isUserTaggingSystemTag(tag, tagPrefix, removedTagPrefix))
     .map((tag) => `${labelPrefix}:${tag}`)
 }
+
+/**
+ * Checks if a label exists in an array (case-insensitive).
+ * Plex auto-capitalizes the first letter of labels, so comparisons must be case-insensitive.
+ *
+ * @param labels - Array of labels to search
+ * @param label - The label to find
+ * @returns True if the label exists (case-insensitive match)
+ */
+export function includesLabelIgnoreCase(
+  labels: string[],
+  label: string,
+): boolean {
+  const lowerLabel = label.toLowerCase()
+  return labels.some((l) => l.toLowerCase() === lowerLabel)
+}
+
+/**
+ * Creates a case-insensitive unique array of labels, preserving the original casing of the first occurrence.
+ * Used to deduplicate labels while handling Plex's auto-capitalization.
+ *
+ * @param labels - Array of labels to deduplicate
+ * @returns Array of unique labels (case-insensitive)
+ */
+export function uniqueLabelsIgnoreCase(labels: string[]): string[] {
+  const seen = new Map<string, string>()
+  for (const label of labels) {
+    const lower = label.toLowerCase()
+    if (!seen.has(lower)) {
+      seen.set(lower, label)
+    }
+  }
+  return Array.from(seen.values())
+}

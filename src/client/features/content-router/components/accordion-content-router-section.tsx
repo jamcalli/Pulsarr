@@ -645,6 +645,7 @@ const AccordionContentRouterSection = ({
           rules.find((r) => r.id === deleteConfirmationRuleId)?.name || ''
         }
         routeType="content route"
+        isDeleting={isLoading}
       />
     </div>
   )
