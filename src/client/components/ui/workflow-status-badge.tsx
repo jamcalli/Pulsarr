@@ -87,6 +87,7 @@ export function WatchlistStatusBadge() {
           toast.success(`${data.message}${autoStartMsg}`)
         },
         onError: (error) => {
+          setCurrentAction(null)
           toast.error(
             error.message ||
               'Failed to start Watchlist workflow. Please check your configuration.',
@@ -104,6 +105,7 @@ export function WatchlistStatusBadge() {
           toast.success('Watchlist workflow has been stopped successfully')
         },
         onError: (error) => {
+          setCurrentAction(null)
           toast.error(error.message || 'Failed to stop Watchlist workflow')
         },
       })
@@ -125,6 +127,7 @@ export function WatchlistStatusBadge() {
       const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
       toast.success(`${data.message}${autoStartMsg}`)
     } catch (error) {
+      setCurrentAction(null)
       toast.error(
         error instanceof Error
           ? error.message

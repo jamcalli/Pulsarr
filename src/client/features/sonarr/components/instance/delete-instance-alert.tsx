@@ -54,8 +54,11 @@ export function DeleteInstanceAlert({
           <Button
             variant="clear"
             onClick={async () => {
-              await onConfirm()
-              onOpenChange(false)
+              try {
+                await onConfirm()
+              } finally {
+                onOpenChange(false)
+              }
             }}
           >
             {isLastInstance ? 'Clear' : 'Remove'}
