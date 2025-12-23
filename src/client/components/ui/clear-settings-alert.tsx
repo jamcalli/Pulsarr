@@ -46,8 +46,11 @@ export function ClearSettingsAlert({
           <Button
             variant="clear"
             onClick={async () => {
-              await onConfirm()
-              onOpenChange(false)
+              try {
+                await onConfirm()
+              } finally {
+                onOpenChange(false)
+              }
             }}
           >
             Clear

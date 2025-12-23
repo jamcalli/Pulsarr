@@ -30,8 +30,11 @@ export function PlexLabelsDeleteConfirmationModal({
   isSubmitting = false,
 }: PlexLabelsDeleteConfirmationModalProps) {
   const handleConfirm = async () => {
-    await onConfirm()
-    onOpenChange(false)
+    try {
+      await onConfirm()
+    } finally {
+      onOpenChange(false)
+    }
   }
 
   return (

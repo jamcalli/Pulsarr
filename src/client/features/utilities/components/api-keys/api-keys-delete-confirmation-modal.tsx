@@ -51,8 +51,11 @@ export function ApiKeysDeleteConfirmationModal({
           <Button
             variant="clear"
             onClick={async () => {
-              await onConfirm()
-              onOpenChange(false)
+              try {
+                await onConfirm()
+              } finally {
+                onOpenChange(false)
+              }
             }}
             disabled={isSubmitting}
           >

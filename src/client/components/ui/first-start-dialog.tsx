@@ -139,8 +139,11 @@ export function FirstStartDialog({
           <Button
             variant="default"
             onClick={async () => {
-              await onConfirm()
-              onOpenChange(false)
+              try {
+                await onConfirm()
+              } finally {
+                onOpenChange(false)
+              }
             }}
             disabled={isSubmitting}
           >
