@@ -1,14 +1,10 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import {
-  type ColumnFiltersState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   type SortingState,
   useReactTable,
-  type VisibilityState,
 } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import * as React from 'react'
@@ -31,10 +27,11 @@ import {
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { createApprovalColumns } from '@/features/approvals/components/approval-table-columns'
 import { ApprovalTableToolbar } from '@/features/approvals/components/approval-table-toolbar'
-import { useTablePagination } from '@/hooks/use-table-pagination'
+import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 
 interface ApprovalTableProps {
   data: ApprovalRequestResponse[]
+  total: number
   onApprove: (request: ApprovalRequestResponse) => void
   onReject: (request: ApprovalRequestResponse) => void
   onView: (request: ApprovalRequestResponse) => void
@@ -48,12 +45,14 @@ export interface ApprovalTableRef {
 }
 
 /**
- * Displays a paginated, sortable, and filterable table of approval requests with support for row selection, bulk actions, and individual request actions.
+ * Displays a paginated, sortable table of approval requests with server-side pagination and filtering.
  *
- * Users can filter and sort approval requests, adjust the number of rows per page, select multiple requests for bulk operations, and perform actions such as approve, reject, view, or delete on individual requests. The component handles loading and empty states and persists the user's page size preference.
+ * Pagination and filtering are controlled by the approvalsStore. The table receives pre-filtered,
+ * pre-paginated data from the server. Sorting is done client-side on the current page.
  *
- * @param data - The list of approval requests to display.
- * @returns The rendered approval requests table component.
+ * @param data - The list of approval requests for the current page
+ * @param total - Total count of approval requests matching the current filters
+ * @returns The rendered approval requests table component
  */
 export const ApprovalTable = React.forwardRef<
   ApprovalTableRef,
@@ -62,6 +61,7 @@ export const ApprovalTable = React.forwardRef<
   (
     {
       data,
+      total,
       onApprove,
       onReject,
       onView,
@@ -71,39 +71,34 @@ export const ApprovalTable = React.forwardRef<
     },
     ref,
   ) => {
+    // Server-side pagination state from store
+    const pageIndex = useApprovalsStore((s) => s.pageIndex)
+    const pageSize = useApprovalsStore((s) => s.pageSize)
+    const setPageIndex = useApprovalsStore((s) => s.setPageIndex)
+    const setPageSize = useApprovalsStore((s) => s.setPageSize)
+    const filters = useApprovalsStore((s) => s.filters)
+    const resetFilters = useApprovalsStore((s) => s.resetFilters)
+
+    // Client-side sorting (only sorts current page)
     const [sorting, setSorting] = React.useState<SortingState>([
       { id: 'createdAt', desc: true },
     ])
-    const [columnFilters, setColumnFilters] =
-      React.useState<ColumnFiltersState>(() => {
-        try {
-          const stored = localStorage.getItem(
-            'pulsarr-approval-table-status-filter',
-          )
-          if (stored !== null) {
-            const statusFilters = JSON.parse(stored)
-            return statusFilters.length > 0
-              ? [{ id: 'status', value: statusFilters }]
-              : []
-          }
-          // First time user - default to pending
-          return [{ id: 'status', value: ['pending'] }]
-        } catch {
-          return [{ id: 'status', value: ['pending'] }]
-        }
-      })
-    const [columnVisibility, setColumnVisibility] =
-      React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
-    const [isTableFiltered, setIsTableFiltered] = React.useState(true)
 
     // Expose clear selection function to parent component
     React.useImperativeHandle(ref, () => ({
       clearSelection: () => setRowSelection({}),
     }))
 
-    // Persistent table pagination
-    const { pageSize, setPageSize } = useTablePagination('approvals', 20)
+    // Calculate page count from total
+    const pageCount = Math.ceil(total / pageSize)
+
+    // Check if any filters are active
+    const hasActiveFilters =
+      filters.status.length > 0 ||
+      filters.contentType.length > 0 ||
+      filters.triggeredBy.length > 0 ||
+      filters.search.length > 0
 
     const columns = createApprovalColumns({
       onView,
@@ -115,87 +110,39 @@ export const ApprovalTable = React.forwardRef<
     const table = useReactTable({
       data,
       columns,
-      onSortingChange: setSorting,
-      onColumnFiltersChange: (filters) => {
-        setColumnFilters(filters)
-
-        // Handle both function and direct value updates
-        const newFilters =
-          typeof filters === 'function' ? filters(columnFilters) : filters
-        setIsTableFiltered(newFilters.length > 0)
-
-        // Save status filter to localStorage
-        const statusFilter = newFilters.find((f) => f.id === 'status')
-        try {
-          if (
-            statusFilter &&
-            Array.isArray(statusFilter.value) &&
-            statusFilter.value.length > 0
-          ) {
-            // Save the selected status filters
-            localStorage.setItem(
-              'pulsarr-approval-table-status-filter',
-              JSON.stringify(statusFilter.value),
-            )
-          } else {
-            // Save empty array for "show all" state
-            localStorage.setItem(
-              'pulsarr-approval-table-status-filter',
-              JSON.stringify([]),
-            )
-          }
-        } catch {
-          // Ignore localStorage errors
-        }
-      },
-      onColumnVisibilityChange: setColumnVisibility,
-      onRowSelectionChange: setRowSelection,
-      getCoreRowModel: getCoreRowModel(),
-      getPaginationRowModel: getPaginationRowModel(),
-      getSortedRowModel: getSortedRowModel(),
-      getFilteredRowModel: getFilteredRowModel(),
-      initialState: {
+      pageCount,
+      state: {
+        sorting,
+        rowSelection,
         pagination: {
+          pageIndex,
           pageSize,
         },
       },
-      state: {
-        sorting,
-        columnFilters,
-        columnVisibility,
-        rowSelection,
+      onSortingChange: setSorting,
+      onRowSelectionChange: setRowSelection,
+      onPaginationChange: (updater) => {
+        const newPagination =
+          typeof updater === 'function'
+            ? updater({ pageIndex, pageSize })
+            : updater
+        if (newPagination.pageIndex !== pageIndex) {
+          setPageIndex(newPagination.pageIndex)
+        }
+        if (newPagination.pageSize !== pageSize) {
+          setPageSize(newPagination.pageSize)
+        }
       },
+      getCoreRowModel: getCoreRowModel(),
+      getSortedRowModel: getSortedRowModel(),
+      // Server-side pagination and filtering
+      manualPagination: true,
+      manualFiltering: true,
       enableRowSelection: true,
-      filterFns: {
-        dateRange: (row, columnId, filterValue) => {
-          if (!filterValue) return true
-          const date = new Date(row.getValue(columnId) as string)
-          if (Number.isNaN(date.getTime())) return true
-
-          const [start, end] = filterValue.split(' to ')
-          const startDate = start ? new Date(start) : null
-          const endDate = end ? new Date(end) : null
-
-          if (
-            startDate &&
-            (Number.isNaN(startDate.getTime()) || date < startDate)
-          )
-            return false
-          if (endDate && (Number.isNaN(endDate.getTime()) || date > endDate))
-            return false
-          return true
-        },
-      },
     })
 
-    // Update table pageSize when localStorage value changes
-    React.useEffect(() => {
-      table.setPageSize(pageSize)
-    }, [pageSize, table])
-
     const handleResetFilters = () => {
-      table.resetColumnFilters()
-      setIsTableFiltered(false)
+      resetFilters()
     }
 
     return (
@@ -204,7 +151,7 @@ export const ApprovalTable = React.forwardRef<
           <div className="py-4">
             <ApprovalTableToolbar
               table={table}
-              isFiltered={isTableFiltered}
+              isFiltered={hasActiveFilters}
               onResetFilters={handleResetFilters}
               onBulkActions={onBulkActions}
             />
@@ -214,7 +161,7 @@ export const ApprovalTable = React.forwardRef<
         <div className="rounded-md">
           {isLoading ? (
             <TableSkeleton
-              rows={Math.min(5, table.getState().pagination.pageSize)}
+              rows={Math.min(5, pageSize)}
               columns={[
                 { type: 'checkbox' },
                 { type: 'text', width: 'w-32' },
@@ -290,7 +237,7 @@ export const ApprovalTable = React.forwardRef<
                           No approval requests found
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {isTableFiltered
+                          {hasActiveFilters
                             ? 'Try adjusting your filters to see more results.'
                             : 'No approval requests have been submitted yet.'}
                         </p>
@@ -306,23 +253,19 @@ export const ApprovalTable = React.forwardRef<
         <div className="flex items-center justify-between px-2 py-4">
           <div className="flex items-center space-x-2">
             <Select
-              value={`${table.getState().pagination.pageSize}`}
+              value={`${pageSize}`}
               onValueChange={(value) => {
-                const newPageSize = Number(value)
-                setPageSize(newPageSize)
-                table.setPageSize(newPageSize)
+                setPageSize(Number(value))
               }}
               disabled={isLoading}
             >
               <SelectTrigger className="h-8 w-[70px]">
-                <SelectValue
-                  placeholder={table.getState().pagination.pageSize}
-                />
+                <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent side="top">
-                {[10, 20, 30, 40, 50].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`}>
-                    {pageSize}
+                {[10, 20, 30, 40, 50].map((size) => (
+                  <SelectItem key={size} value={`${size}`}>
+                    {size}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -333,16 +276,21 @@ export const ApprovalTable = React.forwardRef<
           </div>
 
           <div className="flex items-center justify-center text-sm font-medium text-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of{' '}
-            {table.getPageCount()}
+            <span className="hidden sm:inline">
+              Showing {pageIndex * pageSize + 1}-
+              {Math.min((pageIndex + 1) * pageSize, total)} of {total}
+            </span>
+            <span className="sm:hidden">
+              Page {pageIndex + 1} of {pageCount}
+            </span>
           </div>
 
           <div className="space-x-2">
             <Button
               variant="noShadow"
               size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage() || isLoading}
+              onClick={() => setPageIndex(pageIndex - 1)}
+              disabled={pageIndex === 0 || isLoading}
             >
               <ChevronLeft className="h-4 w-4 xs:hidden" />
               <span className="hidden xs:inline">Previous</span>
@@ -350,8 +298,8 @@ export const ApprovalTable = React.forwardRef<
             <Button
               variant="noShadow"
               size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage() || isLoading}
+              onClick={() => setPageIndex(pageIndex + 1)}
+              disabled={pageIndex >= pageCount - 1 || isLoading}
             >
               <ChevronRight className="h-4 w-4 xs:hidden" />
               <span className="hidden xs:inline">Next</span>

@@ -288,6 +288,7 @@ export default function ApprovalTableSection() {
       {/* Approval requests table */}
       <ApprovalTable
         data={approvalRequests}
+        total={approvalsData?.total ?? 0}
         onApprove={handleApprove}
         onReject={handleReject}
         onView={handleView}

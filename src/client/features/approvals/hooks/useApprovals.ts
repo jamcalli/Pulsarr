@@ -1,7 +1,6 @@
 import {
   type ApprovalRequestsListResponse,
   ApprovalRequestsListResponseSchema,
-  type GetApprovalRequestsQuery,
 } from '@root/schemas/approval/approval.schema'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { apiClient } from '@/lib/apiClient'
@@ -14,42 +13,77 @@ import { useAppQuery } from '@/lib/useAppQuery'
 export const approvalKeys = {
   all: ['approvals'] as const,
   lists: () => [...approvalKeys.all, 'list'] as const,
-  list: (query: Partial<GetApprovalRequestsQuery>) =>
-    [...approvalKeys.lists(), query] as const,
+  list: (params: {
+    filters: {
+      status: string[]
+      contentType: string[]
+      triggeredBy: string[]
+      search: string
+    }
+    pageIndex: number
+    pageSize: number
+  }) => [...approvalKeys.lists(), params] as const,
 }
 
 /**
- * React Query hook for fetching approval requests.
+ * React Query hook for fetching approval requests with server-side pagination and filtering.
  *
- * Reads filter params from the approvals store so all consumers
+ * Reads filter and pagination params from the approvals store so all consumers
  * share the same query and data.
  *
  * Uses `useAppQuery` wrapper which enforces minimum loading duration
  * for consistent skeleton loader behavior.
  *
- * @returns Query result with approval requests list
+ * @returns Query result with approval requests list, total count, and pagination info
  *
  * @example
  * ```typescript
- * // All calls share the same query based on store params
- * const { data, isLoading, error, refetch } = useApprovals()
+ * const { data, isLoading, error } = useApprovals()
+ *
+ * // Access data
+ * const requests = data?.approvalRequests ?? []
+ * const total = data?.total ?? 0
+ * const pageCount = Math.ceil(total / pageSize)
  *
  * // Change filters via the store
- * useApprovalsStore.getState().setQuery({ status: 'pending' })
+ * useApprovalsStore.getState().setFilters({ status: ['pending'] })
+ *
+ * // Change page via the store
+ * useApprovalsStore.getState().setPageIndex(2)
  * ```
  */
 export function useApprovals() {
-  const currentQuery = useApprovalsStore((s) => s.currentQuery)
+  const filters = useApprovalsStore((s) => s.filters)
+  const pageIndex = useApprovalsStore((s) => s.pageIndex)
+  const pageSize = useApprovalsStore((s) => s.pageSize)
 
   return useAppQuery<ApprovalRequestsListResponse>({
-    queryKey: approvalKeys.list(currentQuery),
+    queryKey: approvalKeys.list({ filters, pageIndex, pageSize }),
     queryFn: () => {
       const params = new URLSearchParams()
 
-      for (const [key, value] of Object.entries(currentQuery)) {
-        if (value !== undefined && value !== null) {
-          params.append(key, value.toString())
-        }
+      // Pagination
+      params.append('limit', pageSize.toString())
+      params.append('offset', (pageIndex * pageSize).toString())
+
+      // Status filter (comma-separated for multi-select)
+      if (filters.status.length > 0) {
+        params.append('status', filters.status.join(','))
+      }
+
+      // Content type filter (only send first value - API takes single value)
+      if (filters.contentType.length > 0) {
+        params.append('contentType', filters.contentType[0])
+      }
+
+      // Triggered by filter (only send first value - API takes single value)
+      if (filters.triggeredBy.length > 0) {
+        params.append('triggeredBy', filters.triggeredBy[0])
+      }
+
+      // Search filter
+      if (filters.search) {
+        params.append('search', filters.search)
       }
 
       return apiClient.get(
