@@ -2,6 +2,7 @@ import {
   type DashboardStats,
   DashboardStatsSchema,
 } from '@root/schemas/stats/stats.schema'
+import { keepPreviousData } from '@tanstack/react-query'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
 import { apiClient } from '@/lib/apiClient'
 import { useAppQuery } from '@/lib/useAppQuery'
@@ -30,6 +31,7 @@ export function useDashboardStatsQuery() {
 
   return useAppQuery<DashboardStats>({
     queryKey: ['dashboard-stats', { days, limit }],
+    placeholderData: keepPreviousData,
     queryFn: () => {
       const searchParams = new URLSearchParams({
         days: days.toString(),
