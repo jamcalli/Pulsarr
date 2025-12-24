@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { TableSkeleton } from '@/components/ui/table-skeleton'
+import { TableRowsSkeleton } from '@/components/ui/table-skeleton'
 import { createApprovalColumns } from '@/features/approvals/components/approval-table-columns'
 import { ApprovalTableToolbar } from '@/features/approvals/components/approval-table-toolbar'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
@@ -36,6 +36,7 @@ interface ApprovalTableProps {
   onReject: (request: ApprovalRequestResponse) => void
   onView: (request: ApprovalRequestResponse) => void
   onDelete: (request: ApprovalRequestResponse) => void
+  /** True only on initial load (no data yet) - shows skeleton */
   isLoading?: boolean
   onBulkActions?: (selectedRows: ApprovalRequestResponse[]) => void
 }
@@ -159,95 +160,92 @@ export const ApprovalTable = React.forwardRef<
         </div>
 
         <div className="rounded-md">
-          {isLoading ? (
-            <TableSkeleton
-              rows={Math.min(5, pageSize)}
-              columns={[
-                { type: 'checkbox' },
-                { type: 'text', width: 'w-32' },
-                { type: 'text', width: 'w-24' },
-                { type: 'text', width: 'w-20' },
-                { type: 'text', width: 'w-32' },
-                { type: 'badge', width: 'w-20' },
-                { type: 'text', width: 'w-28' },
-                { type: 'text', width: 'w-28' },
-                { type: 'button', width: 'w-8', className: 'text-right' },
-              ]}
-              showHeader={true}
-            />
-          ) : (
-            <Table>
-              <TableHeader className="font-heading">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} className="px-2 py-2">
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && 'selected'}
-                    >
-                      {row.getVisibleCells().map((cell) => {
-                        const isExpiredStatus =
-                          row.original.status === 'expired'
-                        const isActionsColumn = cell.column.id === 'actions'
-                        const isSelectColumn = cell.column.id === 'select'
+          <Table>
+            <TableHeader className="font-heading">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="px-2 py-2">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRowsSkeleton
+                  rows={pageSize}
+                  columnCount={columns.length}
+                  columns={[
+                    { type: 'checkbox' },
+                    { type: 'contentWithIcon', width: 'w-40' },
+                    { type: 'empty', className: 'p-0 w-0' },
+                    { type: 'text', width: 'w-16' },
+                    { type: 'badge', width: 'w-24' },
+                    { type: 'badge', width: 'w-28' },
+                    { type: 'twoLine', width: 'w-16' },
+                    { type: 'twoLine', width: 'w-16' },
+                    { type: 'button' },
+                  ]}
+                />
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const isExpiredStatus = row.original.status === 'expired'
+                      const isActionsColumn = cell.column.id === 'actions'
+                      const isSelectColumn = cell.column.id === 'select'
 
-                        return (
-                          <TableCell
-                            key={cell.id}
-                            className={`px-2 py-2 ${
-                              isExpiredStatus &&
-                              !isActionsColumn &&
-                              !isSelectColumn
-                                ? 'opacity-60'
-                                : ''
-                            }`}
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        )
-                      })}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-40 text-center"
-                    >
-                      <div className="flex flex-col items-center justify-center">
-                        <p className="text-lg mb-2 text-muted-foreground">
-                          No approval requests found
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {hasActiveFilters
-                            ? 'Try adjusting your filters to see more results.'
-                            : 'No approval requests have been submitted yet.'}
-                        </p>
-                      </div>
-                    </TableCell>
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={`px-2 py-2 ${
+                            isExpiredStatus &&
+                            !isActionsColumn &&
+                            !isSelectColumn
+                              ? 'opacity-60'
+                              : ''
+                          }`}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      )
+                    })}
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-40 text-center"
+                  >
+                    <div className="flex flex-col items-center justify-center">
+                      <p className="text-lg mb-2 text-muted-foreground">
+                        No approval requests found
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {hasActiveFilters
+                          ? 'Try adjusting your filters to see more results.'
+                          : 'No approval requests have been submitted yet.'}
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
 
         <div className="flex items-center justify-between px-2 py-4">
@@ -257,7 +255,6 @@ export const ApprovalTable = React.forwardRef<
               onValueChange={(value) => {
                 setPageSize(Number(value))
               }}
-              disabled={isLoading}
             >
               <SelectTrigger className="h-8 w-[70px]">
                 <SelectValue placeholder={pageSize} />
@@ -290,7 +287,7 @@ export const ApprovalTable = React.forwardRef<
               variant="noShadow"
               size="sm"
               onClick={() => setPageIndex(pageIndex - 1)}
-              disabled={pageIndex === 0 || isLoading}
+              disabled={pageIndex === 0}
             >
               <ChevronLeft className="h-4 w-4 xs:hidden" />
               <span className="hidden xs:inline">Previous</span>
@@ -299,7 +296,7 @@ export const ApprovalTable = React.forwardRef<
               variant="noShadow"
               size="sm"
               onClick={() => setPageIndex(pageIndex + 1)}
-              disabled={pageIndex >= pageCount - 1 || isLoading}
+              disabled={pageIndex >= pageCount - 1}
             >
               <ChevronRight className="h-4 w-4 xs:hidden" />
               <span className="hidden xs:inline">Next</span>

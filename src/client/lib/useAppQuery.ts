@@ -9,20 +9,20 @@ import { useEffect, useRef, useState } from 'react'
 import { MIN_LOADING_DELAY } from './constants'
 
 /**
- * Custom useQuery wrapper that enforces minimum loading duration
+ * Custom useQuery wrapper with stale-while-revalidate behavior
  *
- * Shows skeleton loaders during ALL fetches (initial + refetches) for at least
- * MIN_LOADING_DELAY milliseconds. This provides consistent visual feedback
- * rather than flickering loading states on fast responses.
+ * - Initial load (never had data): Shows skeleton for at least MIN_LOADING_DELAY
+ * - Refetch (has had data before): Shows stale data silently, no loading indicator
  *
  * Usage:
  * ```typescript
  * const { data, isLoading, error } = useAppQuery({
- *   queryKey: ['dashboard-stats', { days: 30 }],
- *   queryFn: () => apiClient.get('/v1/stats/all?days=30'),
+ *   queryKey: ['approvals', filters],
+ *   queryFn: () => fetchApprovals(filters),
  * })
  *
  * if (isLoading) return <Skeleton />
+ * return <Data data={data} />
  * ```
  */
 export function useAppQuery<
@@ -32,40 +32,42 @@ export function useAppQuery<
   TQueryKey extends QueryKey = QueryKey,
 >(options: UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>) {
   const query = useQuery(options)
-  const [isLoadingWithMin, setIsLoadingWithMin] = useState(query.isLoading)
+
+  // Loading when fetching and no data currently available
+  // This triggers on initial load AND after resetQueries clears cache
+  const isLoadingWithoutData = query.isFetching && query.data === undefined
+
+  // Min duration state for loading (skeleton)
+  const [showLoading, setShowLoading] = useState(isLoadingWithoutData)
   const loadingStartRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (query.isFetching) {
-      // Start tracking loading time
+    if (isLoadingWithoutData) {
       if (!loadingStartRef.current) {
         loadingStartRef.current = Date.now()
-        setIsLoadingWithMin(true)
+        setShowLoading(true)
       }
     } else if (loadingStartRef.current) {
-      // Fetch completed - enforce minimum duration
       const elapsed = Date.now() - loadingStartRef.current
       const remaining = MIN_LOADING_DELAY - elapsed
 
       if (remaining > 0) {
         const timer = setTimeout(() => {
-          setIsLoadingWithMin(false)
+          setShowLoading(false)
           loadingStartRef.current = null
         }, remaining)
         return () => clearTimeout(timer)
       }
 
-      setIsLoadingWithMin(false)
+      setShowLoading(false)
       loadingStartRef.current = null
     }
-  }, [query.isFetching])
+  }, [isLoadingWithoutData])
 
   return {
     ...query,
-    // Override loading states to use minimum duration
-    isLoading: isLoadingWithMin,
-    // Keep isFetching aligned for consistency
-    isFetching: isLoadingWithMin || query.isFetching,
+    // isLoading: true when fetching with no data (initial or after reset)
+    isLoading: showLoading,
   }
 }
 

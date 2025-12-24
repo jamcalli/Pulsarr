@@ -1,6 +1,6 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { devtools, persist } from 'zustand/middleware'
 
 /**
  * Approval status type for filter UI (matches backend schema)
@@ -82,64 +82,75 @@ const DEFAULT_FILTERS: ApprovalFilters = {
 const DEFAULT_PAGE_SIZE = 20
 
 export const useApprovalsStore = create<ApprovalsUIState>()(
-  devtools((set) => ({
-    // Server-side filters
-    filters: DEFAULT_FILTERS,
-    setFilters: (newFilters) =>
-      set((state) => ({
-        filters: { ...state.filters, ...newFilters },
-        pageIndex: 0, // Reset to first page when filters change
-      })),
-    resetFilters: () =>
-      set({
+  devtools(
+    persist(
+      (set) => ({
+        // Server-side filters
         filters: DEFAULT_FILTERS,
+        setFilters: (newFilters) =>
+          set((state) => ({
+            filters: { ...state.filters, ...newFilters },
+            pageIndex: 0, // Reset to first page when filters change
+          })),
+        resetFilters: () =>
+          set({
+            filters: DEFAULT_FILTERS,
+            pageIndex: 0,
+          }),
+
+        // Server-side pagination
         pageIndex: 0,
-      }),
+        pageSize: DEFAULT_PAGE_SIZE,
+        setPageIndex: (index) => set({ pageIndex: index }),
+        setPageSize: (size) => set({ pageSize: size, pageIndex: 0 }),
 
-    // Server-side pagination
-    pageIndex: 0,
-    pageSize: DEFAULT_PAGE_SIZE,
-    setPageIndex: (index) => set({ pageIndex: index }),
-    setPageSize: (size) => set({ pageSize: size, pageIndex: 0 }),
-
-    // Individual action modal
-    selectedRequest: null,
-    setSelectedRequest: (request) => set({ selectedRequest: request }),
-    isActionsModalOpen: false,
-    setActionsModalOpen: (open) => set({ isActionsModalOpen: open }),
-
-    // Bulk action modal
-    isBulkModalOpen: false,
-    setBulkModalOpen: (open) => set({ isBulkModalOpen: open }),
-    selectedRequests: [],
-    setSelectedRequests: (requests) => set({ selectedRequests: requests }),
-    bulkActionType: null,
-    setBulkActionType: (type) => set({ bulkActionType: type }),
-
-    // Convenience: open individual modal
-    openActionsModal: (request) =>
-      set({
-        selectedRequest: request,
-        isActionsModalOpen: true,
-      }),
-    closeActionsModal: () =>
-      set({
-        isActionsModalOpen: false,
+        // Individual action modal
         selectedRequest: null,
-      }),
+        setSelectedRequest: (request) => set({ selectedRequest: request }),
+        isActionsModalOpen: false,
+        setActionsModalOpen: (open) => set({ isActionsModalOpen: open }),
 
-    // Convenience: open bulk modal
-    openBulkModal: (requests, action) =>
-      set({
-        selectedRequests: requests,
-        bulkActionType: action,
-        isBulkModalOpen: true,
-      }),
-    closeBulkModal: () =>
-      set({
+        // Bulk action modal
         isBulkModalOpen: false,
+        setBulkModalOpen: (open) => set({ isBulkModalOpen: open }),
         selectedRequests: [],
+        setSelectedRequests: (requests) => set({ selectedRequests: requests }),
         bulkActionType: null,
+        setBulkActionType: (type) => set({ bulkActionType: type }),
+
+        // Convenience: open individual modal
+        openActionsModal: (request) =>
+          set({
+            selectedRequest: request,
+            isActionsModalOpen: true,
+          }),
+        closeActionsModal: () =>
+          set({
+            isActionsModalOpen: false,
+            selectedRequest: null,
+          }),
+
+        // Convenience: open bulk modal
+        openBulkModal: (requests, action) =>
+          set({
+            selectedRequests: requests,
+            bulkActionType: action,
+            isBulkModalOpen: true,
+          }),
+        closeBulkModal: () =>
+          set({
+            isBulkModalOpen: false,
+            selectedRequests: [],
+            bulkActionType: null,
+          }),
       }),
-  })),
+      {
+        name: 'pulsarr-approvals-store',
+        partialize: (state) => ({
+          filters: state.filters,
+          pageSize: state.pageSize,
+        }),
+      },
+    ),
+  ),
 )

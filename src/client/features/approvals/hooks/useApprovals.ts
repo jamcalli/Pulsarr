@@ -2,6 +2,7 @@ import {
   type ApprovalRequestsListResponse,
   ApprovalRequestsListResponseSchema,
 } from '@root/schemas/approval/approval.schema'
+import { keepPreviousData } from '@tanstack/react-query'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { apiClient } from '@/lib/apiClient'
 import { useAppQuery } from '@/lib/useAppQuery'
@@ -59,6 +60,7 @@ export function useApprovals() {
 
   return useAppQuery<ApprovalRequestsListResponse>({
     queryKey: approvalKeys.list({ filters, pageIndex, pageSize }),
+    placeholderData: keepPreviousData,
     queryFn: () => {
       const params = new URLSearchParams()
 
