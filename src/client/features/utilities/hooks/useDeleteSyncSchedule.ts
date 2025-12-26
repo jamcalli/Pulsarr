@@ -1,7 +1,7 @@
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useCallback, useEffect, useState } from 'react'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
 import { parseCronExpression } from '@/lib/utils'
 
 /**

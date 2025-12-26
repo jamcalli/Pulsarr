@@ -2,6 +2,7 @@ import type {
   ApprovalRequest,
   ApprovalStats,
   ApprovalStatus,
+  ApprovalTrigger,
   CreateApprovalRequestData,
   UpdateApprovalRequestData,
   UserApprovalStats,
@@ -105,36 +106,48 @@ declare module '@services/database.service.js' {
 
     /**
      * Gets approval history with optional filtering and pagination
-     * @param userId - Optional user ID to filter by
-     * @param status - Optional status to filter by
+     * @param userId - Optional user ID to filter by (single value or array for multi-select)
+     * @param status - Optional status to filter by (single value or array for multi-select)
      * @param limit - Maximum number of results (default: 50)
      * @param offset - Number of results to skip (default: 0)
-     * @param contentType - Optional content type to filter by ('movie' or 'show')
-     * @param triggeredBy - Optional trigger type to filter by
+     * @param contentType - Optional content type to filter by (single value or array for multi-select)
+     * @param triggeredBy - Optional trigger type to filter by (single value or array for multi-select)
+     * @param search - Optional search term for content title (case-insensitive partial match)
      * @returns Promise resolving to array of approval requests
      */
     getApprovalHistory(
-      userId?: number,
-      status?: ApprovalStatus,
+      userId?: number | number[],
+      status?: ApprovalStatus | ApprovalStatus[],
       limit?: number,
       offset?: number,
-      contentType?: 'movie' | 'show',
-      triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+      contentType?: 'movie' | 'show' | ('movie' | 'show')[],
+      triggeredBy?: ApprovalTrigger | ApprovalTrigger[],
+      search?: string,
+      sortBy?:
+        | 'contentTitle'
+        | 'userName'
+        | 'status'
+        | 'triggeredBy'
+        | 'createdAt'
+        | 'expiresAt',
+      sortOrder?: 'asc' | 'desc',
     ): Promise<ApprovalRequest[]>
 
     /**
      * Gets the total count of approval history records with optional filtering
-     * @param userId - Optional user ID to filter by
-     * @param status - Optional status to filter by
-     * @param contentType - Optional content type to filter by ('movie' or 'show')
-     * @param triggeredBy - Optional trigger type to filter by
+     * @param userId - Optional user ID to filter by (single value or array for multi-select)
+     * @param status - Optional status to filter by (single value or array for multi-select)
+     * @param contentType - Optional content type to filter by (single value or array for multi-select)
+     * @param triggeredBy - Optional trigger type to filter by (single value or array for multi-select)
+     * @param search - Optional search term for content title (case-insensitive partial match)
      * @returns Promise resolving to the total count of matching records
      */
     getApprovalHistoryCount(
-      userId?: number,
-      status?: ApprovalStatus,
-      contentType?: 'movie' | 'show',
-      triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+      userId?: number | number[],
+      status?: ApprovalStatus | ApprovalStatus[],
+      contentType?: 'movie' | 'show' | ('movie' | 'show')[],
+      triggeredBy?: ApprovalTrigger | ApprovalTrigger[],
+      search?: string,
     ): Promise<number>
 
     /**

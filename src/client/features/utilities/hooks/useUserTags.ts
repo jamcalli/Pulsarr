@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 
 // Union type for action results

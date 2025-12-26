@@ -15,7 +15,7 @@ import {
 interface FirstStartDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => Promise<void>
+  onConfirm: () => void
   isSubmitting?: boolean
 }
 
@@ -138,13 +138,7 @@ export function FirstStartDialog({
           </CredenzaClose>
           <Button
             variant="default"
-            onClick={async () => {
-              try {
-                await onConfirm()
-              } finally {
-                onOpenChange(false)
-              }
-            }}
+            onClick={() => onConfirm()}
             disabled={isSubmitting}
           >
             {isSubmitting ? (

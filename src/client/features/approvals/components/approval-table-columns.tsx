@@ -1,12 +1,10 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import type { ApprovalStatus } from '@root/types/approval.types'
 import type { ColumnDef } from '@tanstack/react-table'
 import { format } from 'date-fns'
 import {
-  AlertCircle,
   ArrowUpDown,
-  Bot,
   CheckCircle,
-  Clock,
   Eye,
   Monitor,
   MoreHorizontal,
@@ -14,6 +12,7 @@ import {
   Tv,
   XCircle,
 } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -29,6 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { ApprovalStatusBadge } from '@/features/approvals/components/approval-status-badge'
 
 interface ApprovalTableActions {
   onView: (request: ApprovalRequestResponse) => void
@@ -168,66 +168,12 @@ export const createApprovalColumns = (
       )
     },
     cell: ({ row }) => {
-      const status = row.getValue('status') as string
-
-      const getStatusBadge = () => {
-        switch (status) {
-          case 'pending':
-            return (
-              <Badge
-                variant="neutral"
-                className="bg-yellow-500 hover:bg-yellow-500 text-black"
-              >
-                <Clock className="w-3 h-3 mr-1" />
-                Pending
-              </Badge>
-            )
-          case 'approved':
-            return (
-              <Badge
-                variant="default"
-                className="bg-green-500 hover:bg-green-500 text-black"
-              >
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Approved
-              </Badge>
-            )
-          case 'rejected':
-            return (
-              <Badge
-                variant="warn"
-                className="bg-red-500 hover:bg-red-500 text-black"
-              >
-                <XCircle className="w-3 h-3 mr-1" />
-                Rejected
-              </Badge>
-            )
-          case 'expired':
-            return (
-              <Badge
-                variant="neutral"
-                className="bg-gray-400 hover:bg-gray-400 text-black"
-              >
-                <AlertCircle className="w-3 h-3 mr-1" />
-                Expired
-              </Badge>
-            )
-          case 'auto_approved':
-            return (
-              <Badge
-                variant="default"
-                className="bg-blue-500 hover:bg-blue-500 text-black"
-              >
-                <Bot className="w-3 h-3 mr-1" />
-                Auto-Approved
-              </Badge>
-            )
-          default:
-            return <Badge variant="neutral">{status}</Badge>
-        }
-      }
-
-      return <div className="flex justify-center">{getStatusBadge()}</div>
+      const status = row.getValue('status') as ApprovalStatus
+      return (
+        <div className="flex justify-center">
+          <ApprovalStatusBadge status={status} />
+        </div>
+      )
     },
     enableSorting: true,
     filterFn: (row, id, value) => {
