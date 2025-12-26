@@ -101,6 +101,7 @@ export const ApprovalTable = React.forwardRef<
     // Check if any filters are active
     const hasActiveFilters =
       filters.status.length > 0 ||
+      filters.userId.length > 0 ||
       filters.contentType.length > 0 ||
       filters.triggeredBy.length > 0 ||
       filters.search.length > 0
@@ -283,7 +284,7 @@ export const ApprovalTable = React.forwardRef<
                 setPageSize(Number(value))
               }}
             >
-              <SelectTrigger className="h-8 w-[70px]">
+              <SelectTrigger className="h-8 w-17.5">
                 <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent side="top">

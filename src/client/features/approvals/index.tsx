@@ -117,7 +117,6 @@ export default function ApprovalsPage() {
         onSuccess: (data) => {
           toast.success(`Approved ${data.result.successful} requests`)
           tableRef.current?.clearSelection()
-          setTimeout(() => closeBulkModal(), 1000)
         },
         onError: () => {
           toast.error('Failed to approve requests')
@@ -133,7 +132,6 @@ export default function ApprovalsPage() {
         onSuccess: (data) => {
           toast.success(`Rejected ${data.result.successful} requests`)
           tableRef.current?.clearSelection()
-          setTimeout(() => closeBulkModal(), 1000)
         },
         onError: () => {
           toast.error('Failed to reject requests')
@@ -149,7 +147,6 @@ export default function ApprovalsPage() {
         onSuccess: (data) => {
           toast.success(`Deleted ${data.result.successful} requests`)
           tableRef.current?.clearSelection()
-          setTimeout(() => closeBulkModal(), 1000)
         },
         onError: () => {
           toast.error('Failed to delete requests')
@@ -157,6 +154,37 @@ export default function ApprovalsPage() {
       },
     )
   }
+
+  // Close bulk modal after success with proper cleanup
+  useEffect(() => {
+    if (bulkApprove.isSuccess) {
+      const timer = setTimeout(() => {
+        closeBulkModal()
+        bulkApprove.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [bulkApprove.isSuccess, closeBulkModal, bulkApprove])
+
+  useEffect(() => {
+    if (bulkReject.isSuccess) {
+      const timer = setTimeout(() => {
+        closeBulkModal()
+        bulkReject.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [bulkReject.isSuccess, closeBulkModal, bulkReject])
+
+  useEffect(() => {
+    if (bulkDelete.isSuccess) {
+      const timer = setTimeout(() => {
+        closeBulkModal()
+        bulkDelete.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [bulkDelete.isSuccess, closeBulkModal, bulkDelete])
 
   // Determine bulk action status for modal
   const getBulkActionStatus = () => {

@@ -37,8 +37,9 @@ export function WatchlistStatusBadge() {
 
   const {
     mutate: startWorkflow,
-    mutateAsync: startWorkflowAsync,
     isPending: isStarting,
+    isSuccess: isStartSuccess,
+    reset: resetStartMutation,
   } = useStartWorkflow()
   const { mutate: stopWorkflow, isPending: isStopping } = useStopWorkflow()
 
@@ -61,6 +62,17 @@ export function WatchlistStatusBadge() {
       setCurrentAction(null)
     }
   }, [status])
+
+  // Close first-start dialog after successful start with proper cleanup
+  useEffect(() => {
+    if (isStartSuccess && showFirstStartDialog) {
+      const timer = setTimeout(() => {
+        setShowFirstStartDialog(false)
+        resetStartMutation()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [isStartSuccess, showFirstStartDialog, resetStartMutation])
 
   const getBadgeVariant = () => {
     switch (status) {
@@ -120,20 +132,25 @@ export function WatchlistStatusBadge() {
     }
   }
 
-  const handleFirstStartConfirm = async () => {
+  const handleFirstStartConfirm = () => {
     setCurrentAction('start')
-    try {
-      const data = await startWorkflowAsync({ autoStart })
-      const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
-      toast.success(`${data.message}${autoStartMsg}`)
-    } catch (error) {
-      setCurrentAction(null)
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Failed to start Watchlist workflow. Please check your configuration.',
-      )
-    }
+    startWorkflow(
+      { autoStart },
+      {
+        onSuccess: (data) => {
+          const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
+          toast.success(`${data.message}${autoStartMsg}`)
+        },
+        onError: (error) => {
+          setCurrentAction(null)
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : 'Failed to start Watchlist workflow. Please check your configuration.',
+          )
+        },
+      },
+    )
   }
 
   // Don't allow toggling while in a transition state
