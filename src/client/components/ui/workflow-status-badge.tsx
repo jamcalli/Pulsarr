@@ -133,24 +133,7 @@ export function WatchlistStatusBadge() {
   }
 
   const handleFirstStartConfirm = () => {
-    setCurrentAction('start')
-    startWorkflow(
-      { autoStart },
-      {
-        onSuccess: (data) => {
-          const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
-          toast.success(`${data.message}${autoStartMsg}`)
-        },
-        onError: (error) => {
-          setCurrentAction(null)
-          toast.error(
-            error instanceof Error
-              ? error.message
-              : 'Failed to start Watchlist workflow. Please check your configuration.',
-          )
-        },
-      },
-    )
+    doStartWorkflow()
   }
 
   // Don't allow toggling while in a transition state
