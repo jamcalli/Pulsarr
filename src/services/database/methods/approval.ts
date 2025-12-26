@@ -20,6 +20,26 @@ function escapeLikePattern(search: string): string {
 }
 
 /**
+ * Applies a case-insensitive search filter to a query.
+ * Handles both Postgres (ILIKE) and SQLite (LIKE) with proper escaping.
+ */
+function applySearchFilter<T>(
+  query: T,
+  search: string,
+  column: string,
+  isPostgres: boolean,
+): T {
+  const escaped = escapeLikePattern(search)
+  const knexQuery = query as T & {
+    whereRaw: (sql: string, bindings: string[]) => T
+  }
+  if (isPostgres) {
+    return knexQuery.whereRaw(`${column} ILIKE ? ESCAPE '\\'`, [`%${escaped}%`])
+  }
+  return knexQuery.whereRaw(`${column} LIKE ? ESCAPE '\\'`, [`%${escaped}%`])
+}
+
+/**
  * Maps a database row to an ApprovalRequest object, parsing JSON fields and assigning default values for missing data.
  *
  * The returned object includes the user's name (defaulting to 'Unknown' if not present), parsed content GUIDs, and a default router decision if not specified.
@@ -335,20 +355,12 @@ export async function getApprovalHistory(
   }
 
   if (search) {
-    // Case-insensitive partial match on content_title
-    const escapedSearch = escapeLikePattern(search)
-    if (this.isPostgres) {
-      query = query.whereRaw(
-        "approval_requests.content_title ILIKE ? ESCAPE '\\'",
-        [`%${escapedSearch}%`],
-      )
-    } else {
-      // SQLite uses LIKE which is case-insensitive by default for ASCII
-      query = query.whereRaw(
-        "approval_requests.content_title LIKE ? ESCAPE '\\'",
-        [`%${escapedSearch}%`],
-      )
-    }
+    query = applySearchFilter(
+      query,
+      search,
+      'approval_requests.content_title',
+      this.isPostgres,
+    )
   }
 
   const orderColumn = sortColumnMap[sortBy] || 'approval_requests.created_at'
@@ -414,19 +426,12 @@ export async function getApprovalHistoryCount(
   }
 
   if (search) {
-    // Case-insensitive partial match on content_title
-    const escapedSearch = escapeLikePattern(search)
-    if (this.isPostgres) {
-      query = query.whereRaw(
-        "approval_requests.content_title ILIKE ? ESCAPE '\\'",
-        [`%${escapedSearch}%`],
-      )
-    } else {
-      query = query.whereRaw(
-        "approval_requests.content_title LIKE ? ESCAPE '\\'",
-        [`%${escapedSearch}%`],
-      )
-    }
+    query = applySearchFilter(
+      query,
+      search,
+      'approval_requests.content_title',
+      this.isPostgres,
+    )
   }
 
   const result = await query.count('* as count').first()

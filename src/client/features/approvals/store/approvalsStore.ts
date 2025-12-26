@@ -1,16 +1,7 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import type { ApprovalStatus } from '@root/types/approval.types'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
-
-/**
- * Approval status type for filter UI (matches backend schema)
- */
-type ApprovalStatus =
-  | 'pending'
-  | 'approved'
-  | 'rejected'
-  | 'expired'
-  | 'auto_approved'
 
 /**
  * Filter state for approval requests.

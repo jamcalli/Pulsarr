@@ -1,4 +1,5 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import type { ApprovalStatus } from '@root/types/approval.types'
 import type { ColumnDef } from '@tanstack/react-table'
 import { format } from 'date-fns'
 import {
@@ -11,8 +12,6 @@ import {
   Tv,
   XCircle,
 } from 'lucide-react'
-
-type ApprovalStatus = ApprovalRequestResponse['status']
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

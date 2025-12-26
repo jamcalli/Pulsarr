@@ -64,6 +64,15 @@ export function ApprovalActionForm({
 }: ApprovalActionFormProps) {
   const actionNotesId = useId()
 
+  // Compute disabled state once for both submit and cancel buttons
+  const isSubmitDisabled =
+    (action === 'approve' &&
+      (approveRequest.isPending || approveRequest.isSuccess)) ||
+    (action === 'reject' &&
+      (rejectRequest.isPending || rejectRequest.isSuccess)) ||
+    (action === 'delete' &&
+      (deleteApproval.isPending || deleteApproval.isSuccess))
+
   return (
     <div>
       <h3 className="text-lg font-semibold text-foreground mb-4">
@@ -84,7 +93,7 @@ export function ApprovalActionForm({
           )}
           {canReject && (
             <Button
-              variant={action === 'reject' ? 'clear' : 'clear'}
+              variant="clear"
               onClick={() => handleActionSelection('reject')}
               disabled={isAnyActionInProgress || action === 'reject'}
               className="min-w-[100px] flex items-center justify-center gap-2"
@@ -95,7 +104,7 @@ export function ApprovalActionForm({
           )}
           {canDelete && (
             <Button
-              variant={action === 'delete' ? 'clear' : 'clear'}
+              variant="clear"
               onClick={() => handleActionSelection('delete')}
               disabled={isAnyActionInProgress || action === 'delete'}
               className="min-w-[100px] flex items-center justify-center gap-2"
@@ -159,14 +168,7 @@ export function ApprovalActionForm({
                     else if (action === 'reject') handleReject()
                     else if (action === 'delete') handleDelete()
                   }}
-                  disabled={
-                    (action === 'approve' &&
-                      (approveRequest.isPending || approveRequest.isSuccess)) ||
-                    (action === 'reject' &&
-                      (rejectRequest.isPending || rejectRequest.isSuccess)) ||
-                    (action === 'delete' &&
-                      (deleteApproval.isPending || deleteApproval.isSuccess))
-                  }
+                  disabled={isSubmitDisabled}
                   variant={action === 'approve' ? 'default' : 'clear'}
                   className="min-w-[100px] flex items-center justify-center gap-2"
                 >
@@ -210,14 +212,7 @@ export function ApprovalActionForm({
                 </Button>
                 <Button
                   onClick={handleCancelAction}
-                  disabled={
-                    (action === 'approve' &&
-                      (approveRequest.isPending || approveRequest.isSuccess)) ||
-                    (action === 'reject' &&
-                      (rejectRequest.isPending || rejectRequest.isSuccess)) ||
-                    (action === 'delete' &&
-                      (deleteApproval.isPending || deleteApproval.isSuccess))
-                  }
+                  disabled={isSubmitDisabled}
                   variant="neutral"
                 >
                   Cancel
