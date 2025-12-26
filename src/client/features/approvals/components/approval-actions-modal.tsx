@@ -15,7 +15,7 @@ import {
   User,
   XCircle,
 } from 'lucide-react'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { TmdbContentViewer } from '@/components/tmdb-content-viewer'
 import { Badge } from '@/components/ui/badge'
@@ -107,15 +107,6 @@ export default function ApprovalActionsModal({
   )
   const [notes, setNotes] = useState('')
   const actionNotesId = useId()
-  const [approveStatus, setApproveStatus] = useState<
-    'idle' | 'loading' | 'success'
-  >('idle')
-  const [rejectStatus, setRejectStatus] = useState<
-    'idle' | 'loading' | 'success'
-  >('idle')
-  const [deleteStatus, setDeleteStatus] = useState<
-    'idle' | 'loading' | 'success'
-  >('idle')
   const [editRoutingMode, setEditRoutingMode] = useState(false)
   const [showMediaDetails, setShowMediaDetails] = useState(false)
   const submitSectionRef = useRef<HTMLDivElement>(null)
@@ -146,50 +137,27 @@ export default function ApprovalActionsModal({
     return user?.name || `User ${userId}`
   }
 
-  // Helper function to manage minimum loading duration (copied from approval-action-dialogs)
-  const withMinLoadingDuration = async (
-    actionFn: () => Promise<void>,
-    setStatus: (status: 'idle' | 'loading' | 'success') => void,
-  ) => {
-    setStatus('loading')
-    const startTime = Date.now()
-
-    try {
-      await actionFn()
-      setStatus('success')
-
-      // Don't auto-reset to idle - let the modal close handler do it
-      // This prevents button flashing during modal close animation
-    } catch (error) {
-      // On error, still reset after minimum duration
-      const elapsed = Date.now() - startTime
-      const remainingTime = Math.max(500 - elapsed, 0)
-
-      setTimeout(() => {
-        setStatus('idle')
-      }, remainingTime)
-      throw error
-    }
-  }
+  // Reset mutations when modal closes to clear success states
+  const resetMutations = useCallback(() => {
+    approveRequest.reset()
+    rejectRequest.reset()
+    deleteApproval.reset()
+    setAction(null)
+    setNotes('')
+  }, [approveRequest, rejectRequest, deleteApproval])
 
   const handleApprove = async () => {
     try {
-      await withMinLoadingDuration(async () => {
-        await approveRequest.mutateAsync({
-          id: request.id,
-          notes: notes.trim() || undefined,
-        })
-      }, setApproveStatus)
+      await approveRequest.mutateAsync({
+        id: request.id,
+        notes: notes.trim() || undefined,
+      })
 
-      // Close modal after success state
+      // Close modal after success state displays
       setTimeout(() => {
         onOpenChange(false)
         // Reset states after modal close animation completes
-        setTimeout(() => {
-          setAction(null)
-          setNotes('')
-          setApproveStatus('idle')
-        }, 300)
+        setTimeout(resetMutations, 300)
       }, 1500)
     } catch (error) {
       // Check if it's a conflict error (request already approved/expired)
@@ -209,11 +177,7 @@ export default function ApprovalActionsModal({
       if (isConflict) {
         setTimeout(() => {
           onOpenChange(false)
-          // Reset states after modal close animation completes
-          setTimeout(() => {
-            setAction(null)
-            setNotes('')
-          }, 300)
+          setTimeout(resetMutations, 300)
         }, 2000)
       }
     }
@@ -221,22 +185,15 @@ export default function ApprovalActionsModal({
 
   const handleReject = async () => {
     try {
-      await withMinLoadingDuration(async () => {
-        await rejectRequest.mutateAsync({
-          id: request.id,
-          reason: notes.trim() || undefined,
-        })
-      }, setRejectStatus)
+      await rejectRequest.mutateAsync({
+        id: request.id,
+        reason: notes.trim() || undefined,
+      })
 
-      // Close modal after success state
+      // Close modal after success state displays
       setTimeout(() => {
         onOpenChange(false)
-        // Reset states after modal close animation completes
-        setTimeout(() => {
-          setAction(null)
-          setNotes('')
-          setRejectStatus('idle')
-        }, 300)
+        setTimeout(resetMutations, 300)
       }, 1500)
     } catch (error) {
       // Check if it's a conflict error (request already processed)
@@ -255,11 +212,7 @@ export default function ApprovalActionsModal({
       if (isConflict) {
         setTimeout(() => {
           onOpenChange(false)
-          // Reset states after modal close animation completes
-          setTimeout(() => {
-            setAction(null)
-            setNotes('')
-          }, 300)
+          setTimeout(resetMutations, 300)
         }, 2000)
       }
     }
@@ -267,19 +220,12 @@ export default function ApprovalActionsModal({
 
   const handleDelete = async () => {
     try {
-      await withMinLoadingDuration(async () => {
-        await deleteApproval.mutateAsync(request.id)
-      }, setDeleteStatus)
+      await deleteApproval.mutateAsync(request.id)
 
-      // Close modal after success state
+      // Close modal after success state displays
       setTimeout(() => {
         onOpenChange(false)
-        // Reset states after modal close animation completes
-        setTimeout(() => {
-          setAction(null)
-          setNotes('')
-          setDeleteStatus('idle')
-        }, 300)
+        setTimeout(resetMutations, 300)
       }, 1500)
     } catch (_error) {
       toast.error('Failed to delete approval request')
@@ -342,11 +288,15 @@ export default function ApprovalActionsModal({
   const canReject = request.status === 'pending'
   const canDelete = true // Can always delete
 
-  // Check if any action is currently in progress
+  // Check if any action is currently in progress (using mutation states)
   const isAnyActionInProgress =
-    approveStatus !== 'idle' ||
-    rejectStatus !== 'idle' ||
-    deleteStatus !== 'idle'
+    approveRequest.isPending ||
+    approveRequest.isSuccess ||
+    rejectRequest.isPending ||
+    rejectRequest.isSuccess ||
+    deleteApproval.isPending ||
+    deleteApproval.isSuccess ||
+    updateApproval.isPending
 
   const handleActionSelection = (
     selectedAction: 'approve' | 'reject' | 'delete',
@@ -596,8 +546,13 @@ export default function ApprovalActionsModal({
                     .instanceId
                 }
                 onSave={handleRoutingSave}
-                onCancel={() => setEditRoutingMode(false)}
+                onCancel={() => {
+                  setEditRoutingMode(false)
+                  updateApproval.reset()
+                }}
                 disabled={!editRoutingMode || isAnyActionInProgress}
+                isSaving={updateApproval.isPending}
+                saveSuccess={updateApproval.isSuccess}
               />
             ) : (
               <ApprovalRadarrRoutingCard
@@ -609,8 +564,13 @@ export default function ApprovalActionsModal({
                     .instanceId
                 }
                 onSave={handleRoutingSave}
-                onCancel={() => setEditRoutingMode(false)}
+                onCancel={() => {
+                  setEditRoutingMode(false)
+                  updateApproval.reset()
+                }}
                 disabled={!editRoutingMode || isAnyActionInProgress}
+                isSaving={updateApproval.isPending}
+                saveSuccess={updateApproval.isSuccess}
               />
             )
           ) : (
@@ -777,44 +737,45 @@ export default function ApprovalActionsModal({
                           else if (action === 'delete') handleDelete()
                         }}
                         disabled={
-                          (action === 'approve' && approveStatus !== 'idle') ||
-                          (action === 'reject' && rejectStatus !== 'idle') ||
-                          (action === 'delete' && deleteStatus !== 'idle')
+                          (action === 'approve' &&
+                            (approveRequest.isPending ||
+                              approveRequest.isSuccess)) ||
+                          (action === 'reject' &&
+                            (rejectRequest.isPending ||
+                              rejectRequest.isSuccess)) ||
+                          (action === 'delete' &&
+                            (deleteApproval.isPending ||
+                              deleteApproval.isSuccess))
                         }
                         variant={action === 'approve' ? 'default' : 'clear'}
                         className="min-w-[100px] flex items-center justify-center gap-2"
                       >
-                        {action === 'approve' && approveStatus === 'loading' ? (
+                        {action === 'approve' && approveRequest.isPending ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Approving...
                           </>
-                        ) : action === 'approve' &&
-                          approveStatus === 'success' ? (
+                        ) : action === 'approve' && approveRequest.isSuccess ? (
                           <>
                             <Check className="h-4 w-4" />
                             Approved
                           </>
-                        ) : action === 'reject' &&
-                          rejectStatus === 'loading' ? (
+                        ) : action === 'reject' && rejectRequest.isPending ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Rejecting...
                           </>
-                        ) : action === 'reject' &&
-                          rejectStatus === 'success' ? (
+                        ) : action === 'reject' && rejectRequest.isSuccess ? (
                           <>
                             <Check className="h-4 w-4" />
                             Rejected
                           </>
-                        ) : action === 'delete' &&
-                          deleteStatus === 'loading' ? (
+                        ) : action === 'delete' && deleteApproval.isPending ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Deleting...
                           </>
-                        ) : action === 'delete' &&
-                          deleteStatus === 'success' ? (
+                        ) : action === 'delete' && deleteApproval.isSuccess ? (
                           <>
                             <Check className="h-4 w-4" />
                             Deleted
@@ -830,9 +791,15 @@ export default function ApprovalActionsModal({
                       <Button
                         onClick={handleCancelAction}
                         disabled={
-                          (action === 'approve' && approveStatus !== 'idle') ||
-                          (action === 'reject' && rejectStatus !== 'idle') ||
-                          (action === 'delete' && deleteStatus !== 'idle')
+                          (action === 'approve' &&
+                            (approveRequest.isPending ||
+                              approveRequest.isSuccess)) ||
+                          (action === 'reject' &&
+                            (rejectRequest.isPending ||
+                              rejectRequest.isSuccess)) ||
+                          (action === 'delete' &&
+                            (deleteApproval.isPending ||
+                              deleteApproval.isSuccess))
                         }
                         variant="neutral"
                       >
