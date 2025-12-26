@@ -35,6 +35,12 @@ interface DataTableFacetedFilterProps<TData, TValue> {
     filterValue: string[],
   ) => boolean
   showSearch?: boolean
+  /** External controlled value - when provided, overrides column-based state */
+  value?: string[]
+  /** External onChange handler - when provided, overrides column-based updates */
+  onChange?: (values: string[]) => void
+  /** Disable the filter button */
+  disabled?: boolean
 }
 
 /**
@@ -59,9 +65,16 @@ export function DataTableFacetedFilter<TData, TValue>({
   options,
   filterFn,
   showSearch = false,
+  value,
+  onChange,
+  disabled = false,
 }: DataTableFacetedFilterProps<TData, TValue>) {
+  // Support both column-based (client-side) and external (server-side) modes
+  const isControlled = value !== undefined && onChange !== undefined
   const facets = column?.getFacetedUniqueValues()
-  const selectedValues = new Set(column?.getFilterValue() as string[])
+  const selectedValues = new Set(
+    isControlled ? value : (column?.getFilterValue() as string[]),
+  )
   const [isOpen, setIsOpen] = React.useState(false)
 
   // Set custom filter function if provided
@@ -78,7 +91,12 @@ export function DataTableFacetedFilter<TData, TValue>({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="noShadow" size="sm" className="h-10">
+        <Button
+          variant="noShadow"
+          size="sm"
+          className="h-10"
+          disabled={disabled}
+        >
           <FilterIcon className="mr-2 h-4 w-4" />
           {title}
           {selectedValues?.size > 0 && (
@@ -130,9 +148,13 @@ export function DataTableFacetedFilter<TData, TValue>({
                         selectedValues.add(option.value)
                       }
                       const filterValues = Array.from(selectedValues)
-                      column?.setFilterValue(
-                        filterValues.length ? filterValues : undefined,
-                      )
+                      if (isControlled) {
+                        onChange(filterValues)
+                      } else {
+                        column?.setFilterValue(
+                          filterValues.length ? filterValues : undefined,
+                        )
+                      }
                     }}
                   >
                     <div
@@ -163,7 +185,13 @@ export function DataTableFacetedFilter<TData, TValue>({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => column?.setFilterValue(undefined)}
+                    onSelect={() => {
+                      if (isControlled) {
+                        onChange([])
+                      } else {
+                        column?.setFilterValue(undefined)
+                      }
+                    }}
                     className="justify-center text-center"
                   >
                     Clear filters

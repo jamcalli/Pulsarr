@@ -6,7 +6,7 @@ import {
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { useApiKeysStore } from '@/features/utilities/stores/apiKeysStore'
+import { useApiKeysStore } from '@/features/utilities/store/apiKeysStore'
 
 type ApiKeyFormData = CreateApiKey
 

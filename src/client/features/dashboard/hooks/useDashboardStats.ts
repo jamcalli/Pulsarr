@@ -1,6 +1,7 @@
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
 import { useCallback } from 'react'
 import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
+import { queryClient } from '@/lib/queryClient'
 import { useConfigStore } from '@/stores/configStore'
 import { useDashboardStatsQuery } from './useDashboardStatsQuery'
 
@@ -62,14 +63,14 @@ export function useDashboardStats(): DashboardStatsState {
 
   const isConfigInitialized = useConfigStore((s) => s.isInitialized)
 
-  const { data, isLoading, error, refetch, dataUpdatedAt } =
-    useDashboardStatsQuery()
+  const { data, isLoading, error, dataUpdatedAt } = useDashboardStatsQuery()
 
   const errorMessage = error instanceof Error ? error.message : null
 
+  // Reset clears cache and refetches, showing skeleton loader again
   const refreshStats = useCallback(async () => {
-    await refetch()
-  }, [refetch])
+    await queryClient.resetQueries({ queryKey: ['dashboard-stats'] })
+  }, [])
 
   return {
     isLoading: !isConfigInitialized || isLoading,

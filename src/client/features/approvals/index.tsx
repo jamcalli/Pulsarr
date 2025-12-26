@@ -1,11 +1,6 @@
-import type {
-  ApprovalRequestResponse,
-  BulkApprovalRequest,
-  BulkDeleteRequest,
-  BulkRejectRequest,
-} from '@root/schemas/approval/approval.schema'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
+import { useShallow } from 'zustand/shallow'
 import { Button } from '@/components/ui/button'
 import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
 import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-header'
@@ -14,247 +9,201 @@ import {
   type ApprovalTableRef,
 } from '@/features/approvals/components/approval-table'
 import BulkApprovalModal from '@/features/approvals/components/bulk-approval-modal'
+import {
+  useBulkApprove,
+  useBulkDelete,
+  useBulkReject,
+} from '@/features/approvals/hooks/useApprovalMutations'
+import { useApprovalStats } from '@/features/approvals/hooks/useApprovalStats'
+import { useApprovals } from '@/features/approvals/hooks/useApprovals'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
-import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
-import { api } from '@/lib/api'
+import { queryClient } from '@/lib/queryClient'
 import { useConfigStore } from '@/stores/configStore'
-
-type BulkActionStatus = 'idle' | 'loading' | 'success' | 'error'
+import { approvalStatsKeys } from './hooks/useApprovalStats'
+import { approvalKeys } from './hooks/useApprovals'
 
 /**
- * Renders the Approvals page, enabling real-time management of approval requests with features such as filtering, sorting, pagination, and both individual and bulk actions (approve, reject, delete).
+ * Renders the Approvals page with real-time management of approval requests.
  *
- * Integrates with real-time updates, manages loading and error states, and provides modals for detailed individual and bulk operations. Handles state for selected requests and action statuses.
- *
- * @returns The React element representing the Approvals page.
+ * Uses React Query for data fetching and caching, with SSE for real-time updates.
+ * Modal and selection state managed via Zustand store.
  */
 export default function ApprovalsPage() {
   const configInitialize = useConfigStore((state) => state.initialize)
+  const isConfigInitialized = useConfigStore((state) => state.isInitialized)
 
+  // Query hooks for data
   const {
-    approvalRequests,
-    stats,
-    isInitialized,
-    approvalsLoading,
-    error,
-    initialize,
-    refreshApprovalRequests,
-    handleApprovalDeleted,
-    fetchStats,
-  } = useApprovalsStore()
+    data: approvalsData,
+    isLoading: approvalsLoading,
+    error: approvalsError,
+    refetch: refetchApprovals,
+  } = useApprovals()
+  const { data: statsData, isLoading: statsLoading } = useApprovalStats()
 
-  const hasInitializedRef = useRef(false)
-  const [selectedRequest, setSelectedRequest] =
-    useState<ApprovalRequestResponse | null>(null)
-  const [isActionsModalOpen, setIsActionsModalOpen] = useState(false)
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false)
-  const [selectedRequests, setSelectedRequests] = useState<
-    ApprovalRequestResponse[]
-  >([])
+  // Mutation hooks for bulk actions
+  const bulkApprove = useBulkApprove()
+  const bulkReject = useBulkReject()
+  const bulkDelete = useBulkDelete()
+
+  // UI state from store
+  const {
+    selectedRequest,
+    isActionsModalOpen,
+    setActionsModalOpen,
+    openActionsModal,
+    isBulkModalOpen,
+    setBulkModalOpen,
+    selectedRequests,
+    bulkActionType,
+    openBulkModal,
+    closeBulkModal,
+  } = useApprovalsStore(
+    useShallow((state) => ({
+      selectedRequest: state.selectedRequest,
+      isActionsModalOpen: state.isActionsModalOpen,
+      setActionsModalOpen: state.setActionsModalOpen,
+      openActionsModal: state.openActionsModal,
+      isBulkModalOpen: state.isBulkModalOpen,
+      setBulkModalOpen: state.setBulkModalOpen,
+      selectedRequests: state.selectedRequests,
+      bulkActionType: state.bulkActionType,
+      openBulkModal: state.openBulkModal,
+      closeBulkModal: state.closeBulkModal,
+    })),
+  )
+
   const tableRef = useRef<ApprovalTableRef>(null)
-  const [bulkActionStatus, setBulkActionStatus] =
-    useState<BulkActionStatus>('idle')
-  const [bulkActionType, setBulkActionType] = useState<
-    'approve' | 'reject' | 'delete' | null
-  >(null)
+  const hasInitializedRef = useRef(false)
 
-  // Loading state management with minimum delay
-  const [isLoading, setIsLoading] = useState(true)
-  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
-
-  // Real-time events - connect SSE events to store updates
-  useApprovalPageEvents({
-    onApprovalCreated: (_event, _metadata) => {
-      refreshApprovalRequests()
-      fetchStats()
-    },
-    onApprovalUpdated: (_event, _metadata) => {
-      refreshApprovalRequests()
-      fetchStats()
-    },
-    onApprovalApproved: (_event, _metadata) => {
-      refreshApprovalRequests()
-      fetchStats()
-    },
-    onApprovalRejected: (_event, _metadata) => {
-      refreshApprovalRequests()
-      fetchStats()
-    },
-    onApprovalDeleted: (_event, metadata) => {
-      handleApprovalDeleted(metadata.requestId)
-      fetchStats()
-    },
-  })
-
-  const retryInitialization = useCallback(() => {
-    console.log('🔄 Retrying approvals initialization...')
-    initialize()
-  }, [initialize])
-
-  // Setup minimum loading time
-  useEffect(() => {
-    let isMounted = true
-    const timeoutId = setTimeout(() => {
-      if (isMounted) {
-        setMinLoadingComplete(true)
-        if (isInitialized) {
-          setIsLoading(false)
-        }
-      }
-    }, MIN_LOADING_DELAY)
-
-    return () => {
-      isMounted = false
-      clearTimeout(timeoutId)
-    }
-  }, [isInitialized])
-
-  // Update loading state when initialized
-  useEffect(() => {
-    if (isInitialized && minLoadingComplete) {
-      setIsLoading(false)
-    }
-  }, [isInitialized, minLoadingComplete])
-
-  // Initialize stores on mount
+  // Initialize config store on mount
   useEffect(() => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true
-      configInitialize() // Initialize config store for user data
-      initialize() // Initialize approvals store
+      configInitialize()
     }
-  }, [initialize, configInitialize])
+  }, [configInitialize])
 
-  // Handle individual approval actions
-  const handleIndividualAction = (request: ApprovalRequestResponse) => {
-    setSelectedRequest(request)
-    setIsActionsModalOpen(true)
+  // Real-time events - invalidate React Query cache on SSE events
+  const invalidateApprovalQueries = () => {
+    queryClient.invalidateQueries({ queryKey: approvalKeys.all })
+    queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all })
   }
 
-  // Handle bulk actions
-  const handleBulkAction = (
-    requests: ApprovalRequestResponse[],
-    action: 'approve' | 'reject' | 'delete',
-  ) => {
-    setSelectedRequests(requests)
-    setBulkActionType(action)
-    setIsBulkModalOpen(true)
-    setBulkActionStatus('idle')
+  useApprovalPageEvents({
+    onApprovalCreated: invalidateApprovalQueries,
+    onApprovalUpdated: invalidateApprovalQueries,
+    onApprovalApproved: invalidateApprovalQueries,
+    onApprovalRejected: invalidateApprovalQueries,
+    onApprovalDeleted: invalidateApprovalQueries,
+  })
+
+  // Bulk action handlers
+  const executeBulkApproval = (requestIds: string[]) => {
+    bulkApprove.mutate(
+      { requestIds: requestIds.map((id) => Number.parseInt(id, 10)) },
+      {
+        onSuccess: (data) => {
+          toast.success(`Approved ${data.result.successful} requests`)
+          tableRef.current?.clearSelection()
+        },
+        onError: () => {
+          toast.error('Failed to approve requests')
+        },
+      },
+    )
   }
 
-  // Execute bulk approval
-  const executeBulkApproval = async (data: BulkApprovalRequest) => {
-    setBulkActionStatus('loading')
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000)
-    try {
-      const response = await fetch(api('/v1/approval/requests/bulk/approve'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        signal: controller.signal,
-      })
+  const executeBulkReject = (requestIds: string[]) => {
+    bulkReject.mutate(
+      { requestIds: requestIds.map((id) => Number.parseInt(id, 10)) },
+      {
+        onSuccess: (data) => {
+          toast.success(`Rejected ${data.result.successful} requests`)
+          tableRef.current?.clearSelection()
+        },
+        onError: () => {
+          toast.error('Failed to reject requests')
+        },
+      },
+    )
+  }
 
-      if (!response.ok) throw new Error('Bulk approval failed')
+  const executeBulkDelete = (requestIds: string[]) => {
+    bulkDelete.mutate(
+      { requestIds: requestIds.map((id) => Number.parseInt(id, 10)) },
+      {
+        onSuccess: (data) => {
+          toast.success(`Deleted ${data.result.successful} requests`)
+          tableRef.current?.clearSelection()
+        },
+        onError: () => {
+          toast.error('Failed to delete requests')
+        },
+      },
+    )
+  }
 
-      setBulkActionStatus('success')
-      toast.success(`Approved ${data.requestIds.length} requests`)
-
-      // Refresh data
-      await Promise.all([refreshApprovalRequests(), fetchStats()])
-
-      // Clear table selection
-      tableRef.current?.clearSelection()
-
-      // Close modal after short delay
-      setTimeout(() => setIsBulkModalOpen(false), 1000)
-    } catch (error) {
-      setBulkActionStatus('error')
-      toast.error('Failed to approve requests')
-      console.error('Bulk approval error:', error)
-    } finally {
-      clearTimeout(timeoutId)
+  // Close bulk modal after success with proper cleanup
+  useEffect(() => {
+    if (bulkApprove.isSuccess) {
+      const timer = setTimeout(() => {
+        closeBulkModal()
+        bulkApprove.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
     }
-  }
+  }, [bulkApprove.isSuccess, closeBulkModal, bulkApprove.reset])
 
-  // Execute bulk rejection
-  const executeBulkReject = async (data: BulkRejectRequest) => {
-    setBulkActionStatus('loading')
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000)
-    try {
-      const response = await fetch(api('/v1/approval/requests/bulk/reject'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        signal: controller.signal,
-      })
-
-      if (!response.ok) throw new Error('Bulk rejection failed')
-
-      setBulkActionStatus('success')
-      toast.success(`Rejected ${data.requestIds.length} requests`)
-
-      // Refresh data
-      await Promise.all([refreshApprovalRequests(), fetchStats()])
-
-      // Clear table selection
-      tableRef.current?.clearSelection()
-
-      // Close modal after short delay
-      setTimeout(() => setIsBulkModalOpen(false), 1000)
-    } catch (error) {
-      setBulkActionStatus('error')
-      toast.error('Failed to reject requests')
-      console.error('Bulk rejection error:', error)
-    } finally {
-      clearTimeout(timeoutId)
+  useEffect(() => {
+    if (bulkReject.isSuccess) {
+      const timer = setTimeout(() => {
+        closeBulkModal()
+        bulkReject.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
     }
-  }
+  }, [bulkReject.isSuccess, closeBulkModal, bulkReject.reset])
 
-  // Execute bulk deletion
-  const executeBulkDelete = async (data: BulkDeleteRequest) => {
-    setBulkActionStatus('loading')
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000)
-    try {
-      const response = await fetch(api('/v1/approval/requests/bulk/delete'), {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        signal: controller.signal,
-      })
-
-      if (!response.ok) throw new Error('Bulk deletion failed')
-
-      setBulkActionStatus('success')
-      toast.success(`Deleted ${data.requestIds.length} requests`)
-
-      // Refresh data
-      await Promise.all([refreshApprovalRequests(), fetchStats()])
-
-      // Clear table selection
-      tableRef.current?.clearSelection()
-
-      // Close modal after short delay
-      setTimeout(() => setIsBulkModalOpen(false), 1000)
-    } catch (error) {
-      setBulkActionStatus('error')
-      toast.error('Failed to delete requests')
-      console.error('Bulk deletion error:', error)
-    } finally {
-      clearTimeout(timeoutId)
+  useEffect(() => {
+    if (bulkDelete.isSuccess) {
+      const timer = setTimeout(() => {
+        closeBulkModal()
+        bulkDelete.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
     }
+  }, [bulkDelete.isSuccess, closeBulkModal, bulkDelete.reset])
+
+  // Determine bulk action status for modal
+  const getBulkActionStatus = () => {
+    if (bulkApprove.isPending || bulkReject.isPending || bulkDelete.isPending) {
+      return 'loading' as const
+    }
+    if (bulkApprove.isSuccess || bulkReject.isSuccess || bulkDelete.isSuccess) {
+      return 'success' as const
+    }
+    if (bulkApprove.isError || bulkReject.isError || bulkDelete.isError) {
+      return 'error' as const
+    }
+    return 'idle' as const
   }
+
+  // Combined loading state
+  const isLoading = !isConfigInitialized || approvalsLoading || statsLoading
 
   // Show error state
-  if (error && !isLoading) {
+  if (approvalsError && !isLoading) {
+    const errorMessage =
+      approvalsError instanceof Error
+        ? approvalsError.message
+        : 'Failed to load approvals'
     return (
       <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
         <div className="text-center py-8">
-          <p className="text-red-500 mb-4">{error}</p>
-          <Button onClick={retryInitialization} variant="default">
+          <p className="text-red-500 mb-4">{errorMessage}</p>
+          <Button onClick={() => refetchApprovals()} variant="default">
             Retry
           </Button>
         </div>
@@ -262,7 +211,7 @@ export default function ApprovalsPage() {
     )
   }
 
-  // Show loading state - let components handle their own loading
+  // Show loading state
   if (isLoading) {
     return (
       <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
@@ -270,12 +219,10 @@ export default function ApprovalsPage() {
           <h2 className="text-2xl font-bold text-foreground">Approvals</h2>
         </div>
         <div className="grid gap-4">
-          {/* Stats Header with loading state */}
           <ApprovalStatsHeader stats={null} loading={true} />
-
-          {/* Approval Table with loading state */}
           <ApprovalTable
             data={[]}
+            total={0}
             onApprove={() => {}}
             onReject={() => {}}
             onView={() => {}}
@@ -295,17 +242,18 @@ export default function ApprovalsPage() {
       </div>
       <div className="grid gap-4">
         {/* Stats Header */}
-        <ApprovalStatsHeader stats={stats} />
+        <ApprovalStatsHeader stats={statsData?.stats ?? null} />
 
         {/* Approval Table */}
         <ApprovalTable
           ref={tableRef}
-          data={approvalRequests || []}
-          onApprove={(request) => handleIndividualAction(request)}
-          onReject={(request) => handleIndividualAction(request)}
-          onView={(request) => handleIndividualAction(request)}
-          onDelete={(request) => handleIndividualAction(request)}
-          onBulkActions={(requests) => handleBulkAction(requests, 'approve')}
+          data={approvalsData?.approvalRequests ?? []}
+          total={approvalsData?.total ?? 0}
+          onApprove={openActionsModal}
+          onReject={openActionsModal}
+          onView={openActionsModal}
+          onDelete={openActionsModal}
+          onBulkActions={(requests) => openBulkModal(requests, 'approve')}
           isLoading={approvalsLoading}
         />
 
@@ -313,36 +261,20 @@ export default function ApprovalsPage() {
         {selectedRequest && (
           <ApprovalActionsModal
             open={isActionsModalOpen}
-            onOpenChange={setIsActionsModalOpen}
+            onOpenChange={setActionsModalOpen}
             request={selectedRequest}
-            onUpdate={async () => {
-              await refreshApprovalRequests()
-              await fetchStats()
-            }}
           />
         )}
 
         {/* Bulk Actions Modal */}
         <BulkApprovalModal
           open={isBulkModalOpen}
-          onOpenChange={setIsBulkModalOpen}
+          onOpenChange={setBulkModalOpen}
           selectedRequests={selectedRequests}
-          onBulkApprove={(requestIds) =>
-            executeBulkApproval({
-              requestIds: requestIds.map((id) => Number.parseInt(id, 10)),
-            })
-          }
-          onBulkReject={(requestIds) =>
-            executeBulkReject({
-              requestIds: requestIds.map((id) => Number.parseInt(id, 10)),
-            })
-          }
-          onBulkDelete={(requestIds) =>
-            executeBulkDelete({
-              requestIds: requestIds.map((id) => Number.parseInt(id, 10)),
-            })
-          }
-          actionStatus={bulkActionStatus}
+          onBulkApprove={executeBulkApproval}
+          onBulkReject={executeBulkReject}
+          onBulkDelete={executeBulkDelete}
+          actionStatus={getBulkActionStatus()}
           currentAction={bulkActionType}
         />
       </div>

@@ -64,6 +64,8 @@ interface ApprovalRadarrRoutingCardProps {
   onSave: (updatedRouting: ProposedRouting) => Promise<void>
   onCancel: () => void
   disabled?: boolean
+  isSaving?: boolean
+  saveSuccess?: boolean
 }
 
 /**
@@ -84,11 +86,10 @@ export function ApprovalRadarrRoutingCard({
   onSave,
   onCancel,
   disabled = false,
+  isSaving = false,
+  saveSuccess = false,
 }: ApprovalRadarrRoutingCardProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const [savingStatus, setSavingStatus] = useState<
-    'idle' | 'loading' | 'success'
-  >('idle')
   const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
   const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
 
@@ -146,51 +147,30 @@ export function ApprovalRadarrRoutingCard({
     },
   })
 
-  // Helper function to manage minimum loading duration (copied from approval-actions-modal)
-  const withMinLoadingDuration = async (
-    actionFn: () => Promise<void>,
-    setStatus: (status: 'idle' | 'loading' | 'success') => void,
-  ) => {
-    setStatus('loading')
-    const startTime = Date.now()
-
-    try {
-      await actionFn()
-      setStatus('success')
-
-      // Show success state for a moment before exiting
-      setTimeout(() => {
+  // Close after success state displays
+  useEffect(() => {
+    if (saveSuccess) {
+      const timer = setTimeout(() => {
         onCancel()
-      }, 1000) // Match the success display duration
-    } catch (error) {
-      // On error, still reset after minimum duration
-      const elapsed = Date.now() - startTime
-      const remainingTime = Math.max(500 - elapsed, 0)
-
-      setTimeout(() => {
-        setStatus('idle')
-      }, remainingTime)
-      throw error
+      }, 1000)
+      return () => clearTimeout(timer)
     }
-  }
+  }, [saveSuccess, onCancel])
 
   const handleSubmit = async (data: ApprovalRoutingFormData) => {
     try {
-      await withMinLoadingDuration(async () => {
-        const updatedRouting: ProposedRouting = {
-          ...routing,
-          qualityProfile: data.qualityProfile,
-          rootFolder: data.rootFolder,
-          searchOnAdd: data.searchOnAdd,
-          minimumAvailability: data.minimumAvailability,
-          tags: data.tags,
-          syncedInstances: data.syncedInstances,
-          priority: data.priority,
-        }
+      const updatedRouting: ProposedRouting = {
+        ...routing,
+        qualityProfile: data.qualityProfile,
+        rootFolder: data.rootFolder,
+        searchOnAdd: data.searchOnAdd,
+        minimumAvailability: data.minimumAvailability,
+        tags: data.tags,
+        syncedInstances: data.syncedInstances,
+        priority: data.priority,
+      }
 
-        await onSave(updatedRouting)
-      }, setSavingStatus)
-
+      await onSave(updatedRouting)
       toast.success('Routing configuration updated successfully')
     } catch (_error) {
       toast.error('Failed to update routing configuration')
@@ -493,15 +473,15 @@ export function ApprovalRadarrRoutingCard({
               <div className="flex gap-2 pt-4">
                 <Button
                   type="submit"
-                  disabled={!isConnectionValid || savingStatus !== 'idle'}
+                  disabled={!isConnectionValid || isSaving || saveSuccess}
                   className="flex-1 flex items-center justify-center gap-2"
                 >
-                  {savingStatus === 'loading' ? (
+                  {isSaving ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Saving...
                     </>
-                  ) : savingStatus === 'success' ? (
+                  ) : saveSuccess ? (
                     <>
                       <Check className="h-4 w-4" />
                       Saved
@@ -514,7 +494,7 @@ export function ApprovalRadarrRoutingCard({
                   type="button"
                   variant="neutral"
                   onClick={onCancel}
-                  disabled={savingStatus !== 'idle'}
+                  disabled={isSaving || saveSuccess}
                   className="flex-1"
                 >
                   Cancel
