@@ -79,7 +79,7 @@ export function ApprovalTableToolbar({
   const { isLoading } = useApprovals()
 
   // Get user options from shared hook
-  const userOptions = useUserOptions()
+  const { options: userOptions, isLoading: usersLoading } = useUserOptions()
 
   // Local state for debounced search
   const [searchValue, setSearchValue] = useState(filters.search)
@@ -152,21 +152,19 @@ export function ApprovalTableToolbar({
           />
 
           {/* User filter - server-side */}
-          {userOptions.length > 0 && (
-            <DataTableFacetedFilter
-              title="User"
-              icon={Users}
-              options={userOptions}
-              value={filters.userId.map((id) => id.toString())}
-              onChange={(values) =>
-                setFilters({
-                  userId: values.map((v) => Number.parseInt(v, 10)),
-                })
-              }
-              showSearch={true}
-              disabled={isLoading}
-            />
-          )}
+          <DataTableFacetedFilter
+            title="User"
+            icon={Users}
+            options={userOptions}
+            value={filters.userId.map((id) => id.toString())}
+            onChange={(values) =>
+              setFilters({
+                userId: values.map((v) => Number.parseInt(v, 10)),
+              })
+            }
+            showSearch={true}
+            disabled={isLoading || usersLoading}
+          />
 
           {/* Content type filter - server-side */}
           <DataTableFacetedFilter

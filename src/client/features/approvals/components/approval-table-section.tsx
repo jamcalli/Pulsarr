@@ -302,7 +302,7 @@ export default function ApprovalTableSection() {
       </div>
 
       {/* Stats overview */}
-      <ApprovalStatsHeader stats={stats} loading={approvalsLoading} />
+      <ApprovalStatsHeader stats={stats} loading={statsLoading} />
 
       {/* Configuration section */}
       <ApprovalConfigurationSection />

@@ -146,7 +146,7 @@ function ConditionInput({
   }, [onChange])
 
   // Get user options from shared hook
-  const userOptions = useUserOptions()
+  const { options: userOptions } = useUserOptions()
 
   // Initialize the config store if needed to fetch users
   const fetchUserData = useConfigStore((state) => state.fetchUserData)

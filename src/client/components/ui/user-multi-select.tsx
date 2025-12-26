@@ -23,7 +23,7 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
   const isInitialized = useConfigStore((state) => state.isInitialized)
   const initialize = useConfigStore((state) => state.initialize)
   const [isLoading, setIsLoading] = useState(false)
-  const options = useUserOptions()
+  const { options } = useUserOptions()
 
   useEffect(() => {
     const initializeStore = async () => {
