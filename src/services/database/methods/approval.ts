@@ -3,6 +3,7 @@ import type {
   ApprovalRequestRow,
   ApprovalStats,
   ApprovalStatus,
+  ApprovalTrigger,
   CreateApprovalRequestData,
   UpdateApprovalRequestData,
   UserApprovalStats,
@@ -256,8 +257,8 @@ export async function getPendingApprovalRequests(
  * @param status - Optional status filter (single value or array for multi-select)
  * @param limit - Maximum number of results (default: 50)
  * @param offset - Number of results to skip (default: 0)
- * @param contentType - Optional content type filter ('movie' or 'show')
- * @param triggeredBy - Optional trigger source filter
+ * @param contentType - Optional content type filter (single value or array for multi-select)
+ * @param triggeredBy - Optional trigger source filter (single value or array for multi-select)
  * @param search - Optional search term for content title (case-insensitive partial match)
  * @returns An array of approval requests matching the specified filters.
  */
@@ -267,8 +268,8 @@ export async function getApprovalHistory(
   status?: ApprovalStatus | ApprovalStatus[],
   limit = 50,
   offset = 0,
-  contentType?: 'movie' | 'show',
-  triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+  contentType?: 'movie' | 'show' | ('movie' | 'show')[],
+  triggeredBy?: ApprovalTrigger | ApprovalTrigger[],
   search?: string,
   sortBy:
     | 'contentTitle'
@@ -306,11 +307,19 @@ export async function getApprovalHistory(
   }
 
   if (contentType) {
-    query = query.where('approval_requests.content_type', contentType)
+    if (Array.isArray(contentType)) {
+      query = query.whereIn('approval_requests.content_type', contentType)
+    } else {
+      query = query.where('approval_requests.content_type', contentType)
+    }
   }
 
   if (triggeredBy) {
-    query = query.where('approval_requests.triggered_by', triggeredBy)
+    if (Array.isArray(triggeredBy)) {
+      query = query.whereIn('approval_requests.triggered_by', triggeredBy)
+    } else {
+      query = query.where('approval_requests.triggered_by', triggeredBy)
+    }
   }
 
   if (search) {
@@ -342,8 +351,8 @@ export async function getApprovalHistory(
  *
  * @param userId - Filter by user ID
  * @param status - Filter by approval status (single value or array for multi-select)
- * @param contentType - Filter by content type ('movie' or 'show')
- * @param triggeredBy - Filter by trigger source
+ * @param contentType - Filter by content type (single value or array for multi-select)
+ * @param triggeredBy - Filter by trigger source (single value or array for multi-select)
  * @param search - Optional search term for content title (case-insensitive partial match)
  * @returns The number of approval requests matching the filters
  */
@@ -351,8 +360,8 @@ export async function getApprovalHistoryCount(
   this: DatabaseService,
   userId?: number,
   status?: ApprovalStatus | ApprovalStatus[],
-  contentType?: 'movie' | 'show',
-  triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+  contentType?: 'movie' | 'show' | ('movie' | 'show')[],
+  triggeredBy?: ApprovalTrigger | ApprovalTrigger[],
   search?: string,
 ): Promise<number> {
   let query = this.knex('approval_requests')
@@ -370,11 +379,19 @@ export async function getApprovalHistoryCount(
   }
 
   if (contentType) {
-    query = query.where('approval_requests.content_type', contentType)
+    if (Array.isArray(contentType)) {
+      query = query.whereIn('approval_requests.content_type', contentType)
+    } else {
+      query = query.where('approval_requests.content_type', contentType)
+    }
   }
 
   if (triggeredBy) {
-    query = query.where('approval_requests.triggered_by', triggeredBy)
+    if (Array.isArray(triggeredBy)) {
+      query = query.whereIn('approval_requests.triggered_by', triggeredBy)
+    } else {
+      query = query.where('approval_requests.triggered_by', triggeredBy)
+    }
   }
 
   if (search) {

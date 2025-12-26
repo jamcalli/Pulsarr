@@ -118,8 +118,32 @@ export const GetApprovalRequestsQuerySchema = z.object({
       z.union([ApprovalStatusSchema, z.array(ApprovalStatusSchema)]).optional(),
     ),
   userId: z.coerce.number().optional(),
-  contentType: z.enum(['movie', 'show']).optional(),
-  triggeredBy: ApprovalTriggerSchema.optional(),
+  contentType: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined
+      const types = val.split(',').filter(Boolean)
+      return types.length === 1 ? types[0] : types
+    })
+    .pipe(
+      z
+        .union([z.enum(['movie', 'show']), z.array(z.enum(['movie', 'show']))])
+        .optional(),
+    ),
+  triggeredBy: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined
+      const triggers = val.split(',').filter(Boolean)
+      return triggers.length === 1 ? triggers[0] : triggers
+    })
+    .pipe(
+      z
+        .union([ApprovalTriggerSchema, z.array(ApprovalTriggerSchema)])
+        .optional(),
+    ),
   // Content title search (case-insensitive partial match)
   search: z.string().optional(),
   // Server-side pagination
