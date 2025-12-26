@@ -87,14 +87,14 @@ export function useApprovals() {
         params.append('status', filters.status.join(','))
       }
 
-      // Content type filter (only send first value - API takes single value)
+      // Content type filter (comma-separated for multi-select)
       if (filters.contentType.length > 0) {
-        params.append('contentType', filters.contentType[0])
+        params.append('contentType', filters.contentType.join(','))
       }
 
-      // Triggered by filter (only send first value - API takes single value)
+      // Triggered by filter (comma-separated for multi-select)
       if (filters.triggeredBy.length > 0) {
-        params.append('triggeredBy', filters.triggeredBy[0])
+        params.append('triggeredBy', filters.triggeredBy.join(','))
       }
 
       // Search filter
