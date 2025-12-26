@@ -6,6 +6,11 @@ export interface UserOption {
   value: string
 }
 
+export interface UseUserOptionsResult {
+  options: UserOption[]
+  isLoading: boolean
+}
+
 /**
  * Returns a memoized list of user options for select/multi-select components.
  *
@@ -14,18 +19,18 @@ export interface UserOption {
  * - Value: user ID as string
  * - Sorted alphabetically by label
  *
- * @returns Array of user options, or empty array if users not loaded
+ * @returns Object with options array and loading state
  *
  * @example
  * ```typescript
- * const userOptions = useUserOptions()
- * // [{ label: "John Smith (Johnny)", value: "1" }, { label: "Jane Doe", value: "2" }]
+ * const { options, isLoading } = useUserOptions()
+ * // options: [{ label: "John Smith (Johnny)", value: "1" }, { label: "Jane Doe", value: "2" }]
  * ```
  */
-export function useUserOptions(): UserOption[] {
+export function useUserOptions(): UseUserOptionsResult {
   const users = useConfigStore((s) => s.users)
 
-  return useMemo(() => {
+  const options = useMemo(() => {
     if (!users) return []
     return users
       .map((user) => ({
@@ -34,4 +39,9 @@ export function useUserOptions(): UserOption[] {
       }))
       .sort((a, b) => a.label.localeCompare(b.label))
   }, [users])
+
+  return {
+    options,
+    isLoading: users === null,
+  }
 }
