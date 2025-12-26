@@ -301,11 +301,14 @@ export const ApprovalTable = React.forwardRef<
 
           <div className="flex items-center justify-center text-sm font-medium text-foreground">
             <span className="hidden sm:inline">
-              Showing {pageIndex * pageSize + 1}-
-              {Math.min((pageIndex + 1) * pageSize, total)} of {total}
+              {total > 0
+                ? `Showing ${pageIndex * pageSize + 1}-${Math.min((pageIndex + 1) * pageSize, total)} of ${total}`
+                : 'No results'}
             </span>
             <span className="sm:hidden">
-              Page {pageIndex + 1} of {pageCount}
+              {total > 0
+                ? `Page ${pageIndex + 1} of ${pageCount}`
+                : 'No results'}
             </span>
           </div>
 
