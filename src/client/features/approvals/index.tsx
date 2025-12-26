@@ -154,7 +154,7 @@ export default function ApprovalsPage() {
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [bulkApprove.isSuccess, closeBulkModal])
+  }, [bulkApprove.isSuccess, closeBulkModal, bulkApprove.reset])
 
   useEffect(() => {
     if (bulkReject.isSuccess) {
@@ -164,7 +164,7 @@ export default function ApprovalsPage() {
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [bulkReject.isSuccess, closeBulkModal])
+  }, [bulkReject.isSuccess, closeBulkModal, bulkReject.reset])
 
   useEffect(() => {
     if (bulkDelete.isSuccess) {
@@ -174,7 +174,7 @@ export default function ApprovalsPage() {
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [bulkDelete.isSuccess, closeBulkModal])
+  }, [bulkDelete.isSuccess, closeBulkModal, bulkDelete.reset])
 
   // Determine bulk action status for modal
   const getBulkActionStatus = () => {

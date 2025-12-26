@@ -128,7 +128,7 @@ export const GetApprovalRequestsQuerySchema = z.object({
         .filter(Boolean)
         .map((id) => Number.parseInt(id, 10))
         .filter((id) => !Number.isNaN(id))
-      return ids.length === 1 ? ids[0] : ids
+      return ids.length === 0 ? undefined : ids.length === 1 ? ids[0] : ids
     })
     .pipe(z.union([z.number(), z.array(z.number())]).optional()),
   contentType: z
