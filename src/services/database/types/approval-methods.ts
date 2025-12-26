@@ -122,6 +122,14 @@ declare module '@services/database.service.js' {
       contentType?: 'movie' | 'show',
       triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
       search?: string,
+      sortBy?:
+        | 'contentTitle'
+        | 'userName'
+        | 'status'
+        | 'triggeredBy'
+        | 'createdAt'
+        | 'expiresAt',
+      sortOrder?: 'asc' | 'desc',
     ): Promise<ApprovalRequest[]>
 
     /**

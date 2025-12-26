@@ -2,7 +2,6 @@ import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.sc
 import {
   flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table'
@@ -46,10 +45,11 @@ export interface ApprovalTableRef {
 }
 
 /**
- * Displays a paginated, sortable table of approval requests with server-side pagination and filtering.
+ * Displays a paginated, sortable table of approval requests with server-side pagination,
+ * filtering, and sorting.
  *
- * Pagination and filtering are controlled by the approvalsStore. The table receives pre-filtered,
- * pre-paginated data from the server. Sorting is done client-side on the current page.
+ * Pagination, filtering, and sorting are controlled by the approvalsStore. The table receives
+ * pre-filtered, pre-sorted, pre-paginated data from the server.
  *
  * @param data - The list of approval requests for the current page
  * @param total - Total count of approval requests matching the current filters
@@ -80,10 +80,14 @@ export const ApprovalTable = React.forwardRef<
     const filters = useApprovalsStore((s) => s.filters)
     const resetFilters = useApprovalsStore((s) => s.resetFilters)
 
-    // Client-side sorting (only sorts current page)
-    const [sorting, setSorting] = React.useState<SortingState>([
-      { id: 'createdAt', desc: true },
-    ])
+    // Server-side sorting state from store
+    const sortBy = useApprovalsStore((s) => s.sortBy)
+    const sortOrder = useApprovalsStore((s) => s.sortOrder)
+    const setSorting = useApprovalsStore((s) => s.setSorting)
+
+    // Convert store sorting to TanStack Table format
+    const sorting: SortingState = [{ id: sortBy, desc: sortOrder === 'desc' }]
+
     const [rowSelection, setRowSelection] = React.useState({})
 
     // Expose clear selection function to parent component
@@ -120,7 +124,30 @@ export const ApprovalTable = React.forwardRef<
           pageSize,
         },
       },
-      onSortingChange: setSorting,
+      onSortingChange: (updater) => {
+        const newSorting =
+          typeof updater === 'function' ? updater(sorting) : updater
+        if (newSorting.length > 0) {
+          const { id, desc } = newSorting[0]
+          // Type guard to ensure id is a valid sortBy value
+          const validSortColumns = [
+            'contentTitle',
+            'userName',
+            'status',
+            'triggeredBy',
+            'createdAt',
+            'expiresAt',
+          ] as const
+          if (
+            validSortColumns.includes(id as (typeof validSortColumns)[number])
+          ) {
+            setSorting(
+              id as (typeof validSortColumns)[number],
+              desc ? 'desc' : 'asc',
+            )
+          }
+        }
+      },
       onRowSelectionChange: setRowSelection,
       onPaginationChange: (updater) => {
         const newPagination =
@@ -135,10 +162,10 @@ export const ApprovalTable = React.forwardRef<
         }
       },
       getCoreRowModel: getCoreRowModel(),
-      getSortedRowModel: getSortedRowModel(),
-      // Server-side pagination and filtering
+      // Server-side pagination, filtering, and sorting
       manualPagination: true,
       manualFiltering: true,
+      manualSorting: true,
       enableRowSelection: true,
     })
 

@@ -270,7 +270,25 @@ export async function getApprovalHistory(
   contentType?: 'movie' | 'show',
   triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
   search?: string,
+  sortBy:
+    | 'contentTitle'
+    | 'userName'
+    | 'status'
+    | 'triggeredBy'
+    | 'createdAt'
+    | 'expiresAt' = 'createdAt',
+  sortOrder: 'asc' | 'desc' = 'desc',
 ): Promise<ApprovalRequest[]> {
+  // Map frontend column names to database columns
+  const sortColumnMap: Record<string, string> = {
+    contentTitle: 'approval_requests.content_title',
+    userName: 'users.name',
+    status: 'approval_requests.status',
+    triggeredBy: 'approval_requests.triggered_by',
+    createdAt: 'approval_requests.created_at',
+    expiresAt: 'approval_requests.expires_at',
+  }
+
   let query = this.knex('approval_requests')
     .select('approval_requests.*', 'users.name as user_name')
     .leftJoin('users', 'approval_requests.user_id', 'users.id')
@@ -309,8 +327,10 @@ export async function getApprovalHistory(
     }
   }
 
+  const orderColumn = sortColumnMap[sortBy] || 'approval_requests.created_at'
+
   const rows = await query
-    .orderBy('approval_requests.updated_at', 'desc')
+    .orderBy(orderColumn, sortOrder)
     .limit(limit)
     .offset(offset)
 

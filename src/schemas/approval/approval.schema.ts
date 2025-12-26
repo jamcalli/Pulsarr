@@ -125,6 +125,19 @@ export const GetApprovalRequestsQuerySchema = z.object({
   // Server-side pagination
   limit: z.coerce.number().min(1).max(1000).default(20),
   offset: z.coerce.number().min(0).default(0),
+  // Server-side sorting
+  sortBy: z
+    .enum([
+      'contentTitle',
+      'userName',
+      'status',
+      'triggeredBy',
+      'createdAt',
+      'expiresAt',
+    ])
+    .optional()
+    .default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 })
 
 export const ApprovalRequestsListResponseSchema = z.object({
