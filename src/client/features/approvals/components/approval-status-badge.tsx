@@ -1,7 +1,4 @@
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
-
-type ApprovalStatus = ApprovalRequestResponse['status']
-
+import type { ApprovalStatus } from '@root/types/approval.types'
 import { AlertCircle, Bot, CheckCircle, Clock, XCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 

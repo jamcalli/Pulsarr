@@ -86,27 +86,17 @@ export default function ApprovalsPage() {
   }, [configInitialize])
 
   // Real-time events - invalidate React Query cache on SSE events
+  const invalidateApprovalQueries = () => {
+    queryClient.invalidateQueries({ queryKey: approvalKeys.all })
+    queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all })
+  }
+
   useApprovalPageEvents({
-    onApprovalCreated: () => {
-      queryClient.invalidateQueries({ queryKey: approvalKeys.all })
-      queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all })
-    },
-    onApprovalUpdated: () => {
-      queryClient.invalidateQueries({ queryKey: approvalKeys.all })
-      queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all })
-    },
-    onApprovalApproved: () => {
-      queryClient.invalidateQueries({ queryKey: approvalKeys.all })
-      queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all })
-    },
-    onApprovalRejected: () => {
-      queryClient.invalidateQueries({ queryKey: approvalKeys.all })
-      queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all })
-    },
-    onApprovalDeleted: () => {
-      queryClient.invalidateQueries({ queryKey: approvalKeys.all })
-      queryClient.invalidateQueries({ queryKey: approvalStatsKeys.all })
-    },
+    onApprovalCreated: invalidateApprovalQueries,
+    onApprovalUpdated: invalidateApprovalQueries,
+    onApprovalApproved: invalidateApprovalQueries,
+    onApprovalRejected: invalidateApprovalQueries,
+    onApprovalDeleted: invalidateApprovalQueries,
   })
 
   // Bulk action handlers
