@@ -152,7 +152,7 @@ export default function ApprovalTableSection() {
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [bulkApprove.isSuccess, bulkApprove])
+  }, [bulkApprove.isSuccess])
 
   useEffect(() => {
     if (bulkReject.isSuccess) {
@@ -163,7 +163,7 @@ export default function ApprovalTableSection() {
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [bulkReject.isSuccess, bulkReject])
+  }, [bulkReject.isSuccess])
 
   useEffect(() => {
     if (bulkDelete.isSuccess) {
@@ -174,7 +174,7 @@ export default function ApprovalTableSection() {
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [bulkDelete.isSuccess, bulkDelete])
+  }, [bulkDelete.isSuccess])
 
   // Bulk action handlers using mutation hooks
   const handleBulkApprove = (requestIds: string[]) => {
