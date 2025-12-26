@@ -117,7 +117,20 @@ export const GetApprovalRequestsQuerySchema = z.object({
     .pipe(
       z.union([ApprovalStatusSchema, z.array(ApprovalStatusSchema)]).optional(),
     ),
-  userId: z.coerce.number().optional(),
+  // User ID filter - accepts single value or comma-separated list for multi-select
+  userId: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined
+      const ids = val
+        .split(',')
+        .filter(Boolean)
+        .map((id) => Number.parseInt(id, 10))
+        .filter((id) => !Number.isNaN(id))
+      return ids.length === 1 ? ids[0] : ids
+    })
+    .pipe(z.union([z.number(), z.array(z.number())]).optional()),
   contentType: z
     .string()
     .optional()

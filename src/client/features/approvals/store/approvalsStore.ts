@@ -18,6 +18,7 @@ type ApprovalStatus =
  */
 interface ApprovalFilters {
   status: ApprovalStatus[]
+  userId: number[]
   contentType: ('movie' | 'show')[]
   triggeredBy: (
     | 'quota_exceeded'
@@ -92,6 +93,7 @@ interface ApprovalsUIState {
 
 const DEFAULT_FILTERS: ApprovalFilters = {
   status: [],
+  userId: [],
   contentType: [],
   triggeredBy: [],
   search: '',

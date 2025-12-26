@@ -106,7 +106,7 @@ declare module '@services/database.service.js' {
 
     /**
      * Gets approval history with optional filtering and pagination
-     * @param userId - Optional user ID to filter by
+     * @param userId - Optional user ID to filter by (single value or array for multi-select)
      * @param status - Optional status to filter by (single value or array for multi-select)
      * @param limit - Maximum number of results (default: 50)
      * @param offset - Number of results to skip (default: 0)
@@ -116,7 +116,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to array of approval requests
      */
     getApprovalHistory(
-      userId?: number,
+      userId?: number | number[],
       status?: ApprovalStatus | ApprovalStatus[],
       limit?: number,
       offset?: number,
@@ -135,7 +135,7 @@ declare module '@services/database.service.js' {
 
     /**
      * Gets the total count of approval history records with optional filtering
-     * @param userId - Optional user ID to filter by
+     * @param userId - Optional user ID to filter by (single value or array for multi-select)
      * @param status - Optional status to filter by (single value or array for multi-select)
      * @param contentType - Optional content type to filter by (single value or array for multi-select)
      * @param triggeredBy - Optional trigger type to filter by (single value or array for multi-select)
@@ -143,7 +143,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the total count of matching records
      */
     getApprovalHistoryCount(
-      userId?: number,
+      userId?: number | number[],
       status?: ApprovalStatus | ApprovalStatus[],
       contentType?: 'movie' | 'show' | ('movie' | 'show')[],
       triggeredBy?: ApprovalTrigger | ApprovalTrigger[],

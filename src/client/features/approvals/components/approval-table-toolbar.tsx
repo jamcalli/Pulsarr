@@ -11,6 +11,7 @@ import {
   Monitor,
   Tv,
   User,
+  Users,
   X,
   XCircle,
   Zap,
@@ -27,6 +28,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { useApprovals } from '@/features/approvals/hooks/useApprovals'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
+import { useUserOptions } from '@/hooks/useUserOptions'
 
 interface ApprovalTableToolbarProps {
   table: Table<ApprovalRequestResponse>
@@ -75,6 +77,9 @@ export function ApprovalTableToolbar({
   const filters = useApprovalsStore((s) => s.filters)
   const setFilters = useApprovalsStore((s) => s.setFilters)
   const { isLoading } = useApprovals()
+
+  // Get user options from shared hook
+  const userOptions = useUserOptions()
 
   // Local state for debounced search
   const [searchValue, setSearchValue] = useState(filters.search)
@@ -145,6 +150,23 @@ export function ApprovalTableToolbar({
             }
             disabled={isLoading}
           />
+
+          {/* User filter - server-side */}
+          {userOptions.length > 0 && (
+            <DataTableFacetedFilter
+              title="User"
+              icon={Users}
+              options={userOptions}
+              value={filters.userId.map((id) => id.toString())}
+              onChange={(values) =>
+                setFilters({
+                  userId: values.map((v) => Number.parseInt(v, 10)),
+                })
+              }
+              showSearch={true}
+              disabled={isLoading}
+            />
+          )}
 
           {/* Content type filter - server-side */}
           <DataTableFacetedFilter

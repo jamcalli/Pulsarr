@@ -16,6 +16,7 @@ import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import UserMultiSelect from '@/components/ui/user-multi-select'
 import ImdbRatingInput from '@/features/content-router/components/imdb-rating-input'
 import { ContentCertifications } from '@/features/content-router/types/route-types'
+import { useUserOptions } from '@/hooks/useUserOptions'
 import { useConfigStore } from '@/stores/configStore'
 
 interface FieldState {
@@ -144,13 +145,14 @@ function ConditionInput({
     onChangeRef.current = onChange
   }, [onChange])
 
-  // Get users from the config store
-  const users = useConfigStore((state) => state.users)
+  // Get user options from shared hook
+  const userOptions = useUserOptions()
+
+  // Initialize the config store if needed to fetch users
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const isInitialized = useConfigStore((state) => state.isInitialized)
   const initialize = useConfigStore((state) => state.initialize)
 
-  // Initialize the config store if needed
   useEffect(() => {
     const initializeStore = async () => {
       try {
@@ -160,7 +162,6 @@ function ConditionInput({
         await fetchUserData()
       } catch (error) {
         console.error('Error initializing condition input:', error)
-        // Could also trigger a toast notification or other error UI here
       }
     }
 
@@ -516,15 +517,15 @@ function ConditionInput({
                 const parsedVal = isNumeric ? Number(val) : val
                 onChangeRef.current(parsedVal)
               }}
-              disabled={!users?.length}
+              disabled={!userOptions.length}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a user" />
               </SelectTrigger>
               <SelectContent>
-                {users?.map((user) => (
-                  <SelectItem key={user.id} value={user.id.toString()}>
-                    {user.alias ? `${user.name} (${user.alias})` : user.name}
+                {userOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
