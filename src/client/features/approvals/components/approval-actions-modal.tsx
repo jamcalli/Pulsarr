@@ -15,8 +15,7 @@ import {
   User,
   XCircle,
 } from 'lucide-react'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { toast } from 'sonner'
+import { useEffect, useId, useState } from 'react'
 import { TmdbContentViewer } from '@/components/tmdb-content-viewer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -45,12 +44,7 @@ import {
 } from '@/components/ui/tooltip'
 import { ApprovalRadarrRoutingCard } from '@/features/approvals/components/approval-radarr-routing-card'
 import { ApprovalSonarrRoutingCard } from '@/features/approvals/components/approval-sonarr-routing-card'
-import {
-  useApproveRequest,
-  useDeleteApproval,
-  useRejectRequest,
-  useUpdateApproval,
-} from '@/features/approvals/hooks/useApprovalMutations'
+import { useApprovalModalActions } from '@/features/approvals/hooks/useApprovalModalActions'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -87,7 +81,7 @@ export default function ApprovalActionsModal({
       width: 100%;
       height: 100%;
     }
-    
+
     .content-view {
       position: absolute;
       width: 100%;
@@ -96,26 +90,40 @@ export default function ApprovalActionsModal({
       transition: opacity 0.3s ease-in-out;
       opacity: 1;
     }
-    
+
     .content-view.hidden {
       opacity: 0;
       pointer-events: none;
     }
   `
-  const [action, setAction] = useState<'approve' | 'reject' | 'delete' | null>(
-    null,
-  )
-  const [notes, setNotes] = useState('')
   const actionNotesId = useId()
-  const [editRoutingMode, setEditRoutingMode] = useState(false)
   const [showMediaDetails, setShowMediaDetails] = useState(false)
-  const submitSectionRef = useRef<HTMLDivElement>(null)
 
-  // Mutation hooks
-  const approveRequest = useApproveRequest()
-  const rejectRequest = useRejectRequest()
-  const deleteApproval = useDeleteApproval()
-  const updateApproval = useUpdateApproval()
+  // Use the actions hook for all action-related state and handlers
+  const {
+    action,
+    notes,
+    setNotes,
+    editRoutingMode,
+    setEditRoutingMode,
+    submitSectionRef,
+    approveRequest,
+    rejectRequest,
+    deleteApproval,
+    updateApproval,
+    handleApprove,
+    handleReject,
+    handleDelete,
+    handleRoutingSave,
+    handleActionSelection,
+    handleCancelAction,
+    handleCancelRouting,
+    isExpired,
+    canApprove,
+    canReject,
+    canDelete,
+    isAnyActionInProgress,
+  } = useApprovalModalActions({ request, onOpenChange })
 
   const users = useConfigStore((state) => state.users)
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -130,194 +138,11 @@ export default function ApprovalActionsModal({
   // Reset edit routing mode when request changes
   useEffect(() => {
     setEditRoutingMode(false)
-  }, [])
+  }, [setEditRoutingMode])
 
   const getUserName = (userId: number) => {
     const user = users?.find((u) => u.id === userId)
     return user?.name || `User ${userId}`
-  }
-
-  // Reset mutations when modal closes to clear success states
-  const resetMutations = useCallback(() => {
-    approveRequest.reset()
-    rejectRequest.reset()
-    deleteApproval.reset()
-    setAction(null)
-    setNotes('')
-  }, [approveRequest, rejectRequest, deleteApproval])
-
-  const handleApprove = async () => {
-    try {
-      await approveRequest.mutateAsync({
-        id: request.id,
-        notes: notes.trim() || undefined,
-      })
-
-      // Close modal after success state displays
-      setTimeout(() => {
-        onOpenChange(false)
-        // Reset states after modal close animation completes
-        setTimeout(resetMutations, 300)
-      }, 1500)
-    } catch (error) {
-      // Check if it's a conflict error (request already approved/expired)
-      const isConflict =
-        error instanceof Error &&
-        (error.message.includes('already approved') ||
-          error.message.includes('already expired') ||
-          error.message.includes('Cannot approve request'))
-
-      toast.error(
-        isConflict
-          ? 'This request has already been processed and cannot be approved again'
-          : 'Failed to approve approval request',
-      )
-
-      // If it's a conflict, close the modal since the request state is invalid
-      if (isConflict) {
-        setTimeout(() => {
-          onOpenChange(false)
-          setTimeout(resetMutations, 300)
-        }, 2000)
-      }
-    }
-  }
-
-  const handleReject = async () => {
-    try {
-      await rejectRequest.mutateAsync({
-        id: request.id,
-        reason: notes.trim() || undefined,
-      })
-
-      // Close modal after success state displays
-      setTimeout(() => {
-        onOpenChange(false)
-        setTimeout(resetMutations, 300)
-      }, 1500)
-    } catch (error) {
-      // Check if it's a conflict error (request already processed)
-      const isConflict =
-        error instanceof Error &&
-        (error.message.includes('already') ||
-          error.message.includes('Cannot reject request'))
-
-      toast.error(
-        isConflict
-          ? 'This request has already been processed and cannot be rejected'
-          : 'Failed to reject approval request',
-      )
-
-      // If it's a conflict, close the modal since the request state is invalid
-      if (isConflict) {
-        setTimeout(() => {
-          onOpenChange(false)
-          setTimeout(resetMutations, 300)
-        }, 2000)
-      }
-    }
-  }
-
-  const handleDelete = async () => {
-    try {
-      await deleteApproval.mutateAsync(request.id)
-
-      // Close modal after success state displays
-      setTimeout(() => {
-        onOpenChange(false)
-        setTimeout(resetMutations, 300)
-      }, 1500)
-    } catch (_error) {
-      toast.error('Failed to delete approval request')
-    }
-  }
-
-  const handleRoutingSave = async (updatedRouting: {
-    instanceId: number
-    instanceType: 'radarr' | 'sonarr'
-    qualityProfile?: string | number | null
-    rootFolder?: string | null
-    tags?: string[]
-    priority: number
-    searchOnAdd?: boolean | null
-    seasonMonitoring?: string | null
-    seriesType?: 'standard' | 'anime' | 'daily' | null
-    minimumAvailability?: 'announced' | 'inCinemas' | 'released'
-    syncedInstances?: number[]
-  }) => {
-    const updatedRequest = {
-      ...request,
-      proposedRouterDecision: {
-        ...request.proposedRouterDecision,
-        approval: {
-          ...request.proposedRouterDecision.approval,
-          proposedRouting: updatedRouting,
-        },
-      },
-    }
-
-    // Update only the routing without changing status
-    await updateApproval.mutateAsync({
-      id: request.id,
-      updates: {
-        proposedRouterDecision: {
-          ...updatedRequest.proposedRouterDecision,
-          approval: {
-            ...updatedRequest.proposedRouterDecision.approval,
-            data: updatedRequest.proposedRouterDecision.approval?.data || {},
-            reason:
-              updatedRequest.proposedRouterDecision.approval?.reason || '',
-            triggeredBy:
-              updatedRequest.proposedRouterDecision.approval?.triggeredBy ||
-              request.triggeredBy,
-          },
-        },
-      },
-    })
-
-    // Don't exit edit mode here - let the routing card handle the timing
-    // The routing card will call onCancel after its success state completes
-  }
-
-  const isExpired =
-    request.expiresAt && new Date(request.expiresAt) < new Date()
-
-  // Follow same logic as table: can approve rejected requests, can't reject approved requests
-  const canApprove =
-    request.status === 'pending' || request.status === 'rejected'
-  const canReject = request.status === 'pending'
-  const canDelete = true // Can always delete
-
-  // Check if any action is currently in progress (using mutation states)
-  const isAnyActionInProgress =
-    approveRequest.isPending ||
-    approveRequest.isSuccess ||
-    rejectRequest.isPending ||
-    rejectRequest.isSuccess ||
-    deleteApproval.isPending ||
-    deleteApproval.isSuccess ||
-    updateApproval.isPending
-
-  const handleActionSelection = (
-    selectedAction: 'approve' | 'reject' | 'delete',
-  ) => {
-    if (action === selectedAction) {
-      setAction(null) // Toggle off if same action clicked
-      return
-    }
-    setAction(selectedAction)
-    // Auto-scroll to submit section after a brief delay to allow DOM update
-    setTimeout(() => {
-      submitSectionRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      })
-    }, 100)
-  }
-
-  const handleCancelAction = () => {
-    setAction(null)
-    setNotes('')
   }
 
   const handleShowMediaDetails = () => {
@@ -546,10 +371,7 @@ export default function ApprovalActionsModal({
                     .instanceId
                 }
                 onSave={handleRoutingSave}
-                onCancel={() => {
-                  setEditRoutingMode(false)
-                  updateApproval.reset()
-                }}
+                onCancel={handleCancelRouting}
                 disabled={!editRoutingMode || isAnyActionInProgress}
                 isSaving={updateApproval.isPending}
                 saveSuccess={updateApproval.isSuccess}
@@ -564,10 +386,7 @@ export default function ApprovalActionsModal({
                     .instanceId
                 }
                 onSave={handleRoutingSave}
-                onCancel={() => {
-                  setEditRoutingMode(false)
-                  updateApproval.reset()
-                }}
+                onCancel={handleCancelRouting}
                 disabled={!editRoutingMode || isAnyActionInProgress}
                 isSaving={updateApproval.isPending}
                 saveSuccess={updateApproval.isSuccess}
