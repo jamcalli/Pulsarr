@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { MultiSelect } from '@/components/ui/multi-select'
+import { useUserOptions } from '@/hooks/useUserOptions'
 import { MIN_LOADING_DELAY } from '@/lib/constants'
 import { useConfigStore } from '@/stores/configStore'
 
@@ -18,11 +19,11 @@ interface UserMultiSelectProps {
  * @param disabled - If true, disables the multi-select input.
  */
 export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
-  const users = useConfigStore((state) => state.users)
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const isInitialized = useConfigStore((state) => state.isInitialized)
   const initialize = useConfigStore((state) => state.initialize)
   const [isLoading, setIsLoading] = useState(false)
+  const options = useUserOptions()
 
   useEffect(() => {
     const initializeStore = async () => {
@@ -49,13 +50,6 @@ export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
 
     initializeStore()
   }, [initialize, isInitialized, fetchUserData])
-
-  const options = users?.map((user) => ({
-    label: user.alias
-      ? `${user.name} (${user.alias})`
-      : user.name,
-    value: user.id.toString(),
-  })) ?? []
 
   return (
     <MultiSelect

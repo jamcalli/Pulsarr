@@ -17,6 +17,7 @@ export const approvalKeys = {
   list: (params: {
     filters: {
       status: string[]
+      userId: number[]
       contentType: string[]
       triggeredBy: string[]
       search: string
@@ -85,6 +86,11 @@ export function useApprovals() {
       // Status filter (comma-separated for multi-select)
       if (filters.status.length > 0) {
         params.append('status', filters.status.join(','))
+      }
+
+      // User ID filter (comma-separated for multi-select)
+      if (filters.userId.length > 0) {
+        params.append('userId', filters.userId.join(','))
       }
 
       // Content type filter (comma-separated for multi-select)

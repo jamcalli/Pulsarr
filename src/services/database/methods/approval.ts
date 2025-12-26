@@ -264,7 +264,7 @@ export async function getPendingApprovalRequests(
  */
 export async function getApprovalHistory(
   this: DatabaseService,
-  userId?: number,
+  userId?: number | number[],
   status?: ApprovalStatus | ApprovalStatus[],
   limit = 50,
   offset = 0,
@@ -295,7 +295,11 @@ export async function getApprovalHistory(
     .leftJoin('users', 'approval_requests.user_id', 'users.id')
 
   if (userId) {
-    query = query.where('approval_requests.user_id', userId)
+    if (Array.isArray(userId)) {
+      query = query.whereIn('approval_requests.user_id', userId)
+    } else {
+      query = query.where('approval_requests.user_id', userId)
+    }
   }
 
   if (status) {
@@ -358,7 +362,7 @@ export async function getApprovalHistory(
  */
 export async function getApprovalHistoryCount(
   this: DatabaseService,
-  userId?: number,
+  userId?: number | number[],
   status?: ApprovalStatus | ApprovalStatus[],
   contentType?: 'movie' | 'show' | ('movie' | 'show')[],
   triggeredBy?: ApprovalTrigger | ApprovalTrigger[],
@@ -367,7 +371,11 @@ export async function getApprovalHistoryCount(
   let query = this.knex('approval_requests')
 
   if (userId) {
-    query = query.where('approval_requests.user_id', userId)
+    if (Array.isArray(userId)) {
+      query = query.whereIn('approval_requests.user_id', userId)
+    } else {
+      query = query.where('approval_requests.user_id', userId)
+    }
   }
 
   if (status) {
