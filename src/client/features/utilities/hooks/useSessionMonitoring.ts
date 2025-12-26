@@ -7,7 +7,7 @@ import {
   SessionMonitoringConfigSchema,
   type SessionMonitoringFormData,
 } from '@/features/utilities/constants/session-monitoring'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'

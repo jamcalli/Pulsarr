@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { useApprovalConfiguration } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
 import { api } from '@/lib/api'
 
 // Define the form data type that includes both config and schedule fields
