@@ -136,6 +136,14 @@ export function WatchlistStatusBadge() {
     doStartWorkflow()
   }
 
+  // Reset mutation state when dialog closes to prevent stale isStartSuccess
+  const handleFirstStartDialogChange = (open: boolean) => {
+    setShowFirstStartDialog(open)
+    if (!open) {
+      resetStartMutation()
+    }
+  }
+
   // Don't allow toggling while in a transition state
   const isDisabled =
     status === 'starting' || status === 'stopping' || isPending
@@ -220,7 +228,7 @@ export function WatchlistStatusBadge() {
 
       <FirstStartDialog
         open={showFirstStartDialog}
-        onOpenChange={setShowFirstStartDialog}
+        onOpenChange={handleFirstStartDialogChange}
         onConfirm={handleFirstStartConfirm}
         isSubmitting={isStarting}
       />
