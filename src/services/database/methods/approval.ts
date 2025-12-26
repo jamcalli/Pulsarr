@@ -12,6 +12,14 @@ import { normalizeGuid } from '@root/utils/guid-handler.js'
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
+ * Escapes SQL LIKE wildcard characters in a search string.
+ * Prevents %, _, and \ from being interpreted as wildcards.
+ */
+function escapeLikePattern(search: string): string {
+  return search.replace(/[%_\\]/g, '\\$&')
+}
+
+/**
  * Maps a database row to an ApprovalRequest object, parsing JSON fields and assigning default values for missing data.
  *
  * The returned object includes the user's name (defaulting to 'Unknown' if not present), parsed content GUIDs, and a default router decision if not specified.
@@ -328,15 +336,18 @@ export async function getApprovalHistory(
 
   if (search) {
     // Case-insensitive partial match on content_title
+    const escapedSearch = escapeLikePattern(search)
     if (this.isPostgres) {
-      query = query.whereRaw('approval_requests.content_title ILIKE ?', [
-        `%${search}%`,
-      ])
+      query = query.whereRaw(
+        "approval_requests.content_title ILIKE ? ESCAPE '\\'",
+        [`%${escapedSearch}%`],
+      )
     } else {
       // SQLite uses LIKE which is case-insensitive by default for ASCII
-      query = query.whereRaw('approval_requests.content_title LIKE ?', [
-        `%${search}%`,
-      ])
+      query = query.whereRaw(
+        "approval_requests.content_title LIKE ? ESCAPE '\\'",
+        [`%${escapedSearch}%`],
+      )
     }
   }
 
@@ -404,14 +415,17 @@ export async function getApprovalHistoryCount(
 
   if (search) {
     // Case-insensitive partial match on content_title
+    const escapedSearch = escapeLikePattern(search)
     if (this.isPostgres) {
-      query = query.whereRaw('approval_requests.content_title ILIKE ?', [
-        `%${search}%`,
-      ])
+      query = query.whereRaw(
+        "approval_requests.content_title ILIKE ? ESCAPE '\\'",
+        [`%${escapedSearch}%`],
+      )
     } else {
-      query = query.whereRaw('approval_requests.content_title LIKE ?', [
-        `%${search}%`,
-      ])
+      query = query.whereRaw(
+        "approval_requests.content_title LIKE ? ESCAPE '\\'",
+        [`%${escapedSearch}%`],
+      )
     }
   }
 
