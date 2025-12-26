@@ -23,6 +23,8 @@ export const approvalKeys = {
     }
     pageIndex: number
     pageSize: number
+    sortBy: string
+    sortOrder: string
   }) => [...approvalKeys.lists(), params] as const,
 }
 
@@ -57,9 +59,17 @@ export function useApprovals() {
   const filters = useApprovalsStore((s) => s.filters)
   const pageIndex = useApprovalsStore((s) => s.pageIndex)
   const pageSize = useApprovalsStore((s) => s.pageSize)
+  const sortBy = useApprovalsStore((s) => s.sortBy)
+  const sortOrder = useApprovalsStore((s) => s.sortOrder)
 
   return useAppQuery<ApprovalRequestsListResponse>({
-    queryKey: approvalKeys.list({ filters, pageIndex, pageSize }),
+    queryKey: approvalKeys.list({
+      filters,
+      pageIndex,
+      pageSize,
+      sortBy,
+      sortOrder,
+    }),
     placeholderData: keepPreviousData,
     queryFn: () => {
       const params = new URLSearchParams()
@@ -67,6 +77,10 @@ export function useApprovals() {
       // Pagination
       params.append('limit', pageSize.toString())
       params.append('offset', (pageIndex * pageSize).toString())
+
+      // Sorting
+      params.append('sortBy', sortBy)
+      params.append('sortOrder', sortOrder)
 
       // Status filter (comma-separated for multi-select)
       if (filters.status.length > 0) {

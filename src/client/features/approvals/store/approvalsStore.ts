@@ -29,6 +29,19 @@ interface ApprovalFilters {
 }
 
 /**
+ * Sortable column IDs for approval requests.
+ */
+type ApprovalSortBy =
+  | 'contentTitle'
+  | 'userName'
+  | 'status'
+  | 'triggeredBy'
+  | 'createdAt'
+  | 'expiresAt'
+
+type SortOrder = 'asc' | 'desc'
+
+/**
  * UI-only state for the approvals feature.
  *
  * Data fetching is handled by React Query hooks (useApprovals, useApprovalStats).
@@ -45,6 +58,11 @@ interface ApprovalsUIState {
   pageSize: number
   setPageIndex: (index: number) => void
   setPageSize: (size: number) => void
+
+  // Server-side sorting
+  sortBy: ApprovalSortBy
+  sortOrder: SortOrder
+  setSorting: (sortBy: ApprovalSortBy, sortOrder: SortOrder) => void
 
   // Individual action modal state
   selectedRequest: ApprovalRequestResponse | null
@@ -104,6 +122,11 @@ export const useApprovalsStore = create<ApprovalsUIState>()(
         setPageIndex: (index) => set({ pageIndex: index }),
         setPageSize: (size) => set({ pageSize: size, pageIndex: 0 }),
 
+        // Server-side sorting
+        sortBy: 'createdAt' as ApprovalSortBy,
+        sortOrder: 'desc' as SortOrder,
+        setSorting: (sortBy, sortOrder) => set({ sortBy, sortOrder }),
+
         // Individual action modal
         selectedRequest: null,
         setSelectedRequest: (request) => set({ selectedRequest: request }),
@@ -149,6 +172,8 @@ export const useApprovalsStore = create<ApprovalsUIState>()(
         partialize: (state) => ({
           filters: state.filters,
           pageSize: state.pageSize,
+          sortBy: state.sortBy,
+          sortOrder: state.sortOrder,
         }),
       },
     ),
