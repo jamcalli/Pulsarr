@@ -177,6 +177,19 @@ export const useApprovalsStore = create<ApprovalsUIState>()(
           sortBy: state.sortBy,
           sortOrder: state.sortOrder,
         }),
+        // Merge persisted state with defaults to handle schema migrations
+        merge: (persisted, current) => {
+          const persistedState = persisted as Partial<ApprovalsUIState>
+          return {
+            ...current,
+            ...persistedState,
+            // Ensure filters always have all required fields with defaults
+            filters: {
+              ...DEFAULT_FILTERS,
+              ...persistedState.filters,
+            },
+          }
+        },
       },
     ),
   ),

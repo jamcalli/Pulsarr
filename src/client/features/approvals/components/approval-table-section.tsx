@@ -1,5 +1,5 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -152,6 +152,40 @@ export default function ApprovalTableSection() {
     }
   }
 
+  // Close bulk modal after success with proper cleanup
+  useEffect(() => {
+    if (bulkApprove.isSuccess) {
+      const timer = setTimeout(() => {
+        setBulkModalOpen(false)
+        setCurrentBulkAction(null)
+        bulkApprove.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [bulkApprove.isSuccess, bulkApprove])
+
+  useEffect(() => {
+    if (bulkReject.isSuccess) {
+      const timer = setTimeout(() => {
+        setBulkModalOpen(false)
+        setCurrentBulkAction(null)
+        bulkReject.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [bulkReject.isSuccess, bulkReject])
+
+  useEffect(() => {
+    if (bulkDelete.isSuccess) {
+      const timer = setTimeout(() => {
+        setBulkModalOpen(false)
+        setCurrentBulkAction(null)
+        bulkDelete.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [bulkDelete.isSuccess, bulkDelete])
+
   // Bulk action handlers using mutation hooks
   const handleBulkApprove = (requestIds: string[]) => {
     setCurrentBulkAction('approve')
@@ -160,10 +194,6 @@ export default function ApprovalTableSection() {
       {
         onSuccess: (data) => {
           toast.success(`Approved ${data.result.successful} requests`)
-          setTimeout(() => {
-            setBulkModalOpen(false)
-            setCurrentBulkAction(null)
-          }, 500)
         },
         onError: (error) => {
           toast.error(
@@ -184,10 +214,6 @@ export default function ApprovalTableSection() {
       {
         onSuccess: (data) => {
           toast.success(`Rejected ${data.result.successful} requests`)
-          setTimeout(() => {
-            setBulkModalOpen(false)
-            setCurrentBulkAction(null)
-          }, 500)
         },
         onError: (error) => {
           toast.error(
@@ -208,10 +234,6 @@ export default function ApprovalTableSection() {
       {
         onSuccess: (data) => {
           toast.success(`Deleted ${data.result.successful} requests`)
-          setTimeout(() => {
-            setBulkModalOpen(false)
-            setCurrentBulkAction(null)
-          }, 500)
         },
         onError: (error) => {
           toast.error(
