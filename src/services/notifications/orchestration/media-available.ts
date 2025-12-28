@@ -13,6 +13,7 @@ import type {
   NotificationResult,
   SonarrEpisodeSchema,
 } from '@root/types/sonarr.types.js'
+import { getTmdbUrl } from '@root/utils/guid-handler.js'
 import { mapRowToUser } from '@services/database/methods/users.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
@@ -305,6 +306,7 @@ async function buildNotificationResults(
   enrichment: {
     posterUrl: string | undefined
     guids: string[]
+    tmdbUrl: string | undefined
     episodeDetails: MediaNotification['episodeDetails']
   }
 }> {
@@ -333,7 +335,7 @@ async function buildNotificationResults(
   }
   const guids = Array.from(guidsSet)
 
-  // Pre-compute episode details for shows
+  // Pre-compute episode details for shows (needed for TMDB URL deep linking)
   let episodeDetails: MediaNotification['episodeDetails']
   const notificationTypeInfo = determineNotificationType(
     mediaInfo,
@@ -359,7 +361,10 @@ async function buildNotificationResults(
     }
   }
 
-  const enrichment = { posterUrl, guids, episodeDetails }
+  // Generate TMDB URL with deep linking for episodes/seasons
+  const tmdbUrl = getTmdbUrl(guids, mediaInfo.type, episodeDetails)
+
+  const enrichment = { posterUrl, guids, tmdbUrl, episodeDetails }
   const notifications: NotificationResult[] = []
 
   const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
@@ -384,6 +389,7 @@ async function buildNotificationResults(
       title: notificationTitle,
       username: user.name,
       posterUrl: enrichment.posterUrl,
+      tmdbUrl: enrichment.tmdbUrl,
       episodeDetails: enrichment.episodeDetails,
     }
 
@@ -515,6 +521,7 @@ async function buildNotificationResults(
       title: notificationTitle,
       username: 'Public Content',
       posterUrl: enrichment.posterUrl,
+      tmdbUrl: enrichment.tmdbUrl,
       episodeDetails: enrichment.episodeDetails,
     }
 

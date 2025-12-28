@@ -5,6 +5,7 @@
  * Constructs deps internally, delegates to pure functions.
  */
 
+import type { AppriseSchemaFormatMap } from '@root/types/apprise.types.js'
 import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import type {
@@ -23,6 +24,7 @@ import {
   sendTestNotification as sendTest,
   sendWatchlistAdditionNotification as sendWatchlistAddition,
 } from './apprise.js'
+import { fetchSchemaFormats } from './apprise-format-cache.js'
 
 export type AppriseStatus = 'enabled' | 'disabled' | 'not_configured'
 
@@ -34,6 +36,8 @@ export type AppriseStatus = 'enabled' | 'disabled' | 'not_configured'
  * delegates to pure functions in apprise.ts.
  */
 export class AppriseService {
+  private schemaFormatCache: AppriseSchemaFormatMap = new Map()
+
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
@@ -47,6 +51,7 @@ export class AppriseService {
     return {
       log: this.log,
       config: this.fastify.config,
+      schemaFormatCache: this.schemaFormatCache,
       lookupUserAlias: async (username: string) => {
         const users = await this.fastify.db.getAllUsers()
         const user = users.find((u) => u.name === username)
@@ -111,6 +116,7 @@ export class AppriseService {
       alias?: string | null
     }
     posterUrl?: string
+    tmdbUrl?: string
   }): Promise<boolean> {
     return sendWatchlistAddition(item, this.appriseDeps)
   }
@@ -161,6 +167,10 @@ export class AppriseService {
       if (isReachable) {
         this.log.info('Successfully connected to Apprise container')
         await this.fastify.updateConfig({ enableApprise: true })
+
+        // Fetch and cache schema formats for format-aware notifications
+        this.schemaFormatCache = await fetchSchemaFormats(appriseUrl, this.log)
+
         this.log.info('Apprise notification service is configured and enabled')
       } else {
         this.log.warn(
