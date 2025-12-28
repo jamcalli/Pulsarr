@@ -113,9 +113,9 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
 
       htmlBody = htmlWrapper(episodeContent)
 
-      textBody = `New Episode Available\n\n${notification.title}\nEpisode: ${episodeId}${episodeTitle}\n`
+      textBody = `New Episode Available\n\n${notification.title}\nEpisode: ${episodeId}${episodeTitle}`
       if (episodeDetails.overview) {
-        textBody += `\nOverview: ${episodeDetails.overview}\n`
+        textBody += `\nOverview: ${episodeDetails.overview}`
       }
       if (episodeDetails.airDateUtc) {
         const airDate = new Date(episodeDetails.airDateUtc).toLocaleDateString()
@@ -232,14 +232,14 @@ export function createSystemNotificationHtml(
     : ''
 
   // Build text body
-  let textBody = 'System Notification\n\n'
+  let textBody = 'Content Approval Required\n\n'
   textBody += `${fields.Content || 'Unknown Content'}\n`
   textBody += `Type: ${fields.Type || 'Unknown'}\n\n`
   textBody += `Requested by: ${fields['Requested by'] || 'Unknown'}\n`
   textBody += `Total pending: ${fields['Total pending'] || '0'}\n`
   if (fields.Reason) textBody += `Reason: ${fields.Reason}\n`
-  textBody += `\n${fields['Action Required'] || ''}\n\n`
-  textBody += '- Pulsarr System'
+  if (fields['Action Required']) textBody += `\n${fields['Action Required']}\n`
+  textBody += '\n- Pulsarr'
 
   // Create complete HTML content
   const systemContent = `
@@ -464,7 +464,7 @@ export function createDeleteSyncNotificationHtml(
   </div>
   `
 
-  textBody += `Delete sync operation completed at ${timestamp}`
+  textBody += `Delete sync completed at ${timestamp}\n\n- Pulsarr`
 
   const completeContent = `
     ${titleSection}
@@ -527,8 +527,8 @@ export function createWatchlistAdditionHtml(item: {
   </div>
   `
 
-  let textBody = `${mediaType} Added to Watchlist\n\n`
-  textBody += `"${item.title}" has been added to the watchlist.\n`
+  let textBody = `New ${mediaType} Added\n\n`
+  textBody += `${item.title}\n`
   textBody += `Type: ${mediaType}\n`
   textBody += `Added by: ${item.displayName}\n\n`
   textBody += '- Pulsarr'
@@ -611,7 +611,7 @@ export function createTestNotificationHtml(): {
     '  [Alert] This is an alert box\n' +
     '  [Success] This is a success box\n\n' +
     'If you can see the formatting above, your notification service supports basic formatting. If the content appears plain, your service might only support plain text.\n\n' +
-    '- Pulsarr Test'
+    '- Pulsarr'
 
   return { htmlBody, textBody, title: '🔔 Pulsarr HTML Notification Test' }
 }
