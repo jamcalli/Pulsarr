@@ -1,6 +1,6 @@
 import type { WebhookEndpoint } from '@root/schemas/webhooks/webhook-endpoints.schema'
 import { Check, Eye, EyeOff, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -67,6 +67,15 @@ export function WebhookEndpointModal({
     !!form.getValues('authHeaderName'),
   )
   const isEditing = !!editingEndpoint
+
+  // Sync showAuthFields when editing an endpoint with existing auth headers
+  useEffect(() => {
+    if (editingEndpoint) {
+      setShowAuthFields(!!editingEndpoint.authHeaderName)
+    } else {
+      setShowAuthFields(false)
+    }
+  }, [editingEndpoint])
 
   const handleOpenChange = (newOpen: boolean) => {
     if (saveStatus !== 'idle') return
