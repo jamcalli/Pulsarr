@@ -9,6 +9,7 @@ export interface MediaNotification {
   title: string
   username: string
   posterUrl?: string
+  tmdbUrl?: string
   episodeDetails?: {
     title?: string
     overview?: string
@@ -59,6 +60,7 @@ export interface SystemNotification {
   embedFields: Array<{ name: string; value: string; inline?: boolean }>
   safetyTriggered?: boolean
   posterUrl?: string
+  tmdbUrl?: string
   actionButton?: {
     label: string
     customId: string

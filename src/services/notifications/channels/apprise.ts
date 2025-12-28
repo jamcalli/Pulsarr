@@ -8,6 +8,7 @@
 import type {
   AppriseMessageType,
   AppriseNotification,
+  AppriseSchemaFormatMap,
 } from '@root/types/apprise.types.js'
 import type { User } from '@root/types/config.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
@@ -25,6 +26,10 @@ import {
   createWatchlistAdditionHtml,
   PULSARR_ICON_URL,
 } from '../templates/apprise-html.js'
+import {
+  analyzeAppriseUrls,
+  createNotificationBatches,
+} from './apprise-format-cache.js'
 
 export interface AppriseDeps {
   log: FastifyBaseLogger
@@ -39,6 +44,7 @@ export interface AppriseDeps {
       appriseUrlsShows?: string
     }
   }
+  schemaFormatCache?: AppriseSchemaFormatMap
   lookupUserAlias?: (username: string) => Promise<string | undefined>
 }
 
@@ -50,49 +56,37 @@ export function isAppriseEnabled(deps: AppriseDeps): boolean {
 }
 
 /**
- * Sends a notification through the Apprise container to a specific target URL.
+ * Low-level function to send a single notification batch to Apprise.
+ * Takes explicit body content and format - no format detection.
  */
-export async function sendAppriseNotification(
-  targetUrl: string,
-  notification: AppriseNotification,
+async function sendAppriseNotificationBatch(
+  targetUrls: string,
+  body: string,
+  format: 'text' | 'html',
+  notification: Omit<AppriseNotification, 'body' | 'body_html' | 'format'>,
   deps: AppriseDeps,
 ): Promise<boolean> {
   const { log, config } = deps
 
   try {
-    if (!targetUrl) {
-      log.debug('Attempted to send notification without target URL')
-      return false
-    }
-
-    if (!isAppriseEnabled(deps)) {
-      log.debug('Apprise notifications are disabled, skipping')
-      return false
-    }
-
     const appriseBaseUrl = config.appriseUrl || ''
     if (!appriseBaseUrl) {
       log.debug('Apprise base URL not configured; skipping notification')
       return false
     }
 
-    // Use HTML content as the primary body when available
-    const bodyContent = notification.body_html || notification.body
-    const isHtml = !!notification.body_html
-
-    // Create a clean payload without the non-standard body_html field
-    const { body_html: _, format, ...cleanNotification } = notification
-
-    // Prepare the payload with correct format settings for HTML
     const payload = {
-      urls: targetUrl,
-      ...cleanNotification,
-      body: bodyContent,
-      format: isHtml ? 'html' : (format ?? 'text'),
-      input: isHtml ? 'html' : (format ?? 'text'),
+      urls: targetUrls,
+      ...notification,
+      body,
+      format,
+      input: format,
     }
 
-    log.debug({ isHtml }, 'Sending Apprise notification')
+    log.debug(
+      { format, urlCount: targetUrls.split(',').length },
+      'Sending Apprise notification batch',
+    )
 
     const url = new URL('/notify', appriseBaseUrl)
 
@@ -119,8 +113,107 @@ export async function sendAppriseNotification(
       return false
     }
 
-    log.info('Apprise notification sent successfully')
     return true
+  } catch (error) {
+    log.error(
+      { error: error instanceof Error ? error : new Error(String(error)) },
+      'Error sending Apprise notification batch',
+    )
+    return false
+  }
+}
+
+/**
+ * Sends a notification through the Apprise container with format-aware batching.
+ * Analyzes target URLs to determine native format, groups by format, and sends
+ * appropriate body (HTML or text) to each group in parallel.
+ */
+export async function sendAppriseNotification(
+  targetUrl: string,
+  notification: AppriseNotification,
+  deps: AppriseDeps,
+): Promise<boolean> {
+  const { log, schemaFormatCache } = deps
+
+  try {
+    if (!targetUrl) {
+      log.debug('Attempted to send notification without target URL')
+      return false
+    }
+
+    if (!isAppriseEnabled(deps)) {
+      log.debug('Apprise notifications are disabled, skipping')
+      return false
+    }
+
+    const htmlBody = notification.body_html || notification.body
+    const textBody = notification.body
+
+    // Extract common notification fields (excluding body variants and format)
+    const {
+      body: _,
+      body_html: __,
+      format: ___,
+      ...commonFields
+    } = notification
+
+    // If no format cache, fall back to legacy behavior (send HTML if available)
+    if (!schemaFormatCache || schemaFormatCache.size === 0) {
+      log.debug(
+        'No schema format cache available, using legacy HTML-preferred behavior',
+      )
+      const format = notification.body_html ? 'html' : 'text'
+      const body = notification.body_html || notification.body
+      return sendAppriseNotificationBatch(
+        targetUrl,
+        body,
+        format,
+        commonFields,
+        deps,
+      )
+    }
+
+    // Analyze URLs and create format-appropriate batches
+    const urlInfos = analyzeAppriseUrls(targetUrl, schemaFormatCache)
+    const batches = createNotificationBatches(urlInfos, htmlBody, textBody)
+
+    if (batches.length === 0) {
+      log.debug('No notification batches to send')
+      return false
+    }
+
+    // Send all batches in parallel
+    const results = await Promise.all(
+      batches.map((batch) =>
+        sendAppriseNotificationBatch(
+          batch.urls.join(','),
+          batch.body,
+          batch.format,
+          commonFields,
+          deps,
+        ),
+      ),
+    )
+
+    const allSucceeded = results.every(Boolean)
+    const anySucceeded = results.some(Boolean)
+
+    if (allSucceeded) {
+      log.info(
+        { batchCount: batches.length },
+        'Apprise notification sent successfully',
+      )
+    } else if (anySucceeded) {
+      log.warn(
+        {
+          batchCount: batches.length,
+          successCount: results.filter(Boolean).length,
+        },
+        'Some Apprise notification batches failed',
+      )
+    }
+
+    return anySucceeded
   } catch (error) {
     log.error(
       { error: error instanceof Error ? error : new Error(String(error)) },
@@ -355,6 +448,7 @@ export async function sendWatchlistAdditionNotification(
       alias?: string | null
     }
     posterUrl?: string
+    tmdbUrl?: string
   },
   deps: AppriseDeps,
 ): Promise<boolean> {

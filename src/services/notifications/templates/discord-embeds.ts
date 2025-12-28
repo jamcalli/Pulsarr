@@ -101,6 +101,15 @@ export function createMediaNotificationEmbed(
     description = `Movie available to watch! ${emoji}`
   }
 
+  // Add TMDB link if available
+  if (notification.tmdbUrl) {
+    fields.push({
+      name: 'More Info',
+      value: `[View on TMDB](${notification.tmdbUrl})`,
+      inline: true,
+    })
+  }
+
   const embed: DiscordEmbed = {
     title:
       notification.title.length > 256
@@ -150,6 +159,15 @@ export function createMediaWebhookPayload(
         inline: true,
       },
     ],
+  }
+
+  // Add TMDB link if available
+  if (notification.tmdbUrl && embed.fields) {
+    embed.fields.push({
+      name: 'More Info',
+      value: `[View on TMDB](${notification.tmdbUrl})`,
+      inline: true,
+    })
   }
 
   if (notification.posterUrl) {
@@ -317,9 +335,20 @@ export function createSystemEmbed(
   title: string,
   fields: Array<{ name: string; value: string; inline?: boolean }>,
   safetyTriggered?: boolean,
+  tmdbUrl?: string,
 ): DiscordEmbed {
   const hasSafetyField = fields.some((field) => field.name === 'Safety Reason')
   const isSafetyTriggered = title.includes('Safety Triggered')
+
+  // Add TMDB link if available
+  const embedFields = [...fields]
+  if (tmdbUrl) {
+    embedFields.push({
+      name: 'More Info',
+      value: `[View on TMDB](${tmdbUrl})`,
+      inline: true,
+    })
+  }
 
   return {
     title: title.length > 256 ? `${title.slice(0, 253)}...` : title,
@@ -329,6 +358,6 @@ export function createSystemEmbed(
         ? COLOR_RED
         : COLOR_GREEN,
     timestamp: new Date().toISOString(),
-    fields,
+    fields: embedFields,
   }
 }
