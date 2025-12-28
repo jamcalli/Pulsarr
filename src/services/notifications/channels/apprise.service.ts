@@ -116,6 +116,7 @@ export class AppriseService {
       alias?: string | null
     }
     posterUrl?: string
+    tmdbUrl?: string
   }): Promise<boolean> {
     return sendWatchlistAddition(item, this.appriseDeps)
   }

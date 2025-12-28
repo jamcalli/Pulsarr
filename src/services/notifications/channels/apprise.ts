@@ -448,6 +448,7 @@ export async function sendWatchlistAdditionNotification(
       alias?: string | null
     }
     posterUrl?: string
+    tmdbUrl?: string
   },
   deps: AppriseDeps,
 ): Promise<boolean> {
