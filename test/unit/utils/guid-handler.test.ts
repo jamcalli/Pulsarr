@@ -8,6 +8,7 @@ import {
   extractTvdbId,
   extractTypedGuid,
   getGuidMatchScore,
+  getTmdbUrl,
   hasMatchingGuids,
   hasMatchingParsedGuids,
   normalizeGenre,
@@ -170,6 +171,73 @@ describe('guid-handler', () => {
 
     it('should handle string input', () => {
       expect(extractTmdbId('tmdb://12345')).toBe(12345)
+    })
+  })
+
+  describe('getTmdbUrl', () => {
+    it('should return movie URL for movie type', () => {
+      const guids = ['tmdb://12345', 'imdb://tt1234']
+      expect(getTmdbUrl(guids, 'movie')).toBe(
+        'https://www.themoviedb.org/movie/12345',
+      )
+    })
+
+    it('should return TV URL for show type', () => {
+      const guids = ['tmdb://67890', 'tvdb://11111']
+      expect(getTmdbUrl(guids, 'show')).toBe(
+        'https://www.themoviedb.org/tv/67890',
+      )
+    })
+
+    it('should return undefined when no TMDB ID found', () => {
+      const guids = ['tvdb://12345', 'imdb://tt1234']
+      expect(getTmdbUrl(guids, 'movie')).toBeUndefined()
+    })
+
+    it('should return undefined for empty guids', () => {
+      expect(getTmdbUrl([], 'movie')).toBeUndefined()
+      expect(getTmdbUrl(undefined, 'show')).toBeUndefined()
+    })
+
+    it('should handle string input', () => {
+      expect(getTmdbUrl('tmdb://12345', 'movie')).toBe(
+        'https://www.themoviedb.org/movie/12345',
+      )
+    })
+
+    it('should include season in URL when provided', () => {
+      const guids = ['tmdb://67890']
+      expect(getTmdbUrl(guids, 'show', { seasonNumber: 2 })).toBe(
+        'https://www.themoviedb.org/tv/67890/season/2',
+      )
+    })
+
+    it('should include season and episode in URL when both provided', () => {
+      const guids = ['tmdb://67890']
+      expect(
+        getTmdbUrl(guids, 'show', { seasonNumber: 2, episodeNumber: 5 }),
+      ).toBe('https://www.themoviedb.org/tv/67890/season/2/episode/5')
+    })
+
+    it('should not include episode without season', () => {
+      const guids = ['tmdb://67890']
+      expect(getTmdbUrl(guids, 'show', { episodeNumber: 5 })).toBe(
+        'https://www.themoviedb.org/tv/67890',
+      )
+    })
+
+    it('should handle season 0 (specials)', () => {
+      const guids = ['tmdb://67890']
+      expect(getTmdbUrl(guids, 'show', { seasonNumber: 0 })).toBe(
+        'https://www.themoviedb.org/tv/67890/season/0',
+      )
+    })
+
+    it('should ignore episode details for movie type', () => {
+      const guids = ['tmdb://12345']
+      expect(
+        getTmdbUrl(guids, 'movie', { seasonNumber: 1, episodeNumber: 1 }),
+      ).toBe('https://www.themoviedb.org/movie/12345')
     })
   })
 
