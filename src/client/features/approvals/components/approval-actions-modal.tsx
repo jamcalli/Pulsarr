@@ -121,9 +121,10 @@ export default function ApprovalActionsModal({
   }, [open, request.id])
 
   // Reset edit routing mode when request changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Need request.id to reset when request changes while modal stays open
   useEffect(() => {
     setEditRoutingMode(false)
-  }, [setEditRoutingMode])
+  }, [request.id, setEditRoutingMode])
 
   const getUserName = (userId: number) => {
     const user = users?.find((u) => u.id === userId)
