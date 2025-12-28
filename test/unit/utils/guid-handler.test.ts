@@ -233,6 +233,13 @@ describe('guid-handler', () => {
       )
     })
 
+    it('should handle episode 0', () => {
+      const guids = ['tmdb://67890']
+      expect(
+        getTmdbUrl(guids, 'show', { seasonNumber: 1, episodeNumber: 0 }),
+      ).toBe('https://www.themoviedb.org/tv/67890/season/1/episode/0')
+    })
+
     it('should ignore episode details for movie type', () => {
       const guids = ['tmdb://12345']
       expect(
