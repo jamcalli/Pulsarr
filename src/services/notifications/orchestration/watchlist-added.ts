@@ -8,6 +8,7 @@
 import { buildRoutedToItem } from '@root/schemas/webhooks/webhook-payloads.schema.js'
 import type { Friend } from '@root/types/plex.types.js'
 import type { RoutingDetails } from '@root/types/router.types.js'
+import { getTmdbUrl } from '@root/utils/guid-handler.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
@@ -72,18 +73,20 @@ export async function sendWatchlistAdded(
   let discordSent = false
   let appriseSent = false
 
+  // Generate TMDB URL from guids
+  const t = typeof item.type === 'string' ? item.type.toLowerCase() : ''
+  const mediaType: 'movie' | 'show' =
+    t === 'movie' || t === 'show' ? (t as 'movie' | 'show') : 'movie'
+  const tmdbUrl = getTmdbUrl(item.guids, mediaType)
+
   // Send Discord webhook notification
   try {
-    // Runtime type guard to ensure valid Discord type (case-insensitive)
-    const t = typeof item.type === 'string' ? item.type.toLowerCase() : ''
-    const discordType: 'movie' | 'show' =
-      t === 'movie' || t === 'show' ? (t as 'movie' | 'show') : 'movie'
-
     discordSent = await discordWebhook.sendMediaNotification({
       username,
       title: item.title,
-      type: discordType,
+      type: mediaType,
       posterUrl: item.thumb,
+      tmdbUrl,
     })
 
     logger.debug(
@@ -108,11 +111,12 @@ export async function sendWatchlistAdded(
     try {
       appriseSent = await apprise.sendWatchlistAdditionNotification({
         title: item.title,
-        type: typeof item.type === 'string' ? item.type.toLowerCase() : 'movie',
+        type: mediaType,
         addedBy: {
           name: username,
         },
         posterUrl: item.thumb,
+        tmdbUrl,
       })
 
       logger.debug(

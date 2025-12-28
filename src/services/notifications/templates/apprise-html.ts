@@ -108,6 +108,11 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
               ? `<p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Air Date:</strong> ${escapeHtml(new Date(episodeDetails.airDateUtc).toLocaleDateString())}</p>`
               : ''
           }
+          ${
+            notification.tmdbUrl
+              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+              : ''
+          }
         </div>
       `
 
@@ -128,6 +133,11 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
         <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
           <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${escapeHtml(notification.title)}</h3>
           <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Season Added:</strong> Season ${escapeHtml(String(episodeDetails.seasonNumber))}</p>
+          ${
+            notification.tmdbUrl
+              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+              : ''
+          }
         </div>
       `
 
@@ -140,6 +150,11 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
         <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
           <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${escapeHtml(notification.title)}</h3>
           <p style="font-weight: 500; color: #ffffff;">New content is now available to watch!</p>
+          ${
+            notification.tmdbUrl
+              ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+              : ''
+          }
         </div>
       `
 
@@ -153,11 +168,21 @@ export function createMediaNotificationHtml(notification: MediaNotification): {
       <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
         <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${escapeHtml(notification.title)}</h3>
         <p style="font-weight: 500; color: #ffffff;">Movie available to watch!</p>
+        ${
+          notification.tmdbUrl
+            ? `<p style="margin-top: 10px;"><a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+            : ''
+        }
       </div>
     `
 
     htmlBody = htmlWrapper(movieContent)
     textBody = `Movie Available\n\n${notification.title}\nMovie available to watch!`
+  }
+
+  // Add TMDB link if available
+  if (notification.tmdbUrl) {
+    textBody += `\nTMDB: ${notification.tmdbUrl}`
   }
 
   textBody += '\n\n- Pulsarr'
@@ -231,6 +256,15 @@ export function createSystemNotificationHtml(
   `
     : ''
 
+  // TMDB Link (if available)
+  const tmdbLinkHtml = notification.tmdbUrl
+    ? `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <a href="${escapeHtml(notification.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a>
+    </div>
+  `
+    : ''
+
   // Build text body
   let textBody = 'Content Approval Required\n\n'
   textBody += `${fields.Content || 'Unknown Content'}\n`
@@ -238,6 +272,7 @@ export function createSystemNotificationHtml(
   textBody += `Requested by: ${fields['Requested by'] || 'Unknown'}\n`
   textBody += `Total pending: ${fields['Total pending'] || '0'}\n`
   if (fields.Reason) textBody += `Reason: ${fields.Reason}\n`
+  if (notification.tmdbUrl) textBody += `TMDB: ${notification.tmdbUrl}\n`
   if (fields['Action Required']) textBody += `\n${fields['Action Required']}\n`
   textBody += '\n- Pulsarr'
 
@@ -245,6 +280,7 @@ export function createSystemNotificationHtml(
   const systemContent = `
     <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Content Approval Required</h2>
     ${contentCard}
+    ${tmdbLinkHtml}
     ${requestCard}
     ${actionCard}
   `
@@ -490,6 +526,7 @@ export function createWatchlistAdditionHtml(item: {
     alias?: string | null
   }
   posterUrl?: string
+  tmdbUrl?: string
   displayName: string
 }): { htmlBody: string; textBody: string; title: string } {
   const mediaTypeRaw = item.type ? item.type.toLowerCase() : ''
@@ -519,6 +556,11 @@ export function createWatchlistAdditionHtml(item: {
         <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${escapeHtml(item.title)}</h3>
         <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Type:</strong> ${escapeHtml(mediaType)}</p>
         <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Added by:</strong> ${escapeHtml(item.displayName)}</p>
+        ${
+          item.tmdbUrl
+            ? `<p style="margin-top: 10px;"><a href="${escapeHtml(item.tmdbUrl)}" style="color: #48a9a6; font-weight: 500; text-decoration: none;">View on TMDB →</a></p>`
+            : ''
+        }
       </div>
     </div>
 
@@ -530,8 +572,11 @@ export function createWatchlistAdditionHtml(item: {
   let textBody = `New ${mediaType} Added\n\n`
   textBody += `${item.title}\n`
   textBody += `Type: ${mediaType}\n`
-  textBody += `Added by: ${item.displayName}\n\n`
-  textBody += '- Pulsarr'
+  textBody += `Added by: ${item.displayName}`
+  if (item.tmdbUrl) {
+    textBody += `\nTMDB: ${item.tmdbUrl}`
+  }
+  textBody += '\n\n- Pulsarr'
 
   return { htmlBody, textBody, title }
 }

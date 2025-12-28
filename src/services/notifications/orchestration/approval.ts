@@ -13,6 +13,7 @@ import type {
   DiscordEmbed,
   SystemNotification,
 } from '@root/types/discord.types.js'
+import { getTmdbUrl } from '@root/utils/guid-handler.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
@@ -40,6 +41,7 @@ export interface ApprovalRequest {
   contentTitle: string
   contentType: 'movie' | 'show'
   contentKey: string
+  contentGuids?: string[]
   userId: number
   userName: string | null
   triggeredBy:
@@ -135,28 +137,43 @@ export function createApprovalWebhookEmbed(
   totalPending: number,
   posterUrl?: string,
 ): DiscordEmbed {
+  // Generate TMDB URL from content GUIDs
+  const mediaType = request.contentType === 'show' ? 'show' : 'movie'
+  const tmdbUrl = getTmdbUrl(request.contentGuids, mediaType)
+
+  const fields = [
+    {
+      name: 'Requested by',
+      value: request.userName || `User ${request.userId}`,
+      inline: true,
+    },
+    {
+      name: 'Pending requests',
+      value: `${totalPending} awaiting review`,
+      inline: true,
+    },
+    {
+      name: 'Reason for approval',
+      value: formatTriggerReason(request.triggeredBy, request.approvalReason),
+      inline: false,
+    },
+  ]
+
+  // Add TMDB link if available
+  if (tmdbUrl) {
+    fields.push({
+      name: 'More Info',
+      value: `[View on TMDB](${tmdbUrl})`,
+      inline: true,
+    })
+  }
+
   const embed: DiscordEmbed = {
     title: 'Content Approval Required',
     description: `**${request.contentTitle}** (${request.contentType.charAt(0).toUpperCase() + request.contentType.slice(1)})`,
     color: 0xff9500,
     timestamp: new Date().toISOString(),
-    fields: [
-      {
-        name: 'Requested by',
-        value: request.userName || `User ${request.userId}`,
-        inline: true,
-      },
-      {
-        name: 'Pending requests',
-        value: `${totalPending} awaiting review`,
-        inline: true,
-      },
-      {
-        name: 'Reason for approval',
-        value: formatTriggerReason(request.triggeredBy, request.approvalReason),
-        inline: false,
-      },
-    ],
+    fields,
     footer: {
       text: `Request ID: ${request.id}`,
     },
@@ -266,6 +283,7 @@ export function createAppriseApprovalPayload(
   title: string
   embedFields: Array<{ name: string; value: string; inline: boolean }>
   posterUrl?: string
+  tmdbUrl?: string
 } {
   const contentType =
     request.contentType.charAt(0).toUpperCase() + request.contentType.slice(1)
@@ -274,6 +292,10 @@ export function createAppriseApprovalPayload(
     request.triggeredBy,
     request.approvalReason,
   )
+
+  // Generate TMDB URL from content GUIDs
+  const mediaType = request.contentType === 'show' ? 'show' : 'movie'
+  const tmdbUrl = getTmdbUrl(request.contentGuids, mediaType)
 
   return {
     type: 'system' as const,
@@ -297,6 +319,7 @@ export function createAppriseApprovalPayload(
       },
     ],
     posterUrl,
+    tmdbUrl,
   }
 }
 
@@ -340,11 +363,20 @@ async function sendDiscordDM(
 
     const embedFields = createBatchedDMFields(queuedRequests, totalPending)
 
+    // Generate TMDB URL for single request notifications
+    let tmdbUrl: string | undefined
+    if (!isMultiple && queuedRequests.length === 1) {
+      const request = queuedRequests[0]
+      const mediaType = request.contentType === 'show' ? 'show' : 'movie'
+      tmdbUrl = getTmdbUrl(request.contentGuids, mediaType)
+    }
+
     const systemNotification: SystemNotification = {
       type: 'system',
       username: 'Approval System',
       title,
       embedFields,
+      tmdbUrl,
       actionButton: {
         label: 'Review Approvals',
         customId: `review_approvals_${Date.now()}`,

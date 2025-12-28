@@ -327,6 +327,7 @@ export interface MediaNotification {
   title: string
   username: string
   posterUrl?: string
+  tmdbUrl?: string
   episodeDetails?: {
     title?: string
     overview?: string
