@@ -95,6 +95,14 @@ export async function getTopGenres(
  * @param options.days - Filter to shows added within this many days (0 = all time, default: 0)
  * @returns An array of objects containing the show title, count, thumbnail, GUIDs, content type, and user names
  */
+type WatchlistAggregateRow = {
+  title: string
+  guids: string
+  thumb: string | null
+  user_names: string | null
+  count: number | string
+}
+
 export async function getMostWatchlistedShows(
   this: DatabaseService,
   options: { limit?: number; offset?: number; days?: number } = {},
@@ -119,10 +127,10 @@ export async function getMostWatchlistedShows(
     query = query.where('added', '>=', cutoffDate)
   }
 
-  // Use GROUP_CONCAT (SQLite) or STRING_AGG (PostgreSQL) to aggregate user names
+  // Use JSON aggregation to collect unique user names as a proper array
   const userAggregation = this.isPostgres
-    ? this.knex.raw("STRING_AGG(DISTINCT u.name, '||') as user_names")
-    : this.knex.raw("GROUP_CONCAT(DISTINCT u.name, '||') as user_names")
+    ? this.knex.raw('JSON_AGG(DISTINCT u.name) as user_names')
+    : this.knex.raw('JSON_GROUP_ARRAY(DISTINCT u.name) as user_names')
 
   const results = await query
     .leftJoin('users as u', 'watchlist_items.user_id', 'u.id')
@@ -139,15 +147,17 @@ export async function getMostWatchlistedShows(
     `Retrieved ${results.length} most watchlisted shows ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
   )
 
-  return results.map((row) => ({
-    title: String(row.title),
+  return (results as WatchlistAggregateRow[]).map((row) => ({
+    title: row.title,
     count: Number(row.count),
-    thumb: row.thumb ? String(row.thumb) : null,
-    guids: this.safeJsonParse(row.guids as string, [], 'watchlist_item.guids'),
+    thumb: row.thumb,
+    guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
     content_type: 'show' as const,
-    users: row.user_names
-      ? String(row.user_names).split('||').filter(Boolean)
-      : [],
+    users: this.safeJsonParse(
+      row.user_names,
+      [],
+      'watchlist_item.user_names',
+    ).filter(Boolean),
   }))
 }
 
@@ -184,10 +194,10 @@ export async function getMostWatchlistedMovies(
     query = query.where('added', '>=', cutoffDate)
   }
 
-  // Use GROUP_CONCAT (SQLite) or STRING_AGG (PostgreSQL) to aggregate user names
+  // Use JSON aggregation to collect unique user names as a proper array
   const userAggregation = this.isPostgres
-    ? this.knex.raw("STRING_AGG(DISTINCT u.name, '||') as user_names")
-    : this.knex.raw("GROUP_CONCAT(DISTINCT u.name, '||') as user_names")
+    ? this.knex.raw('JSON_AGG(DISTINCT u.name) as user_names')
+    : this.knex.raw('JSON_GROUP_ARRAY(DISTINCT u.name) as user_names')
 
   const results = await query
     .leftJoin('users as u', 'watchlist_items.user_id', 'u.id')
@@ -204,15 +214,17 @@ export async function getMostWatchlistedMovies(
     `Retrieved ${results.length} most watchlisted movies ${isAllTime ? '(all time)' : `(last ${days} days)`}`,
   )
 
-  return results.map((row) => ({
-    title: String(row.title),
+  return (results as WatchlistAggregateRow[]).map((row) => ({
+    title: row.title,
     count: Number(row.count),
-    thumb: row.thumb ? String(row.thumb) : null,
-    guids: this.safeJsonParse(row.guids as string, [], 'watchlist_item.guids'),
+    thumb: row.thumb,
+    guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
     content_type: 'movie' as const,
-    users: row.user_names
-      ? String(row.user_names).split('||').filter(Boolean)
-      : [],
+    users: this.safeJsonParse(
+      row.user_names,
+      [],
+      'watchlist_item.user_names',
+    ).filter(Boolean),
   }))
 }
 
