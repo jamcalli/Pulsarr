@@ -4,21 +4,22 @@ sidebar_position: 2
 
 # Apprise Notifications
 
-Pulsarr supports integration with [Apprise](https://github.com/caronc/apprise) for enhanced notification capabilities. Apprise allows you to send notifications to a wide variety of supported services like Telegram, Slack, Discord, email services, SMS gateways, and many more from a single unified interface.
+Pulsarr integrates with [Apprise](https://github.com/caronc/apprise) to send notifications to 80+ services including Telegram, Slack, Discord, email, SMS gateways, and more through a unified interface.
 
-## Benefits of Using Apprise
+## Overview
 
-- **Multiple notification channels**: Send notifications to multiple platforms simultaneously
-- **Flexible configuration**: Easy setup through URL-based notification channels
-- **Extensive service support**: Works with 80+ notification services
-- **Customizable messaging**: Send rich notifications with formatting options
-- **Centralized notification management**: Configure and manage all your notification targets in one place
+Apprise runs as a separate container that Pulsarr communicates with to dispatch notifications. When events occur, Pulsarr sends the notification payload to Apprise, which then routes it to your configured services.
 
-## Installation Options
+**Key characteristics:**
+- **Multi-platform delivery**: Send to multiple services simultaneously
+- **URL-based configuration**: Simple `protocol://credentials` format for all services
+- **No Apprise UI required**: Pulsarr handles all configuration; the Apprise web UI is not needed
 
-### Option 1: Combined Docker Compose (Recommended)
+## Setup
 
-Use this combined Docker Compose file to run both Pulsarr and Apprise in the same stack:
+### Docker Compose
+
+Run Apprise alongside Pulsarr in a combined stack:
 
 ```yaml
 services:
@@ -53,108 +54,86 @@ services:
       - apprise
 ```
 
-This configuration ensures:
-- Apprise starts before Pulsarr
-- Both services run in the same Docker network
-- Pulsarr can communicate with Apprise using internal Docker networking
-
-### Option 2: Separate Docker Compose Files
-
-If you prefer to keep them separate, you can use these two compose files:
-
-**Apprise Compose (docker-compose.apprise.yml):**
-```yaml
-services:
-  apprise:
-    image: caronc/apprise:latest
-    container_name: apprise
-    ports:
-      - "8000:8000"
-    environment:
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-1000}
-      - APPRISE_STATEFUL_MODE=simple
-      - APPRISE_WORKER_COUNT=1
-    volumes:
-      - ./config:/config
-      - ./plugin:/plugin
-      - ./attach:/attach
-    restart: unless-stopped
-```
-
-**Pulsarr Compose (docker-compose.yml):**
-```yaml
-services:
-  pulsarr:
-    image: lakker/pulsarr:latest
-    container_name: pulsarr
-    ports:
-      - "3003:3003"
-    volumes:
-      - ./data:/app/data
-      - .env:/app/.env
-    restart: unless-stopped
-    env_file:
-      - .env
-```
-
-When using separate compose files, you'll need to add the Apprise URL to your Pulsarr `.env` file:
-
+Add to your `.env` file:
 ```sh
-appriseUrl=http://host-ip-address:8000
+appriseUrl=http://apprise:8000
 ```
 
-Replace `host-ip-address` with your actual server IP (not localhost, as the containers won't be on the same network).
+:::tip Running Separately
+If Apprise runs on a different host, use the full URL: `appriseUrl=http://192.168.1.100:8000`
+:::
 
-## Using Apprise with Pulsarr
+### Verify Connection
 
-The Apprise integration works out of the box with no additional configuration required in the Apprise web UI. Simply:
+Once both services are running, Pulsarr automatically detects the Apprise service. Check the **Notifications → Apprise** page to confirm the connection status.
 
-1. **Start the services** using the combined Docker Compose file:
-   ```bash
-   docker compose up -d
-   ```
+## Configuration
 
-2. **Verify connectivity**:
-   - Access the Pulsarr web interface at `http://your-server:3003`
-   - Pulsarr will automatically detect and use the Apprise service
-   - All notifications will be routed through Apprise seamlessly
+### System Apprise URL
 
-The integration is pre-configured to work immediately with no additional setup steps required.
+Set a system-wide notification URL for admin alerts (delete sync results, safety triggers, etc.):
 
-## Configuring Notification Methods
+**Notifications → Apprise → System Apprise URL**
 
-Users can configure their own Apprise notification methods in two ways:
+Enter one or more Apprise URLs, comma-separated:
+```
+tgram://bot_token/chat_id,pover://user_key@app_token
+```
 
-1. **Via Discord Bot**:
-   - Users can use the `/notifications` command in Discord
-   - This allows them to select Apprise as their notification method
-   - Users will be notified about content availability automatically
+### User Apprise URLs
 
-2. **Via Admin Panel**:
-   - The admin user can configure Apprise notifications
-   - Navigate to the Notifications section in the Pulsarr admin panel
-   - Set the default notification method to Apprise for the system
+Users can configure their own Apprise URLs for personal notifications:
 
-## Notification Types Supported
+- **Discord bot**: `/notifications` command → Edit Profile
+- **Admin panel**: Plex → Users → Edit user
 
-With Apprise integration enabled, Pulsarr will automatically send content availability notifications when:
-- New episodes of TV shows are available
-- New movies are available
-- Season packs are available
+### Email Sender
 
-All notifications are handled seamlessly through the Apprise integration without requiring additional configuration.
+Admins can configure a global email sender so users only need to enter their email address instead of a full Apprise URL.
+
+**Setup (Notifications → Apprise):**
+
+Set the **Email Sender** field to your SMTP URL:
+```
+mailtos://your-email:app_password@gmail.com
+```
+
+Once configured, users can enter `user@example.com` anywhere an Apprise URL is accepted. Pulsarr automatically routes the notification through your configured sender.
+
+For Gmail, you'll need an [App Password](https://myaccount.google.com/apppasswords) (requires 2-Step Verification).
+
+## Common Apprise URLs
+
+| Service | URL Format |
+|---------|------------|
+| Telegram | `tgram://{bot_token}/{chat_id}` |
+| Slack | `slack://{tokenA}/{tokenB}/{tokenC}` |
+| Pushover | `pover://{user_key}@{app_token}` |
+| Gotify | `gotifys://{hostname}/{token}` |
+| Email | `mailtos://{user}:{app_password}@gmail.com` |
+
+For the full list, see the [Apprise Wiki](https://github.com/caronc/apprise/wiki).
 
 ## Troubleshooting
 
-The integration is designed to work automatically, but if you encounter issues:
+### Apprise Not Detected
 
-- **Connection Issues**: If using separate Docker Compose files, ensure the Apprise URL is correctly set in your `.env` file
-- **Cannot reach Apprise**: When using the combined Docker Compose, the service discovery is automatic. If using separate setups, verify the correct IP address is being used
-- **Service Not Starting**: Make sure both containers have started successfully with `docker compose ps`
+1. Verify both containers are running: `docker compose ps`
+2. Check the `appriseUrl` in your `.env` matches the container name or IP
+3. If using separate networks, ensure Pulsarr can reach Apprise on port 8000
 
-For more information about Apprise itself, refer to the [official Apprise documentation](https://github.com/caronc/apprise/wiki).
+### Notifications Not Sending
+
+1. Test your Apprise URL directly using the **Test** button in the UI
+2. Check Pulsarr logs for Apprise-related errors
+3. Verify the Apprise URL format matches the [Apprise Wiki](https://github.com/caronc/apprise/wiki) examples
+
+### Email Not Working
+
+1. Confirm the Email Sender URL uses `mailtos://` (with TLS) not `mailto://`
+2. For Gmail, ensure you're using an App Password, not your account password
+3. Check if your email provider blocks "less secure" SMTP access
 
 ## Advanced Features
 
-For broadcasting content availability to shared channels independent of individual user watchlists, see [Public Content Notifications](../utilities/05-public-content-notifications.md) in the Utilities section.
+For broadcasting content availability to shared channels independent of individual user watchlists, see [Public Content Notifications](../utilities/05-public-content-notifications.md).
