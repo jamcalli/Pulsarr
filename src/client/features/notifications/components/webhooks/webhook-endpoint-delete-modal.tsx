@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -43,22 +42,20 @@ export function WebhookEndpointDeleteModal({
             receiving events.
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button
-              variant="clear"
-              onClick={() => {
-                onConfirm()
-              }}
-              disabled={isDeleting}
-            >
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={() => {
+              onConfirm()
+            }}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

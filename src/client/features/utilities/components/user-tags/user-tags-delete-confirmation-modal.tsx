@@ -39,9 +39,12 @@ export function UserTagsDeleteConfirmationModal({
   const [deleteTagDefinitions, setDeleteTagDefinitions] = useState(false)
   const deleteDefinitionsId = useId()
 
-  const handleConfirm = () => {
-    onConfirm(deleteTagDefinitions)
-    onOpenChange(false)
+  const handleConfirm = async () => {
+    try {
+      await onConfirm(deleteTagDefinitions)
+    } finally {
+      onOpenChange(false)
+    }
   }
 
   return (
@@ -82,20 +85,19 @@ export function UserTagsDeleteConfirmationModal({
             When enabled, this will also remove the user tag definitions from
             your Sonarr and Radarr instances, not just remove them from media.
           </p>
-
-          <CredenzaFooter className="mt-6">
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button
-              variant="clear"
-              onClick={handleConfirm}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Processing...' : 'Remove Tags'}
-            </Button>
-          </CredenzaFooter>
         </CredenzaBody>
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={handleConfirm}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Processing...' : 'Remove Tags'}
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

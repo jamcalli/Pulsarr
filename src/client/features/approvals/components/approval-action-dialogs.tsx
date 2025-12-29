@@ -1,6 +1,6 @@
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import { Check, Loader2 } from 'lucide-react'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +15,11 @@ import {
 } from '@/components/ui/credenza'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
+import {
+  useApproveRequest,
+  useDeleteApproval,
+  useRejectRequest,
+} from '@/features/approvals/hooks/useApprovalMutations'
 
 interface ApprovalActionDialogsProps {
   selectedRequest: ApprovalRequestResponse | null
@@ -25,23 +29,12 @@ interface ApprovalActionDialogsProps {
   onApproveDialogClose: () => void
   onRejectDialogClose: () => void
   onDeleteDialogClose: () => void
-  onActionComplete: () => Promise<void>
 }
 
 /**
- * Renders modal dialogs for approving, rejecting, or deleting an approval request, providing user input fields, loading and success feedback, and error notifications.
+ * Renders modal dialogs for approving, rejecting, or deleting an approval request.
  *
- * Displays the appropriate dialog based on the open state props, allowing users to approve with optional notes, reject with an optional reason, or permanently delete a request. Manages asynchronous actions with enforced minimum loading durations and cleans up pending timeouts on unmount.
- *
- * @param selectedRequest - The approval request currently selected for action, or null if none is selected.
- * @param approveDialogOpen - Whether the approve dialog is open.
- * @param rejectDialogOpen - Whether the reject dialog is open.
- * @param deleteDialogOpen - Whether the delete dialog is open.
- * @param onApproveDialogClose - Callback to close the approve dialog.
- * @param onRejectDialogClose - Callback to close the reject dialog.
- * @param onDeleteDialogClose - Callback to close the delete dialog.
- * @param onActionComplete - Async callback invoked after an action completes.
- * @returns The rendered approval action dialogs as React elements.
+ * Uses React Query mutation hooks for actions with automatic cache invalidation.
  */
 export function ApprovalActionDialogs({
   selectedRequest,
@@ -51,83 +44,59 @@ export function ApprovalActionDialogs({
   onApproveDialogClose,
   onRejectDialogClose,
   onDeleteDialogClose,
-  onActionComplete,
 }: ApprovalActionDialogsProps) {
   const [approveNotes, setApproveNotes] = useState('')
   const [rejectReason, setRejectReason] = useState('')
-  const [approveStatus, setApproveStatus] = useState<
-    'idle' | 'loading' | 'success'
-  >('idle')
-  const [rejectStatus, setRejectStatus] = useState<
-    'idle' | 'loading' | 'success'
-  >('idle')
-  const [deleteStatus, setDeleteStatus] = useState<
-    'idle' | 'loading' | 'success'
-  >('idle')
-  const { approveRequest, rejectRequest, deleteApprovalRequest } =
-    useApprovalsStore()
+
+  // Mutation hooks
+  const approveRequest = useApproveRequest()
+  const rejectRequest = useRejectRequest()
+  const deleteApproval = useDeleteApproval()
 
   const approveNotesId = useId()
   const rejectReasonId = useId()
 
-  // Track timeout IDs for cleanup
-  const timeoutIdsRef = useRef<NodeJS.Timeout[]>([])
-
-  // Clean up timeouts on component unmount
+  // Close dialog and reset after success
   useEffect(() => {
-    return () => {
-      // Clear all pending timeouts on unmount
-      timeoutIdsRef.current.forEach(clearTimeout)
+    if (approveRequest.isSuccess) {
+      const timer = setTimeout(() => {
+        setApproveNotes('')
+        onApproveDialogClose()
+        approveRequest.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
     }
-  }, [])
+  }, [approveRequest.isSuccess, onApproveDialogClose, approveRequest])
 
-  // Helper function to manage minimum loading duration
-  const withMinLoadingDuration = async (
-    action: () => Promise<void>,
-    setStatus: (status: 'idle' | 'loading' | 'success') => void,
-  ) => {
-    setStatus('loading')
-    const startTime = Date.now()
-
-    try {
-      await action()
-      setStatus('success')
-
-      // Ensure minimum 500ms loading duration
-      const elapsed = Date.now() - startTime
-      const remainingTime = Math.max(500 - elapsed, 0)
-
-      const timeoutId = setTimeout(() => {
-        setStatus('idle')
-      }, remainingTime + 1000) // Show success for 1 second after minimum duration
-      timeoutIdsRef.current.push(timeoutId)
-    } catch (error) {
-      // Ensure minimum duration even on error
-      const elapsed = Date.now() - startTime
-      const remainingTime = Math.max(500 - elapsed, 0)
-
-      const timeoutId = setTimeout(() => {
-        setStatus('idle')
-      }, remainingTime)
-      timeoutIdsRef.current.push(timeoutId)
-      throw error
+  useEffect(() => {
+    if (rejectRequest.isSuccess) {
+      const timer = setTimeout(() => {
+        setRejectReason('')
+        onRejectDialogClose()
+        rejectRequest.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
     }
-  }
+  }, [rejectRequest.isSuccess, onRejectDialogClose, rejectRequest])
+
+  useEffect(() => {
+    if (deleteApproval.isSuccess) {
+      const timer = setTimeout(() => {
+        onDeleteDialogClose()
+        deleteApproval.reset()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [deleteApproval.isSuccess, onDeleteDialogClose, deleteApproval])
 
   const handleApprove = async () => {
     if (!selectedRequest) return
 
     try {
-      await withMinLoadingDuration(async () => {
-        await approveRequest(
-          selectedRequest.id,
-          approveNotes.trim() || undefined,
-        )
-        await onActionComplete()
-      }, setApproveStatus)
-
-      setApproveNotes('')
-      onApproveDialogClose()
+      await approveRequest.mutateAsync({
+        id: selectedRequest.id,
+        notes: approveNotes.trim() || undefined,
+      })
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -141,16 +110,10 @@ export function ApprovalActionDialogs({
     if (!selectedRequest) return
 
     try {
-      await withMinLoadingDuration(async () => {
-        await rejectRequest(
-          selectedRequest.id,
-          rejectReason.trim() || undefined,
-        )
-        await onActionComplete()
-      }, setRejectStatus)
-
-      setRejectReason('')
-      onRejectDialogClose()
+      await rejectRequest.mutateAsync({
+        id: selectedRequest.id,
+        reason: rejectReason.trim() || undefined,
+      })
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -164,12 +127,7 @@ export function ApprovalActionDialogs({
     if (!selectedRequest) return
 
     try {
-      await withMinLoadingDuration(async () => {
-        await deleteApprovalRequest(selectedRequest.id)
-        await onActionComplete()
-      }, setDeleteStatus)
-
-      onDeleteDialogClose()
+      await deleteApproval.mutateAsync(selectedRequest.id)
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -185,7 +143,7 @@ export function ApprovalActionDialogs({
       <Credenza
         open={approveDialogOpen}
         onOpenChange={(open) => {
-          if (approveStatus === 'loading') return
+          if (approveRequest.isPending || approveRequest.isSuccess) return
           if (!open) onApproveDialogClose()
         }}
       >
@@ -205,7 +163,7 @@ export function ApprovalActionDialogs({
             </CredenzaDescription>
           </CredenzaHeader>
           <CredenzaBody>
-            <div className="grid gap-4 mb-6">
+            <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label
                   htmlFor={approveNotesId}
@@ -219,39 +177,44 @@ export function ApprovalActionDialogs({
                   value={approveNotes}
                   onChange={(e) => setApproveNotes(e.target.value)}
                   rows={3}
-                  disabled={approveStatus !== 'idle'}
+                  disabled={
+                    approveRequest.isPending || approveRequest.isSuccess
+                  }
                 />
               </div>
             </div>
-            <CredenzaFooter>
-              <CredenzaClose asChild>
-                <Button variant="neutral" disabled={approveStatus !== 'idle'}>
-                  Cancel
-                </Button>
-              </CredenzaClose>
-              <Button
-                onClick={() => {
-                  handleApprove()
-                }}
-                disabled={approveStatus !== 'idle'}
-                className="min-w-[100px] flex items-center justify-center gap-2"
-              >
-                {approveStatus === 'loading' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Approving...
-                  </>
-                ) : approveStatus === 'success' ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Approved
-                  </>
-                ) : (
-                  'Approve'
-                )}
-              </Button>
-            </CredenzaFooter>
           </CredenzaBody>
+          <CredenzaFooter>
+            <CredenzaClose asChild>
+              <Button
+                variant="neutral"
+                disabled={approveRequest.isPending || approveRequest.isSuccess}
+              >
+                Cancel
+              </Button>
+            </CredenzaClose>
+            <Button
+              onClick={() => {
+                handleApprove()
+              }}
+              disabled={approveRequest.isPending || approveRequest.isSuccess}
+              className="min-w-[100px] flex items-center justify-center gap-2"
+            >
+              {approveRequest.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Approving...
+                </>
+              ) : approveRequest.isSuccess ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Approved
+                </>
+              ) : (
+                'Approve'
+              )}
+            </Button>
+          </CredenzaFooter>
         </CredenzaContent>
       </Credenza>
 
@@ -259,7 +222,7 @@ export function ApprovalActionDialogs({
       <Credenza
         open={rejectDialogOpen}
         onOpenChange={(open) => {
-          if (rejectStatus === 'loading') return
+          if (rejectRequest.isPending || rejectRequest.isSuccess) return
           if (!open) onRejectDialogClose()
         }}
       >
@@ -279,7 +242,7 @@ export function ApprovalActionDialogs({
             </CredenzaDescription>
           </CredenzaHeader>
           <CredenzaBody>
-            <div className="grid gap-4 mb-6">
+            <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label
                   htmlFor={rejectReasonId}
@@ -293,40 +256,43 @@ export function ApprovalActionDialogs({
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   rows={3}
-                  disabled={rejectStatus !== 'idle'}
+                  disabled={rejectRequest.isPending || rejectRequest.isSuccess}
                 />
               </div>
             </div>
-            <CredenzaFooter>
-              <CredenzaClose asChild>
-                <Button variant="neutral" disabled={rejectStatus !== 'idle'}>
-                  Cancel
-                </Button>
-              </CredenzaClose>
-              <Button
-                variant="clear"
-                onClick={() => {
-                  handleReject()
-                }}
-                disabled={rejectStatus !== 'idle'}
-                className="min-w-[100px] flex items-center justify-center gap-2"
-              >
-                {rejectStatus === 'loading' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Rejecting...
-                  </>
-                ) : rejectStatus === 'success' ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Rejected
-                  </>
-                ) : (
-                  'Reject'
-                )}
-              </Button>
-            </CredenzaFooter>
           </CredenzaBody>
+          <CredenzaFooter>
+            <CredenzaClose asChild>
+              <Button
+                variant="neutral"
+                disabled={rejectRequest.isPending || rejectRequest.isSuccess}
+              >
+                Cancel
+              </Button>
+            </CredenzaClose>
+            <Button
+              variant="clear"
+              onClick={() => {
+                handleReject()
+              }}
+              disabled={rejectRequest.isPending || rejectRequest.isSuccess}
+              className="min-w-[100px] flex items-center justify-center gap-2"
+            >
+              {rejectRequest.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Rejecting...
+                </>
+              ) : rejectRequest.isSuccess ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Rejected
+                </>
+              ) : (
+                'Reject'
+              )}
+            </Button>
+          </CredenzaFooter>
         </CredenzaContent>
       </Credenza>
 
@@ -334,7 +300,7 @@ export function ApprovalActionDialogs({
       <Credenza
         open={deleteDialogOpen}
         onOpenChange={(open) => {
-          if (deleteStatus === 'loading') return
+          if (deleteApproval.isPending || deleteApproval.isSuccess) return
           if (!open) onDeleteDialogClose()
         }}
       >
@@ -353,37 +319,38 @@ export function ApprovalActionDialogs({
               )}
             </CredenzaDescription>
           </CredenzaHeader>
-          <CredenzaBody>
-            <CredenzaFooter>
-              <CredenzaClose asChild>
-                <Button variant="neutral" disabled={deleteStatus !== 'idle'}>
-                  Cancel
-                </Button>
-              </CredenzaClose>
+          <CredenzaFooter>
+            <CredenzaClose asChild>
               <Button
-                variant="clear"
-                onClick={() => {
-                  handleDelete()
-                }}
-                disabled={deleteStatus !== 'idle'}
-                className="min-w-[100px] flex items-center justify-center gap-2"
+                variant="neutral"
+                disabled={deleteApproval.isPending || deleteApproval.isSuccess}
               >
-                {deleteStatus === 'loading' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : deleteStatus === 'success' ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Deleted
-                  </>
-                ) : (
-                  'Delete'
-                )}
+                Cancel
               </Button>
-            </CredenzaFooter>
-          </CredenzaBody>
+            </CredenzaClose>
+            <Button
+              variant="clear"
+              onClick={() => {
+                handleDelete()
+              }}
+              disabled={deleteApproval.isPending || deleteApproval.isSuccess}
+              className="min-w-[100px] flex items-center justify-center gap-2"
+            >
+              {deleteApproval.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : deleteApproval.isSuccess ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Deleted
+                </>
+              ) : (
+                'Delete'
+              )}
+            </Button>
+          </CredenzaFooter>
         </CredenzaContent>
       </Credenza>
     </>

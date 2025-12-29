@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useUtilitiesStore } from '@/features/utilities/store/utilitiesStore'
 
 /**
  * Manages state and actions for the delete synchronization feature.

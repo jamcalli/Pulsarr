@@ -19,7 +19,11 @@ import { parseGuids } from '@utils/guid-handler.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import pLimit from 'p-limit'
 
-import { getRemovedLabel, isAppUserLabel } from '../label-operations/index.js'
+import {
+  getRemovedLabel,
+  includesLabelIgnoreCase,
+  isAppUserLabel,
+} from '../label-operations/index.js'
 
 /**
  * Helper function to check if two arrays contain the same elements (order-independent)
@@ -1069,9 +1073,9 @@ export async function cleanupOrphanedPlexLabels(
               return { removed: 0, failed: 0 }
             }
 
-            // Filter out orphaned labels from current labels
+            // Filter out orphaned labels from current labels (case-insensitive)
             const filteredLabels = currentLabels.filter(
-              (label) => !orphaned_labels.includes(label),
+              (label) => !includesLabelIgnoreCase(orphaned_labels, label),
             )
 
             // Only update if we're actually removing labels

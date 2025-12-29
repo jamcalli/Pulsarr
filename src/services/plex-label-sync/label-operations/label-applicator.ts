@@ -14,6 +14,7 @@ import {
   filterAndFormatTagsAsLabels,
   isAppUserLabel,
   isManagedLabel,
+  uniqueLabelsIgnoreCase,
 } from './label-validator.js'
 
 export interface LabelApplicatorDeps {
@@ -138,18 +139,16 @@ export async function applyLabelsToSingleItem(
         }
       }
 
-      // Combine tracked labels with new user/tag labels
-      finalLabels = [
-        ...new Set([
-          ...Array.from(allTrackedLabels),
-          ...userLabels,
-          ...tagLabels,
-          // Also preserve any non-app labels from Plex
-          ...cleanedExistingLabels.filter(
-            (label) => !isAppUserLabel(label, deps.config.labelPrefix),
-          ),
-        ]),
-      ]
+      // Combine tracked labels with new user/tag labels (case-insensitive dedup)
+      finalLabels = uniqueLabelsIgnoreCase([
+        ...Array.from(allTrackedLabels),
+        ...userLabels,
+        ...tagLabels,
+        // Also preserve any non-app labels from Plex
+        ...cleanedExistingLabels.filter(
+          (label) => !isAppUserLabel(label, deps.config.labelPrefix),
+        ),
+      ])
 
       deps.logger.debug(
         {
@@ -198,19 +197,17 @@ export async function applyLabelsToSingleItem(
         label.toLowerCase().startsWith(deps.removedLabelPrefix.toLowerCase()),
       )
 
-      finalLabels = [
-        ...new Set([
-          ...nonAppLabels.filter(
-            (label) =>
-              !label
-                .toLowerCase()
-                .startsWith(deps.removedLabelPrefix.toLowerCase()),
-          ),
-          ...Array.from(allTrackedAppLabels),
-          ...userLabels,
-          ...tagLabels,
-        ]),
-      ]
+      finalLabels = uniqueLabelsIgnoreCase([
+        ...nonAppLabels.filter(
+          (label) =>
+            !label
+              .toLowerCase()
+              .startsWith(deps.removedLabelPrefix.toLowerCase()),
+        ),
+        ...Array.from(allTrackedAppLabels),
+        ...userLabels,
+        ...tagLabels,
+      ])
 
       deps.logger.debug(
         {
@@ -259,14 +256,12 @@ export async function applyLabelsToSingleItem(
         return !allPossibleUserLabels.has(label.toLowerCase())
       })
 
-      finalLabels = [
-        ...new Set([
-          ...nonAppLabels,
-          ...existingTagLabels,
-          ...userLabels,
-          ...tagLabels,
-        ]),
-      ]
+      finalLabels = uniqueLabelsIgnoreCase([
+        ...nonAppLabels,
+        ...existingTagLabels,
+        ...userLabels,
+        ...tagLabels,
+      ])
 
       deps.logger.debug(
         {

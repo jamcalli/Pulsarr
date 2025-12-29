@@ -65,9 +65,11 @@ export function ApiKeysPage() {
       <ApiKeysDeleteConfirmationModal
         open={showDeleteConfirmation !== null}
         onOpenChange={(open) => !open && setShowDeleteConfirmation(null)}
-        onConfirm={() =>
-          showDeleteConfirmation && revokeApiKey(showDeleteConfirmation)
-        }
+        onConfirm={async () => {
+          if (showDeleteConfirmation) {
+            await revokeApiKey(showDeleteConfirmation)
+          }
+        }}
         isSubmitting={
           showDeleteConfirmation
             ? isRevoking[showDeleteConfirmation] || false
