@@ -2,7 +2,6 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -53,26 +52,24 @@ export function RollingShowActionAlert({
               : `Are you sure you want to remove "${showTitle}" from rolling monitoring? This will stop Pulsarr from tracking this show's viewing progress. The show will remain in Sonarr with its current monitoring settings.`}
           </CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral" disabled={isLoading}>
-                Cancel
-              </Button>
-            </CredenzaClose>
-            <Button
-              variant={isReset ? 'default' : 'clear'}
-              onClick={() => {
-                onConfirm()
-              }}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isReset ? 'Reset' : 'Remove'}
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral" disabled={isLoading}>
+              Cancel
             </Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+          </CredenzaClose>
+          <Button
+            variant={isReset ? 'default' : 'clear'}
+            onClick={() => {
+              onConfirm()
+            }}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isReset ? 'Reset' : 'Remove'}
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

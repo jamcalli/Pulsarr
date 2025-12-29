@@ -3,12 +3,41 @@ import type {
   ApprovalRequestRow,
   ApprovalStats,
   ApprovalStatus,
+  ApprovalTrigger,
   CreateApprovalRequestData,
   UpdateApprovalRequestData,
   UserApprovalStats,
 } from '@root/types/approval.types.js'
 import { normalizeGuid } from '@root/utils/guid-handler.js'
 import type { DatabaseService } from '@services/database.service.js'
+
+/**
+ * Escapes SQL LIKE wildcard characters in a search string.
+ * Prevents %, _, and \ from being interpreted as wildcards.
+ */
+function escapeLikePattern(search: string): string {
+  return search.replace(/[%_\\]/g, '\\$&')
+}
+
+/**
+ * Applies a case-insensitive search filter to a query.
+ * Handles both Postgres (ILIKE) and SQLite (LIKE) with proper escaping.
+ */
+function applySearchFilter<T>(
+  query: T,
+  search: string,
+  column: string,
+  isPostgres: boolean,
+): T {
+  const escaped = escapeLikePattern(search)
+  const knexQuery = query as T & {
+    whereRaw: (sql: string, bindings: string[]) => T
+  }
+  if (isPostgres) {
+    return knexQuery.whereRaw(`${column} ILIKE ? ESCAPE '\\'`, [`%${escaped}%`])
+  }
+  return knexQuery.whereRaw(`${column} LIKE ? ESCAPE '\\'`, [`%${escaped}%`])
+}
 
 /**
  * Maps a database row to an ApprovalRequest object, parsing JSON fields and assigning default values for missing data.
@@ -249,41 +278,95 @@ export async function getPendingApprovalRequests(
 }
 
 /**
- * Retrieves approval requests filtered by optional user, status, content type, and trigger source, with pagination support.
+ * Retrieves approval requests filtered by optional user, status, content type, trigger source,
+ * and search term, with pagination support.
  *
+ * @param userId - Optional user ID to filter by
+ * @param status - Optional status filter (single value or array for multi-select)
+ * @param limit - Maximum number of results (default: 50)
+ * @param offset - Number of results to skip (default: 0)
+ * @param contentType - Optional content type filter (single value or array for multi-select)
+ * @param triggeredBy - Optional trigger source filter (single value or array for multi-select)
+ * @param search - Optional search term for content title (case-insensitive partial match)
  * @returns An array of approval requests matching the specified filters.
  */
 export async function getApprovalHistory(
   this: DatabaseService,
-  userId?: number,
-  status?: ApprovalStatus,
+  userId?: number | number[],
+  status?: ApprovalStatus | ApprovalStatus[],
   limit = 50,
   offset = 0,
-  contentType?: 'movie' | 'show',
-  triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+  contentType?: 'movie' | 'show' | ('movie' | 'show')[],
+  triggeredBy?: ApprovalTrigger | ApprovalTrigger[],
+  search?: string,
+  sortBy:
+    | 'contentTitle'
+    | 'userName'
+    | 'status'
+    | 'triggeredBy'
+    | 'createdAt'
+    | 'expiresAt' = 'createdAt',
+  sortOrder: 'asc' | 'desc' = 'desc',
 ): Promise<ApprovalRequest[]> {
+  // Map frontend column names to database columns
+  const sortColumnMap: Record<string, string> = {
+    contentTitle: 'approval_requests.content_title',
+    userName: 'users.name',
+    status: 'approval_requests.status',
+    triggeredBy: 'approval_requests.triggered_by',
+    createdAt: 'approval_requests.created_at',
+    expiresAt: 'approval_requests.expires_at',
+  }
+
   let query = this.knex('approval_requests')
     .select('approval_requests.*', 'users.name as user_name')
     .leftJoin('users', 'approval_requests.user_id', 'users.id')
 
   if (userId) {
-    query = query.where('approval_requests.user_id', userId)
+    if (Array.isArray(userId)) {
+      query = query.whereIn('approval_requests.user_id', userId)
+    } else {
+      query = query.where('approval_requests.user_id', userId)
+    }
   }
 
   if (status) {
-    query = query.where('approval_requests.status', status)
+    if (Array.isArray(status)) {
+      query = query.whereIn('approval_requests.status', status)
+    } else {
+      query = query.where('approval_requests.status', status)
+    }
   }
 
   if (contentType) {
-    query = query.where('approval_requests.content_type', contentType)
+    if (Array.isArray(contentType)) {
+      query = query.whereIn('approval_requests.content_type', contentType)
+    } else {
+      query = query.where('approval_requests.content_type', contentType)
+    }
   }
 
   if (triggeredBy) {
-    query = query.where('approval_requests.triggered_by', triggeredBy)
+    if (Array.isArray(triggeredBy)) {
+      query = query.whereIn('approval_requests.triggered_by', triggeredBy)
+    } else {
+      query = query.where('approval_requests.triggered_by', triggeredBy)
+    }
   }
 
+  if (search) {
+    query = applySearchFilter(
+      query,
+      search,
+      'approval_requests.content_title',
+      this.isPostgres,
+    )
+  }
+
+  const orderColumn = sortColumnMap[sortBy] || 'approval_requests.created_at'
+
   const rows = await query
-    .orderBy('approval_requests.updated_at', 'desc')
+    .orderBy(orderColumn, sortOrder)
     .limit(limit)
     .offset(offset)
 
@@ -294,34 +377,61 @@ export async function getApprovalHistory(
  * Counts approval requests that match the given optional filters.
  *
  * @param userId - Filter by user ID
- * @param status - Filter by approval status
- * @param contentType - Filter by content type ('movie' or 'show')
- * @param triggeredBy - Filter by trigger source
+ * @param status - Filter by approval status (single value or array for multi-select)
+ * @param contentType - Filter by content type (single value or array for multi-select)
+ * @param triggeredBy - Filter by trigger source (single value or array for multi-select)
+ * @param search - Optional search term for content title (case-insensitive partial match)
  * @returns The number of approval requests matching the filters
  */
 export async function getApprovalHistoryCount(
   this: DatabaseService,
-  userId?: number,
-  status?: ApprovalStatus,
-  contentType?: 'movie' | 'show',
-  triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+  userId?: number | number[],
+  status?: ApprovalStatus | ApprovalStatus[],
+  contentType?: 'movie' | 'show' | ('movie' | 'show')[],
+  triggeredBy?: ApprovalTrigger | ApprovalTrigger[],
+  search?: string,
 ): Promise<number> {
   let query = this.knex('approval_requests')
 
   if (userId) {
-    query = query.where('approval_requests.user_id', userId)
+    if (Array.isArray(userId)) {
+      query = query.whereIn('approval_requests.user_id', userId)
+    } else {
+      query = query.where('approval_requests.user_id', userId)
+    }
   }
 
   if (status) {
-    query = query.where('approval_requests.status', status)
+    if (Array.isArray(status)) {
+      query = query.whereIn('approval_requests.status', status)
+    } else {
+      query = query.where('approval_requests.status', status)
+    }
   }
 
   if (contentType) {
-    query = query.where('approval_requests.content_type', contentType)
+    if (Array.isArray(contentType)) {
+      query = query.whereIn('approval_requests.content_type', contentType)
+    } else {
+      query = query.where('approval_requests.content_type', contentType)
+    }
   }
 
   if (triggeredBy) {
-    query = query.where('approval_requests.triggered_by', triggeredBy)
+    if (Array.isArray(triggeredBy)) {
+      query = query.whereIn('approval_requests.triggered_by', triggeredBy)
+    } else {
+      query = query.where('approval_requests.triggered_by', triggeredBy)
+    }
+  }
+
+  if (search) {
+    query = applySearchFilter(
+      query,
+      search,
+      'approval_requests.content_title',
+      this.isPostgres,
+    )
   }
 
   const result = await query.count('* as count').first()

@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -21,7 +20,7 @@ interface DiscordClearAlertProps {
 /**
  * Displays a modal confirmation dialog with customizable title and description for clearing Discord-related data.
  *
- * Offers "Cancel" and "Clear" actions; selecting "Clear" triggers the provided confirmation callback and closes the dialog.
+ * Offers "Cancel" and "Clear" actions; selecting "Clear" awaits the provided confirmation callback before closing the dialog.
  */
 export function DiscordClearAlert({
   open,
@@ -37,22 +36,23 @@ export function DiscordClearAlert({
           <CredenzaTitle className="text-foreground">{title}</CredenzaTitle>
           <CredenzaDescription>{description}</CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button
-              variant="clear"
-              onClick={() => {
-                onConfirm()
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={async () => {
+              try {
+                await onConfirm()
+              } finally {
                 onOpenChange(false)
-              }}
-            >
-              Clear
-            </Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+              }
+            }}
+          >
+            Clear
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

@@ -105,15 +105,76 @@ export const ApprovalRequestResponseSchema = z.object({
 })
 
 export const GetApprovalRequestsQuerySchema = z.object({
-  status: ApprovalStatusSchema.optional(),
-  userId: z.coerce.number().optional(),
-  contentType: z.enum(['movie', 'show']).optional(),
-  triggeredBy: ApprovalTriggerSchema.optional(),
-  // High limit supports client-side pagination in self-hosted deployments
-  // UI fetches all records once and paginates locally for better UX
-  // Trade-off: memory usage vs implementation complexity of server-side pagination
-  limit: z.coerce.number().min(1).max(50000).default(20),
+  // Status filter - accepts single value or comma-separated list for multi-select
+  status: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined
+      const statuses = val.split(',').filter(Boolean)
+      return statuses.length === 1 ? statuses[0] : statuses
+    })
+    .pipe(
+      z.union([ApprovalStatusSchema, z.array(ApprovalStatusSchema)]).optional(),
+    ),
+  // User ID filter - accepts single value or comma-separated list for multi-select
+  userId: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined
+      const ids = val
+        .split(',')
+        .filter(Boolean)
+        .map((id) => Number.parseInt(id, 10))
+        .filter((id) => !Number.isNaN(id))
+      return ids.length === 0 ? undefined : ids.length === 1 ? ids[0] : ids
+    })
+    .pipe(z.union([z.number(), z.array(z.number())]).optional()),
+  contentType: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined
+      const types = val.split(',').filter(Boolean)
+      return types.length === 1 ? types[0] : types
+    })
+    .pipe(
+      z
+        .union([z.enum(['movie', 'show']), z.array(z.enum(['movie', 'show']))])
+        .optional(),
+    ),
+  triggeredBy: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined
+      const triggers = val.split(',').filter(Boolean)
+      return triggers.length === 1 ? triggers[0] : triggers
+    })
+    .pipe(
+      z
+        .union([ApprovalTriggerSchema, z.array(ApprovalTriggerSchema)])
+        .optional(),
+    ),
+  // Content title search (case-insensitive partial match)
+  search: z.string().optional(),
+  // Server-side pagination
+  limit: z.coerce.number().min(1).max(1000).default(20),
   offset: z.coerce.number().min(0).default(0),
+  // Server-side sorting
+  sortBy: z
+    .enum([
+      'contentTitle',
+      'userName',
+      'status',
+      'triggeredBy',
+      'createdAt',
+      'expiresAt',
+    ])
+    .optional()
+    .default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 })
 
 export const ApprovalRequestsListResponseSchema = z.object({

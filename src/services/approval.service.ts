@@ -916,6 +916,7 @@ export class ApprovalService {
         contentTitle: approval.contentTitle,
         contentType: approval.contentType,
         contentKey: approval.contentKey,
+        contentGuids: approval.contentGuids,
         userId: approval.userId,
         userName: approval.userName,
         triggeredBy: approval.triggeredBy,

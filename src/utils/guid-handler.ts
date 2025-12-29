@@ -325,6 +325,40 @@ export function extractSonarrId(guids: string[] | string | undefined): number {
 }
 
 /**
+ * Builds a TMDB URL with deep linking support for seasons/episodes.
+ *
+ * @param guids - Input containing one or more GUIDs in various formats
+ * @param mediaType - 'movie' or 'show'
+ * @param episodeDetails - Optional season/episode numbers for deep linking
+ * @returns The TMDB URL, or undefined if no TMDB ID found
+ */
+export function getTmdbUrl(
+  guids: string[] | string | undefined,
+  mediaType: 'movie' | 'show',
+  episodeDetails?: { seasonNumber?: number; episodeNumber?: number },
+): string | undefined {
+  const tmdbId = extractTmdbId(guids)
+  if (!tmdbId) return undefined
+
+  if (mediaType === 'movie') {
+    return `https://www.themoviedb.org/movie/${tmdbId}`
+  }
+
+  // TV content - deep link to season/episode when available
+  let url = `https://www.themoviedb.org/tv/${tmdbId}`
+
+  if (episodeDetails?.seasonNumber !== undefined) {
+    url += `/season/${episodeDetails.seasonNumber}`
+
+    if (episodeDetails?.episodeNumber !== undefined) {
+      url += `/episode/${episodeDetails.episodeNumber}`
+    }
+  }
+
+  return url
+}
+
+/**
  * Extracts the Plex rating key from a Plex GUID or path.
  *
  * Examples:

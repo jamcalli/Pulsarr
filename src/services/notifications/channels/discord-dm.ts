@@ -56,6 +56,7 @@ export async function sendDirectMessage(
         notification.title,
         notification.embedFields,
         notification.safetyTriggered,
+        notification.tmdbUrl,
       )
     } else {
       embed = createMediaNotificationEmbed(notification)

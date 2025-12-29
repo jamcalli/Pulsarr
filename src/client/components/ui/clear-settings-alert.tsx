@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
 import {
   Credenza,
-  CredenzaBody,
   CredenzaClose,
   CredenzaContent,
   CredenzaDescription,
@@ -40,22 +39,23 @@ export function ClearSettingsAlert({
           <CredenzaTitle className="text-foreground">{title}</CredenzaTitle>
           <CredenzaDescription>{description}</CredenzaDescription>
         </CredenzaHeader>
-        <CredenzaBody>
-          <CredenzaFooter>
-            <CredenzaClose asChild>
-              <Button variant="neutral">Cancel</Button>
-            </CredenzaClose>
-            <Button
-              variant="clear"
-              onClick={() => {
-                onConfirm()
+        <CredenzaFooter>
+          <CredenzaClose asChild>
+            <Button variant="neutral">Cancel</Button>
+          </CredenzaClose>
+          <Button
+            variant="clear"
+            onClick={async () => {
+              try {
+                await onConfirm()
+              } finally {
                 onOpenChange(false)
-              }}
-            >
-              Clear
-            </Button>
-          </CredenzaFooter>
-        </CredenzaBody>
+              }
+            }}
+          >
+            Clear
+          </Button>
+        </CredenzaFooter>
       </CredenzaContent>
     </Credenza>
   )

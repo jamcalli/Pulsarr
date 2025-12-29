@@ -24,8 +24,10 @@ import { updateTrackingForContent } from '../tracking/content-tracker.js'
 import {
   filterAndFormatTagsAsLabels,
   getRemovedLabel,
+  includesLabelIgnoreCase,
   isAppUserLabel,
   isManagedLabel,
+  uniqueLabelsIgnoreCase,
 } from './label-validator.js'
 
 export interface LabelReconcilerDeps {
@@ -255,12 +257,12 @@ export async function reconcileLabelsForSingleItem(
       (label) => !isAppUserLabel(label, deps.config.labelPrefix),
     )
 
-    // Calculate label changes needed for ALL app-managed labels
+    // Calculate label changes needed for ALL app-managed labels (case-insensitive)
     const labelsToAdd = allDesiredLabels.filter(
-      (label) => !currentAppLabels.includes(label),
+      (label) => !includesLabelIgnoreCase(currentAppLabels, label),
     )
     const labelsToRemove = currentAppLabels.filter(
-      (label) => !allDesiredLabels.includes(label),
+      (label) => !includesLabelIgnoreCase(allDesiredLabels, label),
     )
 
     // Handle removed labels based on configuration
@@ -268,8 +270,8 @@ export async function reconcileLabelsForSingleItem(
     let specialRemovedLabel: string | null = null
 
     if (deps.removedLabelMode === 'keep') {
-      // Keep all existing labels and add new ones
-      finalLabels = [...new Set([...currentLabels, ...labelsToAdd])]
+      // Keep all existing labels and add new ones (case-insensitive dedup)
+      finalLabels = uniqueLabelsIgnoreCase([...currentLabels, ...labelsToAdd])
     } else if (deps.removedLabelMode === 'special-label') {
       // Handle special "removed" label logic:
       // - Add removed label whenever NO user labels exist (safe for deletion),
@@ -292,20 +294,27 @@ export async function reconcileLabelsForSingleItem(
               .toLowerCase()
               .startsWith(deps.removedLabelPrefix.toLowerCase()),
         )
-        finalLabels = [
-          ...new Set([...nonAppWithoutRemoved, specialRemovedLabel]),
-        ]
+        finalLabels = uniqueLabelsIgnoreCase([
+          ...nonAppWithoutRemoved,
+          specialRemovedLabel,
+        ])
         deps.logger.debug(
           `Added removed label for "${content.title}" - no active users, safe for deletion`,
         )
       } else {
         // User labels exist - preserve current user labels and add desired labels
         // (Removed labels will be cleaned up in the subsequent cleanup step below)
-        finalLabels = [...new Set([...nonAppLabels, ...allDesiredLabels])]
+        finalLabels = uniqueLabelsIgnoreCase([
+          ...nonAppLabels,
+          ...allDesiredLabels,
+        ])
       }
     } else {
       // Default 'remove' mode - clean removal of obsolete labels
-      finalLabels = [...new Set([...nonAppLabels, ...allDesiredLabels])]
+      finalLabels = uniqueLabelsIgnoreCase([
+        ...nonAppLabels,
+        ...allDesiredLabels,
+      ])
     }
 
     // Remove any existing "removed" labels when users are re-adding content

@@ -1,108 +1,97 @@
-import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
+import { useDashboardStatsQuery } from './useDashboardStatsQuery'
 
 /**
- * Returns status transition data and its loading/error state from the dashboard store.
- *
- * The hook reads `statusTransitions` from the dashboard store and returns an object
- * with `data` (falls back to an empty array when undefined), `isLoading` (mapped to
- * `loading.all`), and `error` (mapped to `errors.all`).
+ * Returns status transition data and its loading/error state.
  *
  * @returns An object containing:
  *  - `data`: the `statusTransitions` array or `[]` if undefined
- *  - `isLoading`: boolean indicating the global loading state (`loading.all`)
- *  - `error`: the global error state (`errors.all`)
+ *  - `isLoading`: boolean indicating the loading state
+ *  - `error`: the error message if present
  */
 export function useStatusTransitionData() {
-  const { statusTransitions, loading, errors } = useDashboardStore()
+  const { data, isLoading, error } = useDashboardStatsQuery()
 
   return {
-    data: statusTransitions || [],
-    isLoading: loading.all,
-    error: errors.all,
-  }
-}
-
-// This hook provides the content distribution data
-export function useContentDistributionData() {
-  const { contentTypeDistribution, loading, errors } = useDashboardStore()
-
-  return {
-    data: contentTypeDistribution || [],
-    isLoading: loading.all,
-    error: errors.all,
+    data: data?.status_transitions ?? [],
+    isLoading,
+    error: error instanceof Error ? error.message : null,
   }
 }
 
 /**
- * Read notification statistics and related load/error state from the dashboard store.
+ * Returns content type distribution data and its loading/error state.
+ */
+export function useContentDistributionData() {
+  const { data, isLoading, error } = useDashboardStatsQuery()
+
+  return {
+    data: data?.content_type_distribution ?? [],
+    isLoading,
+    error: error instanceof Error ? error.message : null,
+  }
+}
+
+/**
+ * Returns notification statistics and related load/error state.
  *
- * Returns the raw `notificationStats` value from the store (may be `undefined`), along with
- * the store's aggregate loading flag and aggregate error.
- *
- * @returns An object with `data` (notification statistics or `undefined`), `isLoading` (aggregate loading state), and `error` (aggregate error)
+ * @returns An object with `data` (notification statistics or `undefined`),
+ * `isLoading`, and `error`
  */
 export function useNotificationStatsData() {
-  const { notificationStats, loading, errors } = useDashboardStore()
+  const { data, isLoading, error } = useDashboardStatsQuery()
 
   return {
-    data: notificationStats,
-    isLoading: loading.all,
-    error: errors.all,
+    data: data?.notification_stats,
+    isLoading,
+    error: error instanceof Error ? error.message : null,
   }
 }
 
 /**
- * Return the dashboard's top genres data along with global loading and error states.
- *
- * The hook returns an object with:
- * - `data`: the `topGenres` slice from the dashboard store (falls back to an empty array if undefined).
- * - `isLoading`: the global `loading.all` flag from the store.
- * - `error`: the global `errors.all` value from the store.
+ * Returns top genres data along with loading and error states.
  *
  * @returns An object containing `data`, `isLoading`, and `error`.
  */
 export function useTopGenresData() {
-  const { topGenres, loading, errors } = useDashboardStore()
+  const { data, isLoading, error } = useDashboardStatsQuery()
 
   return {
-    data: topGenres || [],
-    isLoading: loading.all,
-    error: errors.all,
+    data: data?.top_genres ?? [],
+    isLoading,
+    error: error instanceof Error ? error.message : null,
   }
 }
 
 /**
- * Provides the grabbed-to-notified times data, loading status, and any associated error from the dashboard store.
+ * Provides the grabbed-to-notified times data, loading status, and any error.
  *
- * @returns An object containing the grabbed-to-notified times array (empty if unavailable), a loading indicator, and an error if present.
+ * @returns An object containing the grabbed-to-notified times array,
+ * a loading indicator, and an error if present.
  */
 export function useGrabbedToNotifiedData() {
-  const { grabbedToNotifiedTimes, loading, errors } = useDashboardStore()
+  const { data, isLoading, error } = useDashboardStatsQuery()
 
   return {
-    data: grabbedToNotifiedTimes || [],
-    isLoading: loading.all,
-    error: errors.all,
+    data: data?.grabbed_to_notified_times ?? [],
+    isLoading,
+    error: error instanceof Error ? error.message : null,
   }
 }
 
 /**
- * Return instance content breakdown along with loading and error states from the dashboard store.
- *
- * The returned `data` is the `instanceContentBreakdown` slice or an empty array if unavailable.
- * `isLoading` reflects the aggregate `loading.all` flag and `error` is `errors.all`.
+ * Returns instance content breakdown along with loading and error states.
  *
  * @returns An object with:
  *  - `data`: the instance content breakdown array (defaults to `[]`),
- *  - `isLoading`: boolean loading state (`loading.all`),
- *  - `error`: any aggregated error (`errors.all`).
+ *  - `isLoading`: boolean loading state,
+ *  - `error`: any error message.
  */
 export function useInstanceContentData() {
-  const { instanceContentBreakdown, loading, errors } = useDashboardStore()
+  const { data, isLoading, error } = useDashboardStatsQuery()
 
   return {
-    data: instanceContentBreakdown || [],
-    isLoading: loading.all,
-    error: errors.all,
+    data: data?.instance_content_breakdown ?? [],
+    isLoading,
+    error: error instanceof Error ? error.message : null,
   }
 }

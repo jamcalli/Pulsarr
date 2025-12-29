@@ -7,6 +7,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { VersionDisplay } from '@/components/ui/version-display'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface WindowedLayoutProps {
@@ -39,6 +40,9 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
             <h1 className="whitespace-nowrap font-bold rotate-0 text-[30px] tracking-[2px]">
               <span className="text-black inline-block">Pulsarr</span>
             </h1>
+
+            {/* Version */}
+            <VersionDisplay className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-black/70" />
           </header>
 
           {/* Main content area */}
@@ -81,10 +85,11 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset className="bg-background">
-            <header className="flex h-12 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 bg-main border-b-4 border-b-border">
+            <header className="flex h-12 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 bg-main border-b-4 border-b-border">
               <div className="flex items-center gap-2 px-4">
                 <SidebarTrigger className="-ml-1" />
               </div>
+              <VersionDisplay className="px-4 text-xs text-black/70" />
             </header>
             <div className="flex flex-1 flex-col min-h-0">
               <ScrollArea className="flex-1">{children}</ScrollArea>

@@ -37,18 +37,18 @@ interface BulkApprovalModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   selectedRequests: ApprovalRequestResponse[]
-  onBulkApprove?: (requestIds: string[]) => Promise<void>
-  onBulkReject?: (requestIds: string[]) => Promise<void>
-  onBulkDelete?: (requestIds: string[]) => Promise<void>
+  onBulkApprove?: (requestIds: string[]) => void
+  onBulkReject?: (requestIds: string[]) => void
+  onBulkDelete?: (requestIds: string[]) => void
   actionStatus: BulkActionStatus
   currentAction?: BulkActionType | null
 }
 
 interface FormContentProps {
   selectedRequests: ApprovalRequestResponse[]
-  onApprove: () => Promise<void>
-  onReject: () => Promise<void>
-  onDelete: () => Promise<void>
+  onApprove: () => void
+  onReject: () => void
+  onDelete: () => void
   onCancel: () => void
   actionStatus: BulkActionStatus
   currentAction?: BulkActionType | null
@@ -301,16 +301,16 @@ export default function BulkApprovalModal({
   // Can reject: only pending requests (cannot go approved -> rejected)
   const canReject = hasPending && !hasApproved
 
-  const handleBulkAction = async (
+  const handleBulkAction = (
     action: BulkActionType,
-    actionFn?: (requestIds: string[]) => Promise<void>,
+    actionFn?: (requestIds: string[]) => void,
   ) => {
     if (!actionFn || selectedRequests.length === 0) return
 
     const requestIds = selectedRequests.map((req) => String(req.id))
 
     try {
-      await actionFn(requestIds)
+      actionFn(requestIds)
     } catch (error) {
       console.error(`Error in bulk ${action}:`, error)
       toast.error(`Failed to ${action} approval requests`)

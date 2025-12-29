@@ -13,7 +13,8 @@ interface ColumnConfig {
   width?: string
   className?: string
   hideOnMobile?: boolean
-  type?: 'text' | 'badge' | 'icon' | 'button' | 'checkbox'
+  type?: 'text' | 'badge' | 'icon' | 'button' | 'checkbox' | 'twoLine' | 'contentWithIcon' | 'empty'
+  align?: 'left' | 'center' | 'right'
 }
 
 interface TableSkeletonProps {
@@ -166,17 +167,110 @@ export function TableLoadingState({
   className?: string
 }) {
   return (
-    <div 
+    <div
       className={`flex flex-col items-center justify-center py-12 ${className || ''}`}
       role="status"
       aria-live="polite"
       aria-label={message}
     >
-      <Loader2 
+      <Loader2
         className="h-8 w-8 animate-spin text-muted-foreground mb-3"
         aria-hidden="true"
       />
       <p className="text-sm text-muted-foreground">{message}</p>
     </div>
+  )
+}
+
+interface TableRowsSkeletonProps {
+  rows: number
+  columnCount: number
+  columns?: ColumnConfig[]
+}
+
+/**
+ * Renders skeleton rows for use inside an existing table body.
+ * Keeps header, toolbar, and pagination visible while only row content shows loading state.
+ */
+export function TableRowsSkeleton({
+  rows,
+  columnCount,
+  columns,
+}: TableRowsSkeletonProps) {
+  const columnConfigs: ColumnConfig[] =
+    columns || Array.from({ length: columnCount }, () => ({ type: 'text' }))
+
+  const renderSkeletonContent = (column: ColumnConfig) => {
+    switch (column.type) {
+      // Empty cell (for hidden columns that still render a cell)
+      case 'empty':
+        return null
+
+      // Icon + two lines (like Content column with icon, title, subtitle)
+      case 'contentWithIcon':
+        return (
+          <div className="flex items-center gap-2 max-w-[300px]">
+            <Skeleton className="h-4 w-4 shrink-0" />
+            <div className="space-y-1">
+              <Skeleton className={`h-4 ${column.width || 'w-40'}`} />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          </div>
+        )
+
+      // Two lines centered (like date + time) - matches text-center div structure
+      case 'twoLine':
+        return (
+          <div className="text-center">
+            <Skeleton className={`h-4 ${column.width || 'w-16'} mx-auto`} />
+            <Skeleton className="h-3 w-10 mt-1 mx-auto" />
+          </div>
+        )
+
+      // Badge centered - matches flex justify-center structure
+      case 'badge':
+        return (
+          <div className="flex justify-center">
+            <Skeleton className={`h-6 ${column.width || 'w-16'}`} />
+          </div>
+        )
+
+      case 'checkbox':
+        return <Skeleton className="h-4 w-4 rounded-xs" />
+
+      // Button/actions - matches flex items-center gap-1 structure
+      case 'button':
+        return (
+          <div className="flex items-center gap-1">
+            <Skeleton className="h-8 w-8" />
+          </div>
+        )
+
+      case 'icon':
+        return <Skeleton className="h-5 w-5" />
+
+      // Default text - left aligned
+      default:
+        return <Skeleton className={`h-4 ${column.width || 'w-24'}`} />
+    }
+  }
+
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, rowIndex) => (
+        <TableRow key={`skeleton-row-${rowIndex}`}>
+          {columnConfigs.map((column, colIndex) => (
+            <TableCell
+              key={`skeleton-cell-${rowIndex}-${colIndex}`}
+              className={`px-2 py-2 ${column.className || ''} ${
+                column.hideOnMobile ? 'hidden sm:table-cell' : ''
+              }`}
+            >
+              {renderSkeletonContent(column)}
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </>
   )
 }

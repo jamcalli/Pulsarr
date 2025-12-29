@@ -64,7 +64,7 @@ export function WebhookEndpointModal({
 }: WebhookEndpointModalProps) {
   const [showAuthValue, setShowAuthValue] = useState(false)
   const [showAuthFields, setShowAuthFields] = useState(
-    !!form.getValues('authHeaderName'),
+    !!editingEndpoint?.authHeaderName,
   )
   const isEditing = !!editingEndpoint
 

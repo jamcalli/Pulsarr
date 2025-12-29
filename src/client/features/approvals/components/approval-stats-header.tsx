@@ -40,7 +40,7 @@ export default function ApprovalStatsHeader({
         ].map((type) => (
           <Skeleton
             key={`skeleton-${type}`}
-            className="h-20 w-full rounded-md"
+            className="h-[106px] w-full rounded-md"
           />
         ))}
       </div>

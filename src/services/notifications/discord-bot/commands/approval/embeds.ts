@@ -6,6 +6,7 @@
  */
 
 import type { ApprovalRequest } from '@root/types/approval.types.js'
+import { getTmdbUrl } from '@root/utils/guid-handler.js'
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -144,6 +145,19 @@ export function createApprovalEmbed(
         name: 'Content GUIDs',
         value: approval.contentGuids.join(', '),
         inline: false,
+      },
+    ])
+  }
+
+  // Add TMDB link if available
+  const mediaType = approval.contentType === 'show' ? 'show' : 'movie'
+  const tmdbUrl = getTmdbUrl(approval.contentGuids, mediaType)
+  if (tmdbUrl) {
+    embed.addFields([
+      {
+        name: 'More Info',
+        value: `[View on TMDB](${tmdbUrl})`,
+        inline: true,
       },
     ])
   }
@@ -326,6 +340,19 @@ export function createDetailsEmbed(approval: ApprovalRequest): EmbedBuilder {
         name: 'Content GUIDs',
         value: approval.contentGuids.join('\n'),
         inline: false,
+      },
+    ])
+  }
+
+  // Add TMDB link if available
+  const mediaType = approval.contentType === 'show' ? 'show' : 'movie'
+  const tmdbUrl = getTmdbUrl(approval.contentGuids, mediaType)
+  if (tmdbUrl) {
+    detailsEmbed.addFields([
+      {
+        name: 'More Info',
+        value: `[View on TMDB](${tmdbUrl})`,
+        inline: true,
       },
     ])
   }
