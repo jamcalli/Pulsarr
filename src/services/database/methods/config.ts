@@ -141,6 +141,7 @@ export async function getConfig(
     enableApprise: Boolean(config.enableApprise),
     appriseUrl: config.appriseUrl || '',
     systemAppriseUrl: config.systemAppriseUrl || undefined,
+    appriseEmailSender: config.appriseEmailSender || undefined,
     // Handle Tautulli configuration
     tautulliEnabled: Boolean(config.tautulliEnabled),
     tautulliUrl: config.tautulliUrl || '',
@@ -280,6 +281,7 @@ export async function createConfig(
       enableApprise: config.enableApprise || false,
       appriseUrl: config.appriseUrl || '',
       systemAppriseUrl: config.systemAppriseUrl || undefined,
+      appriseEmailSender: config.appriseEmailSender || undefined,
       // Tautulli fields
       tautulliEnabled: config.tautulliEnabled || false,
       tautulliUrl: config.tautulliUrl || '',
@@ -438,6 +440,7 @@ const ALLOWED_COLUMNS = new Set([
   'enableApprise',
   'appriseUrl',
   'systemAppriseUrl',
+  'appriseEmailSender',
 
   // Public content notifications (JSON column)
   'publicContentNotifications',

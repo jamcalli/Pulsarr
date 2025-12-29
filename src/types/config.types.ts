@@ -110,6 +110,7 @@ export interface Config {
   enableApprise: boolean
   appriseUrl: string
   systemAppriseUrl: string
+  appriseEmailSender?: string
   // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
   publicContentNotifications?: {
     enabled: boolean
