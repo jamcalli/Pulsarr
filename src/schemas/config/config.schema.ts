@@ -44,7 +44,7 @@ const DiscordWebhookUrlSchema = z
 
 /**
  * Checks if a value is a plain email address (not a full Apprise URL).
- * Plain emails contain @ but no :// protocol prefix.
+ * Duplicated from apprise-email.ts because this schema is shared with client.
  */
 const isPlainEmail = (value: string): boolean =>
   value.includes('@') && !value.includes('://')
