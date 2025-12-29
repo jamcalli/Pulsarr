@@ -41,9 +41,10 @@ export function useApprovalModalActions({
     approveRequest.reset()
     rejectRequest.reset()
     deleteApproval.reset()
+    updateApproval.reset()
     setAction(null)
     setNotes('')
-  }, [approveRequest, rejectRequest, deleteApproval])
+  }, [approveRequest, rejectRequest, deleteApproval, updateApproval])
 
   const handleApprove = async () => {
     try {

@@ -138,8 +138,7 @@ export function createApprovalWebhookEmbed(
   posterUrl?: string,
 ): DiscordEmbed {
   // Generate TMDB URL from content GUIDs
-  const mediaType = request.contentType === 'show' ? 'show' : 'movie'
-  const tmdbUrl = getTmdbUrl(request.contentGuids, mediaType)
+  const tmdbUrl = getTmdbUrl(request.contentGuids, request.contentType)
 
   const fields = [
     {
@@ -294,8 +293,7 @@ export function createAppriseApprovalPayload(
   )
 
   // Generate TMDB URL from content GUIDs
-  const mediaType = request.contentType === 'show' ? 'show' : 'movie'
-  const tmdbUrl = getTmdbUrl(request.contentGuids, mediaType)
+  const tmdbUrl = getTmdbUrl(request.contentGuids, request.contentType)
 
   return {
     type: 'system' as const,
@@ -367,8 +365,7 @@ async function sendDiscordDM(
     let tmdbUrl: string | undefined
     if (!isMultiple && queuedRequests.length === 1) {
       const request = queuedRequests[0]
-      const mediaType = request.contentType === 'show' ? 'show' : 'movie'
-      tmdbUrl = getTmdbUrl(request.contentGuids, mediaType)
+      tmdbUrl = getTmdbUrl(request.contentGuids, request.contentType)
     }
 
     const systemNotification: SystemNotification = {
