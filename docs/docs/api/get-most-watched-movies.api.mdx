@@ -1,11 +1,11 @@
 ---
 id: get-most-watched-movies
 title: "Get most watched movies"
-description: "Retrieve the most watchlisted movies"
+description: "Retrieve the most watchlisted movies with optional date filtering and pagination"
 sidebar_label: "Get most watched movies"
 hide_title: true
 hide_table_of_contents: true
-api: eJztVt9rGzkQ/lfEPF1hfWu3KSX7FtqjhGvAJL0fEMyhaCdeNStpK42cGLP/+zHSrr1OXK7luLfzi23NzDczn0aftAPXoZeknb2soYI10pUL9Ick1WB95TYaAxRAch2guoUbkqQDaRVgVUCNQXndcTBUcI3kNW5QUIPCuEDikVFaHQhrYUaoTnppkNAz4A6CatBIqHZQ472MLUG1mBdA2w6hAm0J1+ihAHxSbQx6g1faahMNVOQjFmDkU/57Pp+/W5yfv3579u5sfn6+6AvQXNbXiH4LBVhpGLHVRhP0qwI8hs7ZgIGTv57Pcw3Tjj7kisT14AkFKGcJLbGv7LpWq0Rd+SVwwLSboQHpveTsmtCEybq7+4KKmA7PG0A6l0GaWpy4BfLarqHnxDGnHSw2mjv0bKEmmju22Ni28o7jMzUvMNZR1+E7ihsj+n2/f2XLc48C0DL3t5C2FwoIjXuEFUd6/Bq1x5qtua2xibHkVQGyrjUTKNvlhId72Qbs+VPA2X+0Md/YgECSYnjvajzJtTo2HKhF750/aTEYglyfJM9o+wntmhqoFs8pmxQypB2THCD/mcAC3v7P37/gL+Wnxg3SmOSL00G5WZScIpR7YQvoN6OqRd9CBbvOO3LKtX1VlrvGBeqrXec89fBcPN/HQM6Im4QBBWyk13yWE6kjDP8eD1xD1EGRvgYtHtRztBzjf25QjDAiBqwFOaGcMdHyVqN41NQk5c5tMPNc8JEwQ+uUbNPyKXw2sMoK58XlUsi69hiCcPcJdxnbIL2f4DMTx/hv5vM3p0t3noSz4rHRqtlD6SB8tDZrVV+MtCdOqrLcuuhnXfadaRtIWoU/K2depFh6baTfjvT/AFR1suQP2qOiAU5cKMU8/JQo5k5ePctQleWe2dOAn0bzSbAVD5+KXtM2TZ/s9K+4vYg8qbcrzhUwBO3sfmkSccMnO8/ZNO5wSaRFGG7TBmWdBnS4Tv+cXSwvZ9nhuOSL5aV4wK2QkRq0NAiKiEHbtdiHiQGwL45r/EZ65dxDumeG9MOWvEh+k7Fmd5JH/WQJGSqkW07beze5fmEcsIvl5cm+aqeiQUsZ7975/UjOhBTLFp8Obx+R3jD+4HrjLHtKW4trWefqWTgy/O+LfDQCGZmUd+j0I9LkUTV9UB2VtzsI+fc+yAaiCZ+o7FqpLReQhnM3qN0tbBYscKx3LJ85cjUqxC3sdkz0b77te17OTy6exFoHVrF6kNQCHnC7f4SxyrWRc6cRHiUvz+w4aYySg3jyu2nUi3uKUfZy/fGXz9D3fwMsrMUW
+api: eJztVt9v2zgM/lcEPt0BzjnZOgz1W7EdhuJWIFh3P4AiOKg2E2u1JE+i0gaB//eBkp04rYvrcNg93VNTk/o+iqQ+cg+2RSdJWXNZQQEbpCvr6U9JZY3Vld0q9JAByY2H4gauSZLypEoPqwwq9KVTLR+GAj4hOYVbFFSj0NaTuGeURnnCSugIJe4V1cLGI7IRlSQUa9UQOmU2QppKtHKjTIwHMmilkxoJHZPvwZc1agnFHipcy9AQFIt5BrRrEQpQhnCDDjLAh7IJXm3xShmlg4aCXMAMtHxI/57P528X5+ev3py9PZufny+6DBRf4WtAt4MMjNSM2CitCLpsknmKWA988+8ns+u1x/+MrZI7D90qA4e+tcajZ7pX83liHdf1fYpBfOo9IYPSGkJD7CvbtlFlLFj+xfOBcfx9zNI5yeSKUPvRd3v7BUviQjtuQ1IpDFLU4MjNE7cHdEwcEm1vMUHfomML1UHfssWEppG3fD4V/QnGJqjKvyC44UR3uO/fyfLYIwM0nPobiE0OGfja3sOqyyD42Lsv5+q4Il+DclgxYMrEcO/hlqsMZFWp9IiWo9StZeOx6yLM2Q+q5TM18yQp+He2wsnylKeGYzXQOesmLRq9l5vJfGtlPqLZUA3F4nHKRoH0tAPJEfKfE5jBm//z9y/yF/mptv1MiVrOdJBvFzlT+FwPw8Wj2w4SH1wDBexbZ8mWtumKPN/X1lNX7FvrqIPHU+dd8GS1uI4YkMFWOsXPPyZ1gOHfwxutiVrI4p9+iPUSO1hO8T/XKAYYETxWgqwordbBcKkxTTQeeekanHkO+ES9obGlbOLnKXw2sC4L68TlUsiqcui9sOuIuwyNl86N8DkTp/iv5/PX06FbR8IacV+rsj5AKS9cMGaQnCHtMSdFnu9scLM2+c6U8SRNib+UVj+hWDqlpdsN6f8OqGIy5PfKYUk9nLgoS87DTzHFfJOfHzEUeX7I7DTgx8E8Cbbi5iuDU7SL3Sdb9RvuLgJ36s0qjmL0Xllz+DQ6cc0vO/XZ+NxR6+NH6OdvjbKKDdoP4L9mF8vLWXI4DflieSnucCdkoBoN9YIigucV6XBM9IBddhrjM/SltXdxNPX0fUmekF8nrNmt5FafDCFB+TgYlVnb0cSGocEulpeT96psGTQaSnhr6w4tORNSLBt8OC6NIm467uh6bQ178pb4SVYpehaOBP/HIj0NT1pG5e1v+gFptI0eNtHH4e2PQv4jNtm+KIQPlLeNVIaDjY2875XxBrYLFkPWRpbaFOVqUJMb2O+5KL+7puv4c1rouGsr5Vnxql5+M7jD3WF7ZUVsAnPHt/OMb798vsw57o5j19VRdtO7Gbqdo0tn+PW1Y4Ins5JRDiPjw6+foeu+AWleV5s=
 sidebar_class_name: "get api-method"
 info_path: docs/api/pulsarr-api
 custom_edit_url: null
@@ -36,7 +36,7 @@ import Heading from "@theme/Heading";
 
 
 
-Retrieve the most watchlisted movies
+Retrieve the most watchlisted movies with optional date filtering and pagination
 
 <Heading
   id={"request"}
@@ -47,7 +47,7 @@ Retrieve the most watchlisted movies
 </Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"default":10,"type":"integer","exclusiveMinimum":true,"maximum":9007199254740991},"in":"query","name":"limit"}]}
+  parameters={[{"schema":{"default":10,"type":"integer","exclusiveMinimum":true,"maximum":9007199254740991},"in":"query","name":"limit"},{"schema":{"default":0,"type":"integer","minimum":0,"maximum":9007199254740991},"in":"query","name":"offset"},{"schema":{"default":0,"type":"integer","minimum":0,"maximum":9007199254740991},"in":"query","name":"days"}]}
 >
   
 </ParamsDetails>
@@ -62,7 +62,7 @@ Retrieve the most watchlisted movies
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"count":{"type":"number"},"thumb":{"nullable":true,"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"content_type":{"type":"string","enum":["movie","show"]}},"required":["title","count","thumb"],"additionalProperties":false}}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"count":{"type":"number"},"thumb":{"nullable":true,"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"content_type":{"type":"string","enum":["movie","show"]},"users":{"type":"array","items":{"type":"string"}}},"required":["title","count","thumb"],"additionalProperties":false}}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
 >
   
 </StatusCodes>

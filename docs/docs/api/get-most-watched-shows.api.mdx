@@ -1,11 +1,11 @@
 ---
 id: get-most-watched-shows
 title: "Get most watched shows"
-description: "Retrieve the most watchlisted TV shows"
+description: "Retrieve the most watchlisted TV shows with optional date filtering and pagination"
 sidebar_label: "Get most watched shows"
 hide_title: true
 hide_table_of_contents: true
-api: eJztVlFv2zYQ/ivEPW2APNltiiJ6C9qhMNYCRpx1AwJjoKmzxUYiVfLoxDD034sjJVtOXKzDsLf5xTaP993dx+N3PIBt0UnS1sxLKGCL9Ml6+kOSqrBcVvbRQwYktx6Ke1iSJO1JKw+rDEr0yumWfaGAWySncYeCKhSN9SQeGaTWnrAUd5+F78Fa6WSDhI4hD+BVhY2E4gAlbmSoCYrZNAPatwgFaEO4RQcZ4JOqg9c7/KSNbkIDBbmAGTTyKf29nk7fzq6vX725ens1vb6edRloTuxrQLeHDIxsGLHWjSboVhk49K01Hj0HfzWdphzGNb1PGYnbfidkoKwhNMR7ZdvWWkXu8i+eHcbV9AVI5yRH14SNH63b9RdUxHQ4PgHSKQ3SVONomyenzRY6DhxS2N5iQrNGxxaqQrNmiwl1Ldfsn6h5gbENuvQ/kNzg0R3r/StZnu/IAA1zfw+N3Wnmh08ZVuzp8GvQDku2prKGIoaUVxnIstRMoKwXIx42svbY8SeDq//oYL5zAJ4kBf/OlniRa3VuOFGLzll30dKg93J7kbxGm49otlRBMXtO2SiRPuwQ5AT59wRm8OZ//v4FfzE+VbbXxihfHA7y3SznED4fdM2j2w2iFlwNBRxaZ8kqW3dFnh8q66krDq111MFz9XwXPNlGLCMGZLCTTvNVjpwOMPx7uG8VUQtZ/OrFuBfPwXKOf1ehGGBE8FgKskLZpgmGTxrFo6YqSncqg4nnhM90GWqrZB2XL+GzgUVWWCfmCyHL0qH3wm4i7iLUXjo3wmcmzvFfT6evL6duHQlrxGOlVXWE0l64YEySqi4baI+cFHm+t8FN2rR3oo0naRT+omzzIsTC6Ua6/UD/P4AqLqb8XjtU1MOJG6WYh58ixVzJz88iFHl+ZPYy4MfBfBFsxc2ngtO0j90nW/0b7m8CN+r9imN59F5bc1waeSz5Yqc+G/udZkRchH6YVijL2KD9NP1zcrOYT9KG85RvFnPxgHshA1VoqNcTEbw2W3F0Ez1gl53n+J3wytqHOGb68P2RvAi+TFiTteRWv5hCgvJxyGmzsaPpC0OD3SzmF+sqrQoNGkp4G+uOLTkRUixqfDo9fkR8wrjT1qU1vFOaUtzKMmXPwpHgP8/S1fDUyCi8faUfkEavKiyPz6mz7A4nGf/xB1nPNOET5W0tteEMYnceerW7h92MFY71rp/xUXSSQtzD4cBE/+7qruPl9OLiTiy1ZxUre0XN4AH3xzcYq1wdOHRs4UHyUs8OncYoyYk7vx17vRhTjHJU6w+/3kHXfQOe08Rw
+api: eJztVlFv2zYQ/ivEPa2APNttiiJ6C9qhCNYCRpx1AwJjYMSzxUYiVfLoxDD034cjJVtOFDTF0D3tKY7u+H3Hu+N3twfboJOkrblUkMMG6bP19KekokS1LO29hwxIbjzkN7AkSdqTLjysMlDoC6cbPgs5XCE5jVsUVKKorSdxzyCV9oRKXH8RnsHEvaZS2HhIVkJJQrHWFaHTZiOkUaKRG21iQJBBI52skdAx/R58UWItId+DwrUMFUE+n2VAuwYhB20IN+ggA3woquD1Fj9ro+tQQ04uYAa1fEj/ns9m7+bn56/fnr07m52fz9sMNF/iW0C3gwyMrBmx0rUmaLNR5jHiuueb/TiZXa89/mdsSu48tKsMHPrGGo+e6V7PZol1WNkPKQZx1XlCBoU1hIbYVzZNpYtYsOlXzweG8XcxS+ckk2vC2g++29uvWBAX2nEfkk5hkKYKB26euD2gZeKQaDuLCfUtOrZQGepbtphQVfKWz6eiP8HYBK38C4LrT7SH+/6dLI89MkDDqb+B2m4154d7HVZtBsHH3n05V8sV+Ra0Q8WAKRP9vftbrjKQSun0iBaD1K1l5bFtI8zZT6rlMzXzJCn491bhaHmKU8OxGuicdaOWGr2Xm9F819p8QrOhEvL545QNAuloe5Ij5PcTmMHb//P3L/IX+am03VCJWs50MN3Op0zhp76bLh7dtlf44CrIYd84S7awVZtPp/vSemrzfWMdtfB47LwPnmwtlhEDMthKp/n1x5z2MPy7f6IlUQNZ/NNNsU5he8sp/nWJoocRwaMSZEVh6zoYrjSmgcYzL12DE88Bn4g3VLaQVfw8hs8GlmVhnbhcCKmUQ++FXUfcRai8dG6Az5k4xX8zm70ZD906EtaI+1IX5QFKe+GCMb3i9GmPOcmn050NbtIk34k2nqQp8NfC1k8oFk7X0u369P8AVD4a8gftsKAOTlwUBefhl5hivsmrRwz5dHrI7Djgp948Crbi5iuC07SL3Scb/TvuLgI36s0qTmL0Xltz+DQ4seSHnfpseO4o9fEjdOO3RKlig3bz96/JxeJykhxOQ75YXIo73AkZqERDnZ6I4HlDOhwTHWCbncb4DH1h7V2cTB19V5In5MuENbmV3OqjISQoH+eiNms7GNjQN9jF4nL0XsoWoUZDCW9t3aElJ0KKRYUPx61RxEXHHV2X1rAnL4lXUqXoWTgS/Jd5ehqeahmFt7vpR6TBOopK9LJzEt3+KOM/Z5PtqkL4QNOmktpwtLGT950y3sB2zmrI2titEFGgkprcwH7PRfnDVW3Ln9M+x12rtGfFU536ZnCHu8PyyopYBaaOb+cZ3273fJlzXB2Hrquj7KZ303c7R5fO8OtrhgRPRiWjHCbGx9+uoW3/AS79VvU=
 sidebar_class_name: "get api-method"
 info_path: docs/api/pulsarr-api
 custom_edit_url: null
@@ -36,7 +36,7 @@ import Heading from "@theme/Heading";
 
 
 
-Retrieve the most watchlisted TV shows
+Retrieve the most watchlisted TV shows with optional date filtering and pagination
 
 <Heading
   id={"request"}
@@ -47,7 +47,7 @@ Retrieve the most watchlisted TV shows
 </Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"default":10,"type":"integer","exclusiveMinimum":true,"maximum":9007199254740991},"in":"query","name":"limit"}]}
+  parameters={[{"schema":{"default":10,"type":"integer","exclusiveMinimum":true,"maximum":9007199254740991},"in":"query","name":"limit"},{"schema":{"default":0,"type":"integer","minimum":0,"maximum":9007199254740991},"in":"query","name":"offset"},{"schema":{"default":0,"type":"integer","minimum":0,"maximum":9007199254740991},"in":"query","name":"days"}]}
 >
   
 </ParamsDetails>
@@ -62,7 +62,7 @@ Retrieve the most watchlisted TV shows
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"count":{"type":"number"},"thumb":{"nullable":true,"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"content_type":{"type":"string","enum":["movie","show"]}},"required":["title","count","thumb"],"additionalProperties":false}}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"count":{"type":"number"},"thumb":{"nullable":true,"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"content_type":{"type":"string","enum":["movie","show"]},"users":{"type":"array","items":{"type":"string"}}},"required":["title","count","thumb"],"additionalProperties":false}}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
 >
   
 </StatusCodes>

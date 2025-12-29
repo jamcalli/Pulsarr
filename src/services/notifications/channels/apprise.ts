@@ -16,7 +16,10 @@ import type {
   MediaNotification,
   SystemNotification,
 } from '@root/types/discord.types.js'
-import { getPublicContentUrls } from '@root/utils/notifications/index.js'
+import {
+  getPublicContentUrls,
+  resolveAppriseUrls,
+} from '@root/utils/notifications/index.js'
 import type { FastifyBaseLogger } from 'fastify'
 import {
   createDeleteSyncNotificationHtml,
@@ -37,6 +40,7 @@ export interface AppriseDeps {
     appriseUrl?: string
     enableApprise?: boolean
     systemAppriseUrl?: string
+    appriseEmailSender?: string
     publicContentNotifications?: {
       enabled: boolean
       appriseUrls?: string
@@ -260,13 +264,17 @@ export async function sendPublicNotification(
 
 /**
  * Sends a media notification to a user via their configured Apprise URL.
+ *
+ * Supports plain email addresses (e.g., user@example.com) when admin has
+ * configured an email sender URL. Plain emails are resolved to full Apprise
+ * URLs using the admin's sender with ?to= parameter.
  */
 export async function sendMediaNotification(
   user: User,
   notification: MediaNotification,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log } = deps
+  const { log, config } = deps
 
   if (!isAppriseEnabled(deps) || !user.apprise) {
     return false
@@ -275,6 +283,17 @@ export async function sendMediaNotification(
   if (user.notify_apprise === false) {
     log.debug(
       `User ${user.name} has Apprise notifications disabled, skipping media notification`,
+    )
+    return false
+  }
+
+  // Resolve user's apprise value to full URL(s)
+  // This handles plain email addresses by appending ?to= to admin's sender URL
+  const targetUrl = resolveAppriseUrls(user.apprise, config.appriseEmailSender)
+  if (!targetUrl) {
+    log.debug(
+      { userId: user.id, apprise: user.apprise },
+      'Could not resolve apprise URL (plain email without admin sender configured?)',
     )
     return false
   }
@@ -298,7 +317,7 @@ export async function sendMediaNotification(
     }
 
     const success = await sendAppriseNotification(
-      user.apprise,
+      targetUrl,
       appriseNotification,
       deps,
     )
@@ -333,10 +352,14 @@ export async function sendSystemNotification(
   }
 
   try {
-    const systemUrl = config.systemAppriseUrl
+    // Resolve system URL (handles plain email addresses)
+    const systemUrl = resolveAppriseUrls(
+      config.systemAppriseUrl || '',
+      config.appriseEmailSender,
+    )
     if (!systemUrl) {
       log.debug(
-        'System Apprise URL not configured, skipping system notification',
+        'System Apprise URL not configured or could not be resolved, skipping system notification',
       )
       return false
     }
@@ -396,10 +419,14 @@ export async function sendDeleteSyncNotification(
   }
 
   try {
-    const systemUrl = config.systemAppriseUrl
+    // Resolve system URL (handles plain email addresses)
+    const systemUrl = resolveAppriseUrls(
+      config.systemAppriseUrl || '',
+      config.appriseEmailSender,
+    )
     if (!systemUrl) {
       log.debug(
-        'System Apprise URL not configured, skipping delete sync notification',
+        'System Apprise URL not configured or could not be resolved, skipping delete sync notification',
       )
       return false
     }
@@ -459,10 +486,14 @@ export async function sendWatchlistAdditionNotification(
   }
 
   try {
-    const systemUrl = config.systemAppriseUrl
+    // Resolve system URL (handles plain email addresses)
+    const systemUrl = resolveAppriseUrls(
+      config.systemAppriseUrl || '',
+      config.appriseEmailSender,
+    )
     if (!systemUrl) {
       log.debug(
-        'System Apprise URL not configured, skipping watchlist addition notification',
+        'System Apprise URL not configured or could not be resolved, skipping watchlist addition notification',
       )
       return false
     }
@@ -524,9 +555,19 @@ export async function sendTestNotification(
   targetUrl: string,
   deps: AppriseDeps,
 ): Promise<boolean> {
-  const { log } = deps
+  const { log, config } = deps
 
   try {
+    // Resolve target URL (handles plain email addresses)
+    const resolvedUrl = resolveAppriseUrls(targetUrl, config.appriseEmailSender)
+    if (!resolvedUrl) {
+      log.debug(
+        { targetUrl },
+        'Could not resolve test notification URL (plain email without admin sender configured?)',
+      )
+      return false
+    }
+
     const { htmlBody, textBody, title } = createTestNotificationHtml()
 
     const notification: AppriseNotification = {
@@ -539,7 +580,7 @@ export async function sendTestNotification(
       attach_url: PULSARR_ICON_URL,
     }
 
-    return await sendAppriseNotification(targetUrl, notification, deps)
+    return await sendAppriseNotification(resolvedUrl, notification, deps)
   } catch (error) {
     log.error(
       { error: error instanceof Error ? error : new Error(String(error)) },
