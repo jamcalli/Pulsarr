@@ -32,6 +32,7 @@ interface AppriseFormProps {
 
 const appriseFormSchema = z.object({
   systemAppriseUrl: z.string().optional(),
+  appriseEmailSender: z.string().optional(),
 })
 
 type AppriseFormSchema = z.infer<typeof appriseFormSchema>
@@ -55,6 +56,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
     resolver: zodResolver(appriseFormSchema),
     defaultValues: {
       systemAppriseUrl: '',
+      appriseEmailSender: '',
     },
     mode: 'onChange',
   })
@@ -62,8 +64,13 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
   React.useEffect(() => {
     if (config) {
       appriseForm.setValue('systemAppriseUrl', config.systemAppriseUrl || '')
+      appriseForm.setValue(
+        'appriseEmailSender',
+        config.appriseEmailSender || '',
+      )
       appriseForm.reset({
         systemAppriseUrl: config.systemAppriseUrl || '',
+        appriseEmailSender: config.appriseEmailSender || '',
       })
     }
   }, [config, appriseForm])
@@ -72,6 +79,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
     if (config) {
       appriseForm.reset({
         systemAppriseUrl: config.systemAppriseUrl || '',
+        appriseEmailSender: config.appriseEmailSender || '',
       })
     }
   }
@@ -86,6 +94,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
       await Promise.all([
         updateConfig({
           systemAppriseUrl: data.systemAppriseUrl,
+          appriseEmailSender: data.appriseEmailSender,
         }),
         minimumLoadingTime,
       ])
@@ -206,6 +215,44 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
         >
           <FormField
             control={appriseForm.control}
+            name="appriseEmailSender"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center gap-1">
+                  <FormLabel className="text-foreground">
+                    Email Sender (Optional)
+                  </FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Configure an Apprise email URL to allow users and system
+                        notifications to use plain email addresses.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="mailtos://user:app_password@gmail.com"
+                    disabled={appriseStatus === 'loading' || !isAppriseEnabled}
+                    className="w-full"
+                  />
+                </FormControl>
+                <FormDescription className="text-xs mt-1">
+                  When configured, plain email addresses (e.g.,
+                  user@example.com) can be used instead of full Apprise URLs.
+                </FormDescription>
+                <FormMessage className="text-xs mt-1" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={appriseForm.control}
             name="systemAppriseUrl"
             render={({ field }) => (
               <FormItem>
@@ -229,16 +276,15 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
                   <MultiInput
                     value={field.value}
                     onChange={field.onChange}
-                    placeholder="Enter System Apprise URL"
+                    placeholder="Enter System Apprise URL or email"
                     disabled={appriseStatus === 'loading' || !isAppriseEnabled}
                     maxFields={5}
                     className="w-full"
                   />
                 </FormControl>
                 <FormDescription className="text-xs mt-1">
-                  Examples: discord://webhook_id/token,
-                  telegram://bottoken/ChatID,
-                  slack://TokenA/TokenB/TokenC/Channel
+                  Examples: discord://..., telegram://..., or user@example.com
+                  (if Email Sender is configured)
                 </FormDescription>
                 <FormMessage className="text-xs mt-1" />
               </FormItem>

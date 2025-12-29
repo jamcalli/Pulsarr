@@ -176,6 +176,10 @@ const schema = {
       type: 'string',
       default: '',
     },
+    appriseEmailSender: {
+      type: 'string',
+      default: '',
+    },
     // Public Content Notifications
     publicContentNotifications: {
       type: 'string',
