@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import RatingInput from '@/features/content-router/components/rating-input'
 
 interface ImdbRatingInputProps {
   operator: string
@@ -31,16 +32,12 @@ const StableNumberInput = ({
   onChange,
   placeholder,
   min,
-  max,
-  step,
   id,
 }: {
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   placeholder?: string
   min?: string
-  max?: string
-  step?: string
   id?: string
 }) => {
   const [internalValue, setInternalValue] = useState(value)
@@ -61,8 +58,6 @@ const StableNumberInput = ({
       onChange={handleChange}
       placeholder={placeholder}
       min={min}
-      max={max}
-      step={step}
       id={id}
       className="flex-1"
     />
@@ -129,97 +124,20 @@ const ImdbRatingInput = ({
     }
   }
 
-  // Render rating input based on operator type
-  const renderRatingInput = () => {
-    if (operator === 'between') {
-      const rangeValue =
-        typeof ratingValue === 'object' &&
-        ratingValue !== null &&
-        !Array.isArray(ratingValue)
-          ? (ratingValue as { min?: number; max?: number })
-          : { min: undefined, max: undefined }
-
-      return (
-        <div className="flex space-x-2">
-          <StableNumberInput
-            value={
-              rangeValue.min !== undefined ? rangeValue.min.toString() : ''
-            }
-            onChange={(e) => {
-              const min =
-                e.target.value === '' ? undefined : Number(e.target.value)
-              const newRange = { ...rangeValue, min }
-              handleRatingChange(newRange)
-            }}
-            placeholder="Min rating (e.g. 7.0)"
-            min="1"
-            max="10"
-            step="0.1"
-          />
-          <span className="self-center text-sm text-muted-foreground">to</span>
-          <StableNumberInput
-            value={
-              rangeValue.max !== undefined ? rangeValue.max.toString() : ''
-            }
-            onChange={(e) => {
-              const max =
-                e.target.value === '' ? undefined : Number(e.target.value)
-              const newRange = { ...rangeValue, max }
-              handleRatingChange(newRange)
-            }}
-            placeholder="Max rating (e.g. 9.0)"
-            min="1"
-            max="10"
-            step="0.1"
-          />
-        </div>
-      )
-    }
-
-    if (operator === 'in' || operator === 'notIn') {
-      return (
-        <Input
-          type="text"
-          value={
-            Array.isArray(ratingValue)
-              ? ratingValue.join(', ')
-              : String(ratingValue ?? '')
-          }
-          onChange={(e) => {
-            const values = e.target.value
-              .split(',')
-              .map((v) => v.trim())
-              .filter((v) => v !== '')
-              .map((v) => Number(v))
-              .filter((v) => !Number.isNaN(v))
-            handleRatingChange(values)
-          }}
-          placeholder="Enter ratings separated by commas (e.g. 8.0, 8.5, 9.0)"
-          className="flex-1"
-        />
-      )
-    }
-
-    // For equals, notEquals, greaterThan, lessThan
-    return (
-      <StableNumberInput
-        value={typeof ratingValue === 'number' ? ratingValue.toString() : ''}
-        onChange={(e) => {
-          const rating = e.target.value === '' ? null : Number(e.target.value)
-          handleRatingChange(rating)
-        }}
-        placeholder="Enter rating (e.g. 8.0)"
-        min="1"
-        max="10"
-        step="0.1"
-      />
-    )
-  }
-
   return (
     <div className="space-y-3 flex-1">
-      {/* Rating input */}
-      <div>{renderRatingInput()}</div>
+      {/* Rating input - using shared RatingInput component */}
+      <div>
+        <RatingInput
+          operator={operator}
+          value={ratingValue ?? null}
+          onChange={handleRatingChange}
+          min={1}
+          max={10}
+          step={0.1}
+          label="rating"
+        />
+      </div>
 
       {/* Votes toggle */}
       <div className="flex items-center space-x-2">

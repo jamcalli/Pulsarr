@@ -29,6 +29,25 @@ import { ContentRouterContext } from '@/features/content-router/hooks/useContent
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 
+/** Format field names for display (e.g., "rtCriticRating" → "RT Critic Rating") */
+const FIELD_LABELS: Record<string, string> = {
+  imdbRating: 'IMDB Rating',
+  rtCriticRating: 'RT Critic Rating',
+  rtAudienceRating: 'RT Audience Rating',
+  tmdbRating: 'TMDB Rating',
+  streamingServices: 'Streaming Services',
+  originalLanguage: 'Original Language',
+}
+
+function formatFieldName(name: string): string {
+  if (FIELD_LABELS[name]) return FIELD_LABELS[name]
+  // Default: capitalize first letter and add spaces before capitals
+  return name
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim()
+}
+
 interface ConditionBuilderProps {
   value: Condition
   onChange: (condition: Condition) => void
@@ -79,7 +98,7 @@ const ConditionBuilder = ({
       uniqueFields.set(field.name, field)
     }
     return Array.from(uniqueFields.values()).sort((a, b) =>
-      a.name.localeCompare(b.name),
+      formatFieldName(a.name).localeCompare(formatFieldName(b.name)),
     )
   }, [compatibleEvaluators])
 
@@ -311,7 +330,7 @@ const ConditionBuilder = ({
               <SelectContent>
                 {fields.map((field) => (
                   <SelectItem key={field.name} value={field.name}>
-                    {field.name.charAt(0).toUpperCase() + field.name.slice(1)}
+                    {formatFieldName(field.name)}
                   </SelectItem>
                 ))}
               </SelectContent>
