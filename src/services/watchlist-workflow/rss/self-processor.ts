@@ -61,7 +61,7 @@ export async function processRssSelfItems(
   }
 
   // Convert to TokenWatchlistItems for unified processor
-  // IMPORTANT: Preserve guids, genres, and thumb from enrichment - these are required for routing
+  // IMPORTANT: Preserve guids, genres, thumb, and ratings from enrichment - these are required for routing
   const tokenItems: TokenWatchlistItem[] = enrichedItems.map((item) => ({
     id: item.key,
     title: item.title,
@@ -72,6 +72,7 @@ export async function processRssSelfItems(
     thumb: item.thumb,
     guids: item.guids,
     genres: item.genres,
+    ratings: item.ratings,
     created_at: item.created_at,
     updated_at: item.updated_at,
   }))

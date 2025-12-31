@@ -8,6 +8,7 @@
 import type { Config } from '@root/types/config.types.js'
 import type {
   Friend,
+  ItemRatings,
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
@@ -41,6 +42,7 @@ export interface PreparedItem {
   type: string
   guids: string[]
   genres: string[]
+  ratings?: ItemRatings
   status: 'pending'
   created_at: string
   updated_at: string
@@ -113,6 +115,7 @@ export async function prepareItemsForInsertion(
       type: item.type,
       guids: parseGuids(item.guids),
       genres: parseGenres(item.genres),
+      ratings: item.ratings,
       status: 'pending' as const,
       created_at: now,
       updated_at: now,
