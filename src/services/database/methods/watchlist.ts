@@ -1,4 +1,5 @@
 import type {
+  ItemRatings,
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
@@ -7,8 +8,83 @@ import type {
   WatchlistStatus,
 } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import { normalizeGuid, parseGuids } from '@utils/guid-handler.js'
 import type { Knex } from 'knex'
+
+// ============================================================================
+// Rating Helpers
+// ============================================================================
+
+/**
+ * Database row shape for rating columns
+ */
+interface RatingColumns {
+  imdb_rating?: number | null
+  imdb_votes?: number | null
+  rt_critic_rating?: number | null
+  rt_audience_rating?: number | null
+  tmdb_rating?: number | null
+}
+
+/**
+ * Parse rating columns from a database row into an ItemRatings object.
+ * Returns undefined if no ratings are present.
+ */
+function parseRatingsFromRow(row: RatingColumns): ItemRatings | undefined {
+  const hasAnyRating =
+    row.imdb_rating != null ||
+    row.rt_critic_rating != null ||
+    row.rt_audience_rating != null ||
+    row.tmdb_rating != null
+
+  if (!hasAnyRating) {
+    return undefined
+  }
+
+  const ratings: ItemRatings = {}
+
+  if (row.imdb_rating != null) {
+    ratings.imdb = {
+      rating: Number(row.imdb_rating),
+      votes: row.imdb_votes ?? null,
+    }
+  }
+
+  if (row.rt_critic_rating != null) {
+    ratings.rtCritic = Number(row.rt_critic_rating)
+  }
+
+  if (row.rt_audience_rating != null) {
+    ratings.rtAudience = Number(row.rt_audience_rating)
+  }
+
+  if (row.tmdb_rating != null) {
+    ratings.tmdb = Number(row.tmdb_rating)
+  }
+
+  return ratings
+}
+
+/**
+ * Convert an ItemRatings object to database column values.
+ */
+function ratingsToColumns(ratings: ItemRatings | undefined): RatingColumns {
+  if (!ratings) {
+    return {}
+  }
+
+  return {
+    imdb_rating: ratings.imdb?.rating ?? null,
+    imdb_votes: ratings.imdb?.votes ?? null,
+    rt_critic_rating: ratings.rtCritic ?? null,
+    rt_audience_rating: ratings.rtAudience ?? null,
+    tmdb_rating: ratings.tmdb ?? null,
+  }
+}
+
+// ============================================================================
+// Status Helpers
+// ============================================================================
 
 /**
  * Status progression ranks to prevent regression
@@ -546,6 +622,7 @@ export async function getWatchlistItem(
     ...result,
     guids: this.safeJsonParse(result.guids, [], 'watchlist_item.guids'),
     genres: this.safeJsonParse(result.genres, [], 'watchlist_item.genres'),
+    ratings: parseRatingsFromRow(result),
   }
 }
 
@@ -567,6 +644,7 @@ export async function getWatchlistItemById(
     ...result,
     guids: this.safeJsonParse(result.guids, [], 'watchlist_item.guids'),
     genres: this.safeJsonParse(result.genres, [], 'watchlist_item.genres'),
+    ratings: parseRatingsFromRow(result),
   }
 }
 
@@ -618,6 +696,7 @@ export async function getBulkWatchlistItems(
     ...row,
     guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
     genres: this.safeJsonParse(row.genres, [], 'watchlist_item.genres'),
+    ratings: parseRatingsFromRow(row),
   }))
 }
 
@@ -654,6 +733,7 @@ export async function getWatchlistItemsByKeys(
     added: item.added || undefined,
     guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
     genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
+    ratings: parseRatingsFromRow(item),
   }))
 }
 
@@ -1296,6 +1376,7 @@ export async function createWatchlistItems(
         thumb: item.thumb,
         guids: JSON.stringify(item.guids || []),
         genres: JSON.stringify(item.genres || []),
+        ...ratingsToColumns(item.ratings),
         status: item.status || 'pending',
         created_at: this.timestamp,
         updated_at: this.timestamp,
@@ -1305,10 +1386,22 @@ export async function createWatchlistItems(
 
       if (options.onConflict === 'merge') {
         // Only merge metadata fields - never overwrite status to prevent regression
-        // This is used by metadata refresh which should update posters/guids/genres only
+        // This is used by metadata refresh which should update posters/guids/genres/ratings only
         const results = await query
           .onConflict(['user_id', 'key'])
-          .merge(['title', 'type', 'thumb', 'guids', 'genres', 'updated_at'])
+          .merge([
+            'title',
+            'type',
+            'thumb',
+            'guids',
+            'genres',
+            'imdb_rating',
+            'imdb_votes',
+            'rt_critic_rating',
+            'rt_audience_rating',
+            'tmdb_rating',
+            'updated_at',
+          ])
           .returning(['id', 'key'])
         insertedIds.push(...results)
       } else {
@@ -1452,6 +1545,7 @@ export async function getAllWatchlistItemsForUser(
     ...item,
     guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
     genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
+    ratings: parseRatingsFromRow(item),
   }))
 }
 
@@ -1491,6 +1585,7 @@ export async function getWatchlistItemsByGuid(
       [],
       'watchlist_item.genres',
     ),
+    ratings: parseRatingsFromRow(item),
   }))
 }
 
@@ -1614,8 +1709,8 @@ export async function getWatchlistItemsWithUsersByGuids(
     return []
   }
 
-  // Normalize GUIDs to lowercase for consistent matching
-  const normalizedGuids = guids.map((guid) => guid.toLowerCase())
+  // Normalize GUIDs for consistent matching (lowercase + provider:id format)
+  const normalizedGuids = guids.map(normalizeGuid)
 
   // Use database-specific JSON functions to efficiently find items containing any of the GUIDs
   const items = this.isPostgres
