@@ -162,18 +162,18 @@ export default function createImdbEvaluator(
       _context: RoutingContext,
       rules: RouterRule[],
     ): Promise<RoutingDecision[] | null> {
-      // Get IMDB rating data
-      let imdbData: { rating: number | null; votes: number | null } | null =
-        null
-      try {
-        imdbData = await fastify.imdb.getRating(item.guids)
-      } catch (error) {
-        fastify.log.debug({ error }, 'IMDB evaluator - failed to get rating')
+      // Use pre-populated IMDB data from item (populated from DB or enrichment)
+      // This avoids calling the external IMDB service during evaluation
+      if (!item.imdb) {
+        fastify.log.debug(
+          `IMDB evaluator - no rating data available for "${item.title}"`,
+        )
         return null
       }
 
-      if (!imdbData) {
-        return null
+      const imdbData = {
+        rating: item.imdb.rating ?? null,
+        votes: item.imdb.votes ?? null,
       }
 
       // Rules are already filtered by content-router (by type, target_type, and enabled status)
