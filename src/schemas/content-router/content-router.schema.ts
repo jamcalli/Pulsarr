@@ -124,11 +124,8 @@ export const ConditionValueSchema = z.union([
   UserCriteriaSchema,
   GenreCriteriaSchema,
   z.array(z.union([z.string(), z.number()])),
-  z
-    .object({ min: z.number().optional(), max: z.number().optional() })
-    .refine((v) => v.min !== undefined || v.max !== undefined, {
-      message: 'Range comparison requires at least min or max to be specified',
-    }),
+  // Range object for "between" operator - validation handled by isNonEmptyValue in ConditionSchema
+  z.object({ min: z.number().optional(), max: z.number().optional() }),
   ImdbCompoundValueSchema,
   z.null(),
 ])
