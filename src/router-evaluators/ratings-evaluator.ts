@@ -102,27 +102,66 @@ function evaluateRatingCondition(
 /**
  * All supported rating fields and their item property accessors.
  * Note: imdbVotes is handled via compound value in imdbRating field, not as separate field.
+ *
+ * Rotten Tomatoes scores are stored internally as 0-10 (normalized by Plex) but
+ * displayed to users as 0-100 (native RT percentage). The evaluator handles conversion.
  */
 const RATING_FIELDS = {
   imdbRating: {
     description: 'IMDB rating (0-10 scale, with optional vote count filter)',
     getValue: (item: ContentItem) => item.imdb?.rating,
+    userScale: 10,
   },
   rtCriticRating: {
-    description: 'Rotten Tomatoes critic score (0-10 scale)',
+    description: 'Rotten Tomatoes critic score (0-100%)',
     getValue: (item: ContentItem) => item.rtCritic,
+    userScale: 100,
   },
   rtAudienceRating: {
-    description: 'Rotten Tomatoes audience score (0-10 scale)',
+    description: 'Rotten Tomatoes audience score (0-100%)',
     getValue: (item: ContentItem) => item.rtAudience,
+    userScale: 100,
   },
   tmdbRating: {
     description: 'TMDB rating (0-10 scale)',
     getValue: (item: ContentItem) => item.tmdb,
+    userScale: 10,
   },
 } as const
 
 type RatingFieldName = keyof typeof RATING_FIELDS
+
+/**
+ * Converts a user-facing rating value to the internal 0-10 storage scale.
+ * For RT fields (userScale: 100), divides by 10. For others, returns as-is.
+ */
+function convertToInternalScale(
+  value: number | number[] | RatingRange,
+  userScale: number,
+): number | number[] | RatingRange {
+  if (userScale === 10) {
+    return value
+  }
+
+  const scaleFactor = 10 / userScale
+
+  if (isNumber(value)) {
+    return value * scaleFactor
+  }
+
+  if (isNumberArray(value)) {
+    return value.map((v) => v * scaleFactor)
+  }
+
+  if (isRatingRange(value)) {
+    return {
+      min: value.min !== undefined ? value.min * scaleFactor : undefined,
+      max: value.max !== undefined ? value.max * scaleFactor : undefined,
+    }
+  }
+
+  return value
+}
 
 /**
  * Creates a routing evaluator for content ratings (IMDB, Rotten Tomatoes, TMDB).
@@ -374,7 +413,14 @@ export default function createRatingsEvaluator(
         return false
       }
 
-      return evaluateRatingCondition(actualValue as number, operator, value)
+      // Convert user-facing value to internal 0-10 scale for comparison
+      const internalValue = convertToInternalScale(value, fieldConfig.userScale)
+
+      return evaluateRatingCondition(
+        actualValue as number,
+        operator,
+        internalValue,
+      )
     },
 
     canEvaluateConditionField(field: string): boolean {

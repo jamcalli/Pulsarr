@@ -499,7 +499,7 @@ function ConditionInput({
     )
   }
 
-  // Rotten Tomatoes Critic rating (0-10 scale, normalized by Plex)
+  // Rotten Tomatoes Critic rating (0-100%, native RT scale)
   if (field === 'rtCriticRating') {
     return (
       <RatingInput
@@ -507,14 +507,14 @@ function ConditionInput({
         value={value}
         onChange={(v) => onChangeRef.current(v)}
         min={0}
-        max={10}
-        step={0.1}
-        label="critic score"
+        max={100}
+        step={1}
+        label="critic score %"
       />
     )
   }
 
-  // Rotten Tomatoes Audience rating (0-10 scale, normalized by Plex)
+  // Rotten Tomatoes Audience rating (0-100%, native RT scale)
   if (field === 'rtAudienceRating') {
     return (
       <RatingInput
@@ -522,9 +522,9 @@ function ConditionInput({
         value={value}
         onChange={(v) => onChangeRef.current(v)}
         min={0}
-        max={10}
-        step={0.1}
-        label="audience score"
+        max={100}
+        step={1}
+        label="audience score %"
       />
     )
   }
