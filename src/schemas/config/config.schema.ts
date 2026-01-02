@@ -43,52 +43,12 @@ const DiscordWebhookUrlSchema = z
   .optional()
 
 /**
- * Checks if a value is a plain email address (not a full Apprise URL).
- * Duplicated from apprise-email.ts because this schema is shared with client.
+ * Apprise URL schema - accepts any string.
+ * Apprise URLs use custom URI schemes (tgram://, discord://, etc.) that don't
+ * conform to WHATWG URL spec, so we skip client-side validation and let
+ * Apprise handle validation when sending notifications.
  */
-const isPlainEmail = (value: string): boolean =>
-  value.includes('@') && !value.includes('://')
-
-/**
- * Validates Apprise URL format (comma-separated, flexible protocols).
- * Accepts empty strings, valid URLs, and plain email addresses.
- * Plain emails are resolved to full Apprise URLs using admin's email sender config.
- */
-const AppriseUrlSchema = z
-  .string()
-  .refine(
-    (val) => {
-      if (!val || val.trim() === '') return true
-      return val.split(',').every((url) => {
-        const trimmed = url.trim()
-        if (trimmed === '') return true
-        // Accept plain email addresses (will be resolved using admin sender)
-        if (isPlainEmail(trimmed)) return true
-        // Otherwise must be a valid URL
-        return z.url().safeParse(trimmed).success
-      })
-    },
-    { message: 'Must be valid URL(s) or email address(es) (comma-separated)' },
-  )
-  .optional()
-
-/**
- * Validates Apprise URL format strictly - must be a valid URL, no plain emails.
- * Used for the email sender config which must be a full Apprise URL like mailtos://...
- */
-const AppriseUrlStrictSchema = z
-  .string()
-  .refine(
-    (val) => {
-      if (!val || val.trim() === '') return true
-      return z.url().safeParse(val.trim()).success
-    },
-    {
-      message:
-        'Must be a valid Apprise URL (e.g., mailtos://user:pass@gmail.com)',
-    },
-  )
-  .optional()
+const AppriseUrlSchema = z.string().optional()
 
 const LogLevelEnum = z.enum([
   'fatal',
@@ -346,7 +306,7 @@ export const ConfigUpdateSchema = z
     discordClientId: z.string().optional(),
     // Apprise Config (enableApprise/appriseUrl are runtime-only; not writable via API)
     systemAppriseUrl: AppriseUrlSchema,
-    appriseEmailSender: AppriseUrlStrictSchema,
+    appriseEmailSender: AppriseUrlSchema,
     // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
     publicContentNotifications: z
       .object({
