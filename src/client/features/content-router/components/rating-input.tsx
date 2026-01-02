@@ -1,6 +1,6 @@
 import type { ConditionValue } from '@root/schemas/content-router/content-router.schema'
-import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
+import { StableNumberInput } from './stable-number-input'
 
 interface RatingInputProps {
   operator: string
@@ -14,52 +14,6 @@ interface RatingInputProps {
   step?: number
   /** Label for placeholders (e.g., "rating", "score") */
   label?: string
-}
-
-/** Stable number input that maintains focus during typing */
-const StableNumberInput = ({
-  value,
-  onChange,
-  placeholder,
-  min,
-  max,
-  step,
-  id,
-  className,
-}: {
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  placeholder?: string
-  min?: string
-  max?: string
-  step?: string
-  id?: string
-  className?: string
-}) => {
-  const [internalValue, setInternalValue] = useState(value)
-
-  useEffect(() => {
-    setInternalValue(value)
-  }, [value])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInternalValue(e.target.value)
-    onChange(e)
-  }
-
-  return (
-    <Input
-      type="number"
-      value={internalValue}
-      onChange={handleChange}
-      placeholder={placeholder}
-      min={min}
-      max={max}
-      step={step}
-      id={id}
-      className={className ?? 'flex-1'}
-    />
-  )
 }
 
 /**
@@ -118,7 +72,13 @@ function RatingInput({
     return (
       <Input
         type="text"
-        value={Array.isArray(value) ? value.join(', ') : String(value ?? '')}
+        value={
+          Array.isArray(value)
+            ? value.join(', ')
+            : typeof value === 'number'
+              ? String(value)
+              : ''
+        }
         onChange={(e) => {
           const values = e.target.value
             .split(',')

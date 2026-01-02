@@ -1,9 +1,9 @@
 import type { ConditionValue } from '@root/schemas/content-router/content-router.schema'
-import { useEffect, useId, useRef, useState } from 'react'
-import { Input } from '@/components/ui/input'
+import { useId, useRef, useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import RatingInput from '@/features/content-router/components/rating-input'
+import { StableNumberInput } from './stable-number-input'
 
 interface ImdbRatingInputProps {
   operator: string
@@ -23,44 +23,6 @@ function isCompoundValue(value: unknown): value is ImdbCompoundValue {
     typeof value === 'object' &&
     value !== null &&
     ('rating' in value || 'votes' in value)
-  )
-}
-
-// Stable number input component
-const StableNumberInput = ({
-  value,
-  onChange,
-  placeholder,
-  min,
-  id,
-}: {
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  placeholder?: string
-  min?: string
-  id?: string
-}) => {
-  const [internalValue, setInternalValue] = useState(value)
-
-  useEffect(() => {
-    setInternalValue(value)
-  }, [value])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInternalValue(e.target.value)
-    onChange(e)
-  }
-
-  return (
-    <Input
-      type="number"
-      value={internalValue}
-      onChange={handleChange}
-      placeholder={placeholder}
-      min={min}
-      id={id}
-      className="flex-1"
-    />
   )
 }
 
