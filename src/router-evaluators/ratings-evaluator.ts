@@ -372,6 +372,8 @@ export default function createRatingsEvaluator(
       }
 
       // Handle compound values (rating + votes) for IMDB
+      // Note: No scale conversion needed here - compound values are IMDb-exclusive,
+      // and IMDb uses userScale: 10 which matches the internal storage scale.
       if (
         field === 'imdbRating' &&
         typeof value === 'object' &&

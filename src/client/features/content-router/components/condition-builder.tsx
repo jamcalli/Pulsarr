@@ -31,10 +31,10 @@ import { cn } from '@/lib/utils'
 
 /** Format field names for display (e.g., "rtCriticRating" → "RT Critic Rating") */
 const FIELD_LABELS: Record<string, string> = {
-  imdbRating: 'IMDB Rating',
+  imdbRating: 'IMDb Rating',
   rtCriticRating: 'RT Critic Rating',
   rtAudienceRating: 'RT Audience Rating',
-  tmdbRating: 'TMDB Rating',
+  tmdbRating: 'TMDb Rating',
   streamingServices: 'Streaming Services',
   originalLanguage: 'Original Language',
 }
