@@ -16,6 +16,7 @@ import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import UserMultiSelect from '@/components/ui/user-multi-select'
 import ImdbRatingInput from '@/features/content-router/components/imdb-rating-input'
 import RatingInput from '@/features/content-router/components/rating-input'
+import { StableNumberInput } from '@/features/content-router/components/stable-number-input'
 import { ContentCertifications } from '@/features/content-router/types/route-types'
 import { useUserOptions } from '@/hooks/useUserOptions'
 import { useConfigStore } from '@/stores/configStore'
@@ -69,49 +70,6 @@ const StableTextInput = ({
       value={internalValue}
       onChange={handleChange}
       placeholder={placeholder}
-      className="flex-1"
-    />
-  )
-}
-
-// Number input with stable identity
-const StableNumberInput = ({
-  value,
-  onChange,
-  placeholder,
-  min,
-  max,
-  id,
-}: {
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  placeholder?: string
-  min?: string
-  max?: string
-  id?: string
-}) => {
-  // Keep an internal state to maintain focus
-  const [internalValue, setInternalValue] = useState(value)
-
-  // Update internal value when external value changes significantly
-  useEffect(() => {
-    setInternalValue(value)
-  }, [value])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInternalValue(e.target.value)
-    onChange(e)
-  }
-
-  return (
-    <Input
-      type="number"
-      id={id}
-      value={internalValue}
-      onChange={handleChange}
-      placeholder={placeholder}
-      min={min}
-      max={max}
       className="flex-1"
     />
   )
