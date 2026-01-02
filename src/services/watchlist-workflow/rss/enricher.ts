@@ -79,6 +79,7 @@ export async function enrichRssItems(
         thumb: metadata.thumb || item.thumb || '',
         guids: metadata.guids.length > 0 ? metadata.guids : item.guids,
         genres: metadata.genres.length > 0 ? metadata.genres : item.genres,
+        ratings: metadata.ratings,
         user_id: userId,
         status: 'pending',
         created_at: new Date().toISOString(),
