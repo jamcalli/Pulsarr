@@ -1,6 +1,7 @@
 // Enrichment layer exports for Plex watchlist service
 
 export { toItemsBatch } from './batch-processor.js'
+export { parseRatings } from './rating-parser.js'
 export {
   batchLookupByGuid,
   type EnrichedRssMetadata,
