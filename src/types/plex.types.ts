@@ -12,6 +12,38 @@ export interface PlexResponse {
   }
 }
 
+// ============================================================================
+// Plex Rating Types
+// ============================================================================
+
+/**
+ * Rating entry from Plex metadata response.
+ * The Rating array contains ratings from multiple sources (IMDb, Rotten Tomatoes, TMDB).
+ */
+export interface PlexRating {
+  /** Rating source identifier (e.g., "imdb://image.rating", "rottentomatoes://image.rating.ripe") */
+  image: string
+  /** Rating type: "audience" or "critic" */
+  type: 'audience' | 'critic'
+  /** Rating value (scale varies by source: IMDb 0-10, RT 0-10, TMDB 0-10) */
+  value: number
+}
+
+/**
+ * Parsed ratings from Plex metadata, structured for easy access.
+ * All ratings are on a 0-10 scale.
+ */
+export interface ItemRatings {
+  /** IMDb rating and vote count */
+  imdb?: { rating: number; votes: number | null }
+  /** Rotten Tomatoes critic score (0-10) */
+  rtCritic?: number
+  /** Rotten Tomatoes audience score (0-10) */
+  rtAudience?: number
+  /** TMDB rating (0-10) */
+  tmdb?: number
+}
+
 export interface Friend {
   watchlistId: string
   username: string
@@ -57,6 +89,8 @@ export interface Item {
   added?: string
   guids?: string[] | string
   genres?: string[] | string
+  /** Ratings from Plex metadata (IMDb, Rotten Tomatoes, TMDB) */
+  ratings?: ItemRatings
   user_id: number
   status: 'pending' | 'requested' | 'grabbed' | 'notified'
   series_status?: 'continuing' | 'ended'
@@ -109,7 +143,13 @@ export interface PlexApiResponse {
       Guid?: Array<{ id: string }>
       Genre?: Array<{ tag: string }>
       thumb?: string
+      /** Rating array containing IMDb, Rotten Tomatoes, and TMDB ratings */
+      Rating?: PlexRating[]
+      /** IMDb vote count (only present when IMDb rating exists) */
+      imdbRatingCount?: number
     }>
+    /** IMDb vote count at container level (some endpoints return it here) */
+    imdbRatingCount?: number
   }
   errors?: PlexGraphQLError[]
   data?: {

@@ -15,6 +15,7 @@ import StreamingProviderMultiSelect from '@/components/ui/streaming-provider-mul
 import { TmdbRegionSelector } from '@/components/ui/tmdb-region-selector'
 import UserMultiSelect from '@/components/ui/user-multi-select'
 import ImdbRatingInput from '@/features/content-router/components/imdb-rating-input'
+import RatingInput from '@/features/content-router/components/rating-input'
 import { ContentCertifications } from '@/features/content-router/types/route-types'
 import { useUserOptions } from '@/hooks/useUserOptions'
 import { useConfigStore } from '@/stores/configStore'
@@ -494,6 +495,51 @@ function ConditionInput({
         operator={operator}
         value={value}
         onChange={(v) => onChangeRef.current(v)}
+      />
+    )
+  }
+
+  // Rotten Tomatoes Critic rating (0-100%, native RT scale)
+  if (field === 'rtCriticRating') {
+    return (
+      <RatingInput
+        operator={operator}
+        value={value}
+        onChange={(v) => onChangeRef.current(v)}
+        min={0}
+        max={100}
+        step={1}
+        label="critic score %"
+      />
+    )
+  }
+
+  // Rotten Tomatoes Audience rating (0-100%, native RT scale)
+  if (field === 'rtAudienceRating') {
+    return (
+      <RatingInput
+        operator={operator}
+        value={value}
+        onChange={(v) => onChangeRef.current(v)}
+        min={0}
+        max={100}
+        step={1}
+        label="audience score %"
+      />
+    )
+  }
+
+  // TMDB rating (0-10 scale)
+  if (field === 'tmdbRating') {
+    return (
+      <RatingInput
+        operator={operator}
+        value={value}
+        onChange={(v) => onChangeRef.current(v)}
+        min={0}
+        max={10}
+        step={0.1}
+        label="TMDB rating"
       />
     )
   }

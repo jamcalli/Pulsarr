@@ -8,9 +8,11 @@
  * Uses the /library/metadata/matches API to resolve GUIDs to full Plex metadata.
  */
 
+import type { ItemRatings, PlexRating } from '@root/types/plex.types.js'
 import { USER_AGENT } from '@utils/version.js'
 import type { FastifyBaseLogger } from 'fastify'
 import { PLEX_API_TIMEOUT_MS, PlexRateLimiter } from '../api/index.js'
+import { parseRatings } from './rating-parser.js'
 
 /**
  * Enriched metadata returned from GUID lookup
@@ -22,6 +24,8 @@ export interface EnrichedRssMetadata {
   thumb?: string
   guids: string[]
   genres: string[]
+  /** Ratings from Plex metadata (IMDb, Rotten Tomatoes, TMDB) */
+  ratings?: ItemRatings
 }
 
 /**
@@ -147,7 +151,10 @@ export async function lookupByGuid(
           thumb?: string
           Guid?: Array<{ id: string }>
           Genre?: Array<{ tag: string }>
+          Rating?: PlexRating[]
+          imdbRatingCount?: number
         }>
+        imdbRatingCount?: number
       }
     }
 
@@ -158,6 +165,11 @@ export async function lookupByGuid(
       return null
     }
 
+    // Parse ratings from metadata
+    const imdbVotes =
+      metadata.imdbRatingCount ?? json.MediaContainer?.imdbRatingCount
+    const ratings = parseRatings(metadata.Rating, imdbVotes)
+
     return {
       ratingKey: metadata.ratingKey,
       title: metadata.title ?? '',
@@ -165,6 +177,7 @@ export async function lookupByGuid(
       thumb: metadata.thumb,
       guids: metadata.Guid?.map((g) => g.id).filter(Boolean) ?? [],
       genres: metadata.Genre?.map((g) => g.tag).filter(Boolean) ?? [],
+      ratings,
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'TimeoutError') {
