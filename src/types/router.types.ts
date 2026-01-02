@@ -10,11 +10,16 @@ export interface ContentItem {
   guids: string[]
   genres?: string[]
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse
-  // undefined: not fetched; null: known missing; value: present
+  // Rating data - undefined: not fetched; null: known missing; value: present
   imdb?: {
     rating?: number | null
     votes?: number | null
   }
+  // Rotten Tomatoes ratings (0-10 scale)
+  rtCritic?: number | null
+  rtAudience?: number | null
+  // TMDB rating (0-10 scale)
+  tmdb?: number | null
   // TMDB watch providers for streaming availability routing
   watchProviders?: TmdbWatchProviderData
 }

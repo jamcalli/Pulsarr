@@ -235,37 +235,15 @@ export async function enrichItemMetadata(
         }
       }
 
-      // 2. Fetch IMDB rating if needed (for imdb rules)
-      if (enrichmentNeeds.needsImdb && fastify.imdb) {
-        try {
-          let imdbId = extractImdbId(item.guids)?.toString()
-          if ((!imdbId || imdbId === '0') && movieMetadata?.imdbId) {
-            imdbId = movieMetadata.imdbId.replace(/^tt/, '')
-          }
-
-          if (imdbId && imdbId !== '0') {
-            const imdbRating = await fastify.imdb.getRating(item.guids)
-            if (imdbRating) {
-              imdbData = {
-                rating: imdbRating.rating,
-                votes: imdbRating.votes,
-              }
-              log.debug(
-                `IMDB rating fetched for "${item.title}": ${imdbRating.rating}`,
-              )
-            } else {
-              imdbData = {
-                rating: null,
-                votes: null,
-              }
-            }
-          }
-        } catch (error) {
-          log.debug(
-            { error },
-            `Failed to fetch IMDB rating for "${item.title}"`,
-          )
+      // 2. Use IMDB rating from DB if available (for imdb rules)
+      if (enrichmentNeeds.needsImdb && item.imdb?.rating !== undefined) {
+        imdbData = {
+          rating: item.imdb.rating,
+          votes: item.imdb.votes ?? null,
         }
+        log.debug(
+          `Using pre-loaded IMDB rating for "${item.title}": ${item.imdb.rating}`,
+        )
       }
 
       // 3. Fetch TMDB watch providers if needed (for streaming rules)
@@ -386,30 +364,15 @@ export async function enrichItemMetadata(
         }
       }
 
-      // 2. Fetch IMDB rating if needed (for imdb rules)
-      if (enrichmentNeeds.needsImdb && fastify.imdb) {
-        try {
-          const imdbRating = await fastify.imdb.getRating(item.guids)
-          if (imdbRating) {
-            imdbData = {
-              rating: imdbRating.rating,
-              votes: imdbRating.votes,
-            }
-            log.debug(
-              `IMDB rating fetched for TV show "${item.title}": ${imdbRating.rating}`,
-            )
-          } else {
-            imdbData = {
-              rating: null,
-              votes: null,
-            }
-          }
-        } catch (error) {
-          log.debug(
-            { error },
-            `Failed to fetch IMDB rating for TV show "${item.title}"`,
-          )
+      // 2. Use IMDB rating from DB if available (for imdb rules)
+      if (enrichmentNeeds.needsImdb && item.imdb?.rating !== undefined) {
+        imdbData = {
+          rating: item.imdb.rating,
+          votes: item.imdb.votes ?? null,
         }
+        log.debug(
+          `Using pre-loaded IMDB rating for TV show "${item.title}": ${item.imdb.rating}`,
+        )
       }
 
       // 3. Fetch TMDB watch providers if needed (for streaming rules)

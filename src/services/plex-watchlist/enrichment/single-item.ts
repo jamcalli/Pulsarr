@@ -15,6 +15,7 @@ import {
   type RateLimitError,
 } from '../api/helpers.js'
 import { PlexRateLimiter } from '../api/rate-limiter.js'
+import { parseRatings } from './rating-parser.js'
 
 /**
  * Handle a Plex API rate-limit for a single watchlist item: apply a global cooldown, optionally wait and retry, or fail when retries are exhausted.
@@ -208,24 +209,33 @@ export const toItemsSingle = async (
       throw new Error('Invalid response structure')
     }
 
-    const items = json.MediaContainer.Metadata.map((metadata) => ({
-      title: item.title,
-      key: item.id,
-      type: item.type,
-      thumb: item.thumb || metadata.thumb || '',
-      guids:
-        metadata.Guid?.map((guid) =>
-          guid?.id ? normalizeGuid(guid.id) : null,
-        ).filter((guid): guid is string => guid !== null) || [],
-      genres:
-        metadata.Genre?.map((genre) => genre?.tag).filter(
-          (tag): tag is string => typeof tag === 'string',
-        ) || [],
-      user_id: item.user_id,
-      status: 'pending' as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }))
+    const items = json.MediaContainer.Metadata.map((metadata) => {
+      // Parse ratings from Plex metadata
+      // imdbRatingCount can be at metadata level or container level
+      const imdbVotes =
+        metadata.imdbRatingCount ?? json.MediaContainer?.imdbRatingCount
+      const ratings = parseRatings(metadata.Rating, imdbVotes)
+
+      return {
+        title: item.title,
+        key: item.id,
+        type: item.type,
+        thumb: item.thumb || metadata.thumb || '',
+        guids:
+          metadata.Guid?.map((guid) =>
+            guid?.id ? normalizeGuid(guid.id) : null,
+          ).filter((guid): guid is string => guid !== null) || [],
+        genres:
+          metadata.Genre?.map((genre) => genre?.tag).filter(
+            (tag): tag is string => typeof tag === 'string',
+          ) || [],
+        ratings,
+        user_id: item.user_id,
+        status: 'pending' as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+    })
 
     if (
       items.length > 0 &&

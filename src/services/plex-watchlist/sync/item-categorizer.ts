@@ -40,6 +40,7 @@ export function createWatchlistItem(
     thumb: templateItem.thumb,
     guids: parseGuids(templateItem.guids),
     genres: templateItem.genres || [],
+    ratings: templateItem.ratings,
     status: 'pending' as const,
     created_at: now,
     updated_at: now,
