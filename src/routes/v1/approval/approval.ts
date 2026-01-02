@@ -675,8 +675,9 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
-        // Approve the request using the approval service (handles SSE events)
-        const approvedRequest = await fastify.approvalService.approveRequest(
+        // Step 1: Update DB to "approved" WITHOUT emitting events yet
+        // Call db method directly to defer SSE/webhook until routing succeeds
+        const approvedRequest = await fastify.db.approveRequest(
           requestId,
           approvedBy,
           notes,
@@ -686,15 +687,38 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           throw new Error('Failed to approve request')
         }
 
-        // Process the approved request using the approval service
+        // Step 2: Attempt routing to Radarr/Sonarr
         const result =
           await fastify.approvalService.processApprovedRequest(approvedRequest)
 
         if (!result.success) {
+          // Step 3a: ROLLBACK - Revert status to pending since routing failed
+          await fastify.db.updateApprovalRequest(requestId, {
+            status: 'pending',
+          })
+
+          fastify.log.warn(
+            { requestId, error: result.error },
+            'Approval rolled back due to routing failure',
+          )
+
           return reply.conflict(
             result.error || 'Failed to process approved request',
           )
         }
+
+        // Step 3b: SUCCESS - Now emit events after routing confirmed
+        fastify.approvalService.emitApprovalEvent(
+          'approved',
+          approvedRequest,
+          approvedRequest.userName,
+        )
+        void fastify.notifications.sendApprovalResolved(
+          approvedRequest,
+          'approved',
+          approvedBy,
+          notes,
+        )
 
         return {
           success: true,
