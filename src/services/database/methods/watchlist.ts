@@ -1313,6 +1313,7 @@ export async function getAllShowWatchlistItems(
       typeof item.genres === 'string'
         ? this.safeJsonParse(item.genres, [], 'watchlist_item.genres')
         : item.genres || [],
+    ratings: parseRatingsFromRow(item),
   }))
 }
 
@@ -1339,6 +1340,7 @@ export async function getAllMovieWatchlistItems(
       typeof item.genres === 'string'
         ? this.safeJsonParse(item.genres, [], 'watchlist_item.genres')
         : item.genres || [],
+    ratings: parseRatingsFromRow(item),
   }))
 }
 
