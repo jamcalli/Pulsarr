@@ -986,7 +986,16 @@ export class SonarrService {
         throw new Error('Unexpected Sonarr response when creating series')
       }
       this.log.info(
-        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'}, Series Type: ${seriesType})`,
+        {
+          title: item.title,
+          qualityProfileId,
+          rootFolder: rootFolderPath,
+          tags: tags.length > 0 ? tags : undefined,
+          seriesType,
+          seasonMonitoring: addOptions.monitor,
+          searchOnAdd: addOptions.searchForMissingEpisodes,
+        },
+        `Sent ${item.title} to Sonarr`,
       )
       return createdSeries.id
     } catch (err) {

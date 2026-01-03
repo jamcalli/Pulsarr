@@ -244,6 +244,7 @@ export default function createLanguageEvaluator(
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
         seriesType: rule.series_type,
+        monitor: rule.monitor,
         ruleId: rule.id,
         ruleName: rule.name,
       }))

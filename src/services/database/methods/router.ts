@@ -207,6 +207,10 @@ export async function updateRouterRule(
     updateData.series_type = updates.series_type
   }
 
+  if (updates.monitor !== undefined) {
+    updateData.monitor = updates.monitor
+  }
+
   // Action fields for approval system
   if (updates.always_require_approval !== undefined) {
     updateData.always_require_approval = updates.always_require_approval
@@ -357,6 +361,11 @@ export async function createConditionalRule(
     metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
     search_on_add?: boolean
     season_monitoring?: string
+    series_type?: string
+    monitor?: string
+    always_require_approval?: boolean
+    bypass_user_quotas?: boolean
+    approval_reason?: string
   },
 ): Promise<RouterRule> {
   // Validate condition before proceeding
@@ -382,6 +391,11 @@ export async function createConditionalRule(
     metadata: rule.metadata ? JSON.stringify(rule.metadata) : null,
     search_on_add: rule.search_on_add,
     season_monitoring: rule.season_monitoring,
+    series_type: rule.series_type,
+    monitor: rule.monitor,
+    always_require_approval: rule.always_require_approval ?? false,
+    bypass_user_quotas: rule.bypass_user_quotas ?? false,
+    approval_reason: rule.approval_reason,
     created_at: this.timestamp,
     updated_at: this.timestamp,
   }
@@ -418,6 +432,11 @@ export async function updateConditionalRule(
     metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
     search_on_add?: boolean
     season_monitoring?: string
+    series_type?: string
+    monitor?: string
+    always_require_approval?: boolean
+    bypass_user_quotas?: boolean
+    approval_reason?: string
   },
 ): Promise<RouterRule> {
   // Validate condition if provided
@@ -452,6 +471,15 @@ export async function updateConditionalRule(
     updateData.search_on_add = updates.search_on_add
   if (updates.season_monitoring !== undefined)
     updateData.season_monitoring = updates.season_monitoring
+  if (updates.series_type !== undefined)
+    updateData.series_type = updates.series_type
+  if (updates.monitor !== undefined) updateData.monitor = updates.monitor
+  if (updates.always_require_approval !== undefined)
+    updateData.always_require_approval = updates.always_require_approval
+  if (updates.bypass_user_quotas !== undefined)
+    updateData.bypass_user_quotas = updates.bypass_user_quotas
+  if (updates.approval_reason !== undefined)
+    updateData.approval_reason = updates.approval_reason
 
   // Update condition within criteria, preserving other criteria fields
   if (updates.condition !== undefined) {

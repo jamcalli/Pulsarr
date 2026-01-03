@@ -52,10 +52,11 @@ const BaseRoutingFieldsSchema = z.object({
   syncedInstances: z.array(z.number()).optional(),
 })
 
-/** Radarr-specific routing - includes minimumAvailability, excludes Sonarr fields */
+/** Radarr-specific routing - includes minimumAvailability and monitor, excludes Sonarr fields */
 export const RadarrRoutingPayloadSchema = BaseRoutingFieldsSchema.extend({
   instanceType: z.literal('radarr'),
   minimumAvailability: z.string().nullable(),
+  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).nullable(),
 })
 
 /** Sonarr-specific routing - includes seasonMonitoring/seriesType, excludes Radarr fields */
@@ -80,6 +81,7 @@ interface RoutingInput {
   tags?: string[]
   searchOnAdd?: boolean | null
   minimumAvailability?: string | null
+  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
   seasonMonitoring?: string | null
   seriesType?: 'standard' | 'anime' | 'daily' | null
   syncedInstances?: number[]
@@ -101,6 +103,7 @@ export function buildRoutingPayload(
       tags: routing.tags ?? [],
       searchOnAdd: routing.searchOnAdd ?? null,
       minimumAvailability: routing.minimumAvailability ?? null,
+      monitor: routing.monitor ?? null,
       syncedInstances: routing.syncedInstances,
     }
   }
@@ -128,6 +131,7 @@ export const RadarrRoutedToItemSchema = z.object({
   ruleId: z.number().optional(),
   ruleName: z.string().optional(),
   minimumAvailability: z.string().optional(),
+  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
 })
 
 /** Sonarr routing for routedTo arrays (with optional rule info) */
@@ -161,6 +165,7 @@ interface RoutedToInput {
   ruleId?: number
   ruleName?: string
   minimumAvailability?: string | null
+  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
   seasonMonitoring?: string | null
   seriesType?: string | null
 }
@@ -205,6 +210,7 @@ export function buildRoutedToItem(
       ruleId: detail.ruleId,
       ruleName: detail.ruleName,
       minimumAvailability: detail.minimumAvailability ?? undefined,
+      monitor: detail.monitor ?? undefined,
     }
   }
   return {
@@ -468,6 +474,7 @@ export const WATCHLIST_ADDED_EXAMPLE: WatchlistAddedPayload = {
       tags: ['plex-user'],
       searchOnAdd: true,
       minimumAvailability: 'released',
+      monitor: 'movieOnly',
     },
   ],
 }
@@ -509,6 +516,7 @@ export const APPROVAL_CREATED_EXAMPLE: ApprovalCreatedPayload = {
     tags: ['plex-user'],
     searchOnAdd: true,
     minimumAvailability: 'released',
+    monitor: 'movieOnly',
   },
 }
 
@@ -540,6 +548,7 @@ export const APPROVAL_RESOLVED_EXAMPLE: ApprovalResolvedPayload = {
     tags: ['plex-user'],
     searchOnAdd: true,
     minimumAvailability: 'released',
+    monitor: 'movieOnly',
   },
 }
 

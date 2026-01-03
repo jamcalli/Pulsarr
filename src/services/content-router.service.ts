@@ -231,6 +231,13 @@ export class ContentRouterService {
     const routedInstances: number[] = []
 
     this.log.info(
+      {
+        title: item.title,
+        contentType,
+        syncing: options.syncing,
+        userId: options.userId,
+        userName: options.userName,
+      },
       `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,
     )
 
@@ -399,6 +406,7 @@ export class ContentRouterService {
 
       // Otherwise use default routing
       this.log.info(
+        { title: item.title, contentType },
         `No routing rules exist, using default routing for "${item.title}"`,
       )
 
@@ -991,6 +999,7 @@ export class ContentRouterService {
                         seriesType: primaryDecision.seriesType,
                         minimumAvailability:
                           primaryDecision.minimumAvailability,
+                        monitor: primaryDecision.monitor,
                       }
                     : undefined,
                 },
@@ -1080,6 +1089,7 @@ export class ContentRouterService {
                               seriesType: primaryDecision.seriesType,
                               minimumAvailability:
                                 primaryDecision.minimumAvailability,
+                              monitor: primaryDecision.monitor,
                             }
                           : undefined,
                       },
@@ -1214,6 +1224,7 @@ export class ContentRouterService {
       minimumAvailability?: string | null
       seasonMonitoring?: string | null
       seriesType?: string | null
+      monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
       ruleId?: number
       ruleName?: string
     }> = []
@@ -1237,7 +1248,14 @@ export class ContentRouterService {
         : ''
 
       this.log.info(
-        `Routing "${item.title}" to instance ID ${decision.instanceId}${ruleInfo} with priority ${decision.priority || 50}${decision.tags?.length ? ` and tags: ${decision.tags.join(', ')}` : ''}`,
+        {
+          title: item.title,
+          instanceId: decision.instanceId,
+          ruleId: decision.ruleId,
+          ruleName: decision.ruleName,
+          priority: decision.priority || 50,
+        },
+        `Routing "${item.title}" to instance ID ${decision.instanceId}${ruleInfo}`,
       )
 
       try {
@@ -1258,6 +1276,7 @@ export class ContentRouterService {
             decision.tags,
             decision.searchOnAdd,
             decision.minimumAvailability,
+            decision.monitor,
           )
 
           // Capture the ACTUAL routing parameters that were sent
@@ -1281,6 +1300,8 @@ export class ContentRouterService {
               decision.minimumAvailability ??
               radarrInstance.minimumAvailability ??
               'released'
+            const targetMonitor =
+              decision.monitor ?? radarrInstance.monitor ?? 'movieOnly'
 
             allActualRoutings.push({
               instanceId: decision.instanceId,
@@ -1290,6 +1311,7 @@ export class ContentRouterService {
               tags: targetTags,
               searchOnAdd: targetSearchOnAdd,
               minimumAvailability: targetMinimumAvailability,
+              monitor: targetMonitor,
               ruleId: decision.ruleId,
               ruleName: decision.ruleName,
             })
@@ -2108,6 +2130,7 @@ export class ContentRouterService {
             const resolvedSearchOnAdd = instance.searchOnAdd ?? true
             const resolvedMinimumAvailability =
               instance.minimumAvailability || 'released'
+            const resolvedMonitor = instance.monitor || 'movieOnly'
 
             decisions.push({
               instanceId: instance.id,
@@ -2117,6 +2140,7 @@ export class ContentRouterService {
               priority: 50, // Default priority
               searchOnAdd: resolvedSearchOnAdd,
               minimumAvailability: resolvedMinimumAvailability,
+              monitor: resolvedMonitor,
             })
           }
         }
@@ -2193,6 +2217,7 @@ export class ContentRouterService {
       seasonMonitoring: primaryDecision.seasonMonitoring,
       seriesType: primaryDecision.seriesType,
       minimumAvailability: primaryDecision.minimumAvailability,
+      monitor: primaryDecision.monitor,
       syncedInstances: syncedInstances.length > 0 ? syncedInstances : undefined,
     }
   }
@@ -2217,6 +2242,7 @@ export class ContentRouterService {
       minimumAvailability?: string | null
       seasonMonitoring?: string | null
       seriesType?: string | null
+      monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
     },
   ): Promise<void> {
     try {
@@ -2274,6 +2300,11 @@ export class ContentRouterService {
             | 'inCinemas'
             | 'released'
             | undefined,
+          monitor: actualRouting.monitor as
+            | 'movieOnly'
+            | 'movieAndCollection'
+            | 'none'
+            | undefined,
           syncedInstances:
             syncedInstances.length > 0 ? syncedInstances : undefined,
         }
@@ -2292,6 +2323,7 @@ export class ContentRouterService {
           seasonMonitoring: primaryDecision.seasonMonitoring,
           seriesType: primaryDecision.seriesType,
           minimumAvailability: primaryDecision.minimumAvailability,
+          monitor: primaryDecision.monitor,
           syncedInstances:
             syncedInstances.length > 0 ? syncedInstances : undefined,
         }
@@ -2386,6 +2418,7 @@ export class ContentRouterService {
             tags: proposedRouting.tags ?? [],
             searchOnAdd: proposedRouting.searchOnAdd ?? null,
             minimumAvailability: proposedRouting.minimumAvailability ?? null,
+            monitor: proposedRouting.monitor ?? null,
             seasonMonitoring: proposedRouting.seasonMonitoring ?? null,
             seriesType: proposedRouting.seriesType ?? null,
             syncedInstances: proposedRouting.syncedInstances,
@@ -2504,6 +2537,7 @@ export class ContentRouterService {
           tags: proposedRouting.tags,
           searchOnAdd: proposedRouting.searchOnAdd,
           minimumAvailability: proposedRouting.minimumAvailability,
+          monitor: proposedRouting.monitor,
           seasonMonitoring: proposedRouting.seasonMonitoring,
           seriesType: proposedRouting.seriesType,
           ruleId: approvedRequest.routerRuleId,
@@ -2534,6 +2568,7 @@ export class ContentRouterService {
         tags?: string[]
         searchOnAdd?: boolean | null
         minimumAvailability?: string | null
+        monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
         seasonMonitoring?: string | null
         seriesType?: string | null
       }
@@ -2552,6 +2587,7 @@ export class ContentRouterService {
             tags: radarrInstance.tags || [],
             searchOnAdd: radarrInstance.searchOnAdd,
             minimumAvailability: radarrInstance.minimumAvailability,
+            monitor: radarrInstance.monitor,
           }
         }
       } else {
