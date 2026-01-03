@@ -785,6 +785,9 @@ export class RadarrService {
       // Convert Set back to array for the API
       const tags = Array.from(tagIdsSet)
 
+      // When monitor is 'none', the movie should not be monitored
+      const shouldMonitor = addOptions.monitor !== 'none'
+
       const movie: RadarrPost = {
         title: item.title,
         tmdbId,
@@ -796,11 +799,22 @@ export class RadarrService {
           overrideMinimumAvailability ||
           config.minimumAvailability ||
           ('released' as MinimumAvailability),
+        monitored: shouldMonitor,
       }
 
       await this.postToRadarr<void>('movie', movie)
       this.log.info(
-        `Sent ${item.title} to Radarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'})`,
+        {
+          title: item.title,
+          qualityProfileId,
+          rootFolder: rootFolderPath,
+          tags: tags.length > 0 ? tags : undefined,
+          searchOnAdd: addOptions.searchForMovie,
+          minimumAvailability: movie.minimumAvailability,
+          monitor: addOptions.monitor,
+          monitored: movie.monitored,
+        },
+        `Sent ${item.title} to Radarr`,
       )
     } catch (err) {
       this.log.debug(

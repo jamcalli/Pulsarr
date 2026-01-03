@@ -145,6 +145,7 @@ export interface RadarrPost {
   addOptions: RadarrAddOptions
   tags: string[] // Keep as string[] for compatibility with existing code
   minimumAvailability?: MinimumAvailability
+  monitored: boolean
 }
 
 export type MinimumAvailability = 'announced' | 'inCinemas' | 'released'

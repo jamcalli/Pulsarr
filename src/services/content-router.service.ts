@@ -231,6 +231,13 @@ export class ContentRouterService {
     const routedInstances: number[] = []
 
     this.log.info(
+      {
+        title: item.title,
+        contentType,
+        syncing: options.syncing,
+        userId: options.userId,
+        userName: options.userName,
+      },
       `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,
     )
 
@@ -399,6 +406,7 @@ export class ContentRouterService {
 
       // Otherwise use default routing
       this.log.info(
+        { title: item.title, contentType },
         `No routing rules exist, using default routing for "${item.title}"`,
       )
 
@@ -1240,7 +1248,14 @@ export class ContentRouterService {
         : ''
 
       this.log.info(
-        `Routing "${item.title}" to instance ID ${decision.instanceId}${ruleInfo} with priority ${decision.priority || 50}${decision.tags?.length ? ` and tags: ${decision.tags.join(', ')}` : ''}`,
+        {
+          title: item.title,
+          instanceId: decision.instanceId,
+          ruleId: decision.ruleId,
+          ruleName: decision.ruleName,
+          priority: decision.priority || 50,
+        },
+        `Routing "${item.title}" to instance ID ${decision.instanceId}${ruleInfo}`,
       )
 
       try {
