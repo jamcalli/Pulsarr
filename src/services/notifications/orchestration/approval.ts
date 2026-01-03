@@ -61,6 +61,7 @@ export interface ApprovalRequest {
         tags?: string[]
         searchOnAdd?: boolean | null
         minimumAvailability?: string | null
+        monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
         seasonMonitoring?: string | null
         seriesType?: 'standard' | 'anime' | 'daily' | null
         syncedInstances?: number[]
