@@ -31,6 +31,10 @@ const RoutingConfigSchema = z.object({
   minimumAvailability: z
     .enum(['announced', 'inCinemas', 'released'])
     .optional(),
+  monitor: z
+    .enum(['movieOnly', 'movieAndCollection', 'none'])
+    .nullable()
+    .optional(),
   syncedInstances: z.array(z.number()).optional(),
 })
 

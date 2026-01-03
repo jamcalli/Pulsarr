@@ -7,6 +7,7 @@ import type {
   RadarrAddOptions,
   RadarrConfiguration,
   RadarrInstance,
+  RadarrMonitorType,
   RadarrMovie,
   RadarrPost,
   RootFolder,
@@ -690,6 +691,7 @@ export class RadarrService {
     overrideTags?: string[],
     overrideSearchOnAdd?: boolean | null,
     overrideMinimumAvailability?: MinimumAvailability,
+    overrideMonitor?: RadarrMonitorType | null,
   ): Promise<void> {
     const config = this.radarrConfig
     try {
@@ -700,6 +702,7 @@ export class RadarrService {
             : config.searchOnAdd !== undefined
               ? config.searchOnAdd
               : true, // Default to true for backward compatibility
+        monitor: overrideMonitor ?? config.monitor ?? 'movieOnly',
       }
 
       const tmdbId = extractTmdbId(item.guids)

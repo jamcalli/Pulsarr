@@ -14,6 +14,10 @@ export const RadarrInstanceSchema = z.object({
     .enum(['announced', 'inCinemas', 'released'])
     .optional()
     .default('released'),
+  monitor: z
+    .enum(['movieOnly', 'movieAndCollection', 'none'])
+    .optional()
+    .default('movieOnly'),
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),
@@ -31,6 +35,7 @@ export const RadarrInstanceUpdateSchema = z.object({
   minimumAvailability: z
     .enum(['announced', 'inCinemas', 'released'])
     .optional(),
+  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
   tags: z.array(z.string()).optional(),
   isDefault: z.boolean().optional(),
   syncedInstances: z.array(z.number()).optional(),

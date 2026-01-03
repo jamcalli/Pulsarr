@@ -3,6 +3,7 @@ import type {
   MinimumAvailability,
   RadarrInstance,
   Item as RadarrItem,
+  RadarrMonitorType,
 } from '@root/types/radarr.types.js'
 import type {
   ExistenceCheckResult,
@@ -191,6 +192,7 @@ export class RadarrManagerService {
     tags?: string[],
     searchOnAdd?: boolean | null,
     minimumAvailability?: MinimumAvailability,
+    monitor?: RadarrMonitorType | null,
   ): Promise<void> {
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
@@ -235,6 +237,10 @@ export class RadarrManagerService {
         instance.minimumAvailability ??
         ('released' as MinimumAvailability)
 
+      // Use provided monitor or instance default
+      const targetMonitor =
+        monitor ?? instance.monitor ?? ('movieOnly' as RadarrMonitorType)
+
       await radarrService.addToRadarr(
         radarrItem,
         targetRootFolder,
@@ -242,6 +248,7 @@ export class RadarrManagerService {
         targetTags,
         targetSearchOnAdd,
         targetMinimumAvailability,
+        targetMonitor,
       )
 
       await this.fastify.db.updateWatchlistItem(userId, key, {
