@@ -97,6 +97,7 @@ export interface RoutingDetails {
   tags?: string[]
   searchOnAdd?: boolean | null
   minimumAvailability?: string | null
+  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
   seasonMonitoring?: string | null
   seriesType?: string | null
   ruleId?: number
