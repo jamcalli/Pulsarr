@@ -234,6 +234,7 @@ export async function sendPublicNotification(
   notification: MediaNotification,
   deps: AppriseDeps,
 ): Promise<boolean> {
+  const { log } = deps
   const publicConfig = deps.config.publicContentNotifications
   if (!publicConfig?.enabled) return false
 
@@ -243,7 +244,24 @@ export async function sendPublicNotification(
     'apprise',
   )
 
-  if (appriseUrls.length === 0) return false
+  if (appriseUrls.length === 0) {
+    // Check if config has values that were rejected during parsing
+    const configuredUrls =
+      notification.type === 'movie'
+        ? publicConfig.appriseUrlsMovies || publicConfig.appriseUrls
+        : publicConfig.appriseUrlsShows || publicConfig.appriseUrls
+
+    if (configuredUrls) {
+      log.warn(
+        {
+          contentType: notification.type,
+          configuredUrls,
+        },
+        'Public content Apprise URLs configured but none were valid. URLs must be Apprise-style (scheme://) or plain email addresses.',
+      )
+    }
+    return false
+  }
 
   // Create a fake user for public notifications
   const publicNotificationUser: User = {

@@ -1,10 +1,12 @@
 import type { Config, PublicContentKeyMap } from '@root/types/config.types.js'
+import { isValidAppriseEndpoint } from './apprise-email.js'
 
 /**
- * Parses a comma-separated string into a deduplicated array of valid, trimmed URLs.
+ * Parses a comma-separated string into a deduplicated array of valid, trimmed URLs or email addresses.
+ * Uses the same validation logic as other Apprise notification paths for consistency.
  *
- * @param urlString - A comma-separated list of URLs, or null/undefined.
- * @returns An array of unique, valid URLs. Returns an empty array if {@link urlString} is null, undefined, or contains no valid URLs.
+ * @param urlString - A comma-separated list of URLs or email addresses, or null/undefined.
+ * @returns An array of unique, valid URLs/emails. Returns an empty array if {@link urlString} is null, undefined, or contains no valid entries.
  */
 function parseUrls(urlString: string | undefined | null): string[] {
   if (!urlString) return []
@@ -13,16 +15,7 @@ function parseUrls(urlString: string | undefined | null): string[] {
       urlString
         .split(',')
         .map((url: string) => url.trim())
-        .filter((url: string) => {
-          if (url.length === 0) return false
-          // Basic URL validation to catch obviously invalid strings
-          try {
-            new URL(url)
-            return true
-          } catch {
-            return false
-          }
-        }),
+        .filter((url: string) => isValidAppriseEndpoint(url)),
     ),
   )
 }
