@@ -25,6 +25,9 @@ function mapRowToRadarrInstance(
     minimumAvailability: this.normaliseMinimumAvailability(
       row.minimum_availability,
     ),
+    monitor:
+      (row.monitor as 'movieOnly' | 'movieAndCollection' | 'none') ||
+      'movieOnly',
     tags: this.safeJsonParse(row.tags, [], 'radarr.tags'),
     isDefault: Boolean(row.is_default),
     syncedInstances: this.safeJsonParse(
@@ -118,6 +121,7 @@ export async function createRadarrInstance(
         minimum_availability: this.normaliseMinimumAvailability(
           instance.minimumAvailability,
         ),
+        monitor: instance.monitor ?? 'movieOnly',
         tags: Array.isArray(instance.tags)
           ? JSON.stringify(instance.tags)
           : instance.tags || JSON.stringify([]),
@@ -191,6 +195,9 @@ export async function updateRadarrInstance(
           minimum_availability: this.normaliseMinimumAvailability(
             sanitized.minimumAvailability,
           ),
+        }),
+        ...(typeof sanitized.monitor !== 'undefined' && {
+          monitor: sanitized.monitor,
         }),
         ...(typeof sanitized.tags !== 'undefined' && {
           tags: Array.isArray(sanitized.tags)

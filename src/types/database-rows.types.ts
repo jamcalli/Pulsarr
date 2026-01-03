@@ -33,4 +33,5 @@ export interface SonarrInstanceRow extends BaseInstanceRow {
 export interface RadarrInstanceRow extends BaseInstanceRow {
   search_on_add: boolean | number | null
   minimum_availability: string | null
+  monitor: string | null
 }
