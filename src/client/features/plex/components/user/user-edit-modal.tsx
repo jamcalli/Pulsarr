@@ -281,7 +281,7 @@ const FormContent = React.memo(
               type="submit"
               variant="default"
               disabled={saveStatus !== 'idle' || !isFormDirty}
-              className="min-w-[100px] flex items-center justify-center gap-2"
+              className="min-w-25 flex items-center justify-center gap-2"
             >
               {saveStatus === 'loading' ? (
                 <>
@@ -361,7 +361,7 @@ export default function UserEditModal({
         notify_apprise: user.notify_apprise,
         notify_discord: user.notify_discord,
         notify_tautulli: user.notify_tautulli,
-        tautulli_notifier_id: null,
+        tautulli_notifier_id: user.tautulli_notifier_id,
         can_sync: user.can_sync,
         requires_approval: user.requires_approval,
       })

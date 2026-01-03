@@ -374,13 +374,51 @@ export class TautulliService {
     }
 
     const tautulliUser = await this.db.getUser(user.id)
-    const notifierId = tautulliUser?.tautulli_notifier_id
+    let notifierId = tautulliUser?.tautulli_notifier_id
+
+    // If user has no notifier, try to create one
     if (!notifierId) {
-      this.log.warn(
+      this.log.info(
         { userId: user.id, username: user.name },
-        'User has no Tautulli notifier configured, skipping notification',
+        'User has no Tautulli notifier configured, attempting to create one',
       )
-      return false
+
+      try {
+        const existingNotifiers = await this.getNotifiersInternal()
+        const createdNotifierId = await ensureUserNotifier(
+          {
+            id: user.id,
+            username: user.name,
+            tautulli_notifier_id: null,
+          },
+          existingNotifiers,
+          this.notifierDeps,
+        )
+
+        if (createdNotifierId) {
+          notifierId = createdNotifierId
+          this.log.info(
+            { userId: user.id, username: user.name, notifierId },
+            'Successfully created Tautulli notifier for user',
+          )
+        } else {
+          this.log.warn(
+            { userId: user.id, username: user.name },
+            'Failed to create Tautulli notifier for user, skipping notification',
+          )
+          return false
+        }
+      } catch (error) {
+        this.log.error(
+          {
+            error: error instanceof Error ? error.message : error,
+            userId: user.id,
+            username: user.name,
+          },
+          'Error creating Tautulli notifier for user, skipping notification',
+        )
+        return false
+      }
     }
 
     let mediaType: 'movie' | 'show' | 'episode' = notification.type
