@@ -400,6 +400,7 @@ export class RadarrService {
         searchOnAdd:
           instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
         minimumAvailability: instance.minimumAvailability || 'released',
+        monitor: instance.monitor || 'movieOnly',
       }
 
       this.log.debug(
@@ -445,6 +446,7 @@ export class RadarrService {
     this.config.searchOnAdd =
       instance.searchOnAdd !== undefined ? instance.searchOnAdd : true
     this.config.minimumAvailability = instance.minimumAvailability || 'released'
+    this.config.monitor = instance.monitor || 'movieOnly'
 
     // Update instance ID for caching purposes
     this.instanceId = instance.id
