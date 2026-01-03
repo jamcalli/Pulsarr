@@ -34,6 +34,7 @@ export function useRadarrInstanceForm({
       searchOnAdd:
         instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
       minimumAvailability: instance.minimumAvailability || 'released',
+      monitor: instance.monitor || 'movieOnly',
       tags: instance.tags,
       isDefault: isNew
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
@@ -63,6 +64,7 @@ export function useRadarrInstanceForm({
       searchOnAdd:
         instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
       minimumAvailability: instance.minimumAvailability || 'released',
+      monitor: instance.monitor || 'movieOnly',
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
@@ -139,6 +141,7 @@ export function useRadarrInstanceForm({
           searchOnAdd:
             instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
           minimumAvailability: instance.minimumAvailability || 'released',
+          monitor: instance.monitor || 'movieOnly',
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],
