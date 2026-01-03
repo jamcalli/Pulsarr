@@ -77,6 +77,7 @@ export interface RouterDecision {
     seasonMonitoring?: string | null
     seriesType?: 'standard' | 'anime' | 'daily' | null
     minimumAvailability?: 'announced' | 'inCinemas' | 'released'
+    monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null // For Radarr: monitor type
     syncedInstances?: number[]
   }
 

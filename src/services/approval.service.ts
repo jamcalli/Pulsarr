@@ -388,6 +388,7 @@ export class ApprovalService {
                 isPrimary ? proposedRouting.tags || [] : undefined,
                 isPrimary ? proposedRouting.searchOnAdd : undefined,
                 isPrimary ? proposedRouting.minimumAvailability : undefined,
+                isPrimary ? proposedRouting.monitor : undefined,
               )
               routingResults.succeeded.push(targetInstanceId)
             } catch (error) {

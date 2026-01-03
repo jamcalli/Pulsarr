@@ -141,6 +141,7 @@ export const ConditionalRouteFormSchema = z.object({
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
   search_on_add: z.boolean().default(true),
+  monitor: z.enum(['movieOnly', 'movieAndCollection', 'none']).optional(),
   season_monitoring: z.string().optional(),
   series_type: z.enum([...ROUTER_SERIES_TYPES, 'none'] as const).optional(),
   // Actions section - approval behavior
