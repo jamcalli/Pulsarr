@@ -222,6 +222,7 @@ export class NotificationService {
       minimumAvailability?: string | null
       seasonMonitoring?: string | null
       seriesType?: string | null
+      monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
       ruleId?: number
       ruleName?: string
     }>,
@@ -438,6 +439,7 @@ export class NotificationService {
       minimumAvailability?: string | null
       seasonMonitoring?: string | null
       seriesType?: 'standard' | 'anime' | 'daily' | null
+      monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null
       syncedInstances?: number[]
     },
     reason: string,

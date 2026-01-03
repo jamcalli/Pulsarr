@@ -334,6 +334,17 @@ const AccordionRouteCard = ({
             : selectedInst?.searchOnAdd !== undefined
               ? selectedInst.searchOnAdd
               : true,
+        // For monitor (Radarr only), default to the instance setting or 'movieOnly' if not set
+        monitor:
+          routeContentType === 'radarr'
+            ? routeObj?.monitor ||
+              (selectedInst && 'monitor' in selectedInst
+                ? (selectedInst.monitor as
+                    | 'movieOnly'
+                    | 'movieAndCollection'
+                    | 'none')
+                : 'movieOnly')
+            : undefined,
         // For season_monitoring (Sonarr only), default to the instance setting or 'all' if not set
         season_monitoring:
           routeContentType === 'sonarr'
@@ -602,6 +613,24 @@ const AccordionRouteCard = ({
               }
             }
           }
+
+          // For Radarr, set monitor default, but only if not already changed by user
+          if (contentType === 'radarr') {
+            if (!form.formState.dirtyFields.monitor) {
+              if (
+                'monitor' in newSelectedInstance &&
+                newSelectedInstance.monitor
+              ) {
+                form.setValue('monitor', newSelectedInstance.monitor, {
+                  shouldDirty: false,
+                })
+              } else {
+                form.setValue('monitor', 'movieOnly', {
+                  shouldDirty: false,
+                })
+              }
+            }
+          }
         }
       }
     },
@@ -646,6 +675,7 @@ const AccordionRouteCard = ({
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
           series_type: normalizeSeriesType(contentType, data.series_type),
+          monitor: contentType === 'radarr' ? data.monitor : undefined,
           // Action fields
           always_require_approval: data.always_require_approval,
           bypass_user_quotas: data.bypass_user_quotas,
@@ -672,6 +702,7 @@ const AccordionRouteCard = ({
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
           series_type: normalizeSeriesType(contentType, data.series_type),
+          monitor: contentType === 'radarr' ? data.monitor : undefined,
           // Action fields
           always_require_approval: data.always_require_approval,
           bypass_user_quotas: data.bypass_user_quotas,
@@ -1532,8 +1563,59 @@ const AccordionRouteCard = ({
                     </div>
                   )}
 
-                  {/* Search on Add and Tags in same row */}
+                  {/* Monitor (Radarr) + Search on Add row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Monitor - Radarr Only */}
+                    {contentType === 'radarr' && (
+                      <FormField
+                        control={form.control}
+                        name="monitor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center space-x-2">
+                              <FormLabel className="text-foreground">
+                                Monitor
+                              </FormLabel>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Monitor setting to use when adding movies
+                                      to Radarr. Overrides the default monitor
+                                      setting on the instance.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <Select
+                              value={field.value || 'movieOnly'}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select monitor type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="movieOnly">
+                                  Movie Only
+                                </SelectItem>
+                                <SelectItem value="movieAndCollection">
+                                  Movie and Collection
+                                </SelectItem>
+                                <SelectItem value="none">None</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
                     {/* Search on Add */}
                     <FormField
                       control={form.control}
@@ -1576,69 +1658,138 @@ const AccordionRouteCard = ({
                       )}
                     />
 
-                    {/* Tags */}
-                    <FormField
-                      control={form.control}
-                      name="tags"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-2">
-                            <FormLabel className="text-foreground">
-                              Tags
-                            </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Add tags to content that matches this route.
-                                    Tags will be applied when content is added
-                                    to the target instance.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          <div className="flex gap-2 items-center w-full">
-                            <TagsMultiSelect
-                              ref={tagsMultiSelectRef}
-                              field={field}
-                              instanceId={Number(
-                                form.watch('target_instance_id'),
-                              )}
-                              instanceType={contentType}
-                              isConnectionValid={true}
-                            />
+                    {/* Tags - Only in this row for Sonarr */}
+                    {contentType === 'sonarr' && (
+                      <FormField
+                        control={form.control}
+                        name="tags"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center space-x-2">
+                              <FormLabel className="text-foreground">
+                                Tags
+                              </FormLabel>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Add tags to content that matches this
+                                      route. Tags will be applied when content
+                                      is added to the target instance.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <div className="flex gap-2 items-center w-full">
+                              <TagsMultiSelect
+                                ref={tagsMultiSelectRef}
+                                field={field}
+                                instanceId={Number(
+                                  form.watch('target_instance_id'),
+                                )}
+                                instanceType={contentType}
+                                isConnectionValid={true}
+                              />
 
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="noShadow"
-                                    size="icon"
-                                    className="shrink-0"
-                                    onClick={() =>
-                                      setShowTagCreationDialog(true)
-                                    }
-                                    disabled={!selectedInstance?.id}
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Create a new tag</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="noShadow"
+                                      size="icon"
+                                      className="shrink-0"
+                                      onClick={() =>
+                                        setShowTagCreationDialog(true)
+                                      }
+                                      disabled={!selectedInstance?.id}
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Create a new tag</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
+
+                  {/* Tags - Separate row for Radarr */}
+                  {contentType === 'radarr' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <FormField
+                        control={form.control}
+                        name="tags"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center space-x-2">
+                              <FormLabel className="text-foreground">
+                                Tags
+                              </FormLabel>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Add tags to content that matches this
+                                      route. Tags will be applied when content
+                                      is added to the target instance.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <div className="flex gap-2 items-center w-full">
+                              <TagsMultiSelect
+                                ref={tagsMultiSelectRef}
+                                field={field}
+                                instanceId={Number(
+                                  form.watch('target_instance_id'),
+                                )}
+                                instanceType={contentType}
+                                isConnectionValid={true}
+                              />
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="noShadow"
+                                      size="icon"
+                                      className="shrink-0"
+                                      onClick={() =>
+                                        setShowTagCreationDialog(true)
+                                      }
+                                      disabled={!selectedInstance?.id}
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Create a new tag</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
                 </div>
               </form>
             </Form>

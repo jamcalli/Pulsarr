@@ -2,6 +2,7 @@
 
 export {
   isPlainEmail,
+  isValidAppriseEndpoint,
   resolveAppriseUrl,
   resolveAppriseUrls,
 } from './apprise-email.js'
