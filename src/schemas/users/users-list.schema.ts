@@ -10,6 +10,7 @@ const UserBaseSchema = z.object({
   notify_apprise: z.boolean(),
   notify_discord: z.boolean(),
   notify_tautulli: z.boolean(),
+  tautulli_notifier_id: z.number().nullable(),
   can_sync: z.boolean(),
   requires_approval: z.boolean(),
   created_at: z.string(),
