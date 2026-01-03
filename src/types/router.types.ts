@@ -40,6 +40,7 @@ export interface RouterRule {
   search_on_add?: boolean | null
   season_monitoring?: string | null
   series_type?: 'standard' | 'anime' | 'daily' | null
+  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null // For Radarr: monitor type
   // Actions - approval behavior
   always_require_approval?: boolean
   bypass_user_quotas?: boolean
@@ -73,6 +74,7 @@ export interface RoutingDecision {
   seasonMonitoring?: string | null // For Sonarr: which seasons to monitor
   seriesType?: 'standard' | 'anime' | 'daily' | null // For Sonarr: series type
   minimumAvailability?: 'announced' | 'inCinemas' | 'released' // For Radarr: minimum availability setting
+  monitor?: 'movieOnly' | 'movieAndCollection' | 'none' | null // For Radarr: monitor type when adding
   /**
    * ID of the router rule that produced this decision
    */
