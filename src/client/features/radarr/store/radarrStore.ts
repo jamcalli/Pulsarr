@@ -15,6 +15,7 @@ export interface RadarrInstance {
   bypassIgnored: boolean
   searchOnAdd: boolean
   minimumAvailability?: 'announced' | 'inCinemas' | 'released'
+  monitor?: 'movieOnly' | 'movieAndCollection' | 'none'
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]

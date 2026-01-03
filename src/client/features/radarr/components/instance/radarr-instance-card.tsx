@@ -560,6 +560,58 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
+                    name="monitor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-foreground">
+                            Monitor
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Determines what to monitor when movies are
+                                  added:
+                                  <br />• <strong>Movie Only</strong>: Monitor
+                                  only the movie itself
+                                  <br />• <strong>Movie and Collection</strong>:
+                                  Monitor the movie and its collection
+                                  <br />• <strong>None</strong>: Don't monitor
+                                  the movie
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Select
+                          disabled={!isConnectionValid}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select monitor type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="movieOnly">
+                              Movie Only
+                            </SelectItem>
+                            <SelectItem value="movieAndCollection">
+                              Movie and Collection
+                            </SelectItem>
+                            <SelectItem value="none">None</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="syncedInstances"
                     render={({ field }) => (
                       <FormItem>
