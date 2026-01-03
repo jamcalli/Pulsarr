@@ -8,6 +8,7 @@ const urlWithoutTrailingSlash = z
   })
 
 const minimumAvailabilityEnum = z.enum(['announced', 'inCinemas', 'released'])
+const monitorEnum = z.enum(['movieOnly', 'movieAndCollection', 'none'])
 
 const baseObjectSchema = z.object({
   name: z.string().min(1, { error: 'Name is required' }),
@@ -16,6 +17,7 @@ const baseObjectSchema = z.object({
   bypassIgnored: z.boolean(),
   searchOnAdd: z.boolean().default(true),
   minimumAvailability: minimumAvailabilityEnum.default('released'),
+  monitor: monitorEnum.default('movieOnly'),
   tags: z.array(z.string()),
   isDefault: z.boolean(),
   syncedInstances: z.array(z.number()).optional(),

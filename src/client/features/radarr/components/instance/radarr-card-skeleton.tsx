@@ -72,7 +72,7 @@ const InstanceCardSkeleton = () => {
         </div>
 
         {/* Instance Configuration Section */}
-        <div className="grid lg:grid-cols-3 gap-4">
+        <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
           {/* Search on Add */}
           <div className="space-y-2">
             <Skeleton className="h-4 w-28" />
@@ -82,10 +82,13 @@ const InstanceCardSkeleton = () => {
             </div>
           </div>
 
-          {/* Minimum Availability */}
+          {/* Bypass Ignored */}
           <div className="space-y-2">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-4 w-28" />
+            <div className="flex h-10 items-center gap-2 px-3 py-2">
+              <Skeleton className="h-6 w-12 rounded-full" />
+              <Skeleton className="h-4 w-36" />
+            </div>
           </div>
 
           {/* Instance Tags */}
@@ -97,6 +100,18 @@ const InstanceCardSkeleton = () => {
             </div>
           </div>
 
+          {/* Minimum Availability */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Monitor */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+
           {/* Sync With Instances */}
           <div className="space-y-2">
             <Skeleton className="h-4 w-32" />
@@ -104,12 +119,6 @@ const InstanceCardSkeleton = () => {
               <Skeleton className="h-10 flex-1" />
               <Skeleton className="h-10 w-10" />
             </div>
-          </div>
-
-          {/* An empty space for the odd number */}
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-10 w-full" />
           </div>
 
           {/* Default Instance */}

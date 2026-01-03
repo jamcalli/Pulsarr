@@ -17,6 +17,23 @@ export function isPlainEmail(value: string): boolean {
 }
 
 /**
+ * Checks if a value is a valid Apprise endpoint (URL or email).
+ * This is the canonical validation used across all Apprise notification paths.
+ *
+ * @param value - The string to check
+ * @returns True if the value is a valid Apprise URL or plain email
+ */
+export function isValidAppriseEndpoint(value: string): boolean {
+  if (!value || value.trim().length === 0) return false
+  const trimmed = value.trim()
+  // Full Apprise URL (tgram://, discord://, mailto://, etc.)
+  if (trimmed.includes('://')) return true
+  // Plain email address
+  if (isPlainEmail(trimmed)) return true
+  return false
+}
+
+/**
  * Resolves a user's apprise field to a full Apprise URL.
  *
  * - If already a full URL (contains ://), returns as-is
