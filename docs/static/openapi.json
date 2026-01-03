@@ -609,6 +609,15 @@
                               "released"
                             ]
                           },
+                          "monitor": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "movieOnly",
+                              "movieAndCollection",
+                              "none"
+                            ]
+                          },
                           "syncedInstances": {
                             "type": "array",
                             "items": {
@@ -734,6 +743,15 @@
                                   "announced",
                                   "inCinemas",
                                   "released"
+                                ]
+                              },
+                              "monitor": {
+                                "nullable": true,
+                                "type": "string",
+                                "enum": [
+                                  "movieOnly",
+                                  "movieAndCollection",
+                                  "none"
                                 ]
                               },
                               "syncedInstances": {
@@ -918,6 +936,15 @@
                                     "released"
                                   ]
                                 },
+                                "monitor": {
+                                  "nullable": true,
+                                  "type": "string",
+                                  "enum": [
+                                    "movieOnly",
+                                    "movieAndCollection",
+                                    "none"
+                                  ]
+                                },
                                 "syncedInstances": {
                                   "type": "array",
                                   "items": {
@@ -1045,6 +1072,15 @@
                                         "announced",
                                         "inCinemas",
                                         "released"
+                                      ]
+                                    },
+                                    "monitor": {
+                                      "nullable": true,
+                                      "type": "string",
+                                      "enum": [
+                                        "movieOnly",
+                                        "movieAndCollection",
+                                        "none"
                                       ]
                                     },
                                     "syncedInstances": {
@@ -1487,6 +1523,15 @@
                                       "released"
                                     ]
                                   },
+                                  "monitor": {
+                                    "nullable": true,
+                                    "type": "string",
+                                    "enum": [
+                                      "movieOnly",
+                                      "movieAndCollection",
+                                      "none"
+                                    ]
+                                  },
                                   "syncedInstances": {
                                     "type": "array",
                                     "items": {
@@ -1614,6 +1659,15 @@
                                           "announced",
                                           "inCinemas",
                                           "released"
+                                        ]
+                                      },
+                                      "monitor": {
+                                        "nullable": true,
+                                        "type": "string",
+                                        "enum": [
+                                          "movieOnly",
+                                          "movieAndCollection",
+                                          "none"
                                         ]
                                       },
                                       "syncedInstances": {
@@ -1964,6 +2018,15 @@
                                     "released"
                                   ]
                                 },
+                                "monitor": {
+                                  "nullable": true,
+                                  "type": "string",
+                                  "enum": [
+                                    "movieOnly",
+                                    "movieAndCollection",
+                                    "none"
+                                  ]
+                                },
                                 "syncedInstances": {
                                   "type": "array",
                                   "items": {
@@ -2091,6 +2154,15 @@
                                         "announced",
                                         "inCinemas",
                                         "released"
+                                      ]
+                                    },
+                                    "monitor": {
+                                      "nullable": true,
+                                      "type": "string",
+                                      "enum": [
+                                        "movieOnly",
+                                        "movieAndCollection",
+                                        "none"
                                       ]
                                     },
                                     "syncedInstances": {
@@ -2421,6 +2493,15 @@
                               "released"
                             ]
                           },
+                          "monitor": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "movieOnly",
+                              "movieAndCollection",
+                              "none"
+                            ]
+                          },
                           "syncedInstances": {
                             "type": "array",
                             "items": {
@@ -2546,6 +2627,15 @@
                                   "announced",
                                   "inCinemas",
                                   "released"
+                                ]
+                              },
+                              "monitor": {
+                                "nullable": true,
+                                "type": "string",
+                                "enum": [
+                                  "movieOnly",
+                                  "movieAndCollection",
+                                  "none"
                                 ]
                               },
                               "syncedInstances": {
@@ -2715,6 +2805,15 @@
                                     "released"
                                   ]
                                 },
+                                "monitor": {
+                                  "nullable": true,
+                                  "type": "string",
+                                  "enum": [
+                                    "movieOnly",
+                                    "movieAndCollection",
+                                    "none"
+                                  ]
+                                },
                                 "syncedInstances": {
                                   "type": "array",
                                   "items": {
@@ -2842,6 +2941,15 @@
                                         "announced",
                                         "inCinemas",
                                         "released"
+                                      ]
+                                    },
+                                    "monitor": {
+                                      "nullable": true,
+                                      "type": "string",
+                                      "enum": [
+                                        "movieOnly",
+                                        "movieAndCollection",
+                                        "none"
                                       ]
                                     },
                                     "syncedInstances": {
@@ -7058,6 +7166,15 @@
                               "daily"
                             ]
                           },
+                          "monitor": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "movieOnly",
+                              "movieAndCollection",
+                              "none"
+                            ]
+                          },
                           "always_require_approval": {
                             "default": false,
                             "type": "boolean"
@@ -7654,6 +7771,15 @@
                       "daily"
                     ]
                   },
+                  "monitor": {
+                    "nullable": true,
+                    "type": "string",
+                    "enum": [
+                      "movieOnly",
+                      "movieAndCollection",
+                      "none"
+                    ]
+                  },
                   "always_require_approval": {
                     "default": false,
                     "type": "boolean"
@@ -8213,6 +8339,15 @@
                             "standard",
                             "anime",
                             "daily"
+                          ]
+                        },
+                        "monitor": {
+                          "nullable": true,
+                          "type": "string",
+                          "enum": [
+                            "movieOnly",
+                            "movieAndCollection",
+                            "none"
                           ]
                         },
                         "always_require_approval": {
@@ -8895,6 +9030,15 @@
                               "daily"
                             ]
                           },
+                          "monitor": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "movieOnly",
+                              "movieAndCollection",
+                              "none"
+                            ]
+                          },
                           "always_require_approval": {
                             "default": false,
                             "type": "boolean"
@@ -9548,6 +9692,15 @@
                               "daily"
                             ]
                           },
+                          "monitor": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "movieOnly",
+                              "movieAndCollection",
+                              "none"
+                            ]
+                          },
                           "always_require_approval": {
                             "default": false,
                             "type": "boolean"
@@ -10187,6 +10340,15 @@
                             "daily"
                           ]
                         },
+                        "monitor": {
+                          "nullable": true,
+                          "type": "string",
+                          "enum": [
+                            "movieOnly",
+                            "movieAndCollection",
+                            "none"
+                          ]
+                        },
                         "always_require_approval": {
                           "default": false,
                           "type": "boolean"
@@ -10814,6 +10976,15 @@
                       "daily"
                     ]
                   },
+                  "monitor": {
+                    "nullable": true,
+                    "type": "string",
+                    "enum": [
+                      "movieOnly",
+                      "movieAndCollection",
+                      "none"
+                    ]
+                  },
                   "always_require_approval": {
                     "default": false,
                     "type": "boolean"
@@ -11378,6 +11549,15 @@
                             "standard",
                             "anime",
                             "daily"
+                          ]
+                        },
+                        "monitor": {
+                          "nullable": true,
+                          "type": "string",
+                          "enum": [
+                            "movieOnly",
+                            "movieAndCollection",
+                            "none"
                           ]
                         },
                         "always_require_approval": {
@@ -12161,6 +12341,15 @@
                               "standard",
                               "anime",
                               "daily"
+                            ]
+                          },
+                          "monitor": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "movieOnly",
+                              "movieAndCollection",
+                              "none"
                             ]
                           },
                           "always_require_approval": {
@@ -17928,6 +18117,15 @@
                           "released"
                         ]
                       },
+                      "monitor": {
+                        "default": "movieOnly",
+                        "type": "string",
+                        "enum": [
+                          "movieOnly",
+                          "movieAndCollection",
+                          "none"
+                        ]
+                      },
                       "tags": {
                         "default": [],
                         "type": "array",
@@ -17956,6 +18154,7 @@
                       "bypassIgnored",
                       "searchOnAdd",
                       "minimumAvailability",
+                      "monitor",
                       "tags",
                       "isDefault",
                       "id"
@@ -18023,6 +18222,15 @@
                       "announced",
                       "inCinemas",
                       "released"
+                    ]
+                  },
+                  "monitor": {
+                    "default": "movieOnly",
+                    "type": "string",
+                    "enum": [
+                      "movieOnly",
+                      "movieAndCollection",
+                      "none"
                     ]
                   },
                   "tags": {
@@ -18131,6 +18339,14 @@
                       "announced",
                       "inCinemas",
                       "released"
+                    ]
+                  },
+                  "monitor": {
+                    "type": "string",
+                    "enum": [
+                      "movieOnly",
+                      "movieAndCollection",
+                      "none"
                     ]
                   },
                   "tags": {
@@ -30512,6 +30728,10 @@
                           "notify_tautulli": {
                             "type": "boolean"
                           },
+                          "tautulli_notifier_id": {
+                            "nullable": true,
+                            "type": "number"
+                          },
                           "can_sync": {
                             "type": "boolean"
                           },
@@ -30534,6 +30754,7 @@
                           "notify_apprise",
                           "notify_discord",
                           "notify_tautulli",
+                          "tautulli_notifier_id",
                           "can_sync",
                           "requires_approval",
                           "created_at",
@@ -30642,6 +30863,10 @@
                           "notify_tautulli": {
                             "type": "boolean"
                           },
+                          "tautulli_notifier_id": {
+                            "nullable": true,
+                            "type": "number"
+                          },
                           "can_sync": {
                             "type": "boolean"
                           },
@@ -30667,6 +30892,7 @@
                           "notify_apprise",
                           "notify_discord",
                           "notify_tautulli",
+                          "tautulli_notifier_id",
                           "can_sync",
                           "requires_approval",
                           "created_at",
@@ -33331,6 +33557,14 @@
                             },
                             "minimumAvailability": {
                               "type": "string"
+                            },
+                            "monitor": {
+                              "type": "string",
+                              "enum": [
+                                "movieOnly",
+                                "movieAndCollection",
+                                "none"
+                              ]
                             }
                           },
                           "required": [
@@ -33432,7 +33666,8 @@
                       "plex-user"
                     ],
                     "searchOnAdd": true,
-                    "minimumAvailability": "released"
+                    "minimumAvailability": "released",
+                    "monitor": "movieOnly"
                   }
                 ]
               }
@@ -33705,6 +33940,21 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "monitor": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "movieOnly",
+                                  "movieAndCollection",
+                                  "none"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -33714,7 +33964,8 @@
                           "tags",
                           "searchOnAdd",
                           "instanceType",
-                          "minimumAvailability"
+                          "minimumAvailability",
+                          "monitor"
                         ],
                         "additionalProperties": false
                       },
@@ -33853,7 +34104,8 @@
                     "plex-user"
                   ],
                   "searchOnAdd": true,
-                  "minimumAvailability": "released"
+                  "minimumAvailability": "released",
+                  "monitor": "movieOnly"
                 }
               }
             }
@@ -34038,6 +34290,21 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "monitor": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "movieOnly",
+                                  "movieAndCollection",
+                                  "none"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -34047,7 +34314,8 @@
                           "tags",
                           "searchOnAdd",
                           "instanceType",
-                          "minimumAvailability"
+                          "minimumAvailability",
+                          "monitor"
                         ],
                         "additionalProperties": false
                       },
@@ -34196,7 +34464,8 @@
                     "plex-user"
                   ],
                   "searchOnAdd": true,
-                  "minimumAvailability": "released"
+                  "minimumAvailability": "released",
+                  "monitor": "movieOnly"
                 }
               }
             }
@@ -34344,6 +34613,21 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "monitor": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "movieOnly",
+                                  "movieAndCollection",
+                                  "none"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -34353,7 +34637,8 @@
                           "tags",
                           "searchOnAdd",
                           "instanceType",
-                          "minimumAvailability"
+                          "minimumAvailability",
+                          "monitor"
                         ],
                         "additionalProperties": false
                       },
