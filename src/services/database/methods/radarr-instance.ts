@@ -25,9 +25,7 @@ function mapRowToRadarrInstance(
     minimumAvailability: this.normaliseMinimumAvailability(
       row.minimum_availability,
     ),
-    monitor:
-      (row.monitor as 'movieOnly' | 'movieAndCollection' | 'none') ||
-      'movieOnly',
+    monitor: row.monitor as 'movieOnly' | 'movieAndCollection' | 'none',
     tags: this.safeJsonParse(row.tags, [], 'radarr.tags'),
     isDefault: Boolean(row.is_default),
     syncedInstances: this.safeJsonParse(

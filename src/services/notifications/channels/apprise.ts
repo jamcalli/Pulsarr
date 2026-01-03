@@ -248,8 +248,8 @@ export async function sendPublicNotification(
     // Check if config has values that were rejected during parsing
     const configuredUrls =
       notification.type === 'movie'
-        ? publicConfig.appriseUrlsMovies || publicConfig.appriseUrls
-        : publicConfig.appriseUrlsShows || publicConfig.appriseUrls
+        ? (publicConfig.appriseUrlsMovies ?? publicConfig.appriseUrls)
+        : (publicConfig.appriseUrlsShows ?? publicConfig.appriseUrls)
 
     if (configuredUrls) {
       log.warn(

@@ -264,6 +264,7 @@ export class RadarrManagerService {
           tags: targetTags,
           searchOnAdd: targetSearchOnAdd,
           minimumAvailability: targetMinimumAvailability,
+          monitor: targetMonitor,
           title: radarrItem.title,
           userId,
           key,
