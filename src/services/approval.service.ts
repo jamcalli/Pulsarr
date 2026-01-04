@@ -624,41 +624,6 @@ export class ApprovalService {
   }
 
   /**
-   * Approves a single request
-   */
-  async approveRequest(
-    requestId: number,
-    approvedBy: number,
-    notes?: string,
-  ): Promise<ApprovalRequest | null> {
-    try {
-      const result = await this.fastify.db.approveRequest(
-        requestId,
-        approvedBy,
-        notes,
-      )
-
-      if (result) {
-        // Emit SSE event for approved request
-        this.emitApprovalEvent('approved', result, result.userName)
-
-        // Send native webhook notification (fire-and-forget)
-        void this.fastify.notifications.sendApprovalResolved(
-          result,
-          'approved',
-          approvedBy,
-          notes,
-        )
-      }
-
-      return result
-    } catch (error) {
-      this.log.error({ error }, `Error approving request ${requestId}:`)
-      return null
-    }
-  }
-
-  /**
    * Approves a request and routes it to Radarr/Sonarr atomically.
    *
    * This method encapsulates the entire approval workflow:
