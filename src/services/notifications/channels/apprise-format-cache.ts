@@ -83,6 +83,9 @@ export async function fetchSchemaFormats(
  * Telegram reports as HTML-native via Apprise /details, but only supports a tiny
  * subset of HTML tags (<b>, <i>, <a>, <code>, <pre>). Full HTML with <div>, <p>,
  * <hr>, etc. causes Telegram API errors. Force text format for these schemas.
+ *
+ * Add entries here if other services exhibit similar format misreporting issues.
+ * The override takes precedence over the format reported by Apprise /details.
  */
 const SCHEMA_FORMAT_OVERRIDES: Record<string, 'text' | 'html' | 'markdown'> = {
   tgram: 'text',
