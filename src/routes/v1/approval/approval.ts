@@ -396,15 +396,60 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           }
         }
 
+        // If approving, use approveAndRoute() for atomic approval + routing
+        if (targetStatus === 'approved') {
+          // First update proposedRouterDecision if provided (before approving)
+          if (request.body.proposedRouterDecision) {
+            await fastify.db.updateApprovalRequest(requestId, {
+              proposedRouterDecision: request.body.proposedRouterDecision,
+            })
+          }
+
+          // Now approve and route atomically
+          const result = await fastify.approvalService.approveAndRoute(
+            requestId,
+            actorId,
+            request.body.approvalNotes,
+          )
+
+          if (!result.success) {
+            if (result.rollbackFailed) {
+              return reply.internalServerError(
+                'Routing failed and rollback failed - request may be in inconsistent state',
+              )
+            }
+            return reply.conflict(
+              result.error || 'Failed to process approved request',
+            )
+          }
+
+          // Request is guaranteed to exist when success is true
+          const approvedRequest = result.request
+          if (!approvedRequest) {
+            return reply.internalServerError(
+              'Approval succeeded but request not returned',
+            )
+          }
+
+          return {
+            success: true,
+            message: 'Approval request approved and executed successfully',
+            approvalRequest: {
+              ...approvedRequest,
+              routerRuleId: approvedRequest.routerRuleId ?? null,
+              approvedBy: approvedRequest.approvedBy ?? null,
+              approvalNotes: approvedRequest.approvalNotes ?? null,
+              approvalReason: approvedRequest.approvalReason ?? null,
+              expiresAt: approvedRequest.expiresAt ?? null,
+            },
+          }
+        }
+
+        // Not approving - just update the request fields
         const updatedRequest = await fastify.db.updateApprovalRequest(
           requestId,
           {
             status: request.body.status,
-            // Server-controlled approvedBy: only set when transitioning to approved
-            approvedBy:
-              targetStatus === 'approved'
-                ? actorId
-                : existingRequest.approvedBy,
             approvalNotes: request.body.approvalNotes,
             proposedRouterDecision: request.body.proposedRouterDecision,
           },
@@ -412,18 +457,6 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
 
         if (!updatedRequest) {
           throw new Error('Failed to update approval request')
-        }
-
-        // If status changed to approved, process the request
-        if (targetStatus === 'approved') {
-          const result =
-            await fastify.approvalService.processApprovedRequest(updatedRequest)
-          if (!result.success) {
-            fastify.log.warn(
-              `Failed to process newly approved request ${requestId}: ${result.error}`,
-            )
-            // Note: We don't fail the update, just log the warning
-          }
         }
 
         return {
@@ -675,50 +708,23 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
           )
         }
 
-        // Step 1: Update DB to "approved" WITHOUT emitting events yet
-        // Call db method directly to defer SSE/webhook until routing succeeds
-        const approvedRequest = await fastify.db.approveRequest(
+        // Approve and route atomically via service
+        const result = await fastify.approvalService.approveAndRoute(
           requestId,
           approvedBy,
           notes,
         )
 
-        if (!approvedRequest) {
-          throw new Error('Failed to approve request')
-        }
-
-        // Step 2: Attempt routing to Radarr/Sonarr
-        const result =
-          await fastify.approvalService.processApprovedRequest(approvedRequest)
-
         if (!result.success) {
-          // Step 3a: ROLLBACK - Revert status to pending since routing failed
-          await fastify.db.updateApprovalRequest(requestId, {
-            status: 'pending',
-          })
-
-          fastify.log.warn(
-            { requestId, error: result.error },
-            'Approval rolled back due to routing failure',
-          )
-
+          if (result.rollbackFailed) {
+            return reply.internalServerError(
+              'Routing failed and rollback failed - request may be in inconsistent state',
+            )
+          }
           return reply.conflict(
             result.error || 'Failed to process approved request',
           )
         }
-
-        // Step 3b: SUCCESS - Now emit events after routing confirmed
-        fastify.approvalService.emitApprovalEvent(
-          'approved',
-          approvedRequest,
-          approvedRequest.userName,
-        )
-        void fastify.notifications.sendApprovalResolved(
-          approvedRequest,
-          'approved',
-          approvedBy,
-          notes,
-        )
 
         return {
           success: true,
