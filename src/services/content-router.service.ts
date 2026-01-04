@@ -2540,7 +2540,7 @@ export class ContentRouterService {
           monitor: proposedRouting.monitor,
           seasonMonitoring: proposedRouting.seasonMonitoring,
           seriesType: proposedRouting.seriesType,
-          ruleId: approvedRequest.routerRuleId,
+          ruleId: approvedRequest.routerRuleId ?? undefined,
           ruleName: undefined, // Rule name not stored in approval request
         },
       ]

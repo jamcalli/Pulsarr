@@ -298,26 +298,23 @@ export async function handleApprovalAction(
         return
       }
 
-      // Step 1: Approve the request (same as API route)
-      const approvedRequest = await approvalService.approveRequest(
+      // Approve and route atomically
+      const result = await approvalService.approveAndRoute(
         approvalId,
         adminUser.id,
         'Approved via Discord',
       )
 
-      if (!approvedRequest) {
-        await interaction.editReply('❌ Failed to approve request')
-        return
-      }
-
-      // Step 2: Process the approved request (same as API route)
-      const result =
-        await approvalService.processApprovedRequest(approvedRequest)
-
       if (!result.success) {
-        await interaction.editReply(
-          `❌ Approved but failed to process: ${result.error}`,
-        )
+        if (result.rollbackFailed) {
+          await interaction.editReply(
+            '❌ Routing failed and rollback failed - request may be in inconsistent state',
+          )
+        } else {
+          await interaction.editReply(
+            `❌ Failed to process approval: ${result.error}`,
+          )
+        }
         return
       }
 
