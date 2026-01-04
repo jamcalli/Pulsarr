@@ -78,6 +78,17 @@ export async function fetchSchemaFormats(
 }
 
 /**
+ * Schema format overrides for services that report incorrect native formats.
+ *
+ * Telegram reports as HTML-native via Apprise /details, but only supports a tiny
+ * subset of HTML tags (<b>, <i>, <a>, <code>, <pre>). Full HTML with <div>, <p>,
+ * <hr>, etc. causes Telegram API errors. Force text format for these schemas.
+ */
+const SCHEMA_FORMAT_OVERRIDES: Record<string, 'text' | 'html' | 'markdown'> = {
+  tgram: 'text',
+}
+
+/**
  * Extracts schema from Apprise URL using same logic as Apprise's parse_url().
  * Regex matches: one or more characters that are NOT colon or whitespace, before ://
  *
@@ -102,10 +113,13 @@ export function analyzeAppriseUrls(
     .filter(Boolean)
     .map((url) => {
       const schema = extractSchema(url)
+      // Check for schema overrides first (e.g., tgram → text)
+      const override = schema ? SCHEMA_FORMAT_OVERRIDES[schema] : undefined
       return {
         url,
         schema: schema ?? 'unknown',
-        format: schema ? (formatCache.get(schema) ?? 'text') : 'text',
+        format:
+          override ?? (schema ? (formatCache.get(schema) ?? 'text') : 'text'),
       }
     })
 }
