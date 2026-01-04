@@ -768,6 +768,22 @@ export class ApprovalService {
       errors: [] as string[],
     }
 
+    // Pre-flight health check - abort if any instances are unavailable
+    const healthCheck = await this.checkAllInstancesHealth()
+    if (!healthCheck.allAvailable) {
+      this.log.warn(
+        { unavailable: healthCheck.unavailable },
+        'Batch approval aborted: some instances are unavailable',
+      )
+      return {
+        approved: 0,
+        failed: requestIds,
+        errors: [
+          `Cannot process batch: ${healthCheck.unavailable.join(' and ')} instances are unavailable`,
+        ],
+      }
+    }
+
     for (const id of requestIds) {
       const result = await this.approveAndRoute(id, approvedBy, notes)
 
