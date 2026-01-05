@@ -120,6 +120,21 @@ export const CleanupResponseSchema = BaseResponseSchema.extend({
   }),
 })
 
+// Instance result for orphaned tag reference cleanup
+const OrphanedRefInstanceResultSchema = z.object({
+  instanceName: z.string(),
+  itemsScanned: z.number(),
+  orphanedTagsFound: z.number(),
+  itemsUpdated: z.number(),
+  error: z.string().optional(),
+})
+
+// Cleanup orphaned tag references response schema
+export const CleanupOrphanedRefsResponseSchema = BaseResponseSchema.extend({
+  radarr: z.record(z.string(), OrphanedRefInstanceResultSchema),
+  sonarr: z.record(z.string(), OrphanedRefInstanceResultSchema),
+})
+
 // Re-export shared schemas
 export { ErrorSchema }
 
@@ -133,3 +148,6 @@ export type TaggingOperationResponse = z.infer<
   typeof TaggingOperationResponseSchema
 >
 export type CleanupResponse = z.infer<typeof CleanupResponseSchema>
+export type CleanupOrphanedRefsResponse = z.infer<
+  typeof CleanupOrphanedRefsResponseSchema
+>

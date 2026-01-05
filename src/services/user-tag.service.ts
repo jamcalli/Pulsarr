@@ -2502,4 +2502,17 @@ export class UserTagService {
 
     return results
   }
+
+  /**
+   * Clean up orphaned tag references from all Radarr and Sonarr instances.
+   *
+   * This scans all movies/series for tag IDs that reference non-existent tags
+   * and removes those orphaned references. This can happen when tags are deleted
+   * outside of Pulsarr (e.g., by *arr upgrades) or when migration partially failed.
+   *
+   * @returns Cleanup results per instance
+   */
+  async cleanupOrphanedTagReferences() {
+    return this.migrationService.cleanupOrphanedTagReferences()
+  }
 }

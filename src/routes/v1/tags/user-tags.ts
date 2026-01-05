@@ -1,4 +1,5 @@
 import {
+  CleanupOrphanedRefsResponseSchema,
   CleanupResponseSchema,
   CreateTaggingResponseSchema,
   ErrorSchema,
@@ -283,6 +284,67 @@ const plugin: FastifyPluginAsyncZodOpenApi = async (fastify) => {
       }
     },
   )
+
+  // Clean up orphaned tag references (tag IDs on items that don't exist)
+  fastify.post(
+    '/cleanup-orphaned-refs',
+    {
+      schema: {
+        summary: 'Cleanup orphaned tag references',
+        operationId: 'cleanupOrphanedTagReferences',
+        description:
+          'Remove references to non-existent tags from movies and series',
+        response: {
+          200: CleanupOrphanedRefsResponseSchema,
+          500: ErrorSchema,
+        },
+        tags: ['Tags'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const results = await fastify.userTags.cleanupOrphanedTagReferences()
+
+        // Calculate totals for message
+        let totalItemsScanned = 0
+        let totalOrphanedFound = 0
+        let totalItemsUpdated = 0
+
+        for (const result of Object.values(results.radarr)) {
+          totalItemsScanned += result.itemsScanned
+          totalOrphanedFound += result.orphanedTagsFound
+          totalItemsUpdated += result.itemsUpdated
+        }
+        for (const result of Object.values(results.sonarr)) {
+          totalItemsScanned += result.itemsScanned
+          totalOrphanedFound += result.orphanedTagsFound
+          totalItemsUpdated += result.itemsUpdated
+        }
+
+        let message: string
+        if (totalOrphanedFound === 0) {
+          message = `Scanned ${totalItemsScanned} items, no orphaned tag references found`
+        } else {
+          message = `Found ${totalOrphanedFound} orphaned tag references across ${totalItemsUpdated} items and removed them`
+        }
+
+        return {
+          success: true,
+          message,
+          radarr: results.radarr,
+          sonarr: results.sonarr,
+        }
+      } catch (err) {
+        logRouteError(fastify.log, request, err, {
+          message: 'Failed to cleanup orphaned tag references',
+        })
+        return reply.internalServerError(
+          'Unable to clean up orphaned tag references',
+        )
+      }
+    },
+  )
+
   // Remove all user tags from media
   fastify.post(
     '/remove',
