@@ -487,6 +487,8 @@ describe('plex/processors/single-item', () => {
     })
 
     it('should handle timeout error', async () => {
+      vi.useFakeTimers()
+
       server.use(
         http.get(
           'https://discover.provider.plex.tv/library/metadata/12345',
@@ -499,10 +501,13 @@ describe('plex/processors/single-item', () => {
         ),
       )
 
-      const result = await toItemsSingle(config, mockLogger, mockItem)
+      const promise = toItemsSingle(config, mockLogger, mockItem)
+      await vi.runAllTimersAsync()
+      const result = await promise
 
+      vi.useRealTimers()
       expect(result.size).toBe(0)
-    }, 10000)
+    })
 
     it('should propagate rate limit error when already exhausted', async () => {
       // Create a rate limit error directly in the flow

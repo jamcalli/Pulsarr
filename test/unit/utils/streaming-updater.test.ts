@@ -9,11 +9,11 @@ import { server } from '../../setup/msw-setup.js'
 describe('streaming-updater', () => {
   beforeEach(() => {
     vi.clearAllTimers()
-    vi.useRealTimers()
   })
 
   afterEach(() => {
     server.resetHandlers()
+    vi.useRealTimers()
   })
 
   describe('streamLines', () => {
@@ -161,6 +161,8 @@ describe('streaming-updater', () => {
     })
 
     it('should respect AbortSignal for cancellation', async () => {
+      vi.useFakeTimers()
+
       server.use(
         http.get('https://example.com/data.txt', async () => {
           await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -185,12 +187,16 @@ describe('streaming-updater', () => {
           // Should not reach here
         }
       }).rejects.toThrow(/abort/i)
+
+      vi.useRealTimers()
     })
 
     it('should timeout when request exceeds timeout value', async () => {
+      // Note: AbortSignal.timeout() uses native timers that can't be faked
+      // Keep real timers with minimal delays
       server.use(
         http.get('https://example.com/slow', async () => {
-          await new Promise((resolve) => setTimeout(resolve, 200))
+          await new Promise((resolve) => setTimeout(resolve, 100))
           return new HttpResponse('line1\n', {
             headers: { 'Content-Type': 'text/plain' },
           })
@@ -199,7 +205,7 @@ describe('streaming-updater', () => {
 
       const generator = streamLines({
         url: 'https://example.com/slow',
-        timeout: 100, // 100ms timeout
+        timeout: 20, // 20ms timeout, server responds at 100ms
       })
 
       await expect(async () => {
@@ -225,13 +231,20 @@ describe('streaming-updater', () => {
         }),
       )
 
-      const lines: string[] = []
-      for await (const line of streamLines({
-        url: 'https://example.com/retry-500',
-        retries: 3,
-      })) {
-        lines.push(line)
-      }
+      vi.useFakeTimers()
+      const promise = (async () => {
+        const lines: string[] = []
+        for await (const line of streamLines({
+          url: 'https://example.com/retry-500',
+          retries: 3,
+        })) {
+          lines.push(line)
+        }
+        return lines
+      })()
+
+      await vi.runAllTimersAsync()
+      const lines = await promise
 
       expect(lines).toEqual(['success'])
       expect(attempts).toBe(3)
@@ -252,13 +265,20 @@ describe('streaming-updater', () => {
         }),
       )
 
-      const lines: string[] = []
-      for await (const line of streamLines({
-        url: 'https://example.com/retry-429',
-        retries: 2,
-      })) {
-        lines.push(line)
-      }
+      vi.useFakeTimers()
+      const promise = (async () => {
+        const lines: string[] = []
+        for await (const line of streamLines({
+          url: 'https://example.com/retry-429',
+          retries: 2,
+        })) {
+          lines.push(line)
+        }
+        return lines
+      })()
+
+      await vi.runAllTimersAsync()
+      const lines = await promise
 
       expect(lines).toEqual(['success'])
       expect(attempts).toBe(2)
@@ -279,13 +299,20 @@ describe('streaming-updater', () => {
         }),
       )
 
-      const lines: string[] = []
-      for await (const line of streamLines({
-        url: 'https://example.com/retry-408',
-        retries: 2,
-      })) {
-        lines.push(line)
-      }
+      vi.useFakeTimers()
+      const promise = (async () => {
+        const lines: string[] = []
+        for await (const line of streamLines({
+          url: 'https://example.com/retry-408',
+          retries: 2,
+        })) {
+          lines.push(line)
+        }
+        return lines
+      })()
+
+      await vi.runAllTimersAsync()
+      const lines = await promise
 
       expect(lines).toEqual(['success'])
       expect(attempts).toBe(2)
@@ -377,6 +404,7 @@ describe('streaming-updater', () => {
     })
 
     it('should throw after exhausting all retries', async () => {
+      vi.useFakeTimers()
       let attempts = 0
 
       server.use(
@@ -386,7 +414,7 @@ describe('streaming-updater', () => {
         }),
       )
 
-      await expect(async () => {
+      const promise = (async () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         for await (const _line of streamLines({
           url: 'https://example.com/always-fails',
@@ -394,8 +422,14 @@ describe('streaming-updater', () => {
         })) {
           // Should not reach here
         }
-      }).rejects.toThrow(/500/)
+      })().catch((e) => e)
 
+      await vi.runAllTimersAsync()
+      const error = await promise
+
+      vi.useRealTimers()
+      expect(error).toBeInstanceOf(Error)
+      expect((error as Error).message).toMatch(/500/)
       expect(attempts).toBe(3) // Initial + 2 retries
     })
   })
@@ -506,6 +540,8 @@ describe('streaming-updater', () => {
     })
 
     it('should respect AbortSignal for cancellation', async () => {
+      vi.useFakeTimers()
+
       server.use(
         http.get('https://example.com/content.txt', async () => {
           await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -525,12 +561,15 @@ describe('streaming-updater', () => {
       controller.abort()
 
       await expect(promise).rejects.toThrow(/abort/i)
+      vi.useRealTimers()
     })
 
     it('should timeout when request exceeds timeout value', async () => {
+      // Note: AbortSignal.timeout() uses native timers that can't be faked
+      // Keep real timers with minimal delays
       server.use(
         http.get('https://example.com/slow.txt', async () => {
-          await new Promise((resolve) => setTimeout(resolve, 200))
+          await new Promise((resolve) => setTimeout(resolve, 100))
           return new HttpResponse('content', {
             headers: { 'Content-Type': 'text/plain' },
           })
@@ -540,7 +579,7 @@ describe('streaming-updater', () => {
       await expect(
         fetchContent({
           url: 'https://example.com/slow.txt',
-          timeout: 100, // 100ms timeout
+          timeout: 20, // 20ms timeout, server responds at 100ms
         }),
       ).rejects.toThrow()
     })
@@ -560,10 +599,14 @@ describe('streaming-updater', () => {
         }),
       )
 
-      const content = await fetchContent({
+      vi.useFakeTimers()
+      const promise = fetchContent({
         url: 'https://example.com/retry-500',
         retries: 3,
       })
+
+      await vi.runAllTimersAsync()
+      const content = await promise
 
       expect(content).toBe('success')
       expect(attempts).toBe(3)
@@ -599,13 +642,19 @@ describe('streaming-updater', () => {
         }),
       )
 
-      await expect(
-        fetchContent({
-          url: 'https://example.com/always-fails',
-          retries: 2,
-        }),
-      ).rejects.toThrow(/500/)
+      vi.useFakeTimers()
+      // Attach error handler immediately to prevent unhandled rejection
+      const promise = fetchContent({
+        url: 'https://example.com/always-fails',
+        retries: 2,
+      }).catch((e) => e)
 
+      await vi.runAllTimersAsync()
+      const error = await promise
+      vi.useRealTimers()
+
+      expect(error).toBeInstanceOf(Error)
+      expect((error as Error).message).toMatch(/500/)
       expect(attempts).toBe(3) // Initial + 2 retries
     })
 
