@@ -20,11 +20,7 @@ import {
   vi,
 } from 'vitest'
 import { build } from '../../../helpers/app.js'
-import {
-  getTestDatabase,
-  initializeTestDatabase,
-  resetDatabase,
-} from '../../../helpers/database.js'
+import { getTestDatabase, resetDatabase } from '../../../helpers/database.js'
 import {
   SEED_USERS,
   SEED_WATCHLIST_ITEMS,
@@ -35,7 +31,6 @@ describe('Batch Sync → Full Workflow Integration', () => {
   let app: FastifyInstance
 
   beforeAll(async () => {
-    await initializeTestDatabase()
     app = await build()
     await app.ready()
   })
