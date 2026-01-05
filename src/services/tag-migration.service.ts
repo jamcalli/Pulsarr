@@ -681,4 +681,263 @@ export class TagMigrationService {
       )
     }
   }
+
+  /**
+   * Clean up orphaned tag references from all Radarr and Sonarr instances.
+   *
+   * This method scans all movies/series for tag IDs that reference non-existent tags
+   * and removes those orphaned references. This can happen when:
+   * - Tags are deleted outside of Pulsarr (e.g., by *arr upgrades)
+   * - Migration partially failed
+   * - Database corruption
+   *
+   * @returns Cleanup results per instance
+   */
+  async cleanupOrphanedTagReferences(): Promise<{
+    radarr: Record<
+      string,
+      {
+        instanceName: string
+        itemsScanned: number
+        orphanedTagsFound: number
+        itemsUpdated: number
+        error?: string
+      }
+    >
+    sonarr: Record<
+      string,
+      {
+        instanceName: string
+        itemsScanned: number
+        orphanedTagsFound: number
+        itemsUpdated: number
+        error?: string
+      }
+    >
+  }> {
+    this.log.info('Starting orphaned tag reference cleanup')
+
+    const results: {
+      radarr: Record<
+        string,
+        {
+          instanceName: string
+          itemsScanned: number
+          orphanedTagsFound: number
+          itemsUpdated: number
+          error?: string
+        }
+      >
+      sonarr: Record<
+        string,
+        {
+          instanceName: string
+          itemsScanned: number
+          orphanedTagsFound: number
+          itemsUpdated: number
+          error?: string
+        }
+      >
+    } = {
+      radarr: {},
+      sonarr: {},
+    }
+
+    // Process all Radarr instances
+    const radarrInstances = await this.fastify.radarrManager.getAllInstances()
+    for (const instance of radarrInstances) {
+      try {
+        const instanceResult = await this.cleanupRadarrInstance(instance)
+        results.radarr[String(instance.id)] = instanceResult
+      } catch (error) {
+        this.log.error(
+          { error, instanceId: instance.id, instanceName: instance.name },
+          'Failed to cleanup orphaned tags in Radarr instance',
+        )
+        results.radarr[String(instance.id)] = {
+          instanceName: instance.name,
+          itemsScanned: 0,
+          orphanedTagsFound: 0,
+          itemsUpdated: 0,
+          error: error instanceof Error ? error.message : String(error),
+        }
+      }
+    }
+
+    // Process all Sonarr instances
+    const sonarrInstances = await this.fastify.sonarrManager.getAllInstances()
+    for (const instance of sonarrInstances) {
+      try {
+        const instanceResult = await this.cleanupSonarrInstance(instance)
+        results.sonarr[String(instance.id)] = instanceResult
+      } catch (error) {
+        this.log.error(
+          { error, instanceId: instance.id, instanceName: instance.name },
+          'Failed to cleanup orphaned tags in Sonarr instance',
+        )
+        results.sonarr[String(instance.id)] = {
+          instanceName: instance.name,
+          itemsScanned: 0,
+          orphanedTagsFound: 0,
+          itemsUpdated: 0,
+          error: error instanceof Error ? error.message : String(error),
+        }
+      }
+    }
+
+    this.log.info({ results }, 'Completed orphaned tag reference cleanup')
+    return results
+  }
+
+  /**
+   * Clean up orphaned tag references in a single Radarr instance
+   */
+  private async cleanupRadarrInstance(instance: {
+    id: number
+    name: string
+  }): Promise<{
+    instanceName: string
+    itemsScanned: number
+    orphanedTagsFound: number
+    itemsUpdated: number
+  }> {
+    const radarrService = this.fastify.radarrManager.getRadarrService(
+      instance.id,
+    )
+    if (!radarrService) {
+      throw new Error(
+        `Could not get Radarr service for instance ${instance.id}`,
+      )
+    }
+
+    this.log.debug(
+      `Scanning Radarr instance ${instance.name} for orphaned tags`,
+    )
+
+    // Get all valid tag IDs
+    const allTags = await radarrService.getTags()
+    const validTagIds = new Set(allTags.map((t) => t.id))
+
+    // Get all movies with their tags
+    const allMovies =
+      await radarrService.getFromRadarr<
+        Array<{ id: number; title: string; tags?: number[] }>
+      >('movie')
+
+    let orphanedTagsFound = 0
+    const updates: Array<{ movieId: number; tagIds: number[] }> = []
+
+    for (const movie of allMovies) {
+      const currentTags = movie.tags || []
+      const validTags = currentTags.filter((tagId) => validTagIds.has(tagId))
+      const orphanedCount = currentTags.length - validTags.length
+
+      if (orphanedCount > 0) {
+        orphanedTagsFound += orphanedCount
+        const orphanedIds = currentTags.filter(
+          (tagId) => !validTagIds.has(tagId),
+        )
+        this.log.debug(
+          {
+            movieId: movie.id,
+            title: movie.title,
+            orphanedTagIds: orphanedIds,
+          },
+          `Found orphaned tag references in movie "${movie.title}"`,
+        )
+        updates.push({ movieId: movie.id, tagIds: validTags })
+      }
+    }
+
+    // Bulk update movies with orphaned tags removed
+    if (updates.length > 0) {
+      this.log.info(
+        `Updating ${updates.length} movies in Radarr instance ${instance.name} to remove orphaned tags`,
+      )
+      await radarrService.bulkUpdateMovieTags(updates)
+    }
+
+    return {
+      instanceName: instance.name,
+      itemsScanned: allMovies.length,
+      orphanedTagsFound,
+      itemsUpdated: updates.length,
+    }
+  }
+
+  /**
+   * Clean up orphaned tag references in a single Sonarr instance
+   */
+  private async cleanupSonarrInstance(instance: {
+    id: number
+    name: string
+  }): Promise<{
+    instanceName: string
+    itemsScanned: number
+    orphanedTagsFound: number
+    itemsUpdated: number
+  }> {
+    const sonarrService = this.fastify.sonarrManager.getSonarrService(
+      instance.id,
+    )
+    if (!sonarrService) {
+      throw new Error(
+        `Could not get Sonarr service for instance ${instance.id}`,
+      )
+    }
+
+    this.log.debug(
+      `Scanning Sonarr instance ${instance.name} for orphaned tags`,
+    )
+
+    // Get all valid tag IDs
+    const allTags = await sonarrService.getTags()
+    const validTagIds = new Set(allTags.map((t) => t.id))
+
+    // Get all series with their tags
+    const allSeries =
+      await sonarrService.getFromSonarr<
+        Array<{ id: number; title: string; tags?: number[] }>
+      >('series')
+
+    let orphanedTagsFound = 0
+    const updates: Array<{ seriesId: number; tagIds: number[] }> = []
+
+    for (const series of allSeries) {
+      const currentTags = series.tags || []
+      const validTags = currentTags.filter((tagId) => validTagIds.has(tagId))
+      const orphanedCount = currentTags.length - validTags.length
+
+      if (orphanedCount > 0) {
+        orphanedTagsFound += orphanedCount
+        const orphanedIds = currentTags.filter(
+          (tagId) => !validTagIds.has(tagId),
+        )
+        this.log.debug(
+          {
+            seriesId: series.id,
+            title: series.title,
+            orphanedTagIds: orphanedIds,
+          },
+          `Found orphaned tag references in series "${series.title}"`,
+        )
+        updates.push({ seriesId: series.id, tagIds: validTags })
+      }
+    }
+
+    // Bulk update series with orphaned tags removed
+    if (updates.length > 0) {
+      this.log.info(
+        `Updating ${updates.length} series in Sonarr instance ${instance.name} to remove orphaned tags`,
+      )
+      await sonarrService.bulkUpdateSeriesTags(updates)
+    }
+
+    return {
+      instanceName: instance.name,
+      itemsScanned: allSeries.length,
+      orphanedTagsFound,
+      itemsUpdated: updates.length,
+    }
+  }
 }
