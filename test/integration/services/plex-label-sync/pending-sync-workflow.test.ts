@@ -7,7 +7,16 @@
 
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import { processPendingLabelSyncs } from '@services/plex-label-sync/orchestration/pending-sync.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FastifyInstance } from 'fastify'
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { build } from '../../../helpers/app.js'
 import {
   getTestDatabase,
@@ -17,17 +26,26 @@ import {
 import { SEED_USERS, seedAll } from '../../../helpers/seeds/index.js'
 
 describe('Pending Sync → Workflow Integration', () => {
-  beforeEach(async () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
     await initializeTestDatabase()
+    app = await build()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  beforeEach(async () => {
+    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })
 
   describe('processPendingLabelSyncs', () => {
-    it('should process pending sync when content becomes available', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should process pending sync when content becomes available', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -135,10 +153,7 @@ describe('Pending Sync → Workflow Integration', () => {
       )
     })
 
-    it('should update retry count when content still not available', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should update retry count when content still not available', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -196,10 +211,7 @@ describe('Pending Sync → Workflow Integration', () => {
       expect(pendingSyncs[0].retry_count).toBe(1)
     })
 
-    it('should gather all users from tracking table (content-centric)', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should gather all users from tracking table (content-centric)', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist items for both users with different keys but same content
@@ -311,10 +323,7 @@ describe('Pending Sync → Workflow Integration', () => {
       expect(tracking[1].user_id).toBe(SEED_USERS[1].id)
     })
 
-    it('should handle missing Plex key (no GUID part)', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle missing Plex key (no GUID part)', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item without Plex key
@@ -369,10 +378,7 @@ describe('Pending Sync → Workflow Integration', () => {
       expect(pendingSyncs[0].retry_count).toBe(1)
     })
 
-    it('should remove pending sync when user not found', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should remove pending sync when user not found', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -425,10 +431,7 @@ describe('Pending Sync → Workflow Integration', () => {
       expect(pendingSyncs).toHaveLength(0)
     })
 
-    it('should clean up expired pending syncs', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should clean up expired pending syncs', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -488,10 +491,7 @@ describe('Pending Sync → Workflow Integration', () => {
       expect(remainingRecords).toHaveLength(0)
     })
 
-    it('should skip processing when sync is disabled', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should skip processing when sync is disabled', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item and pending sync
@@ -542,10 +542,7 @@ describe('Pending Sync → Workflow Integration', () => {
       expect(pendingSyncs).toHaveLength(1)
     })
 
-    it('should handle errors and update retry count', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle errors and update retry count', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item

@@ -14,7 +14,16 @@ import {
 } from '@services/plex-label-sync/orchestration/webhook-sync.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FastifyInstance } from 'fastify'
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { build } from '../../../helpers/app.js'
 import {
   getTestDatabase,
@@ -24,17 +33,26 @@ import {
 import { SEED_USERS, seedAll } from '../../../helpers/seeds/index.js'
 
 describe('Webhook Sync → Workflow Integration', () => {
-  beforeEach(async () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
     await initializeTestDatabase()
+    app = await build()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  beforeEach(async () => {
+    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })
 
   describe('syncLabelsOnWebhook', () => {
-    it('should sync labels for existing watchlist item on webhook', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should sync labels for existing watchlist item on webhook', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -155,10 +173,7 @@ describe('Webhook Sync → Workflow Integration', () => {
       )
     })
 
-    it('should queue when content not yet in Plex', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should queue when content not yet in Plex', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -233,10 +248,7 @@ describe('Webhook Sync → Workflow Integration', () => {
       expect(mockQueuePendingLabelSyncByWatchlistId).toHaveBeenCalledTimes(1)
     })
 
-    it('should handle multiple users with same content', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle multiple users with same content', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist items for both users
@@ -349,10 +361,7 @@ describe('Webhook Sync → Workflow Integration', () => {
       expect(tracking).toHaveLength(2)
     })
 
-    it('should skip when sync is disabled', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should skip when sync is disabled', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -411,10 +420,7 @@ describe('Webhook Sync → Workflow Integration', () => {
   })
 
   describe('syncLabelForNewWatchlistItem', () => {
-    it('should sync labels for new watchlist item immediately', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should sync labels for new watchlist item immediately', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -507,10 +513,7 @@ describe('Webhook Sync → Workflow Integration', () => {
       ])
     })
 
-    it('should queue when content not found and include fetched tags', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should queue when content not found and include fetched tags', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -583,10 +586,7 @@ describe('Webhook Sync → Workflow Integration', () => {
   })
 
   describe('syncLabelForWatchlistItem', () => {
-    it('should sync labels for single watchlist item', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should sync labels for single watchlist item', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -679,10 +679,7 @@ describe('Webhook Sync → Workflow Integration', () => {
       ])
     })
 
-    it('should return false when watchlist item missing Plex key', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should return false when watchlist item missing Plex key', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item without Plex key

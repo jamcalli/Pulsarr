@@ -11,7 +11,16 @@ import {
   cleanupLabelsForWatchlistItems,
   cleanupOrphanedPlexLabels,
 } from '@services/plex-label-sync/cleanup/label-cleaner.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FastifyInstance } from 'fastify'
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { build } from '../../../helpers/app.js'
 import {
   getTestDatabase,
@@ -21,17 +30,26 @@ import {
 import { SEED_USERS, seedAll } from '../../../helpers/seeds/index.js'
 
 describe('Label Cleaner → Tracking Cleanup Integration', () => {
-  beforeEach(async () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
     await initializeTestDatabase()
+    app = await build()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  beforeEach(async () => {
+    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })
 
   describe('cleanupLabelsForWatchlistItems - Remove Mode', () => {
-    it('should remove labels from Plex and cleanup tracking for single user', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should remove labels from Plex and cleanup tracking for single user', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -104,10 +122,7 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
       expect(tracking).toHaveLength(0)
     })
 
-    it('should handle multiple users with separate tracking cleanup', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle multiple users with separate tracking cleanup', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist items for both users
@@ -201,10 +216,7 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
   })
 
   describe('cleanupLabelsForWatchlistItems - Keep Mode', () => {
-    it('should preserve labels and tracking in keep mode', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should preserve labels and tracking in keep mode', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -279,10 +291,7 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
   })
 
   describe('cleanupLabelsForWatchlistItems - Special-Label Mode', () => {
-    it('should apply removed label when last user removes content', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should apply removed label when last user removes content', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -368,10 +377,7 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
       ])
     })
 
-    it('should remove only specific user label when other users remain', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should remove only specific user label when other users remain', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist items for both users
@@ -486,10 +492,7 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
       expect(systemTracking).toHaveLength(0)
     })
 
-    it('should handle multiple users removing different content in same batch (bug fix verification)', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle multiple users removing different content in same batch (bug fix verification)', async () => {
       const knex = getTestDatabase()
 
       // Scenario: User A removes Movie X, User B removes Movie Y, User C has both
@@ -729,10 +732,7 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
   })
 
   describe('cleanupOrphanedPlexLabels', () => {
-    it('should cleanup orphaned labels and tracking records', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should cleanup orphaned labels and tracking records', async () => {
       const knex = getTestDatabase()
 
       // Create tracking records for a user that no longer exists (orphaned)
@@ -822,10 +822,7 @@ describe('Label Cleaner → Tracking Cleanup Integration', () => {
       expect(validTracking).toHaveLength(1)
     })
 
-    it('should handle tag sync when detecting orphaned labels', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle tag sync when detecting orphaned labels', async () => {
       const knex = getTestDatabase()
 
       // Enable tag sync in config
