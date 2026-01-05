@@ -34,6 +34,7 @@ function getMigrationFilePath(): string {
   return resolve(projectRoot, 'data', '.pulsarr-tag-migration.json')
 }
 
+import type { CleanupOrphanedRefsResponse } from '@root/schemas/tags/user-tags.schema.js'
 import { createServiceLogger } from '@utils/logger.js'
 import { normalizeTagLabel } from '@utils/tag-normalization.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
@@ -693,52 +694,12 @@ export class TagMigrationService {
    *
    * @returns Cleanup results per instance
    */
-  async cleanupOrphanedTagReferences(): Promise<{
-    radarr: Record<
-      string,
-      {
-        instanceName: string
-        itemsScanned: number
-        orphanedTagsFound: number
-        itemsUpdated: number
-        error?: string
-      }
-    >
-    sonarr: Record<
-      string,
-      {
-        instanceName: string
-        itemsScanned: number
-        orphanedTagsFound: number
-        itemsUpdated: number
-        error?: string
-      }
-    >
-  }> {
+  async cleanupOrphanedTagReferences(): Promise<
+    Omit<CleanupOrphanedRefsResponse, 'success' | 'message'>
+  > {
     this.log.info('Starting orphaned tag reference cleanup')
 
-    const results: {
-      radarr: Record<
-        string,
-        {
-          instanceName: string
-          itemsScanned: number
-          orphanedTagsFound: number
-          itemsUpdated: number
-          error?: string
-        }
-      >
-      sonarr: Record<
-        string,
-        {
-          instanceName: string
-          itemsScanned: number
-          orphanedTagsFound: number
-          itemsUpdated: number
-          error?: string
-        }
-      >
-    } = {
+    const results: Omit<CleanupOrphanedRefsResponse, 'success' | 'message'> = {
       radarr: {},
       sonarr: {},
     }

@@ -50,24 +50,22 @@ const SyncOperationResultSchema = z.object({
   failed: z.number(),
 })
 
+// Shared schema for cleanup stats (used in both sync and standalone cleanup)
+const CleanupStatsSchema = z.object({
+  removed: z.number(),
+  skipped: z.number(),
+  failed: z.number(),
+  instances: z.number(),
+})
+
 export const SyncTaggingResponseSchema = BaseResponseSchema.extend({
   mode: z.literal('sync'),
   sonarr: SyncOperationResultSchema,
   radarr: SyncOperationResultSchema,
   orphanedCleanup: z
     .object({
-      radarr: z.object({
-        removed: z.number(),
-        skipped: z.number(),
-        failed: z.number(),
-        instances: z.number(),
-      }),
-      sonarr: z.object({
-        removed: z.number(),
-        skipped: z.number(),
-        failed: z.number(),
-        instances: z.number(),
-      }),
+      radarr: CleanupStatsSchema,
+      sonarr: CleanupStatsSchema,
     })
     .optional(),
 })
@@ -106,18 +104,8 @@ export const TaggingOperationResponseSchema = z.discriminatedUnion('mode', [
 
 // Cleanup response schema
 export const CleanupResponseSchema = BaseResponseSchema.extend({
-  radarr: z.object({
-    removed: z.number(),
-    skipped: z.number(),
-    failed: z.number(),
-    instances: z.number(),
-  }),
-  sonarr: z.object({
-    removed: z.number(),
-    skipped: z.number(),
-    failed: z.number(),
-    instances: z.number(),
-  }),
+  radarr: CleanupStatsSchema,
+  sonarr: CleanupStatsSchema,
 })
 
 // Instance result for orphaned tag reference cleanup
