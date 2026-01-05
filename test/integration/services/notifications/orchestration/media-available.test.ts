@@ -9,18 +9,13 @@ import {
   vi,
 } from 'vitest'
 import { build } from '../../../../helpers/app.js'
-import {
-  getTestDatabase,
-  initializeTestDatabase,
-  resetDatabase,
-} from '../../../../helpers/database.js'
+import { getTestDatabase, resetDatabase } from '../../../../helpers/database.js'
 import { seedAll } from '../../../../helpers/seeds/index.js'
 
 describe('sendMediaAvailable Integration Tests', () => {
   let app: FastifyInstance
 
   beforeAll(async () => {
-    await initializeTestDatabase()
     app = await build()
     await app.ready()
   })
