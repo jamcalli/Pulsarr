@@ -1,5 +1,5 @@
 import { setupServer } from 'msw/node'
-import { afterAll, afterEach, beforeAll } from 'vitest'
+import { afterAll, afterEach, beforeAll, vi } from 'vitest'
 import { externalApiHandlers } from '../mocks/external-api-handlers.js'
 import { plexApiHandlers } from '../mocks/plex-api-handlers.js'
 
@@ -21,6 +21,28 @@ import { plexApiHandlers } from '../mocks/plex-api-handlers.js'
  * - Radarr Ratings API handlers (prevent unhandled request warnings)
  */
 export const server = setupServer(...plexApiHandlers, ...externalApiHandlers)
+
+// Suppress migration console.log noise in tests
+const originalLog = console.log
+vi.spyOn(console, 'log').mockImplementation((...args) => {
+  const msg = String(args[0] ?? '')
+  // Filter out migration and setup noise in tests
+  if (
+    msg.includes('Migration') ||
+    msg.includes('migration') ||
+    msg.includes('Seeded') ||
+    msg.includes('PostgreSQL') ||
+    msg.includes('admin users') ||
+    msg.includes('router rules') ||
+    msg.includes('user_id column') ||
+    msg.includes('primary user') ||
+    msg.includes('Skipping') ||
+    msg.includes('Setting up logger')
+  ) {
+    return
+  }
+  originalLog(...args)
+})
 
 // Start server before all tests
 beforeAll(() => {
