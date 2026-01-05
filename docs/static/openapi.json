@@ -4748,13 +4748,13 @@
                               "type": "boolean"
                             },
                             "removedLabelMode": {
-                              "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label",
                               "type": "string",
                               "enum": [
                                 "remove",
                                 "keep",
                                 "special-label"
-                              ]
+                              ],
+                              "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
                             },
                             "removedLabelPrefix": {
                               "description": "Prefix for special labels indicating removed users",
@@ -4764,8 +4764,8 @@
                               "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                             },
                             "autoResetOnScheduledSync": {
-                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode",
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
                             },
                             "scheduleTime": {
                               "type": "string"
@@ -5519,13 +5519,13 @@
                         "type": "boolean"
                       },
                       "removedLabelMode": {
-                        "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label",
                         "type": "string",
                         "enum": [
                           "remove",
                           "keep",
                           "special-label"
-                        ]
+                        ],
+                        "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
                       },
                       "removedLabelPrefix": {
                         "description": "Prefix for special labels indicating removed users",
@@ -5535,8 +5535,8 @@
                         "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                       },
                       "autoResetOnScheduledSync": {
-                        "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode",
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
                       },
                       "scheduleTime": {
                         "type": "string"
@@ -6116,13 +6116,13 @@
                               "type": "boolean"
                             },
                             "removedLabelMode": {
-                              "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label",
                               "type": "string",
                               "enum": [
                                 "remove",
                                 "keep",
                                 "special-label"
-                              ]
+                              ],
+                              "description": "How to handle labels when users are removed: remove=delete labels, keep=preserve labels, special-label=add a special removed label"
                             },
                             "removedLabelPrefix": {
                               "description": "Prefix for special labels indicating removed users",
@@ -6132,8 +6132,8 @@
                               "pattern": "^[a-zA-Z0-9_\\-:.]+$"
                             },
                             "autoResetOnScheduledSync": {
-                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode",
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Automatically reset labels before all sync operations to clean up dangling entries based on current removal mode"
                             },
                             "scheduleTime": {
                               "type": "string"
@@ -13239,8 +13239,8 @@
         "parameters": [
           {
             "schema": {
-              "description": "Number of recent log lines to send initially. Defaults to 100.",
               "default": 100,
+              "description": "Number of recent log lines to send initially. Defaults to 100.",
               "type": "integer",
               "minimum": 0,
               "maximum": 1000
@@ -13251,8 +13251,8 @@
           },
           {
             "schema": {
-              "description": "Whether to follow the log file for new entries. Defaults to true.",
               "default": true,
+              "description": "Whether to follow the log file for new entries. Defaults to true.",
               "type": "boolean"
             },
             "in": "query",
@@ -13279,8 +13279,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "description": "SSE stream of log entries",
-                      "type": "string"
+                      "type": "string",
+                      "description": "SSE stream of log entries"
                     }
                   },
                   "required": [
@@ -15762,8 +15762,8 @@
                   "type": "object",
                   "properties": {
                     "message": {
-                      "description": "SSE stream of progress events",
-                      "type": "string"
+                      "type": "string",
+                      "description": "SSE stream of progress events"
                     }
                   },
                   "required": [
@@ -25336,6 +25336,135 @@
                         "instances"
                       ],
                       "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "radarr",
+                    "sonarr"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "code",
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tags/cleanup-orphaned-refs": {
+      "post": {
+        "operationId": "cleanupOrphanedTagReferences",
+        "summary": "Cleanup orphaned tag references",
+        "tags": [
+          "Tags"
+        ],
+        "description": "Remove references to non-existent tags from movies and series",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "radarr": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "instanceName": {
+                            "type": "string"
+                          },
+                          "itemsScanned": {
+                            "type": "number"
+                          },
+                          "orphanedTagsFound": {
+                            "type": "number"
+                          },
+                          "itemsUpdated": {
+                            "type": "number"
+                          },
+                          "error": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "instanceName",
+                          "itemsScanned",
+                          "orphanedTagsFound",
+                          "itemsUpdated"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "sonarr": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "instanceName": {
+                            "type": "string"
+                          },
+                          "itemsScanned": {
+                            "type": "number"
+                          },
+                          "orphanedTagsFound": {
+                            "type": "number"
+                          },
+                          "itemsUpdated": {
+                            "type": "number"
+                          },
+                          "error": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "instanceName",
+                          "itemsScanned",
+                          "orphanedTagsFound",
+                          "itemsUpdated"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [

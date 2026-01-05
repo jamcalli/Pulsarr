@@ -890,6 +890,12 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "api/cleanup-orphaned-tag-references",
+          label: "Cleanup orphaned tag references",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
           id: "api/remove-all-user-tags",
           label: "Remove all user tags",
           className: "api-method post",
