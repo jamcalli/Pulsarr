@@ -28,13 +28,13 @@ export interface ApprovalRequestRow {
   content_key: string
   content_guids: string // JSON array string in DB
   router_decision: string // JSON object string in DB
-  router_rule_id?: number
-  approval_reason?: string
+  router_rule_id?: number | null
+  approval_reason?: string | null
   triggered_by: ApprovalTrigger
   status: ApprovalStatus
-  approved_by?: number
-  approval_notes?: string
-  expires_at?: string
+  approved_by?: number | null
+  approval_notes?: string | null
+  expires_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -131,16 +131,16 @@ export interface ApprovalRequest {
 
   // What the router would have decided
   proposedRouterDecision: RouterDecision
-  routerRuleId?: number
+  routerRuleId?: number | null
 
   // Why approval is needed
   triggeredBy: ApprovalTrigger
-  approvalReason?: string
+  approvalReason?: string | null
 
   // Status tracking
   status: ApprovalStatus
-  approvedBy?: number
-  approvalNotes?: string
+  approvedBy?: number | null
+  approvalNotes?: string | null
   expiresAt?: string | null
   createdAt: string
   updatedAt: string
@@ -184,9 +184,23 @@ export interface CreateApprovalRequestData {
 
 export interface UpdateApprovalRequestData {
   status?: ApprovalStatus
-  approvedBy?: number
-  approvalNotes?: string
+  approvedBy?: number | null
+  approvalNotes?: string | null
   proposedRouterDecision?: RouterDecision
+}
+
+/**
+ * Result of approving and routing a request.
+ * Used by approveAndRoute() to communicate success/failure with details.
+ */
+export interface ApproveAndRouteResult {
+  success: boolean
+  request?: ApprovalRequest
+  error?: string
+  /** True if routing failed and we had to rollback */
+  rolledBack?: boolean
+  /** True if rollback itself failed (critical error) */
+  rollbackFailed?: boolean
 }
 
 export interface CreateUserQuotaData {

@@ -2,6 +2,7 @@ import type {
   ApprovalContext,
   ApprovalRequest,
   ApprovalTrigger,
+  ApproveAndRouteResult,
   CreateApprovalRequestData,
   RouterDecision,
 } from '@root/types/approval.types.js'
@@ -37,8 +38,9 @@ export class ApprovalService {
 
   /**
    * Emits SSE event for approval actions
+   * Public to allow route handlers to emit events after successful routing
    */
-  private emitApprovalEvent(
+  emitApprovalEvent(
     action: ApprovalMetadata['action'],
     request: ApprovalRequest,
     userName: string,
@@ -326,9 +328,10 @@ export class ApprovalService {
   }
 
   /**
-   * Processes an approved request by executing the stored router decision
+   * Processes an approved request by executing the stored router decision.
+   * This is an internal method - external callers should use approveAndRoute().
    */
-  async processApprovedRequest(
+  private async processApprovedRequest(
     request: ApprovalRequest,
   ): Promise<{ success: boolean; error?: string }> {
     if (request.status !== 'approved') {
@@ -543,49 +546,18 @@ export class ApprovalService {
 
             // Auto-approve each expired request
             for (const request of expiredRequests) {
-              try {
-                // Approve the request with system user (ID 0)
-                const approvedRequest = await this.fastify.db.approveRequest(
-                  request.id,
-                  0, // System user
-                  'Auto-approved: Request expired with auto-approval enabled',
-                )
+              const result = await this.approveAndRoute(
+                request.id,
+                0, // System user
+                'Auto-approved: Request expired with auto-approval enabled',
+              )
 
-                if (approvedRequest) {
-                  // Emit SSE event for approved request
-                  this.emitApprovalEvent(
-                    'approved',
-                    approvedRequest,
-                    approvedRequest.userName,
-                  )
-
-                  // Send native webhook notification for expiration-based approval (fire-and-forget)
-                  void this.fastify.notifications.sendApprovalResolved(
-                    approvedRequest,
-                    'approved',
-                    0, // System user
-                    'Request expired with auto-approval enabled',
-                  )
-
-                  // Process the approved request (route to Radarr/Sonarr)
-                  const processResult =
-                    await this.processApprovedRequest(approvedRequest)
-                  if (processResult.success) {
-                    this.log.info(
-                      `Successfully auto-approved and processed expired request ${request.id} for user ${request.userId}: ${request.contentTitle}`,
-                    )
-                  } else {
-                    this.log.warn(
-                      `Auto-approved expired request ${request.id} but failed to process: ${processResult.error}`,
-                    )
-                  }
-                }
-              } catch (error) {
-                this.log.error(
-                  { error },
-                  `Failed to auto-approve expired request ${request.id}`,
+              if (result.success) {
+                this.log.info(
+                  `Successfully auto-approved and processed expired request ${request.id} for user ${request.userId}: ${request.contentTitle}`,
                 )
               }
+              // Errors and rollbacks are already logged by approveAndRoute()
             }
           }
         }
@@ -652,37 +624,98 @@ export class ApprovalService {
   }
 
   /**
-   * Approves a single request
+   * Approves a request and routes it to Radarr/Sonarr atomically.
+   *
+   * This method encapsulates the entire approval workflow:
+   * 1. Updates the request status to "approved" in the database
+   * 2. Attempts to route the content to Radarr/Sonarr
+   * 3. On success: emits SSE events and sends notifications
+   * 4. On failure: rolls back status to "pending" and clears approval metadata
+   *
+   * @param requestId - The approval request ID
+   * @param approvedBy - User ID of the approver (0 for system/auto-approval)
+   * @param notes - Optional approval notes
+   * @returns Result object indicating success/failure with details
    */
-  async approveRequest(
+  async approveAndRoute(
     requestId: number,
     approvedBy: number,
     notes?: string,
-  ): Promise<ApprovalRequest | null> {
+  ): Promise<ApproveAndRouteResult> {
     try {
-      const result = await this.fastify.db.approveRequest(
+      // Step 1: Update DB to "approved" WITHOUT emitting events yet
+      const approvedRequest = await this.fastify.db.approveRequest(
         requestId,
         approvedBy,
         notes,
       )
 
-      if (result) {
-        // Emit SSE event for approved request
-        this.emitApprovalEvent('approved', result, result.userName)
-
-        // Send native webhook notification (fire-and-forget)
-        void this.fastify.notifications.sendApprovalResolved(
-          result,
-          'approved',
-          approvedBy,
-          notes,
-        )
+      if (!approvedRequest) {
+        return {
+          success: false,
+          error: `Request ${requestId} not found`,
+        }
       }
 
-      return result
+      // Step 2: Attempt routing to Radarr/Sonarr
+      const routingResult = await this.processApprovedRequest(approvedRequest)
+
+      if (!routingResult.success) {
+        // Step 3a: ROLLBACK - Revert status to pending and clear approval metadata
+        try {
+          await this.fastify.db.updateApprovalRequest(requestId, {
+            status: 'pending',
+            approvedBy: null,
+            approvalNotes: null,
+          })
+        } catch (rollbackError) {
+          this.log.error(
+            { requestId, routingError: routingResult.error, rollbackError },
+            'Critical: Failed to rollback approval after routing failure',
+          )
+          return {
+            success: false,
+            error: routingResult.error || 'Routing failed',
+            rolledBack: false,
+            rollbackFailed: true,
+          }
+        }
+
+        this.log.warn(
+          { requestId, error: routingResult.error },
+          'Approval rolled back due to routing failure',
+        )
+
+        return {
+          success: false,
+          error: routingResult.error || 'Routing failed',
+          rolledBack: true,
+        }
+      }
+
+      // Step 3b: SUCCESS - Now emit events after routing confirmed
+      this.emitApprovalEvent(
+        'approved',
+        approvedRequest,
+        approvedRequest.userName,
+      )
+      void this.fastify.notifications.sendApprovalResolved(
+        approvedRequest,
+        'approved',
+        approvedBy,
+        notes,
+      )
+
+      return {
+        success: true,
+        request: approvedRequest,
+      }
     } catch (error) {
-      this.log.error({ error }, `Error approving request ${requestId}:`)
-      return null
+      this.log.error({ error, requestId }, 'Error in approveAndRoute')
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
     }
   }
 
@@ -735,35 +768,30 @@ export class ApprovalService {
       errors: [] as string[],
     }
 
+    // Pre-flight health check - abort if any instances are unavailable
+    const healthCheck = await this.checkAllInstancesHealth()
+    if (!healthCheck.allAvailable) {
+      this.log.warn(
+        { unavailable: healthCheck.unavailable },
+        'Batch approval aborted: some instances are unavailable',
+      )
+      return {
+        approved: 0,
+        failed: requestIds,
+        errors: [
+          `Cannot process batch: ${healthCheck.unavailable.join(' and ')} instances are unavailable`,
+        ],
+      }
+    }
+
     for (const id of requestIds) {
-      try {
-        const result = await this.fastify.db.approveRequest(
-          id,
-          approvedBy,
-          notes,
-        )
-        if (result) {
-          results.approved++
+      const result = await this.approveAndRoute(id, approvedBy, notes)
 
-          // Emit SSE event for approved request
-          this.emitApprovalEvent('approved', result, result.userName)
-
-          // Process the approved request
-          const processResult = await this.processApprovedRequest(result)
-          if (!processResult.success) {
-            this.log.warn(
-              `Approved request ${id} but failed to process: ${processResult.error}`,
-            )
-          }
-        } else {
-          results.failed.push(id)
-          results.errors.push(`Request ${id} not found`)
-        }
-      } catch (error) {
+      if (result.success) {
+        results.approved++
+      } else {
         results.failed.push(id)
-        results.errors.push(
-          `Request ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
+        results.errors.push(`Request ${id}: ${result.error || 'Unknown error'}`)
       }
     }
 
