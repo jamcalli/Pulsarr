@@ -50,24 +50,22 @@ const SyncOperationResultSchema = z.object({
   failed: z.number(),
 })
 
+// Shared schema for cleanup stats (used in both sync and standalone cleanup)
+const CleanupStatsSchema = z.object({
+  removed: z.number(),
+  skipped: z.number(),
+  failed: z.number(),
+  instances: z.number(),
+})
+
 export const SyncTaggingResponseSchema = BaseResponseSchema.extend({
   mode: z.literal('sync'),
   sonarr: SyncOperationResultSchema,
   radarr: SyncOperationResultSchema,
   orphanedCleanup: z
     .object({
-      radarr: z.object({
-        removed: z.number(),
-        skipped: z.number(),
-        failed: z.number(),
-        instances: z.number(),
-      }),
-      sonarr: z.object({
-        removed: z.number(),
-        skipped: z.number(),
-        failed: z.number(),
-        instances: z.number(),
-      }),
+      radarr: CleanupStatsSchema,
+      sonarr: CleanupStatsSchema,
     })
     .optional(),
 })
@@ -106,18 +104,23 @@ export const TaggingOperationResponseSchema = z.discriminatedUnion('mode', [
 
 // Cleanup response schema
 export const CleanupResponseSchema = BaseResponseSchema.extend({
-  radarr: z.object({
-    removed: z.number(),
-    skipped: z.number(),
-    failed: z.number(),
-    instances: z.number(),
-  }),
-  sonarr: z.object({
-    removed: z.number(),
-    skipped: z.number(),
-    failed: z.number(),
-    instances: z.number(),
-  }),
+  radarr: CleanupStatsSchema,
+  sonarr: CleanupStatsSchema,
+})
+
+// Instance result for orphaned tag reference cleanup
+const OrphanedRefInstanceResultSchema = z.object({
+  instanceName: z.string(),
+  itemsScanned: z.number(),
+  orphanedTagsFound: z.number(),
+  itemsUpdated: z.number(),
+  error: z.string().optional(),
+})
+
+// Cleanup orphaned tag references response schema
+export const CleanupOrphanedRefsResponseSchema = BaseResponseSchema.extend({
+  radarr: z.record(z.string(), OrphanedRefInstanceResultSchema),
+  sonarr: z.record(z.string(), OrphanedRefInstanceResultSchema),
 })
 
 // Re-export shared schemas
@@ -133,3 +136,6 @@ export type TaggingOperationResponse = z.infer<
   typeof TaggingOperationResponseSchema
 >
 export type CleanupResponse = z.infer<typeof CleanupResponseSchema>
+export type CleanupOrphanedRefsResponse = z.infer<
+  typeof CleanupOrphanedRefsResponseSchema
+>

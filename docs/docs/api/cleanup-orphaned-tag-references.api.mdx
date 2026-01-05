@@ -1,0 +1,63 @@
+---
+id: cleanup-orphaned-tag-references
+title: "Cleanup orphaned tag references"
+description: "Remove references to non-existent tags from movies and series"
+sidebar_label: "Cleanup orphaned tag references"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVk2P2zYQ/SsETw0gV7sJctHN2KCA0SAx1puggOEDTY0tZiWOMiS9awj678VQH/5YbYKiaE85SRCH783H4xMbiTWQ8gbtIpeZ1CUoG+rPVBfKQv6g9vewAwKrwclEerV3MlvLB35uEpmD02Rq3i4zeQ8VHkDQuEN4FBbtDJ6N82C94P1iR1iJCg8GnFA2Fw7IRHQCV6N14GTWyLc3N/y4ZPgAOxVKL+77SJlIjZahOVbVdWl0LCb95nhDI50uoFL85o81yEzi9htoLxNZE5fuTUfngtbg3FngFpGbIdtEVuCc2sPZovNk7J7XSOWKaIpA5bnhXFS5vKD6cSLGOq+shk+qmiY0Hiq30spayM8CbKi2QByAp+G5PzDY6agI86XOlX8FBoiQJjLgmuF7MMT71pf5XmU3lcsV8+a1Pu1U6YDJHNpfDf7vGnzFNpyDk+hHiY+j+Clkm8j3//Px9coHd4c5TLZaXy6cZv3aDH5w5hNZGfsR7N4XMrt90b9TIj3tQHKC/Hn/Ir8vkC25RhfrVcwn08Ntyi6a9k49GwQwI9jx2BzQAYhdupGBSpnJpib0qLFsszRtCnS+zZoaybfy2sHvgvNYiVXEkIk8KDJqW3Y9HmD4HWyouNzC+1om8dH/EOKEZTasXOI/FCAGGBEc5PyH0FhVwfLkQTwZXwhfgOjK4EFwwp2UBugStSqLri0v8XnBqgoEklgshcpzAucE7iLuMpROEZ3hcycu8d/d3LybTh3JC7TiqTC6GKGMExSs7c5umwxtjz3J0vSIgWZ1FzsbDvPvGqsXFEsylaLj0P5/AJVNpvzBEGjfw4l5PNjit9hiruTNFUOWpmNnpwE/DsuTYBsWnw5k/DGqT9XmTzjOA+t2vWEuB84ZtOOnsx0rPuidzs73jYev+8jmxokUoPIoUBtNXP41my8Xsy7gMuX5ciEe4ShU8AVY3/uLCM7YvRi3iR6QfzfnOb5CrxEfDZzo+5G8IF91WLOtYqlPptBBuej6xu4wchpfMuwgsPlyMVlXjjpUYH2Ht0MaJTkTSixLeBZPyuuiNM4LYz3s6RS6il4eL2D3g7+zcXTwX2+7o+F8paIR95Xeda4jBtfhG93Zhe86zebk7//6dthPwsOzT+tSmXgzi+ptenNcy8PtcElN5LRBbgZDWcum4bl8obJt+fP3AMTC3Zxsr9PtoDbW9CMcuflaQ+2jP5ahk8fVr4ulPTr48vPqQbbt31VTAuw=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Cleanup orphaned tag references"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/tags/cleanup-orphaned-refs"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove references to non-existent tags from movies and series
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"radarr":{"type":"object","additionalProperties":{"type":"object","properties":{"instanceName":{"type":"string"},"itemsScanned":{"type":"number"},"orphanedTagsFound":{"type":"number"},"itemsUpdated":{"type":"number"},"error":{"type":"string"}},"required":["instanceName","itemsScanned","orphanedTagsFound","itemsUpdated"],"additionalProperties":false}},"sonarr":{"type":"object","additionalProperties":{"type":"object","properties":{"instanceName":{"type":"string"},"itemsScanned":{"type":"number"},"orphanedTagsFound":{"type":"number"},"itemsUpdated":{"type":"number"},"error":{"type":"string"}},"required":["instanceName","itemsScanned","orphanedTagsFound","itemsUpdated"],"additionalProperties":false}}},"required":["success","message","radarr","sonarr"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"code":{"type":"string"},"error":{"type":"string"},"message":{"type":"string","minLength":1}},"required":["statusCode","code","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
