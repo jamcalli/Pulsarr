@@ -206,6 +206,7 @@ describe('streaming-updater', () => {
       const generator = streamLines({
         url: 'https://example.com/slow',
         timeout: 20, // 20ms timeout, server responds at 100ms
+        retries: 0, // Don't retry - we're testing timeout behavior
       })
 
       await expect(async () => {
@@ -580,6 +581,7 @@ describe('streaming-updater', () => {
         fetchContent({
           url: 'https://example.com/slow.txt',
           timeout: 20, // 20ms timeout, server responds at 100ms
+          retries: 0, // Don't retry - we're testing timeout behavior
         }),
       ).rejects.toThrow()
     })
