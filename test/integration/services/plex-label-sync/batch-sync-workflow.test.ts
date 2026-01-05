@@ -9,7 +9,16 @@ import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema
 import { syncAllLabels } from '@services/plex-label-sync/orchestration/batch-sync.js'
 import type { RadarrManagerService } from '@services/radarr-manager.service.js'
 import type { SonarrManagerService } from '@services/sonarr-manager.service.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FastifyInstance } from 'fastify'
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { build } from '../../../helpers/app.js'
 import {
   getTestDatabase,
@@ -23,17 +32,26 @@ import {
 } from '../../../helpers/seeds/index.js'
 
 describe('Batch Sync → Full Workflow Integration', () => {
-  beforeEach(async () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
     await initializeTestDatabase()
+    app = await build()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  beforeEach(async () => {
+    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })
 
   describe('Full sync workflow', () => {
-    it('should sync labels for single user with single content item', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should sync labels for single user with single content item', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -160,10 +178,7 @@ describe('Batch Sync → Full Workflow Integration', () => {
       ])
     })
 
-    it('should sync labels for multiple users on same content', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should sync labels for multiple users on same content', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist items for both users (same content)
@@ -293,10 +308,7 @@ describe('Batch Sync → Full Workflow Integration', () => {
       expect(tracking[1].user_id).toBe(SEED_USERS[1].id)
     })
 
-    it('should queue unavailable content for pending sync', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should queue unavailable content for pending sync', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item and get its ID
@@ -380,10 +392,7 @@ describe('Batch Sync → Full Workflow Integration', () => {
   })
 
   describe('Auto-reset functionality', () => {
-    it('should call resetLabels when autoResetOnScheduledSync is enabled', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should call resetLabels when autoResetOnScheduledSync is enabled', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -479,10 +488,7 @@ describe('Batch Sync → Full Workflow Integration', () => {
       expect(mockResetLabels).toHaveBeenCalledTimes(1)
     })
 
-    it('should continue sync even if resetLabels fails', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should continue sync even if resetLabels fails', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -579,10 +585,7 @@ describe('Batch Sync → Full Workflow Integration', () => {
   })
 
   describe('Orphaned label cleanup', () => {
-    it('should call cleanupOrphanedPlexLabels when enabled', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should call cleanupOrphanedPlexLabels when enabled', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -681,10 +684,7 @@ describe('Batch Sync → Full Workflow Integration', () => {
   })
 
   describe('Edge cases', () => {
-    it('should skip sync when disabled', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should skip sync when disabled', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -737,10 +737,7 @@ describe('Batch Sync → Full Workflow Integration', () => {
       expect(mockCleanupOrphanedPlexLabels).not.toHaveBeenCalled()
     })
 
-    it('should handle empty watchlist gracefully', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle empty watchlist gracefully', async () => {
       const knex = getTestDatabase()
 
       // Delete all watchlist items to test empty watchlist scenario
