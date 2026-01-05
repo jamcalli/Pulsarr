@@ -609,6 +609,8 @@ describe('plex/watchlist-fetcher', () => {
     })
 
     it('should handle generic error', async () => {
+      vi.useFakeTimers()
+
       server.use(
         http.post('https://community.plex.tv/api', () => {
           // Return 500 error
@@ -630,7 +632,11 @@ describe('plex/watchlist-fetcher', () => {
         [friend, 'token'],
       ])
 
-      const result = await getOthersWatchlist(config, mockLogger, friends)
+      const promise = getOthersWatchlist(config, mockLogger, friends)
+      await vi.runAllTimersAsync()
+      const result = await promise
+
+      vi.useRealTimers()
 
       // When getWatchlistForUser encounters retryable errors, it eventually returns empty Set
       // The user is still added to the map with empty items (success = true)
