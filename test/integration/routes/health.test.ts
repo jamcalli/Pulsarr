@@ -1,11 +1,21 @@
 import type { HealthCheckResponse } from '@schemas/health/health.schema.js'
-import { describe, expect, it, vi } from 'vitest'
+import type { FastifyInstance } from 'fastify'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { build } from '../../helpers/app.js'
 
 describe('Health Endpoint', () => {
-  it('should return 200 and healthy status when app is healthy', async (ctx) => {
-    const app = await build(ctx)
+  let app: FastifyInstance
 
+  beforeAll(async () => {
+    app = await build()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('should return 200 and healthy status when app is healthy', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/health',
@@ -21,9 +31,7 @@ describe('Health Endpoint', () => {
     )
   })
 
-  it('should not require authentication', async (ctx) => {
-    const app = await build(ctx)
-
+  it('should not require authentication', async () => {
     // Request without session or API key
     const response = await app.inject({
       method: 'GET',
@@ -36,9 +44,7 @@ describe('Health Endpoint', () => {
     expect(body.status).toBe('healthy')
   })
 
-  it('should return 503 when database is unavailable', async (ctx) => {
-    const app = await build(ctx)
-
+  it('should return 503 when database is unavailable', async () => {
     // Mock the database method to simulate connection failure
     const spy = vi
       .spyOn(app.db.knex, 'raw')
