@@ -512,15 +512,22 @@ export class ApprovalService {
   }
 
   /**
-   * Performs maintenance tasks like expiring old requests
+   * Performs maintenance tasks like expiring old requests and re-evaluating quota-exceeded approvals
    */
   async performMaintenance(): Promise<void> {
     try {
       const config = this.fastify.config?.approvalExpiration
 
-      // Only run maintenance if approval expiration is enabled
+      // Re-evaluate quota_exceeded approvals (independent of expiration enabled)
+      if (config?.autoApproveOnQuotaAvailable !== false) {
+        await this.reEvaluateQuotaExceededApprovals()
+      }
+
+      // Only run expiration maintenance if approval expiration is enabled
       if (!config?.enabled) {
-        this.log.debug('Approval expiration disabled, skipping maintenance')
+        this.log.debug(
+          'Approval expiration disabled, skipping expiration maintenance',
+        )
         return
       }
 
@@ -585,6 +592,152 @@ export class ApprovalService {
     } catch (error) {
       this.log.error({ error }, 'Failed to perform approval maintenance:')
     }
+  }
+
+  /**
+   * Re-evaluates pending quota_exceeded approval requests.
+   * If the user's quota is now available, auto-approves and processes the request.
+   *
+   * Key behaviors:
+   * - Processes requests in FIFO order (oldest first)
+   * - Tracks in-memory quota consumption to prevent over-approving within a single run
+   * - Uses existing approveAndRoute() which handles atomic approve+route with rollback
+   * - If user's quota was deleted entirely, auto-approves (no quota = no restriction)
+   */
+  async reEvaluateQuotaExceededApprovals(): Promise<{
+    evaluated: number
+    approved: number
+    failed: number
+    skipped: number
+  }> {
+    const results = { evaluated: 0, approved: 0, failed: 0, skipped: 0 }
+
+    try {
+      // Get all pending requests triggered by quota_exceeded (oldest first)
+      const pendingRequests =
+        await this.fastify.db.getPendingRequestsByTrigger('quota_exceeded')
+
+      if (pendingRequests.length === 0) {
+        this.log.debug('No pending quota_exceeded requests to re-evaluate')
+        return results
+      }
+
+      // Check instance health before auto-approving
+      const healthCheck = await this.checkAllInstancesHealth()
+      if (!healthCheck.allAvailable) {
+        this.log.warn(
+          { unavailable: healthCheck.unavailable },
+          'Skipping quota re-evaluation: some instances are unavailable',
+        )
+        return results
+      }
+
+      this.log.info(
+        `Re-evaluating ${pendingRequests.length} pending quota_exceeded approval requests`,
+      )
+
+      // Track quota consumption within this maintenance run to prevent race conditions
+      // Key: `${userId}-${contentType}`, Value: number of items approved in this run
+      const quotaConsumptionTracker = new Map<string, number>()
+
+      for (const request of pendingRequests) {
+        results.evaluated++
+        const trackerKey = `${request.userId}-${request.contentType}`
+        const pendingConsumption = quotaConsumptionTracker.get(trackerKey) ?? 0
+
+        try {
+          // Check current quota status for this user/content type
+          const quotaStatus = await this.fastify.db.getQuotaStatus(
+            request.userId,
+            request.contentType as 'movie' | 'show',
+          )
+
+          // Edge case: If quota was removed entirely, auto-approve (no quota = no restriction)
+          if (!quotaStatus) {
+            this.log.info(
+              {
+                requestId: request.id,
+                userId: request.userId,
+                contentType: request.contentType,
+              },
+              `No quota configured for user, auto-approving request: ${request.contentTitle}`,
+            )
+
+            const result = await this.approveAndRoute(
+              request.id,
+              0, // System user (automated)
+              'Auto-approved: user quota configuration removed',
+            )
+
+            if (result.success) {
+              results.approved++
+            } else {
+              results.failed++
+            }
+            continue
+          }
+
+          // Calculate effective usage including items approved in this run
+          const effectiveUsage = quotaStatus.currentUsage + pendingConsumption
+
+          // Check if quota is available after accounting for pending approvals in this batch
+          if (effectiveUsage >= quotaStatus.quotaLimit) {
+            this.log.debug(
+              {
+                requestId: request.id,
+                effectiveUsage,
+                quotaLimit: quotaStatus.quotaLimit,
+                pendingConsumption,
+              },
+              `Quota still exceeded for user ${request.userId}, keeping request pending`,
+            )
+            results.skipped++
+            continue
+          }
+
+          // Quota is available - attempt to approve and route
+          this.log.info(
+            {
+              requestId: request.id,
+              userId: request.userId,
+              effectiveUsage,
+              quotaLimit: quotaStatus.quotaLimit,
+            },
+            `Quota now available, auto-approving request: ${request.contentTitle}`,
+          )
+
+          const result = await this.approveAndRoute(
+            request.id,
+            0, // System user (automated)
+            'Auto-approved: quota became available',
+          )
+
+          if (result.success) {
+            results.approved++
+            // Track this consumption for subsequent requests in this loop
+            quotaConsumptionTracker.set(trackerKey, pendingConsumption + 1)
+          } else {
+            // Routing failed - request stays pending, will retry next maintenance run
+            results.failed++
+          }
+        } catch (error) {
+          results.failed++
+          this.log.error(
+            { error, requestId: request.id },
+            'Failed to re-evaluate quota_exceeded request',
+          )
+        }
+      }
+
+      this.log.info({ ...results }, 'Quota re-evaluation complete')
+    } catch (error) {
+      this.log.error(
+        { error },
+        'Failed to re-evaluate quota_exceeded approvals',
+      )
+    }
+
+    return results
   }
 
   /**
