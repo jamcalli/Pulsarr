@@ -45,6 +45,7 @@ const DEFAULT_APPROVAL_EXPIRATION = {
   enabled: false,
   defaultExpirationHours: 72,
   expirationAction: 'expire' as const,
+  autoApproveOnQuotaAvailable: true,
   cleanupExpiredDays: 30,
 }
 
