@@ -65,6 +65,9 @@ export class SchedulerService {
   /** Flag to track if ready message has been logged */
   private hasLoggedReady = false
 
+  /** Timer for initialization phase completion */
+  private initializationTimer: ReturnType<typeof setTimeout> | null = null
+
   /**
    * Creates a new SchedulerService instance
    *
@@ -164,7 +167,8 @@ export class SchedulerService {
       this.checkForCompletionReadiness()
 
       // Mark initialization as complete after a short delay to allow services to register
-      setTimeout(() => {
+      this.initializationTimer = setTimeout(() => {
+        this.initializationTimer = null
         this.isInitializing = false
         this.log.debug('Scheduler initialization phase complete')
         // Final check for completion after initialization period
@@ -621,6 +625,10 @@ export class SchedulerService {
    */
   stop(): void {
     this.log.info('Stopping all scheduled jobs')
+    if (this.initializationTimer) {
+      clearTimeout(this.initializationTimer)
+      this.initializationTimer = null
+    }
     this.scheduler.stop()
   }
 
