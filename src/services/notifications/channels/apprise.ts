@@ -272,6 +272,7 @@ export async function sendPublicNotification(
     discord_id: null,
     notify_apprise: true,
     notify_discord: false,
+    notify_discord_mention: false,
     notify_tautulli: false,
     tautulli_notifier_id: null,
     can_sync: false,

@@ -469,6 +469,7 @@ export const useConfigStore = create<ConfigState>()(
                 discord_id: updates.discord_id,
                 notify_apprise: updates.notify_apprise,
                 notify_discord: updates.notify_discord,
+                notify_discord_mention: updates.notify_discord_mention,
                 notify_tautulli: updates.notify_tautulli,
                 can_sync: updates.can_sync,
                 requires_approval: updates.requires_approval,
