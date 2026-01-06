@@ -1,12 +1,17 @@
 import type { FastifyInstance } from 'fastify'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { build } from '../../helpers/app.js'
 
 describe('TmdbService Integration', () => {
   let fastify: FastifyInstance
 
-  beforeEach(async (t) => {
-    fastify = await build(t)
+  beforeAll(async () => {
+    fastify = await build()
+    await fastify.ready()
+  })
+
+  afterAll(async () => {
+    await fastify.close()
   })
 
   describe('getMovieMetadata', () => {
