@@ -1,3 +1,4 @@
+import type { User } from '@root/types/config.types.js'
 import type {
   WatchlistInstanceStatus,
   WatchlistStatus,
@@ -339,5 +340,19 @@ declare module '@services/database.service.js' {
       watchlistId: number,
       instanceId: number,
     ): Promise<boolean>
+
+    /**
+     * Gets users that have watchlist items on a specific Radarr instance
+     * @param instanceId - ID of the Radarr instance
+     * @returns Promise resolving to array of User objects for tag creation
+     */
+    getUsersWithRadarrItems(instanceId: number): Promise<User[]>
+
+    /**
+     * Gets users that have watchlist items on a specific Sonarr instance
+     * @param instanceId - ID of the Sonarr instance
+     * @returns Promise resolving to array of User objects for tag creation
+     */
+    getUsersWithSonarrItems(instanceId: number): Promise<User[]>
   }
 }
