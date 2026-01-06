@@ -342,14 +342,16 @@ declare module '@services/database.service.js' {
     ): Promise<boolean>
 
     /**
-     * Gets users that have watchlist items on a specific Radarr instance
+     * Gets sync-enabled users with watchlist items on a specific Radarr instance.
+     * Filters by both can_sync=true and having items on this instance to prevent tag churn.
      * @param instanceId - ID of the Radarr instance
      * @returns Promise resolving to array of User objects for tag creation
      */
     getUsersWithRadarrItems(instanceId: number): Promise<User[]>
 
     /**
-     * Gets users that have watchlist items on a specific Sonarr instance
+     * Gets sync-enabled users with watchlist items on a specific Sonarr instance.
+     * Filters by both can_sync=true and having items on this instance to prevent tag churn.
      * @param instanceId - ID of the Sonarr instance
      * @returns Promise resolving to array of User objects for tag creation
      */

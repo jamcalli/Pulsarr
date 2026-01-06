@@ -465,10 +465,6 @@ export class UserTagService {
     const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
 
     try {
-      // Get all users with sync enabled for tag lookup
-      const users = await this.getSyncEnabledUsers()
-      const userMap = new Map(users.map((user) => [user.id, user]))
-
       // Process each Sonarr instance in parallel
       const sonarrManager = this.fastify.sonarrManager
       const sonarrInstances = await sonarrManager.getAllInstances()
@@ -483,10 +479,18 @@ export class UserTagService {
             return { tagged: 0, skipped: 0, failed: 0 }
           }
 
+          // Get only users with items on THIS specific instance
+          // This prevents tag churn for users with no content on this instance
+          const usersForInstance =
+            await this.fastify.db.getUsersWithSonarrItems(instance.id)
+          const userMap = new Map(
+            usersForInstance.map((user) => [user.id, user]),
+          )
+
           // Get or create all necessary tags for this instance
           const { tagLabelMap, tagIdMap } = await this.ensureUserTags(
             sonarrService,
-            users,
+            usersForInstance,
           )
 
           // Get series from this instance, filtering out exclusions
@@ -762,10 +766,6 @@ export class UserTagService {
     const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
 
     try {
-      // Get all users with sync enabled for tag lookup
-      const users = await this.getSyncEnabledUsers()
-      const userMap = new Map(users.map((user) => [user.id, user]))
-
       // Process each Radarr instance in parallel
       const radarrManager = this.fastify.radarrManager
       const radarrInstances = await radarrManager.getAllInstances()
@@ -780,10 +780,18 @@ export class UserTagService {
             return { tagged: 0, skipped: 0, failed: 0 }
           }
 
+          // Get only users with items on THIS specific instance
+          // This prevents tag churn for users with no content on this instance
+          const usersForInstance =
+            await this.fastify.db.getUsersWithRadarrItems(instance.id)
+          const userMap = new Map(
+            usersForInstance.map((user) => [user.id, user]),
+          )
+
           // Get or create all necessary tags for this instance
           const { tagLabelMap, tagIdMap } = await this.ensureUserTags(
             radarrService,
-            users,
+            usersForInstance,
           )
 
           // Get movies from this instance, filtering out exclusions
@@ -1069,9 +1077,6 @@ export class UserTagService {
       // Run migration if needed (BLOCKING, runs before tag creation)
       await this.ensureMigrationComplete('sonarr')
 
-      // Create user tags (now uses hyphen delimiter if migration completed)
-      await this.createSonarrUserTags()
-
       // Count total series to process for progress reporting
       const totalSeries = existingSeries.length
 
@@ -1164,9 +1169,6 @@ export class UserTagService {
 
       // Run migration if needed (BLOCKING, runs before tag creation)
       await this.ensureMigrationComplete('radarr')
-
-      // Create user tags (now uses hyphen delimiter if migration completed)
-      await this.createRadarrUserTags()
 
       // Count total movies to process for progress reporting
       const totalMovies = existingMovies.length
