@@ -8,27 +8,40 @@
 
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import { applyLabelsToSingleItem } from '@services/plex-label-sync/label-operations/label-applicator.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { build } from '../../../helpers/app.js'
+import type { FastifyInstance } from 'fastify'
 import {
-  getTestDatabase,
-  initializeTestDatabase,
-  resetDatabase,
-} from '../../../helpers/database.js'
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import { build } from '../../../helpers/app.js'
+import { getTestDatabase, resetDatabase } from '../../../helpers/database.js'
 import { SEED_USERS, seedAll } from '../../../helpers/seeds/index.js'
 
 describe('Label Applicator → Content Tracker Integration', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    app = await build()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
   beforeEach(async () => {
-    await initializeTestDatabase()
+    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })
 
   describe('Basic label application with tracking', () => {
-    it('should apply labels and create tracking records for single user', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should apply labels and create tracking records for single user', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item in database
@@ -108,10 +121,7 @@ describe('Label Applicator → Content Tracker Integration', () => {
       ])
     })
 
-    it('should apply labels and create tracking records for multiple users', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should apply labels and create tracking records for multiple users', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist items for both users
@@ -214,10 +224,7 @@ describe('Label Applicator → Content Tracker Integration', () => {
       ])
     })
 
-    it('should update existing tracking records when reapplying labels', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should update existing tracking records when reapplying labels', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -294,10 +301,7 @@ describe('Label Applicator → Content Tracker Integration', () => {
   })
 
   describe('Tag label tracking', () => {
-    it('should track combined user and tag labels together', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should track combined user and tag labels together', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -391,10 +395,7 @@ describe('Label Applicator → Content Tracker Integration', () => {
       )
     })
 
-    it('should track tag labels separately for each user', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should track tag labels separately for each user', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist items for both users
@@ -510,10 +511,7 @@ describe('Label Applicator → Content Tracker Integration', () => {
   })
 
   describe('Mode handling with tracking', () => {
-    it('should preserve tracked labels in keep mode', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should preserve tracked labels in keep mode', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item for user2
@@ -592,10 +590,7 @@ describe('Label Applicator → Content Tracker Integration', () => {
       expect(tracking[1].user_id).toBe(SEED_USERS[1].id)
     })
 
-    it('should remove obsolete labels in remove mode', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should remove obsolete labels in remove mode', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item for user2
@@ -663,10 +658,7 @@ describe('Label Applicator → Content Tracker Integration', () => {
       expect(tracking[0].user_id).toBe(SEED_USERS[1].id)
     })
 
-    it('should clean up removed labels and tracking in special-label mode', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should clean up removed labels and tracking in special-label mode', async () => {
       const knex = getTestDatabase()
 
       // Create watchlist item
@@ -747,10 +739,7 @@ describe('Label Applicator → Content Tracker Integration', () => {
   })
 
   describe('Error handling', () => {
-    it('should handle tracking errors gracefully', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle tracking errors gracefully', async () => {
       const knex = getTestDatabase()
 
       // Mock PlexServer

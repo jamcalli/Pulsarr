@@ -1,26 +1,37 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { build } from '../../../../helpers/app.js'
+import type { FastifyInstance } from 'fastify'
 import {
-  getTestDatabase,
-  initializeTestDatabase,
-  resetDatabase,
-} from '../../../../helpers/database.js'
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import { build } from '../../../../helpers/app.js'
+import { getTestDatabase, resetDatabase } from '../../../../helpers/database.js'
 import { seedAll } from '../../../../helpers/seeds/index.js'
 
 describe('sendMediaAvailable Integration Tests', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    app = await build()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
   beforeEach(async () => {
-    await initializeTestDatabase()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })
 
   describe('notification orchestration', () => {
-    it('should process movie notifications end-to-end', async (ctx) => {
-      const app = await build(ctx)
-
+    it('should process movie notifications end-to-end', async () => {
       const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
-
-      await app.ready()
 
       if (app.notifications?.discordBot) {
         app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
@@ -48,10 +59,7 @@ describe('sendMediaAvailable Integration Tests', () => {
       )
     })
 
-    it('should return zero matched for non-existent GUID', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should return zero matched for non-existent GUID', async () => {
       const result = await app.notifications.sendMediaAvailable(
         {
           type: 'movie',
@@ -66,10 +74,7 @@ describe('sendMediaAvailable Integration Tests', () => {
       expect(result.matchedCount).toBe(0)
     })
 
-    it('should process TV show notifications with episodes', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should process TV show notifications with episodes', async () => {
       const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
       if (app.notifications?.discordBot) {
         app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
@@ -98,10 +103,7 @@ describe('sendMediaAvailable Integration Tests', () => {
       expect(sendDirectMessageSpy).toHaveBeenCalled()
     })
 
-    it('should update watchlist item status to notified', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should update watchlist item status to notified', async () => {
       if (app.notifications?.discordBot) {
         app.notifications.discordBot.sendDirectMessage = vi
           .fn()
@@ -126,10 +128,7 @@ describe('sendMediaAvailable Integration Tests', () => {
       expect(item.last_notified_at).not.toBeNull()
     })
 
-    it('should create notification record in database', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should create notification record in database', async () => {
       if (app.notifications?.discordBot) {
         app.notifications.discordBot.sendDirectMessage = vi
           .fn()
@@ -159,10 +158,7 @@ describe('sendMediaAvailable Integration Tests', () => {
       expect(Boolean(notifications[0].sent_to_discord)).toBe(true)
     })
 
-    it('should handle bulk release for season notifications', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle bulk release for season notifications', async () => {
       const sendDirectMessageSpy = vi.fn().mockResolvedValue(undefined)
       if (app.notifications?.discordBot) {
         app.notifications.discordBot.sendDirectMessage = sendDirectMessageSpy
@@ -205,10 +201,7 @@ describe('sendMediaAvailable Integration Tests', () => {
       )
     })
 
-    it('should create radarr instance junction record when instanceId provided', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should create radarr instance junction record when instanceId provided', async () => {
       if (app.notifications?.discordBot) {
         app.notifications.discordBot.sendDirectMessage = vi
           .fn()
