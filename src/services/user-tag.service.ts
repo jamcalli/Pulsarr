@@ -288,9 +288,6 @@ export class UserTagService {
       // Run migration if needed (BLOCKING, runs before tag creation)
       await this.ensureMigrationComplete('sonarr')
 
-      // Get all users with sync enabled
-      const users = await this.getSyncEnabledUsers()
-
       // Get all Sonarr instances
       const sonarrManager = this.fastify.sonarrManager
       const sonarrInstances = await sonarrManager.getAllInstances()
@@ -308,14 +305,20 @@ export class UserTagService {
             continue
           }
 
+          // Get only users with items on THIS specific instance
+          // This prevents tag churn for users with no content on this instance
+          const usersForInstance =
+            await this.fastify.db.getUsersWithSonarrItems(instance.id)
+
           // Use ensureUserTags to get/create all necessary tags
           const { failedCount, createdCount } = await this.ensureUserTags(
             sonarrService,
-            users,
+            usersForInstance,
           )
 
           // Calculate skipped count correctly
-          const skippedCount = users.length - createdCount - failedCount
+          const skippedCount =
+            usersForInstance.length - createdCount - failedCount
 
           results.created += createdCount
           results.failed += failedCount
@@ -325,6 +328,7 @@ export class UserTagService {
             {
               instance: instance.name,
               instanceId: instance.id,
+              usersWithItems: usersForInstance.length,
               created: createdCount,
               skipped: skippedCount,
               failed: failedCount,
@@ -371,9 +375,6 @@ export class UserTagService {
       // Run migration if needed (BLOCKING, runs before tag creation)
       await this.ensureMigrationComplete('radarr')
 
-      // Get all users with sync enabled
-      const users = await this.getSyncEnabledUsers()
-
       // Get all Radarr instances
       const radarrManager = this.fastify.radarrManager
       const radarrInstances = await radarrManager.getAllInstances()
@@ -391,14 +392,20 @@ export class UserTagService {
             continue
           }
 
+          // Get only users with items on THIS specific instance
+          // This prevents tag churn for users with no content on this instance
+          const usersForInstance =
+            await this.fastify.db.getUsersWithRadarrItems(instance.id)
+
           // Use ensureUserTags to get/create all necessary tags
           const { failedCount, createdCount } = await this.ensureUserTags(
             radarrService,
-            users,
+            usersForInstance,
           )
 
           // Calculate skipped count correctly
-          const skippedCount = users.length - createdCount - failedCount
+          const skippedCount =
+            usersForInstance.length - createdCount - failedCount
 
           results.created += createdCount
           results.failed += failedCount
@@ -408,6 +415,7 @@ export class UserTagService {
             {
               instance: instance.name,
               instanceId: instance.id,
+              usersWithItems: usersForInstance.length,
               created: createdCount,
               skipped: skippedCount,
               failed: failedCount,
