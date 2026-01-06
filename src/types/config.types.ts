@@ -264,6 +264,8 @@ export interface Config {
     defaultExpirationHours?: number
     // What happens when approvals expire
     expirationAction?: 'expire' | 'auto_approve'
+    // Auto-approve quota_exceeded requests when quota becomes available
+    autoApproveOnQuotaAvailable?: boolean
     // Per-trigger expiration overrides
     quotaExceededExpirationHours?: number
     routerRuleExpirationHours?: number

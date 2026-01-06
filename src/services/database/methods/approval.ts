@@ -458,6 +458,29 @@ export async function getExpiredPendingRequests(
 }
 
 /**
+ * Retrieves all pending approval requests with a specific trigger type.
+ * Orders by created_at ASC to ensure FIFO (oldest first) processing.
+ *
+ * Used by quota re-evaluation to process quota_exceeded requests when quota becomes available.
+ *
+ * @param trigger - The trigger type to filter by (e.g., 'quota_exceeded')
+ * @returns Array of pending approval requests matching the trigger, oldest first
+ */
+export async function getPendingRequestsByTrigger(
+  this: DatabaseService,
+  trigger: ApprovalTrigger,
+): Promise<ApprovalRequest[]> {
+  const rows = await this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .where('approval_requests.status', 'pending')
+    .where('approval_requests.triggered_by', trigger)
+    .orderBy('approval_requests.created_at', 'asc')
+
+  return rows.map((row) => mapRowToApprovalRequest.call(this, row))
+}
+
+/**
  * Aggregate counts of approval requests by status and the overall total.
  *
  * Queries the approval_requests table, groups rows by `status`, and returns per-status counts
