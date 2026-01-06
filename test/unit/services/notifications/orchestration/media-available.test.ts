@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest'
 function createTestNotification(
   userId: number,
   discordId: string | null,
+  notifyDiscordMention = true,
 ): NotificationResult {
   return {
     user: {
@@ -22,6 +23,7 @@ function createTestNotification(
       discord_id: discordId,
       notify_apprise: false,
       notify_discord: true,
+      notify_discord_mention: notifyDiscordMention,
       notify_tautulli: false,
       tautulli_notifier_id: null,
       can_sync: true,
@@ -112,6 +114,41 @@ describe('media-available helpers', () => {
 
       expect(result).toEqual(['user1'])
       expect(result).toHaveLength(1)
+    })
+
+    it('should exclude users with notify_discord_mention=false', () => {
+      const notifications = [
+        createTestNotification(1, 'user1', true),
+        createTestNotification(2, 'user2', false),
+        createTestNotification(3, 'user3', true),
+      ]
+
+      const result = extractUserDiscordIds(notifications)
+
+      expect(result).toEqual(['user1', 'user3'])
+      expect(result).not.toContain('user2')
+    })
+
+    it('should return empty array when all users have notify_discord_mention=false', () => {
+      const notifications = [
+        createTestNotification(1, 'user1', false),
+        createTestNotification(2, 'user2', false),
+      ]
+
+      const result = extractUserDiscordIds(notifications)
+
+      expect(result).toEqual([])
+    })
+
+    it('should include users with notify_discord_mention=true', () => {
+      const notifications = [
+        createTestNotification(1, 'user1', true),
+        createTestNotification(2, 'user2', true),
+      ]
+
+      const result = extractUserDiscordIds(notifications)
+
+      expect(result).toEqual(['user1', 'user2'])
     })
   })
 

@@ -13,6 +13,7 @@ interface UserRow {
   discord_id: string | null
   notify_apprise: boolean | number
   notify_discord: boolean | number
+  notify_discord_mention: boolean | number
   notify_tautulli: boolean | number
   tautulli_notifier_id: number | null
   can_sync: boolean | number
@@ -39,6 +40,7 @@ export function mapRowToUser(row: UserRow): User {
     discord_id: row.discord_id,
     notify_apprise: Boolean(row.notify_apprise),
     notify_discord: Boolean(row.notify_discord),
+    notify_discord_mention: Boolean(row.notify_discord_mention),
     notify_tautulli: Boolean(row.notify_tautulli),
     tautulli_notifier_id: row.tautulli_notifier_id,
     can_sync: Boolean(row.can_sync),
