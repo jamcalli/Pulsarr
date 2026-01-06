@@ -68,10 +68,7 @@ export class StatusService {
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInSonarr) {
         try {
-          // Create user tags first
-          await this.fastify.userTags.createSonarrUserTags()
-
-          // Apply tags using already fetched data
+          // Apply tags using already fetched data (tag creation happens inside per-instance)
           const tagResults =
             await this.fastify.userTags.tagSonarrContentWithData(
               existingSeries,
@@ -119,10 +116,7 @@ export class StatusService {
       // Apply user tags if the service is available and enabled
       if (this.fastify.userTags && this.fastify.config.tagUsersInRadarr) {
         try {
-          // Create user tags first
-          await this.fastify.userTags.createRadarrUserTags()
-
-          // Apply tags using already fetched data
+          // Apply tags using already fetched data (tag creation happens inside per-instance)
           const tagResults =
             await this.fastify.userTags.tagRadarrContentWithData(
               existingMovies,

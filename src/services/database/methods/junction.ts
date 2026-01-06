@@ -1011,12 +1011,13 @@ export async function isSonarrItemSyncing(
 }
 
 /**
- * Gets users with watchlist items on a specific Radarr instance.
- * Returns full User objects for tag creation. Does not filter by can_sync
- * since existing items need tags regardless of current sync status.
+ * Gets sync-enabled users with watchlist items on a specific Radarr instance.
+ * Combines two conditions to prevent tag churn:
+ * 1. User has can_sync=true (required for tag-based deletion semantics)
+ * 2. User has items on this specific instance (prevents creating tags for empty watchlists)
  *
  * @param instanceId - The ID of the Radarr instance
- * @returns Array of User objects for users with items on this instance
+ * @returns Array of User objects for users who can sync and have items on this instance
  */
 export async function getUsersWithRadarrItems(
   this: DatabaseService,
@@ -1027,7 +1028,8 @@ export async function getUsersWithRadarrItems(
       .join('watchlist_items as wi', 'wi.user_id', 'u.id')
       .join('watchlist_radarr_instances as wri', 'wi.id', 'wri.watchlist_id')
       .where('wri.radarr_instance_id', instanceId)
-      .andWhere('u.id', '>', 0)
+      .andWhere('u.id', '>', 0) // Exclude system user (id=0)
+      .andWhere('u.can_sync', true)
       .distinct('u.*')
       .select('u.*')
 
@@ -1042,12 +1044,13 @@ export async function getUsersWithRadarrItems(
 }
 
 /**
- * Gets users with watchlist items on a specific Sonarr instance.
- * Returns full User objects for tag creation. Does not filter by can_sync
- * since existing items need tags regardless of current sync status.
+ * Gets sync-enabled users with watchlist items on a specific Sonarr instance.
+ * Combines two conditions to prevent tag churn:
+ * 1. User has can_sync=true (required for tag-based deletion semantics)
+ * 2. User has items on this specific instance (prevents creating tags for empty watchlists)
  *
  * @param instanceId - The ID of the Sonarr instance
- * @returns Array of User objects for users with items on this instance
+ * @returns Array of User objects for users who can sync and have items on this instance
  */
 export async function getUsersWithSonarrItems(
   this: DatabaseService,
@@ -1058,7 +1061,8 @@ export async function getUsersWithSonarrItems(
       .join('watchlist_items as wi', 'wi.user_id', 'u.id')
       .join('watchlist_sonarr_instances as wsi', 'wi.id', 'wsi.watchlist_id')
       .where('wsi.sonarr_instance_id', instanceId)
-      .andWhere('u.id', '>', 0)
+      .andWhere('u.id', '>', 0) // Exclude system user (id=0)
+      .andWhere('u.can_sync', true)
       .distinct('u.*')
       .select('u.*')
 
