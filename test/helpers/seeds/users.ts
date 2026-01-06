@@ -12,6 +12,7 @@ import type { Knex } from 'knex'
  * - discord_id: string (nullable)
  * - notify_apprise: boolean (default: false)
  * - notify_discord: boolean (default: false)
+ * - notify_discord_mention: boolean (default: true)
  * - notify_tautulli: boolean (default: false)
  * - tautulli_notifier_id: integer (nullable)
  * - can_sync: boolean (default: true)
@@ -30,6 +31,7 @@ export const SEED_USERS = [
     discord_id: '111111111111111111',
     notify_apprise: false,
     notify_discord: true,
+    notify_discord_mention: true,
     notify_tautulli: false,
     tautulli_notifier_id: null,
     can_sync: true,
@@ -44,6 +46,7 @@ export const SEED_USERS = [
     discord_id: '222222222222222222',
     notify_apprise: true,
     notify_discord: true,
+    notify_discord_mention: false, // Opted out of public mentions
     notify_tautulli: false,
     tautulli_notifier_id: null,
     can_sync: true,
@@ -58,6 +61,7 @@ export const SEED_USERS = [
     discord_id: null,
     notify_apprise: true,
     notify_discord: false,
+    notify_discord_mention: true,
     notify_tautulli: true,
     tautulli_notifier_id: 1,
     can_sync: true,
@@ -72,6 +76,7 @@ export const SEED_USERS = [
     discord_id: null,
     notify_apprise: false,
     notify_discord: false,
+    notify_discord_mention: true,
     notify_tautulli: false,
     tautulli_notifier_id: null,
     can_sync: false,

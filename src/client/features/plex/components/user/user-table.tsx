@@ -210,6 +210,22 @@ export default function UserTable({
       ),
     },
     {
+      accessorKey: 'notify_discord_mention',
+      meta: {
+        displayName: 'Public Mentions',
+      },
+      header: () => <div className="text-center">Mentions</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          {row.getValue('notify_discord_mention') ? (
+            <Check className="h-4 w-4 text-main" />
+          ) : (
+            <X className="h-4 w-4 text-error" />
+          )}
+        </div>
+      ),
+    },
+    {
       accessorKey: 'notify_tautulli',
       meta: {
         displayName: 'Tautulli Notifications',
@@ -558,6 +574,7 @@ export default function UserTable({
             columns={[
               { type: 'checkbox' },
               { type: 'text', width: 'w-32' },
+              { type: 'icon' },
               { type: 'icon' },
               { type: 'icon' },
               { type: 'icon' },

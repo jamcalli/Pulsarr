@@ -118,13 +118,15 @@ export function extractUserDiscordIds(
   return Array.from(
     new Set(
       notifications
-        .filter(
-          (r) =>
-            r.user.id !== -1 &&
-            r.user.discord_id &&
-            r.user.discord_id.trim() !== '',
+        .map((r) =>
+          r.user.id !== -1 &&
+          r.user.discord_id &&
+          r.user.discord_id.trim() !== '' &&
+          r.user.notify_discord_mention
+            ? r.user.discord_id
+            : null,
         )
-        .map((r) => r.user.discord_id as string),
+        .filter((id): id is string => id !== null),
     ),
   )
 }
@@ -492,6 +494,7 @@ async function buildNotificationResults(
           discord_id: user.discord_id,
           notify_apprise: user.notify_apprise,
           notify_discord: user.notify_discord,
+          notify_discord_mention: user.notify_discord_mention,
           notify_tautulli: user.notify_tautulli,
           tautulli_notifier_id: user.tautulli_notifier_id,
           can_sync: user.can_sync,
@@ -609,6 +612,7 @@ async function buildNotificationResults(
           discord_id: null,
           notify_apprise: hasAppriseUrls,
           notify_discord: hasDiscordUrls,
+          notify_discord_mention: false,
           notify_tautulli: false,
           tautulli_notifier_id: null,
           can_sync: false,

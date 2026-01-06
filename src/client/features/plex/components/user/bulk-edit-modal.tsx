@@ -287,6 +287,52 @@ const FormContent = ({
               )}
             </div>
 
+            {/* Discord Mentions */}
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="setDiscordMention"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-foreground">
+                        Set public mention preference
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              {form.watch('setDiscordMention') && (
+                <FormField
+                  control={form.control}
+                  name="discordMentionValue"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 ml-7">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={saveStatus !== 'idle'}
+                        />
+                      </FormControl>
+                      <div className="leading-none">
+                        <FormLabel className="text-foreground">
+                          Include in public channel @mentions
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
             {/* Tautulli Notifications */}
             <div className="space-y-2">
               <FormField
@@ -444,6 +490,7 @@ const FormContent = ({
                 !form.getValues('clearApprise') &&
                 !form.getValues('setAppriseNotify') &&
                 !form.getValues('setDiscordNotify') &&
+                !form.getValues('setDiscordMention') &&
                 !form.getValues('setTautulliNotify') &&
                 !form.getValues('setCanSync') &&
                 !form.getValues('setRequiresApproval'))
@@ -494,6 +541,8 @@ export default function BulkEditModal({
       appriseNotifyValue: false,
       setDiscordNotify: false,
       discordNotifyValue: false,
+      setDiscordMention: false,
+      discordMentionValue: true,
       setTautulliNotify: false,
       tautulliNotifyValue: false,
       setCanSync: false,
@@ -554,6 +603,10 @@ export default function BulkEditModal({
     } else if (values.setDiscordNotify) {
       // Only set Discord notifications if we're not clearing Discord IDs
       updates.notify_discord = values.discordNotifyValue
+    }
+
+    if (values.setDiscordMention) {
+      updates.notify_discord_mention = values.discordMentionValue
     }
 
     if (values.setTautulliNotify) {
