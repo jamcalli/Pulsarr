@@ -55,6 +55,7 @@ export function useLogStream(
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const [hasGivenUp, setHasGivenUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [connectionCount, setConnectionCount] = useState(0)
   const [options, setOptions] = useState<LogStreamOptions>({
@@ -65,6 +66,7 @@ export function useLogStream(
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttempts = useRef(0)
+  const connectionCountRef = useRef(0)
   const maxReconnectAttempts = 5
 
   // Keep latest options to avoid stale closures during delayed reconnects
@@ -123,14 +125,17 @@ export function useLogStream(
 
       eventSource.onopen = () => {
         const wasReconnecting = reconnectAttempts.current > 0
+        const isFirstConnection = connectionCountRef.current === 0
         setIsConnected(true)
         setIsConnecting(false)
         setError(null)
-        setConnectionCount((prev) => prev + 1)
+        setHasGivenUp(false)
+        connectionCountRef.current += 1
+        setConnectionCount(connectionCountRef.current)
         reconnectAttempts.current = 0
 
         // Show success toast on first connection or after reconnect
-        if (wasReconnecting || connectionCount === 0) {
+        if (wasReconnecting || isFirstConnection) {
           toast.success('Connected to log stream')
         }
       }
@@ -183,6 +188,7 @@ export function useLogStream(
             connect()
           }, delay)
         } else {
+          setHasGivenUp(true)
           setError(
             'Connection lost. Will auto-reconnect if enabled, or pause/resume to retry.',
           )
@@ -196,7 +202,7 @@ export function useLogStream(
       setError(errorMessage)
       toast.error(`Failed to connect to log stream: ${errorMessage}`)
     }
-  }, [buildStreamUrl, disconnect, connectionCount])
+  }, [buildStreamUrl, disconnect])
 
   const pause = useCallback(() => {
     setIsPaused(true)
@@ -205,6 +211,8 @@ export function useLogStream(
 
   const resume = useCallback(() => {
     setIsPaused(false)
+    setHasGivenUp(false)
+    reconnectAttempts.current = 0
   }, [])
 
   const clearLogs = useCallback(() => {
@@ -240,10 +248,10 @@ export function useLogStream(
 
   // Auto-connect on mount and when resuming
   useEffect(() => {
-    if (!isConnected && !isConnecting && !isPaused) {
+    if (!isConnected && !isConnecting && !isPaused && !hasGivenUp) {
       connect()
     }
-  }, [isPaused, isConnected, isConnecting, connect])
+  }, [isPaused, isConnected, isConnecting, hasGivenUp, connect])
 
   // Cleanup on unmount
   useEffect(() => {
