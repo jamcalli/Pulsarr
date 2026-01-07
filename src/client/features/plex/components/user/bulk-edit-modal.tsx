@@ -319,12 +319,20 @@ const FormContent = ({
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
-                          disabled={saveStatus !== 'idle'}
+                          disabled={
+                            saveStatus !== 'idle' ||
+                            form.getValues('clearDiscordId')
+                          }
                         />
                       </FormControl>
                       <div className="leading-none">
                         <FormLabel className="text-foreground">
                           Include in public channel @mentions
+                          {form.getValues('clearDiscordId') && (
+                            <span className="text-error text-xs ml-2">
+                              (Disabled without Discord ID)
+                            </span>
+                          )}
                         </FormLabel>
                       </div>
                     </FormItem>
