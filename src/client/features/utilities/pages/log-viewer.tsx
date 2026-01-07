@@ -59,11 +59,13 @@ const LOG_LEVEL_COLORS: Record<string, string> = {
 
 // Regex to match pino-pretty format: [HH:MM:ss TZ] LEVEL: [MODULE] message
 // Groups: 1=timestamp, 2=level, 3=colon, 4=rest (module + message)
+// Case-insensitive to match backend LOG_LEVEL_REGEX
 const LOG_LINE_REGEX =
-  /^(\[[\d:]+\s+\w+\])\s*(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)(:)\s*(.*)/
+  /^(\[[\d:]+\s+\w+\])\s*(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)(:)\s*(.*)/i
 
 // Regex to extract module name like [PLEX_SESSION_MONITOR] from message
-const MODULE_REGEX = /^(\[[A-Z_]+\])\s*(.*)/
+// Includes digits to support names like [PLEX2]
+const MODULE_REGEX = /^(\[[A-Z0-9_]+\])\s*(.*)/i
 
 /**
  * Colorizes a pino-pretty formatted log line to match terminal output
@@ -75,7 +77,8 @@ function colorizeLogLine(line: string): React.ReactNode {
   }
 
   const [, timestamp, level, colon, rest] = match
-  const levelColor = LOG_LEVEL_COLORS[level] || ''
+  const levelUpper = level.toUpperCase()
+  const levelColor = LOG_LEVEL_COLORS[levelUpper] || ''
 
   // Check if rest starts with a module name like [MODULE_NAME]
   const moduleMatch = MODULE_REGEX.exec(rest)
