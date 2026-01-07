@@ -38,6 +38,8 @@ export const bulkUpdateSchema = z.object({
   appriseNotifyValue: z.boolean().default(false),
   setDiscordNotify: z.boolean().default(false),
   discordNotifyValue: z.boolean().default(false),
+  setDiscordMention: z.boolean().default(false),
+  discordMentionValue: z.boolean().default(true),
   setTautulliNotify: z.boolean().default(false),
   tautulliNotifyValue: z.boolean().default(false),
   setCanSync: z.boolean().default(false),

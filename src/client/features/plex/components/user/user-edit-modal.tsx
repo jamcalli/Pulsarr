@@ -203,6 +203,28 @@ const FormContent = React.memo(
 
             <FormField
               control={form.control}
+              name="notify_discord_mention"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-foreground">
+                      Include in Public Mentions
+                    </FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="notify_tautulli"
               render={({ field }) => (
                 <FormItem>
@@ -344,6 +366,7 @@ export default function UserEditModal({
       discord_id: null,
       notify_apprise: false,
       notify_discord: false,
+      notify_discord_mention: true,
       notify_tautulli: false,
       tautulli_notifier_id: null,
       can_sync: false,
@@ -360,6 +383,7 @@ export default function UserEditModal({
         discord_id: user.discord_id,
         notify_apprise: user.notify_apprise,
         notify_discord: user.notify_discord,
+        notify_discord_mention: user.notify_discord_mention,
         notify_tautulli: user.notify_tautulli,
         tautulli_notifier_id: user.tautulli_notifier_id,
         can_sync: user.can_sync,

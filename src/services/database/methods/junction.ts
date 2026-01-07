@@ -1,6 +1,8 @@
+import type { User } from '@root/types/config.types.js'
 import type { WatchlistInstanceStatus } from '@root/types/watchlist-status.types.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { Knex } from 'knex'
+import { mapRowToUser } from './users.js'
 
 /**
  * Retrieves all Radarr instance IDs linked to a specific watchlist item.
@@ -1006,4 +1008,68 @@ export async function isSonarrItemSyncing(
     .first()
 
   return item ? Boolean(item.syncing) : false
+}
+
+/**
+ * Gets sync-enabled users with watchlist items on a specific Radarr instance.
+ * Combines two conditions to prevent tag churn:
+ * 1. User has can_sync=true (required for tag-based deletion semantics)
+ * 2. User has items on this specific instance (prevents creating tags for empty watchlists)
+ *
+ * @param instanceId - The ID of the Radarr instance
+ * @returns Array of User objects for users who can sync and have items on this instance
+ */
+export async function getUsersWithRadarrItems(
+  this: DatabaseService,
+  instanceId: number,
+): Promise<User[]> {
+  try {
+    const rows = await this.knex('users as u')
+      .join('watchlist_items as wi', 'wi.user_id', 'u.id')
+      .join('watchlist_radarr_instances as wri', 'wi.id', 'wri.watchlist_id')
+      .where('wri.radarr_instance_id', instanceId)
+      .andWhere('u.id', '>', 0) // Exclude system user (id=0)
+      .andWhere('u.can_sync', true)
+      .distinct('u.*')
+
+    return rows.map((row) => mapRowToUser(row))
+  } catch (error) {
+    this.log.error(
+      { error, instanceId },
+      'Error getting users with Radarr items',
+    )
+    return []
+  }
+}
+
+/**
+ * Gets sync-enabled users with watchlist items on a specific Sonarr instance.
+ * Combines two conditions to prevent tag churn:
+ * 1. User has can_sync=true (required for tag-based deletion semantics)
+ * 2. User has items on this specific instance (prevents creating tags for empty watchlists)
+ *
+ * @param instanceId - The ID of the Sonarr instance
+ * @returns Array of User objects for users who can sync and have items on this instance
+ */
+export async function getUsersWithSonarrItems(
+  this: DatabaseService,
+  instanceId: number,
+): Promise<User[]> {
+  try {
+    const rows = await this.knex('users as u')
+      .join('watchlist_items as wi', 'wi.user_id', 'u.id')
+      .join('watchlist_sonarr_instances as wsi', 'wi.id', 'wsi.watchlist_id')
+      .where('wsi.sonarr_instance_id', instanceId)
+      .andWhere('u.id', '>', 0) // Exclude system user (id=0)
+      .andWhere('u.can_sync', true)
+      .distinct('u.*')
+
+    return rows.map((row) => mapRowToUser(row))
+  } catch (error) {
+    this.log.error(
+      { error, instanceId },
+      'Error getting users with Sonarr items',
+    )
+    return []
+  }
 }

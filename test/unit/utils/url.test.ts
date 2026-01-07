@@ -4,7 +4,7 @@ import {
   normalizeBasePath,
   normalizeEndpointWithPath,
 } from '@utils/url.js'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('url', () => {
   describe('normalizeBasePath', () => {
@@ -54,54 +54,47 @@ describe('url', () => {
   })
 
   describe('delayWithBackoffAndJitter', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
     it('should resolve after delay on first attempt', async () => {
-      const start = Date.now()
-      await delayWithBackoffAndJitter(0, 100, 2000)
-      const elapsed = Date.now() - start
       // Base delay 100ms + up to 10% jitter = 100-110ms
-      // Allow generous tolerance for CI timer imprecision under load
-      expect(elapsed).toBeGreaterThanOrEqual(95)
-      expect(elapsed).toBeLessThan(250)
+      const promise = delayWithBackoffAndJitter(0, 100, 2000)
+      await vi.advanceTimersByTimeAsync(110)
+      await promise
     })
 
     it('should double delay on second attempt', async () => {
-      const start = Date.now()
-      await delayWithBackoffAndJitter(1, 100, 2000)
-      const elapsed = Date.now() - start
       // 100 * 2^1 = 200ms + up to 10% jitter = 200-220ms
-      // Allow generous tolerance for CI timer imprecision under load
-      expect(elapsed).toBeGreaterThanOrEqual(195)
-      expect(elapsed).toBeLessThan(350)
+      const promise = delayWithBackoffAndJitter(1, 100, 2000)
+      await vi.advanceTimersByTimeAsync(220)
+      await promise
     })
 
     it('should cap delay at maxDelayMs', async () => {
-      const start = Date.now()
-      await delayWithBackoffAndJitter(10, 100, 500)
-      const elapsed = Date.now() - start
-      // Would be 100 * 2^10 = 102400ms, but capped at 500ms + 10% jitter
-      // Allow generous tolerance for CI timer imprecision under load
-      expect(elapsed).toBeGreaterThanOrEqual(495)
-      expect(elapsed).toBeLessThan(700)
+      // Would be 100 * 2^10 = 102400ms, but capped at 500ms + 10% jitter = 550ms
+      const promise = delayWithBackoffAndJitter(10, 100, 500)
+      await vi.advanceTimersByTimeAsync(550)
+      await promise
     })
 
     it('should use default baseDelayMs of 500', async () => {
-      const start = Date.now()
-      await delayWithBackoffAndJitter(0)
-      const elapsed = Date.now() - start
-      // Default 500ms + up to 10% jitter
-      // Allow generous tolerance for CI timer imprecision under load
-      expect(elapsed).toBeGreaterThanOrEqual(495)
-      expect(elapsed).toBeLessThan(700)
+      // Default 500ms + up to 10% jitter = 550ms
+      const promise = delayWithBackoffAndJitter(0)
+      await vi.advanceTimersByTimeAsync(550)
+      await promise
     })
 
     it('should use default maxDelayMs of 2000', async () => {
-      const start = Date.now()
-      await delayWithBackoffAndJitter(5, 500)
-      const elapsed = Date.now() - start
-      // 500 * 2^5 = 16000, capped at default 2000ms + 10% jitter
-      // Allow 5ms tolerance for CI timer precision
-      expect(elapsed).toBeGreaterThanOrEqual(1995)
-      expect(elapsed).toBeLessThan(2300)
+      // 500 * 2^5 = 16000, capped at default 2000ms + 10% jitter = 2200ms
+      const promise = delayWithBackoffAndJitter(5, 500)
+      await vi.advanceTimersByTimeAsync(2200)
+      await promise
     })
   })
 

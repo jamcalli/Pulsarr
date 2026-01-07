@@ -31,6 +31,11 @@ export default defineConfig({
     setupFiles: ['./test/setup/msw-setup.ts'],
     testTimeout: 10000,
     hookTimeout: 10000,
+    experimental: {
+      // Caches transformed modules to disk for faster subsequent runs
+      // Clear with: npx vitest --clearCache
+      fsModuleCache: true,
+    },
   },
   resolve: {
     alias: [

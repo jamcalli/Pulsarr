@@ -87,6 +87,7 @@ export async function getConfig(
       enabled: false,
       defaultExpirationHours: 72,
       expirationAction: 'expire' as const,
+      autoApproveOnQuotaAvailable: false,
       cleanupExpiredDays: 30,
       ...(config.approvalExpiration
         ? this.safeJsonParse(

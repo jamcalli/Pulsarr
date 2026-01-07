@@ -487,22 +487,18 @@ describe('plex/processors/single-item', () => {
     })
 
     it('should handle timeout error', async () => {
-      server.use(
-        http.get(
-          'https://discover.provider.plex.tv/library/metadata/12345',
-          async () => {
-            await new Promise((resolve) => setTimeout(resolve, 6000))
-            return HttpResponse.json({
-              MediaContainer: { Metadata: [] },
-            } as unknown as PlexApiResponse)
-          },
-        ),
-      )
+      // AbortSignal.timeout() throws a DOMException with name 'TimeoutError'
+      const timeoutError = new DOMException('Signal timed out', 'TimeoutError')
+      const originalFetch = global.fetch
+      global.fetch = vi.fn().mockRejectedValue(timeoutError)
 
-      const result = await toItemsSingle(config, mockLogger, mockItem)
-
-      expect(result.size).toBe(0)
-    }, 10000)
+      try {
+        const result = await toItemsSingle(config, mockLogger, mockItem)
+        expect(result.size).toBe(0)
+      } finally {
+        global.fetch = originalFetch
+      }
+    })
 
     it('should propagate rate limit error when already exhausted', async () => {
       // Create a rate limit error directly in the flow

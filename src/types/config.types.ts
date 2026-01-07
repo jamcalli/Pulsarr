@@ -8,6 +8,7 @@ export interface User {
   discord_id: string | null
   notify_apprise: boolean
   notify_discord: boolean
+  notify_discord_mention: boolean
   notify_tautulli: boolean
   tautulli_notifier_id: number | null
   can_sync: boolean
@@ -263,6 +264,8 @@ export interface Config {
     defaultExpirationHours?: number
     // What happens when approvals expire
     expirationAction?: 'expire' | 'auto_approve'
+    // Auto-approve quota_exceeded requests when quota becomes available
+    autoApproveOnQuotaAvailable?: boolean
     // Per-trigger expiration overrides
     quotaExceededExpirationHours?: number
     routerRuleExpirationHours?: number

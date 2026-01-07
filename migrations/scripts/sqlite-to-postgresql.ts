@@ -10,7 +10,7 @@ const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
 
 // Load environment variables
-dotenv.config({ path: resolve(projectRoot, '.env') })
+dotenv.config({ path: resolve(projectRoot, '.env'), quiet: true })
 
 interface MigrationConfig {
   source: Knex.Config

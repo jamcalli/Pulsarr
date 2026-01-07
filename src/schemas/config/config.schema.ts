@@ -277,6 +277,8 @@ export const ConfigFullSchema = z.object({
     enabled: z.boolean(),
     defaultExpirationHours: z.number(),
     expirationAction: z.enum(['expire', 'auto_approve']),
+    // Auto-approve quota_exceeded requests when quota becomes available
+    autoApproveOnQuotaAvailable: z.boolean(),
     // Per-trigger expiration overrides (optional - only present if explicitly set)
     quotaExceededExpirationHours: z.number().optional(),
     routerRuleExpirationHours: z.number().optional(),
@@ -472,6 +474,8 @@ export const ConfigUpdateSchema = z
         defaultExpirationHours: z.number().min(1).max(8760).optional(), // 1 hour to 1 year
         // What happens when approvals expire
         expirationAction: z.enum(['expire', 'auto_approve']).optional(),
+        // Auto-approve quota_exceeded requests when quota becomes available
+        autoApproveOnQuotaAvailable: z.boolean().optional(),
         // Per-trigger expiration overrides
         quotaExceededExpirationHours: z.number().min(1).max(8760).optional(),
         routerRuleExpirationHours: z.number().min(1).max(8760).optional(),

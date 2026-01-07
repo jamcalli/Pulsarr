@@ -3,7 +3,10 @@ import type {
   PlexApiResponse,
   TokenWatchlistItem,
 } from '@root/types/plex.types.js'
-import { toItemsBatch } from '@services/plex-watchlist/index.js'
+import {
+  PlexRateLimiter,
+  toItemsBatch,
+} from '@services/plex-watchlist/index.js'
 import { HttpResponse, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockLogger } from '../../../../mocks/logger.js'
@@ -17,6 +20,7 @@ describe('plex/processors/batch-processor', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    PlexRateLimiter.getInstance().reset()
   })
 
   afterEach(() => {
@@ -74,6 +78,7 @@ describe('plex/processors/batch-processor', () => {
     })
 
     it('should respect concurrency limit', async () => {
+      vi.useFakeTimers()
       let concurrentRequests = 0
       let maxConcurrent = 0
 
@@ -98,8 +103,11 @@ describe('plex/processors/batch-processor', () => {
         createMockItem(`${i}`, `Movie ${i}`),
       )
 
-      await toItemsBatch(config, mockLogger, items, undefined, 3)
+      const promise = toItemsBatch(config, mockLogger, items, undefined, 3)
+      await vi.runAllTimersAsync()
+      await promise
 
+      vi.useRealTimers()
       expect(maxConcurrent).toBeLessThanOrEqual(3)
     })
 
@@ -203,6 +211,7 @@ describe('plex/processors/batch-processor', () => {
     })
 
     it('should reduce concurrency after rate limit', async () => {
+      vi.useFakeTimers()
       let callCount = 0
       server.use(
         http.get(
@@ -227,8 +236,11 @@ describe('plex/processors/batch-processor', () => {
 
       const items = [createMockItem('1', 'Movie 1')]
 
-      const result = await toItemsBatch(config, mockLogger, items, undefined, 3)
+      const promise = toItemsBatch(config, mockLogger, items, undefined, 3)
+      await vi.runAllTimersAsync()
+      const result = await promise
 
+      vi.useRealTimers()
       expect(result.size).toBe(1)
     })
 
@@ -280,10 +292,14 @@ describe('plex/processors/batch-processor', () => {
 
       const items = [createMockItem('1', 'Movie 1')]
 
-      const result = await toItemsBatch(config, mockLogger, items)
+      vi.useFakeTimers()
+      const promise = toItemsBatch(config, mockLogger, items)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(1)
-    }, 20000)
+    })
 
     it('should handle rate limit detection from error message', async () => {
       let attempts = 0
@@ -310,10 +326,14 @@ describe('plex/processors/batch-processor', () => {
 
       const items = [createMockItem('1', 'Movie 1')]
 
-      const result = await toItemsBatch(config, mockLogger, items)
+      vi.useFakeTimers()
+      const promise = toItemsBatch(config, mockLogger, items)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(1)
-    }, 20000)
+    })
 
     it('should handle generic errors and continue processing', async () => {
       let _callCount = 0
@@ -339,7 +359,11 @@ describe('plex/processors/batch-processor', () => {
         createMockItem('2', 'Success Movie'),
       ]
 
-      const result = await toItemsBatch(config, mockLogger, items, undefined, 1)
+      vi.useFakeTimers()
+      const promise = toItemsBatch(config, mockLogger, items, undefined, 1)
+      await vi.runAllTimersAsync()
+      const result = await promise
+      vi.useRealTimers()
 
       expect(result.size).toBe(2)
     })
@@ -391,6 +415,7 @@ describe('plex/processors/batch-processor', () => {
     })
 
     it('should handle rate limited progress updates', async () => {
+      vi.useFakeTimers()
       let callCount = 0
       server.use(
         http.get(
@@ -428,13 +453,11 @@ describe('plex/processors/batch-processor', () => {
 
       const items = [createMockItem('1', 'Movie 1')]
 
-      const result = await toItemsBatch(
-        config,
-        mockLogger,
-        items,
-        progressTracker,
-      )
+      const promise = toItemsBatch(config, mockLogger, items, progressTracker)
+      await vi.runAllTimersAsync()
+      const result = await promise
 
+      vi.useRealTimers()
       expect(result.size).toBe(1)
     })
 

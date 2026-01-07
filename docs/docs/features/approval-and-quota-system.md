@@ -14,7 +14,7 @@ Manage user content requests with configurable quotas and administrative approva
 2. Click **Edit Quotas** to configure limits
 3. Set quota type (daily, weekly rolling, or monthly) and limits
 4. Optionally enable **Requires Approval** for manual review
-5. Configure approval settings in **Settings → Approvals** (expiration, notifications)
+5. Configure approval settings in **Approvals → Approval Settings** (expiration, notifications)
 6. Monitor and manage requests in the **Approvals** section
 
 ## Key Features
@@ -66,12 +66,17 @@ Navigate to **Plex → Users** to manage individual user quotas:
 
 ### Approval Settings
 
-Configure approval behavior in the **Settings** section:
+Configure approval behavior in **Approvals → Approval Settings**:
 
 - **Expiration Hours**: How long before requests auto-expire (default: 72 hours)
 - **Expiration Action**: Auto-expire or auto-approve expired requests
+- **Auto-Approve on Quota Reset**: Automatically approve pending quota-exceeded requests when user's quota becomes available (disabled by default)
 - **Cleanup Days**: How long to keep expired requests in database
 - **Notifications**: Configure Discord and Apprise notifications for new requests
+
+:::tip Auto-Approve on Quota Reset
+When enabled, pending requests triggered by quota limits are automatically re-evaluated during maintenance runs. If the user's quota has reset and they have quota available, requests are auto-approved in FIFO order (oldest first). This eliminates manual approval of quota-exceeded requests after quotas reset.
+:::
 
 <img alt="Approval System Settings" src={useBaseUrl('/img/Approvals-Settings.png')} />
 

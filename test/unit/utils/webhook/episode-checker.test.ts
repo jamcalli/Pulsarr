@@ -133,14 +133,15 @@ describe('episode-checker', () => {
         log: createMockLogger(),
       } as unknown as FastifyInstance
 
-      // With threshold 0, age <= 0 is considered recent (both current and future)
-      const now = new Date().toISOString()
+      // With threshold 0, only age <= 0 is considered recent (future episodes only)
+      // Use dates clearly in past/future to avoid timing flakiness
+      const pastDate = new Date(Date.now() - 100).toISOString()
       const futureDate = new Date(Date.now() + 1000).toISOString()
 
-      // Test boundary case: age ≈ 0 with threshold = 0
-      expect(isRecentEpisode(now, zeroThresholdFastify)).toBe(true)
+      // Past episodes are not recent with threshold 0
+      expect(isRecentEpisode(pastDate, zeroThresholdFastify)).toBe(false)
 
-      // Test negative age case: future episodes with threshold = 0
+      // Future episodes (negative age) are always recent
       expect(isRecentEpisode(futureDate, zeroThresholdFastify)).toBe(true)
     })
 

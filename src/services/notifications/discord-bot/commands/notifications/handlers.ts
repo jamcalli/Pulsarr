@@ -175,6 +175,32 @@ export async function handleNotificationButtons(
       break
     }
 
+    case 'toggleMentions': {
+      await interaction.deferUpdate()
+      const newMentionsState = !user.notify_discord_mention
+      logger.info(
+        { userId: user.id, enabled: newMentionsState },
+        'Updating Discord mention preference',
+      )
+      const mentionsUpdated = await updateUser(
+        user.id,
+        { notify_discord_mention: newMentionsState },
+        deps,
+      )
+      if (mentionsUpdated) {
+        const updatedUser = await getUser(interaction.user.id, deps)
+        if (updatedUser) {
+          await showSettingsForm(interaction, updatedUser, deps)
+        }
+      } else {
+        await interaction.followUp({
+          content: '❌ Failed to update mention preference. Please try again.',
+          flags: MessageFlags.Ephemeral,
+        })
+      }
+      break
+    }
+
     case 'editProfile': {
       await interaction.showModal(createProfileEditModal(user))
       break

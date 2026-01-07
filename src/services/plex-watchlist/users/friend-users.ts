@@ -49,6 +49,7 @@ export async function ensureFriendUsers(
           discord_id: null,
           notify_apprise: false,
           notify_discord: false,
+          notify_discord_mention: true,
           notify_tautulli: false,
           tautulli_notifier_id: null,
           can_sync: deps.config.newUserDefaultCanSync ?? true,
