@@ -5053,6 +5053,9 @@
                                 "auto_approve"
                               ]
                             },
+                            "autoApproveOnQuotaAvailable": {
+                              "type": "boolean"
+                            },
                             "quotaExceededExpirationHours": {
                               "type": "number"
                             },
@@ -5073,6 +5076,7 @@
                             "enabled",
                             "defaultExpirationHours",
                             "expirationAction",
+                            "autoApproveOnQuotaAvailable",
                             "cleanupExpiredDays"
                           ],
                           "additionalProperties": false
@@ -5741,6 +5745,9 @@
                           "expire",
                           "auto_approve"
                         ]
+                      },
+                      "autoApproveOnQuotaAvailable": {
+                        "type": "boolean"
                       },
                       "quotaExceededExpirationHours": {
                         "type": "number",
@@ -6421,6 +6428,9 @@
                                 "auto_approve"
                               ]
                             },
+                            "autoApproveOnQuotaAvailable": {
+                              "type": "boolean"
+                            },
                             "quotaExceededExpirationHours": {
                               "type": "number"
                             },
@@ -6441,6 +6451,7 @@
                             "enabled",
                             "defaultExpirationHours",
                             "expirationAction",
+                            "autoApproveOnQuotaAvailable",
                             "cleanupExpiredDays"
                           ],
                           "additionalProperties": false
@@ -30047,6 +30058,10 @@
                         "default": false,
                         "type": "boolean"
                       },
+                      "notify_discord_mention": {
+                        "default": true,
+                        "type": "boolean"
+                      },
                       "notify_tautulli": {
                         "default": false,
                         "type": "boolean"
@@ -30854,6 +30869,9 @@
                           "notify_discord": {
                             "type": "boolean"
                           },
+                          "notify_discord_mention": {
+                            "type": "boolean"
+                          },
                           "notify_tautulli": {
                             "type": "boolean"
                           },
@@ -30882,6 +30900,7 @@
                           "discord_id",
                           "notify_apprise",
                           "notify_discord",
+                          "notify_discord_mention",
                           "notify_tautulli",
                           "tautulli_notifier_id",
                           "can_sync",
@@ -30989,6 +31008,9 @@
                           "notify_discord": {
                             "type": "boolean"
                           },
+                          "notify_discord_mention": {
+                            "type": "boolean"
+                          },
                           "notify_tautulli": {
                             "type": "boolean"
                           },
@@ -31020,6 +31042,7 @@
                           "discord_id",
                           "notify_apprise",
                           "notify_discord",
+                          "notify_discord_mention",
                           "notify_tautulli",
                           "tautulli_notifier_id",
                           "can_sync",
@@ -31118,6 +31141,10 @@
                     "default": false,
                     "type": "boolean"
                   },
+                  "notify_discord_mention": {
+                    "default": true,
+                    "type": "boolean"
+                  },
                   "notify_tautulli": {
                     "default": false,
                     "type": "boolean"
@@ -31188,6 +31215,9 @@
                         "notify_discord": {
                           "type": "boolean"
                         },
+                        "notify_discord_mention": {
+                          "type": "boolean"
+                        },
                         "notify_tautulli": {
                           "type": "boolean"
                         },
@@ -31216,6 +31246,7 @@
                         "discord_id",
                         "notify_apprise",
                         "notify_discord",
+                        "notify_discord_mention",
                         "notify_tautulli",
                         "tautulli_notifier_id",
                         "can_sync",
@@ -31312,6 +31343,10 @@
                     "default": false,
                     "type": "boolean"
                   },
+                  "notify_discord_mention": {
+                    "default": true,
+                    "type": "boolean"
+                  },
                   "notify_tautulli": {
                     "default": false,
                     "type": "boolean"
@@ -31388,6 +31423,9 @@
                         "notify_discord": {
                           "type": "boolean"
                         },
+                        "notify_discord_mention": {
+                          "type": "boolean"
+                        },
                         "notify_tautulli": {
                           "type": "boolean"
                         },
@@ -31416,6 +31454,7 @@
                         "discord_id",
                         "notify_apprise",
                         "notify_discord",
+                        "notify_discord_mention",
                         "notify_tautulli",
                         "tautulli_notifier_id",
                         "can_sync",
@@ -31562,6 +31601,9 @@
                         "notify_discord": {
                           "type": "boolean"
                         },
+                        "notify_discord_mention": {
+                          "type": "boolean"
+                        },
                         "notify_tautulli": {
                           "type": "boolean"
                         },
@@ -31590,6 +31632,7 @@
                         "discord_id",
                         "notify_apprise",
                         "notify_discord",
+                        "notify_discord_mention",
                         "notify_tautulli",
                         "tautulli_notifier_id",
                         "can_sync",
