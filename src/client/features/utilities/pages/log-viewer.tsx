@@ -162,37 +162,26 @@ export function LogViewerPage() {
   const logsText = filteredLogs.map((log) => log.message).join('\n')
 
   // Auto-scroll effect - MUST be before conditional return
+  // Debounced to handle rapid log arrivals on initial load (100 logs via SSE)
+  // Depends on isInitializing/isInitialized so it re-fires when skeleton goes away
   useEffect(() => {
-    if (logs.length > 0 && isAutoScroll) {
-      // Multiple attempts with increasing delays to ensure scroll happens
-      const timer1 = setTimeout(() => {
-        if (logContainerRef.current) {
-          logContainerRef.current.scrollTop =
-            logContainerRef.current.scrollHeight
-        }
+    // Skip if skeleton is showing (ref won't be attached)
+    if (isInitializing || !isInitialized) return
+
+    if (filteredLogs.length > 0 && isAutoScroll && logContainerRef.current) {
+      // Debounce: wait for logs to stop arriving, then scroll
+      const timeoutId = setTimeout(() => {
+        requestAnimationFrame(() => {
+          if (logContainerRef.current) {
+            logContainerRef.current.scrollTop =
+              logContainerRef.current.scrollHeight
+          }
+        })
       }, 50)
 
-      const timer2 = setTimeout(() => {
-        if (logContainerRef.current) {
-          logContainerRef.current.scrollTop =
-            logContainerRef.current.scrollHeight
-        }
-      }, 200)
-
-      const timer3 = setTimeout(() => {
-        if (logContainerRef.current) {
-          logContainerRef.current.scrollTop =
-            logContainerRef.current.scrollHeight
-        }
-      }, 500)
-
-      return () => {
-        clearTimeout(timer1)
-        clearTimeout(timer2)
-        clearTimeout(timer3)
-      }
+      return () => clearTimeout(timeoutId)
     }
-  }, [isAutoScroll, logs.length])
+  }, [isAutoScroll, filteredLogs.length, isInitialized, isInitializing])
 
   // Helper function for minimum loading duration
   const setLoadingWithMinDuration = async (loadingFn: () => Promise<void>) => {
