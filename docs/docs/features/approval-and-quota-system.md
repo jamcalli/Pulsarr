@@ -14,7 +14,7 @@ Manage user content requests with configurable quotas and administrative approva
 2. Click **Edit Quotas** to configure limits
 3. Set quota type (daily, weekly rolling, or monthly) and limits
 4. Optionally enable **Requires Approval** for manual review
-5. Configure approval settings in **Settings → Approvals** (expiration, notifications)
+5. Configure approval settings in **Approvals → Approval Settings** (expiration, notifications)
 6. Monitor and manage requests in the **Approvals** section
 
 ## Key Features
@@ -66,7 +66,7 @@ Navigate to **Plex → Users** to manage individual user quotas:
 
 ### Approval Settings
 
-Configure approval behavior in the **Settings** section:
+Configure approval behavior in **Approvals → Approval Settings**:
 
 - **Expiration Hours**: How long before requests auto-expire (default: 72 hours)
 - **Expiration Action**: Auto-expire or auto-approve expired requests

@@ -1031,7 +1031,6 @@ export async function getUsersWithRadarrItems(
       .andWhere('u.id', '>', 0) // Exclude system user (id=0)
       .andWhere('u.can_sync', true)
       .distinct('u.*')
-      .select('u.*')
 
     return rows.map((row) => mapRowToUser(row))
   } catch (error) {
@@ -1064,7 +1063,6 @@ export async function getUsersWithSonarrItems(
       .andWhere('u.id', '>', 0) // Exclude system user (id=0)
       .andWhere('u.can_sync', true)
       .distinct('u.*')
-      .select('u.*')
 
     return rows.map((row) => mapRowToUser(row))
   } catch (error) {
