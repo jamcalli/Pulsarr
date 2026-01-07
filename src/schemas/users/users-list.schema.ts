@@ -9,6 +9,7 @@ const UserBaseSchema = z.object({
   discord_id: z.string().nullable(),
   notify_apprise: z.boolean(),
   notify_discord: z.boolean(),
+  notify_discord_mention: z.boolean(),
   notify_tautulli: z.boolean(),
   tautulli_notifier_id: z.number().nullable(),
   can_sync: z.boolean(),

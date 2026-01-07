@@ -41,7 +41,7 @@ const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
 
 // Load .env file early for logger configuration
-config({ path: resolve(projectRoot, '.env') })
+config({ path: resolve(projectRoot, '.env'), quiet: true })
 
 /**
  * Creates a custom error serializer that handles both standard errors and custom HttpError objects.

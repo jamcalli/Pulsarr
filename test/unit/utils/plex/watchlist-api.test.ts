@@ -187,12 +187,19 @@ describe('plex/watchlist-api', () => {
         ),
       )
 
-      // Don't use fake timers - let it retry naturally and fail
-      await expect(getWatchlist('token', mockLogger)).rejects.toMatchObject({
+      vi.useFakeTimers()
+      // Attach error handler immediately to prevent unhandled rejection
+      const promise = getWatchlist('token', mockLogger).catch((e) => e)
+
+      await vi.runAllTimersAsync()
+      const error = await promise
+      vi.useRealTimers()
+
+      expect(error).toMatchObject({
         message: expect.stringContaining('Rate limit exceeded'),
         isRateLimitExhausted: true,
       })
-    }, 15000)
+    })
 
     it('should handle 500 error', async () => {
       server.use(

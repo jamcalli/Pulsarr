@@ -343,6 +343,7 @@ export interface NotificationResult {
     discord_id: string | null
     notify_apprise: boolean
     notify_discord: boolean
+    notify_discord_mention: boolean
     notify_tautulli: boolean
     tautulli_notifier_id: number | null
     name: string

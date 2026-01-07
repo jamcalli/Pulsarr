@@ -12,27 +12,40 @@ import type {
 } from '@root/types/plex-label-sync.types.js'
 import type { PlexLabelSyncConfig } from '@schemas/plex/label-sync-config.schema.js'
 import { reconcileLabelsForContent } from '@services/plex-label-sync/label-operations/label-reconciler.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { build } from '../../../helpers/app.js'
+import type { FastifyInstance } from 'fastify'
 import {
-  getTestDatabase,
-  initializeTestDatabase,
-  resetDatabase,
-} from '../../../helpers/database.js'
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import { build } from '../../../helpers/app.js'
+import { getTestDatabase, resetDatabase } from '../../../helpers/database.js'
 import { SEED_USERS, seedAll } from '../../../helpers/seeds/index.js'
 
 describe('Label Reconciler → Content Tracker Integration', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    app = await build()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
   beforeEach(async () => {
-    await initializeTestDatabase()
+    vi.clearAllMocks()
     await resetDatabase()
     await seedAll(getTestDatabase())
   })
 
   describe('Basic reconciliation in remove mode', () => {
-    it('should reconcile labels and update tracking table', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should reconcile labels and update tracking table', async () => {
       const knex = getTestDatabase()
 
       // Mock PlexServer to return current labels and allow updates
@@ -142,10 +155,7 @@ describe('Label Reconciler → Content Tracker Integration', () => {
       ])
     })
 
-    it('should remove obsolete tracking records when user is removed', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should remove obsolete tracking records when user is removed', async () => {
       const knex = getTestDatabase()
 
       // Setup: Create initial tracking records for two users
@@ -237,10 +247,7 @@ describe('Label Reconciler → Content Tracker Integration', () => {
   })
 
   describe('Reconciliation in keep mode', () => {
-    it('should preserve existing labels and add new ones', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should preserve existing labels and add new ones', async () => {
       const knex = getTestDatabase()
 
       // Mock PlexServer
@@ -323,10 +330,7 @@ describe('Label Reconciler → Content Tracker Integration', () => {
   })
 
   describe('Reconciliation in special-label mode', () => {
-    it('should add removed label when no users exist', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should add removed label when no users exist', async () => {
       const knex = getTestDatabase()
 
       // Mock PlexServer
@@ -396,10 +400,7 @@ describe('Label Reconciler → Content Tracker Integration', () => {
       ])
     })
 
-    it('should remove special label when users re-add content', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should remove special label when users re-add content', async () => {
       const knex = getTestDatabase()
 
       // Setup: Create system tracking record for removed label
@@ -489,10 +490,7 @@ describe('Label Reconciler → Content Tracker Integration', () => {
       ])
     })
 
-    it('should handle multi-user special-label scenario', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle multi-user special-label scenario', async () => {
       const knex = getTestDatabase()
 
       // Setup: Create tracking records for two users
@@ -595,10 +593,7 @@ describe('Label Reconciler → Content Tracker Integration', () => {
   })
 
   describe('Multiple Plex items (editions)', () => {
-    it('should handle multiple editions with separate tracking records', async (ctx) => {
-      const app = await build(ctx)
-      await app.ready()
-
+    it('should handle multiple editions with separate tracking records', async () => {
       const knex = getTestDatabase()
 
       // Mock PlexServer for two editions

@@ -56,10 +56,13 @@ async function init() {
   closeWithGrace(
     {
       delay: app.config.closeGraceDelay,
+      logger: app.log,
     },
-    async ({ err }) => {
-      if (err != null) {
-        app.log.error(err)
+    async ({ signal, err }) => {
+      if (err) {
+        app.log.error({ err }, 'server closing with error')
+      } else {
+        app.log.info(`${signal} received, server closing`)
       }
       await app.close()
     },

@@ -9,7 +9,7 @@ const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..')
 
 // Load environment variables before anything else
-dotenv.config({ path: resolve(projectRoot, '.env') })
+dotenv.config({ path: resolve(projectRoot, '.env'), quiet: true })
 
 /**
  * Ensures that the database directory exists at `data/db` within the project root, creating it if necessary.

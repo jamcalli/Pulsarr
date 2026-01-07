@@ -206,15 +206,14 @@ const FormContent = ({
                           checked={field.value}
                           onCheckedChange={field.onChange}
                           disabled={
-                            saveStatus !== 'idle' ||
-                            form.getValues('clearApprise')
+                            saveStatus !== 'idle' || form.watch('clearApprise')
                           }
                         />
                       </FormControl>
                       <div className="leading-none">
                         <FormLabel className="text-foreground">
                           Enable Apprise notifications
-                          {form.getValues('clearApprise') && (
+                          {form.watch('clearApprise') && (
                             <span className="text-error text-xs ml-2">
                               (Disabled without Apprise endpoint)
                             </span>
@@ -267,14 +266,74 @@ const FormContent = ({
                           onCheckedChange={field.onChange}
                           disabled={
                             saveStatus !== 'idle' ||
-                            form.getValues('clearDiscordId')
+                            form.watch('clearDiscordId')
                           }
                         />
                       </FormControl>
                       <div className="leading-none">
                         <FormLabel className="text-foreground">
                           Enable Discord notifications
-                          {form.getValues('clearDiscordId') && (
+                          {form.watch('clearDiscordId') && (
+                            <span className="text-error text-xs ml-2">
+                              (Disabled without Discord ID)
+                            </span>
+                          )}
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {/* Discord Mentions */}
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="setDiscordMention"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(value) => {
+                          field.onChange(value)
+                          // If clearing Discord IDs and enabling mention preference, reset value
+                          if (value && form.getValues('clearDiscordId')) {
+                            form.setValue('discordMentionValue', false)
+                          }
+                        }}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-foreground">
+                        Set public mention preference
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              {form.watch('setDiscordMention') && (
+                <FormField
+                  control={form.control}
+                  name="discordMentionValue"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 ml-7">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={
+                            saveStatus !== 'idle' ||
+                            form.watch('clearDiscordId')
+                          }
+                        />
+                      </FormControl>
+                      <div className="leading-none">
+                        <FormLabel className="text-foreground">
+                          Include in public channel @mentions
+                          {form.watch('clearDiscordId') && (
                             <span className="text-error text-xs ml-2">
                               (Disabled without Discord ID)
                             </span>
@@ -439,16 +498,17 @@ const FormContent = ({
             type="submit"
             disabled={
               saveStatus !== 'idle' ||
-              (!form.getValues('clearAlias') &&
-                !form.getValues('clearDiscordId') &&
-                !form.getValues('clearApprise') &&
-                !form.getValues('setAppriseNotify') &&
-                !form.getValues('setDiscordNotify') &&
-                !form.getValues('setTautulliNotify') &&
-                !form.getValues('setCanSync') &&
-                !form.getValues('setRequiresApproval'))
+              (!form.watch('clearAlias') &&
+                !form.watch('clearDiscordId') &&
+                !form.watch('clearApprise') &&
+                !form.watch('setAppriseNotify') &&
+                !form.watch('setDiscordNotify') &&
+                !form.watch('setDiscordMention') &&
+                !form.watch('setTautulliNotify') &&
+                !form.watch('setCanSync') &&
+                !form.watch('setRequiresApproval'))
             }
-            className="min-w-[100px] flex items-center justify-center gap-2"
+            className="min-w-25 flex items-center justify-center gap-2"
           >
             {saveStatus === 'loading' ? (
               <>
@@ -494,6 +554,8 @@ export default function BulkEditModal({
       appriseNotifyValue: false,
       setDiscordNotify: false,
       discordNotifyValue: false,
+      setDiscordMention: false,
+      discordMentionValue: true,
       setTautulliNotify: false,
       tautulliNotifyValue: false,
       setCanSync: false,
@@ -513,9 +575,12 @@ export default function BulkEditModal({
         }
       }
       if (name === 'clearDiscordId' && value.clearDiscordId) {
-        // If clearing Discord IDs, disable Discord notifications
+        // If clearing Discord IDs, disable Discord notifications and mentions
         if (value.setDiscordNotify) {
           form.setValue('discordNotifyValue', false)
+        }
+        if (value.setDiscordMention) {
+          form.setValue('discordMentionValue', false)
         }
       }
     })
@@ -549,11 +614,16 @@ export default function BulkEditModal({
     }
 
     if (values.clearDiscordId) {
-      // When clearing Discord IDs, always disable Discord notifications
+      // When clearing Discord IDs, disable Discord notifications and mentions
       updates.notify_discord = false
+      updates.notify_discord_mention = false
     } else if (values.setDiscordNotify) {
       // Only set Discord notifications if we're not clearing Discord IDs
       updates.notify_discord = values.discordNotifyValue
+    }
+
+    if (values.setDiscordMention && !values.clearDiscordId) {
+      updates.notify_discord_mention = values.discordMentionValue
     }
 
     if (values.setTautulliNotify) {

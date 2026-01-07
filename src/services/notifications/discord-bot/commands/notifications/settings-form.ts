@@ -48,6 +48,7 @@ export function createNotificationsEmbed(user: User): EmbedBuilder {
         name: 'Notification Settings',
         value: [
           `**Discord**: ${user.notify_discord ? '✅ Enabled' : '❌ Disabled'}`,
+          `**Public Mentions**: ${user.notify_discord_mention ? '✅ Enabled' : '❌ Disabled'}`,
           `**Apprise**: ${user.notify_apprise ? '✅ Enabled' : '❌ Disabled'}`,
           `**Tautulli**: ${user.notify_tautulli ? '✅ Enabled' : '❌ Disabled'}`,
         ].join('\n'),
@@ -83,6 +84,15 @@ export function createActionRows(
       user.notify_tautulli ? ButtonStyle.Success : ButtonStyle.Secondary,
     )
 
+  const mentionsButton = new ButtonBuilder()
+    .setCustomId('toggleMentions')
+    .setLabel(
+      user.notify_discord_mention ? 'Disable Mentions' : 'Enable Mentions',
+    )
+    .setStyle(
+      user.notify_discord_mention ? ButtonStyle.Success : ButtonStyle.Secondary,
+    )
+
   const firstRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId('editProfile')
@@ -94,15 +104,19 @@ export function createActionRows(
       .setStyle(
         user.notify_discord ? ButtonStyle.Success : ButtonStyle.Secondary,
       ),
+    mentionsButton,
     appriseButton,
     tautulliButton,
+  )
+
+  const secondRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId('closeSettings')
       .setLabel('Exit')
       .setStyle(ButtonStyle.Danger),
   )
 
-  return [firstRow]
+  return [firstRow, secondRow]
 }
 
 /**

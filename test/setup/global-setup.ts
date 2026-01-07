@@ -7,6 +7,7 @@ export async function setup(): Promise<void> {
   process.env.logLevel = 'silent'
   process.env.port = '3004'
   process.env.dbType = 'sqlite'
+  process.env.DOTENV_CONFIG_QUIET = 'true'
 }
 
 export async function teardown(): Promise<void> {

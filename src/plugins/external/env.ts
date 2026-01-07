@@ -45,6 +45,7 @@ const DEFAULT_APPROVAL_EXPIRATION = {
   enabled: false,
   defaultExpirationHours: 72,
   expirationAction: 'expire' as const,
+  autoApproveOnQuotaAvailable: false,
   cleanupExpiredDays: 30,
 }
 
@@ -515,6 +516,7 @@ export default fp(
       dotenv: {
         path: './.env',
         debug: process.env.NODE_ENV === 'development',
+        quiet: true,
       },
       data: process.env,
     })
