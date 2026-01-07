@@ -297,7 +297,13 @@ const FormContent = ({
                     <FormControl>
                       <Checkbox
                         checked={field.value}
-                        onCheckedChange={field.onChange}
+                        onCheckedChange={(value) => {
+                          field.onChange(value)
+                          // If clearing Discord IDs and enabling mention preference, reset value
+                          if (value && form.getValues('clearDiscordId')) {
+                            form.setValue('discordMentionValue', false)
+                          }
+                        }}
                         disabled={saveStatus !== 'idle'}
                       />
                     </FormControl>
@@ -503,7 +509,7 @@ const FormContent = ({
                 !form.getValues('setCanSync') &&
                 !form.getValues('setRequiresApproval'))
             }
-            className="min-w-[100px] flex items-center justify-center gap-2"
+            className="min-w-25 flex items-center justify-center gap-2"
           >
             {saveStatus === 'loading' ? (
               <>
@@ -570,9 +576,12 @@ export default function BulkEditModal({
         }
       }
       if (name === 'clearDiscordId' && value.clearDiscordId) {
-        // If clearing Discord IDs, disable Discord notifications
+        // If clearing Discord IDs, disable Discord notifications and mentions
         if (value.setDiscordNotify) {
           form.setValue('discordNotifyValue', false)
+        }
+        if (value.setDiscordMention) {
+          form.setValue('discordMentionValue', false)
         }
       }
     })
