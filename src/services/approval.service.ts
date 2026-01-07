@@ -519,7 +519,7 @@ export class ApprovalService {
       const config = this.fastify.config?.approvalExpiration
 
       // Re-evaluate quota_exceeded approvals (independent of expiration enabled)
-      if (config?.autoApproveOnQuotaAvailable !== false) {
+      if (config?.autoApproveOnQuotaAvailable === true) {
         await this.reEvaluateQuotaExceededApprovals()
       }
 
