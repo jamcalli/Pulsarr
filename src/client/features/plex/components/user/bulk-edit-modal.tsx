@@ -598,14 +598,15 @@ export default function BulkEditModal({
     }
 
     if (values.clearDiscordId) {
-      // When clearing Discord IDs, always disable Discord notifications
+      // When clearing Discord IDs, disable Discord notifications and mentions
       updates.notify_discord = false
+      updates.notify_discord_mention = false
     } else if (values.setDiscordNotify) {
       // Only set Discord notifications if we're not clearing Discord IDs
       updates.notify_discord = values.discordNotifyValue
     }
 
-    if (values.setDiscordMention) {
+    if (values.setDiscordMention && !values.clearDiscordId) {
       updates.notify_discord_mention = values.discordMentionValue
     }
 
