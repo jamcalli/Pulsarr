@@ -55,6 +55,7 @@ export function useLogStream(
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const [hasGivenUp, setHasGivenUp] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [connectionCount, setConnectionCount] = useState(0)
   const [options, setOptions] = useState<LogStreamOptions>({
@@ -128,6 +129,7 @@ export function useLogStream(
         setIsConnected(true)
         setIsConnecting(false)
         setError(null)
+        setHasGivenUp(false)
         connectionCountRef.current += 1
         setConnectionCount(connectionCountRef.current)
         reconnectAttempts.current = 0
@@ -186,6 +188,7 @@ export function useLogStream(
             connect()
           }, delay)
         } else {
+          setHasGivenUp(true)
           setError(
             'Connection lost. Will auto-reconnect if enabled, or pause/resume to retry.',
           )
@@ -208,6 +211,8 @@ export function useLogStream(
 
   const resume = useCallback(() => {
     setIsPaused(false)
+    setHasGivenUp(false)
+    reconnectAttempts.current = 0
   }, [])
 
   const clearLogs = useCallback(() => {
@@ -243,10 +248,10 @@ export function useLogStream(
 
   // Auto-connect on mount and when resuming
   useEffect(() => {
-    if (!isConnected && !isConnecting && !isPaused) {
+    if (!isConnected && !isConnecting && !isPaused && !hasGivenUp) {
       connect()
     }
-  }, [isPaused, isConnected, isConnecting, connect])
+  }, [isPaused, isConnected, isConnecting, hasGivenUp, connect])
 
   // Cleanup on unmount
   useEffect(() => {
