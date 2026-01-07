@@ -301,6 +301,41 @@ export default function ApprovalSettingsPage() {
 
                   <FormField
                     control={form.control}
+                    name="approvalExpiration.autoApproveOnQuotaAvailable"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value ?? false}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="flex items-center">
+                          <FormLabel className="text-foreground m-0">
+                            Auto-Approve on Quota Reset
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Automatically approve pending quota-exceeded
+                                  requests when the user's quota resets or
+                                  becomes available. Requests are processed in
+                                  FIFO order (oldest first).
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="approvalExpiration.defaultExpirationHours"
                     render={({ field }) => (
                       <FormItem className="space-y-2">

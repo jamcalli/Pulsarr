@@ -157,6 +157,16 @@ declare module '@services/database.service.js' {
     getExpiredPendingRequests(): Promise<ApprovalRequest[]>
 
     /**
+     * Gets pending approval requests by trigger type (FIFO order)
+     * Used by quota re-evaluation to process quota_exceeded requests when quota becomes available
+     * @param trigger - The trigger type to filter by (e.g., 'quota_exceeded')
+     * @returns Promise resolving to array of pending requests matching the trigger, oldest first
+     */
+    getPendingRequestsByTrigger(
+      trigger: ApprovalTrigger,
+    ): Promise<ApprovalRequest[]>
+
+    /**
      * Gets overall approval statistics
      * @returns Promise resolving to approval statistics
      */

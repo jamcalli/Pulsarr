@@ -178,11 +178,12 @@ quotaSettings='{"cleanup":{"enabled":true,"retentionDays":90},"weeklyRolling":{"
 # - monthly.handleMonthEnd: How to handle months without resetDay: 'last-day', 'skip-month', 'next-month' (default: last-day)
 
 # Approval System Configuration
-approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationAction":"expire","cleanupExpiredDays":30}'  # JSON config for approval expiration
+approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationAction":"expire","autoApproveOnQuotaAvailable":false,"cleanupExpiredDays":30}'  # JSON config for approval expiration
 # Approval expiration configuration (JSON format):
 # - enabled: Enable automatic approval expiration (default: false)
 # - defaultExpirationHours: Default hours before approval expires (range: 1-8760)
 # - expirationAction: What happens when approval expires: 'expire', 'auto_approve' (default: expire)
+# - autoApproveOnQuotaAvailable: Auto-approve quota_exceeded requests when quota resets (default: false)
 # - quotaExceededExpirationHours: Override expiration for quota exceeded triggers (optional, range: 1-8760)
 # - routerRuleExpirationHours: Override expiration for router rule triggers (optional, range: 1-8760)
 # - manualFlagExpirationHours: Override expiration for manual flag triggers (optional, range: 1-8760)

@@ -50,6 +50,7 @@ export function useApprovalConfiguration() {
         enabled: false,
         defaultExpirationHours: 72,
         expirationAction: 'expire',
+        autoApproveOnQuotaAvailable: false,
         cleanupExpiredDays: 30,
       },
       quotaSettings: {
@@ -91,6 +92,8 @@ export function useApprovalConfiguration() {
                 config.approvalExpiration.defaultExpirationHours ?? 72,
               expirationAction:
                 config.approvalExpiration.expirationAction ?? 'expire',
+              autoApproveOnQuotaAvailable:
+                config.approvalExpiration.autoApproveOnQuotaAvailable ?? false,
               quotaExceededExpirationHours:
                 config.approvalExpiration.quotaExceededExpirationHours,
               routerRuleExpirationHours:
@@ -106,6 +109,7 @@ export function useApprovalConfiguration() {
               enabled: false,
               defaultExpirationHours: 72,
               expirationAction: 'expire',
+              autoApproveOnQuotaAvailable: false,
               cleanupExpiredDays: 30,
             },
         quotaSettings: config.quotaSettings
