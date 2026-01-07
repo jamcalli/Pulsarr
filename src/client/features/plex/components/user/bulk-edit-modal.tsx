@@ -206,15 +206,14 @@ const FormContent = ({
                           checked={field.value}
                           onCheckedChange={field.onChange}
                           disabled={
-                            saveStatus !== 'idle' ||
-                            form.getValues('clearApprise')
+                            saveStatus !== 'idle' || form.watch('clearApprise')
                           }
                         />
                       </FormControl>
                       <div className="leading-none">
                         <FormLabel className="text-foreground">
                           Enable Apprise notifications
-                          {form.getValues('clearApprise') && (
+                          {form.watch('clearApprise') && (
                             <span className="text-error text-xs ml-2">
                               (Disabled without Apprise endpoint)
                             </span>
@@ -267,14 +266,14 @@ const FormContent = ({
                           onCheckedChange={field.onChange}
                           disabled={
                             saveStatus !== 'idle' ||
-                            form.getValues('clearDiscordId')
+                            form.watch('clearDiscordId')
                           }
                         />
                       </FormControl>
                       <div className="leading-none">
                         <FormLabel className="text-foreground">
                           Enable Discord notifications
-                          {form.getValues('clearDiscordId') && (
+                          {form.watch('clearDiscordId') && (
                             <span className="text-error text-xs ml-2">
                               (Disabled without Discord ID)
                             </span>
@@ -327,14 +326,14 @@ const FormContent = ({
                           onCheckedChange={field.onChange}
                           disabled={
                             saveStatus !== 'idle' ||
-                            form.getValues('clearDiscordId')
+                            form.watch('clearDiscordId')
                           }
                         />
                       </FormControl>
                       <div className="leading-none">
                         <FormLabel className="text-foreground">
                           Include in public channel @mentions
-                          {form.getValues('clearDiscordId') && (
+                          {form.watch('clearDiscordId') && (
                             <span className="text-error text-xs ml-2">
                               (Disabled without Discord ID)
                             </span>
@@ -499,15 +498,15 @@ const FormContent = ({
             type="submit"
             disabled={
               saveStatus !== 'idle' ||
-              (!form.getValues('clearAlias') &&
-                !form.getValues('clearDiscordId') &&
-                !form.getValues('clearApprise') &&
-                !form.getValues('setAppriseNotify') &&
-                !form.getValues('setDiscordNotify') &&
-                !form.getValues('setDiscordMention') &&
-                !form.getValues('setTautulliNotify') &&
-                !form.getValues('setCanSync') &&
-                !form.getValues('setRequiresApproval'))
+              (!form.watch('clearAlias') &&
+                !form.watch('clearDiscordId') &&
+                !form.watch('clearApprise') &&
+                !form.watch('setAppriseNotify') &&
+                !form.watch('setDiscordNotify') &&
+                !form.watch('setDiscordMention') &&
+                !form.watch('setTautulliNotify') &&
+                !form.watch('setCanSync') &&
+                !form.watch('setRequiresApproval'))
             }
             className="min-w-25 flex items-center justify-center gap-2"
           >
