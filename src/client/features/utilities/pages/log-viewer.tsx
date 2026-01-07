@@ -532,6 +532,8 @@ export function LogViewerPage() {
               ref={logContainerRef}
               role="log"
               aria-label="Application logs"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable content needs keyboard focus
+              tabIndex={0}
               className="h-128 w-full overflow-auto whitespace-pre-wrap wrap-break-word font-base text-sm rounded-base border-2 border-border bg-secondary-background selection:bg-main selection:text-main-foreground px-3 py-2 text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
             >
               {filteredLogs.length > 0 ? (
