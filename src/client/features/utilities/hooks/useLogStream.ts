@@ -65,6 +65,7 @@ export function useLogStream(
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttempts = useRef(0)
+  const connectionCountRef = useRef(0)
   const maxReconnectAttempts = 5
 
   // Keep latest options to avoid stale closures during delayed reconnects
@@ -123,14 +124,16 @@ export function useLogStream(
 
       eventSource.onopen = () => {
         const wasReconnecting = reconnectAttempts.current > 0
+        const isFirstConnection = connectionCountRef.current === 0
         setIsConnected(true)
         setIsConnecting(false)
         setError(null)
-        setConnectionCount((prev) => prev + 1)
+        connectionCountRef.current += 1
+        setConnectionCount(connectionCountRef.current)
         reconnectAttempts.current = 0
 
         // Show success toast on first connection or after reconnect
-        if (wasReconnecting || connectionCount === 0) {
+        if (wasReconnecting || isFirstConnection) {
           toast.success('Connected to log stream')
         }
       }
@@ -196,7 +199,7 @@ export function useLogStream(
       setError(errorMessage)
       toast.error(`Failed to connect to log stream: ${errorMessage}`)
     }
-  }, [buildStreamUrl, disconnect, connectionCount])
+  }, [buildStreamUrl, disconnect])
 
   const pause = useCallback(() => {
     setIsPaused(true)
