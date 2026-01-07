@@ -10,6 +10,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
+import { CopyButton } from '@/components/CopyButton'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -22,7 +23,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Tooltip,
   TooltipContent,
@@ -45,13 +45,67 @@ const LOG_LEVELS: { value: ConfigLogLevel; label: string }[] = [
   { value: 'silent', label: 'Silent' },
 ]
 
-const formatTimestamp = (timestamp: string): string => {
-  try {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString('en-US', { hour12: false })
-  } catch {
-    return timestamp
+// Pino-pretty colors (matches colorette ANSI colors used by pino-pretty)
+// See: node_modules/pino-pretty/lib/colors.js
+// Uses darker shades for light mode, lighter for dark mode
+const LOG_LEVEL_COLORS: Record<string, string> = {
+  TRACE: 'text-gray-500 dark:text-gray-400', // gray
+  DEBUG: 'text-blue-600 dark:text-blue-400', // blue
+  INFO: 'text-green-600 dark:text-green-400', // green
+  WARN: 'text-yellow-600 dark:text-yellow-400', // yellow
+  ERROR: 'text-red-600 dark:text-red-400', // red
+  FATAL: 'text-white bg-red-500 px-0.5 rounded-sm', // bgRed
+}
+
+// Regex to match pino-pretty format: [HH:MM:ss TZ] LEVEL: [MODULE] message
+// Groups: 1=timestamp, 2=level, 3=colon, 4=rest (module + message)
+// Case-insensitive to match backend LOG_LEVEL_REGEX
+const LOG_LINE_REGEX =
+  /^(\[[\d:]+\s+\w+\])\s*(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)(:)\s*(.*)/i
+
+// Regex to extract module name like [PLEX_SESSION_MONITOR] from message
+// Includes digits to support names like [PLEX2]
+const MODULE_REGEX = /^(\[[A-Z0-9_]+\])\s*(.*)/i
+
+/**
+ * Colorizes a pino-pretty formatted log line to match terminal output
+ */
+function colorizeLogLine(line: string): React.ReactNode {
+  const match = LOG_LINE_REGEX.exec(line)
+  if (!match) {
+    return line
   }
+
+  const [, timestamp, level, colon, rest] = match
+  const levelUpper = level.toUpperCase()
+  const levelColor = LOG_LEVEL_COLORS[levelUpper] || ''
+
+  // Check if rest starts with a module name like [MODULE_NAME]
+  const moduleMatch = MODULE_REGEX.exec(rest)
+
+  if (moduleMatch) {
+    const [, moduleName, message] = moduleMatch
+    return (
+      <>
+        <span className="text-gray-500 dark:text-gray-400">{timestamp}</span>{' '}
+        <span className={levelColor}>{level}</span>
+        <span className="text-gray-600 dark:text-gray-500">{colon}</span>{' '}
+        <span className="text-fuchsia-600 dark:text-fuchsia-400">
+          {moduleName}
+        </span>{' '}
+        <span className="text-cyan-700 dark:text-cyan-300">{message}</span>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <span className="text-gray-500 dark:text-gray-400">{timestamp}</span>{' '}
+      <span className={levelColor}>{level}</span>
+      <span className="text-gray-600 dark:text-gray-500">{colon}</span>{' '}
+      <span className="text-cyan-700 dark:text-cyan-300">{rest}</span>
+    </>
+  )
 }
 
 /**
@@ -100,7 +154,7 @@ export function LogViewerPage() {
   const isInitializing = useInitializeWithMinDuration(initialize)
 
   // Auto-scroll ref - MUST be before conditional return
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const logContainerRef = useRef<HTMLPreElement>(null)
 
   // Filter logs first, then convert to text - MUST be before conditional return to avoid hook order issues
   const filteredLogs = logs.filter((log) => {
@@ -108,44 +162,29 @@ export function LogViewerPage() {
     return log.message.toLowerCase().includes(displayFilter.toLowerCase())
   })
 
-  const logsText = filteredLogs
-    .map(
-      (log) =>
-        `[${formatTimestamp(log.timestamp)}] ${log.level.toUpperCase()}${
-          log.module ? ` [${log.module}]` : ''
-        }: ${log.message}`,
-    )
-    .join('\n')
+  const logsText = filteredLogs.map((log) => log.message).join('\n')
 
   // Auto-scroll effect - MUST be before conditional return
+  // Debounced to handle rapid log arrivals on initial load (100 logs via SSE)
+  // Depends on isInitializing/isInitialized so it re-fires when skeleton goes away
   useEffect(() => {
-    if (logs.length > 0 && isAutoScroll) {
-      // Multiple attempts with increasing delays to ensure scroll happens
-      const timer1 = setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.scrollTop = textareaRef.current.scrollHeight
-        }
+    // Skip if skeleton is showing (ref won't be attached)
+    if (isInitializing || !isInitialized) return
+
+    if (filteredLogs.length > 0 && isAutoScroll && logContainerRef.current) {
+      // Debounce: wait for logs to stop arriving, then scroll
+      const timeoutId = setTimeout(() => {
+        requestAnimationFrame(() => {
+          if (logContainerRef.current) {
+            logContainerRef.current.scrollTop =
+              logContainerRef.current.scrollHeight
+          }
+        })
       }, 50)
 
-      const timer2 = setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.scrollTop = textareaRef.current.scrollHeight
-        }
-      }, 200)
-
-      const timer3 = setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.scrollTop = textareaRef.current.scrollHeight
-        }
-      }, 500)
-
-      return () => {
-        clearTimeout(timer1)
-        clearTimeout(timer2)
-        clearTimeout(timer3)
-      }
+      return () => clearTimeout(timeoutId)
     }
-  }, [isAutoScroll, logs.length])
+  }, [isAutoScroll, filteredLogs.length, isInitialized, isInitializing])
 
   // Helper function for minimum loading duration
   const setLoadingWithMinDuration = async (loadingFn: () => Promise<void>) => {
@@ -481,22 +520,40 @@ export function LogViewerPage() {
             </div>
           </div>
 
-          <Textarea
-            ref={textareaRef}
-            value={
-              logsText ||
-              (displayFilter && logs.length > 0
-                ? `No logs match filter "${displayFilter}"`
-                : isConnected && !isPaused
-                  ? 'No logs yet...'
-                  : isPaused
-                    ? 'Paused - click Resume to continue streaming'
-                    : 'Connecting to log stream...')
-            }
-            readOnly
-            className="h-128 font-mono text-sm resize-none"
-            placeholder="Logs will appear here when streaming..."
-          />
+          <div className="relative">
+            <CopyButton
+              text={logsText}
+              size="icon"
+              iconOnly
+              disabled={logsText.length === 0}
+              className="absolute top-2 right-2 md:right-6 z-10"
+            />
+            <pre
+              ref={logContainerRef}
+              role="log"
+              aria-label="Application logs"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable content needs keyboard focus
+              tabIndex={0}
+              className="h-128 w-full overflow-auto whitespace-pre-wrap wrap-break-word font-base text-sm rounded-base border-2 border-border bg-secondary-background selection:bg-main selection:text-main-foreground px-3 py-2 text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
+            >
+              {filteredLogs.length > 0 ? (
+                filteredLogs.map((log, index) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: logs are append-only, never reordered
+                  <div key={index}>{colorizeLogLine(log.message)}</div>
+                ))
+              ) : (
+                <span className="text-muted-foreground">
+                  {displayFilter && logs.length > 0
+                    ? `No logs match filter "${displayFilter}"`
+                    : isConnected && !isPaused
+                      ? 'No logs yet...'
+                      : isPaused
+                        ? 'Paused - click Resume to continue streaming'
+                        : 'Connecting to log stream...'}
+                </span>
+              )}
+            </pre>
+          </div>
         </div>
       </div>
     </div>
