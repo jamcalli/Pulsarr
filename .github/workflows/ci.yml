@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Cache Vitest
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: node_modules/.vite
           key: vitest-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
