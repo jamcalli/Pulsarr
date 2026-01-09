@@ -14,6 +14,7 @@ import type {
   SystemNotification,
 } from '@root/types/discord.types.js'
 import { getTmdbUrl } from '@root/utils/guid-handler.js'
+import { buildPosterUrl } from '@root/utils/poster-url.js'
 import type { DatabaseService } from '@services/database.service.js'
 import type { AppriseService } from '@services/notifications/channels/apprise.service.js'
 import type { DiscordWebhookService } from '@services/notifications/channels/discord-webhook.service.js'
@@ -513,7 +514,10 @@ async function fetchPosterUrls(
     const watchlistItems = await db.getWatchlistItemsByKeys(contentKeys)
     for (const item of watchlistItems) {
       if (item.thumb) {
-        posterMap.set(item.key, item.thumb)
+        const posterUrl = buildPosterUrl(item.thumb, 'notification')
+        if (posterUrl) {
+          posterMap.set(item.key, posterUrl)
+        }
       }
     }
   } catch (error) {
