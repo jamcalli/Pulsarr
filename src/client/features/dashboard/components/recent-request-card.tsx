@@ -12,6 +12,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { usePosterUrl } from '@/features/dashboard/hooks/usePosterUrl'
 import { cn } from '@/lib/utils'
 
@@ -22,12 +28,12 @@ interface RecentRequestCardProps {
 
 const STATUS_CONFIG = {
   pending_approval: {
-    label: 'Pending',
+    label: 'Awaiting Approval',
     variant: 'default' as const,
     className: 'bg-status-pending text-black hover:bg-status-pending',
   },
   pending: {
-    label: 'Requested',
+    label: 'Pending',
     variant: 'default' as const,
     className: 'bg-status-requested text-black hover:bg-status-requested',
   },
@@ -73,7 +79,11 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
   const [modalOpen, setModalOpen] = useState(false)
 
   const hasGuids = Boolean(item.guids?.length)
+  const hasInstances = item.allInstances.length > 0
   const hasMultipleInstances = item.allInstances.length > 1
+  // Show popover for multiple instances OR single instance when available
+  const showInstancePopover =
+    hasMultipleInstances || (hasInstances && item.status === 'available')
   const statusConfig = STATUS_CONFIG[item.status]
 
   // Use unified poster hook - fast path if thumb exists, fallback to TMDB fetch
@@ -101,7 +111,7 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
       className={cn(
         'absolute top-0 right-0 rounded-bl-md rounded-br-none rounded-tr-md rounded-tl-none',
         statusConfig.className,
-        hasMultipleInstances && 'cursor-pointer',
+        showInstancePopover && 'cursor-pointer',
       )}
     >
       {statusConfig.label}
@@ -135,7 +145,7 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
             </AspectRatio>
 
             {/* Status badge with optional instance popover */}
-            {hasMultipleInstances ? (
+            {showInstancePopover ? (
               <Popover>
                 <PopoverTrigger asChild>{StatusBadgeContent}</PopoverTrigger>
                 <PopoverContent
@@ -154,9 +164,6 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
                           {INSTANCE_STATUS_ICONS[instance.status] || '\u2022'}
                         </span>
                         <span>{instance.name}</span>
-                        <span className="text-muted-foreground">
-                          ({instance.status})
-                        </span>
                       </li>
                     ))}
                   </ul>
@@ -167,37 +174,53 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
             )}
 
             {/* Content type indicator */}
-            <Button
-              variant="neutralnoShadow"
-              size="sm"
-              className="absolute top-0 left-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none"
-              title={item.contentType === 'movie' ? 'Movie' : 'TV Show'}
-              aria-label={item.contentType === 'movie' ? 'Movie' : 'TV Show'}
-            >
-              {item.contentType === 'movie' ? (
-                <Monitor className="h-3 w-3" />
-              ) : (
-                <Tv className="h-3 w-3" />
-              )}
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="neutralnoShadow"
+                    size="sm"
+                    className="absolute top-0 left-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none"
+                    aria-label={
+                      item.contentType === 'movie' ? 'Movie' : 'TV Show'
+                    }
+                  >
+                    {item.contentType === 'movie' ? (
+                      <Monitor className="h-3 w-3" />
+                    ) : (
+                      <Tv className="h-3 w-3" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {item.contentType === 'movie' ? 'Movie' : 'TV Show'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             {/* Eye button for detail modal */}
             {hasGuids && (
-              <Button
-                variant="neutralnoShadow"
-                size="sm"
-                className="absolute bottom-0 right-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none cursor-pointer"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setModalOpen(true)
-                }}
-                title="View details"
-                aria-label="View detailed information"
-              >
-                <Eye className="h-3 w-3" />
-                <span className="sr-only">View detailed information</span>
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="neutralnoShadow"
+                      size="sm"
+                      className="absolute bottom-0 right-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none cursor-pointer"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setModalOpen(true)
+                      }}
+                      aria-label="View detailed information"
+                    >
+                      <Eye className="h-3 w-3" />
+                      <span className="sr-only">View detailed information</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>View details</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
 
