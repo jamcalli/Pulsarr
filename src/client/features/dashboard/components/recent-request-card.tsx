@@ -24,22 +24,22 @@ const STATUS_CONFIG = {
   pending_approval: {
     label: 'Pending',
     variant: 'default' as const,
-    className: 'bg-yellow-500 text-black hover:bg-yellow-500',
+    className: 'bg-status-pending text-black hover:bg-status-pending',
   },
   pending: {
-    label: 'Pending',
+    label: 'Requested',
     variant: 'default' as const,
-    className: 'bg-blue-500 text-black hover:bg-blue-500',
+    className: 'bg-status-requested text-black hover:bg-status-requested',
   },
   requested: {
     label: 'Requested',
     variant: 'default' as const,
-    className: 'bg-blue-500 text-black hover:bg-blue-500',
+    className: 'bg-status-requested text-black hover:bg-status-requested',
   },
   available: {
     label: 'Available',
     variant: 'default' as const,
-    className: 'bg-green-500 text-black hover:bg-green-500',
+    className: 'bg-status-available text-black hover:bg-status-available',
   },
 }
 
