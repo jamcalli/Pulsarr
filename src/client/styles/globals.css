@@ -25,6 +25,15 @@
   --color-orange: var(--orange);
   --color-blue: var(--blue);
 
+  /* Status colors */
+  --color-status-pending: var(--color-status-pending);
+  --color-status-approved: var(--color-status-approved);
+  --color-status-available: var(--color-status-available);
+  --color-status-requested: var(--color-status-requested);
+  --color-status-rejected: var(--color-status-rejected);
+  --color-status-expired: var(--color-status-expired);
+  --color-status-auto-approved: var(--color-status-auto-approved);
+
   --radius-base: 5px;
 
   --shadow-shadow: var(--shadow);
@@ -162,6 +171,15 @@
   --color-movie: #1a5999;
   --color-show: #39b978;
   --color-count: #f47b30;
+
+  /* Status colors */
+  --color-status-pending: #eab308;
+  --color-status-approved: #22c55e;
+  --color-status-available: #22c55e;
+  --color-status-requested: #3b82f6;
+  --color-status-rejected: #ef4444;
+  --color-status-expired: #9ca3af;
+  --color-status-auto-approved: #3b82f6;
 }
 
 .dark {
