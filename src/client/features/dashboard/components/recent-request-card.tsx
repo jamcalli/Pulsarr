@@ -1,6 +1,6 @@
 import type { RecentRequestItem } from '@root/schemas/dashboard/recent-requests.schema'
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
-import { Eye } from 'lucide-react'
+import { Eye, Monitor, Tv } from 'lucide-react'
 import { useState } from 'react'
 import { ContentDetailModal } from '@/components/content-detail-modal'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
@@ -165,6 +165,21 @@ export function RecentRequestCard({ item, className }: RecentRequestCardProps) {
             ) : (
               StatusBadgeContent
             )}
+
+            {/* Content type indicator */}
+            <Button
+              variant="neutralnoShadow"
+              size="sm"
+              className="absolute top-0 left-0 h-6 w-6 p-0 rounded-tl-md rounded-tr-none rounded-br-md rounded-bl-none"
+              title={item.contentType === 'movie' ? 'Movie' : 'TV Show'}
+              aria-label={item.contentType === 'movie' ? 'Movie' : 'TV Show'}
+            >
+              {item.contentType === 'movie' ? (
+                <Monitor className="h-3 w-3" />
+              ) : (
+                <Tv className="h-3 w-3" />
+              )}
+            </Button>
 
             {/* Eye button for detail modal */}
             {hasGuids && (
